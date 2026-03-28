@@ -1,6 +1,6 @@
 //! 批量查询部门
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/department/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/department/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

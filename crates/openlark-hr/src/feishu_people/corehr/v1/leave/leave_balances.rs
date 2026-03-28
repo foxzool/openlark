@@ -1,6 +1,6 @@
 //! 批量查询员工假期余额
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_balances
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_balances>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

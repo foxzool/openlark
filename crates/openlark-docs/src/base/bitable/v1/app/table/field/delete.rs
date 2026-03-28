@@ -1,6 +1,6 @@
 //! Bitable 删除字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

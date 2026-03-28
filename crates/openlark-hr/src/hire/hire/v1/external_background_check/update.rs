@@ -1,6 +1,6 @@
 //! 更新外部背调
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/external_background_check/update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/external_background_check/update>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

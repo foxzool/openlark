@@ -1,6 +1,6 @@
 //! 获取城市列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-city-list
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-city-list>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -29,7 +29,7 @@ impl ListDistrictRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-city-list
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-city-list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

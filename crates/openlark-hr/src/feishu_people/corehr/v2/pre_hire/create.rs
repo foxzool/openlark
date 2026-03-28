@@ -1,6 +1,6 @@
 //! 直接创建待入职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

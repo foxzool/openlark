@@ -1,6 +1,6 @@
 //! 更新单个职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_level/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_level/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

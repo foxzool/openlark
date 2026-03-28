@@ -2,7 +2,7 @@
 //!
 //! 该方法用于获取 wiki 异步任务的结果。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

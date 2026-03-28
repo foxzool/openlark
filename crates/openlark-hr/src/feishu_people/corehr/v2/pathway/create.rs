@@ -1,6 +1,6 @@
 //! 创建通道
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pathway/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pathway/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

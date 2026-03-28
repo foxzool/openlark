@@ -1,6 +1,6 @@
 //! 创建勋章授予名单 API
 //!
-//! API文档: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge-grant/create
+//! API文档: <https://open.feishu.cn/document/server-docs/admin-v1/badge/badge-grant/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

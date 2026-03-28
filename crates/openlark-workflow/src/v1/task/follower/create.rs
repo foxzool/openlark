@@ -1,6 +1,6 @@
 //! 创建任务关注者（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

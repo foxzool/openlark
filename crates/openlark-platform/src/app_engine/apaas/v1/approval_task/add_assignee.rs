@@ -1,6 +1,6 @@
 //! 人工任务加签 API
 //!
-//! API文档: https://open.feishu.cn/document/server-docs/apaas-v1/flow/user-task/add_assignee
+//! API文档: <https://open.feishu.cn/document/server-docs/apaas-v1/flow/user-task/add_assignee>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 查询排班表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/query
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

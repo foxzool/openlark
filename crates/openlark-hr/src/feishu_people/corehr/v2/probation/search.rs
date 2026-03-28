@@ -1,6 +1,6 @@
 //! 搜索试用期信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/probation/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/probation/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

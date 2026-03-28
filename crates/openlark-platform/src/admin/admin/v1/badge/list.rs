@@ -1,6 +1,6 @@
 //! 获取勋章列表 API
 //!
-//! API文档: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/list
+//! API文档: <https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/list>
 
 use crate::common::api_endpoints::AdminApiV1;
 use openlark_core::{

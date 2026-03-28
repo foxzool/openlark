@@ -1,6 +1,6 @@
 //! 添加日程参与人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -42,7 +42,7 @@ impl CreateCalendarEventAttendeeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await

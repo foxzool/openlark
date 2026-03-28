@@ -1,6 +1,6 @@
 //! 创建兼职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employees.additional_job/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.additional_job/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

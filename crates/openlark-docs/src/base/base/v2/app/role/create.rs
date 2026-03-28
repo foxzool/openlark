@@ -1,6 +1,6 @@
 //! 新增自定义角色
 //!
-//! docPath: https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/create-2
+//! docPath: <https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/create-2>
 
 use crate::base::base::v2::models::AppRole;
 use openlark_core::{

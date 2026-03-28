@@ -3,7 +3,7 @@
 //! 语音流式接口，将整个音频文件分片进行传入模型。
 //! 能够实时返回数据。建议每个音频分片的大小为 100-200ms。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/stream_recognize
+//! docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/stream_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -203,7 +203,7 @@ impl StreamRecognizeRequestBuilder {
 
 /// 执行流式语音识别
 ///
-/// docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/stream_recognize
+/// docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/stream_recognize>
 pub async fn stream_recognize(
     config: &Config,
     body: StreamRecognizeBody,

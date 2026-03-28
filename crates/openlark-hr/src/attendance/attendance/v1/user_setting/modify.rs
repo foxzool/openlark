@@ -1,6 +1,6 @@
 //! 修改用户人脸识别信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_setting/modify
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_setting/modify>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

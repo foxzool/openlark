@@ -1,6 +1,6 @@
 //! 获取任务评论详情（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskcomment/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskcomment/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

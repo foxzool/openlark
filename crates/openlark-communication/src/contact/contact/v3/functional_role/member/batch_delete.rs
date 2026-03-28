@@ -1,6 +1,6 @@
 //! 删除角色下的成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -89,7 +89,7 @@ impl BatchDeleteRoleMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete>
     pub async fn execute(
         self,
         body: BatchDeleteMembersBody,

@@ -1,6 +1,6 @@
 //! 获取内推信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral/get_by_application
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral/get_by_application>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

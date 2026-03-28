@@ -1,6 +1,6 @@
 //! 取消订阅日程变更事件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/unsubscription
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/unsubscription>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport,
     req_option::RequestOption, validate_required, SDKResult};
@@ -31,7 +31,7 @@ impl UnsubscriptionCalendarEventRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/unsubscription
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/unsubscription>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         validate_required!(self.calendar_id, "calendar_id 不能为空");
 

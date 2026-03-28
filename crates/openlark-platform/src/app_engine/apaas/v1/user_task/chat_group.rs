@@ -1,6 +1,6 @@
 //! 基于人工任务发起群聊
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/flow/user-task/chat_group
+//! 文档: <https://open.feishu.cn/document/apaas-v1/flow/user-task/chat_group>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

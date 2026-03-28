@@ -1,6 +1,6 @@
 //! 通过/拒绝审批任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process.approver/update
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process.approver/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

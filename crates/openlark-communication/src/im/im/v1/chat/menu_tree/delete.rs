@@ -1,6 +1,6 @@
 //! 删除群菜单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-menu_tree/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-menu_tree/delete>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -34,7 +34,7 @@ impl DeleteChatMenuTreeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-menu_tree/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-menu_tree/delete>
     pub async fn execute(self, body: ChatMenuTopLevelIdsBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

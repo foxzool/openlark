@@ -1,6 +1,6 @@
 //! 删除公司
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/company/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/company/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量创建/更新明细行
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail_row/batchSave
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail_row/batchSave>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

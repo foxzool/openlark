@@ -1,6 +1,6 @@
 //! 添加地点地址
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/location.address/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/location.address/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

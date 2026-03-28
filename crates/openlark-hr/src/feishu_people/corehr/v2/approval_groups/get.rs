@@ -1,6 +1,6 @@
 //! 根据流程 ID 查询组织架构调整记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/approval_groups/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/approval_groups/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

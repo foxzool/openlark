@@ -1,7 +1,7 @@
 //! 获取登录预授权码 API
 use crate::models::oauth::*;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/obtain-code
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/obtain-code>
 ///
 /// 应用请求用户身份验证时，需构造登录链接，并引导用户跳转至此链接。
 /// 用户登录成功后会生成登录预授权码 code，并作为参数追加到重定向URL。

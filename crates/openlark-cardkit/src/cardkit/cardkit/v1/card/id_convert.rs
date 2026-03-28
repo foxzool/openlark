@@ -1,6 +1,6 @@
 //! 转换 ID
 //!
-//! docPath: https://open.feishu.cn/document/historic-version/id_convert
+//! docPath: <https://open.feishu.cn/document/historic-version/id_convert>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -46,7 +46,7 @@ impl ConvertCardIdRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/historic-version/id_convert
+    /// docPath: <https://open.feishu.cn/document/historic-version/id_convert>
     pub async fn execute(self, body: ConvertCardIdBody) -> SDKResult<ConvertCardIdResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -54,7 +54,7 @@ impl ConvertCardIdRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/historic-version/id_convert
+    /// docPath: <https://open.feishu.cn/document/historic-version/id_convert>
     pub async fn execute_with_options(
         self,
         body: ConvertCardIdBody,
@@ -135,14 +135,14 @@ impl ConvertCardIdRequestBuilder {
 
 /// 执行请求
 ///
-/// docPath: https://open.feishu.cn/document/historic-version/id_convert
+/// docPath: <https://open.feishu.cn/document/historic-version/id_convert>
 pub async fn convert(config: &Config, body: ConvertCardIdBody) -> SDKResult<ConvertCardIdResponse> {
     convert_with_options(config, body, RequestOption::default()).await
 }
 
 /// 执行请求（支持自定义选项）
 ///
-/// docPath: https://open.feishu.cn/document/historic-version/id_convert
+/// docPath: <https://open.feishu.cn/document/historic-version/id_convert>
 pub async fn convert_with_options(
     config: &Config,
     body: ConvertCardIdBody,

@@ -1,6 +1,6 @@
 //! 更新应用消息流卡片
 //!
-//! docPath: https://open.feishu.cn/document/im-v2/app_feed_card/update
+//! docPath: <https://open.feishu.cn/document/im-v2/app_feed_card/update>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -34,7 +34,7 @@ impl UpdateAppFeedCardsRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/im-v2/app_feed_card/update
+    /// docPath: <https://open.feishu.cn/document/im-v2/app_feed_card/update>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

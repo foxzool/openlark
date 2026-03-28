@@ -1,6 +1,6 @@
 //! 获取数据知识分类列表
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/list-2
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/list-2>
 
 use std::collections::HashMap;
 
@@ -60,7 +60,7 @@ impl ListDataAssetTagsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/list-2
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/list-2>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 封存发薪活动
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity/archive
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity/archive>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

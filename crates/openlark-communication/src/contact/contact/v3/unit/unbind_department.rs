@@ -1,6 +1,6 @@
 //! 解除部门与单位的绑定关系
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/unbind_department
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/unbind_department>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -37,7 +37,7 @@ impl UnbindDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/unbind_department
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/unbind_department>
     pub async fn execute(self, body: UnbindDepartmentBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

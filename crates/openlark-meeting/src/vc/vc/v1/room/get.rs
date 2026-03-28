@@ -1,6 +1,6 @@
 //! 查询会议室详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -81,7 +81,7 @@ impl GetRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/get>
     pub async fn execute(self) -> SDKResult<GetRoomResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

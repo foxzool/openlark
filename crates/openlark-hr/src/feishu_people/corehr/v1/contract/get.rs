@@ -1,6 +1,6 @@
 //! 查询单个合同
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/contract/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/contract/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

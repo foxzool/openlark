@@ -1,6 +1,6 @@
 //! 获取预约
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -71,7 +71,7 @@ impl GetReserveRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get>
     pub async fn execute(self) -> SDKResult<GetReserveResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

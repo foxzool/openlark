@@ -1,6 +1,6 @@
 //! 获取工作日历日期详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave/work_calendar_date
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave/work_calendar_date>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

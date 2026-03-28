@@ -1,6 +1,6 @@
 //! 关闭职位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/close
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/close>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

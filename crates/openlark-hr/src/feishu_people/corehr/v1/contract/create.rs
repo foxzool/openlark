@@ -1,6 +1,6 @@
 //! 新建合同
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/contract/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/contract/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

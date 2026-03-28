@@ -1,6 +1,6 @@
 //! 修改 OKR 周期状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/period/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/period/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 获取妙记统计数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/minutes-v1/minute-statistics/get
+//! docPath: <https://open.feishu.cn/document/server-docs/minutes-v1/minute-statistics/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -2,7 +2,7 @@
 //!
 //! 获取知识库的图片。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/faq_image
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/faq_image>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

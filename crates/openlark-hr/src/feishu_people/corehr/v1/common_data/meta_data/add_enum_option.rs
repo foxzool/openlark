@@ -1,6 +1,6 @@
 //! 增加字段枚举值选项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/common_data.meta_data/add_enum_option
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/common_data.meta_data/add_enum_option>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

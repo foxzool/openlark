@@ -1,6 +1,6 @@
 //! 更新员工状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/employee/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/employee/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

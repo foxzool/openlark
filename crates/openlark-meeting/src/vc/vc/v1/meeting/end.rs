@@ -1,6 +1,6 @@
 //! 结束会议
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/end
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/end>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -52,7 +52,7 @@ impl EndMeetingRequest {
     ///
     /// 说明：如文档不要求请求体，可传入空对象 `{}`。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/end
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/end>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<EndMeetingResponse> {
         self.execute_with_options(body, RequestOption::default()).await
     }

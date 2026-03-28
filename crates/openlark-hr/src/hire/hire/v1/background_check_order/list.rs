@@ -1,6 +1,6 @@
 //! 获取背调信息列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/background_check_order/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/background_check_order/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

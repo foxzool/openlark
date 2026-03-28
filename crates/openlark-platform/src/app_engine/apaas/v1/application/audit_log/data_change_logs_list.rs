@@ -1,6 +1,6 @@
 //! 查询数据变更日志列表
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_logs_list
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_logs_list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

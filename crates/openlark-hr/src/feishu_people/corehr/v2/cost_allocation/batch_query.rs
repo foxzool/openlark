@@ -1,6 +1,6 @@
 //! 查询成本分摊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/batch_query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

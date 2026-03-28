@@ -1,6 +1,6 @@
 //! 获取打卡流水
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_flow/get
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_flow/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

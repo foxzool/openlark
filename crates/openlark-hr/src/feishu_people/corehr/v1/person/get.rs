@@ -1,6 +1,6 @@
 //! 查询单个个人信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/person/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/person/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 获取面试评价详细信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/interview_record/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/interview_record/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

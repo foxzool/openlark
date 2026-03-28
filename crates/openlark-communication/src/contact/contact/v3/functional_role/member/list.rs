@@ -1,6 +1,6 @@
 //! 查询角色下的所有成员信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -76,7 +76,7 @@ impl ListRoleMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/list>
     pub async fn execute(self) -> SDKResult<ListMembersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

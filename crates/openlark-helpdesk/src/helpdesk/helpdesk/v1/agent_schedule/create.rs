@@ -2,7 +2,7 @@
 //!
 //! 为指定客服创建工作日程。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/create
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

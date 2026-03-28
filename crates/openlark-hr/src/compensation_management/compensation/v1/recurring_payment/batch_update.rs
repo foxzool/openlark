@@ -1,6 +1,6 @@
 //! 批量更正经常性支付记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/recurring_payment/batch_update
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/recurring_payment/batch_update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 删除任务关注者（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

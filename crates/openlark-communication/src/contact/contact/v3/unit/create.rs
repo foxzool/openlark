@@ -1,6 +1,6 @@
 //! 创建单位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -37,7 +37,7 @@ impl CreateUnitRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/create>
     pub async fn execute(self, body: CreateUnitBody) -> SDKResult<CreateUnitResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 添加跟随气泡
 //!
-//! docPath: https://open.feishu.cn/document/im-v1/message/push_follow_up
+//! docPath: <https://open.feishu.cn/document/im-v1/message/push_follow_up>
 
 use openlark_core::{
     api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
@@ -110,7 +110,7 @@ impl PushFollowUpRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v1/message/push_follow_up
+    /// docPath: <https://open.feishu.cn/document/im-v1/message/push_follow_up>
     pub async fn execute(self, body: PushFollowUpBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

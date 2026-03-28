@@ -2,7 +2,7 @@
 //!
 //! 为文件或文件夹添加协作者权限。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

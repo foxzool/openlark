@@ -1,6 +1,6 @@
 //! 查询员工 HRBP / 属地 BP
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employees.bp/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.bp/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

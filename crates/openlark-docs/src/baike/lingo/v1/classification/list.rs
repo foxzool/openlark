@@ -1,6 +1,6 @@
 //! 获取词典分类
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/classification/list
+//! docPath: <https://open.feishu.cn/document/lingo-v1/classification/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},

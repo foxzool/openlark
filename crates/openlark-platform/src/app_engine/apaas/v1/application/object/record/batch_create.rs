@@ -1,6 +1,6 @@
 //! 批量新建记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/batch_create
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/batch_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

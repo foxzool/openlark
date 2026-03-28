@@ -1,6 +1,6 @@
 //! 查询部门 / 地点的 HRBP / 属地 BP
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/security_group/query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/security_group/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

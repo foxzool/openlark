@@ -2,7 +2,7 @@
 //!
 //! 通过服务台机器人给指定用户的服务台专属群或私聊发送消息，支持文本、富文本、卡片、图片。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/create-2
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/create-2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

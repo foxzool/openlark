@@ -1,6 +1,6 @@
 //! 创建部门
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/department/create
+//! 文档: <https://open.feishu.cn/document/directory-v1/department/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

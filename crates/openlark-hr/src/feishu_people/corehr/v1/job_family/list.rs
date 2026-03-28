@@ -1,6 +1,6 @@
 //! 批量查询序列
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_family/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_family/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

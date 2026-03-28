@@ -1,6 +1,6 @@
 //! 获取面试速记明细
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/minutes/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/minutes/get>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

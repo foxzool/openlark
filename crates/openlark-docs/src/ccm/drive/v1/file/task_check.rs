@@ -2,7 +2,7 @@
 //!
 //! 查询异步任务状态，用于获取长时间运行任务的执行结果。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/async-task/task_check
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/async-task/task_check>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

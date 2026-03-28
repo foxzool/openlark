@@ -1,6 +1,6 @@
 //! 获取职能分类列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job_function/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job_function/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 创建序列
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_family/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_family/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -2,7 +2,7 @@
 //!
 //! 识别驾驶证中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/driving_license_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/driving_license_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -172,7 +172,7 @@ impl DrivingLicenseRecognizeRequestBuilder {
 
 /// 执行驾驶证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/driving_license_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/driving_license_recognize>
 pub async fn driving_license_recognize(
     config: &Config,
     body: DrivingLicenseRecognizeBody,

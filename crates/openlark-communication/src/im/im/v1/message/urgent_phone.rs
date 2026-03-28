@@ -1,6 +1,6 @@
 //! 发送电话加急
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_phone
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_phone>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -115,7 +115,7 @@ impl UrgentPhoneRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_phone
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_phone>
     pub async fn execute(self, body: UrgentPhoneBody) -> SDKResult<UrgentPhoneResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 更新 OKR 进展记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/progress_record/update
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/progress_record/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

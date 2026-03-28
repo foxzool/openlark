@@ -1,6 +1,6 @@
 //! 更新已发送的消息卡片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -65,7 +65,7 @@ impl PatchMessageCardRequest {
     /// 1) `{"content": "..."}` 传入卡片 JSON（需为 JSON 序列化后的字符串）
     /// 2) `{"type":"template","data":{...}}` 传入卡片模板（搭建工具）
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

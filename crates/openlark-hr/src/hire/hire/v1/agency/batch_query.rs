@@ -1,6 +1,6 @@
 //! 搜索猎头供应商列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/agency/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/agency/batch_query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

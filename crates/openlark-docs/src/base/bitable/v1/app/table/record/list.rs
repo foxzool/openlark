@@ -1,6 +1,6 @@
 //! Bitable 列出记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -2,7 +2,7 @@
 //!
 //! 移除文件或文件夹中指定协作者的权限。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

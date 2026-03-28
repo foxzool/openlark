@@ -1,6 +1,6 @@
 //! 查询时区信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.time_zone/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.time_zone/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

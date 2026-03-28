@@ -1,6 +1,6 @@
 //! 批量查询外部算薪数据记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/query
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

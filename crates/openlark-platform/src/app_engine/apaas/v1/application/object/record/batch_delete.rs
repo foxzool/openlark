@@ -1,6 +1,6 @@
 //! 批量删除记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/batch_delete
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/batch_delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

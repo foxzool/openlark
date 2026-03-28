@@ -1,6 +1,6 @@
 //! 搜索成本中心信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_center/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_center/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

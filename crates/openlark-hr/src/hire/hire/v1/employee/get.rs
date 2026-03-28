@@ -1,6 +1,6 @@
 //! 通过员工 ID 获取入职信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/employee/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/employee/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

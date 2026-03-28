@@ -1,6 +1,6 @@
 //! 批量获取薪资项分类信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/item_category/list
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/item_category/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

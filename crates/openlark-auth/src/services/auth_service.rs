@@ -22,7 +22,7 @@ use openlark_core::config::Config;
 /// let config = Config::builder()
 ///     .app_id("your_app_id")
 ///     .app_secret("your_app_secret")
-///     .base_url("https://open.feishu.cn")
+///     .base_url("<https://open.feishu.cn")>
 ///     .build();
 /// let auth_service = AuthService::new(config);
 ///

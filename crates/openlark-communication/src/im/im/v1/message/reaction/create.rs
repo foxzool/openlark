@@ -1,6 +1,6 @@
 //! 添加消息表情回复
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -50,7 +50,7 @@ impl CreateMessageReactionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create>
     pub async fn execute(self, body: CreateMessageReactionBody) -> SDKResult<MessageReaction> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

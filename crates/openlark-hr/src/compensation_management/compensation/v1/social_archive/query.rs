@@ -1,6 +1,6 @@
 //! 批量获取员工参保档案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/social_archive/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/social_archive/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

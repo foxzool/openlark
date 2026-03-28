@@ -1,6 +1,6 @@
 //! 下载人员的附件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/ehr-v1/attachment/get
+//! docPath: <https://open.feishu.cn/document/server-docs/ehr-v1/attachment/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

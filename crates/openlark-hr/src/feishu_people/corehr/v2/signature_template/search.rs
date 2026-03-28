@@ -1,6 +1,6 @@
 //! 获取电子签模板内容
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/signature_template/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/signature_template/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

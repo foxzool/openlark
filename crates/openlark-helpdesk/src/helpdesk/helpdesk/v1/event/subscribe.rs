@@ -2,7 +2,7 @@
 //!
 //! 本接口用于订阅服务台事件。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/event/subscribe
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/event/subscribe>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

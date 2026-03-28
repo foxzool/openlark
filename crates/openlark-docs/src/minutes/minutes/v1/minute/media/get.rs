@@ -1,6 +1,6 @@
 //! 下载妙记音视频文件
 //!
-//! docPath: https://open.feishu.cn/document/minutes-v1/minute-media/get
+//! docPath: <https://open.feishu.cn/document/minutes-v1/minute-media/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

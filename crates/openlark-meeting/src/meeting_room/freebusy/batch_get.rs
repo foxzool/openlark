@@ -1,6 +1,6 @@
 //! 查询会议室忙闲
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/query-room-availability
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/query-room-availability>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -31,7 +31,7 @@ impl BatchGetFreebusyRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/query-room-availability
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/query-room-availability>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -1,6 +1,6 @@
 //! 查看指定审批定义（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval/get
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/approval/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

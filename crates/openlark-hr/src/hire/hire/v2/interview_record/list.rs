@@ -1,6 +1,6 @@
 //! 批量获取面试评价详细信息（新版）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v2/interview_record/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v2/interview_record/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

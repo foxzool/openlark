@@ -2,7 +2,7 @@
 //!
 //! 搜索 Wiki，用户通过关键词查询 Wiki，只能查找自己可见的 Wiki。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/search_wiki
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/search_wiki>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

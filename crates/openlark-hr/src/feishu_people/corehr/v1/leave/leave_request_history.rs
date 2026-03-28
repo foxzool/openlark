@@ -1,6 +1,6 @@
 //! 批量查询员工请假记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_request_history
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_request_history>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

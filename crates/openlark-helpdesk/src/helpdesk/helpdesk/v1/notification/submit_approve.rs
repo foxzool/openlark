@@ -2,7 +2,7 @@
 //!
 //! 提交推送通知审核。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/submit_approve
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/submit_approve>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

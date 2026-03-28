@@ -1,6 +1,6 @@
 //! 更新待离职成员为在职
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/employee/regular
+//! 文档: <https://open.feishu.cn/document/directory-v1/employee/regular>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

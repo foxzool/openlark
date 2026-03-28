@@ -1,6 +1,6 @@
 //! 查询记录列表
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/batch_query
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/batch_query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

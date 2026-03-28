@@ -1,6 +1,6 @@
 //! 批量查询部门操作日志
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/department/query_operation_logs
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/department/query_operation_logs>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

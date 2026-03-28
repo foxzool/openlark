@@ -1,6 +1,6 @@
 //! 查询 Exchange 账户的绑定状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/get
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -31,7 +31,7 @@ impl GetExchangeBindingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

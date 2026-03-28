@@ -1,6 +1,6 @@
 //! 删除假期发放记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave_granting_record/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave_granting_record/delete>
 
 use openlark_core::{
     api::ApiRequest,

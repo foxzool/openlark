@@ -2,7 +2,7 @@
 //!
 //! 识别银行卡中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/bank_card_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/bank_card_recognize>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_BANK_CARD_RECOGNIZE;
@@ -148,7 +148,7 @@ impl BankCardRecognizeRequestBuilder {
 
 /// 执行银行卡识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/bank_card_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/bank_card_recognize>
 pub fn create(config: Config) -> BankCardRecognizeRequestBuilder {
     BankCardRecognizeRequestBuilder::new(config)
 }

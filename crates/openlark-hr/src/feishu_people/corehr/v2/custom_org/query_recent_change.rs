@@ -1,6 +1,6 @@
 //! 查询当前生效信息变更的自定义组织
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/query_recent_change
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/query_recent_change>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

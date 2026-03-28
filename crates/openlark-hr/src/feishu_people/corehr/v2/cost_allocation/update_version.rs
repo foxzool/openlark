@@ -1,6 +1,6 @@
 //! 更新成本分摊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/update_version
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/update_version>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

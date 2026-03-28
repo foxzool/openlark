@@ -1,6 +1,6 @@
 //! 精准搜索词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/match
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/match>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},

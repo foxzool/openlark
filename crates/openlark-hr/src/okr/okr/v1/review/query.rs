@@ -1,6 +1,6 @@
 //! 查询复盘信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/review/query
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/review/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

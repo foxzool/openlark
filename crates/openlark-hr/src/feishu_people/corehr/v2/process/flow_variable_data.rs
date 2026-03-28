@@ -1,6 +1,6 @@
 //! 获取流程数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process/flow_variable_data
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process/flow_variable_data>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

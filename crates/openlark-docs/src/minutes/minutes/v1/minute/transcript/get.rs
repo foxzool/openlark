@@ -1,6 +1,6 @@
 //! 导出妙记文字记录
 //!
-//! docPath: https://open.feishu.cn/document/minutes-v1/minute-transcript/get
+//! docPath: <https://open.feishu.cn/document/minutes-v1/minute-transcript/get>
 
 use openlark_core::{
     api::{ApiRequest, Response},

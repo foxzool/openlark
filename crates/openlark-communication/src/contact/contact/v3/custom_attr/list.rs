@@ -1,6 +1,6 @@
 //! 获取企业自定义用户字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/custom_attr/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/custom_attr/list>
 
 use std::collections::HashMap;
 
@@ -74,7 +74,7 @@ impl ListCustomAttrsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/custom_attr/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/custom_attr/list>
     pub async fn execute(self) -> SDKResult<ListCustomAttrsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

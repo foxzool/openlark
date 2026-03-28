@@ -2,7 +2,7 @@
 //!
 //! 识别中国护照中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/chinese_passport_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/chinese_passport_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -169,7 +169,7 @@ impl ChinesePassportRecognizeRequestBuilder {
 
 /// 执行中国护照识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/chinese_passport_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/chinese_passport_recognize>
 pub async fn chinese_passport_recognize(
     config: &Config,
     body: ChinesePassportRecognizeBody,

@@ -1,6 +1,6 @@
 //! 流转入职任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/transit_task
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/transit_task>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

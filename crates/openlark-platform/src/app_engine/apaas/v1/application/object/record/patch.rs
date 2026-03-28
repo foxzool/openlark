@@ -1,6 +1,6 @@
 //! 编辑记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/patch
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

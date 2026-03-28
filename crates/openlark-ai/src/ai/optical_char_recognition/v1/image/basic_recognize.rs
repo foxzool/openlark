@@ -2,7 +2,7 @@
 //!
 //! 基础的 OCR 文字识别服务，将图片中的文字转换为可编辑文本。
 //!
-//! docPath: https://open.feishu.cn/document/optical-char-recognition-v1/basic_recognize
+//! docPath: <https://open.feishu.cn/document/optical-char-recognition-v1/basic_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -186,7 +186,7 @@ impl BasicRecognizeRequestBuilder {
 
 /// 执行 OCR 基础识别
 ///
-/// docPath: https://open.feishu.cn/document/optical-char-recognition-v1/basic_recognize
+/// docPath: <https://open.feishu.cn/document/optical-char-recognition-v1/basic_recognize>
 pub async fn basic_recognize(
     config: &Config,
     body: BasicRecognizeBody,

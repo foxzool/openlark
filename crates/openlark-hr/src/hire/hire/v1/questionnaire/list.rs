@@ -1,6 +1,6 @@
 //! 获取面试满意度问卷列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/questionnaire/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/questionnaire/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

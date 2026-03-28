@@ -1,6 +1,6 @@
 //! 根据简历附件创建招聘官网投递任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/website.delivery/create_by_attachment
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/website.delivery/create_by_attachment>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

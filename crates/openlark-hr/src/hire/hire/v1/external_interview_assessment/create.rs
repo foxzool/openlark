@@ -1,6 +1,6 @@
 //! 创建外部面评
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/external_interview_assessment/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/external_interview_assessment/create>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

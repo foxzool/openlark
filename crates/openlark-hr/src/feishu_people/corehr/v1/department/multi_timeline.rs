@@ -1,6 +1,6 @@
 //! 查询多时间轴
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/department/query_multi_timeline
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/department/query_multi_timeline>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

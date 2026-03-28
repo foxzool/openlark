@@ -1,6 +1,6 @@
 //! 批量获取用户信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/user/batch
+//! docPath: <https://open.feishu.cn/document/contact-v3/user/batch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -86,7 +86,7 @@ impl BatchGetUsersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/user/batch
+    /// docPath: <https://open.feishu.cn/document/contact-v3/user/batch>
     pub async fn execute(self) -> SDKResult<BatchGetUsersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 查询经常性支付记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/recurring_payment/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/recurring_payment/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

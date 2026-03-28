@@ -1,6 +1,6 @@
 //! 获取假期类型列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_types
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave/leave_types>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

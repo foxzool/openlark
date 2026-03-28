@@ -1,6 +1,6 @@
 //! 拒绝审批任务（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/task/reject
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/task/reject>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

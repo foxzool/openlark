@@ -2,7 +2,7 @@
 //!
 //! 获取指定源文档的指定版本信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/get>
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};

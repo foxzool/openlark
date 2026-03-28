@@ -1,6 +1,6 @@
 //! 获取关联组织双方共享成员范围
 //!
-//! 文档: https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/list-3
+//! 文档: <https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/list-3>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

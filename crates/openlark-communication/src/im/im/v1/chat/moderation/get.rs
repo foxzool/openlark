@@ -1,6 +1,6 @@
 //! 获取群成员发言权限
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/get
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -60,7 +60,7 @@ impl GetChatModerationRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/get>
     pub async fn execute(self) -> SDKResult<GetChatModerationResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

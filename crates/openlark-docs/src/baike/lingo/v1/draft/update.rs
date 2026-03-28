@@ -1,6 +1,6 @@
 //! 更新草稿
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/draft/update
+//! docPath: <https://open.feishu.cn/document/lingo-v1/draft/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},

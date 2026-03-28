@@ -1,6 +1,6 @@
 //! Bitable 复制多维表格API
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/copy
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/copy>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 撤销流程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process_revoke/update
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process_revoke/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

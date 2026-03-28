@@ -1,6 +1,6 @@
 //! 操作员工完成入职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/complete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/complete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

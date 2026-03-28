@@ -1,6 +1,6 @@
 //! 更新员工信息
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/employee/patch
+//! 文档: <https://open.feishu.cn/document/directory-v1/employee/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

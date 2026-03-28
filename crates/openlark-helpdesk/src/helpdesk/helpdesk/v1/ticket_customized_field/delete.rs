@@ -2,7 +2,7 @@
 //!
 //! 删除指定的工单自定义字段。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/delete>
 
 use openlark_core::{
     api::ApiRequest,

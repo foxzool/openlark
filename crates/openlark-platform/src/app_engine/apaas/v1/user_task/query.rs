@@ -1,6 +1,6 @@
 //! 查询人工任务
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/flow/user-task/query
+//! 文档: <https://open.feishu.cn/document/apaas-v1/flow/user-task/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

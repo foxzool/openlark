@@ -2,7 +2,7 @@
 //!
 //! 识别健康证信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/health_certificate_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/health_certificate_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -160,7 +160,7 @@ impl HealthCertificateRecognizeRequestBuilder {
 
 /// 执行健康证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/health_certificate_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/health_certificate_recognize>
 pub async fn health_certificate_recognize(
     config: &Config,
     body: HealthCertificateRecognizeBody,

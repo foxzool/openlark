@@ -1,6 +1,6 @@
 //! 添加清单成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-add_members/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-add_members/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{

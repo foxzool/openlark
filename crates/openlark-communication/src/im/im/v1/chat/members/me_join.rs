@@ -1,6 +1,6 @@
 //! 用户或机器人主动加入群聊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/me_join
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/me_join>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -32,7 +32,7 @@ impl MeJoinChatMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/me_join
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/me_join>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

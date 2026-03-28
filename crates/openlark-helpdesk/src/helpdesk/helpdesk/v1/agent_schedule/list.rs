@@ -2,7 +2,7 @@
 //!
 ////! 获取所有客服的工作日程列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/list
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

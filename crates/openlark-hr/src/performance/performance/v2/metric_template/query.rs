@@ -1,6 +1,6 @@
 //! 获取指标模板列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/metric_template/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/metric_template/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

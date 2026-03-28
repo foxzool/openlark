@@ -1,6 +1,6 @@
 //! 创建勋章 API
 //!
-//! API文档: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/create
+//! API文档: <https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/create>
 
 use crate::common::api_endpoints::AdminApiV1;
 use openlark_core::{

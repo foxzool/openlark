@@ -1,6 +1,6 @@
 //! 查询统计字段定义
 //!
-//! docPath: https://open.feishu.cn/document/attendance-v1/user_stats_field/query
+//! docPath: <https://open.feishu.cn/document/attendance-v1/user_stats_field/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

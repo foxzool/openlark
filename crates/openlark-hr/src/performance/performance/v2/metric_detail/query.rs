@@ -1,6 +1,6 @@
 //! 获取被评估人关键指标结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/metric_detail/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/metric_detail/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

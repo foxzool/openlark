@@ -1,6 +1,6 @@
 //! 搜索记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/search
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

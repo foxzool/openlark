@@ -1,6 +1,6 @@
 //! 获取技能信息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/get
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/get>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILL};
 use openlark_core::{
@@ -54,7 +54,7 @@ impl GetSkillRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/get
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

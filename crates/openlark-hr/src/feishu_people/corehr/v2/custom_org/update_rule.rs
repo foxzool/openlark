@@ -1,6 +1,6 @@
 //! 更新自定义组织的匹配规则
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/update_rule
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/update_rule>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

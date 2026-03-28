@@ -1,6 +1,6 @@
 //! 查询地点列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/location/query
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/location/query>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

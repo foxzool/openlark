@@ -2,7 +2,7 @@
 //!
 //! 上传分片全部完成后，调用该接口触发完成上传。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_finish
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_finish>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

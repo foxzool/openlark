@@ -1,6 +1,6 @@
 //! 回复消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/reply
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/reply>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -83,7 +83,7 @@ impl ReplyMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/reply
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/reply>
     pub async fn execute(self, body: ReplyMessageBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

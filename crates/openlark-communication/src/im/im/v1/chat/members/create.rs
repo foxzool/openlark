@@ -1,6 +1,6 @@
 //! 将用户或机器人拉入群聊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/create
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -52,7 +52,7 @@ impl CreateChatMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/create>
     pub async fn execute(
         self,
         body: CreateChatMembersBody,

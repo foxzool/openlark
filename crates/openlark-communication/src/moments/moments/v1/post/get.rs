@@ -1,6 +1,6 @@
 //! 查询帖子信息
 //!
-//! docPath: https://open.feishu.cn/document/moments-v1/post/get
+//! docPath: <https://open.feishu.cn/document/moments-v1/post/get>
 
 use std::collections::HashMap;
 
@@ -87,7 +87,7 @@ impl GetPostRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/moments-v1/post/get
+    /// docPath: <https://open.feishu.cn/document/moments-v1/post/get>
     pub async fn execute(self) -> SDKResult<GetPostResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

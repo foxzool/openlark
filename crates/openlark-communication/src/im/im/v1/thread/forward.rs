@@ -1,6 +1,6 @@
 //! 转发话题
 //!
-//! docPath: https://open.feishu.cn/document/im-v1/message/forward-2
+//! docPath: <https://open.feishu.cn/document/im-v1/message/forward-2>
 
 use openlark_core::{
     api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
@@ -101,7 +101,7 @@ impl ForwardThreadRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v1/message/forward-2
+    /// docPath: <https://open.feishu.cn/document/im-v1/message/forward-2>
     pub async fn execute(self, body: ForwardThreadBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

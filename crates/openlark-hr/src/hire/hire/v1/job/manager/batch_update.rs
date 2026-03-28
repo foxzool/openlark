@@ -1,6 +1,6 @@
 //! 更新职位相关人员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job.manager/batch_update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job.manager/batch_update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

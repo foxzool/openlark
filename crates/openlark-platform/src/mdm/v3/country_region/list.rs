@@ -1,6 +1,6 @@
 //! 分页查询国家/地区
 //!
-//! 文档: https://open.feishu.cn/document/mdm-v1/mdm-v3/country_region/list
+//! 文档: <https://open.feishu.cn/document/mdm-v1/mdm-v3/country_region/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait},

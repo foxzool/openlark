@@ -1,6 +1,6 @@
 //! 获取周期列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v1/semester/list
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v1/semester/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

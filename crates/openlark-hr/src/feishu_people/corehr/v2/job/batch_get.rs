@@ -1,6 +1,6 @@
 //! 根据条件批量获取职务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/job/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/job/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

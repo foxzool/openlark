@@ -1,6 +1,6 @@
 //! 获取指标标签列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/metric_tag/list
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/metric_tag/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

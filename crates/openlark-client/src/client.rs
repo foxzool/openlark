@@ -96,7 +96,7 @@ impl Client {
     /// ```bash
     /// export OPENLARK_APP_ID=your_app_id
     /// export OPENLARK_APP_SECRET=your_app_secret
-    /// export OPENLARK_BASE_URL=https://open.feishu.cn  # 可选
+    /// export OPENLARK_BASE_URL=<https://open.feishu.cn>  # 可选
     /// ```
     ///
     /// # 返回值
@@ -240,7 +240,7 @@ impl LarkClient for Client {
 ///     let _client = Client::builder()
 ///         .app_id("your_app_id")
 ///         .app_secret("your_app_secret")
-///         .base_url("https://open.feishu.cn")
+///         .base_url("<https://open.feishu.cn")>
 ///         .timeout(Duration::from_secs(30))
 ///         .build()?;
 ///     Ok(())

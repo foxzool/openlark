@@ -1,6 +1,6 @@
 //! 删除外部投递
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/external_application/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/external_application/delete>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

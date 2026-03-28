@@ -1,6 +1,6 @@
 //! 批量获取候选人ID
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/batch_get_id
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/batch_get_id>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

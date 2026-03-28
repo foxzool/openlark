@@ -1,6 +1,6 @@
 //! 批量查询定调薪原因
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/change_reason/list
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/change_reason/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 执行数据知识问答
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/ask
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/ask>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_KNOWLEDGE_ASK};
 use openlark_core::{
@@ -74,7 +74,7 @@ impl AskKnowledgeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/ask
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/ask>
     pub async fn execute(self, body: AskKnowledgeBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

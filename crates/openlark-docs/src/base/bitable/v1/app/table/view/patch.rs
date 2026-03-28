@@ -1,6 +1,6 @@
 //! Bitable 更新视图
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/patch>
 
 use crate::common::api_endpoints::BitableApiV1;
 use openlark_core::{

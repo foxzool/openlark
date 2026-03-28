@@ -1,6 +1,6 @@
 //! 查询批量任务执行状态
 //!
-//! docPath: https://open.feishu.cn/document/ukTMukTMukTM/uUDOwUjL1gDM14SN4ATN
+//! docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uUDOwUjL1gDM14SN4ATN>
 
 use std::collections::HashMap;
 
@@ -30,7 +30,7 @@ impl GetBatchTaskRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/ukTMukTMukTM/uUDOwUjL1gDM14SN4ATN
+    /// docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uUDOwUjL1gDM14SN4ATN>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

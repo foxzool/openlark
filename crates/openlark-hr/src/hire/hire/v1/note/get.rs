@@ -1,6 +1,6 @@
 //! 获取备注
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/note/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/note/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

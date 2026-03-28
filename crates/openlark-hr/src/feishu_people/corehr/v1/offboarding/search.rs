@@ -1,6 +1,6 @@
 //! 搜索离职信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

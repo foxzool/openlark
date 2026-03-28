@@ -1,6 +1,6 @@
 //! 获取内推官网下职位广告详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral_website.job_post/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral_website.job_post/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

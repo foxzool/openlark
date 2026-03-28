@@ -1,6 +1,6 @@
 //! 批量删除补充信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/additional_informations.batch/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/additional_informations.batch/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

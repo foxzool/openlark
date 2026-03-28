@@ -2,7 +2,7 @@
 //!
 //! 获取指定工单自定义字段的详情。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/get
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 查询所有考勤组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/group/list
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/group/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

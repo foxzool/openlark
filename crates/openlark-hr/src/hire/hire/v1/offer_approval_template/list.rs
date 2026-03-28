@@ -1,6 +1,6 @@
 //! 获取 Offer 审批流列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer_approval_template/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer_approval_template/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

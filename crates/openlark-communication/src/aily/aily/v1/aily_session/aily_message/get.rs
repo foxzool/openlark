@@ -1,6 +1,6 @@
 //! 获取 Aily 消息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_MESSAGES};
 use openlark_core::{
@@ -54,7 +54,7 @@ impl GetMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

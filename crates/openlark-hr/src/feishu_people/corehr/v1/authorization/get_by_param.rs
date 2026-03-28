@@ -1,6 +1,6 @@
 //! 查询单个用户授权
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/authorization/get_by_param
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/authorization/get_by_param>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

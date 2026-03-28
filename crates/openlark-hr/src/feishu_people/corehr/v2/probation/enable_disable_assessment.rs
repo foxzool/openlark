@@ -1,6 +1,6 @@
 //! 启用/停用试用期考核功能
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/probation/enable_disable_assessment
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/probation/enable_disable_assessment>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

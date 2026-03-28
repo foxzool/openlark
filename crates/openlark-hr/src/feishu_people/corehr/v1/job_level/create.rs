@@ -1,6 +1,6 @@
 //! 新建职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_level/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_level/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

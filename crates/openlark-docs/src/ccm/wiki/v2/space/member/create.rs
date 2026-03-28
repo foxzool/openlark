@@ -2,7 +2,7 @@
 //!
 //! 为知识空间添加成员。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-member/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-member/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

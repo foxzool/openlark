@@ -1,6 +1,6 @@
 //! 删除试卷列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_exam_paper/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_exam_paper/batch_delete>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

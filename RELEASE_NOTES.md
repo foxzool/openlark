@@ -1,6 +1,6 @@
-# OpenLark 0.15.0-rc.2 发布说明草案
+# OpenLark 0.15.0-rc.2 发布说明
 
-**发布日期：** 待定  
+**发布日期：** 2026-03-26  
 **版本类型：** Release Candidate  
 **适用版本：** `0.15.0-rc.2`
 
@@ -150,14 +150,24 @@ let client = Client::builder()
 
 ## 兼容性与验证
 
-本次改造已完成以下验证：
+本次 RC 已完成以下发布前验证：
 
 - `cargo check -p openlark`
 - `cargo check -p openlark --no-default-features --features docs`
 - `cargo check -p openlark --example simple_api_call --features "auth,communication"`
 - `cargo check --workspace --all-features`
+- `cargo test --workspace --all-features`
+- `cargo doc --workspace --all-features --no-deps`
 
-另外，`workspace.lints` 已经真正落到所有成员 crate。当前仍存在较多 `missing_docs` 存量告警，`lint` 流程已先聚焦功能性与代码质量问题，不将这批历史文档告警作为 `rc.2` 的发布阻塞项。
+另外，`workspace.lints` 已经真正落到所有成员 crate。当前仍存在一批历史 `missing_docs` 告警，RC 阶段仍以功能正确性、发布链路可通过和公开入口收敛为优先；与此同时，本次已补齐 rustdoc 裸链接格式，确保发布流程中的 `cargo doc` 严格校验不再被 `bare_urls` 阻断。
+
+当前覆盖率口径统一为：**最新工作区覆盖率约 ~47%，CI/main 分支发布门禁为 40%**。这意味着 RC.2 以“可稳定发布”为首要目标，后续正式版继续提升覆盖率基线。
+
+## 已知限制
+
+- 仍有部分公开类型缺少完整 rustdoc，主要表现为 `missing_docs` 存量告警。
+- 覆盖率虽已超过当前 CI 基线，但尚未达到更激进的高覆盖率目标。
+- WebSocket 与部分高级业务模块的示例仍会在后续版本继续补充。
 
 ## 对用户意味着什么
 

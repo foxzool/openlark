@@ -1,6 +1,6 @@
 //! 取消完成任务（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/task/uncomplete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/task/uncomplete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

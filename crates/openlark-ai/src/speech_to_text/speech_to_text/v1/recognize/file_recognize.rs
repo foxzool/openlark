@@ -3,7 +3,7 @@
 //! 语音文件识别接口，上传整段语音文件进行一次性识别。
 //! 接口适合 60 秒以内音频识别。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/file_recognize
+//! docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/file_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -173,7 +173,7 @@ impl FileRecognizeRequestBuilder {
 
 /// 执行语音文件识别
 ///
-/// docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/file_recognize
+/// docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/file_recognize>
 pub async fn file_recognize(
     config: &Config,
     body: FileRecognizeBody,

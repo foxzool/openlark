@@ -1,6 +1,6 @@
 //! 生成 CalDAV 配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -20,7 +20,7 @@ impl GenerateCaldavConfRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

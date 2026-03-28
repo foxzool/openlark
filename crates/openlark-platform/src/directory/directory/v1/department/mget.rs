@@ -1,6 +1,6 @@
 //! 批量获取部门信息
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/department/mget
+//! 文档: <https://open.feishu.cn/document/directory-v1/department/mget>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 创建背调套餐和附加调查项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check_package/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check_package/create>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

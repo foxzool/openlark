@@ -1,6 +1,6 @@
 //! 获取猎头供应商信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/agency/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/agency/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

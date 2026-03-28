@@ -1,6 +1,6 @@
 //! 查询抄送列表（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval-search/search_cc
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/approval-search/search_cc>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

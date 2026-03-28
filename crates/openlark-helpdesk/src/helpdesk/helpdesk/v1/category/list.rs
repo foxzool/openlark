@@ -2,7 +2,7 @@
 //!
 //! 获取服务台知识库所有分类。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/list-categories
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/list-categories>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

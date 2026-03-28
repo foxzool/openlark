@@ -2,7 +2,7 @@
 //!
 //! 智能提取合同中的关键字段。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/contract_field_extraction
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/contract_field_extraction>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -180,7 +180,7 @@ impl ContractFieldExtractionRequestBuilder {
 
 /// 执行合同字段提取
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/contract_field_extraction
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/contract_field_extraction>
 pub async fn contract_field_extraction(
     config: &Config,
     body: ContractFieldExtractionBody,

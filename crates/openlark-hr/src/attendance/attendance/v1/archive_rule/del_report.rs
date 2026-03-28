@@ -1,6 +1,6 @@
 //! 删除归档报表行数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/del_report
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/del_report>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

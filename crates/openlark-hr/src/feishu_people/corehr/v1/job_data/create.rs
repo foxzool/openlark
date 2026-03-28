@@ -1,6 +1,6 @@
 //! 创建任职信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_data/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_data/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

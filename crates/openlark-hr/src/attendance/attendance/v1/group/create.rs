@@ -1,6 +1,6 @@
 //! 创建或修改考勤组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/group/create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/group/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

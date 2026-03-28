@@ -1,6 +1,6 @@
 //! 批量查询算薪项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/acct_item/list
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/acct_item/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 局部更新卡片实体
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card/batch_update
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card/batch_update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -54,7 +54,7 @@ impl BatchUpdateCardRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/batch_update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/batch_update>
     pub async fn execute(self, body: BatchUpdateCardBody) -> SDKResult<BatchUpdateCardResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -62,7 +62,7 @@ impl BatchUpdateCardRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/batch_update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/batch_update>
     pub async fn execute_with_options(
         self,
         body: BatchUpdateCardBody,

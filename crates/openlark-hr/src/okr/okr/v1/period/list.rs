@@ -1,6 +1,6 @@
 //! 获取 OKR 周期列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/period/list
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/period/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 清空评论（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance-comment/remove
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance-comment/remove>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

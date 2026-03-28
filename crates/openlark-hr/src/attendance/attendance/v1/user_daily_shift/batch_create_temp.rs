@@ -1,6 +1,6 @@
 //! 创建或修改临时排班
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/batch_create_temp
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/batch_create_temp>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

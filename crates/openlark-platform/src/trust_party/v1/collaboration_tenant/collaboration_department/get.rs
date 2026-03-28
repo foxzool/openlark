@@ -1,6 +1,6 @@
 //! 获取关联组织部门详情
 //!
-//! 文档: https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/get-2
+//! 文档: <https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/get-2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait},

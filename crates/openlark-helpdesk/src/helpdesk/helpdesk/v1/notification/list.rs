@@ -2,7 +2,7 @@
 //!
 //! 获取推送通知列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/list
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

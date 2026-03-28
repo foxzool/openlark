@@ -1,6 +1,6 @@
 //! 获取面试记录附件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/interview_record.attachment/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/interview_record.attachment/get>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

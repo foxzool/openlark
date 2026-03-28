@@ -1,6 +1,6 @@
 //! 删除预约
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -54,7 +54,7 @@ impl DeleteReserveRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/delete>
     pub async fn execute(self) -> SDKResult<DeleteReserveResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

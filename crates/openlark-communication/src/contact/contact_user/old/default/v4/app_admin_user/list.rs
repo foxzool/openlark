@@ -1,6 +1,6 @@
 //! 查询应用管理员列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/application-v6/admin/query-app-administrator-list
+//! docPath: <https://open.feishu.cn/document/server-docs/application-v6/admin/query-app-administrator-list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -18,7 +18,7 @@ impl ListAppAdminUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/application-v6/admin/query-app-administrator-list
+    /// docPath: <https://open.feishu.cn/document/server-docs/application-v6/admin/query-app-administrator-list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

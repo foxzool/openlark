@@ -1,6 +1,6 @@
 //! 终止电子签文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/signature_file/terminate
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/signature_file/terminate>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

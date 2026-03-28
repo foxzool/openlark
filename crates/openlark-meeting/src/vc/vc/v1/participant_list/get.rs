@@ -1,6 +1,6 @@
 //! 查询参会人明细
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-2
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -50,7 +50,7 @@ impl GetParticipantListRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-2>
     pub async fn execute(self) -> SDKResult<GetParticipantListResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

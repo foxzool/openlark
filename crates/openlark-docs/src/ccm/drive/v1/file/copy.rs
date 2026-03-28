@@ -2,7 +2,7 @@
 //!
 //! 将文件复制到用户云空间的其他文件夹中。不支持复制文件夹。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/copy
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/copy>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

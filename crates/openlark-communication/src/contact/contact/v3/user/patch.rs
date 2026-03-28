@@ -1,6 +1,6 @@
 //! 修改用户部分信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -74,7 +74,7 @@ impl PatchUserRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<UserResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

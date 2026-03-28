@@ -1,6 +1,6 @@
 //! 写入审批结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_approval/create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_approval/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

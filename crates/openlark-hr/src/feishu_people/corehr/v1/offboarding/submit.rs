@@ -1,6 +1,6 @@
 //! 操作员工离职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/submit
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/submit>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

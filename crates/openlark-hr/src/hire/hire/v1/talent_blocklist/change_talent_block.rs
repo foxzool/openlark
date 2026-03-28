@@ -1,6 +1,6 @@
 //! 加入/移除屏蔽名单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent_blocklist/change_talent_block
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent_blocklist/change_talent_block>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 新建招聘官网投递
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/website.delivery/create_by_resume
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/website.delivery/create_by_resume>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量查询国家证件类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/national_id_type/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/national_id_type/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

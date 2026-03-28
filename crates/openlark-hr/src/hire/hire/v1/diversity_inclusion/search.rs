@@ -1,6 +1,6 @@
 //! 获取申请表附加信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/diversity_inclusion/search
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/diversity_inclusion/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

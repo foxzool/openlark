@@ -1,6 +1,6 @@
 //! 获取通讯录授权范围
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/scope/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/scope/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -88,7 +88,7 @@ impl ListScopesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/scope/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/scope/list>
     pub async fn execute(self) -> SDKResult<ListScopesResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

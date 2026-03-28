@@ -22,7 +22,7 @@
 //! let response = list_comment_reply(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/list-2
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/list-2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

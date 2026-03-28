@@ -1,6 +1,6 @@
 //! 更新 Offer 信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer/update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

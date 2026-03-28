@@ -1,6 +1,6 @@
 //! 批量查询部门版本信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/department/query_multi_timeline
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/department/query_multi_timeline>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

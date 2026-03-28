@@ -1,6 +1,6 @@
 //! 修改单位信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -46,7 +46,7 @@ impl PatchUnitRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/patch>
     pub async fn execute(self, body: PatchUnitBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

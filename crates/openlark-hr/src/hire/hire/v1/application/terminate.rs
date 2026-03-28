@@ -1,6 +1,6 @@
 //! 终止投递
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/application/terminate
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/application/terminate>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

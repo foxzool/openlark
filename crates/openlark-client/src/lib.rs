@@ -49,7 +49,7 @@
 //!     let _client = Client::builder()
 //!         .app_id("your_app_id")
 //!         .app_secret("your_app_secret")
-//!         .base_url("https://open.feishu.cn")
+//!         .base_url("<https://open.feishu.cn")>
 //!         .timeout(Duration::from_secs(30))
 //!         .enable_log(true)
 //!         .build()?;
@@ -59,8 +59,8 @@
 //!
 //! ### Endpoint 切换
 //!
-//! OpenLark 默认使用国内飞书 endpoint：`https://open.feishu.cn`。
-//! 如果你的应用运行在国际版 Lark，请将 `base_url` 切换为 `https://open.larksuite.com`。
+//! OpenLark 默认使用国内飞书 endpoint：`<https://open.feishu.cn`。>
+//! 如果你的应用运行在国际版 Lark，请将 `base_url` 切换为 `<https://open.larksuite.com`。>
 //!
 //! ```rust,no_run
 //! use openlark_client::prelude::*;
@@ -69,7 +69,7 @@
 //!     let _client = Client::builder()
 //!         .app_id("your_app_id")
 //!         .app_secret("your_app_secret")
-//!         .base_url("https://open.larksuite.com")
+//!         .base_url("<https://open.larksuite.com")>
 //!         .build()?;
 //!     Ok(())
 //! }
@@ -82,7 +82,7 @@
 //! ```bash
 //! export OPENLARK_APP_ID="your_app_id"
 //! export OPENLARK_APP_SECRET="your_app_secret"
-//! export OPENLARK_BASE_URL="https://open.feishu.cn"  # 可选，国际版请改为 https://open.larksuite.com
+//! export OPENLARK_BASE_URL="<https://open.feishu.cn">  # 可选，国际版请改为 <https://open.larksuite.com>
 //! export OPENLARK_TIMEOUT="30"  # 可选，秒
 //! export OPENLARK_ENABLE_LOG="true"  # 可选
 //! ```
@@ -160,7 +160,7 @@
 //!     let _client = Client::builder()
 //!         .app_id("app_id")
 //!         .app_secret("app_secret")
-//!         .base_url("https://open.feishu.cn")
+//!         .base_url("<https://open.feishu.cn")>
 //!         .timeout(Duration::from_secs(60))
 //!         .retry_count(3)
 //!         .enable_log(true)

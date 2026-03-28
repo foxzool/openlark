@@ -2,7 +2,7 @@
 //!
 //! 提供文本翻译服务，支持多种语言之间的翻译。
 //!
-//! docPath: https://open.feishu.cn/document/translation-v1/text_translate
+//! docPath: <https://open.feishu.cn/document/translation-v1/text_translate>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -180,7 +180,7 @@ impl TextTranslateRequestBuilder {
 
 /// 执行文本翻译
 ///
-/// docPath: https://open.feishu.cn/document/translation-v1/text_translate
+/// docPath: <https://open.feishu.cn/document/translation-v1/text_translate>
 pub async fn text_translate(
     config: &Config,
     body: TextTranslateBody,

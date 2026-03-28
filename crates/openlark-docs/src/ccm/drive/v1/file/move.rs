@@ -2,7 +2,7 @@
 //!
 //! 将文件或者文件夹移动到用户云空间的其他位置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/move
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/move>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

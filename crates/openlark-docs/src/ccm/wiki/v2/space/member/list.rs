@@ -2,7 +2,7 @@
 //!
 //! 获取知识空间的成员列表。
 //!
-//! docPath: https://open.feishu.cn/document/docs/wiki-v2/space-member/list
+//! docPath: <https://open.feishu.cn/document/docs/wiki-v2/space-member/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

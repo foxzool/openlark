@@ -1,6 +1,6 @@
 //! 查询部门 HRBP
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/bp/get_by_department
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/bp/get_by_department>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

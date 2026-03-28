@@ -1,6 +1,6 @@
 //! 更新消息流卡片按钮
 //!
-//! docPath: https://open.feishu.cn/document/im-v2/groups-bots/update
+//! docPath: <https://open.feishu.cn/document/im-v2/groups-bots/update>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -35,7 +35,7 @@ impl UpdateChatButtonRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/im-v2/groups-bots/update
+    /// docPath: <https://open.feishu.cn/document/im-v2/groups-bots/update>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<ChatButtonUpdateResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

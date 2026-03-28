@@ -1,6 +1,6 @@
 //! 获取任务提醒列表（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

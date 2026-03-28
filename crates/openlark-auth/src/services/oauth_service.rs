@@ -21,7 +21,7 @@ use openlark_core::config::Config;
 /// let config = Config::builder()
 ///     .app_id("your_app_id")
 ///     .app_secret("your_app_secret")
-///     .base_url("https://open.feishu.cn")
+///     .base_url("<https://open.feishu.cn")>
 ///     .build();
 /// let oauth_service = OAuthService::new(config);
 ///
@@ -30,7 +30,7 @@ use openlark_core::config::Config;
 ///     .old()
 ///     .authorization()
 ///     .app_id("your_app_id")
-///     .redirect_uri("https://your-app.com/callback")
+///     .redirect_uri("<https://your-app.com/callback")>
 ///     .build_url();
 ///
 /// println!("授权链接: {}", auth_url);

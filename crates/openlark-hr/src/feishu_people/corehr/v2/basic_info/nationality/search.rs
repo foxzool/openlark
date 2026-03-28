@@ -1,6 +1,6 @@
 //! 查询国籍信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.nationality/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.nationality/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

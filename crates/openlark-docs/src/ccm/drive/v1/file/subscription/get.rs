@@ -15,7 +15,7 @@
 //! let subscription = get_subscription(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/get>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 

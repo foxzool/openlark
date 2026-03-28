@@ -1,6 +1,6 @@
 //! 查询批量消息推送和阅读人数
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/read_user
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/read_user>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -48,7 +48,7 @@ impl GetBatchMessageReadUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/read_user
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/read_user>
     pub async fn execute(self) -> SDKResult<BatchMessageReadUserResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

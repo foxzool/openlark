@@ -1,6 +1,6 @@
 //! 批量移除用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -93,7 +93,7 @@ impl BatchRemoveGroupMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove>
     pub async fn execute(self, body: BatchRemoveGroupMembersBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

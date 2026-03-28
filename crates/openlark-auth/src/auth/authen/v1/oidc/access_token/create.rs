@@ -1,7 +1,7 @@
 //! OIDC 用户访问令牌获取API
 use crate::models::authen::UserAccessTokenResponse;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_access_token>
 ///
 /// 通过 OIDC 授权码获取用户访问令牌
 use openlark_core::{

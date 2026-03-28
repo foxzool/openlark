@@ -1,6 +1,6 @@
 //! 启用/停用地点
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/location/active
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/location/active>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

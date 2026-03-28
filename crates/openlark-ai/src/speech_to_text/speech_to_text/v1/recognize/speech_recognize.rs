@@ -2,7 +2,7 @@
 //!
 //! 通用语音识别服务，支持多种音频格式和识别配置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/speech/recognize
+//! docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/speech/recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -222,7 +222,7 @@ impl SpeechRecognizeRequestBuilder {
 
 /// 执行通用语音识别
 ///
-/// docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/speech/recognize
+/// docPath: <https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/speech/recognize>
 pub async fn speech_recognize(
     config: &Config,
     body: SpeechRecognizeBody,

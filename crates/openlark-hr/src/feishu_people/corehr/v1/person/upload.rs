@@ -1,6 +1,6 @@
 //! 上传文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/person/upload
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/person/upload>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

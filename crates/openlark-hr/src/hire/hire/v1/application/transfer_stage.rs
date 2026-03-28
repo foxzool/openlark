@@ -1,6 +1,6 @@
 //! 转移投递阶段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/application/transfer_stage
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/application/transfer_stage>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

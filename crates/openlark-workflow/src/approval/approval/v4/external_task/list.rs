@@ -1,6 +1,6 @@
 //! 获取外部审批任务列表（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_task/list
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/external_task/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

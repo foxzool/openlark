@@ -1,6 +1,6 @@
 //! 获取可补卡时间
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/query_user_allowed_remedys
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/query_user_allowed_remedys>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

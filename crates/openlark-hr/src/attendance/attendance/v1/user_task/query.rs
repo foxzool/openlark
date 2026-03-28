@@ -1,6 +1,6 @@
 //! 查询打卡结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_task/query
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

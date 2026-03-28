@@ -1,6 +1,6 @@
 //! 删除三方协议
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/tripartite_agreement/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/tripartite_agreement/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

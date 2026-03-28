@@ -1,6 +1,6 @@
 //! 查询单个工时制度
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

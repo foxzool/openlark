@@ -1,6 +1,6 @@
 //! 创建人才外部信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent.external_info/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent.external_info/create>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

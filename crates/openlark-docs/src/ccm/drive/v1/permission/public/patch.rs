@@ -2,7 +2,7 @@
 //!
 //! 更新指定云文档的公共访问与协作权限设置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

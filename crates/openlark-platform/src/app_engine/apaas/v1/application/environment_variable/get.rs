@@ -1,6 +1,6 @@
 //! 查询环境变量详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-environment_variable/get
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-environment_variable/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

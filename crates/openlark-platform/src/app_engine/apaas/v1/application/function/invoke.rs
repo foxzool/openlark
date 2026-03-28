@@ -1,6 +1,6 @@
 //! 执行函数
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-function/invoke
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-function/invoke>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

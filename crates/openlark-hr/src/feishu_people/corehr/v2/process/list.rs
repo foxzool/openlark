@@ -1,6 +1,6 @@
 //! 查询流程实例列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

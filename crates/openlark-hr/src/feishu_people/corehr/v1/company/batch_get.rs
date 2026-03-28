@@ -1,6 +1,6 @@
 //! 批量获取公司
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/company/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/company/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

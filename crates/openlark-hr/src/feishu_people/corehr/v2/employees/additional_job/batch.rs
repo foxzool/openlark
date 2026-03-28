@@ -1,6 +1,6 @@
 //! 批量查询兼职信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employees.additional_job/batch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.additional_job/batch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

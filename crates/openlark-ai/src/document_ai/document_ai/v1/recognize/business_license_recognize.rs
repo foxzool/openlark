@@ -2,7 +2,7 @@
 //!
 //! 识别营业执照中的企业信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/business_license_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/business_license_recognize>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_BUSINESS_LICENSE_RECOGNIZE;
@@ -170,7 +170,7 @@ impl BusinessLicenseRecognizeRequestBuilder {
 
 /// 执行营业执照识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/business_license_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/business_license_recognize>
 pub fn create(config: Config) -> BusinessLicenseRecognizeRequestBuilder {
     BusinessLicenseRecognizeRequestBuilder::new(config)
 }

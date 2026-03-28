@@ -1,6 +1,6 @@
 //! 恢复投递
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/application/recover
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/application/recover>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

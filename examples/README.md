@@ -41,4 +41,4 @@ cargo run --example workflow_api_example --features "workflow"
 
 ## 配置文档
 
-详细环境变量说明见 [docs/configuration.md](docs/configuration.md)。
+详细环境变量说明见 [../docs/configuration.md](../docs/configuration.md)。

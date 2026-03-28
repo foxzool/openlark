@@ -1,6 +1,6 @@
 //! 流式更新文本
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card-element/content
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/content>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -45,7 +45,7 @@ impl UpdateCardElementContentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/content
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/content>
     pub async fn execute(
         self,
         body: UpdateCardElementContentBody,
@@ -56,7 +56,7 @@ impl UpdateCardElementContentRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/content
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/content>
     pub async fn execute_with_options(
         self,
         body: UpdateCardElementContentBody,

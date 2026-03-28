@@ -1,6 +1,6 @@
 //! 退出登录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/logout
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/logout>
 
 use crate::common::api_endpoints::PassportApiV1;
 use openlark_core::{

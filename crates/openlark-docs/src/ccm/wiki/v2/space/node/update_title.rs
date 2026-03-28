@@ -2,7 +2,7 @@
 //!
 //! 更新知识空间中节点的标题。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/update_title
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/update_title>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

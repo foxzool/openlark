@@ -1,6 +1,6 @@
 //! 批量查询会议室层级详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult};
 
@@ -19,7 +19,7 @@ impl MgetRoomLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default()).await
     }

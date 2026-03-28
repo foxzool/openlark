@@ -1,6 +1,6 @@
 //! 查询会议室预定表单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-2
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-2>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -40,7 +40,7 @@ impl GetReserveConfigFormRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-2>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

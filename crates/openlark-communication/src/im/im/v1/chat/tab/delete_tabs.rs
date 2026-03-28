@@ -1,6 +1,6 @@
 //! 删除会话标签页
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-tab/delete_tabs
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-tab/delete_tabs>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -34,7 +34,7 @@ impl DeleteChatTabsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-tab/delete_tabs
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-tab/delete_tabs>
     pub async fn execute(self, body: TabIdsBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

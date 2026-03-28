@@ -1,6 +1,6 @@
 //! 建立部门与单位的绑定关系
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/bind_department
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/bind_department>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -37,7 +37,7 @@ impl BindDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/bind_department
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/bind_department>
     pub async fn execute(self, body: BindDepartmentBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

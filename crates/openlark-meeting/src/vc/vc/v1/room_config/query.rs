@@ -1,6 +1,6 @@
 //! 查询会议室配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/room_config/query
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/room_config/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -52,7 +52,7 @@ impl QueryRoomConfigRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_config/query
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_config/query>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<QueryRoomConfigResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await

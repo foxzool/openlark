@@ -2,7 +2,7 @@
 //!
 //! 识别出租车发票信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/taxi_invoice_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/taxi_invoice_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -166,7 +166,7 @@ impl TaxiInvoiceRecognizeRequestBuilder {
 
 /// 执行出租车发票识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/taxi_invoice_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/taxi_invoice_recognize>
 pub async fn taxi_invoice_recognize(
     config: &Config,
     body: TaxiInvoiceRecognizeBody,

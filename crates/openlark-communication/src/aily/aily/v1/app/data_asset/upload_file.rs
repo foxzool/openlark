@@ -1,6 +1,6 @@
 //! 上传文件用于数据知识管理
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_UPLOAD_FILE};
 use openlark_core::{
@@ -52,7 +52,7 @@ impl UploadFileRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

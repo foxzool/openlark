@@ -1,6 +1,6 @@
 //! 查询会议室配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -31,7 +31,7 @@ impl GetScopeConfigRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -1,6 +1,6 @@
 //! 创建会话
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -63,7 +63,7 @@ impl CreateSessionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session/create>
     pub async fn execute(self, body: CreateSessionBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

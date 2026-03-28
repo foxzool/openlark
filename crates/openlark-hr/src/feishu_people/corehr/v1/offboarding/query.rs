@@ -1,6 +1,6 @@
 //! 查询员工离职原因列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/offboarding/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

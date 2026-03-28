@@ -1,6 +1,6 @@
 //! Bitable 新增字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

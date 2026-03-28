@@ -1,6 +1,6 @@
 //! 按 ID 查询班次
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/shift/get
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/shift/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 绑定标签到群
 //!
-//! docPath: https://open.feishu.cn/document/tenant-tag/create-2
+//! docPath: <https://open.feishu.cn/document/tenant-tag/create-2>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -27,7 +27,7 @@ impl CreateBizEntityTagRelationRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/tenant-tag/create-2
+    /// docPath: <https://open.feishu.cn/document/tenant-tag/create-2>
     pub async fn execute(self, body: BizEntityTagRelationBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

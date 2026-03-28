@@ -20,7 +20,7 @@
 //! let subscription = create_file_subscription(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/create>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 

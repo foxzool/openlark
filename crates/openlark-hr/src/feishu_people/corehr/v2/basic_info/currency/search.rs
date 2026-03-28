@@ -1,6 +1,6 @@
 //! 查询货币信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.currency/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.currency/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

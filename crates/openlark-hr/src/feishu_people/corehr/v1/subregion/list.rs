@@ -1,6 +1,6 @@
 //! 批量查询城市/区域信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/subregion/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/subregion/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

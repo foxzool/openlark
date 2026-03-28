@@ -1,6 +1,6 @@
 //! 获取群分享链接
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/link
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/link>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,

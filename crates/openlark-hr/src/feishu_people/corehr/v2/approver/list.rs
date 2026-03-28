@@ -1,6 +1,6 @@
 //! 获取指定人员审批任务列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/approver/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/approver/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

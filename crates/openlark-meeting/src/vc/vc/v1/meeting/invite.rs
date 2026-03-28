@@ -1,6 +1,6 @@
 //! 邀请参会人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/invite
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/invite>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -52,7 +52,7 @@ impl InviteMeetingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/invite
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/invite>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<InviteMeetingResponse> {
         self.execute_with_options(body, RequestOption::default()).await
     }

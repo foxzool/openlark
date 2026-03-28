@@ -1,6 +1,6 @@
 //! 删除人员类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/employee_type/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/employee_type/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

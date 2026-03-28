@@ -1,6 +1,6 @@
 //! 移除用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -66,7 +66,7 @@ impl RemoveGroupMemberRequest {
     ///
     /// 说明：该接口目前仅支持 `member_type=user`。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove>
     pub async fn execute(
         self,
         member_id_type: UserIdType,

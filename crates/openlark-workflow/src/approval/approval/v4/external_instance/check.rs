@@ -1,6 +1,6 @@
 //! 检查外部审批实例状态（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_instance/check
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/external_instance/check>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

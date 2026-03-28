@@ -1,6 +1,6 @@
 //! 创建个人信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/person/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/person/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

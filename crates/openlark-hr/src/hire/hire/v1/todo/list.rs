@@ -1,6 +1,6 @@
 //! 批量获取待办事项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/todo/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/todo/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

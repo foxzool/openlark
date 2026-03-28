@@ -2,7 +2,7 @@
 //!
 //! 该接口用于获取客服邮箱地址。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent/agent_email
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent/agent_email>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

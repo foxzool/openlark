@@ -1,6 +1,6 @@
 //! 列出运行
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/list>
 
 use std::collections::HashMap;
 
@@ -62,7 +62,7 @@ impl ListRunsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

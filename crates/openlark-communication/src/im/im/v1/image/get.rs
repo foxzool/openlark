@@ -1,6 +1,6 @@
 //! 下载图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/image/get
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -45,7 +45,7 @@ impl GetImageRequest {
 
     /// 执行请求（返回二进制内容）
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/image/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/get>
     pub async fn execute(self) -> SDKResult<Vec<u8>> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

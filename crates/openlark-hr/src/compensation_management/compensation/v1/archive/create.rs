@@ -1,6 +1,6 @@
 //! 创建薪资档案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/archive/create
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/archive/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

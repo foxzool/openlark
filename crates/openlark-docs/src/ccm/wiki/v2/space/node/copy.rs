@@ -2,7 +2,7 @@
 //!
 //! 复制知识空间中的节点。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/copy
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/copy>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量查询成本分摊方案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/cost_allocation_plan/list
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/cost_allocation_plan/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

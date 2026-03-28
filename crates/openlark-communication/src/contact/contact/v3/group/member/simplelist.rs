@@ -1,6 +1,6 @@
 //! 查询用户组成员列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/simplelist
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/simplelist>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -85,7 +85,7 @@ impl SimpleListGroupMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/simplelist
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/simplelist>
     pub async fn execute(self) -> SDKResult<SimpleListGroupMembersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

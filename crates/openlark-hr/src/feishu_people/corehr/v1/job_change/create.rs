@@ -1,6 +1,6 @@
 //! 发起员工异动(不推荐)
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_change/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_change/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

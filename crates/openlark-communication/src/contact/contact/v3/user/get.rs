@@ -1,6 +1,6 @@
 //! 获取单个用户信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/get
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -68,7 +68,7 @@ impl GetUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/get>
     pub async fn execute(self) -> SDKResult<UserResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

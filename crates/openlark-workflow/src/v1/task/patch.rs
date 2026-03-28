@@ -1,6 +1,6 @@
 //! 更新任务（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/task/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/task/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

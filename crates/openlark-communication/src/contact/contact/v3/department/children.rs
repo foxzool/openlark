@@ -1,6 +1,6 @@
 //! 获取子部门列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/children
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/children>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -89,7 +89,7 @@ impl ListDepartmentChildrenRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/children
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/children>
     pub async fn execute(self) -> SDKResult<DepartmentListResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

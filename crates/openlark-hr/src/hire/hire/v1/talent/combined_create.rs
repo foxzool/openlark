@@ -1,6 +1,6 @@
 //! 综合创建候选人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/combined_create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/combined_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

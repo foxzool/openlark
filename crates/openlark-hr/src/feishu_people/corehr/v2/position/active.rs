@@ -1,6 +1,6 @@
 //! 启停用岗位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/position/active
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/position/active>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

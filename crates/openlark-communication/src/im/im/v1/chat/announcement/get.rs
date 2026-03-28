@@ -1,6 +1,6 @@
 //! 获取群公告信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-announcement/get
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-announcement/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,

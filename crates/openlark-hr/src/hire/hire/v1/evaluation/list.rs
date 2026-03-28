@@ -1,6 +1,6 @@
 //! 获取简历评估信息列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/evaluation/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/evaluation/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

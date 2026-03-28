@@ -1,6 +1,6 @@
 //! 批量查询用户人脸识别信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_setting/query
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_setting/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

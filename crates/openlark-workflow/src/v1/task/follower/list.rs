@@ -1,6 +1,6 @@
 //! 获取任务关注者列表（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

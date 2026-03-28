@@ -1,6 +1,6 @@
 //! 获取被评估人信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/reviewee/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/reviewee/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -2,7 +2,7 @@
 //!
 //! 创建新的知识库分类。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/create
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

@@ -1,6 +1,6 @@
 //! 批量添加角色成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -86,7 +86,7 @@ impl BatchCreateRoleMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_create>
     pub async fn execute(
         self,
         body: BatchCreateMembersBody,

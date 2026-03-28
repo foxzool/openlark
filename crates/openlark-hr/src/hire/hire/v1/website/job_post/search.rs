@@ -1,6 +1,6 @@
 //! 搜索招聘官网下的职位广告列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/website.job_post/search
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/website.job_post/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

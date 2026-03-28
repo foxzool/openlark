@@ -1,6 +1,6 @@
 //! 删除会议室层级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/del
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/del>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult,
     req_option::RequestOption};
@@ -22,7 +22,7 @@ impl DeleteRoomLevelRequest {
     ///
     /// 说明：该接口通常通过 body 传递要删除的 room_level_id，建议按文档构造 JSON。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/del
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/del>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default()).await
     }

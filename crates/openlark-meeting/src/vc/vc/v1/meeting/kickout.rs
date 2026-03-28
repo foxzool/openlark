@@ -1,6 +1,6 @@
 //! 移除参会人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/kickout
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/kickout>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -52,7 +52,7 @@ impl KickoutMeetingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/kickout
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/kickout>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<KickoutMeetingResponse> {
         self.execute_with_options(body, RequestOption::default()).await
     }

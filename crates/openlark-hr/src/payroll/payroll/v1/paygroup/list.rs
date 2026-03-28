@@ -1,6 +1,6 @@
 //! 获取薪资组基本信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/paygroup/list
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/paygroup/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

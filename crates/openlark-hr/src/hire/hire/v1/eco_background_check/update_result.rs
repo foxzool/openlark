@@ -1,6 +1,6 @@
 //! 回传背调订单的最终结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check/update_result
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check/update_result>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

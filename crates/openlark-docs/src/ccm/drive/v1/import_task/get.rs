@@ -2,7 +2,7 @@
 //!
 //! 获取导入任务的执行状态。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/import_task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/import_task/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

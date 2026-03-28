@@ -1,6 +1,6 @@
 //! 修改标签
 //!
-//! docPath: https://open.feishu.cn/document/tenant-tag/patch
+//! docPath: <https://open.feishu.cn/document/tenant-tag/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -35,7 +35,7 @@ impl PatchTagRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/tenant-tag/patch
+    /// docPath: <https://open.feishu.cn/document/tenant-tag/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

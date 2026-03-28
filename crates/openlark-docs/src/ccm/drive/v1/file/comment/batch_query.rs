@@ -2,7 +2,7 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/batch_query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

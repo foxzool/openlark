@@ -2,7 +2,7 @@
 //!
 //! 创建一个导出任务，将云文档导出为文件。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

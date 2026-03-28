@@ -1,6 +1,6 @@
 //! 获取告警记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/alert/list
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/alert/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -67,7 +67,7 @@ impl ListAlertRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/alert/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/alert/list>
     pub async fn execute(self) -> SDKResult<ListAlertResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

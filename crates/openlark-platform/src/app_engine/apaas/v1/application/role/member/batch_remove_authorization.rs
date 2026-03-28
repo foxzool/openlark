@@ -1,6 +1,6 @@
 //! 批量删除角色成员授权
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-role-member/batch_remove_authorization
+//! 文档: <https://open.feishu.cn/document/apaas-v1/permission/application-role-member/batch_remove_authorization>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

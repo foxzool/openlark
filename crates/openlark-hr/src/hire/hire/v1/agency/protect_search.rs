@@ -1,6 +1,6 @@
 //! 查询猎头保护期信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/agency/protect_search
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/agency/protect_search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

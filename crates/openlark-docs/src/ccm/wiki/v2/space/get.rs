@@ -2,7 +2,7 @@
 //!
 //! 此接口用于根据知识空间ID来查询知识空间的信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

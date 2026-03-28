@@ -2,7 +2,7 @@
 //!
 //! 删除指定的客服技能。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent_skill/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent_skill/delete>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

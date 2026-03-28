@@ -1,6 +1,6 @@
 //! 更新群发言权限
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/update
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -45,7 +45,7 @@ impl UpdateChatModerationRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/update
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/update>
     pub async fn execute(self, body: UpdateChatModerationBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

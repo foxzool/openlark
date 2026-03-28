@@ -1,6 +1,6 @@
 //! 获取组织类角色授权列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/assigned_user/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/assigned_user/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

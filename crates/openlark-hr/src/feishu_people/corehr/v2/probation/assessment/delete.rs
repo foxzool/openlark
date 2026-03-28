@@ -1,6 +1,6 @@
 //! 删除试用期考核信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/probation.assessment/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/probation.assessment/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 更新日程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -43,7 +43,7 @@ impl PatchCalendarEventRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         validate_required!(self.calendar_id, "calendar_id 不能为空");
         validate_required!(self.event_id, "event_id 不能为空");

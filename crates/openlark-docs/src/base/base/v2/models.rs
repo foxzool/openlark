@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Base v2 自定义角色（AppRole）
 ///
 /// docPath: /document/docs/bitable-v1/advanced-permission/app-role/list-2
-/// doc: https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2
+/// doc: <https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppRole {
     /// 自定义权限的名字

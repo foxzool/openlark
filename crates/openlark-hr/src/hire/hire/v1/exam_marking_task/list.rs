@@ -1,6 +1,6 @@
 //! 获取笔试阅卷任务列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/exam_marking_task/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/exam_marking_task/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

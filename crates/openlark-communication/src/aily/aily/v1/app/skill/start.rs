@@ -1,6 +1,6 @@
 //! 调用技能
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/start
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/start>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILL_START};
 use openlark_core::{
@@ -72,7 +72,7 @@ impl StartSkillRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/start
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/start>
     pub async fn execute(self, body: StartSkillBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

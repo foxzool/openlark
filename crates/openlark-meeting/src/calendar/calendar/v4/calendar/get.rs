@@ -1,6 +1,6 @@
 //! 查询日历信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -85,7 +85,7 @@ impl GetCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get>
     pub async fn execute(self) -> SDKResult<GetCalendarResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

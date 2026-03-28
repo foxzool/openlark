@@ -1,6 +1,6 @@
 //! 回传笔试结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_exam/update_result
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_exam/update_result>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

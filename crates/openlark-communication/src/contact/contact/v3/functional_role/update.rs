@@ -1,6 +1,6 @@
 //! 修改角色名称
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/update
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -43,7 +43,7 @@ impl UpdateFunctionalRoleRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/update
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/update>
     pub async fn execute(self, body: UpdateFunctionalRoleBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

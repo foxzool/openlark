@@ -3,7 +3,7 @@
 //! 获取用户云空间中指定文件夹下的文件清单。清单类型包括文件、各种在线文档（文档、电子表格、多维表格、思维笔记）、文件夹和快捷方式。
 //! 该接口支持分页，但是不会递归的获取子文件夹的清单。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

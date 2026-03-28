@@ -1,6 +1,6 @@
 //! 创建 OKR 周期
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/period/create
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/period/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

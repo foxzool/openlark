@@ -1,6 +1,6 @@
 //! 删除评论
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/comment/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/comment/delete>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::comment::models::DeleteCommentResponse;

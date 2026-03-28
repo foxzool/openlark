@@ -2,7 +2,7 @@
 //!
 //! 预览推送通知内容。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/preview
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/preview>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

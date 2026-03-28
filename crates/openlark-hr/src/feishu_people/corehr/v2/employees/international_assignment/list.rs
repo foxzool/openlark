@@ -1,6 +1,6 @@
 //! 批量查询外派信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

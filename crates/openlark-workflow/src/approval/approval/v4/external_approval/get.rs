@@ -1,6 +1,6 @@
 //! 获取外部审批定义详情（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_approval/get
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/external_approval/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

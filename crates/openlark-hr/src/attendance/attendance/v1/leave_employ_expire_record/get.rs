@@ -1,6 +1,6 @@
 //! 通过过期时间获取发放记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/leave_employ_expire_record/get
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/leave_employ_expire_record/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

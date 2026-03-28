@@ -2,7 +2,7 @@
 //!
 //! 更新指定工单自定义字段的信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/patch>
 
 use openlark_core::{
     api::ApiRequest,

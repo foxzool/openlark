@@ -1,6 +1,6 @@
 //! Bitable 新增多条记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 查询默认成本中心
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/default_cost_center/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/default_cost_center/batch_query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

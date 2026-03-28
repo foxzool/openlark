@@ -1,6 +1,6 @@
 //! 获取终止投递原因
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/termination_reason/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/termination_reason/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

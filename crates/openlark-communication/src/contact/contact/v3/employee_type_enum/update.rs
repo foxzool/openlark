@@ -1,6 +1,6 @@
 //! 更新人员类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/update
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -45,7 +45,7 @@ impl UpdateEmployeeTypeEnumRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/update
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/update>
     pub async fn execute(
         self,
         body: UpdateEmployeeTypeEnumBody,

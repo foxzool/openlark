@@ -2,7 +2,7 @@
 //!
 //! 识别机动车发票信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/vehicle_invoice_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/vehicle_invoice_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -172,7 +172,7 @@ impl VehicleInvoiceRecognizeRequestBuilder {
 
 /// 执行机动车发票识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/vehicle_invoice_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/vehicle_invoice_recognize>
 pub async fn vehicle_invoice_recognize(
     config: &Config,
     body: VehicleInvoiceRecognizeBody,

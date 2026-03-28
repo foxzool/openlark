@@ -1,6 +1,6 @@
 //! 获取父部门信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/parent
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/parent>
 
 use openlark_core::{api::ApiRequest, config::Config, error, http::Transport, SDKResult};
 
@@ -87,7 +87,7 @@ impl GetDepartmentParentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/parent
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/parent>
     pub async fn execute(self) -> SDKResult<DepartmentListResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

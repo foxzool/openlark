@@ -1,6 +1,6 @@
 //! 删除外派信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

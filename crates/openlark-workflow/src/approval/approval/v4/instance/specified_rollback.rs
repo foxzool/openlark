@@ -1,6 +1,6 @@
 //! 指定回退审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/specified_rollback
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/specified_rollback>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

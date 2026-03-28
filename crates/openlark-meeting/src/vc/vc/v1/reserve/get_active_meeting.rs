@@ -1,6 +1,6 @@
 //! 获取活跃会议
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get_active_meeting
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get_active_meeting>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -40,7 +40,7 @@ impl GetActiveMeetingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get_active_meeting
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get_active_meeting>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

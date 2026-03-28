@@ -1,6 +1,6 @@
 //! 内推账户提现数据对账
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral_account/reconciliation
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral_account/reconciliation>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! Bitable 更新记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -162,7 +162,7 @@ struct UpdateRecordRequestBody {
 ///       "en_name": "Li Si"
 ///     },
 ///     "last_modified_time": 1234567890000,
-///     "record_url": "https://example.feishu.cn/base/xxxxxxxxxxxxx"
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx">
 ///   }
 /// }
 /// ```

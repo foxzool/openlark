@@ -1,6 +1,6 @@
 //! 加签审批任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process.extra/update
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process.extra/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

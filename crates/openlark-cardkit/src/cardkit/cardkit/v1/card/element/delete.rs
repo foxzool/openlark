@@ -1,6 +1,6 @@
 //! 删除组件
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card-element/delete
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/delete>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -39,7 +39,7 @@ impl DeleteCardElementRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/delete
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/delete>
     pub async fn execute(
         self,
         body: DeleteCardElementBody,
@@ -50,7 +50,7 @@ impl DeleteCardElementRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/delete
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/delete>
     pub async fn execute_with_options(
         self,
         body: DeleteCardElementBody,

@@ -1,6 +1,6 @@
 //! 删除任务提醒（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

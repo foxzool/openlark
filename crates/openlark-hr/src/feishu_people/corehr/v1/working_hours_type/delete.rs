@@ -1,6 +1,6 @@
 //! 删除工时制度
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

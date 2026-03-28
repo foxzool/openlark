@@ -1,6 +1,6 @@
 //! 查询岗位信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/position/query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/position/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

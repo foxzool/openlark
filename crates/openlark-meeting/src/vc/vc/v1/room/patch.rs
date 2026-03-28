@@ -1,6 +1,6 @@
 //! 更新会议室
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -54,7 +54,7 @@ impl PatchRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<PatchRoomResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await

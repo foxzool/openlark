@@ -1,6 +1,6 @@
 //! 查询会议明细
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -50,7 +50,7 @@ impl GetMeetingListRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get>
     pub async fn execute(self) -> SDKResult<GetMeetingListResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

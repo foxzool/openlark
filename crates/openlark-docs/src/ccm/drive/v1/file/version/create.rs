@@ -2,7 +2,7 @@
 //!
 //! 为源文档创建版本文档。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 use serde::Serialize;

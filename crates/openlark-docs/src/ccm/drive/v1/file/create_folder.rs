@@ -2,7 +2,7 @@
 //!
 //! 在用户云空间的指定文件夹中创建一个新的空文件夹。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/create_folder
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/create_folder>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

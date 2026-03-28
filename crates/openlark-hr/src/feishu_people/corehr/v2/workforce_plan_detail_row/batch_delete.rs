@@ -1,6 +1,6 @@
 //! 批量删除明细行
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail_row/batchDelete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail_row/batchDelete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -66,7 +66,7 @@ impl RecognizeResource {
 
     /// 简历解析
     ///
-    /// docPath: https://open.feishu.cn/document/document_ai-v1/resume_parse
+    /// docPath: <https://open.feishu.cn/document/document_ai-v1/resume_parse>
     pub fn resume_parse(
         &self,
     ) -> crate::document_ai::document_ai::v1::recognize::ResumeParseRequestBuilder {
@@ -77,7 +77,7 @@ impl RecognizeResource {
 
     /// 身份证识别
     ///
-    /// docPath: https://open.feishu.cn/document/document_ai-v1/id_card_recognize
+    /// docPath: <https://open.feishu.cn/document/document_ai-v1/id_card_recognize>
     pub fn id_card_recognize(
         &self,
     ) -> crate::document_ai::document_ai::v1::recognize::IdCardRecognizeRequestBuilder {
@@ -88,7 +88,7 @@ impl RecognizeResource {
 
     /// 银行卡识别
     ///
-    /// docPath: https://open.feishu.cn/document/document_ai-v1/bank_card_recognize
+    /// docPath: <https://open.feishu.cn/document/document_ai-v1/bank_card_recognize>
     pub fn bank_card_recognize(
         &self,
     ) -> crate::document_ai::document_ai::v1::recognize::BankCardRecognizeRequestBuilder {
@@ -99,7 +99,7 @@ impl RecognizeResource {
 
     /// 营业执照识别
     ///
-    /// docPath: https://open.feishu.cn/document/document_ai-v1/business_license_recognize
+    /// docPath: <https://open.feishu.cn/document/document_ai-v1/business_license_recognize>
     pub fn business_license_recognize(
         &self,
     ) -> crate::document_ai::document_ai::v1::recognize::BusinessLicenseRecognizeRequestBuilder
@@ -111,7 +111,7 @@ impl RecognizeResource {
 
     /// 增值税发票识别
     ///
-    /// docPath: https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize
+    /// docPath: <https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize>
     pub fn vat_invoice_recognize(
         &self,
     ) -> crate::document_ai::document_ai::v1::recognize::VatInvoiceRecognizeRequestBuilder {

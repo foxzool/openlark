@@ -2,7 +2,7 @@
 //!
 //! 提供文本语言检测服务，检测给定文本的语言类型。
 //!
-//! docPath: https://open.feishu.cn/document/translation-v1/text_detect
+//! docPath: <https://open.feishu.cn/document/translation-v1/text_detect>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -132,7 +132,7 @@ impl TextDetectRequestBuilder {
 
 /// 执行文本语言检测
 ///
-/// docPath: https://open.feishu.cn/document/translation-v1/text_detect
+/// docPath: <https://open.feishu.cn/document/translation-v1/text_detect>
 pub async fn text_detect(config: &Config, body: TextDetectBody) -> SDKResult<TextDetectResponse> {
     text_detect_with_options(config, body, RequestOption::default()).await
 }

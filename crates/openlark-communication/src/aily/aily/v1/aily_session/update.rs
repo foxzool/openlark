@@ -1,6 +1,6 @@
 //! 更新会话
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session/update
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/update>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSION};
 use openlark_core::{
@@ -78,7 +78,7 @@ impl UpdateSessionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session/update
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session/update>
     pub async fn execute(self, body: UpdateSessionBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

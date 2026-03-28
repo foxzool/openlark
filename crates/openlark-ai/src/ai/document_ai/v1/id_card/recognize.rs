@@ -2,7 +2,7 @@
 //!
 //! 识别身份证中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/id_card_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/id_card_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

@@ -1,6 +1,6 @@
 //! ID 转换
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/common_data.id/convert
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/common_data.id/convert>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 更新评论（PATCH）
 //!
-//! docPath: https://open.feishu.cn/document/task-v2/comment/patch
+//! docPath: <https://open.feishu.cn/document/task-v2/comment/patch>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::comment::models::{UpdateCommentBody, UpdateCommentResponse};

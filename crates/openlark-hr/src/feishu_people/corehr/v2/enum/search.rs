@@ -1,6 +1,6 @@
 //! 查询枚举信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/enum/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/enum/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

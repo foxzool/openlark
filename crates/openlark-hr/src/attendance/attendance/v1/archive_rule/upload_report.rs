@@ -1,6 +1,6 @@
 //! 写入归档报表结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/upload_report
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/upload_report>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

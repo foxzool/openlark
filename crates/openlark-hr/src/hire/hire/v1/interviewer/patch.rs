@@ -1,6 +1,6 @@
 //! 更新面试官信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/interviewer/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/interviewer/patch>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

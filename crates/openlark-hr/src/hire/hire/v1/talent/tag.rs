@@ -1,6 +1,6 @@
 //! 操作人才标签
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/tag
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/tag>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

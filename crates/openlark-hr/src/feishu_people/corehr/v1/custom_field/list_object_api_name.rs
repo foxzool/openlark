@@ -1,6 +1,6 @@
 //! 获取飞书人事对象列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/custom_field/list_object_api_name
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/custom_field/list_object_api_name>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

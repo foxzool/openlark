@@ -2,7 +2,7 @@
 //!
 //! 获取文件或文件夹的协作者列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 为用户授权角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/authorization/add_role_assign
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/authorization/add_role_assign>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

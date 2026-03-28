@@ -1,6 +1,6 @@
 //! 创建外部审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_instance/create
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/external_instance/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 获取单位列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -39,7 +39,7 @@ impl ListUnitsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list>
     pub async fn execute(self) -> SDKResult<ListUnitsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

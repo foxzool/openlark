@@ -1,6 +1,6 @@
 //! 查询席位活跃详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/seat_activity/list
+//! 文档: <https://open.feishu.cn/document/apaas-v1/seat_activity/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

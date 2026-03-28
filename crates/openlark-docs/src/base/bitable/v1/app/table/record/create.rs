@@ -1,6 +1,6 @@
 //! Bitable 新增记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -153,7 +153,7 @@ struct CreateRecordRequestBody {
 ///       "en_name": "Zhang San"
 ///     },
 ///     "created_time": 1234567890000,
-///     "record_url": "https://example.feishu.cn/base/xxxxxxxxxxxxx"
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx">
 ///   }
 /// }
 /// ```

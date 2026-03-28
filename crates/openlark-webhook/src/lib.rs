@@ -20,7 +20,7 @@
 //!
 //!     // 发送文本消息
 //!     client
-//!         .send_message("https://open.feishu.cn/open-apis/bot/v2/hook/...")
+//!         .send_message("<https://open.feishu.cn/open-apis/bot/v2/hook/...")>
 //!         .text("Hello, Webhook!")
 //!         .execute()
 //!         .await?;

@@ -1,6 +1,6 @@
 //! 创建任务提醒（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

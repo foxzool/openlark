@@ -1,6 +1,6 @@
 //! 设置主持人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/set_host
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/set_host>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -52,7 +52,7 @@ impl SetHostMeetingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/set_host
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/set_host>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<SetHostMeetingResponse> {
         self.execute_with_options(body, RequestOption::default()).await
     }

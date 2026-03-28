@@ -1,6 +1,6 @@
 //! 删除背调自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check_custom_field/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_background_check_custom_field/batch_delete>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

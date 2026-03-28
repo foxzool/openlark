@@ -1,6 +1,6 @@
 //! 通过员工ID批量获取社保增减员记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/social_archive_adjust_record/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/social_archive_adjust_record/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

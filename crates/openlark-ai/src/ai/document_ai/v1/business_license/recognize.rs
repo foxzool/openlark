@@ -2,7 +2,7 @@
 //!
 //! 识别营业执照中的企业信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/business_license_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/business_license_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

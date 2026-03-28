@@ -1,6 +1,6 @@
 //! 获取指定任务（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/task/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

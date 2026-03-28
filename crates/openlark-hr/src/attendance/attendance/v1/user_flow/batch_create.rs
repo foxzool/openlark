@@ -1,6 +1,6 @@
 //! 导入打卡流水
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_flow/batch_create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_flow/batch_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

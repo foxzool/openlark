@@ -1,6 +1,6 @@
 //! 上传图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/image/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/create>
 
 use openlark_core::{api::ApiRequest, config::Config, error, http::Transport, SDKResult};
 
@@ -59,7 +59,7 @@ impl CreateImageRequest {
     ///
     /// 说明：该接口为 multipart 上传，请直接传入图片二进制内容。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/image/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/create>
     pub async fn execute(self, image_bytes: Vec<u8>) -> SDKResult<CreateImageResponse> {
         self.execute_with_options(
             image_bytes,

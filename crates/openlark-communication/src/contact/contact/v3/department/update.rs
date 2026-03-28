@@ -1,6 +1,6 @@
 //! 更新部门所有信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/update
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -76,7 +76,7 @@ impl UpdateDepartmentRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/update
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/update>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

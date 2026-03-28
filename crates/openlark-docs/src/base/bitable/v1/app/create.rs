@@ -1,6 +1,6 @@
 //! Bitable 创建多维表格API
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

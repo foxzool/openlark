@@ -1,6 +1,6 @@
 //! 创建任务协作者（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskcollaborator/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskcollaborator/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

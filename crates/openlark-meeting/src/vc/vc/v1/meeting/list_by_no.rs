@@ -1,6 +1,6 @@
 //! 获取与会议号关联的会议列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/list_by_no
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/list_by_no>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -31,7 +31,7 @@ impl ListByNoMeetingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/list_by_no
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/list_by_no>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

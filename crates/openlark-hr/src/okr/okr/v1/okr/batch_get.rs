@@ -1,6 +1,6 @@
 //! 批量获取 OKR
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/okr/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/okr/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

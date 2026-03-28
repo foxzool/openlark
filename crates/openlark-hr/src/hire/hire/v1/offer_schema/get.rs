@@ -1,6 +1,6 @@
 //! 获取 Offer 申请表详细信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer_schema/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer_schema/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

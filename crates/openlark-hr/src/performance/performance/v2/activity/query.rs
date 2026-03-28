@@ -1,6 +1,6 @@
 //! 获取项目列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/activity/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/activity/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

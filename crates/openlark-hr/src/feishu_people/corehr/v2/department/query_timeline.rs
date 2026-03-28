@@ -1,6 +1,6 @@
 //! 查询指定生效日期的部门基本信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/department/query_timeline
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/department/query_timeline>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 获取租户工作城市列表
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/work_city/list
+//! docPath: <https://open.feishu.cn/document/contact-v3/work_city/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -40,7 +40,7 @@ impl ListWorkCitiesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/work_city/list
+    /// docPath: <https://open.feishu.cn/document/contact-v3/work_city/list>
     pub async fn execute(self) -> SDKResult<ListWorkCitiesResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

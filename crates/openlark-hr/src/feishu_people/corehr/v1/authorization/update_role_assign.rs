@@ -1,6 +1,6 @@
 //! 更新用户被授权的数据范围
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/authorization/update_role_assign
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/authorization/update_role_assign>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

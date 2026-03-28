@@ -1,6 +1,6 @@
 //! 更正成本中心版本
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_center.version/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_center.version/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

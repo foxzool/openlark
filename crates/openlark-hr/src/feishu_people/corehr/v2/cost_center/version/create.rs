@@ -1,6 +1,6 @@
 //! 创建成本中心版本
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_center.version/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_center.version/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

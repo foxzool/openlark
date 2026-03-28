@@ -1,6 +1,6 @@
 //! 查询人员类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -40,7 +40,7 @@ impl ListEmployeeTypeEnumsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/list>
     pub async fn execute(self) -> SDKResult<ListEmployeeTypeEnumsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

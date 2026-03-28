@@ -1,6 +1,6 @@
 //! 更新人员组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/user_group_user_rel/write
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/user_group_user_rel/write>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

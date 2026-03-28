@@ -1,6 +1,6 @@
 //! 查询所有归档规则
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/list
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

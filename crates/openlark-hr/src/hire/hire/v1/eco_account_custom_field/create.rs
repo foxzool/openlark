@@ -1,6 +1,6 @@
 //! 创建账号自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_account_custom_field/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_account_custom_field/create>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 创建职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -40,7 +40,7 @@ impl CreateJobLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/create>
     pub async fn execute(self, body: CreateJobLevelBody) -> SDKResult<JobLevelResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

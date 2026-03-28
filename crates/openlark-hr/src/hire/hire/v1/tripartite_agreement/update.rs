@@ -1,6 +1,6 @@
 //! 更新三方协议
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/tripartite_agreement/update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/tripartite_agreement/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

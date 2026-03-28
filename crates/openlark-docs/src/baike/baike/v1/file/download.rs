@@ -1,6 +1,6 @@
 //! 下载图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/file/download
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/file/download>
 
 use openlark_core::{
     api::{ApiRequest, Response},

@@ -1,6 +1,6 @@
 //! 删除记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/delete
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

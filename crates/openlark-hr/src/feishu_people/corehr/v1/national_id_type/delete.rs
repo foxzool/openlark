@@ -1,6 +1,6 @@
 //! 删除国家证件类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/national_id_type/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/national_id_type/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

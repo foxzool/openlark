@@ -1,6 +1,6 @@
 //! 获取绩效结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v1/review_data/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v1/review_data/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

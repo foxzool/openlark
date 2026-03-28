@@ -1,6 +1,6 @@
 //! 下载导出文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/export/download
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/download>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -54,7 +54,7 @@ impl DownloadExportRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/export/download
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/download>
     pub async fn execute(self) -> SDKResult<DownloadExportResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

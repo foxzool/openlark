@@ -1,6 +1,6 @@
 //! 指定群管理员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/add_managers
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/add_managers>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -45,7 +45,7 @@ impl AddChatManagersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/add_managers
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/add_managers>
     pub async fn execute(self, body: ChatManagersBody) -> SDKResult<ChatManagersResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

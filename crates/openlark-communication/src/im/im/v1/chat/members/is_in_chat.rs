@@ -1,6 +1,6 @@
 //! 判断用户或机器人是否在群里
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/is_in_chat
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/is_in_chat>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -33,7 +33,7 @@ impl IsInChatRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/is_in_chat
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/is_in_chat>
     pub async fn execute(self) -> SDKResult<IsInChatResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 获取租户职级列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -48,7 +48,7 @@ impl ListJobLevelsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/list>
     pub async fn execute(self) -> SDKResult<ListJobLevelsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

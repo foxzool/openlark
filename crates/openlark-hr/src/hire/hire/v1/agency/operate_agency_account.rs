@@ -1,6 +1,6 @@
 //! 禁用/取消禁用猎头
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/agency/operate_agency_account
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/agency/operate_agency_account>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

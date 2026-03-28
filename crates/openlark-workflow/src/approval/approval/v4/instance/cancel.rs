@@ -1,6 +1,6 @@
 //! 撤回审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/cancel
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/cancel>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

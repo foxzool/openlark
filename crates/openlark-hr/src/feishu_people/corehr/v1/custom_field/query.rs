@@ -1,6 +1,6 @@
 //! 获取自定义字段列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/custom_field/query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/custom_field/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

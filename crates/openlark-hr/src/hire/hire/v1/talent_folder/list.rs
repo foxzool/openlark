@@ -1,6 +1,6 @@
 //! 获取人才文件夹列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent_folder/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent_folder/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

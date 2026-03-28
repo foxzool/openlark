@@ -1,6 +1,6 @@
 //! 查询指定生效日期的部门架构树
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/department/tree
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/department/tree>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

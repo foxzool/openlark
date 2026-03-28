@@ -1,6 +1,6 @@
 //! 延时更新消息卡片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -39,7 +39,7 @@ impl UpdateCardRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card>
     pub async fn execute(self, body: UpdateCardBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 上传进展记录图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/image/upload
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/image/upload>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

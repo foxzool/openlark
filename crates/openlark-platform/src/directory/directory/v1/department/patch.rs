@@ -1,6 +1,6 @@
 //! 更新部门
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/department/patch
+//! 文档: <https://open.feishu.cn/document/directory-v1/department/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

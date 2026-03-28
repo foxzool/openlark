@@ -2,7 +2,7 @@
 //!
 //! 根据预上传接口返回的 upload_id 和分片策略上传对应的素材分片。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_part
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_part>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

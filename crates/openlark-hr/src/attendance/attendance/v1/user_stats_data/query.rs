@@ -1,6 +1,6 @@
 //! 查询统计数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_stats_data/query
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_stats_data/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

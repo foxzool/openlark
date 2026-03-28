@@ -1,6 +1,6 @@
 //! Bitable 更新表单元数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

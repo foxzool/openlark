@@ -1,6 +1,6 @@
 //! 获取外部数据源配置信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/datasource/list
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/datasource/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

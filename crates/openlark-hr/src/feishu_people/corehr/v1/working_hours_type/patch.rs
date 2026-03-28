@@ -1,6 +1,6 @@
 //! 更新工时制度
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/working_hours_type/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

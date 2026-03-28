@@ -1,6 +1,6 @@
 //! 查询发薪活动明细列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity_detail/list
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity_detail/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

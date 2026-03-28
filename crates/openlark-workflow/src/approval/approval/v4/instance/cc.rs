@@ -1,6 +1,6 @@
 //! 抄送审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/cc
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/cc>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量查询薪资方案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/plan/list
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/plan/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

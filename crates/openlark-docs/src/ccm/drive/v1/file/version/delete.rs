@@ -2,7 +2,7 @@
 //!
 //! 删除指定源文档的指定版本。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

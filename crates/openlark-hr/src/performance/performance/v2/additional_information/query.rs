@@ -1,6 +1,6 @@
 //! 批量查询补充信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/additional_information/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/additional_information/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 根据适用条件获取工作日历 ID
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/leave/calendar_by_scope
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/leave/calendar_by_scope>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

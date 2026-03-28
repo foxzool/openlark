@@ -1,6 +1,6 @@
 //! 根据方案ID和生效日期批量查询参保方案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/social_plan/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/social_plan/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

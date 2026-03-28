@@ -1,6 +1,6 @@
 //! 查询编制规划明细信息（支持自定义组织）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail/batch_v2
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail/batch_v2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

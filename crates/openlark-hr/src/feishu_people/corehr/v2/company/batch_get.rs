@@ -1,6 +1,6 @@
 //! 通过公司 ID 批量获取公司信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/company/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/company/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

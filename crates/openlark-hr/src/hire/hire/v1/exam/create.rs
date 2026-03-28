@@ -1,6 +1,6 @@
 //! 添加笔试结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/exam/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/exam/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

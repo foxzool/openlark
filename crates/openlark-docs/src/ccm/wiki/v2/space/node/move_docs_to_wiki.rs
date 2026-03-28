@@ -2,7 +2,7 @@
 //!
 //! 该接口允许移动云空间文档至知识空间，并挂载在指定位置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/move_docs_to_wiki
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/move_docs_to_wiki>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

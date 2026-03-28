@@ -2,7 +2,7 @@
 //!
 //! 识别增值税发票中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

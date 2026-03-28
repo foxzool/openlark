@@ -1,7 +1,7 @@
 //! 获取 user_access_token（v1版本） API
 use crate::models::authen::{UserAccessTokenResponse, UserAccessTokenV1Request};
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/user-authentication/access-token/access_token>
 ///
 /// 根据登录预授权码获取 user_access_token
 use openlark_core::{

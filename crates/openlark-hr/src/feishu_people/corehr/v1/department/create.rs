@@ -1,6 +1,6 @@
 //! 创建部门
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/department/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/department/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

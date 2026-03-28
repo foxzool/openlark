@@ -2,7 +2,7 @@
 //!
 //! 识别增值税发票中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_VAT_INVOICE_RECOGNIZE;
@@ -170,7 +170,7 @@ impl VatInvoiceRecognizeRequestBuilder {
 
 /// 执行增值税发票识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/vat_invoice_recognize>
 pub fn create(config: Config) -> VatInvoiceRecognizeRequestBuilder {
     VatInvoiceRecognizeRequestBuilder::new(config)
 }

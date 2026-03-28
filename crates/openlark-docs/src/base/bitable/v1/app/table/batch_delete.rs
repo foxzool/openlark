@@ -1,6 +1,6 @@
 //! Bitable 批量删除数据表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/batch_delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

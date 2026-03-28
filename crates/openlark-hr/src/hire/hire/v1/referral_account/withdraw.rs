@@ -1,6 +1,6 @@
 //! 全额提取内推账户余额
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral_account/withdraw
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral_account/withdraw>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 更新分组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/update>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::section::models::{UpdateSectionBody, UpdateSectionResponse};

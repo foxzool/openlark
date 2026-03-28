@@ -1,6 +1,6 @@
 //! 获取 OKR 周期规则
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/period_rule/list
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/period_rule/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

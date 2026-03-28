@@ -1,6 +1,6 @@
 //! 获取访问控制列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-acl/list
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-acl/list>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -39,7 +39,7 @@ impl ListCalendarAclRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-acl/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-acl/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -1,6 +1,6 @@
 //! 全量更新卡片实体
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card/update
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card/update>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -64,7 +64,7 @@ impl UpdateCardRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/update>
     pub async fn execute(self, body: UpdateCardBody) -> SDKResult<UpdateCardResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -72,7 +72,7 @@ impl UpdateCardRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/update>
     pub async fn execute_with_options(
         self,
         body: UpdateCardBody,

@@ -1,6 +1,6 @@
 //! 通过地点 ID 批量获取地点信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/location/batch_get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/location/batch_get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

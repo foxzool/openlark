@@ -1,6 +1,6 @@
 //! 获取用户的 OKR 列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/user.okr/list
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/user.okr/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

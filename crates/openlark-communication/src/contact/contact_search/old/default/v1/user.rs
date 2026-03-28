@@ -1,6 +1,6 @@
 //! 搜索用户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/search-users
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/search-users>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -28,7 +28,7 @@ impl SearchUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/search-users
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/search-users>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

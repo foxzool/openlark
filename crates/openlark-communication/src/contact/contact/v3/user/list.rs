@@ -1,6 +1,6 @@
 //! 获取用户列表
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -107,7 +107,7 @@ impl ListUsersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list
+    /// docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list>
     pub async fn execute(self) -> SDKResult<ListUsersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 获取面试记录列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/application.interview/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/application.interview/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

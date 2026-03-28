@@ -1,6 +1,6 @@
 //! 通知补卡审批发起
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

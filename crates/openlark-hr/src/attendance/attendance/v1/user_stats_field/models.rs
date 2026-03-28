@@ -1,6 +1,6 @@
 //! 查询统计字段定义模型
 //!
-//! docPath: https://open.feishu.cn/document/attendance-v1/user_stats_field/query
+//! docPath: <https://open.feishu.cn/document/attendance-v1/user_stats_field/query>
 
 use serde::{Deserialize, Serialize};
 

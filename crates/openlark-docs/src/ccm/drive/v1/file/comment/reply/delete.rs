@@ -18,7 +18,7 @@
 //! delete_comment_reply(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

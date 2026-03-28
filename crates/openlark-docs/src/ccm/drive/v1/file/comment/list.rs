@@ -2,7 +2,7 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 更新 Offer 申请表自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer_custom_field/update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer_custom_field/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

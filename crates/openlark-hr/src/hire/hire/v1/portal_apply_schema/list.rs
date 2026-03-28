@@ -1,6 +1,6 @@
 //! 获取申请表模板列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/portal_apply_schema/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/portal_apply_schema/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

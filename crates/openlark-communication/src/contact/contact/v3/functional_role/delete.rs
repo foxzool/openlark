@@ -1,6 +1,6 @@
 //! 删除角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/delete>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -33,7 +33,7 @@ impl DeleteFunctionalRoleRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

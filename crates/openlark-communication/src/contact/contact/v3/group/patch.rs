@@ -1,6 +1,6 @@
 //! 更新用户组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -103,7 +103,7 @@ impl PatchGroupRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/patch>
     pub async fn execute(self, body: PatchGroupBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

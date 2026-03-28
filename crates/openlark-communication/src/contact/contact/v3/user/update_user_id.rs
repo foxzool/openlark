@@ -1,6 +1,6 @@
 //! 更新用户 ID
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/user/update_user_id
+//! docPath: <https://open.feishu.cn/document/contact-v3/user/update_user_id>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -79,7 +79,7 @@ impl UpdateUserIdRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/user/update_user_id
+    /// docPath: <https://open.feishu.cn/document/contact-v3/user/update_user_id>
     pub async fn execute(self, body: UpdateUserIdBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

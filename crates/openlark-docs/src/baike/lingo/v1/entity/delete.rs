@@ -1,6 +1,6 @@
 //! 删除免审词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/delete
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},

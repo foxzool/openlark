@@ -1,6 +1,6 @@
 //! 取消订阅审批事件（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/unsubscribe
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/unsubscribe>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

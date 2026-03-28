@@ -1,6 +1,6 @@
 //! 更新任务清单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/update>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::tasklist::models::{TasklistIcon, UpdateTasklistBody, UpdateTasklistResponse};

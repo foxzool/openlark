@@ -1,6 +1,6 @@
 //! 查询单个待入职信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/pre_hire/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/pre_hire/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

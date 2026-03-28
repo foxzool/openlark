@@ -2,7 +2,7 @@
 //!
 //! 更新指定推送通知的信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

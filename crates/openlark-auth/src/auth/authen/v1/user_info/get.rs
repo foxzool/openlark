@@ -1,7 +1,7 @@
 //! 获取用户信息 API
 use crate::models::authen::UserInfoResponse;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/user_info
+/// API文档: <https://open.feishu.cn/document/server-docs/user-authentication/access-token/user_info>
 ///
 /// 通过 `user_access_token` 获取登录用户的信息。
 use openlark_core::{

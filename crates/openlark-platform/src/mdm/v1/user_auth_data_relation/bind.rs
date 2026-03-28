@@ -1,6 +1,6 @@
 //! 用户数据维度绑定
 //!
-//! 文档: https://open.feishu.cn/document/server-docs/mdm-v1/user_auth_data_relation/bind
+//! 文档: <https://open.feishu.cn/document/server-docs/mdm-v1/user_auth_data_relation/bind>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait},

@@ -1,6 +1,6 @@
 //! 创建部门
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/create>
 
 use std::collections::HashMap;
 
@@ -108,7 +108,7 @@ impl CreateDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/create>
     pub async fn execute(self, body: CreateDepartmentBody) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

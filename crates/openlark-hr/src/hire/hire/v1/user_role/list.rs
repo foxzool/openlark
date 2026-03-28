@@ -1,6 +1,6 @@
 //! 获取用户角色列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/user_role/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/user_role/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

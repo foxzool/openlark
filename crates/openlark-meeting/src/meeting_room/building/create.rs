@@ -1,6 +1,6 @@
 //! 创建建筑物
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/create-building
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/create-building>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -23,7 +23,7 @@ impl CreateBuildingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/create-building
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/create-building>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await

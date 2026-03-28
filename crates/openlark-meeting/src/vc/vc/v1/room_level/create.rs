@@ -1,6 +1,6 @@
 //! 创建会议室层级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat,
@@ -42,7 +42,7 @@ impl CreateRoomLevelRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateRoomLevelResponse> {
         self.execute_with_options(body, RequestOption::default()).await
     }

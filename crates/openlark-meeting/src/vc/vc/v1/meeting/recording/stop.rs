@@ -1,6 +1,6 @@
 //! 停止录制
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/stop
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/stop>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -34,7 +34,7 @@ impl StopRecordingRequest {
     ///
     /// 说明：如文档不要求请求体，可传入空对象 `{}`。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/stop
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/stop>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default(), body)
             .await

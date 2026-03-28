@@ -6,7 +6,7 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-view_record/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-view_record/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 发起流程
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/flow/application-flow/execute
+//! 文档: <https://open.feishu.cn/document/apaas-v1/flow/application-flow/execute>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 将人才加入指定文件夹
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/add_to_folder
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/add_to_folder>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

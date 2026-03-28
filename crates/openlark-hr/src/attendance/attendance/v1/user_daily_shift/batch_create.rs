@@ -1,6 +1,6 @@
 //! 创建或修改排班表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/batch_create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_daily_shift/batch_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量设置角色成员管理范围
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -104,7 +104,7 @@ impl PatchRoleMembersScopesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes>
     pub async fn execute(
         self,
         body: PatchMembersScopesBody,

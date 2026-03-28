@@ -1,6 +1,6 @@
 //! 取消运行
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/cancel
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/cancel>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_RUN_CANCEL};
 use openlark_core::{
@@ -54,7 +54,7 @@ impl CancelRunRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/cancel
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/cancel>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 批量查询员工薪资档案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/archive/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/archive/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -18,7 +18,7 @@
 //! let comment = get_comment(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/get>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 

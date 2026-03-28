@@ -1,6 +1,6 @@
 //! 获取录制文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -40,7 +40,7 @@ impl GetRecordingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-recording/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

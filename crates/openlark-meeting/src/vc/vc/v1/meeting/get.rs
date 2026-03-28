@@ -1,6 +1,6 @@
 //! 获取会议详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -69,7 +69,7 @@ impl GetMeetingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting/get>
     pub async fn execute(self) -> SDKResult<GetMeetingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

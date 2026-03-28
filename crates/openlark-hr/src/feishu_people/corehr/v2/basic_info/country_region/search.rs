@@ -1,6 +1,6 @@
 //! 查询国家/地区信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

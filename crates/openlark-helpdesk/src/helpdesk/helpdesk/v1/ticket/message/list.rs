@@ -2,7 +2,7 @@
 //!
 //! 获取服务台工单消息详情。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/list
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

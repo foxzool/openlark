@@ -1,6 +1,6 @@
 //! 获取评论详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/comment/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/comment/get>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::comment::models::GetCommentResponse;

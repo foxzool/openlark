@@ -1,6 +1,6 @@
 //! 工作台小组件访问数据
 //!
-//! 文档: https://open.feishu.cn/document/workplace-v1/workplace_access_data/search-2
+//! 文档: <https://open.feishu.cn/document/workplace-v1/workplace_access_data/search-2>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait},

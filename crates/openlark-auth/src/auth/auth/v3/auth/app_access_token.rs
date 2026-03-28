@@ -1,7 +1,7 @@
 //! 商店应用获取 app_access_token API
 use crate::models::auth::{AccessTokenResponse, AppAccessTokenRequest};
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token>
 ///
 /// 应用商店应用通过此接口获取 app_access_token，调用接口获取应用资源时，
 /// 需要使用 app_access_token 作为授权凭证。

@@ -1,6 +1,6 @@
 //! 创建卡片实体
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -74,7 +74,7 @@ impl CreateCardRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
     pub async fn execute(self, body: CreateCardBody) -> SDKResult<CreateCardResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -82,7 +82,7 @@ impl CreateCardRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
     pub async fn execute_with_options(
         self,
         body: CreateCardBody,
@@ -164,14 +164,14 @@ impl CreateCardRequestBuilder {
 
 /// 执行创建卡片实体请求
 ///
-/// docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+/// docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
 pub async fn create(config: &Config, body: CreateCardBody) -> SDKResult<CreateCardResponse> {
     create_with_options(config, body, RequestOption::default()).await
 }
 
 /// 执行创建卡片实体请求（支持自定义选项）
 ///
-/// docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+/// docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
 pub async fn create_with_options(
     config: &Config,
     body: CreateCardBody,

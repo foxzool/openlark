@@ -1,6 +1,6 @@
 //! 查询角色成员信息
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-role-member/get
+//! 文档: <https://open.feishu.cn/document/apaas-v1/permission/application-role-member/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

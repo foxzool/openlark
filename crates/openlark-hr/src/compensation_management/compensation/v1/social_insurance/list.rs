@@ -1,6 +1,6 @@
 //! 获取险种配置列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/social_insurance/list
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/social_insurance/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

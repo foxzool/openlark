@@ -1,6 +1,6 @@
 //! 批量查询日历信息
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar/mget-3
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar/mget-3>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -23,7 +23,7 @@ impl MgetCalendarRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar/mget-3
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar/mget-3>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         let api_endpoint = CalendarApiV4::CalendarMget;
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())

@@ -2,7 +2,7 @@
 //!
 //! 该接口用于根据 filetoken 停用云文档密码。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

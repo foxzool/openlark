@@ -1,6 +1,6 @@
 //! 批量查询薪资统计指标
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/indicator/list
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/indicator/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

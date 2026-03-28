@@ -1,6 +1,6 @@
 //! 模糊搜索词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/search
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},

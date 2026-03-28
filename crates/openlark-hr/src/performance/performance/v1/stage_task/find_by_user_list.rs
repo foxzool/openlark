@@ -1,6 +1,6 @@
 //! 获取周期任务（指定用户）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v1/stage_task/find_by_user_list
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v1/stage_task/find_by_user_list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

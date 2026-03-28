@@ -1,6 +1,6 @@
 //! 查询编制规划方案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

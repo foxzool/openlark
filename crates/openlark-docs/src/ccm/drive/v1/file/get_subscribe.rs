@@ -2,7 +2,7 @@
 //!
 //! 查询文件的订阅状态。
 //!
-//! docPath: https://open.feishu.cn/document/docs/drive-v1/event/get_subscribe
+//! docPath: <https://open.feishu.cn/document/docs/drive-v1/event/get_subscribe>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

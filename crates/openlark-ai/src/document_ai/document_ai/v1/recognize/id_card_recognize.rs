@@ -2,7 +2,7 @@
 //!
 //! 识别身份证中的关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/id_card_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/id_card_recognize>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_ID_CARD_RECOGNIZE;
@@ -166,7 +166,7 @@ impl IdCardRecognizeRequestBuilder {
 
 /// 执行身份证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/id_card_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/id_card_recognize>
 pub fn create(config: Config) -> IdCardRecognizeRequestBuilder {
     IdCardRecognizeRequestBuilder::new(config)
 }

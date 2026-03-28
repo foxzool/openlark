@@ -1,6 +1,6 @@
 //! 发起转正
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/probation/submit
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/probation/submit>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

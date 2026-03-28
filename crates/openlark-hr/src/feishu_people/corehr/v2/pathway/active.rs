@@ -1,6 +1,6 @@
 //! 启停用通道
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pathway/active
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pathway/active>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

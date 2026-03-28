@@ -1,6 +1,6 @@
 //! 列出自动化流程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-workflow/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-workflow/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

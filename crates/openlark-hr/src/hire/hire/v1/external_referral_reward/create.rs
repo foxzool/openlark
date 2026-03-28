@@ -1,6 +1,6 @@
 //! 导入外部内推奖励
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/external_referral_reward/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/external_referral_reward/create>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

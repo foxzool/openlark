@@ -1,6 +1,6 @@
 //! 获取事件出口 IP
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/event-subscription-guide/list
+//! docPath: <https://open.feishu.cn/document/server-docs/event-subscription-guide/list>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -18,7 +18,7 @@ impl ListOutboundIpRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/event-subscription-guide/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/event-subscription-guide/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 查询会议室层级详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -68,7 +68,7 @@ impl GetRoomLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/get>
     pub async fn execute(self) -> SDKResult<GetRoomLevelResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -2,7 +2,7 @@
 //!
 //! 移动知识空间中的节点。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/move
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/move>
 //!
 //! 注意：该 API 的 meta.name 为 move（Rust 关键字），模块通过 `r#move` 暴露。
 

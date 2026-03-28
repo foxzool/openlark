@@ -1,6 +1,6 @@
 //! 查询技能列表
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/list>
 
 use std::collections::HashMap;
 
@@ -60,7 +60,7 @@ impl ListSkillsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

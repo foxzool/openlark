@@ -1,6 +1,6 @@
 //! 获取角色列表
 //!
-//! docPath: https://open.feishu.cn/document/ukTMukTMukTM/uYzMwUjL2MDM14iNzATN
+//! docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uYzMwUjL2MDM14iNzATN>
 
 use std::collections::HashMap;
 
@@ -30,7 +30,7 @@ impl ListRolesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/ukTMukTMukTM/uYzMwUjL2MDM14iNzATN
+    /// docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uYzMwUjL2MDM14iNzATN>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

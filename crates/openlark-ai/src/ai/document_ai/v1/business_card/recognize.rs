@@ -2,7 +2,7 @@
 //!
 //! 智能识别名片中的联系信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/business_card_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/business_card_recognize>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -163,7 +163,7 @@ impl BusinessCardRecognizeRequestBuilder {
 
 /// 执行名片识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/business_card_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/business_card_recognize>
 pub async fn business_card_recognize(
     config: &Config,
     body: BusinessCardRecognizeBody,

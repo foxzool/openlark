@@ -1,6 +1,6 @@
 //! 批量查询职务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

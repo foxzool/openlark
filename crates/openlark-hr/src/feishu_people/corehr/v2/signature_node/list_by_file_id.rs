@@ -1,6 +1,6 @@
 //! 获取文件签署节点信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/signature_node/list_by_file_id
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/signature_node/list_by_file_id>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

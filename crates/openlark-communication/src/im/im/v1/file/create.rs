@@ -1,6 +1,6 @@
 //! 上传文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/file/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/file/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
@@ -88,7 +88,7 @@ impl CreateFileRequest {
     ///
     /// 说明：该接口为 multipart 上传，请传入文件元信息 + 文件二进制内容。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/file/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/file/create>
     pub async fn execute(
         self,
         body: CreateFileBody,

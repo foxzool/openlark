@@ -70,7 +70,7 @@ impl CardResource {
 
     /// 创建卡片实体
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/create
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/create>
     pub async fn create(
         &self,
         body: crate::cardkit::cardkit::v1::card::create::CreateCardBody,

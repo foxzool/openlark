@@ -16,7 +16,7 @@ use openlark_core::constants::AppType;
 /// - `OPENLARK_APP_ID`: 应用ID（必需）
 /// - `OPENLARK_APP_SECRET`: 应用密钥（必需）
 /// - `OPENLARK_APP_TYPE`: 应用类型（可选：self_build / marketplace，默认 self_build）
-/// - `OPENLARK_BASE_URL`: API基础URL（可选，默认：`https://open.feishu.cn`，国际版 Lark 使用 `https://open.larksuite.com`）
+/// - `OPENLARK_BASE_URL`: API基础URL（可选，默认：`<https://open.feishu.cn`，国际版> Lark 使用 `<https://open.larksuite.com`）>
 /// - `OPENLARK_ENABLE_TOKEN_CACHE`: 是否允许自动获取 token（可选，默认 true）
 ///
 /// # 示例
@@ -30,7 +30,7 @@ use openlark_core::constants::AppType;
 /// let config = Config::builder()
 ///     .app_id("your_app_id")
 ///     .app_secret("your_app_secret")
-///     .base_url("https://open.feishu.cn")  // 默认值，国际版 Lark 使用 https://open.larksuite.com
+///     .base_url("<https://open.feishu.cn")>  // 默认值，国际版 Lark 使用 <https://open.larksuite.com>
 ///     .build();
 /// ```
 #[derive(Debug, Clone)]
@@ -87,7 +87,7 @@ impl Config {
     /// - `OPENLARK_APP_ID`: 应用ID（必需）
     /// - `OPENLARK_APP_SECRET`: 应用密钥（必需）
     /// - `OPENLARK_APP_TYPE`: 应用类型（可选：self_build / marketplace）
-    /// - `OPENLARK_BASE_URL`: API基础URL（可选，默认 `https://open.feishu.cn`，国际版 Lark 使用 `https://open.larksuite.com`）
+    /// - `OPENLARK_BASE_URL`: API基础URL（可选，默认 `<https://open.feishu.cn`，国际版> Lark 使用 `<https://open.larksuite.com`）>
     /// - `OPENLARK_ENABLE_TOKEN_CACHE`: 是否允许自动获取 token（可选）
     ///
     /// # 返回值
@@ -333,7 +333,7 @@ impl Config {
 /// let config = Config::builder()
 ///     .app_id("your_app_id")
 ///     .app_secret("your_app_secret")
-///     .base_url("https://open.feishu.cn")
+///     .base_url("<https://open.feishu.cn")>
 ///     .timeout(Duration::from_secs(60))
 ///     .retry_count(5)
 ///     .enable_log(true)

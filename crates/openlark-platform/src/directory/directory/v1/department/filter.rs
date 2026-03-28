@@ -1,6 +1,6 @@
 //! 获取部门列表
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/department/filter
+//! 文档: <https://open.feishu.cn/document/directory-v1/department/filter>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 查询职等
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/job_grade/query
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/job_grade/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

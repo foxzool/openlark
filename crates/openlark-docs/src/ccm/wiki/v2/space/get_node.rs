@@ -2,7 +2,7 @@
 //!
 //! 获取知识空间节点信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/get_node
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/get_node>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

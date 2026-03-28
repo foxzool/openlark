@@ -1,6 +1,6 @@
 //! 添加用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/add
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/add>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -69,7 +69,7 @@ impl AddGroupMemberRequest {
     ///
     /// 说明：该接口目前仅支持 `member_type=user`。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/add
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/add>
     pub async fn execute(
         self,
         member_id_type: UserIdType,

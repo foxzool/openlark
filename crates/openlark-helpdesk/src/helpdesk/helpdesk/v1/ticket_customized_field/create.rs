@@ -2,7 +2,7 @@
 //!
 //! 创建工单自定义字段。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/create
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/create>
 
 use openlark_core::{
     api::ApiRequest,

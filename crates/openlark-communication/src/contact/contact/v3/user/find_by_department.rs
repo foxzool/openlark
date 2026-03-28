@@ -1,6 +1,6 @@
 //! 获取部门直属用户列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/find_by_department
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/find_by_department>
 
 use openlark_core::{api::ApiRequest, config::Config, error, http::Transport, SDKResult};
 
@@ -85,7 +85,7 @@ impl FindUsersByDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/find_by_department
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/find_by_department>
     pub async fn execute(self) -> SDKResult<ListUsersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

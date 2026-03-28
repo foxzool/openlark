@@ -1,6 +1,6 @@
 //! 更新会议室预定管理员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/patch-3
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/patch-3>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -32,7 +32,7 @@ impl PatchReserveConfigAdminRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/patch-3
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/patch-3>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await

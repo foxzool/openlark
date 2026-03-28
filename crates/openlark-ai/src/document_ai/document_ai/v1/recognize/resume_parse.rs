@@ -2,7 +2,7 @@
 //!
 //! 智能解析简历文档，提取关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/resume_parse
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/resume_parse>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_RESUME_PARSE;
@@ -253,7 +253,7 @@ impl ResumeParseRequestBuilder {
 
 /// 执行简历解析
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/resume_parse
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/resume_parse>
 pub fn create(config: Config) -> ResumeParseRequestBuilder {
     ResumeParseRequestBuilder::new(config)
 }

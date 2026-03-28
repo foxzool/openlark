@@ -2,7 +2,7 @@
 //!
 //! 取消推送通知发送。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/cancel_send
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/cancel_send>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,

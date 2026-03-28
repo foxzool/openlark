@@ -1,6 +1,6 @@
 //! 查询建筑物详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -31,7 +31,7 @@ impl BatchGetBuildingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

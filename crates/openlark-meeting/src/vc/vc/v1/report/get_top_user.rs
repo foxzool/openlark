@@ -1,6 +1,6 @@
 //! 获取 Top 用户列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/report/get_top_user
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/report/get_top_user>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -31,7 +31,7 @@ impl GetTopUserReportRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/report/get_top_user
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/report/get_top_user>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

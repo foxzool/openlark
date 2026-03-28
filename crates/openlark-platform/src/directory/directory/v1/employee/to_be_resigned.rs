@@ -1,6 +1,6 @@
 //! 更新在职员工为待离职
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/employee/to_be_resigned
+//! 文档: <https://open.feishu.cn/document/directory-v1/employee/to_be_resigned>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

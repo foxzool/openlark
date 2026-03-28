@@ -24,7 +24,7 @@
 //! let comment = create_comment(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/create>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 

@@ -1,6 +1,6 @@
 //! 批量查询部门调整内容
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/approval_groups/open_query_department_change_list_by_ids
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/approval_groups/open_query_department_change_list_by_ids>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

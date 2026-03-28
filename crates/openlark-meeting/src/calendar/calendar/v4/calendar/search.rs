@@ -1,6 +1,6 @@
 //! 搜索日历
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/search
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/search>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -23,7 +23,7 @@ impl SearchCalendarRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/search
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/search>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         let api_endpoint = CalendarApiV4::CalendarSearch;
         let req: ApiRequest<serde_json::Value> =

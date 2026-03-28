@@ -1,6 +1,6 @@
 //! 批量获取主日历信息
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar/primarys
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar/primarys>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -20,7 +20,7 @@ impl PrimarysCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar/primarys
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar/primarys>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

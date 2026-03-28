@@ -1,6 +1,6 @@
 //! 更新实习 Offer 入/离职状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer/intern_offer_status
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer/intern_offer_status>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

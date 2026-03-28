@@ -2,7 +2,7 @@
 //!
 //! 刷新云文档的密码保护设置（平台自动生成新密码）。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

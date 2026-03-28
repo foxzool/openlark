@@ -1,6 +1,6 @@
 //! 创建 Offer
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/offer/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/offer/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量删除记录权限用户授权
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization
+//! 文档: <https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

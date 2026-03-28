@@ -1,6 +1,6 @@
 //! 获取附件 PDF 格式下载链接
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/attachment/preview
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/attachment/preview>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

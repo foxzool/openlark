@@ -1,6 +1,6 @@
 //! 查询实体与标签的绑定关系
 //!
-//! docPath: https://open.feishu.cn/document/tenant-tag/get
+//! docPath: <https://open.feishu.cn/document/tenant-tag/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -38,7 +38,7 @@ impl GetBizEntityTagRelationRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/tenant-tag/get
+    /// docPath: <https://open.feishu.cn/document/tenant-tag/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

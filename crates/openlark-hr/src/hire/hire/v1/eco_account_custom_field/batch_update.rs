@@ -1,6 +1,6 @@
 //! 更新账号自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/eco_account_custom_field/batch_update
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/eco_account_custom_field/batch_update>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

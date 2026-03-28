@@ -1,6 +1,6 @@
 //! 获取员工薪资标准
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/compensation_standard/match
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/compensation_standard/match>
 
 use openlark_core::{
     api::ApiRequest,

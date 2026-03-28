@@ -1,6 +1,6 @@
 //! 删除考勤组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/group/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/group/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

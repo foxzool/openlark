@@ -2,7 +2,7 @@
 //!
 //! 智能解析简历文档，提取关键信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/resume_parse
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/resume_parse>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -254,7 +254,7 @@ impl ResumeParseRequestBuilder {
 
 /// 执行简历解析
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/resume_parse
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/resume_parse>
 pub async fn resume_parse(
     config: &Config,
     body: ResumeParseBody,

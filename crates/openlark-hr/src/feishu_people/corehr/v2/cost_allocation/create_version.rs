@@ -1,6 +1,6 @@
 //! 创建成本分摊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/create_version
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/cost_allocation/create_version>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

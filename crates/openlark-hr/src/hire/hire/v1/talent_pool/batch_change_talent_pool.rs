@@ -1,6 +1,6 @@
 //! 批量加入/移除人才库中人才
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent_pool/batch_change_talent_pool
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent_pool/batch_change_talent_pool>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 创建 OKR 进展记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v1/progress_record/create
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/progress_record/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

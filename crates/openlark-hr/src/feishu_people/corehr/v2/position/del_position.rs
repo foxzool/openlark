@@ -1,6 +1,6 @@
 //! 删除岗位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/position/del_position
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/position/del_position>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

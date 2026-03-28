@@ -1,6 +1,6 @@
 //! 更新职位设置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/update_config
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/update_config>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

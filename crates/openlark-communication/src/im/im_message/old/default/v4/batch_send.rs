@@ -1,6 +1,6 @@
 //! 批量发送消息（旧版）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/send-messages-in-batches
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/send-messages-in-batches>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -22,7 +22,7 @@ impl BatchSendMessagesRequest {
     ///
     /// 说明：该接口为旧版批量发送接口，请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/send-messages-in-batches
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/send-messages-in-batches>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

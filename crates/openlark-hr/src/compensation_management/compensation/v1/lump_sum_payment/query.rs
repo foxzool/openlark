@@ -1,6 +1,6 @@
 //! 查询一次性支付授予记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/lump_sum_payment/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/lump_sum_payment/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 批量获取员工列表
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/employee/filter
+//! 文档: <https://open.feishu.cn/document/directory-v1/employee/filter>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 获取 HRBP 列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/bp/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/bp/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

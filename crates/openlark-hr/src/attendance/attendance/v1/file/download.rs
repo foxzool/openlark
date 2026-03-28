@@ -1,6 +1,6 @@
 //! 下载用户人脸识别照片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/file/download
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/file/download>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

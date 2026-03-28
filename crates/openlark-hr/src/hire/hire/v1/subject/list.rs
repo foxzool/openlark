@@ -1,6 +1,6 @@
 //! 获取项目列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/subject/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/subject/list>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 转交审批任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process.transfer/update
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process.transfer/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

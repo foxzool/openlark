@@ -1,6 +1,6 @@
 //! 更新 e-HR 导入任务结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/ehr_import_task/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/ehr_import_task/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

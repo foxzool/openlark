@@ -1,6 +1,6 @@
 //! 批量新增部门
 //!
-//! docPath: https://open.feishu.cn/document/ukTMukTMukTM/uMDOwUjLzgDM14yM4ATN
+//! docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uMDOwUjLzgDM14yM4ATN>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -21,7 +21,7 @@ impl BatchAddDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/ukTMukTMukTM/uMDOwUjLzgDM14yM4ATN
+    /// docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uMDOwUjLzgDM14yM4ATN>
     pub async fn execute(self, params: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(params, openlark_core::req_option::RequestOption::default())
             .await

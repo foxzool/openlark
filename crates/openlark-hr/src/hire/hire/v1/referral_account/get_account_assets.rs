@@ -1,6 +1,6 @@
 //! 查询内推账户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral_account/get_account_assets
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral_account/get_account_assets>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

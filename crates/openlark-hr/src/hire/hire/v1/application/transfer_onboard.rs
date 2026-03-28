@@ -1,6 +1,6 @@
 //! 操作候选人入职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/application/transfer_onboard
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/application/transfer_onboard>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

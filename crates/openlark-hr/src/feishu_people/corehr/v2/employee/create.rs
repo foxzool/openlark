@@ -1,6 +1,6 @@
 //! 添加人员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/employee/create
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employee/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

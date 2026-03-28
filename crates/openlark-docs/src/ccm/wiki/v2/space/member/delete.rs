@@ -2,7 +2,7 @@
 //!
 //! 从知识空间删除成员。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-member/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-member/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

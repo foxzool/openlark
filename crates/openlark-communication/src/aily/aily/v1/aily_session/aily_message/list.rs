@@ -1,6 +1,6 @@
 //! 列出 Aily 消息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list>
 
 use std::collections::HashMap;
 
@@ -60,7 +60,7 @@ impl ListAilyMessagesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

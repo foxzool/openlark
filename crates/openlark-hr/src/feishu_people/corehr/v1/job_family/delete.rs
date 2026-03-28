@@ -1,6 +1,6 @@
 //! 删除序列
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_family/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_family/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

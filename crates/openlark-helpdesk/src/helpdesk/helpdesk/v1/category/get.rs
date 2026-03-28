@@ -2,7 +2,7 @@
 //!
 //! 获取指定知识库分类的详情。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/get
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/category/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

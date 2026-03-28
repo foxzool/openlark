@@ -2,7 +2,7 @@
 //!
 //! 搜索服务台知识库。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/search
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 删除会议室
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -54,7 +54,7 @@ impl DeleteRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/delete>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

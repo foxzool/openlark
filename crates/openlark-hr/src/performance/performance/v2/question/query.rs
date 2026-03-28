@@ -1,6 +1,6 @@
 //! 获取标签填写题配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/question/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/question/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

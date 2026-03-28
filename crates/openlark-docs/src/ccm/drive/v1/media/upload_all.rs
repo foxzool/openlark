@@ -2,7 +2,7 @@
 //!
 //! 将文件、图片、视频等素材文件上传到指定云文档中。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

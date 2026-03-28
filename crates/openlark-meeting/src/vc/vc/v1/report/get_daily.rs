@@ -1,6 +1,6 @@
 //! 获取会议报告
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/report/get_daily
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/report/get_daily>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -50,7 +50,7 @@ impl GetDailyReportRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/report/get_daily
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/report/get_daily>
     pub async fn execute(self) -> SDKResult<GetDailyReportResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

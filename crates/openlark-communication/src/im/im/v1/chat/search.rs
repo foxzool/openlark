@@ -1,6 +1,6 @@
 //! 搜索对用户或机器人可见的群列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/search
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/search>
 
 use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
 
@@ -80,7 +80,7 @@ impl SearchChatsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/search
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/search>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

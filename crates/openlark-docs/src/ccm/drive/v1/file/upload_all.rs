@@ -2,7 +2,7 @@
 //!
 //! 上传指定文件到指定目录中，支持单次上传文件。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/upload_all
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/upload_all>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

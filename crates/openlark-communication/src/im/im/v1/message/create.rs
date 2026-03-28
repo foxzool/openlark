@@ -1,6 +1,6 @@
 //! 发送消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/create>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -83,7 +83,7 @@ impl CreateMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/create>
     pub async fn execute(self, body: CreateMessageBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

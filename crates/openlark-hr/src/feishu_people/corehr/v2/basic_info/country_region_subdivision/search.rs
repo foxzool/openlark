@@ -1,6 +1,6 @@
 //! 查询省份/主要行政区信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region_subdivision/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region_subdivision/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

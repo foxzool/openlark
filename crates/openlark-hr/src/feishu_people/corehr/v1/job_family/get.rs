@@ -1,6 +1,6 @@
 //! 查询单个序列
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/job_family/get
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/job_family/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

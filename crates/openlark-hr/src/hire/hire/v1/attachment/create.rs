@@ -1,6 +1,6 @@
 //! 创建附件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/attachment/create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/attachment/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

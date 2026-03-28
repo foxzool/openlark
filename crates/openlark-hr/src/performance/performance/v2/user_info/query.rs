@@ -1,6 +1,6 @@
 //! 获取绩效周期的人员信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/user_info/query
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/user_info/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

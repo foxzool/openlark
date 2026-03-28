@@ -1,6 +1,6 @@
 //! 删除可搜可见规则
 //!
-//! 文档: https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/delete
+//! 文档: <https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

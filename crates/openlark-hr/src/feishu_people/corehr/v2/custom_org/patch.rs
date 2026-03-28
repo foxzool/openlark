@@ -1,6 +1,6 @@
 //! 更新自定义组织信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/custom_org/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 创建班次
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/shift/create
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/shift/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

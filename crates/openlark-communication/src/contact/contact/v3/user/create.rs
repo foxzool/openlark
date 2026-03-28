@@ -1,6 +1,6 @@
 //! 创建用户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/create>
 
 use std::collections::HashMap;
 
@@ -139,7 +139,7 @@ impl CreateUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/create>
     pub async fn execute(self, body: CreateUserBody) -> SDKResult<UserResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

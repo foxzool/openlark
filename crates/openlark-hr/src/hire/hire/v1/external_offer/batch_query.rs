@@ -1,6 +1,6 @@
 //! 查询外部 Offer 列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/external_offer/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/external_offer/batch_query>
 
 use openlark_core::{
     api::{ApiResponseTrait, ResponseFormat},

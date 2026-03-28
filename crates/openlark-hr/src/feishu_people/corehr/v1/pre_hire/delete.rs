@@ -1,6 +1,6 @@
 //! 删除待入职（不推荐）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/pre_hire/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/pre_hire/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

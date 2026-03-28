@@ -1,6 +1,6 @@
 //! 移除用户被授权的角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v1/authorization/remove_role_assign
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v1/authorization/remove_role_assign>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

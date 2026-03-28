@@ -2,7 +2,7 @@
 //!
 //! 通过 file_tokens 获取素材临时下载链接，链接时效性是 24 小时，过期失效。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/batch_get_tmp_download_url
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/batch_get_tmp_download_url>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

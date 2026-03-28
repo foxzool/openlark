@@ -1,6 +1,6 @@
 //! 获取分组详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/get>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::section::models::GetSectionResponse;

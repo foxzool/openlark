@@ -1,6 +1,6 @@
 //! 更新自动化流程状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-workflow/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-workflow/update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

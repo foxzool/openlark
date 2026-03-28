@@ -1,6 +1,6 @@
 //! 删除任务协作者（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskcollaborator/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskcollaborator/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

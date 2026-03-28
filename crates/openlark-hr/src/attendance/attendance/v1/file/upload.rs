@@ -1,6 +1,6 @@
 //! 上传用户人脸识别照片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/file/upload
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/file/upload>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

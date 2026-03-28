@@ -2,7 +2,7 @@
 //!
 //! 将文件或文件夹的所有者转移给其他用户。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/transfer_owner
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/transfer_owner>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

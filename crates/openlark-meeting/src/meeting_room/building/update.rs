@@ -1,6 +1,6 @@
 //! 更新建筑物
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -35,7 +35,7 @@ impl UpdateBuildingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         validate_required!(self.building_id, "building_id 不能为空");
 

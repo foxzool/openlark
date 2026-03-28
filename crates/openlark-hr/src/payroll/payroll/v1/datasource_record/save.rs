@@ -1,6 +1,6 @@
 //! 创建 / 更新外部算薪数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/save
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/save>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

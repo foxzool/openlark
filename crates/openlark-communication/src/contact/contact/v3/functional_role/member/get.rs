@@ -1,6 +1,6 @@
 //! 查询角色下某个成员的管理范围
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/get
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/get>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -70,7 +70,7 @@ impl GetRoleMemberRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/get>
     pub async fn execute(self) -> SDKResult<GetMemberResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

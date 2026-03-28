@@ -1,6 +1,6 @@
 //! 修改部门部分信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -75,7 +75,7 @@ impl PatchDepartmentRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

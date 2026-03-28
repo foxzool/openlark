@@ -1,6 +1,6 @@
 //! 更新卡片实体配置
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card/settings
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card/settings>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
@@ -54,7 +54,7 @@ impl UpdateCardSettingsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/settings
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/settings>
     pub async fn execute(
         self,
         body: UpdateCardSettingsBody,
@@ -65,7 +65,7 @@ impl UpdateCardSettingsRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card/settings
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card/settings>
     pub async fn execute_with_options(
         self,
         body: UpdateCardSettingsBody,

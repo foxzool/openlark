@@ -1,6 +1,6 @@
 //! 查询当前生效信息发生变更的职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/job_level/query_recent_change
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/job_level/query_recent_change>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

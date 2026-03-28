@@ -1,6 +1,6 @@
 //! 获取单位绑定的部门列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list_department
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list_department>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
@@ -59,7 +59,7 @@ impl ListUnitDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list_department
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list_department>
     pub async fn execute(self) -> SDKResult<ListUnitDepartmentsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

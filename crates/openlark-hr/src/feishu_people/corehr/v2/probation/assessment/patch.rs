@@ -1,6 +1,6 @@
 //! 更新试用期考核信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/probation.assessment/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/probation.assessment/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 删除职等
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/job_grade/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/job_grade/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,6 +1,6 @@
 //! 即时提醒
 //!
-//! docPath: https://open.feishu.cn/document/im-v2/groups-bots/patch
+//! docPath: <https://open.feishu.cn/document/im-v2/groups-bots/patch>
 
 use openlark_core::{
     api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
@@ -43,7 +43,7 @@ impl PatchFeedCardRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v2/groups-bots/patch
+    /// docPath: <https://open.feishu.cn/document/im-v2/groups-bots/patch>
     pub async fn execute(
         self,
         body: FeedCardTimeSensitiveBody,

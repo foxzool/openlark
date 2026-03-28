@@ -1,7 +1,7 @@
 //! 自建应用获取 tenant_access_token API
 use crate::models::auth::{TenantAccessTokenInternalRequest, TenantAccessTokenResponse};
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal>
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,

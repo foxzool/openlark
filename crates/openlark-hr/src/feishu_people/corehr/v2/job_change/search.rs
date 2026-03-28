@@ -1,6 +1,6 @@
 //! 搜索员工异动信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/job_change/search
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/job_change/search>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

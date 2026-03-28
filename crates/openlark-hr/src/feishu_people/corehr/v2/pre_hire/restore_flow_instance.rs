@@ -1,6 +1,6 @@
 //! 恢复入职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/restore_flow_instance
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/restore_flow_instance>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

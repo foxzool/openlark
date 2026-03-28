@@ -2,7 +2,7 @@
 //!
 //! 获取全部客服技能规则。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent_skill_rule/list
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent_skill_rule/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

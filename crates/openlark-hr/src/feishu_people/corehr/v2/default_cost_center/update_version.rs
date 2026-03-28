@@ -1,6 +1,6 @@
 //! 更新默认成本中心
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/default_cost_center/update_version
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/default_cost_center/update_version>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

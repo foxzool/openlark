@@ -1,6 +1,6 @@
 //! 获取妙记信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/minutes-v1/minute/get
+//! docPath: <https://open.feishu.cn/document/server-docs/minutes-v1/minute/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

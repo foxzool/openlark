@@ -1,6 +1,6 @@
 //! 获取重复日程实例
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar-event/instances
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event/instances>
 
 use openlark_core::{
     api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
@@ -47,7 +47,7 @@ impl InstancesCalendarEventRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar-event/instances
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event/instances>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

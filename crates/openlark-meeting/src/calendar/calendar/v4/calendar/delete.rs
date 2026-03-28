@@ -1,6 +1,6 @@
 //! 删除共享日历
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -46,7 +46,7 @@ impl DeleteCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/delete>
     pub async fn execute(self) -> SDKResult<DeleteCalendarResponse> {
         validate_required_field("calendar_id", Some(&self.calendar_id), "日历 ID 不能为空")?;
 

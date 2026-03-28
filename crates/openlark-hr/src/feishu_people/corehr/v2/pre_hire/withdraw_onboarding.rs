@@ -1,6 +1,6 @@
 //! 撤销入职
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/withdraw_onboarding
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pre_hire/withdraw_onboarding>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

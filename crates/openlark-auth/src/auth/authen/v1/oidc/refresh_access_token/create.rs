@@ -1,7 +1,7 @@
 //! OIDC 用户访问令牌刷新API
 use crate::models::authen::UserAccessTokenResponse;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_refresh_access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_refresh_access_token>
 ///
 /// 通过 OIDC 刷新令牌获取新的用户访问令牌
 use openlark_core::{

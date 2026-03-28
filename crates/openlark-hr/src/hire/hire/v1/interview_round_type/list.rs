@@ -1,6 +1,6 @@
 //! 获取面试轮次类型列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/interview_round_type/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/interview_round_type/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

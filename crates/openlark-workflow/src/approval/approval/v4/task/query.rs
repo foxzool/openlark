@@ -1,6 +1,6 @@
 //! 查询用户的任务列表（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

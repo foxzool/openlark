@@ -1,6 +1,6 @@
 //! 创建运行
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/create>
 
 use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_RUNS};
 use openlark_core::{
@@ -51,7 +51,7 @@ impl CreateRunRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
