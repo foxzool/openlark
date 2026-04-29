@@ -512,6 +512,17 @@ pub enum CoreError {
         ctx: Box<ErrorContext>,
     },
 
+    /// 响应体大小超过限制
+    #[error("响应体过大: {actual} 字节超过限制 {limit} 字节")]
+    ResponseTooLarge {
+        /// 配置的大小限制
+        limit: u64,
+        /// 实际大小（已知时），否则为 0
+        actual: u64,
+        /// 错误上下文
+        ctx: Box<ErrorContext>,
+    },
+
     /// 内部错误
     #[error("内部错误 {code:?}: {message}")]
     Internal {
@@ -653,6 +664,11 @@ impl Clone for CoreError {
                 code: *code,
                 ctx: ctx.clone(),
             },
+            Self::ResponseTooLarge { limit, actual, ctx } => Self::ResponseTooLarge {
+                limit: *limit,
+                actual: *actual,
+                ctx: ctx.clone(),
+            },
             Self::Internal {
                 code, message, ctx, ..
             } => Self::Internal {
@@ -780,6 +796,7 @@ impl CoreError {
             Self::Timeout { .. } => ErrorCode::NetworkTimeout,
             Self::RateLimit { code, .. } => *code,
             Self::ServiceUnavailable { code, .. } => *code,
+            Self::ResponseTooLarge { .. } => ErrorCode::ResponseTooLarge,
             Self::Internal { code, .. } => *code,
         }
     }
@@ -828,6 +845,7 @@ impl CoreError {
             | Self::Timeout { ctx, .. }
             | Self::RateLimit { ctx, .. }
             | Self::ServiceUnavailable { ctx, .. }
+            | Self::ResponseTooLarge { ctx, .. }
             | Self::Internal { ctx, .. } => ctx,
         }
     }
@@ -934,6 +952,18 @@ impl CoreError {
                     service,
                     retry_after,
                     code,
+                    ctx,
+                }
+            }
+            Self::ResponseTooLarge {
+                limit,
+                actual,
+                mut ctx,
+            } => {
+                f(ctx.as_mut());
+                Self::ResponseTooLarge {
+                    limit,
+                    actual,
                     ctx,
                 }
             }
@@ -1059,6 +1089,15 @@ impl CoreError {
             ctx: Box::new(ctx),
         }))
     }
+
+    /// 响应体过大错误
+    pub fn response_too_large(limit: u64, actual: u64) -> Self {
+        Self::ResponseTooLarge {
+            limit,
+            actual,
+            ctx: Box::new(ErrorContext::new()),
+        }
+    }
 }
 
 /// 统一的可观测记录
@@ -1149,6 +1188,7 @@ impl ErrorTrait for CoreError {
             Self::Timeout { .. } => Some("请求超时，请稍后重试"),
             Self::RateLimit { .. } => Some("请求过于频繁，请稍候"),
             Self::ServiceUnavailable { .. } => Some("服务暂不可用，请稍后重试"),
+            Self::ResponseTooLarge { .. } => Some("响应数据过大，请减小请求范围"),
             Self::Internal { message, .. } => Some(message.as_str()),
         }
     }
@@ -1169,6 +1209,7 @@ impl ErrorTrait for CoreError {
             Self::Timeout { .. } => ErrorType::Timeout,
             Self::RateLimit { .. } => ErrorType::RateLimit,
             Self::ServiceUnavailable { .. } => ErrorType::ServiceUnavailable,
+            Self::ResponseTooLarge { .. } => ErrorType::ResponseTooLarge,
             Self::Internal { .. } => ErrorType::Internal,
         }
     }
@@ -1477,6 +1518,7 @@ mod tests {
             timeout_error(Duration::from_secs(1), None),
             rate_limit_error(100, Duration::from_secs(60), Some(Duration::from_secs(10))),
             service_unavailable_error("svc", Some(Duration::from_secs(30))),
+            CoreError::response_too_large(1024 * 1024, 5 * 1024 * 1024),
             CoreError::Internal {
                 code: ErrorCode::InternalError,
                 message: "internal".to_string(),

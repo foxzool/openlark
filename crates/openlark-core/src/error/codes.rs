@@ -188,6 +188,10 @@ pub enum ErrorCode {
     /// 请求频率限制
     RateLimitExceeded = 999060,
 
+    // 响应大小错误码
+    /// 响应体大小超过限制
+    ResponseTooLarge = 41300,
+
     // 缓存错误码
     /// 缓存未命中
     CacheMiss = 999070,
@@ -305,6 +309,9 @@ impl ErrorCode {
             // 限流错误码
             999060 => Self::RateLimitExceeded,
 
+            // 响应大小错误码
+            41300 => Self::ResponseTooLarge,
+
             // 缓存错误码
             999070 => Self::CacheMiss,
             999071 => Self::CacheServiceUnavailable,
@@ -420,6 +427,9 @@ impl ErrorCode {
             // 限流错误码描述
             Self::RateLimitExceeded => "请求频率限制",
 
+            // 响应大小错误码描述
+            Self::ResponseTooLarge => "响应体大小超过限制",
+
             // 缓存错误码描述
             Self::CacheMiss => "缓存未命中",
             Self::CacheServiceUnavailable => "缓存服务不可用",
@@ -519,6 +529,8 @@ impl ErrorCode {
             Self::ResourceExhausted => "系统资源耗尽，请稍后重试或增加资源配额",
 
             Self::RateLimitExceeded => "请求频率超过限制，请降低请求频率后重试",
+
+            Self::ResponseTooLarge => "响应体大小超过限制，请减小请求范围或联系管理员调整限制",
 
             Self::CacheMiss => "缓存中未找到数据，将从数据源获取",
             Self::CacheServiceUnavailable => "缓存服务不可用，将直接访问数据源",
@@ -635,11 +647,16 @@ impl ErrorCode {
 
     /// 获取HTTP状态码
     pub fn http_status(&self) -> Option<u16> {
-        let code = *self as i32;
-        if (100..=599).contains(&code) {
-            Some(code as u16)
-        } else {
-            None
+        match self {
+            Self::ResponseTooLarge => Some(413),
+            _ => {
+                let code = *self as i32;
+                if (100..=599).contains(&code) {
+                    Some(code as u16)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -874,7 +891,8 @@ impl ErrorCode {
             | Self::ValidationError
             | Self::MissingRequiredParameter
             | Self::InvalidParameterFormat
-            | Self::ParameterOutOfRange => ErrorSeverity::Warning,
+            | Self::ParameterOutOfRange
+            | Self::ResponseTooLarge => ErrorSeverity::Warning,
 
             // 认证和权限错误是错误级别
             Self::Unauthorized
@@ -919,6 +937,7 @@ impl ErrorCode {
             Self::InternalServerError => "系统内部错误，请联系技术支持",
             Self::ValidationError => "请检查输入参数格式",
             Self::ConfigurationError => "请检查系统配置",
+            Self::ResponseTooLarge => "请减小请求范围或联系管理员调整响应大小限制",
             Self::Unknown => "发生未知错误，请联系技术支持",
             _ => "请稍后重试，如问题持续请联系技术支持",
         }
@@ -1097,7 +1116,8 @@ impl ErrorCode {
             | Self::DataFormatError
             | Self::EncodingError
             | Self::ConfigurationError
-            | Self::ResourceExhausted => ErrorCategory::System,
+            | Self::ResourceExhausted
+            | Self::ResponseTooLarge => ErrorCategory::System,
 
             // 限流相关
             Self::TooManyRequests | Self::RateLimitExceeded => ErrorCategory::RateLimit,
