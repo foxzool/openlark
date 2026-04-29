@@ -776,6 +776,7 @@ mod tests {
             retry_count: 3,
             enable_log: false,
             header_count: 0,
+            max_response_size: 100 * 1024 * 1024,
         };
 
         let description = summary.friendly_description();
@@ -797,6 +798,7 @@ mod tests {
             retry_count: 3,
             enable_log: false,
             header_count: 0,
+            max_response_size: 100 * 1024 * 1024,
         };
 
         let description = summary.friendly_description();

@@ -86,6 +86,7 @@ mod tests {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024,
             core_config: None,
         };
 

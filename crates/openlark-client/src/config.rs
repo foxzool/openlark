@@ -69,6 +69,8 @@ pub struct Config {
     pub enable_log: bool,
     /// 📋 自定义HTTP headers
     pub headers: std::collections::HashMap<String, String>,
+    /// 响应体最大大小限制（字节），默认 100MB
+    pub max_response_size: u64,
     /// 🔧 底层 core 配置（按需生成）
     #[doc(hidden)]
     pub(crate) core_config: Option<CoreConfig>,
@@ -86,6 +88,7 @@ impl std::fmt::Debug for Config {
             .field("retry_count", &self.retry_count)
             .field("enable_log", &self.enable_log)
             .field("headers", &format!("{} headers", self.headers.len()))
+            .field("max_response_size", &self.max_response_size)
             .finish()
     }
 }
@@ -103,6 +106,7 @@ impl Default for Config {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024, // 100MB
             core_config: None,
         }
     }
@@ -167,6 +171,11 @@ impl Config {
             "OPENLARK_RETRY_COUNT" => {
                 if let Ok(retry_count) = value.parse::<u32>() {
                     self.retry_count = retry_count;
+                }
+            }
+            "OPENLARK_MAX_RESPONSE_SIZE" => {
+                if let Ok(size) = value.parse::<u64>() {
+                    self.max_response_size = size;
                 }
             }
             // 日志开关（默认启用，只有设置为"false"时才禁用）
@@ -283,6 +292,7 @@ impl Config {
             retry_count: self.retry_count,
             enable_log: self.enable_log,
             header_count: self.headers.len(),
+            max_response_size: self.max_response_size,
         }
     }
 
@@ -309,6 +319,9 @@ impl Config {
         if other.retry_count != 3 {
             self.retry_count = other.retry_count;
         }
+        if other.max_response_size != 100 * 1024 * 1024 {
+            self.max_response_size = other.max_response_size;
+        }
         if other.enable_log != self.enable_log {
             self.enable_log = other.enable_log;
         }
@@ -327,6 +340,7 @@ impl Config {
             .app_type(self.app_type)
             .enable_token_cache(self.enable_token_cache)
             .req_timeout(self.timeout)
+            .max_response_size(self.max_response_size)
             .header(self.headers.clone())
             .build()
     }
@@ -436,6 +450,12 @@ impl ConfigBuilder {
         self
     }
 
+    /// 设置响应体最大大小限制（字节），默认 100MB
+    pub fn max_response_size(mut self, size: u64) -> Self {
+        self.config.max_response_size = size;
+        self
+    }
+
     /// 🔧 添加自定义HTTP header
     pub fn add_header<K, V>(mut self, key: K, value: V) -> Self
     where
@@ -498,19 +518,22 @@ pub struct ConfigSummary {
     pub enable_log: bool,
     /// 📋 自定义headers数量
     pub header_count: usize,
+    /// 响应体最大大小限制
+    pub max_response_size: u64,
 }
 
 impl ConfigSummary {
     /// 📋 获取友好的配置描述
     pub fn friendly_description(&self) -> String {
         format!(
-            "应用ID: {}, 基础URL: {}, 超时: {:?}, 重试: {}, 日志: {}, Headers: {}",
+            "应用ID: {}, 基础URL: {}, 超时: {:?}, 重试: {}, 日志: {}, Headers: {}, 最大响应: {}",
             self.app_id,
             self.base_url,
             self.timeout,
             self.retry_count,
             if self.enable_log { "启用" } else { "禁用" },
-            self.header_count
+            self.header_count,
+            self.max_response_size
         )
     }
 }
@@ -519,14 +542,15 @@ impl std::fmt::Display for ConfigSummary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Config {{ app_id: {}, app_secret_set: {}, base_url: {}, timeout: {:?}, retry_count: {}, enable_log: {}, header_count: {} }}",
+            "Config {{ app_id: {}, app_secret_set: {}, base_url: {}, timeout: {:?}, retry_count: {}, enable_log: {}, header_count: {}, max_response_size: {} }}",
             self.app_id,
             self.app_secret_set,
             self.base_url,
             self.timeout,
             self.retry_count,
             self.enable_log,
-            self.header_count
+            self.header_count,
+            self.max_response_size
         )
     }
 }
@@ -622,6 +646,7 @@ mod tests {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024,
             core_config: None,
         };
         assert!(config.validate().is_ok());
@@ -689,6 +714,7 @@ mod tests {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024,
             core_config: None,
         };
 
@@ -741,6 +767,7 @@ fn test_config_validation_known_base_url() {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024,
             core_config: None,
         };
         assert!(config.validate().is_ok(), "URL {url} should be valid");
@@ -770,6 +797,7 @@ fn test_config_validation_unknown_base_url_rejected() {
             retry_count: 3,
             enable_log: true,
             headers: std::collections::HashMap::new(),
+            max_response_size: 100 * 1024 * 1024,
             core_config: None,
         };
         assert!(config.validate().is_err(), "URL {url} should be rejected");
@@ -790,6 +818,7 @@ fn test_config_validation_custom_base_url_allowed() {
         retry_count: 3,
         enable_log: true,
         headers: std::collections::HashMap::new(),
+        max_response_size: 100 * 1024 * 1024,
         core_config: None,
     };
     assert!(config.validate().is_ok());

@@ -180,6 +180,7 @@ impl ClientErrorExt for Error {
             ErrorType::RateLimit => "稍后重试，考虑降低请求频率",
             ErrorType::ServiceUnavailable => "稍后重试，检查服务状态",
             ErrorType::Internal => "联系技术支持，提供错误详情",
+            ErrorType::ResponseTooLarge => "减小请求数据量或增大 max_response_size 配置",
         }
     }
 
@@ -250,6 +251,12 @@ impl ClientErrorExt for Error {
                 "检查系统日志",
                 "重启相关服务",
                 "联系技术支持",
+            ],
+            ErrorType::ResponseTooLarge => vec![
+                "减小请求数据量",
+                "增大 max_response_size 配置",
+                "分批请求数据",
+                "联系技术支持确认数据规模",
             ],
         }
     }

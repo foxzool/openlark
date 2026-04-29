@@ -15,7 +15,7 @@ use serde_json::json;
 use tokio::{net::TcpStream, sync::mpsc, time::Instant, time::Interval};
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::{
-    MaybeTlsStream, WebSocketStream, connect_async,
+    MaybeTlsStream, WebSocketStream, connect_async_with_config,
     tungstenite::protocol::{Message, frame::coding::CloseCode},
 };
 use url::Url;
@@ -283,7 +283,13 @@ impl LarkWsClient {
             error!("Failed to transition to connecting state: {e}");
         }
 
-        let (conn, _response) = connect_async(conn_url).await?;
+        let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
+            max_message_size: Some(config.max_response_size as usize),
+            max_frame_size: Some(config.max_response_size as usize),
+            ..Default::default()
+        };
+
+        let (conn, _response) = connect_async_with_config(conn_url, Some(ws_config), false).await?;
         info!("connected to {url}");
 
         // 连接成功状态转换
