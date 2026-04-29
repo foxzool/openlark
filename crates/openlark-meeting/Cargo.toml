@@ -41,7 +41,6 @@ meeting-room-v1 = []
 
 [dependencies]
 openlark-core = { workspace = true }
-tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
