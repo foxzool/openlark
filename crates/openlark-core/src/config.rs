@@ -60,6 +60,8 @@ pub struct ConfigInner {
     pub(crate) header: HashMap<String, String>,
     /// Token 获取抽象（由业务 crate 实现，例如 openlark-auth）
     pub(crate) token_provider: Arc<dyn TokenProvider>,
+    /// 响应体最大大小（字节），超过返回 ResponseTooLarge 错误，默认 100MB
+    pub(crate) max_response_size: u64,
 }
 
 impl Default for ConfigInner {
@@ -74,6 +76,7 @@ impl Default for ConfigInner {
             req_timeout: None,
             header: Default::default(),
             token_provider: Arc::new(NoOpTokenProvider),
+            max_response_size: 100 * 1024 * 1024, // 100MB
         }
     }
 }
@@ -87,6 +90,7 @@ impl std::fmt::Debug for ConfigInner {
             .field("enable_token_cache", &self.enable_token_cache)
             .field("app_type", &self.app_type)
             .field("req_timeout", &self.req_timeout)
+            .field("max_response_size", &self.max_response_size)
             .field("header", &format!("{} headers", self.header.len()))
             .finish()
     }
@@ -138,6 +142,7 @@ impl Config {
             req_timeout: self.req_timeout,
             header: self.header.clone(),
             token_provider: Arc::new(provider),
+            max_response_size: self.max_response_size,
         })
     }
 
@@ -190,6 +195,11 @@ impl Config {
     pub fn token_provider(&self) -> &Arc<dyn TokenProvider> {
         &self.inner.token_provider
     }
+
+    /// 获取响应体最大大小限制
+    pub fn max_response_size(&self) -> u64 {
+        self.inner.max_response_size
+    }
 }
 
 /// 配置构建器
@@ -204,6 +214,7 @@ pub struct ConfigBuilder {
     req_timeout: Option<Duration>,
     header: Option<HashMap<String, String>>,
     token_provider: Option<Arc<dyn TokenProvider>>,
+    max_response_size: Option<u64>,
 }
 
 impl ConfigBuilder {
@@ -289,6 +300,12 @@ impl ConfigBuilder {
         self
     }
 
+    /// 设置响应体最大大小限制（字节），默认 100MB
+    pub fn max_response_size(mut self, size: u64) -> Self {
+        self.max_response_size = Some(size);
+        self
+    }
+
     /// 构建 Config 实例
     pub fn build(self) -> Config {
         let default = ConfigInner::default();
@@ -304,6 +321,7 @@ impl ConfigBuilder {
             req_timeout: self.req_timeout.or(default.req_timeout),
             header: self.header.unwrap_or(default.header),
             token_provider: self.token_provider.unwrap_or(default.token_provider),
+            max_response_size: self.max_response_size.unwrap_or(default.max_response_size),
         })
     }
 }
@@ -330,6 +348,7 @@ mod tests {
             req_timeout: Some(Duration::from_secs(30)),
             header: HashMap::new(),
             token_provider: Arc::new(NoOpTokenProvider),
+            max_response_size: 100 * 1024 * 1024,
         });
 
         assert_eq!(config.app_id, "test_app_id");
@@ -368,6 +387,7 @@ mod tests {
                 header
             },
             token_provider: Arc::new(NoOpTokenProvider),
+            max_response_size: 100 * 1024 * 1024,
         });
 
         let cloned_config = config.clone();
