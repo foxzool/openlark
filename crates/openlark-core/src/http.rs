@@ -123,7 +123,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
             path = %http_req.api_path(),
             "Sending request"
         );
-        let resp = Self::do_send(req, http_req.to_bytes(), !http_req.file().is_empty()).await?;
+        let resp = Self::do_send(req, http_req.to_bytes(), !http_req.file().is_empty(), config.max_response_size()).await?;
         debug!(
             success = resp.is_success(),
             code = resp.raw_response.code,
@@ -143,6 +143,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
         raw_request: RequestBuilder,
         body: Vec<u8>,
         multi_part: bool,
+        max_response_size: u64,
     ) -> SDKResult<Response<T>> {
         // Create span for network request tracing
         let span = info_span!(
@@ -166,7 +167,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
                     tracing::Span::current().record("response_code", status_code.as_u16());
 
                     // 使用改进的响应处理器，单次解析而非双重解析
-                    ImprovedResponseHandler::handle_response(response).await
+                    ImprovedResponseHandler::handle_response(response, max_response_size).await
                 }
                 Err(err) => {
                     debug!("Request error: {err:?}");

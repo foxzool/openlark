@@ -1,3 +1,4 @@
+use futures_util::StreamExt;
 use serde_json::Value;
 use tracing::debug;
 use tracing::{Instrument, info_span};
@@ -11,6 +12,35 @@ use crate::{
 };
 use serde::Deserialize;
 use std::any::Any;
+
+/// 读取响应体，带大小限制保护
+async fn read_body_with_limit(
+    response: reqwest::Response,
+    max_size: u64,
+) -> Result<Vec<u8>, crate::error::CoreError> {
+    // 预检：content_length 已知且超限时直接返回错误
+    if let Some(content_length) = response.content_length() {
+        if content_length > max_size {
+            return Err(crate::error::CoreError::response_too_large(max_size, content_length));
+        }
+    }
+
+    // 流式读取并累计大小
+    let mut total_size: u64 = 0;
+    let mut body = Vec::new();
+    let mut stream = response.bytes_stream();
+
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| network_error(e.to_string()))?;
+        total_size += chunk.len() as u64;
+        if total_size > max_size {
+            return Err(crate::error::CoreError::response_too_large(max_size, total_size));
+        }
+        body.extend_from_slice(&chunk);
+    }
+
+    Ok(body)
+}
 
 #[cfg(test)]
 use crate::error::{CoreError, ErrorCategory, ErrorCode, ErrorContext};
@@ -28,6 +58,7 @@ impl ImprovedResponseHandler {
     /// 4. 完整的可观测性支持
     pub async fn handle_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
         response: reqwest::Response,
+        max_size: u64,
     ) -> SDKResult<Response<T>> {
         let format = match T::data_format() {
             ResponseFormat::Data => "data",
@@ -55,11 +86,11 @@ impl ImprovedResponseHandler {
             }
 
             let result = match T::data_format() {
-                ResponseFormat::Data => Self::handle_data_response(response).await,
-                ResponseFormat::Flatten => Self::handle_flatten_response(response).await,
-                ResponseFormat::Binary => Self::handle_binary_response(response).await,
-                ResponseFormat::Text => Self::handle_data_response(response).await, // 暂时使用data处理器
-                ResponseFormat::Custom => Self::handle_data_response(response).await, // 暂时使用data处理器
+                ResponseFormat::Data => Self::handle_data_response(response, max_size).await,
+                ResponseFormat::Flatten => Self::handle_flatten_response(response, max_size).await,
+                ResponseFormat::Binary => Self::handle_binary_response(response, max_size).await,
+                ResponseFormat::Text => Self::handle_data_response(response, max_size).await, // 暂时使用data处理器
+                ResponseFormat::Custom => Self::handle_data_response(response, max_size).await, // 暂时使用data处理器
             };
 
             // 记录处理时间
@@ -76,10 +107,12 @@ impl ImprovedResponseHandler {
     /// 使用单次解析而非双重解析，包含详细的可观测性
     async fn handle_data_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
         response: reqwest::Response,
+        max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("json_data", response.content_length());
 
-        let response_text = response.text().await?;
+        let body_bytes = read_body_with_limit(response, max_size).await?;
+        let response_text = String::from_utf8_lossy(&body_bytes).to_string();
         // Don't log raw response to prevent token/PII leakage
 
         // 记录解析阶段开始
@@ -159,10 +192,12 @@ impl ImprovedResponseHandler {
     /// 对于扁平格式，使用自定义反序列化器，包含可观测性支持
     async fn handle_flatten_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
         response: reqwest::Response,
+        max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("json_flatten", response.content_length());
 
-        let response_text = response.text().await?;
+        let body_bytes = read_body_with_limit(response, max_size).await?;
+        let response_text = String::from_utf8_lossy(&body_bytes).to_string();
         debug!("Raw response: {response_text}");
 
         // 解析阶段
@@ -213,6 +248,7 @@ impl ImprovedResponseHandler {
     /// 处理二进制响应，包含可观测性支持
     async fn handle_binary_response<T: ApiResponseTrait>(
         response: reqwest::Response,
+        max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("binary", response.content_length());
 
@@ -227,17 +263,16 @@ impl ImprovedResponseHandler {
         // 记录解析阶段完成（文件名提取）
         tracker.parsing_complete();
 
-        // 获取二进制数据
-        let bytes = match response.bytes().await {
-            Ok(bytes) => {
-                let byte_vec = bytes.to_vec();
-                tracing::debug!("Binary response received: {} bytes", byte_vec.len());
-                byte_vec
+        // 获取二进制数据（带大小限制保护）
+        let bytes = match read_body_with_limit(response, max_size).await {
+            Ok(data) => {
+                tracing::debug!("Binary response received: {} bytes", data.len());
+                data
             }
             Err(e) => {
                 let error_msg = format!("Failed to read binary response: {e}");
                 tracker.error(&error_msg);
-                return Err(network_error(error_msg));
+                return Err(e);
             }
         };
 
@@ -1483,7 +1518,7 @@ mod tests {
 ///     ) -> SDKResult<OptimizedBaseResponse<T>> {
 ///         // ... 构建请求
 ///         let response = http_client.send(request).await?;
-///         ImprovedResponseHandler::handle_response(response).await
+///         ImprovedResponseHandler::handle_response(response, max_response_size).await
 ///     }
 /// }
 ///
