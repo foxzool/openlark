@@ -21,7 +21,10 @@ async fn read_body_with_limit(
     // 预检：content_length 已知且超限时直接返回错误
     if let Some(content_length) = response.content_length() {
         if content_length > max_size {
-            return Err(crate::error::CoreError::response_too_large(max_size, content_length));
+            return Err(crate::error::CoreError::response_too_large(
+                max_size,
+                content_length,
+            ));
         }
     }
 
@@ -34,7 +37,9 @@ async fn read_body_with_limit(
         let chunk = chunk_result.map_err(|e| network_error(e.to_string()))?;
         total_size += chunk.len() as u64;
         if total_size > max_size {
-            return Err(crate::error::CoreError::response_too_large(max_size, total_size));
+            return Err(crate::error::CoreError::response_too_large(
+                max_size, total_size,
+            ));
         }
         body.extend_from_slice(&chunk);
     }

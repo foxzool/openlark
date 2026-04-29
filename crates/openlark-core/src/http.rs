@@ -123,7 +123,13 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
             path = %http_req.api_path(),
             "Sending request"
         );
-        let resp = Self::do_send(req, http_req.to_bytes(), !http_req.file().is_empty(), config.max_response_size()).await?;
+        let resp = Self::do_send(
+            req,
+            http_req.to_bytes(),
+            !http_req.file().is_empty(),
+            config.max_response_size(),
+        )
+        .await?;
         debug!(
             success = resp.is_success(),
             code = resp.raw_response.code,

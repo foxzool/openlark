@@ -961,11 +961,7 @@ impl CoreError {
                 mut ctx,
             } => {
                 f(ctx.as_mut());
-                Self::ResponseTooLarge {
-                    limit,
-                    actual,
-                    ctx,
-                }
+                Self::ResponseTooLarge { limit, actual, ctx }
             }
             Self::Internal {
                 code,
