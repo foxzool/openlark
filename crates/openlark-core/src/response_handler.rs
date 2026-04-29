@@ -19,13 +19,13 @@ async fn read_body_with_limit(
     max_size: u64,
 ) -> Result<Vec<u8>, crate::error::CoreError> {
     // 预检：content_length 已知且超限时直接返回错误
-    if let Some(content_length) = response.content_length() {
-        if content_length > max_size {
-            return Err(crate::error::CoreError::response_too_large(
-                max_size,
-                content_length,
-            ));
-        }
+    if let Some(content_length) = response.content_length()
+        && content_length > max_size
+    {
+        return Err(crate::error::CoreError::response_too_large(
+            max_size,
+            content_length,
+        ));
     }
 
     // 流式读取并累计大小
