@@ -34,6 +34,21 @@ api-coverage:
   python3 tools/validate_apis.py --all-crates
   @echo "✅ Coverage reports generated in reports/api_validation/"
 
+# Validate typed API endpoint contracts against the official API snapshot
+api-contracts:
+  @echo "🔍 Validating typed API endpoint contracts..."
+  python3 tools/validate_api_contracts.py --all-crates --strict endpoint
+
+# Validate request/response fields against current official docs for one crate
+api-contract-fields CRATE="openlark-ai" MAX="5":
+  @echo "🔍 Validating typed API fields against current official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --fields --live-fields --max-field-apis {{MAX}} --report-dir reports/api_contract_fields
+
+# Strict request/response field validation against current official docs for one crate
+api-contract-fields-strict CRATE="openlark-ai" MAX="5":
+  @echo "🔍 Strictly validating typed API fields against current official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --fields --live-fields --max-field-apis {{MAX}} --report-dir reports/api_contract_fields --strict fields
+
 # Regenerate crates.md from mapping + CSV
 update-crates-md:
   @echo "📝 Regenerating crates.md..."
@@ -227,6 +242,9 @@ help:
   @echo "  coverage-check - Run coverage with threshold check"
   @echo "  audit        - Run security audit"
   @echo "  api-coverage - Generate typed API coverage reports (per crate + summary)"
+  @echo "  api-contracts - Validate typed API endpoint contracts"
+  @echo "  api-contract-fields - Validate request/response fields against live official docs"
+  @echo "  api-contract-fields-strict - Strict request/response field validation"
   @echo "  update-audit-db - Update security advisory database"
   @echo "  install-dev-tools - Install development tools"
   @echo "  check-all    - Run all pre-release checks (includes coverage & security)"

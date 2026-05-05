@@ -227,6 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 - **[openlark-docs AGENTS.md](crates/openlark-docs/AGENTS.md)** - 文档服务模块知识库
 - **[Typed API 覆盖率说明](docs/typed-api-coverage.md)** - 覆盖率口径、批量报告与规划输入规范
+- **[API Contract 校验说明](docs/api-contract-validation.md)** - endpoint 与 request/response 字段对齐官网的验证流程
 - **[快速启动示例](examples/)** - 完整功能演示示例集
 
 ## ​​📊 项目状态
