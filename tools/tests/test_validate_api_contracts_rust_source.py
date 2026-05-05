@@ -128,6 +128,24 @@ class RustSourceContractTests(unittest.TestCase):
 
         self.assertEqual(fields[0].serialized_name, "pageSize")
 
+    def test_extract_rust_fields_maps_file_content_to_multipart_file_field(self):
+        text = """
+        pub struct BankCardRecognizeBody {
+            #[serde(skip_serializing)]
+            pub file: Vec<u8>,
+        }
+
+        let req: ApiRequest<Response> = ApiRequest::post(BANK_CARD)
+            .body(body)
+            .file_content(body.file.clone());
+        """
+
+        fields = extract_rust_fields(text)
+
+        self.assertEqual([field.serialized_name for field in fields], ["file"])
+        self.assertEqual(fields[0].struct_name, "MultipartFile")
+        self.assertFalse(fields[0].optional)
+
     def test_extract_rust_response_fields_reads_response_and_result_structs(self):
         text = """
         pub struct BankCardRecognizeResponse {

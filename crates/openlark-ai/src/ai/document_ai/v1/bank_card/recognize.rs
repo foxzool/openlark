@@ -15,18 +15,19 @@ use crate::endpoints::DOCUMENT_AI_BANK_CARD_RECOGNIZE;
 /// 银行卡识别请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BankCardRecognizeBody {
-    /// 用户的 file_id，通过上传文件接口获取
-    pub file_token: String,
-    /// 是否异步识别，默认为 false
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_async: Option<bool>,
+    /// 识别的银行卡源文件。
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    /// multipart 文件名，仅用于设置文件 part 的 filename。
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl BankCardRecognizeBody {
     /// 校验请求体。
     pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
+        if self.file.is_empty() {
+            return Err("file 不能为空".to_string());
         }
         Ok(())
     }
@@ -45,26 +46,28 @@ impl openlark_core::api::ApiResponseTrait for BankCardRecognizeResponse {}
 /// 银行卡识别结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BankCardRecognizeResult {
-    /// parsing_result 字段。
+    /// 银行卡识别结果。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parsing_result: Option<ParsingResult>,
+    pub bank_card: Option<BankCard>,
 }
 
-/// Parsing_Result 结果。
+/// 银行卡信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsingResult {
-    /// 银行名称
+pub struct BankCard {
+    /// 识别出的实体。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bank_name: Option<String>,
-    /// 银行卡号
+    pub entities: Option<Vec<BankCardEntity>>,
+}
+
+/// 银行卡识别实体。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BankCardEntity {
+    /// 实体类型，例如 card_number、date_of_expiry。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 实体值。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub card_number: Option<String>,
-    /// 有效期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_date: Option<String>,
-    /// 卡片类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card_type: Option<String>,
+    pub value: Option<String>,
 }
 
 /// 银行卡识别请求
@@ -99,7 +102,8 @@ impl BankCardRecognizeRequest {
 
         let req: ApiRequest<BankCardRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_BANK_CARD_RECOGNIZE)
-                .body(serialize_params(&body, "银行卡识别")?);
+                .body(serialize_params(&body, "银行卡识别")?)
+                .file_content(body.file.clone());
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "银行卡识别")
@@ -110,8 +114,8 @@ impl BankCardRecognizeRequest {
 #[derive(Debug, Clone)]
 pub struct BankCardRecognizeRequestBuilder {
     request: BankCardRecognizeRequest,
-    file_token: Option<String>,
-    is_async: Option<bool>,
+    file: Option<Vec<u8>>,
+    file_name: Option<String>,
 }
 
 impl BankCardRecognizeRequestBuilder {
@@ -119,28 +123,28 @@ impl BankCardRecognizeRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: BankCardRecognizeRequest::new(config),
-            file_token: None,
-            is_async: None,
+            file: None,
+            file_name: None,
         }
     }
 
-    /// file_token。
-    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
-        self.file_token = Some(file_token.into());
+    /// 设置识别的银行卡源文件。
+    pub fn file(mut self, file: impl Into<Vec<u8>>) -> Self {
+        self.file = Some(file.into());
         self
     }
 
-    /// 设置 is_async。
-    pub fn is_async(mut self, is_async: impl Into<bool>) -> Self {
-        self.is_async = Some(is_async.into());
+    /// 设置 multipart 文件名。
+    pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
     /// 构建请求体。
     pub fn body(self) -> BankCardRecognizeBody {
         BankCardRecognizeBody {
-            file_token: self.file_token.unwrap_or_default(),
-            is_async: self.is_async,
+            file: self.file.unwrap_or_default(),
+            file_name: self.file_name,
         }
     }
 
@@ -179,7 +183,8 @@ pub async fn bank_card_recognize_with_options(
 
     let req: ApiRequest<BankCardRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_BANK_CARD_RECOGNIZE)
-            .body(serialize_params(&body, "银行卡识别")?);
+            .body(serialize_params(&body, "银行卡识别")?)
+            .file_content(body.file.clone());
 
     let resp = Transport::request(req, config, Some(option)).await?;
     extract_response_data(resp, "银行卡识别")
@@ -196,14 +201,14 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let builder = BankCardRecognizeRequestBuilder::new(config.clone());
-        assert!(builder.file_token.is_none());
+        assert!(builder.file.is_none());
     }
 
     #[test]
     fn test_body_validation_empty() {
         let body = BankCardRecognizeBody {
-            file_token: "".to_string(),
-            is_async: None,
+            file: Vec::new(),
+            file_name: None,
         };
         assert!(body.validate().is_err());
     }
@@ -211,20 +216,20 @@ mod tests {
     #[test]
     fn test_body_validation_valid() {
         let body = BankCardRecognizeBody {
-            file_token: "valid_token".to_string(),
-            is_async: None,
+            file: b"bank card image".to_vec(),
+            file_name: None,
         };
         assert!(body.validate().is_ok());
     }
 
     #[test]
-    fn test_builder_is_async() {
+    fn test_builder_file_name() {
         let config = Config::builder()
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = BankCardRecognizeRequestBuilder::new(config.clone()).is_async(true);
-        assert_eq!(builder.is_async, Some(true));
+        let builder = BankCardRecognizeRequestBuilder::new(config.clone()).file_name("card.jpg");
+        assert_eq!(builder.file_name, Some("card.jpg".to_string()));
     }
 
     #[test]
@@ -234,59 +239,44 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let body = BankCardRecognizeRequestBuilder::new(config.clone())
-            .file_token("token_123")
-            .is_async(true)
+            .file(b"card image".to_vec())
+            .file_name("card.jpg")
             .body();
-        assert_eq!(body.file_token, "token_123");
-        assert_eq!(body.is_async, Some(true));
-    }
-
-    #[test]
-    fn test_body_validation_whitespace() {
-        let body = BankCardRecognizeBody {
-            file_token: "   ".to_string(),
-            is_async: None,
-        };
-        assert!(body.validate().is_err());
+        assert_eq!(body.file, b"card image".to_vec());
+        assert_eq!(body.file_name, Some("card.jpg".to_string()));
     }
 
     #[test]
     fn test_body_serialization() {
         let body = BankCardRecognizeBody {
-            file_token: "token_123".to_string(),
-            is_async: Some(true),
+            file: b"card image".to_vec(),
+            file_name: Some("card.jpg".to_string()),
         };
         let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("file_token"));
-        assert!(json_str.contains("token_123"));
+        assert!(!json_str.contains("\"file\""));
+        assert!(json_str.contains("__file_name"));
+        assert!(json_str.contains("card.jpg"));
     }
 
     #[test]
-    fn test_parsing_result_struct() {
-        let parsing_result = ParsingResult {
-            bank_name: Some("中国工商银行".to_string()),
-            card_number: Some("6222021234567890123".to_string()),
-            valid_date: Some("12/25".to_string()),
-            card_type: Some("借记卡".to_string()),
+    fn test_bank_card_entity_struct() {
+        let entity = BankCardEntity {
+            entity_type: Some("card_number".to_string()),
+            value: Some("6222021234567890123".to_string()),
         };
-        assert_eq!(parsing_result.bank_name, Some("中国工商银行".to_string()));
-        assert_eq!(
-            parsing_result.card_number,
-            Some("6222021234567890123".to_string())
-        );
+        assert_eq!(entity.entity_type, Some("card_number".to_string()));
+        assert_eq!(entity.value, Some("6222021234567890123".to_string()));
     }
 
     #[test]
-    fn test_parsing_result_serialization() {
-        let parsing_result = ParsingResult {
-            bank_name: Some("招商银行".to_string()),
-            card_number: Some("6225881234567890".to_string()),
-            valid_date: Some("10/28".to_string()),
-            card_type: Some("信用卡".to_string()),
+    fn test_bank_card_entity_serialization() {
+        let entity = BankCardEntity {
+            entity_type: Some("date_of_expiry".to_string()),
+            value: Some("10/28".to_string()),
         };
-        let json_str = serde_json::to_string(&parsing_result).expect("序列化失败");
-        assert!(json_str.contains("招商银行"));
-        assert!(json_str.contains("6225881234567890"));
+        let json_str = serde_json::to_string(&entity).expect("序列化失败");
+        assert!(json_str.contains("\"type\""));
+        assert!(json_str.contains("date_of_expiry"));
     }
 
     #[test]
@@ -295,20 +285,22 @@ mod tests {
         assert!(response.data.is_none());
 
         let result = BankCardRecognizeResult {
-            parsing_result: Some(ParsingResult {
-                bank_name: Some("建设银行".to_string()),
-                card_number: None,
-                valid_date: None,
-                card_type: None,
+            bank_card: Some(BankCard {
+                entities: Some(vec![BankCardEntity {
+                    entity_type: Some("card_number".to_string()),
+                    value: Some("6222021234567890123".to_string()),
+                }]),
             }),
         };
         let response_with_data = BankCardRecognizeResponse { data: Some(result) };
         assert!(response_with_data.data.is_some());
-        let bank_name = response_with_data
+        let card_number = response_with_data
             .data
             .as_ref()
-            .and_then(|data| data.parsing_result.as_ref())
-            .and_then(|result| result.bank_name.as_deref());
-        assert_eq!(bank_name, Some("建设银行"));
+            .and_then(|data| data.bank_card.as_ref())
+            .and_then(|bank_card| bank_card.entities.as_ref())
+            .and_then(|entities| entities.first())
+            .and_then(|entity| entity.value.as_deref());
+        assert_eq!(card_number, Some("6222021234567890123"));
     }
 }

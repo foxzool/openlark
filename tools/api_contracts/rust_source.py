@@ -264,11 +264,31 @@ def extract_endpoint_calls(text: str, resolver: EndpointResolver) -> tuple[RustE
 
 
 def extract_rust_fields(text: str) -> tuple[RustField, ...]:
-    return extract_rust_struct_fields(text, REQUEST_STRUCT_SUFFIXES)
+    return (
+        extract_rust_struct_fields(text, REQUEST_STRUCT_SUFFIXES)
+        + extract_file_content_fields(text)
+    )
 
 
 def extract_rust_response_fields(text: str) -> tuple[RustField, ...]:
     return extract_rust_struct_fields(text, RESPONSE_STRUCT_SUFFIXES)
+
+
+def extract_file_content_fields(text: str) -> tuple[RustField, ...]:
+    fields: list[RustField] = []
+    pattern = re.compile(r"\.file_content\(\s*(?:body|self)\.([A-Za-z_][A-Za-z0-9_]*)")
+    for match in pattern.finditer(text):
+        fields.append(
+            RustField(
+                struct_name="MultipartFile",
+                field_name=match.group(1),
+                serialized_name="file",
+                type_name="Vec<u8>",
+                optional=False,
+                line=line_of(text, match.start()),
+            )
+        )
+    return tuple(fields)
 
 
 def extract_rust_struct_fields(text: str, suffixes: tuple[str, ...]) -> tuple[RustField, ...]:
