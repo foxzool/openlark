@@ -89,8 +89,22 @@ impl AuthTokenProvider {
     }
 
     /// 生成缓存键
-    fn cache_key(token_type: &AccessTokenType, app_type: &AppType) -> String {
-        format!("{token_type:?}_{app_type:?}")
+    fn cache_key(
+        token_type: &AccessTokenType,
+        app_type: &AppType,
+        request: &TokenRequest,
+    ) -> String {
+        match token_type {
+            AccessTokenType::Tenant => {
+                let tenant_key = request.tenant_key.as_deref().unwrap_or("default");
+                format!("{token_type:?}_{app_type:?}_{tenant_key}")
+            }
+            AccessTokenType::App if app_type == &AppType::Marketplace => {
+                let app_ticket = request.app_ticket.as_deref().unwrap_or("default");
+                format!("{token_type:?}_{app_type:?}_{app_ticket}")
+            }
+            _ => format!("{token_type:?}_{app_type:?}"),
+        }
     }
 
     async fn get_cached(&self, cache_key: &str) -> Option<String> {
@@ -182,7 +196,8 @@ impl TokenProvider for AuthTokenProvider {
         Box::pin(async move {
             match request.token_type {
                 AccessTokenType::App => {
-                    let cache_key = Self::cache_key(&AccessTokenType::App, &self.config.app_type());
+                    let cache_key =
+                        Self::cache_key(&AccessTokenType::App, &self.config.app_type(), &request);
                     self.get_or_fetch(cache_key, || async {
                         let (token, expires_in) = match self.config.app_type() {
                             AppType::SelfBuild => {
@@ -213,8 +228,11 @@ impl TokenProvider for AuthTokenProvider {
                     .await
                 }
                 AccessTokenType::Tenant => {
-                    let cache_key =
-                        Self::cache_key(&AccessTokenType::Tenant, &self.config.app_type());
+                    let cache_key = Self::cache_key(
+                        &AccessTokenType::Tenant,
+                        &self.config.app_type(),
+                        &request,
+                    );
                     self.get_or_fetch(cache_key, || async {
                     let (token, expires_in) = match self.config.app_type() {
                         AppType::SelfBuild => {
@@ -269,6 +287,7 @@ mod tests {
     use openlark_core::{
         auth::{TokenProvider, TokenRequest},
         config::Config,
+        constants::AppType,
     };
 
     #[tokio::test]
@@ -286,5 +305,31 @@ mod tests {
             .expect_err("should fail on unreachable test endpoint");
 
         assert!(!err.to_string().contains("NoOpTokenProvider"));
+    }
+
+    #[tokio::test]
+    async fn tenant_cache_key_should_include_tenant_key() {
+        let request = TokenRequest::tenant().tenant_key("tenant_key_001");
+
+        let key = AuthTokenProvider::cache_key(
+            &openlark_core::constants::AccessTokenType::Tenant,
+            &AppType::SelfBuild,
+            &request,
+        );
+
+        assert_eq!(key, "Tenant_SelfBuild_tenant_key_001");
+    }
+
+    #[tokio::test]
+    async fn app_cache_key_should_include_app_ticket_for_marketplace() {
+        let request = TokenRequest::app().app_ticket("ticket_001");
+
+        let key = AuthTokenProvider::cache_key(
+            &openlark_core::constants::AccessTokenType::App,
+            &AppType::Marketplace,
+            &request,
+        );
+
+        assert_eq!(key, "App_Marketplace_ticket_001");
     }
 }

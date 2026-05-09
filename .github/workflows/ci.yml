@@ -53,6 +53,34 @@ jobs:
       - name: Run cargo doc
         run: cargo doc --workspace --all-features --no-deps
 
+  api-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run API contract tooling tests
+        run: |
+          python3 -m unittest \
+            tools.tests.test_validate_api_contracts_official \
+            tools.tests.test_validate_api_contracts_rust_source \
+            tools.tests.test_validate_api_contracts_compare
+      - name: Validate typed API endpoint contracts
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --all-crates \
+            --strict endpoint \
+            --report-dir "$RUNNER_TEMP/api_contracts"
+      - name: Upload API contract reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contracts
+          path: ${{ runner.temp }}/api_contracts
+          retention-days: 14
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 60

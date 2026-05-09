@@ -63,6 +63,7 @@ pub mod passport;
 pub mod services;
 pub mod token_provider;
 pub mod verification;
+pub mod verification_information;
 
 // 重新导出核心类型，方便用户使用
 pub use services::{AuthService, AuthenService, OAuthService};

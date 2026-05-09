@@ -2,6 +2,8 @@
 
 本文档定义 `tools/validate_apis.py` 的覆盖率统计口径与缺失 API 优先级模型，用于支持按 crate 的缺口跟踪、里程碑规划与发布节奏管理。
 
+若需要验证已实现 API 的 HTTP endpoint 或 request body 字段是否和飞书官网一致，使用 [`docs/api-contract-validation.md`](api-contract-validation.md) 中的 contract validation 工作流。
+
 ## 1. 统计口径
 
 - 数据源：仓库根目录 `api_list_export.csv`。
