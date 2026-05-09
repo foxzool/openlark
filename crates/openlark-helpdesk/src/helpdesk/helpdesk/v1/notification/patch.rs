@@ -26,16 +26,20 @@ pub struct PatchNotificationBody {
 
 impl PatchNotificationBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(title) = &self.title
             && title.is_empty()
         {
-            return Err("title cannot be empty".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "title cannot be empty",
+            ));
         }
         if let Some(content) = &self.content
             && content.is_empty()
         {
-            return Err("content cannot be empty".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "content cannot be empty",
+            ));
         }
         Ok(())
     }
@@ -96,8 +100,7 @@ impl PatchNotificationRequest {
         body: PatchNotificationBody,
         option: RequestOption,
     ) -> SDKResult<PatchNotificationResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchNotificationResponse> = ApiRequest::patch(
             HelpdeskApiV1::NotificationPatch(self.notification_id.clone()).to_url(),
@@ -185,8 +188,7 @@ pub async fn patch_notification_with_options(
     body: PatchNotificationBody,
     option: RequestOption,
 ) -> SDKResult<PatchNotificationResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchNotificationResponse> =
         ApiRequest::patch(HelpdeskApiV1::NotificationPatch(notification_id).to_url())

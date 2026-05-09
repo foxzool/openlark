@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -31,21 +32,15 @@ pub struct CreateAgentScheduleBody {
 
 impl CreateAgentScheduleBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.agent_id.is_empty() {
-            return Err("agent_id is required".to_string());
-        }
-        if self.work_date.is_empty() {
-            return Err("work_date is required".to_string());
-        }
-        if self.start_time.is_empty() {
-            return Err("start_time is required".to_string());
-        }
-        if self.end_time.is_empty() {
-            return Err("end_time is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.agent_id, "agent_id is required");
+        validate_required!(self.work_date, "work_date is required");
+        validate_required!(self.start_time, "start_time is required");
+        validate_required!(self.end_time, "end_time is required");
         if self.start_time >= self.end_time {
-            return Err("start_time must be less than end_time".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "start_time must be less than end_time",
+            ));
         }
         Ok(())
     }
@@ -108,8 +103,7 @@ impl CreateAgentScheduleRequest {
         body: CreateAgentScheduleBody,
         option: RequestOption,
     ) -> SDKResult<CreateAgentScheduleResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateAgentScheduleResponse> =
             ApiRequest::post(HelpdeskApiV1::AgentScheduleCreate.to_url())
@@ -214,8 +208,7 @@ pub async fn create_agent_schedule_with_options(
     body: CreateAgentScheduleBody,
     option: RequestOption,
 ) -> SDKResult<CreateAgentScheduleResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateAgentScheduleResponse> =
         ApiRequest::post(HelpdeskApiV1::AgentScheduleCreate.to_url())

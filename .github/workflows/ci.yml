@@ -29,7 +29,7 @@ jobs:
           version: 23.4
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run cargo test (workspace, all features)
-        run: cargo test --lib --workspace --all-features --no-fail-fast
+        run: cargo test --workspace --all-features --no-fail-fast
 
       - name: Validate public examples
         run: bash scripts/check-public-examples.sh

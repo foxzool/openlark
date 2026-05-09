@@ -29,11 +29,13 @@ pub struct GetAgentScheduleQuery {
 
 impl GetAgentScheduleQuery {
     /// 验证查询参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(page_size) = self.page_size
             && page_size <= 0
         {
-            return Err("page_size must be greater than 0".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "page_size must be greater than 0",
+            ));
         }
         Ok(())
     }
