@@ -35,49 +35,38 @@ pub struct CreateExportTaskRequest {
 
 impl CreateExportTaskRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
-
-        if self.file_type.trim().is_empty() {
-            return Err("导出文件类型不能为空".to_string());
-        }
-
-        if self.export_type.trim().is_empty() {
-            return Err("导出格式不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
+        validate_required!(self.file_type, "导出文件类型不能为空");
+        validate_required!(self.export_type, "导出格式不能为空");
 
         // 验证导出格式
         let valid_export_types = vec!["docx", "pdf", "html", "xlsx", "csv"];
         if !valid_export_types.contains(&self.export_type.as_str()) {
-            return Err(format!("不支持的导出格式: {}", self.export_type));
+            return Err(openlark_core::CoreError::validation_msg(format!("不支持的导出格式: {}", self.export_type)));
         }
 
         // 验证文件类型
         let valid_file_types = vec!["doc", "docx", "sheet", "bitable"];
         if !valid_file_types.contains(&self.file_type.as_str()) {
-            return Err(format!("不支持的文件类型: {}", self.file_type));
+            return Err(openlark_core::CoreError::validation_msg(format!("不支持的文件类型: {}", self.file_type)));
         }
 
         if let Some(ref export_name) = self.export_name {
-            if export_name.trim().is_empty() {
-                return Err("导出名称不能为空".to_string());
-            }
+            validate_required!(export_name, "导出名称不能为空");
             if export_name.len() > 200 {
-                return Err("导出名称长度不能超过200个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg("导出名称长度不能超过200个字符"));
             }
         }
 
         if let Some(ref locale) = self.locale {
-            if locale.trim().is_empty() {
-                return Err("导出语言不能为空".to_string());
-            }
+            validate_required!(locale, "导出语言不能为空");
         }
 
         if let Some(ref password) = self.password {
             if password.len() > 20 {
-                return Err("下载密码长度不能超过20个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg("下载密码长度不能超过20个字符"));
             }
         }
 
@@ -108,10 +97,9 @@ pub struct GetExportTaskRequest {
 
 impl GetExportTaskRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.ticket.trim().is_empty() {
-            return Err("任务票据不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.ticket, "任务票据不能为空");
         Ok(())
     }
 }
@@ -173,10 +161,9 @@ pub struct DownloadExportFileRequest {
 
 impl DownloadExportFileRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("导出文件token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "导出文件token不能为空");
         Ok(())
     }
 }

@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,20 +26,12 @@ pub struct TextTranslateBody {
 
 impl TextTranslateBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.source_language.trim().is_empty() {
-            return Err("source_language 不能为空".to_string());
-        }
-        if self.target_language.trim().is_empty() {
-            return Err("target_language 不能为空".to_string());
-        }
-        if self.texts.is_empty() {
-            return Err("texts 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.source_language, "source_language 不能为空");
+        validate_required!(self.target_language, "target_language 不能为空");
+        validate_required!(self.texts, "texts 不能为空");
         for text in &self.texts {
-            if text.trim().is_empty() {
-                return Err("texts 中的文本不能为空".to_string());
-            }
+            validate_required!(text, "texts 中的文本不能为空");
         }
         Ok(())
     }
@@ -97,8 +90,7 @@ impl TextTranslateRequest {
         body: TextTranslateBody,
         option: RequestOption,
     ) -> SDKResult<TextTranslateResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<TextTranslateResponse> =
             ApiRequest::post(TRANSLATION_V1_TEXT_TRANSLATE)
@@ -194,8 +186,7 @@ pub async fn text_translate_with_options(
     body: TextTranslateBody,
     option: RequestOption,
 ) -> SDKResult<TextTranslateResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<TextTranslateResponse> =
         ApiRequest::post(TRANSLATION_V1_TEXT_TRANSLATE).body(serialize_params(&body, "文本翻译")?);

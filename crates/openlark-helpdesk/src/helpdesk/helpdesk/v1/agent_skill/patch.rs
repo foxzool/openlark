@@ -29,11 +29,13 @@ pub struct PatchAgentSkillBody {
 
 impl PatchAgentSkillBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(name) = &self.name
             && name.is_empty()
         {
-            return Err("name cannot be empty".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "name cannot be empty",
+            ));
         }
         Ok(())
     }
@@ -94,8 +96,7 @@ impl PatchAgentSkillRequest {
         body: PatchAgentSkillBody,
         option: RequestOption,
     ) -> SDKResult<PatchAgentSkillResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchAgentSkillResponse> =
             ApiRequest::patch(HelpdeskApiV1::AgentSkillPatch(self.agent_skill_id.clone()).to_url())
@@ -189,8 +190,7 @@ pub async fn patch_agent_skill_with_options(
     body: PatchAgentSkillBody,
     option: RequestOption,
 ) -> SDKResult<PatchAgentSkillResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchAgentSkillResponse> =
         ApiRequest::patch(HelpdeskApiV1::AgentSkillPatch(agent_skill_id).to_url())

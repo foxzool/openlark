@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -28,10 +29,8 @@ pub struct CreateAgentSkillBody {
 
 impl CreateAgentSkillBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.name.is_empty() {
-            return Err("name is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.name, "name is required");
         Ok(())
     }
 }
@@ -87,8 +86,7 @@ impl CreateAgentSkillRequest {
         body: CreateAgentSkillBody,
         option: RequestOption,
     ) -> SDKResult<CreateAgentSkillResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateAgentSkillResponse> =
             ApiRequest::post(HelpdeskApiV1::AgentSkillCreate.to_url())
@@ -172,8 +170,7 @@ pub async fn create_agent_skill_with_options(
     body: CreateAgentSkillBody,
     option: RequestOption,
 ) -> SDKResult<CreateAgentSkillResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateAgentSkillResponse> =
         ApiRequest::post(HelpdeskApiV1::AgentSkillCreate.to_url())

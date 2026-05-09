@@ -32,11 +32,13 @@ pub struct PatchAgentScheduleBody {
 
 impl PatchAgentScheduleBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let (Some(start_time), Some(end_time)) = (&self.start_time, &self.end_time)
             && start_time >= end_time
         {
-            return Err("start_time must be less than end_time".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "start_time must be less than end_time",
+            ));
         }
         Ok(())
     }
@@ -100,8 +102,7 @@ impl PatchAgentScheduleRequest {
         body: PatchAgentScheduleBody,
         option: RequestOption,
     ) -> SDKResult<PatchAgentScheduleResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchAgentScheduleResponse> =
             ApiRequest::patch(HelpdeskApiV1::AgentSchedulePatch(self.agent_id.clone()).to_url())
@@ -204,8 +205,7 @@ pub async fn patch_agent_schedule_with_options(
     body: PatchAgentScheduleBody,
     option: RequestOption,
 ) -> SDKResult<PatchAgentScheduleResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchAgentScheduleResponse> =
         ApiRequest::patch(HelpdeskApiV1::AgentSchedulePatch(agent_id).to_url())

@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,10 +25,8 @@ pub struct ResumeParseBody {
 
 impl ResumeParseBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -187,8 +186,7 @@ impl ResumeParseRequest {
         body: ResumeParseBody,
         option: RequestOption,
     ) -> SDKResult<ResumeParseResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<ResumeParseResponse> =
             ApiRequest::post(DOCUMENT_AI_RESUME_PARSE).body(serialize_params(&body, "简历解析")?);
@@ -268,8 +266,7 @@ pub async fn resume_parse_with_options(
     body: ResumeParseBody,
     option: RequestOption,
 ) -> SDKResult<ResumeParseResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<ResumeParseResponse> =
         ApiRequest::post(DOCUMENT_AI_RESUME_PARSE).body(serialize_params(&body, "简历解析")?);
