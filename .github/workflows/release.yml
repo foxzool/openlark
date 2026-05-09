@@ -39,7 +39,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features
 
       - name: Run tests
-        run: cargo test --lib --all-features
+        run: cargo test --all-features
 
       - name: Validate public examples
         run: bash scripts/check-public-examples.sh
