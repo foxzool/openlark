@@ -32,7 +32,7 @@ pub struct CloseReason {
     pub reason: String,
 }
 
-impl From<CloseFrame<'_>> for CloseReason {
+impl From<CloseFrame> for CloseReason {
     fn from(frame: CloseFrame) -> Self {
         Self {
             code: frame.code.into(),

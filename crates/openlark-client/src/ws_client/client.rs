@@ -283,11 +283,9 @@ impl LarkWsClient {
             error!("Failed to transition to connecting state: {e}");
         }
 
-        let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
-            max_message_size: Some(config.max_response_size as usize),
-            max_frame_size: Some(config.max_response_size as usize),
-            ..Default::default()
-        };
+        let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig::default()
+            .max_message_size(Some(config.max_response_size as usize))
+            .max_frame_size(Some(config.max_response_size as usize));
 
         let (conn, _response) = connect_async_with_config(conn_url, Some(ws_config), false).await?;
         info!("connected to {url}");
@@ -627,7 +625,7 @@ impl<'a> Context<'a> {
                 _ = self.ping_frame_interval.tick() => {
                         let service_id: i32 = self.service_id;
                         let frame = FrameHandler::build_ping_frame(service_id);
-                        let msg = Message::Binary(frame.encode_to_vec());
+                        let msg = Message::Binary(frame.encode_to_vec().into());
                         trace!(
                             "Sending ping message:  {:?} {} {}",
                             msg,
@@ -680,7 +678,7 @@ impl<'a> Context<'a> {
                 return Err(WsClientError::ConnectionClosed {
                     reason: Some(WsCloseReason {
                         code: close_frame.code,
-                        message: close_frame.reason.into_owned(),
+                        message: close_frame.reason.to_string(),
                     }),
                 });
             }
@@ -737,7 +735,7 @@ impl<'a> Context<'a> {
 
     async fn handle_send_frame(&mut self, frame: Frame) -> WsClientResult<()> {
         trace!("send frame: {frame:?}");
-        let msg = Message::Binary(frame.encode_to_vec());
+        let msg = Message::Binary(frame.encode_to_vec().into());
 
         self.sink.send(msg).await?;
         Ok(())
