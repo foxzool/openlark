@@ -279,7 +279,7 @@ pub struct DocumentStatistics {
 }
 
 // 实现参数验证trait
-impl SearchDocsRequest {
+    impl SearchDocsRequest {
     /// 验证搜索参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         use openlark_core::validate_required;
@@ -300,42 +300,15 @@ impl SearchDocsRequest {
                 return Err(openlark_core::CoreError::validation_msg("文档类型列表长度不能超过10"));
             }
 
-            for doc_type in doc_types {
-                if !Self::is_valid_doc_type(doc_type) {
-                    return Err(openlark_core::CoreError::validation_msg(format!("不支持的文档类型: {doc_type}")));
-                }
+        for doc_type in doc_types {
+            if !Self::is_valid_doc_type(doc_type) {
+                return Err(openlark_core::CoreError::validation_msg(format!("不支持的文档类型: {doc_type}")));
             }
         }
-
-        Ok(())
     }
-        if self.search_key.trim().is_empty() {
-            return Err("搜索关键字不能为空".to_string());
-        }
 
-        if self.search_key.len() > 1000 {
-            return Err("搜索关键字长度不能超过1000个字符".to_string());
-        }
-
-        if let Some(page_size) = self.page_size
-            && (page_size < 1 || page_size > 100)
-        {
-            return Err("每页数量必须在1-100之间".to_string());
-        }
-
-        if let Some(ref doc_types) = self.doc_types {
-            if doc_types.len() > 10 {
-                return Err("文档类型列表长度不能超过10".to_string());
-            }
-
-            for doc_type in doc_types {
-                if !Self::is_valid_doc_type(doc_type) {
-                    return Err(format!("不支持的文档类型: {doc_type}"));
-                }
-            }
-        }
-
-        Ok(())
+    Ok(())
+    }
     }
 
     /// 检查文档类型是否有效
@@ -347,7 +320,7 @@ impl SearchDocsRequest {
     }
 }
 
-impl GetDocMetaRequest {
+    impl GetDocMetaRequest {
     /// 验证元数据请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         use openlark_core::validate_required;
@@ -365,21 +338,6 @@ impl GetDocMetaRequest {
 
         Ok(())
     }
-        if self.tokens.is_empty() {
-            return Err("文档token列表不能为空".to_string());
-        }
-
-        if self.tokens.len() > 100 {
-            return Err("文档token列表长度不能超过100".to_string());
-        }
-
-        for token in &self.tokens {
-            if token.trim().is_empty() {
-                return Err("文档token不能为空".to_string());
-            }
-        }
-
-        Ok(())
     }
 }
 
@@ -607,18 +565,6 @@ pub mod models_docx {
             Ok(())
         }
     }
-        pub fn validate(&self) -> Result<(), String> {
-            if self.title.trim().is_empty() {
-                return Err("文档标题不能为空".to_string());
-            }
-
-            if self.title.len() > 100 {
-                return Err("文档标题长度不能超过100个字符".to_string());
-            }
-
-            Ok(())
-        }
-    }
 
     /// 创建文档响应
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -652,13 +598,7 @@ pub mod models_docx {
             Ok(())
         }
     }
-        pub fn validate(&self) -> Result<(), String> {
-            if self.document_token.trim().is_empty() {
-                return Err("文档token不能为空".to_string());
-            }
-            Ok(())
-        }
-    }
+    
 
     /// 获取文档信息响应
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

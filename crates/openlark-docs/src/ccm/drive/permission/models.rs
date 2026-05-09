@@ -21,13 +21,10 @@ pub struct CheckMemberPermissionRequest {
 
 impl CheckMemberPermissionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
-        if self.permission.trim().is_empty() {
-            return Err("权限类型不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
+        validate_required!(self.permission, "权限类型不能为空");
         Ok(())
     }
 }
@@ -65,16 +62,6 @@ pub struct TransferOwnerRequest {
         validate_required!(self.user_id, "用户ID不能为空");
         Ok(())
     }
-    /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
-        if self.user_id.trim().is_empty() {
-            return Err("用户ID不能为空".to_string());
-        }
-        Ok(())
-    }
 }
 
 /// 转移拥有者响应
@@ -100,10 +87,9 @@ pub struct GetPublicPermissionRequest {
 
 impl GetPublicPermissionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
         Ok(())
     }
 }
