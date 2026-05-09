@@ -58,7 +58,13 @@ pub struct TransferOwnerRequest {
     pub user_id_type: Option<String>,
 }
 
-impl TransferOwnerRequest {
+    /// 验证请求参数
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
+        validate_required!(self.user_id, "用户ID不能为空");
+        Ok(())
+    }
     /// 验证请求参数
     pub fn validate(&self) -> Result<(), String> {
         if self.file_token.trim().is_empty() {

@@ -22,7 +22,12 @@ pub struct ReadSingleRangeRequest {
 
 impl ReadSingleRangeRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "读取范围不能为空");
+        Ok(())
+    }
         if self.spreadsheet_token.trim().is_empty() {
             return Err("电子表格token不能为空".to_string());
         }
@@ -113,6 +118,17 @@ pub struct ReadMultipleRangesRequest {
 
 impl ReadMultipleRangesRequest {
     /// 验证请求参数
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        if self.ranges.is_empty() {
+            return Err(openlark_core::CoreError::validation_msg("读取范围列表不能为空"));
+        }
+        if self.ranges.len() > 10 {
+            return Err(openlark_core::CoreError::validation_msg("读取范围数量不能超过10个"));
+        }
+        Ok(())
+    }
     pub fn validate(&self) -> Result<(), String> {
         if self.spreadsheet_token.trim().is_empty() {
             return Err("电子表格token不能为空".to_string());
@@ -218,6 +234,23 @@ pub struct WriteSingleRangeRequest {
 
 impl WriteSingleRangeRequest {
     /// 验证请求参数
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "写入范围不能为空");
+        if self.values.is_empty() {
+            return Err(openlark_core::CoreError::validation_msg("写入数据不能为空"));
+        }
+        if self.values.len() > 1000 {
+            return Err(openlark_core::CoreError::validation_msg("写入数据行数不能超过1000行"));
+        }
+        for row in &self.values {
+            if row.len() > 1000 {
+                return Err(openlark_core::CoreError::validation_msg("写入数据列数不能超过1000列"));
+            }
+        }
+        Ok(())
+    }
     pub fn validate(&self) -> Result<(), String> {
         if self.spreadsheet_token.trim().is_empty() {
             return Err("电子表格token不能为空".to_string());
