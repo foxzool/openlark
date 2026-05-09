@@ -160,7 +160,6 @@ impl CreateAppRequest {
 
         Ok(())
     }
-    pub fn validate(&self) -> Result<(), String> {
         if self.name.trim().is_empty() {
             return Err("应用名称不能为空".to_string());
         }
@@ -187,7 +186,6 @@ impl CopyAppRequest {
 
         Ok(())
     }
-    pub fn validate(&self) -> Result<(), String> {
         if let Some(ref name) = self.name {
             if name.trim().is_empty() {
                 return Err("新应用名称不能为空".to_string());
@@ -216,7 +214,6 @@ impl UpdateAppRequest {
 
         Ok(())
     }
-    pub fn validate(&self) -> Result<(), String> {
         if let Some(ref name) = self.name {
             if name.trim().is_empty() {
                 return Err("应用名称不能为空".to_string());

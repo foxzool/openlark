@@ -309,7 +309,6 @@ impl SearchDocsRequest {
 
         Ok(())
     }
-    pub fn validate(&self) -> Result<(), String> {
         if self.search_key.trim().is_empty() {
             return Err("搜索关键字不能为空".to_string());
         }
@@ -366,7 +365,6 @@ impl GetDocMetaRequest {
 
         Ok(())
     }
-    pub fn validate(&self) -> Result<(), String> {
         if self.tokens.is_empty() {
             return Err("文档token列表不能为空".to_string());
         }
@@ -598,6 +596,17 @@ pub mod models_docx {
 
     impl CreateDocumentRequest {
         /// 验证请求参数
+        pub fn validate(&self) -> openlark_core::SDKResult<()> {
+            use openlark_core::validate_required;
+            validate_required!(self.title, "文档标题不能为空");
+
+            if self.title.len() > 100 {
+                return Err(openlark_core::CoreError::validation_msg("文档标题长度不能超过100个字符"));
+            }
+
+            Ok(())
+        }
+    }
         pub fn validate(&self) -> Result<(), String> {
             if self.title.trim().is_empty() {
                 return Err("文档标题不能为空".to_string());
@@ -637,6 +646,12 @@ pub mod models_docx {
 
     impl GetDocumentRequest {
         /// 验证请求参数
+        pub fn validate(&self) -> openlark_core::SDKResult<()> {
+            use openlark_core::validate_required;
+            validate_required!(self.document_token, "文档token不能为空");
+            Ok(())
+        }
+    }
         pub fn validate(&self) -> Result<(), String> {
             if self.document_token.trim().is_empty() {
                 return Err("文档token不能为空".to_string());
