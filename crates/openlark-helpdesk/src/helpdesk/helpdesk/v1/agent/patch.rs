@@ -23,11 +23,13 @@ pub struct PatchAgentBody {
 
 impl PatchAgentBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(status) = &self.status
             && !["offline", "online", "busy"].contains(&status.as_str())
         {
-            return Err("status must be offline, online, or busy".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "status must be offline, online, or busy",
+            ));
         }
         Ok(())
     }
@@ -79,8 +81,7 @@ impl PatchAgentRequest {
         body: PatchAgentBody,
         option: RequestOption,
     ) -> SDKResult<PatchAgentResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchAgentResponse> =
             ApiRequest::patch(HelpdeskApiV1::AgentPatch(self.agent_id.clone()).to_url())
@@ -156,8 +157,7 @@ pub async fn patch_agent_with_options(
     body: PatchAgentBody,
     option: RequestOption,
 ) -> SDKResult<PatchAgentResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchAgentResponse> =
         ApiRequest::patch(HelpdeskApiV1::AgentPatch(agent_id).to_url())

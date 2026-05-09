@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -25,10 +26,8 @@ pub struct CreateTicketMessageBody {
 
 impl CreateTicketMessageBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.content.is_empty() {
-            return Err("content is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.content, "content is required");
         Ok(())
     }
 }
@@ -79,8 +78,7 @@ impl CreateTicketMessageRequest {
         body: CreateTicketMessageBody,
         option: RequestOption,
     ) -> SDKResult<CreateTicketMessageResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateTicketMessageResponse> =
             ApiRequest::post(HelpdeskApiV1::TicketMessageCreate(self.ticket_id.clone()).to_url())
@@ -159,8 +157,7 @@ pub async fn create_ticket_message_with_options(
     body: CreateTicketMessageBody,
     option: RequestOption,
 ) -> SDKResult<CreateTicketMessageResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateTicketMessageResponse> =
         ApiRequest::post(HelpdeskApiV1::TicketMessageCreate(ticket_id).to_url())

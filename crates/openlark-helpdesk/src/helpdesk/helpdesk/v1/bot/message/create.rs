@@ -33,15 +33,21 @@ pub struct CreateBotMessageBody {
 
 impl CreateBotMessageBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if self.receive_id.is_none() {
-            return Err("receive_id is required".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "receive_id is required",
+            ));
         }
         if self.msg_type.is_none() {
-            return Err("msg_type is required".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "msg_type is required",
+            ));
         }
         if self.content.is_none() {
-            return Err("content is required".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "content is required",
+            ));
         }
         Ok(())
     }
@@ -85,8 +91,7 @@ impl CreateBotMessageRequest {
         body: CreateBotMessageBody,
         option: RequestOption,
     ) -> SDKResult<CreateBotMessageResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateBotMessageResponse> =
             ApiRequest::post(HelpdeskApiV1::BotMessageCreate.to_url())
@@ -172,8 +177,7 @@ pub async fn create_bot_message_with_options(
     body: CreateBotMessageBody,
     option: RequestOption,
 ) -> SDKResult<CreateBotMessageResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateBotMessageResponse> =
         ApiRequest::post(HelpdeskApiV1::BotMessageCreate.to_url())

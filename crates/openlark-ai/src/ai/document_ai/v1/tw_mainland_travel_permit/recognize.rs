@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,10 +25,8 @@ pub struct TwMainlandTravelPermitRecognizeBody {
 
 impl TwMainlandTravelPermitRecognizeBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -92,8 +91,7 @@ impl TwMainlandTravelPermitRecognizeRequest {
         body: TwMainlandTravelPermitRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<TwMainlandTravelPermitRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<TwMainlandTravelPermitRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_TW_MAINLAND_TRAVEL_PERMIT_RECOGNIZE)
@@ -174,8 +172,7 @@ pub async fn tw_mainland_travel_permit_recognize_with_options(
     body: TwMainlandTravelPermitRecognizeBody,
     option: RequestOption,
 ) -> SDKResult<TwMainlandTravelPermitRecognizeResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<TwMainlandTravelPermitRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_TW_MAINLAND_TRAVEL_PERMIT_RECOGNIZE)
