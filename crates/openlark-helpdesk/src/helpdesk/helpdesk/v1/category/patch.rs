@@ -32,11 +32,13 @@ pub struct PatchCategoryBody {
 
 impl PatchCategoryBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(name) = &self.name
             && name.is_empty()
         {
-            return Err("name cannot be empty".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "name cannot be empty",
+            ));
         }
         Ok(())
     }
@@ -97,8 +99,7 @@ impl PatchCategoryRequest {
         body: PatchCategoryBody,
         option: RequestOption,
     ) -> SDKResult<PatchCategoryResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchCategoryResponse> =
             ApiRequest::patch(HelpdeskApiV1::CategoryPatch(self.id.clone()).to_url())
@@ -201,8 +202,7 @@ pub async fn patch_category_with_options(
     body: PatchCategoryBody,
     option: RequestOption,
 ) -> SDKResult<PatchCategoryResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchCategoryResponse> =
         ApiRequest::patch(HelpdeskApiV1::CategoryPatch(id).to_url())

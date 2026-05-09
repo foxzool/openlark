@@ -2,6 +2,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,10 +27,8 @@ pub struct FileRecognizeBody {
 
 impl FileRecognizeBody {
     /// 校验请求体。
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -68,8 +67,7 @@ impl FileRecognizeRequest {
         body: FileRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<FileRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<FileRecognizeResponse> =
             ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)

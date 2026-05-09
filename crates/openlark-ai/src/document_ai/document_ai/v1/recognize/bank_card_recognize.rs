@@ -8,6 +8,7 @@ use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::DOCUMENT_AI_BANK_CARD_RECOGNIZE;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,10 +24,8 @@ pub struct BankCardRecognizeBody {
 
 impl BankCardRecognizeBody {
     /// 校验请求体。
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -93,8 +92,7 @@ impl BankCardRecognizeRequest {
         body: BankCardRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<BankCardRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<BankCardRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_BANK_CARD_RECOGNIZE)

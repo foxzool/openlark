@@ -108,9 +108,7 @@ impl PatchFormFieldQuestionRequest {
         validate_required!(self.table_id.trim(), "table_id");
         validate_required!(self.form_id.trim(), "form_id");
         validate_required!(self.field_id.trim(), "field_id");
-        self.body
-            .validate()
-            .map_err(|msg| openlark_core::error::validation_error("body", msg))?;
+        self.body.validate()?;
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FormFieldPatch(

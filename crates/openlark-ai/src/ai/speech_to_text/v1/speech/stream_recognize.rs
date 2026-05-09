@@ -2,6 +2,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,10 +33,8 @@ pub struct StreamRecognizeBody {
 
 impl StreamRecognizeBody {
     /// 校验请求体。
-    pub fn validate(&self) -> Result<(), String> {
-        if self.audio.trim().is_empty() {
-            return Err("audio 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.audio, "audio 不能为空");
         Ok(())
     }
 }
@@ -74,8 +73,7 @@ impl StreamRecognizeRequest {
         body: StreamRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<StreamRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<StreamRecognizeResponse> =
             ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE)

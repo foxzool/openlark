@@ -22,13 +22,10 @@ pub struct ReadSingleRangeRequest {
 
 impl ReadSingleRangeRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
-        if self.range.trim().is_empty() {
-            return Err("读取范围不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "读取范围不能为空");
         Ok(())
     }
 }
@@ -113,15 +110,18 @@ pub struct ReadMultipleRangesRequest {
 
 impl ReadMultipleRangesRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         if self.ranges.is_empty() {
-            return Err("读取范围列表不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "读取范围列表不能为空",
+            ));
         }
         if self.ranges.len() > 10 {
-            return Err("读取范围数量不能超过10个".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "读取范围数量不能超过10个",
+            ));
         }
         Ok(())
     }
@@ -218,22 +218,23 @@ pub struct WriteSingleRangeRequest {
 
 impl WriteSingleRangeRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
-        if self.range.trim().is_empty() {
-            return Err("写入范围不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "写入范围不能为空");
         if self.values.is_empty() {
-            return Err("写入数据不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg("写入数据不能为空"));
         }
         if self.values.len() > 1000 {
-            return Err("写入数据行数不能超过1000行".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "写入数据行数不能超过1000行",
+            ));
         }
         for row in &self.values {
             if row.len() > 1000 {
-                return Err("写入数据列数不能超过1000列".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "写入数据列数不能超过1000列",
+                ));
             }
         }
         Ok(())
@@ -286,29 +287,34 @@ pub struct WriteData {
 
 impl WriteMultipleRangesRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         if self.data.is_empty() {
-            return Err("写入数据列表不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "写入数据列表不能为空",
+            ));
         }
         if self.data.len() > 10 {
-            return Err("写入数据数量不能超过10个".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "写入数据数量不能超过10个",
+            ));
         }
         for write_data in &self.data {
-            if write_data.range.trim().is_empty() {
-                return Err("写入范围不能为空".to_string());
-            }
+            validate_required!(write_data.range, "写入范围不能为空");
             if write_data.values.is_empty() {
-                return Err("写入数据不能为空".to_string());
+                return Err(openlark_core::CoreError::validation_msg("写入数据不能为空"));
             }
             if write_data.values.len() > 1000 {
-                return Err("写入数据行数不能超过1000行".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "写入数据行数不能超过1000行",
+                ));
             }
             for row in &write_data.values {
                 if row.len() > 1000 {
-                    return Err("写入数据列数不能超过1000列".to_string());
+                    return Err(openlark_core::CoreError::validation_msg(
+                        "写入数据列数不能超过1000列",
+                    ));
                 }
             }
         }
@@ -349,22 +355,23 @@ pub struct AppendDataRequest {
 
 impl AppendDataRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
-        if self.range.trim().is_empty() {
-            return Err("追加范围不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "追加范围不能为空");
         if self.values.is_empty() {
-            return Err("追加数据不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg("追加数据不能为空"));
         }
         if self.values.len() > 1000 {
-            return Err("追加数据行数不能超过1000行".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "追加数据行数不能超过1000行",
+            ));
         }
         for row in &self.values {
             if row.len() > 1000 {
-                return Err("追加数据列数不能超过1000列".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "追加数据列数不能超过1000列",
+                ));
             }
         }
         Ok(())
@@ -423,22 +430,29 @@ pub struct InsertDimensionRequest {
 
 impl InsertDimensionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         if !["ROWS", "COLUMNS"].contains(&self.dimension.as_str()) {
-            return Err("维度类型必须是ROWS或COLUMNS".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "维度类型必须是ROWS或COLUMNS",
+            ));
         }
         if self.start_index < 0 {
-            return Err("起始索引不能小于0".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "起始索引不能小于0",
+            ));
         }
         if self.end_index < self.start_index {
-            return Err("结束索引不能小于起始索引".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "结束索引不能小于起始索引",
+            ));
         }
         let count = self.end_index - self.start_index;
         if count > 5000 {
-            return Err("插入行列数量不能超过5000".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "插入行列数量不能超过5000",
+            ));
         }
         Ok(())
     }
@@ -473,22 +487,29 @@ pub struct DeleteDimensionRequest {
 
 impl DeleteDimensionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         if !["ROWS", "COLUMNS"].contains(&self.dimension.as_str()) {
-            return Err("维度类型必须是ROWS或COLUMNS".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "维度类型必须是ROWS或COLUMNS",
+            ));
         }
         if self.start_index < 0 {
-            return Err("起始索引不能小于0".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "起始索引不能小于0",
+            ));
         }
         if self.end_index < self.start_index {
-            return Err("结束索引不能小于起始索引".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "结束索引不能小于起始索引",
+            ));
         }
         let count = self.end_index - self.start_index;
         if count > 5000 {
-            return Err("删除行列数量不能超过5000".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "删除行列数量不能超过5000",
+            ));
         }
         Ok(())
     }
@@ -532,15 +553,18 @@ pub struct BatchUpdateRequest {
 
 impl BatchUpdateSheetRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         if self.requests.is_empty() {
-            return Err("更新操作列表不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "更新操作列表不能为空",
+            ));
         }
         if self.requests.len() > 100 {
-            return Err("更新操作数量不能超过100个".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "更新操作数量不能超过100个",
+            ));
         }
         Ok(())
     }
@@ -578,10 +602,9 @@ pub struct GetSheetMetaRequest {
 
 impl GetSheetMetaRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
         Ok(())
     }
 }
@@ -748,13 +771,10 @@ pub struct Color {
 
 impl SetCellStyleRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.spreadsheet_token.trim().is_empty() {
-            return Err("电子表格token不能为空".to_string());
-        }
-        if self.range.trim().is_empty() {
-            return Err("设置范围不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.spreadsheet_token, "电子表格token不能为空");
+        validate_required!(self.range, "设置范围不能为空");
         Ok(())
     }
 }

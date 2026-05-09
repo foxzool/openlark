@@ -37,18 +37,24 @@ pub struct CreateCardBody {
 
 impl CreateCardBody {
     /// 校验请求体。
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if self.card_content.is_null() {
-            return Err("card_content 不能为空".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "card_content 不能为空",
+            ));
         }
         if !self.card_content.is_object() {
-            return Err("card_content 必须是 JSON 对象".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "card_content 必须是 JSON 对象",
+            ));
         }
 
         if let Some(temp_expire_time) = self.temp_expire_time
             && (temp_expire_time <= 0 || temp_expire_time > 86_400)
         {
-            return Err("temp_expire_time 取值范围为 1~86400（秒）".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "temp_expire_time 取值范围为 1~86400（秒）",
+            ));
         }
 
         Ok(())
@@ -96,8 +102,7 @@ impl CreateCardRequest {
         body: CreateCardBody,
         option: RequestOption,
     ) -> SDKResult<CreateCardResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         // url: POST:/open-apis/cardkit/v1/cards
         let req: ApiRequest<CreateCardResponse> =
@@ -185,8 +190,7 @@ pub async fn create_with_options(
     body: CreateCardBody,
     option: RequestOption,
 ) -> SDKResult<CreateCardResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     // url: POST:/open-apis/cardkit/v1/cards
     let req: ApiRequest<CreateCardResponse> =

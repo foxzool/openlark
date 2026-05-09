@@ -10,6 +10,7 @@ use openlark_core::{
     http::Transport,
     req_option::RequestOption,
     SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -30,11 +31,9 @@ pub struct PatchTicketCustomizedFieldBody {
 
 impl PatchTicketCustomizedFieldBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
         if let Some(name) = &self.name {
-            if name.is_empty() {
-                return Err("name cannot be empty".to_string());
-            }
+            validate_required!(name, "name cannot be empty");
         }
         Ok(())
     }
@@ -85,8 +84,7 @@ impl PatchTicketCustomizedFieldRequest {
         body: PatchTicketCustomizedFieldBody,
         option: RequestOption,
     ) -> SDKResult<PatchTicketCustomizedFieldResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchTicketCustomizedFieldResponse> =
             ApiRequest::patch(HelpdeskApiV1::TicketCustomizedFieldPatch(self.id.clone()).to_url())
@@ -171,8 +169,7 @@ pub async fn patch_ticket_customized_field_with_options(
     body: PatchTicketCustomizedFieldBody,
     option: RequestOption,
 ) -> SDKResult<PatchTicketCustomizedFieldResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchTicketCustomizedFieldResponse> =
         ApiRequest::patch(HelpdeskApiV1::TicketCustomizedFieldPatch(id).to_url())

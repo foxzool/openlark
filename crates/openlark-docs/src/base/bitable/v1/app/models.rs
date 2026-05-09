@@ -150,13 +150,14 @@ pub struct DeleteAppResponse {
 
 impl CreateAppRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.name.trim().is_empty() {
-            return Err("应用名称不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.name, "应用名称不能为空");
 
         if self.name.len() > 100 {
-            return Err("应用名称长度不能超过100个字符".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "应用名称长度不能超过100个字符",
+            ));
         }
 
         Ok(())
@@ -165,14 +166,15 @@ impl CreateAppRequest {
 
 impl CopyAppRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
         if let Some(ref name) = self.name {
-            if name.trim().is_empty() {
-                return Err("新应用名称不能为空".to_string());
-            }
+            validate_required!(name, "新应用名称不能为空");
 
             if name.len() > 100 {
-                return Err("应用名称长度不能超过100个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "应用名称长度不能超过100个字符",
+                ));
             }
         }
 
@@ -182,13 +184,15 @@ impl CopyAppRequest {
 
 impl UpdateAppRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
         if let Some(ref name) = self.name {
-            if name.trim().is_empty() {
-                return Err("应用名称不能为空".to_string());
-            }
+            validate_required!(name, "应用名称不能为空");
+
             if name.len() > 100 {
-                return Err("应用名称长度不能超过100个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "应用名称长度不能超过100个字符",
+                ));
             }
         }
 

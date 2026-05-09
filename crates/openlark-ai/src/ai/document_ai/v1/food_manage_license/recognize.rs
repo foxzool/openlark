@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,10 +25,8 @@ pub struct FoodManageLicenseRecognizeBody {
 
 impl FoodManageLicenseRecognizeBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -95,8 +94,7 @@ impl FoodManageLicenseRecognizeRequest {
         body: FoodManageLicenseRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<FoodManageLicenseRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<FoodManageLicenseRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_FOOD_MANAGE_LICENSE_RECOGNIZE)
@@ -177,8 +175,7 @@ pub async fn food_manage_license_recognize_with_options(
     body: FoodManageLicenseRecognizeBody,
     option: RequestOption,
 ) -> SDKResult<FoodManageLicenseRecognizeResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<FoodManageLicenseRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_FOOD_MANAGE_LICENSE_RECOGNIZE)

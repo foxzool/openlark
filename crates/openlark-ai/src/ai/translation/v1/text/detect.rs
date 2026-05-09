@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,10 +22,8 @@ pub struct TextDetectBody {
 
 impl TextDetectBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.text.trim().is_empty() {
-            return Err("text 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.text, "text 不能为空");
         Ok(())
     }
 }
@@ -74,8 +73,7 @@ impl TextDetectRequest {
         body: TextDetectBody,
         option: RequestOption,
     ) -> SDKResult<TextDetectResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<TextDetectResponse> = ApiRequest::post(TRANSLATION_V1_TEXT_DETECT)
             .body(serialize_params(&body, "文本语言检测")?);
@@ -143,8 +141,7 @@ pub async fn text_detect_with_options(
     body: TextDetectBody,
     option: RequestOption,
 ) -> SDKResult<TextDetectResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<TextDetectResponse> =
         ApiRequest::post(TRANSLATION_V1_TEXT_DETECT).body(serialize_params(&body, "文本语言检测")?);

@@ -6,6 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -24,13 +25,9 @@ pub struct CreateNotificationBody {
 
 impl CreateNotificationBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.title.is_empty() {
-            return Err("title is required".to_string());
-        }
-        if self.content.is_empty() {
-            return Err("content is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.title, "title is required");
+        validate_required!(self.content, "content is required");
         Ok(())
     }
 }
@@ -86,8 +83,7 @@ impl CreateNotificationRequest {
         body: CreateNotificationBody,
         option: RequestOption,
     ) -> SDKResult<CreateNotificationResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateNotificationResponse> =
             ApiRequest::post(HelpdeskApiV1::NotificationCreate.to_url())
@@ -160,8 +156,7 @@ pub async fn create_notification_with_options(
     body: CreateNotificationBody,
     option: RequestOption,
 ) -> SDKResult<CreateNotificationResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateNotificationResponse> =
         ApiRequest::post(HelpdeskApiV1::NotificationCreate.to_url())

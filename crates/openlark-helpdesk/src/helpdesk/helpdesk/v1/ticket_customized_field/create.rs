@@ -10,6 +10,7 @@ use openlark_core::{
     http::Transport,
     req_option::RequestOption,
     SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -31,13 +32,9 @@ pub struct CreateTicketCustomizedFieldBody {
 
 impl CreateTicketCustomizedFieldBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.name.is_empty() {
-            return Err("name is required".to_string());
-        }
-        if self.field_type.is_empty() {
-            return Err("field_type is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.name, "name is required");
+        validate_required!(self.field_type, "field_type is required");
         Ok(())
     }
 }
@@ -86,8 +83,7 @@ impl CreateTicketCustomizedFieldRequest {
         body: CreateTicketCustomizedFieldBody,
         option: RequestOption,
     ) -> SDKResult<CreateTicketCustomizedFieldResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateTicketCustomizedFieldResponse> =
             ApiRequest::post(HelpdeskApiV1::TicketCustomizedFieldCreate.to_url())
@@ -172,8 +168,7 @@ pub async fn create_ticket_customized_field_with_options(
     body: CreateTicketCustomizedFieldBody,
     option: RequestOption,
 ) -> SDKResult<CreateTicketCustomizedFieldResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateTicketCustomizedFieldResponse> =
         ApiRequest::post(HelpdeskApiV1::TicketCustomizedFieldCreate.to_url())
