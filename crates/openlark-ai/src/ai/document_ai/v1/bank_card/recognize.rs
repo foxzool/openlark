@@ -30,17 +30,6 @@ impl BankCardRecognizeBody {
         validate_required!(self.file, "file 不能为空");
         Ok(())
     }
-<<<<<<< HEAD
-    pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file, "file 不能为空");
-=======
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file.is_empty() {
-            return Err("file 不能为空".to_string());
-        }
->>>>>>> origin/main
-        Ok(())
-    }
 }
 
 /// 银行卡识别响应

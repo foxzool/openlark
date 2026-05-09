@@ -279,36 +279,43 @@ pub struct DocumentStatistics {
 }
 
 // 实现参数验证trait
-    impl SearchDocsRequest {
+impl SearchDocsRequest {
     /// 验证搜索参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         use openlark_core::validate_required;
         validate_required!(self.search_key, "搜索关键字不能为空");
 
         if self.search_key.len() > 1000 {
-            return Err(openlark_core::CoreError::validation_msg("搜索关键字长度不能超过1000个字符"));
+            return Err(openlark_core::CoreError::validation_msg(
+                "搜索关键字长度不能超过1000个字符",
+            ));
         }
 
         if let Some(page_size) = self.page_size
             && (page_size < 1 || page_size > 100)
         {
-            return Err(openlark_core::CoreError::validation_msg("每页数量必须在1-100之间"));
+            return Err(openlark_core::CoreError::validation_msg(
+                "每页数量必须在1-100之间",
+            ));
         }
 
         if let Some(ref doc_types) = self.doc_types {
             if doc_types.len() > 10 {
-                return Err(openlark_core::CoreError::validation_msg("文档类型列表长度不能超过10"));
+                return Err(openlark_core::CoreError::validation_msg(
+                    "文档类型列表长度不能超过10",
+                ));
             }
 
-        for doc_type in doc_types {
-            if !Self::is_valid_doc_type(doc_type) {
-                return Err(openlark_core::CoreError::validation_msg(format!("不支持的文档类型: {doc_type}")));
+            for doc_type in doc_types {
+                if !Self::is_valid_doc_type(doc_type) {
+                    return Err(openlark_core::CoreError::validation_msg(format!(
+                        "不支持的文档类型: {doc_type}"
+                    )));
+                }
             }
         }
-    }
 
-    Ok(())
-    }
+        Ok(())
     }
 
     /// 检查文档类型是否有效
@@ -320,16 +327,20 @@ pub struct DocumentStatistics {
     }
 }
 
-    impl GetDocMetaRequest {
+impl GetDocMetaRequest {
     /// 验证元数据请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         use openlark_core::validate_required;
         if self.tokens.is_empty() {
-            return Err(openlark_core::CoreError::validation_msg("文档token列表不能为空"));
+            return Err(openlark_core::CoreError::validation_msg(
+                "文档token列表不能为空",
+            ));
         }
 
         if self.tokens.len() > 100 {
-            return Err(openlark_core::CoreError::validation_msg("文档token列表长度不能超过100"));
+            return Err(openlark_core::CoreError::validation_msg(
+                "文档token列表长度不能超过100",
+            ));
         }
 
         for token in &self.tokens {
@@ -337,7 +348,6 @@ pub struct DocumentStatistics {
         }
 
         Ok(())
-    }
     }
 }
 
@@ -559,7 +569,9 @@ pub mod models_docx {
             validate_required!(self.title, "文档标题不能为空");
 
             if self.title.len() > 100 {
-                return Err(openlark_core::CoreError::validation_msg("文档标题长度不能超过100个字符"));
+                return Err(openlark_core::CoreError::validation_msg(
+                    "文档标题长度不能超过100个字符",
+                ));
             }
 
             Ok(())
@@ -598,7 +610,6 @@ pub mod models_docx {
             Ok(())
         }
     }
-    
 
     /// 获取文档信息响应
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

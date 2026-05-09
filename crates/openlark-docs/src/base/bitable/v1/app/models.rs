@@ -155,17 +155,9 @@ impl CreateAppRequest {
         validate_required!(self.name, "应用名称不能为空");
 
         if self.name.len() > 100 {
-            return Err(openlark_core::CoreError::validation_msg("应用名称长度不能超过100个字符"));
-        }
-
-        Ok(())
-    }
-        if self.name.trim().is_empty() {
-            return Err("应用名称不能为空".to_string());
-        }
-
-        if self.name.len() > 100 {
-            return Err("应用名称长度不能超过100个字符".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "应用名称长度不能超过100个字符",
+            ));
         }
 
         Ok(())
@@ -180,19 +172,9 @@ impl CopyAppRequest {
             validate_required!(name, "新应用名称不能为空");
 
             if name.len() > 100 {
-                return Err(openlark_core::CoreError::validation_msg("应用名称长度不能超过100个字符"));
-            }
-        }
-
-        Ok(())
-    }
-        if let Some(ref name) = self.name {
-            if name.trim().is_empty() {
-                return Err("新应用名称不能为空".to_string());
-            }
-
-            if name.len() > 100 {
-                return Err("应用名称长度不能超过100个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "应用名称长度不能超过100个字符",
+                ));
             }
         }
 
@@ -208,18 +190,9 @@ impl UpdateAppRequest {
             validate_required!(name, "应用名称不能为空");
 
             if name.len() > 100 {
-                return Err(openlark_core::CoreError::validation_msg("应用名称长度不能超过100个字符"));
-            }
-        }
-
-        Ok(())
-    }
-        if let Some(ref name) = self.name {
-            if name.trim().is_empty() {
-                return Err("应用名称不能为空".to_string());
-            }
-            if name.len() > 100 {
-                return Err("应用名称长度不能超过100个字符".to_string());
+                return Err(openlark_core::CoreError::validation_msg(
+                    "应用名称长度不能超过100个字符",
+                ));
             }
         }
 

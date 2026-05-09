@@ -55,6 +55,7 @@ pub struct TransferOwnerRequest {
     pub user_id_type: Option<String>,
 }
 
+impl TransferOwnerRequest {
     /// 验证请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         use openlark_core::validate_required;

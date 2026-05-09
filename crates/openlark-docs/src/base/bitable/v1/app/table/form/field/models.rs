@@ -43,12 +43,13 @@ impl PatchFormFieldRequest {
             && self.required.is_none()
             && self.visible.is_none()
         {
-            return Err(openlark_core::CoreError::validation_msg("至少需要提供一个要更新的字段"));
+            return Err(openlark_core::CoreError::validation_msg(
+                "至少需要提供一个要更新的字段",
+            ));
         }
 
         // 如果提供了标题，不能为空
-        if let Some(ref title) = self.title
-        {
+        if let Some(ref title) = self.title {
             validate_required!(title, "问题标题不能为空");
         }
 
