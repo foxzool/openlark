@@ -92,14 +92,24 @@ impl UnifiedRequestBuilder {
     }
 
     fn build_url<R: Send>(config: &Config, req: &ApiRequest<R>) -> Result<url::Url, CoreError> {
-        let path = format!("{}{}", config.base_url, req.api_path());
-        let query = req
-            .query
-            .iter()
-            .map(|(k, v)| (k.as_str(), v.as_str()))
-            .collect::<Vec<_>>();
-        url::Url::parse_with_params(&path, query)
-            .map_err(|e| crate::error::network_error(format!("invalid url: {e}")))
+        let mut url = url::Url::parse(&config.base_url)
+            .map_err(|e| crate::error::network_error(format!("invalid base url: {e}")))?;
+
+        {
+            let mut path_segments = url
+                .path_segments_mut()
+                .map_err(|_| crate::error::network_error("invalid base url path".to_string()))?;
+            path_segments.clear();
+            for segment in req.api_path().trim_start_matches('/').split('/') {
+                path_segments.push(segment);
+            }
+        }
+
+        for (k, v) in &req.query {
+            url.query_pairs_mut().append_pair(k, v);
+        }
+
+        Ok(url)
     }
 }
 
@@ -187,6 +197,28 @@ mod tests {
                 .await;
 
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_build_url_encodes_path_segments() {
+        let mut api_req = ApiRequest::<()>::get("https://open.feishu.cn/open-apis/安全测试/子路径");
+        api_req
+            .query_mut()
+            .insert("q1".to_string(), "a b".to_string());
+        let config = create_test_config();
+
+        let url = UnifiedRequestBuilder::build_url(&config, &api_req)
+            .expect("failed to build encoded url");
+
+        assert_eq!(
+            url.path(),
+            "/open-apis/%E5%AE%89%E5%85%A8%E6%B5%8B%E8%AF%95/%E5%AD%90%E8%B7%AF%E5%BE%84"
+        );
+        let query = url
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect::<Vec<_>>();
+        assert_eq!(query, vec![("q1".to_string(), "a b".to_string())]);
     }
 
     #[tokio::test]
