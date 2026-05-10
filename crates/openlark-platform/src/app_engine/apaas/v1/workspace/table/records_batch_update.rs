@@ -1,7 +1,7 @@
 //! 批量更新数据表中的记录
 //!
 //! URL: PATCH:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records_batch_update
-//! docPath: 
+//! docPath:
 
 use crate::app_engine::apaas::v1::workspace::table::records_post::RecordOperationResult;
 use openlark_core::{

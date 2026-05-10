@@ -1,7 +1,7 @@
 //! 向数据表中添加或更新记录
 //!
 //! URL: POST:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
-//! docPath: 
+//! docPath:
 
 use openlark_core::{
     SDKResult,

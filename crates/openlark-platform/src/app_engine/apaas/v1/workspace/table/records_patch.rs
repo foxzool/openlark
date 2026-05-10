@@ -1,7 +1,7 @@
 //! 按条件更新数据表中的记录
 //!
 //! URL: PATCH:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
-//! docPath: 
+//! docPath:
 
 use openlark_core::{
     SDKResult,
