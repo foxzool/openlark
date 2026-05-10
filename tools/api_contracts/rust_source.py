@@ -207,6 +207,8 @@ def resolve_format_expression(expression: str, constants: dict[str, str]) -> str
             value = constants[arg_expr]
         elif re.search(r"(self\.|_id\b|token\b|\.to_url\(\)|\.path\(\)|\.join\()", arg_expr):
             value = "{param}"
+        elif parse_string_literal(arg_expr):
+            value = parse_string_literal(arg_expr)
         else:
             return ""
         resolved += value + suffix
