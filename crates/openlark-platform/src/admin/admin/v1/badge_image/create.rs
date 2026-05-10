@@ -1,4 +1,5 @@
 //! 上传勋章图片 API
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/create
 
 use openlark_core::{
     SDKResult,

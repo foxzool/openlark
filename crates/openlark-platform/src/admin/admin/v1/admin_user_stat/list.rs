@@ -1,4 +1,5 @@
 //! 获取用户维度的用户活跃和功能使用数据 API
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/data-report-management/list-2
 
 use openlark_core::{
     SDKResult,

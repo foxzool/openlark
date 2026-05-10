@@ -1,4 +1,5 @@
 //! 获取用户自定义常用的应用
+//! docPath: https://open.feishu.cn/document/server-docs/workplace-v1/app_recommend_rule/favourite
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

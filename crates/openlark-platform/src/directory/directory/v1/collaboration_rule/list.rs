@@ -1,6 +1,7 @@
 //! 查询可搜可见规则
 //!
 //! 文档: https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/list
+//! docPath: https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/list
 
 use openlark_core::{
     SDKResult,

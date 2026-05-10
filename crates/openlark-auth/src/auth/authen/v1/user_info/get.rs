@@ -1,4 +1,5 @@
 //! 获取用户信息 API
+//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/get
 use crate::models::authen::UserInfoResponse;
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/user_info

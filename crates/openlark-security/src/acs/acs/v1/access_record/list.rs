@@ -1,4 +1,5 @@
 //! 获取门禁通行记录列表
+//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/access_record/list
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

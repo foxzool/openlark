@@ -1,6 +1,7 @@
 //! 删除部门
 //!
 //! 文档: https://open.feishu.cn/document/directory-v1/department/delete
+//! docPath: https://open.feishu.cn/document/directory-v1/department/delete
 
 use openlark_core::{
     SDKResult,

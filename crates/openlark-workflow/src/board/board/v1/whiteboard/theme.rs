@@ -1,4 +1,5 @@
 //! 获取白板主题（v1）
+//! docPath: 
 
 use openlark_core::{
     SDKResult,

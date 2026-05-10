@@ -1,6 +1,7 @@
 //! 获取勋章授予名单列表 API
 //!
 //! API文档: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge-grant/list
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/list
 
 use openlark_core::{
     SDKResult,

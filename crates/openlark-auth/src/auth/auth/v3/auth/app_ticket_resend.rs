@@ -1,4 +1,5 @@
 //! 重新获取 app_ticket API
+//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_ticket_resend
 use crate::models::auth::{AppTicketResendRequest, AppTicketResponse};
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/authentication-management/app-ticket/app_ticket_resend

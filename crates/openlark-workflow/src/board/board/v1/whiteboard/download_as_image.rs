@@ -1,4 +1,5 @@
 //! 下载白板为图片（v1）
+//! docPath: https://open.feishu.cn/document/docs/board-v1/whiteboard/download_as_image
 
 use openlark_core::{
     SDKResult,

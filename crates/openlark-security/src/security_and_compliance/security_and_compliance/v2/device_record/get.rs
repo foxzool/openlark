@@ -1,4 +1,5 @@
 //! 获取设备信息
+//! docPath: https://open.feishu.cn/document/security_and_compliance-v1/security_and_compliance-v2/device_record/get
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

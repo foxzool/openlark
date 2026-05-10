@@ -1,4 +1,5 @@
 //! 修改用户部分信息
+//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/patch
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

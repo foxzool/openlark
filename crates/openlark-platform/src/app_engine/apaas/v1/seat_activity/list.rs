@@ -1,6 +1,7 @@
 //! 查询席位活跃详情
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/seat_activity/list
+//! docPath: https://open.feishu.cn/document/apaas-v1/seat_activity/list
 
 use openlark_core::{
     SDKResult,

@@ -1,4 +1,5 @@
 //! 同意人工任务 API
+//! docPath: https://open.feishu.cn/document/apaas-v1/flow/user-task/agree
 
 use openlark_core::{
     SDKResult,

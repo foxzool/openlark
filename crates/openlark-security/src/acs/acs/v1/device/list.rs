@@ -1,4 +1,5 @@
 //! 获取门禁设备列表
+//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/list
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,4 +1,5 @@
 //! 查询指定邮件组成员
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

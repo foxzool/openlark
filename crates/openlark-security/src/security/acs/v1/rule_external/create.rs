@@ -1,4 +1,5 @@
 //! 创建或更新权限组
+//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/create
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

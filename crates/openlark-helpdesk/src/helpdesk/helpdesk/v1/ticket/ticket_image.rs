@@ -1,4 +1,5 @@
 //! 获取工单内图像
+//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/ticket_image
 
 use openlark_core::{
     SDKResult,

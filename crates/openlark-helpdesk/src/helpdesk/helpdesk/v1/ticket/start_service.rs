@@ -1,6 +1,7 @@
 //! 创建服务台对话
 //!
 //! 创建一个新的服务台对话（工单）。
+//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/start_service
 
 use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
 use openlark_core::{

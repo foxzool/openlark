@@ -1,4 +1,5 @@
 //! 查询指定数据项
+//! docPath: https://open.feishu.cn/document/server-docs/search-v2/open-search/data_source/get
 
 use openlark_core::{
     SDKResult,

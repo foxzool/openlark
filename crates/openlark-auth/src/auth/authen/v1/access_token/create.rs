@@ -1,4 +1,5 @@
 //! 获取 user_access_token（v1版本） API
+//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/create-2
 use crate::models::authen::{UserAccessTokenResponse, UserAccessTokenV1Request};
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/access_token

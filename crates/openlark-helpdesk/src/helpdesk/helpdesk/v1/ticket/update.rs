@@ -1,4 +1,5 @@
 //! 更新工单
+//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/update
 
 use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
 use crate::helpdesk::helpdesk::v1::ticket::models::{UpdateTicketBody, UpdateTicketResponse};

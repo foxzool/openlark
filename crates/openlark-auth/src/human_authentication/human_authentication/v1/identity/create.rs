@@ -1,6 +1,7 @@
 //! 录入身份信息
 //!
 //! 文档: https://open.feishu.cn/document/server-docs/human_authentication-v1/create
+//! docPath: https://open.feishu.cn/document/server-docs/human_authentication-v1/create
 
 use openlark_core::{
     SDKResult,

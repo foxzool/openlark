@@ -1,4 +1,5 @@
 //! 获取邮件组详情
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::mailgroup::models::GetMailGroupResponse;

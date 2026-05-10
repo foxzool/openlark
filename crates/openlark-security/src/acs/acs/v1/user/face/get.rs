@@ -1,4 +1,5 @@
 //! 下载人脸图片
+//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/get
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

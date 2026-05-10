@@ -1,6 +1,7 @@
 //! 获取企业席位信息
 //!
 //! 文档: https://open.feishu.cn/document/server-docs/tenant-v2/tenant-product_assign_info/query
+//! docPath: https://open.feishu.cn/document/server-docs/tenant-v2/query
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait},

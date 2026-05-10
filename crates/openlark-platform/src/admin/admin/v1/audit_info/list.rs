@@ -1,6 +1,7 @@
 //! 获取审计日志列表 API
 //!
 //! API文档: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/audit_log/audit_data_get
+//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/audit_log/audit_data_get
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,4 +1,5 @@
 //! 删除访客
+//! docPath: https://open.feishu.cn/document/acs-v1/visitor/delete
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

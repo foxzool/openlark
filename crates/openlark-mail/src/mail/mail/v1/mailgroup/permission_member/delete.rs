@@ -1,4 +1,5 @@
 //! 删除邮件组权限成员
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete
 
 use openlark_core::{
     SDKResult, api::ApiRequest, api::Response, config::Config, http::Transport,

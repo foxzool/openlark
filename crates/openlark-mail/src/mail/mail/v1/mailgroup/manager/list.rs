@@ -1,4 +1,5 @@
 //! 批量获取邮件组管理员
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/list
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

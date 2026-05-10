@@ -1,4 +1,5 @@
 //! 更新邮件组
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/update
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::mailgroup::models::{UpdateMailGroupBody, UpdateMailGroupResponse};

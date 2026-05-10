@@ -1,4 +1,5 @@
 //! 批量关闭系统状态
+//! docPath: https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/batch_close
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

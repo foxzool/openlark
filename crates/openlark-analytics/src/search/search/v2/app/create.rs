@@ -1,4 +1,5 @@
 //! 搜索应用
+//! docPath: https://open.feishu.cn/document/server-docs/search-v2/suite-search/create-2
 
 use openlark_core::{
     SDKResult,

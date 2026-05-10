@@ -1,6 +1,7 @@
 //! 执行SQL
 //!
 //! URL: POST:/open-apis/apaas/v1/workspaces/:workspace_id/sql_commands
+//! docPath: 
 
 use openlark_core::{
     SDKResult,

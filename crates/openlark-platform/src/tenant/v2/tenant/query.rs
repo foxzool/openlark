@@ -1,6 +1,7 @@
 //! 获取企业信息
 //!
 //! 文档: https://open.feishu.cn/document/server-docs/tenant-v2/query
+//! docPath: https://open.feishu.cn/document/server-docs/tenant-v2/query
 
 use openlark_core::{
     SDKResult,

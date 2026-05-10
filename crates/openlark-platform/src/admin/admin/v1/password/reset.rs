@@ -1,4 +1,5 @@
 //! 重置用户密码 API
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/password/reset
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,7 @@
 //! 获取关联组织的部门和成员信息
 //!
 //! 文档: https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/visible_organization
+//! docPath: https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/visible_organization
 
 use openlark_core::{
     SDKResult,

@@ -1,4 +1,5 @@
 //! 为指定数据项创建索引
+//! docPath: https://open.feishu.cn/document/server-docs/search-v2/open-search/data_source/create
 
 use openlark_core::{
     SDKResult,

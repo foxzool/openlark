@@ -1,4 +1,5 @@
 //! 获取门禁规则
+//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/get
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

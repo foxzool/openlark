@@ -1,4 +1,5 @@
 //! 回复用户在工单里的提问
+//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/answer_user_query
 
 use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
 use openlark_core::{

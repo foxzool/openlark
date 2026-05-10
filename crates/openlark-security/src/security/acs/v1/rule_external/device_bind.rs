@@ -1,4 +1,5 @@
 //! 设备绑定权限组
+//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/device_bind
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

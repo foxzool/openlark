@@ -1,4 +1,5 @@
 //! 删除权限组
+//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/delete
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

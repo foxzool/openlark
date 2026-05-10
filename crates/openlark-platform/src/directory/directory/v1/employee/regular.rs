@@ -1,6 +1,7 @@
 //! 更新待离职成员为在职
 //!
 //! 文档: https://open.feishu.cn/document/directory-v1/employee/regular
+//! docPath: https://open.feishu.cn/document/directory-v1/employee/regular
 
 use openlark_core::{
     SDKResult,

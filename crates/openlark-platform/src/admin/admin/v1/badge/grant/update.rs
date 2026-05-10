@@ -1,4 +1,5 @@
 //! 修改勋章授予名单 API
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge/update
 
 use openlark_core::{
     SDKResult,

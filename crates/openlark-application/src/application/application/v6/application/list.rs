@@ -1,4 +1,5 @@
 //! 获取企业安装的应用
+//! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

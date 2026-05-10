@@ -1,4 +1,5 @@
 //! 更新应用可用范围
+//! docPath: https://open.feishu.cn/document/server-docs/application-v6/application/patch
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

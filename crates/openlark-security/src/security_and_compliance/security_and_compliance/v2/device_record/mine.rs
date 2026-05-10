@@ -1,4 +1,5 @@
 //! 获取客户端设备认证信息
+//! docPath: 
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

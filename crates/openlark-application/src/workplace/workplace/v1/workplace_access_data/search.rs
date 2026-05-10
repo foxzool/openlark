@@ -1,6 +1,7 @@
 //! 工作台访问数据
 //!
 //! 文档: https://open.feishu.cn/document/workplace-v1/workplace_access_data/search
+//! docPath: https://open.feishu.cn/document/workplace-v1/workplace_access_data/search
 
 use openlark_core::{
     SDKResult,

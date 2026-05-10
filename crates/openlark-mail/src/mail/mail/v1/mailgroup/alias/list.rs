@@ -1,4 +1,5 @@
 //! 获取邮件组所有别名
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/list
 
 use openlark_core::{
     SDKResult,

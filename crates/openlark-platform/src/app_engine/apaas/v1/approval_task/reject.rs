@@ -1,4 +1,5 @@
 //! 拒绝人工任务 API
+//! docPath: https://open.feishu.cn/document/apaas-v1/flow/user-task/reject
 
 use openlark_core::{
     SDKResult,

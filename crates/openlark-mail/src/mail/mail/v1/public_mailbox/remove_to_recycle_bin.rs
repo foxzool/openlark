@@ -1,4 +1,5 @@
 //! 将公共邮箱移至回收站
+//! docPath: https://open.feishu.cn/document/mail-v1/public-mailbox/public_mailbox/remove_to_recycle_bin
 
 use openlark_core::{
     api::ApiRequest,

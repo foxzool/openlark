@@ -1,4 +1,5 @@
 //! 删除用户邮箱别名
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user_mailbox-alias/delete
 
 use openlark_core::{
     SDKResult,

@@ -1,4 +1,5 @@
 //! 部分更新公共邮箱
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/patch
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::public_mailbox::models::{

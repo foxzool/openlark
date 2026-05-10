@@ -1,6 +1,7 @@
 //! 催办人工任务
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/flow/user-task/expediting
+//! docPath: https://open.feishu.cn/document/apaas-v1/flow/user-task/expediting
 
 use openlark_core::{
     SDKResult,

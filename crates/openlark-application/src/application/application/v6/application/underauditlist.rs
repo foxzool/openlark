@@ -1,4 +1,5 @@
 //! 查看待审核的应用列表
+//! docPath: https://open.feishu.cn/document/server-docs/application-v6/application/underauditlist
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

@@ -1,4 +1,5 @@
 //! 修改数据源
+//! docPath: https://open.feishu.cn/document/server-docs/search-v2/open-search/data_source/patch
 
 use openlark_core::{
     SDKResult,

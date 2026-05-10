@@ -1,4 +1,5 @@
 //! 获取OpenAPI审计日志数据
+//! docPath: https://open.feishu.cn/document/security_and_compliance-v1/openapi_log/list_data
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

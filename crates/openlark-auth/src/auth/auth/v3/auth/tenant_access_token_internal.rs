@@ -1,4 +1,5 @@
 //! 自建应用获取 tenant_access_token API
+//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
 use crate::models::auth::{TenantAccessTokenInternalRequest, TenantAccessTokenResponse};
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal

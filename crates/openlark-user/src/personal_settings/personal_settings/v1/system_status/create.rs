@@ -1,4 +1,5 @@
 //! system_status create
+//! docPath: https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/create
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

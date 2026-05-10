@@ -1,6 +1,7 @@
 //! 搜索员工信息
 //!
 //! 文档: https://open.feishu.cn/document/directory-v1/employee/search
+//! docPath: https://open.feishu.cn/document/directory-v1/employee/search
 
 use openlark_core::{
     SDKResult,

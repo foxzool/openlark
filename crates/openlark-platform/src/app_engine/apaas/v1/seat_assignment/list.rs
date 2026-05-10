@@ -1,6 +1,7 @@
 //! 查询席位分配详情
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/seat_assignment/list
+//! docPath: https://open.feishu.cn/document/apaas-v1/seat_assignment/list
 
 use openlark_core::{
     SDKResult,

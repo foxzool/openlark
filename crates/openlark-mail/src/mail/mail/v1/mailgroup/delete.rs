@@ -1,4 +1,5 @@
 //! 删除邮件组
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::mailgroup::models::DeleteMailGroupResponse;

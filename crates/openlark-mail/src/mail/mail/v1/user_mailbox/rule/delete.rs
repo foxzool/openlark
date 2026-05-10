@@ -1,4 +1,5 @@
 //! 删除收信规则
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user_mailbox-alias/delete
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,7 @@
 //! 退回人工任务
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/flow/user-task/rollback
+//! docPath: https://open.feishu.cn/document/apaas-v1/flow/user-task/rollback
 
 use openlark_core::{
     SDKResult,

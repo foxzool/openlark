@@ -1,4 +1,5 @@
 //! 获取应用通讯录权限范围配置
+//! docPath: https://open.feishu.cn/document/server-docs/application-v6/admin/contacts_range_configuration
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

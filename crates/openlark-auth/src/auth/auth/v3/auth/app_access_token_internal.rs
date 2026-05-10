@@ -1,4 +1,5 @@
 //! 自建应用获取 app_access_token API
+//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal
 use crate::models::auth::{AccessTokenResponse, AppAccessTokenInternalRequest};
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal

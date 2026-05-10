@@ -1,4 +1,5 @@
 //! 删除数据范式
+//! docPath: https://open.feishu.cn/document/server-docs/search-v2/open-search/schema/delete
 
 use openlark_core::{
     SDKResult,

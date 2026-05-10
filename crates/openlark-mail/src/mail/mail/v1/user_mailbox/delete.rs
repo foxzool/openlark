@@ -1,4 +1,5 @@
 //! 从回收站删除用户邮箱地址
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user_mailbox-alias/delete
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

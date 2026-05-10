@@ -1,4 +1,5 @@
 //! 识别流式语音
+//! docPath: https://open.feishu.cn/document/server-docs/ai/speech_to_text-v1/stream_recognize
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

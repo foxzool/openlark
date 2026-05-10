@@ -1,4 +1,5 @@
 //! 获取管理员推荐的应用
+//! docPath: https://open.feishu.cn/document/server-docs/workplace-v1/app_recommend_rule/recommend
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
