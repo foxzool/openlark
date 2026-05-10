@@ -1,4 +1,5 @@
 //! 获取附件下载链接
+//! docPath: https://open.feishu.cn/document/mail-v1/user_mailbox-message/user_mailbox-message-attachment/download_url
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

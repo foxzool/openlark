@@ -1,6 +1,7 @@
 //! 获取数据表详细信息
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name
+//! docPath: 
 
 use openlark_core::{
     SDKResult,

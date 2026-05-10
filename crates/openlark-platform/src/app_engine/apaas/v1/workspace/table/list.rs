@@ -1,6 +1,7 @@
 //! 获取工作空间下的数据表列表
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables
+//! docPath: 
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,7 @@
 //! 查询环境变量详情
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-environment_variable/get
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-environment_variable/get
 
 use openlark_core::{
     SDKResult,

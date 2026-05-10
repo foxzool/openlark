@@ -1,6 +1,7 @@
 //! 获取自定义枚举详细信息
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums/:enum_name
+//! docPath: 
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

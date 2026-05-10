@@ -1,6 +1,7 @@
 //! 批量编辑记录
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/batch_update
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-object-record/batch_update
 
 use openlark_core::{
     SDKResult,

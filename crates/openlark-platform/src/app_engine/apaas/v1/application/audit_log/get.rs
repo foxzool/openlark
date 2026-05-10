@@ -1,6 +1,7 @@
 //! 查询审计日志详情
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-audit_log/get
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-audit_log/get
 
 use openlark_core::{
     SDKResult,

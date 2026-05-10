@@ -1,6 +1,7 @@
 //! 搜索记录
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/search
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-object-record/search
 
 use openlark_core::{
     SDKResult,

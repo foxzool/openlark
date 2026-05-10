@@ -1,6 +1,7 @@
 //! 查询数据表数据记录
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
+//! docPath: 
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,7 @@
 //! 删除记录
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/delete
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-object-record/delete
 
 use openlark_core::{
     SDKResult,

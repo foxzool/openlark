@@ -1,6 +1,7 @@
 //! 编辑记录
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/patch
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-object-record/patch
 
 use openlark_core::{
     SDKResult,

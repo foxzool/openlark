@@ -1,4 +1,5 @@
 //! OIDC 用户访问令牌获取API
+//! docPath: https://open.feishu.cn/document/historic-version/authen/create-3
 use crate::models::authen::UserAccessTokenResponse;
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_access_token

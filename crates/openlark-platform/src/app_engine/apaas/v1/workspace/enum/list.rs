@@ -31,6 +31,8 @@ impl EnumListBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<EnumListResponse> {
+        self.execute_with_options(RequestOption::default()).await
+    }
         self.execute_with_options.await
     }(RequestOption::default()).await
     }

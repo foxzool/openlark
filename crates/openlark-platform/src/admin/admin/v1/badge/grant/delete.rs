@@ -1,4 +1,5 @@
 //! 删除勋章授予名单 API
+//! docPath: https://open.feishu.cn/document/server-docs/admin-v1/badge/badge-grant/delete
 
 use openlark_core::{
     SDKResult,

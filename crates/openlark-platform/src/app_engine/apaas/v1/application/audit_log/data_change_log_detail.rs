@@ -1,6 +1,7 @@
 //! 查询数据变更日志详情
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_log_detail
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_log_detail
 
 use openlark_core::{
     SDKResult,

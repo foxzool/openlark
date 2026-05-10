@@ -1,6 +1,7 @@
 //! 执行 OQL
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/oql_query
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-object-record/oql_query
 
 use openlark_core::{
     SDKResult,

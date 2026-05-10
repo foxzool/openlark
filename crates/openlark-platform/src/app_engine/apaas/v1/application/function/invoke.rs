@@ -1,6 +1,7 @@
 //! 执行函数
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/application-function/invoke
+//! docPath: https://open.feishu.cn/document/apaas-v1/application-function/invoke
 
 use openlark_core::{
     SDKResult,

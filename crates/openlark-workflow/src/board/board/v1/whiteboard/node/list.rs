@@ -1,4 +1,5 @@
 //! 获取白板节点列表（v1）
+//! docPath: https://open.feishu.cn/document/docs/board-v1/whiteboard-node/list
 
 use openlark_core::{
     SDKResult,

@@ -1,4 +1,5 @@
 //! 获取地理位置列表
+//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/get-2
 
 use openlark_core::{api::{ApiRequest, ApiResponseTrait, ResponseFormat}, config::Config, http::Transport, SDKResult};
 use serde::{Deserialize, Serialize};

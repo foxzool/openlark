@@ -1,6 +1,7 @@
 //! 批量创建记录权限用户授权
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_create_authorization
+//! docPath: https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_create_authorization
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

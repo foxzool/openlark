@@ -1,4 +1,5 @@
 //! 批量创建邮件组权限成员
+//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup-permission_member/batch_create
 
 use crate::common::api_utils::serialize_params;
 use openlark_core::{

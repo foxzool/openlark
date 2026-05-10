@@ -1,6 +1,7 @@
 //! 批量创建角色成员授权
 //!
 //! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-role-member/batch_create_authorization
+//! docPath: https://open.feishu.cn/document/apaas-v1/permission/application-role-member/batch_create_authorization
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

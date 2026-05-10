@@ -1,4 +1,5 @@
 //! 获取邮件详情
+//! docPath: https://open.feishu.cn/document/mail-v1/user_mailbox-message/get
 
 use openlark_core::{
     SDKResult,

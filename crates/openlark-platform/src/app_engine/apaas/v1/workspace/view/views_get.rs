@@ -1,6 +1,7 @@
 //! 查询视图数据记录
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/views/:view_name/records
+//! docPath: 
 
 use openlark_core::{
     SDKResult,
