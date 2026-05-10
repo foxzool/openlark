@@ -38,10 +38,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(exports)**: 补充 5 个 mod.rs 文件的模型显式导出
 - **fix(url)**: 修复 exchange_binding/get.rs 的 API 端点路径拼写错误
 - **ci**: 修复 clippy 警告和文档注释缺失
+- **build(deps)**: 升级安全相关依赖（tokio-tungstenite、url、reqwest）
+- **build(rust)**: 对齐 Rust 2024 / MSRV 1.88
 
 ### 🐛 修复
 
 - **fix(ci)**: 修复 CI 持续失败问题（clippy 警告、格式问题）
+- **fix(security)**: 添加 max_response_size / ResponseTooLarge HTTP 与 WebSocket 响应大小限制
+- **fix(security)**: Token/PII 日志脱敏
+- **fix(security)**: path 参数 percent-encoding 安全修复
+- **fix(code)**: 生产代码与测试代码 unwrap() 清理
+- **fix(auth)**: AuthTokenProvider 多租户缓存 key 修复
 
 ## [0.15.0] - 2026-04-05
 
