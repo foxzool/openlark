@@ -44,7 +44,7 @@ impl GetExchangeBindingRequest {
 
         // url: GET:/open-apis/calendar/v4/exchange_bindings/:exchange_binding_id
         let req: ApiRequest<GetExchangeBindingResponse> = ApiRequest::get(format!(
-            "/open-apis/calendar/v4/exchange_bindings/ {}",
+            "/open-apis/calendar/v4/exchange_bindings/{}",
             self.exchange_binding_id
         ));
 
