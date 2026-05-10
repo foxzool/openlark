@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! openlark = { version = "0.15.0", default-features = false, features = ["auth", "docs-drive", "docs-bitable", "webhook-signature"] }
+//! openlark = { version = "0.16.0", default-features = false, features = ["auth", "docs-drive", "docs-bitable", "webhook-signature"] }
 //! ```
 //!
 //! - 统一客户端入口：[`Client`]
