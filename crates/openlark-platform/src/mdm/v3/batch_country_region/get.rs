@@ -8,6 +8,8 @@ use openlark_core::{
     http::Transport,
     req_option::RequestOption,
     SDKResult,
+    validate_required,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -52,10 +54,7 @@ impl CountryRegionBatchGetBuilder {
         let mut url = "/open-apis/mdm/v3/batch_country_region".to_string();
 
         // 添加查询参数
-        if !self.mdm_codes.is_empty() {
-            let codes = self.mdm_codes.join(",");
-            url.push_str(&format!("?mdm_codes={}", codes));
-        }
+        validate_required_list!(self.mdm_codes, 50, "mdm_codes 不能为空");
 
         let req: ApiRequest<CountryRegionBatchGetResponse> = ApiRequest::get(&url);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
@@ -123,3 +122,4 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+

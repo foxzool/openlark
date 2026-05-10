@@ -10,6 +10,7 @@ use openlark_core::{
     api::{ApiRequest, Response},
     config::Config,
     http::Transport,
+    validate_required,
 };
 
 /// 下载文件请求
@@ -101,12 +102,7 @@ impl DownloadFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<Response<Vec<u8>>> {
         // === 必填字段验证 ===
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
 
         // === 业务规则验证 ===
         // Range 格式验证
@@ -253,3 +249,4 @@ mod tests {
         // 不设置 range 也可以正常下载整个文件
     }
 }
+

@@ -1,5 +1,6 @@
 #![cfg(all(
     feature = "admin",
+    feature = "v1",
     feature = "directory",
     feature = "app-engine",
     feature = "mdm",

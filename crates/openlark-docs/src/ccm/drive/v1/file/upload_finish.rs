@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -68,12 +69,7 @@ impl UploadFinishRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UploadFinishResponse> {
         // === 必填字段验证 ===
-        if self.upload_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "upload_id",
-                "upload_id 不能为空",
-            ));
-        }
+        validate_required!(self.upload_id, "upload_id 不能为空");
 
         // === 业务规则验证 ===
         if self.block_num <= 0 {
@@ -167,3 +163,4 @@ mod tests {
         assert_eq!(request.block_num, 1);
     }
 }
+

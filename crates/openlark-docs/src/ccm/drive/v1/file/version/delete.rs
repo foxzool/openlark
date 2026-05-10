@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -64,18 +65,8 @@ impl DeleteFileVersionRequest {
     ) -> SDKResult<DeleteFileVersionResponse> {
         // ========== 参数校验 ==========
 
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.version_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "version_id",
-                "version_id 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.version_id, "version_id 不能为空");
         match self.obj_type.as_str() {
             "docx" | "sheet" => {}
             _ => {
@@ -142,3 +133,4 @@ mod tests {
         assert!(request2.version_id.is_empty());
     }
 }
+

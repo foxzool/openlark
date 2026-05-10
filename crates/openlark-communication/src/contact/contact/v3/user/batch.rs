@@ -6,8 +6,8 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    error,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -105,12 +105,7 @@ impl BatchGetUsersRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetUsersResponse> {
         // === 必填字段验证 ===
-        if self.user_ids.is_empty() {
-            return Err(error::validation_error(
-                "user_ids 不能为空".to_string(),
-                "请至少传入 1 个 user_ids（最多 50 个）".to_string(),
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空");
 
         // url: GET:/open-apis/contact/v3/users/batch
         let mut req: ApiRequest<BatchGetUsersResponse> = ApiRequest::get(CONTACT_V3_USERS_BATCH);
@@ -190,3 +185,4 @@ mod tests {
         );
     }
 }
+

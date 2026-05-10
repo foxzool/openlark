@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -109,12 +110,7 @@ impl UploadPrepareMediaRequest {
             ));
         }
 
-        if self.parent_node.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_node",
-                "parent_node 不能为空",
-            ));
-        }
+        validate_required!(self.parent_node, "parent_node 不能为空");
 
         // === 枚举值验证 ===
         match self.parent_type.as_str() {
@@ -321,3 +317,4 @@ mod tests {
         }
     }
 }
+

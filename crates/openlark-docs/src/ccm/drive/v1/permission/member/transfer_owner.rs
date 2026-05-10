@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,30 +104,10 @@ impl TransferOwnerRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<TransferOwnerResponse> {
         // ===== 验证必填字段 =====
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.member_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_type",
-                "member_type 不能为空",
-            ));
-        }
-        if self.member_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_id",
-                "member_id 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required!(self.member_type, "member_type 不能为空");
+        validate_required!(self.member_id, "member_id 不能为空");
         // ===== 验证字段枚举值 =====
         match self.file_type.as_str() {
             "doc" | "sheet" | "file" | "wiki" | "bitable" | "docx" | "folder" | "mindnote"
@@ -350,3 +331,4 @@ mod tests {
         assert!(request.old_owner_perm.is_none());
     }
 }
+

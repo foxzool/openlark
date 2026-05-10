@@ -8,6 +8,7 @@ use openlark_core::{
     config::Config,
     error,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -117,12 +118,7 @@ impl BasicBatchUsersRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BasicBatchUsersResponse> {
-        if self.user_ids.is_empty() {
-            return Err(error::validation_error(
-                "user_ids 不能为空".to_string(),
-                "请至少传入 1 个 user_id".to_string(),
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空");
         if self.user_ids.len() > 10 {
             return Err(error::validation_error(
                 "user_ids 超出上限".to_string(),
@@ -224,3 +220,4 @@ mod tests {
         assert!(error.contains("10"));
     }
 }
+

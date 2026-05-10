@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,12 +49,7 @@ impl GetExportTaskRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetExportTaskResponse> {
         // ===== 验证必填字段 =====
-        if self.ticket.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "ticket",
-                "ticket 不能为空",
-            ));
-        }
+        validate_required!(self.ticket, "ticket 不能为空");
         // ===== 验证字段长度 =====
         let token_len = self.token.len();
         if token_len == 0 || token_len > 27 {
@@ -191,3 +187,4 @@ mod tests {
         assert_eq!(request2.token.len(), 27);
     }
 }
+

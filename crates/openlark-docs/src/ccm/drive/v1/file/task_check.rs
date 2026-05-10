@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -44,12 +45,7 @@ impl CheckTaskStatusRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CheckTaskStatusResponse> {
         // ===== 参数校验 =====
-        if self.task_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "task_id",
-                "task_id 不能为空",
-            ));
-        }
+        validate_required!(self.task_id, "task_id 不能为空");
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::TaskCheck;
@@ -136,3 +132,4 @@ mod tests {
         assert_eq!(request.task_id, "");
     }
 }
+

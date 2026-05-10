@@ -4,7 +4,7 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create
 
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required};
 use serde::Serialize;
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
@@ -60,18 +60,8 @@ impl CreateFileVersionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateFileVersionResponse> {
         // ===== 验证必填字段 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.name.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "name",
-                "name 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.name, "name 不能为空");
         // ===== 验证字段长度 =====
         if self.name.chars().count() > 1024 {
             return Err(openlark_core::error::validation_error(

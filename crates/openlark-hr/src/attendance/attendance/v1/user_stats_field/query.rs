@@ -7,6 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 
 use super::models::{QueryRequestBody, QueryResponse};
@@ -110,12 +111,7 @@ impl QueryRequest {
 
         // 1. 验证必填字段
         // 至少需要指定考勤组 ID 或用户 ID
-        if self.unit_id.is_none() && self.user_ids.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "查询条件不能为空",
-                "至少需要指定考勤组 ID 或用户 ID",
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "查询条件不能为空");
 
         // 验证用户 ID 数量
         if self.user_ids.len() > 50 {
@@ -185,3 +181,4 @@ mod tests {
         let _ = request;
     }
 }
+

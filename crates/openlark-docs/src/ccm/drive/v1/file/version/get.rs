@@ -5,7 +5,7 @@
 //! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/get
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required};
 
 use super::models::FileVersionInfo;
 
@@ -58,18 +58,8 @@ impl GetFileVersionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetFileVersionResponse> {
         // ===== 验证必填字段 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.version_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "version_id",
-                "version_id 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.version_id, "version_id 不能为空");
         // ===== 验证字段枚举值 =====
         match self.obj_type.as_str() {
             "docx" | "sheet" => {}

@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,12 +59,7 @@ impl BatchGetTmpDownloadUrlRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetTmpDownloadUrlResponse> {
         // ===== 验证必填字段 =====
-        if self.file_tokens.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_tokens",
-                "file_tokens 不能为空",
-            ));
-        }
+        validate_required_list!(self.file_tokens, 100, "file_tokens 不能为空");
         // ===== 验证集合大小 =====
         if self.file_tokens.len() > 5 {
             return Err(openlark_core::error::validation_error(
@@ -248,3 +244,4 @@ mod tests {
         assert_eq!(request2.extra, Some("extra_param".to_string()));
     }
 }
+

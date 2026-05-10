@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -116,30 +117,10 @@ impl DeletePermissionMemberRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DeletePermissionMemberResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.member_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_id",
-                "member_id 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.member_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_type",
-                "member_type 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.member_id, "member_id 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required!(self.member_type, "member_type 不能为空");
 
         // === 枚举值验证 ===
         match self.file_type.as_str() {
@@ -351,3 +332,4 @@ mod tests {
         assert_eq!(request.member_kind, None);
     }
 }
+

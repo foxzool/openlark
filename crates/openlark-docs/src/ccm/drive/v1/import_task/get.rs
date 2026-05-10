@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -45,12 +46,7 @@ impl GetImportTaskRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetImportTaskResponse> {
         // ===== 验证必填字段 =====
-        if self.ticket.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "ticket",
-                "ticket 不能为空",
-            ));
-        }
+        validate_required!(self.ticket, "ticket 不能为空");
 
         let api_endpoint = DriveApi::GetImportTask(self.ticket.clone());
 
@@ -147,3 +143,4 @@ mod tests {
         assert_eq!(request2.ticket.len(), 100);
     }
 }
+

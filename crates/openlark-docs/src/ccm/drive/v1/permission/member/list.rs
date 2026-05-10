@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -72,18 +73,8 @@ impl ListPermissionMembersRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListPermissionMembersResponse> {
         // ===== 验证必填字段 =====
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
         // ===== 验证字段枚举值 =====
         match self.file_type.as_str() {
             "doc" | "sheet" | "file" | "wiki" | "bitable" | "docx" | "folder" | "mindnote"
@@ -271,3 +262,4 @@ mod tests {
         assert_eq!(request2.perm_type, Some("container".to_string()));
     }
 }
+

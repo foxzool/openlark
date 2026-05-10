@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -155,12 +156,7 @@ impl UploadAllRequest {
         }
 
         // 验证父节点 token (必填)
-        if self.parent_node.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_node",
-                "parent_node 不能为空",
-            ));
-        }
+        validate_required!(self.parent_node, "parent_node 不能为空");
 
         // 验证文件大小范围
         if self.size == 0 || self.size > 20 * 1024 * 1024 {
@@ -310,3 +306,4 @@ mod tests {
         // 大小不匹配应在 execute_with_options 时被校验拦截
     }
 }
+

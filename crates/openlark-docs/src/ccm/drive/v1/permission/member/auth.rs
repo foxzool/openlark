@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -63,24 +64,9 @@ impl AuthPermissionMemberRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<AuthPermissionMemberResponse> {
         // ===== 验证必填字段 =====
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.action.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "action",
-                "action 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required!(self.action, "action 不能为空");
         // ===== 验证字段枚举值 =====
         match self.action.as_str() {
             "view" | "edit" | "share" | "comment" | "export" | "copy" | "print"
@@ -211,3 +197,4 @@ mod tests {
         assert!(!response2.auth_result);
     }
 }
+

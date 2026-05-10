@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -89,12 +90,7 @@ impl CreateImportTaskRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateImportTaskResponse> {
         // ===== 验证必填字段 =====
-        if self.file_extension.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_extension",
-                "file_extension 不能为空",
-            ));
-        }
+        validate_required!(self.file_extension, "file_extension 不能为空");
         // ===== 验证字段长度 =====
         let file_token_len = self.file_token.len();
         if file_token_len == 0 || file_token_len > 27 {
@@ -295,3 +291,4 @@ mod tests {
         assert_eq!(request2.file_name, Some("custom_name".to_string()));
     }
 }
+

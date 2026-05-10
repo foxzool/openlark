@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -119,12 +120,7 @@ impl CreateFileShortcutRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateFileShortcutResponse> {
-        if self.parent_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_token",
-                "parent_token 不能为空",
-            ));
-        }
+        validate_required!(self.parent_token, "parent_token 不能为空");
         if self.refer_entity.refer_token.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "refer_entity.refer_token",
@@ -196,3 +192,4 @@ mod tests {
         );
     }
 }
+

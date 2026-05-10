@@ -11,6 +11,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 
 /// 默认最大下载大小限制（100MB）
@@ -68,12 +69,7 @@ impl DownloadMediaRequest {
     /// 执行下载请求，返回二进制内容（带请求选项）
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<Response<Vec<u8>>> {
         // ===== 验证必填字段 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
         // ===== 验证字段格式 =====
         if let Some(range) = &self.range
             && (!range.starts_with("bytes=") || !range.contains('-'))
@@ -228,3 +224,4 @@ mod tests {
         assert_eq!(request.max_size, 512);
     }
 }
+

@@ -11,6 +11,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 
 /// 默认最大下载大小限制（100MB）
@@ -49,12 +50,7 @@ impl DownloadExportRequest {
 
     /// 执行下载请求，返回二进制内容（带请求选项）
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<Response<Vec<u8>>> {
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
 
         let api_endpoint = DriveApi::DownloadExportFile(self.file_token.clone());
 
@@ -137,3 +133,4 @@ mod tests {
         assert_eq!(request.max_size, 2048);
     }
 }
+

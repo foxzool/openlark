@@ -2,7 +2,7 @@
 //!
 //! docPath: https://open.feishu.cn/document/contact-v3/department/batch
 
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required_list};
 
 use crate::{
     common::api_utils::extract_response_data,
@@ -83,12 +83,7 @@ impl BatchGetDepartmentsRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetDepartmentsResponse> {
         // === 必填字段验证 ===
-        if self.department_ids.is_empty() {
-            return Err(error::validation_error(
-                "department_ids 不能为空".to_string(),
-                "请至少传入 1 个 department_ids（最多 50 个）".to_string(),
-            ));
-        }
+        validate_required_list!(self.department_ids, 50, "department_ids 不能为空");
 
         // url: GET:/open-apis/contact/v3/departments/batch
         let mut req: ApiRequest<BatchGetDepartmentsResponse> =

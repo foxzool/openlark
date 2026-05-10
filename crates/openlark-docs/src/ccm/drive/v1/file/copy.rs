@@ -9,6 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -130,18 +131,8 @@ impl CopyFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CopyFileResponse> {
         // === 必填字段验证 ===
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.folder_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "folder_token",
-                "folder_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.folder_token, "folder_token 不能为空");
 
         // === 枚举值验证 ===
         // 文档说明：type 为必填（请忽略必填列的"否"），为空会导致接口失败
@@ -434,3 +425,4 @@ mod tests {
         assert_eq!(CopyFileResponse::data_format(), ResponseFormat::Data);
     }
 }
+
