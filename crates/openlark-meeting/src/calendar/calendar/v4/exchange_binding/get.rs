@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_utils::extract_response_data;
-
+use super::models::GetExchangeBindingResponse;
 /// 查询 Exchange 账户的绑定状态请求
 pub struct GetExchangeBindingRequest {
     config: Config,
@@ -31,19 +31,17 @@ impl GetExchangeBindingRequest {
     }
 
     /// 执行请求
-    ///
     /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/get
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<GetExchangeBindingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<GetExchangeBindingResponse> {
         validate_required!(self.exchange_binding_id, "exchange_binding_id 不能为空");
 
         // url: GET:/open-apis/calendar/v4/exchange_bindings/:exchange_binding_id
-        let req: ApiRequest<serde_json::Value> = ApiRequest::get(format!(
-            "/open-apis/calendar/v4/exchange_bindings/{}",
+        let req: ApiRequest<GetExchangeBindingResponse> = ApiRequest::get(format!(
+            "/open-apis/calendar/v4/exchange_bindings/ {}",
             self.exchange_binding_id
         ));
 

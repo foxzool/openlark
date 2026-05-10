@@ -29,7 +29,7 @@
 | # | 混用类型 | 具体位置 | 问题描述 | 整改动作 |
 |---|---------|---------|---------|---------|
 | 7 | **mod.rs 导出风格不一致** | `openlark-cardkit`, `openlark-docs`, `openlark-hr` | 38 个 mod.rs 文件仅使用 `pub mod models;`，缺少显式 `pub use` 导出 | **已完成**: 实际仅 5 个文件需要修复（docs 2, hr 2, cardkit 1），已补充显式导出 |
-| 8 | **serde_json::Value 过度使用** | `calendar/v4/exchange_binding/*`, `calendar/v4/freebusy/*` | 5 个目标 API 使用 `serde_json::Value` 作为请求/响应体 | **待执行**: 优先替换 5 个目标 API 为强类型结构体；全仓库 191 个文件存在类似情况，分阶段处理 |
+| 8 | **serde_json::Value 过度使用** | `calendar/v4/exchange_binding/*`, `calendar/v4/freebusy/*` | 5 个目标 API 使用 `serde_json::Value` 作为请求/响应体 | **进行中**: 已分派 3 个并行任务给团队成员处理（create, get/delete, batch/list） |
 | 9 | **文档注释格式不统一** | 全仓库分散 | 1658 个 API 文件缺少完整文档注释（仅 18/1676 完整） | **待执行**: 分阶段补充 docPath 和 doc 链接 |
 
 ---

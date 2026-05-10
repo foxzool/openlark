@@ -9,7 +9,8 @@ use openlark_core::{
 use crate::{
     common::api_endpoints::CalendarApiV4,
     common::api_utils::{extract_response_data, serialize_params},
-};
+    };
+use super::models::{BatchFreebusyRequestBody, BatchFreebusyResponse};
 
 /// 批量查询主日历日程忙闲信息请求
 pub struct BatchFreebusyRequest {
@@ -25,21 +26,19 @@ impl BatchFreebusyRequest {
     /// 执行请求
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
-    ///
     /// docPath: https://open.feishu.cn/document/calendar-v4/calendar/batch
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self, body: BatchFreebusyRequestBody) -> SDKResult<BatchFreebusyResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
 
-    /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(
         self,
-        body: serde_json::Value,
+        body: BatchFreebusyRequestBody,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<BatchFreebusyResponse> {
         let api_endpoint = CalendarApiV4::FreebusyBatch;
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
+        let req: ApiRequest<BatchFreebusyResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "批量查询主日历日程忙闲信息")?);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
