@@ -59,7 +59,7 @@ use serde_json::Value;
 pub struct {request_name} {{
     /// 配置信息
     config: Config,
-    // TODO: 添加请求字段
+    // TEMPLATE: 添加请求字段
 }}
 
 impl {request_name} {{
@@ -67,11 +67,11 @@ impl {request_name} {{
     pub fn new(config: Config) -> Self {{
         Self {{
             config,
-            // TODO: 初始化字段
+            // TEMPLATE: 初始化字段
         }}
     }}
 
-    // TODO: 添加字段 setter 方法
+    // TEMPLATE: 添加字段 setter 方法
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<{response_name}> {{
@@ -83,7 +83,7 @@ impl {request_name} {{
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<{response_name}> {{
-        // TODO: 实现 API 调用逻辑
+        // TEMPLATE: 实现 API 调用逻辑
         todo!("实现 {api_name} API 调用")
     }}
 }}
@@ -93,7 +93,7 @@ impl {request_name} {{
 pub struct {response_name} {{
     /// 响应数据
     ///
-    /// TODO: 根据官方文档添加具体字段
+    /// TEMPLATE: 根据官方文档添加具体字段
     pub data: Value,
 }}
 
@@ -119,7 +119,7 @@ def generate_mod_rs_content(dirs: List[str], files: List[str]) -> str:
         lines.append(f"pub mod {file_name};")
 
     if not lines:
-        lines.append("// TODO: 添加子模块和 API 导出")
+        lines.append("// TEMPLATE: 添加子模块和 API 导出")
 
     return '\n'.join(lines) + '\n'
 
