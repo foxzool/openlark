@@ -1,6 +1,9 @@
 //! 获取工作空间下的自定义枚举列表
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums
+//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-enum/list
+//!
+//! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

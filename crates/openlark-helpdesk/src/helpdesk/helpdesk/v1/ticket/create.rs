@@ -1,4 +1,5 @@
 //! 创建工单
+//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/events/created
 
 use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
 use crate::helpdesk::helpdesk::v1::ticket::models::{CreateTicketBody, CreateTicketResponse};
