@@ -32,6 +32,7 @@ impl BatchFreebusyRequest {
             .await
     }
 
+    /// 使用自定义请求选项和请求体执行请求。
     pub async fn execute_with_options(
         self,
         body: BatchFreebusyRequestBody,

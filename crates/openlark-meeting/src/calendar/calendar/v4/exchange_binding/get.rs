@@ -36,6 +36,7 @@ impl GetExchangeBindingRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用自定义请求选项执行请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

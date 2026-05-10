@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+
 /// CCM Drive Explorer V2 API 模块
 ///
 /// 云盘浏览器API实现，包含8个API：
