@@ -273,6 +273,11 @@ def split_method_path(url: str) -> tuple[str, str]:
 
 def normalize_endpoint_path(path: str) -> str:
     normalized = path.strip().rstrip("/")
-    normalized = re.sub(r"\{[^}/]+\}", "{param}", normalized)
+    # 去掉查询参数部分
+    query_pos = normalized.find("?")
+    if query_pos >= 0:
+        normalized = normalized[:query_pos]
+    normalized = re.sub(r"\{[^}/]*\}", "{param}", normalized)
+    normalized = re.sub(r"\{[^}/]*\}", "{param}", normalized)
     normalized = re.sub(r":[A-Za-z_][A-Za-z0-9_]*", "{param}", normalized)
     return normalized

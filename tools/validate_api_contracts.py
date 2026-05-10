@@ -32,7 +32,7 @@ from tools.api_contracts.official import (
     load_api_identities,
 )
 from tools.api_contracts.report import write_report, write_summary
-from tools.api_contracts.rust_source import load_endpoint_constants, scan_api_file
+from tools.api_contracts.rust_source import load_endpoint_constants, load_enum_endpoints, scan_api_file
 
 
 def parse_args() -> argparse.Namespace:
@@ -103,11 +103,12 @@ def validate_crate(
     biz_tags = list(crate_config.get("biz_tags") or [])
     apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
     constants = load_endpoint_constants(src_path)
+    enum_endpoints = load_enum_endpoints(src_path, constants)
     report = ContractReport(crate_name=crate_name, total_apis=len(apis))
 
     field_checks = 0
     for api in apis:
-        rust_contract = scan_api_file(src_path, api.expected_file, constants)
+        rust_contract = scan_api_file(src_path, api.expected_file, constants, enum_endpoints)
         if rust_contract is not None:
             report.checked_apis += 1
         detail_payload = None
