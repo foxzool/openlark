@@ -555,14 +555,14 @@ impl FolderChildrenPager {
 
     /// 读取下一页结果。
     pub async fn fetch_next_page(&mut self) -> SDKResult<FolderChildrenPage> {
-        use crate::ccm::explorer::v2::{GetFolderChildrenParams, get_folder_children};
+        use crate::ccm::explorer::v2::{GetFolderChildrenParams, GetFolderChildrenRequest};
 
         if self.exhausted {
             return Ok(TypedPage::empty());
         }
 
-        let response = get_folder_children(
-            self.config.as_ref(),
+        let response = GetFolderChildrenRequest::new(
+            self.config.as_ref().clone(),
             &self.folder_token,
             Some(GetFolderChildrenParams {
                 page_size: Some(self.page_size),
@@ -570,6 +570,7 @@ impl FolderChildrenPager {
                 doc_type: self.doc_type.clone(),
             }),
         )
+        .execute()
         .await?;
 
         let page = response

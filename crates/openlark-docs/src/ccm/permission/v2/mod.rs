@@ -1,9 +1,9 @@
 /// CCM Drive Permission V2 API 模块
 ///
-/// 文档权限管理API实现，包含3个API：
-/// - member_permitted: 判断协作者是否有某权限
-/// - member_transfer: 转移拥有者
-/// - public: 获取云文档权限设置V2
+/// 文档权限管理API实现，包含3个API构建器：
+/// - CheckMemberPermissionRequest: 判断协作者是否有某权限
+/// - TransferOwnerRequest: 转移拥有者
+/// - GetPublicPermissionRequest: 获取云文档权限设置V2
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -142,48 +142,6 @@ impl GetPublicPermissionRequest {
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取公开权限设置")
     }
-}
-
-/// 判断协作者是否有某权限
-///
-/// 根据filetoken判断当前登录用户是否具有某权限。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/querying-if-a-collaborator-has-a-specific-permission
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/querying-if-a-collaborator-has-a-specific-permission
-pub async fn check_member_permission(
-    config: &Config,
-    params: CheckMemberPermissionParams,
-) -> SDKResult<CheckMemberPermissionResponse> {
-    CheckMemberPermissionRequest::new(config.clone(), params)
-        .execute()
-        .await
-}
-
-/// 转移拥有者
-///
-/// 根据文档信息和用户信息转移文档的所有者。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/transfer-ownership
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/transfer-ownership
-pub async fn transfer_owner(
-    config: &Config,
-    params: TransferOwnerParams,
-) -> SDKResult<TransferOwnerResponse> {
-    TransferOwnerRequest::new(config.clone(), params)
-        .execute()
-        .await
-}
-
-/// 获取云文档权限设置V2
-///
-/// 根据filetoken获取文档的公共设置。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/get-document-sharing-settings-v2
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/get-document-sharing-settings-v2
-pub async fn get_public_permission(
-    config: &Config,
-    params: GetPublicPermissionParams,
-) -> SDKResult<GetPublicPermissionResponse> {
-    GetPublicPermissionRequest::new(config.clone(), params)
-        .execute()
-        .await
 }
 
 // API函数已经在模块中定义，不需要重复导出
