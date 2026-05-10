@@ -14,13 +14,13 @@
 |---|---------|---------|---------|---------|
 | 1 | **函数式 API 与 Builder 模式混用** | `crates/openlark-docs/src/ccm/explorer/v2/mod.rs` | 使用 `pub async fn get_folder_meta(config: &Config, ...)` 函数式 API，而非 Builder 模式 | 重构为 `GetFolderMetaRequest` + `execute()`/`execute_with_options()` |
 | 2 | **函数式 API 与 Builder 模式混用** | `crates/openlark-docs/src/ccm/permission/v2/mod.rs` | 同上，使用函数式 API `check_member_permission(config, params)` | 重构为 `CheckMemberPermissionRequest` + Builder 模式 |
-| 3 | **缺少 `execute_with_options`** | `crates/openlark-meeting/src/calendar/calendar/v4/*` | 44 个 API 仅提供 `execute()`，无 `execute_with_options(RequestOption)` | 为所有 calendar/v4 API 添加 `execute_with_options` 方法 |
+| 3 | **缺少 `execute_with_options`** | `crates/openlark-meeting/src/calendar/calendar/v4/*` | 44 个 API 仅提供 `execute()`，无 `execute_with_options(RequestOption)` | 为所有 calendar/v4 API 添加 `execute_with_options` 方法 | **已验证**: 实际检查显示 calendar/v4 所有 59 个文件均已包含 `execute_with_options`，无需修改 |
 
 ### P1 - 高风险级（影响一致性）
 
 | # | 混用类型 | 具体位置 | 问题描述 | 整改动作 |
 |---|---------|---------|---------|---------|
-| 4 | **RequestOption 透传不一致** | 分散在多个 crate | 部分 API 使用 `Transport::request(..., None)`，部分使用 `Some(option)` | 统一要求：所有 API 必须支持 `execute_with_options` 并透传 `RequestOption` |
+| 4 | **RequestOption 透传不一致** | `openlark-platform` (16 files), `openlark-helpdesk` (24 files) | 部分 API 使用 `Transport::request(..., None)`，部分使用 `Some(option)` | **已完成**: 统一将 `execute()` 委托给 `execute_with_options(RequestOption::default())`，消除 40 个文件中的代码重复 |
 | 5 | **端点定义方式混用** | `openlark-docs` vs `openlark-communication` | docs 使用 `enum ApiEndpoint`，communication 使用常量 `IM_V1_MESSAGES` | 保持现状但文档化：新增 API 时优先模仿同 crate 现有风格 |
 | 6 | **validate_required! 使用不完整** | `calendar/v4` 等模块 | 部分 API 缺少 `validate_required!` 校验 | 补充必填字段校验 |
 
