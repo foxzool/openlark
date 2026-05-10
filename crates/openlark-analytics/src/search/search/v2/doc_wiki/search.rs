@@ -1,5 +1,5 @@
 //! 搜索文档
-//! docPath: 
+//! docPath:
 
 use openlark_core::{
     SDKResult,
