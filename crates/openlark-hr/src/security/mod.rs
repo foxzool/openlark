@@ -99,6 +99,9 @@ use openlark_core::config::Config;
 // 子模块声明
 pub mod audit_log;
 pub mod models;
+
+// 重新导出模型类型
+pub use self::models::*;
 pub mod openapi_log;
 
 // 重新导出服务类型

@@ -7,6 +7,9 @@
 /// - 文档块操作和管理
 // pub mod document; // Generated: Module file not found
 pub mod models;
+
+/// 重新导出模型类型
+pub use self::models::*;
 // pub mod requests; // Generated: Module file not found
 // pub mod responses; // Generated: Module file not found
 

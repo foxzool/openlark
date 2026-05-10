@@ -22,13 +22,13 @@
 |---|---------|---------|---------|---------|
 | 4 | **RequestOption 透传不一致** | `openlark-platform` (16 files), `openlark-helpdesk` (24 files) | 部分 API 使用 `Transport::request(..., None)`，部分使用 `Some(option)` | **已完成**: 统一将 `execute()` 委托给 `execute_with_options(RequestOption::default())`，消除 40 个文件中的代码重复 |
 | 5 | **端点定义方式混用** | `openlark-docs` vs `openlark-communication` | docs 使用 `enum ApiEndpoint`，communication 使用常量 `IM_V1_MESSAGES` | **评估结果**: 保持现状，各 crate 内部风格统一即可 |
-| 6 | **validate_required! 使用不完整** | `openlark-docs`(37), `openlark-communication`(3), `openlark-hr`(2), `openlark-platform`(2) | 44 个 API 文件 / 101 个必填字段缺少 `validate_required!` 校验 | **待执行**: 补充 44 个文件的必填字段校验 |
+| 6 | **validate_required! 使用不完整** | `openlark-docs`(37), `openlark-communication`(3), `openlark-hr`(2), `openlark-platform`(2) | 44 个 API 文件 / 101 个必填字段缺少 `validate_required!` 校验 | **已完成**: 44 个文件已全部替换为宏调用，编译零错误零警告 |
 
 ### P2 - 中风险级（影响可维护性）
 
 | # | 混用类型 | 具体位置 | 问题描述 | 整改动作 |
 |---|---------|---------|---------|---------|
-| 7 | **mod.rs 导出风格不一致** | `openlark-cardkit`, `openlark-docs`, `openlark-hr` | 38 个 mod.rs 文件仅使用 `pub mod models;`，缺少显式 `pub use` 导出 | **待执行**: 补充 38 个文件的显式导出 |
+| 7 | **mod.rs 导出风格不一致** | `openlark-cardkit`, `openlark-docs`, `openlark-hr` | 38 个 mod.rs 文件仅使用 `pub mod models;`，缺少显式 `pub use` 导出 | **已完成**: 实际仅 5 个文件需要修复（docs 2, hr 2, cardkit 1），已补充显式导出 |
 | 8 | **serde_json::Value 过度使用** | `calendar/v4/exchange_binding/*`, `calendar/v4/freebusy/*` | 5 个目标 API 使用 `serde_json::Value` 作为请求/响应体 | **待执行**: 优先替换 5 个目标 API 为强类型结构体；全仓库 191 个文件存在类似情况，分阶段处理 |
 | 9 | **文档注释格式不统一** | 全仓库分散 | 1658 个 API 文件缺少完整文档注释（仅 18/1676 完整） | **待执行**: 分阶段补充 docPath 和 doc 链接 |
 

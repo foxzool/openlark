@@ -4,3 +4,6 @@ pub mod api_endpoints;
 pub mod macros;
 /// HR 通用模型定义。
 pub mod models;
+
+/// 重新导出模型类型
+pub use self::models::*;
