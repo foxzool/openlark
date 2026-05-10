@@ -187,4 +187,3 @@ mod tests {
         assert_eq!(ListFileLikesResponse::data_format(), ResponseFormat::Data);
     }
 }
-

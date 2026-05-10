@@ -9,7 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-validate_required,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -306,4 +306,3 @@ mod tests {
         // 大小不匹配应在 execute_with_options 时被校验拦截
     }
 }
-

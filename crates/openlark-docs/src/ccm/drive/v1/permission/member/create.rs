@@ -423,4 +423,3 @@ mod tests {
         assert_eq!(request.member_kind, None);
     }
 }
-

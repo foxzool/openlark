@@ -425,4 +425,3 @@ mod tests {
         assert_eq!(CopyFileResponse::data_format(), ResponseFormat::Data);
     }
 }
-

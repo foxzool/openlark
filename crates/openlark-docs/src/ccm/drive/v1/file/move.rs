@@ -222,4 +222,3 @@ mod tests {
         assert_eq!(MoveFileResponse::data_format(), ResponseFormat::Data);
     }
 }
-

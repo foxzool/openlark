@@ -171,4 +171,3 @@ mod tests {
         assert_eq!(request.block_num, 1);
     }
 }
-

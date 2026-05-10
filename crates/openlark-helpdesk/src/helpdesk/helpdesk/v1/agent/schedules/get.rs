@@ -115,7 +115,8 @@ impl GetAgentScheduleRequest {
 
     /// 执行获取指定客服工作日程请求
     pub async fn execute(self) -> SDKResult<GetAgentScheduleResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

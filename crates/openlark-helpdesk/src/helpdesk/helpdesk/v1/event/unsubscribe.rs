@@ -40,7 +40,8 @@ impl EventUnsubscribeRequest {
 
     /// 执行取消订阅服务台事件请求
     pub async fn execute(self) -> SDKResult<EventUnsubscribeResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

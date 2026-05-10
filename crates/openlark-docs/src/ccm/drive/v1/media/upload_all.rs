@@ -9,7 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-validate_required,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -353,4 +353,3 @@ mod tests {
         assert!(err.to_string().contains("一致"));
     }
 }
-

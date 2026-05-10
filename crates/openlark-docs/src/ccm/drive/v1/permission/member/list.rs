@@ -262,4 +262,3 @@ mod tests {
         assert_eq!(request2.perm_type, Some("container".to_string()));
     }
 }
-

@@ -2,7 +2,9 @@
 //!
 //! docPath: https://open.feishu.cn/document/contact-v3/department/batch
 
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required_list};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required_list,
+};
 
 use crate::{
     common::api_utils::extract_response_data,

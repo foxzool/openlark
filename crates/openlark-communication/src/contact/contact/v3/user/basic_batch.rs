@@ -220,4 +220,3 @@ mod tests {
         assert!(error.contains("10"));
     }
 }
-

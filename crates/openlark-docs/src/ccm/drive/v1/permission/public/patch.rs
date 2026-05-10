@@ -359,4 +359,3 @@ mod tests {
         assert!(err.to_string().contains("link_share_entity"));
     }
 }
-

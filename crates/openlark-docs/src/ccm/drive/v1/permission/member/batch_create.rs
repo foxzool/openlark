@@ -9,8 +9,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
-    validate_required_list,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -320,4 +319,3 @@ mod tests {
         assert!(err.to_string().contains("full_access"));
     }
 }
-

@@ -5,7 +5,9 @@
 //! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/list
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
+};
 
 use super::models::ListFileVersionsData;
 

@@ -25,7 +25,8 @@ impl GetTicketRequest {
 
     /// 执行请求。
     pub async fn execute(self) -> SDKResult<GetTicketResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求
@@ -38,7 +39,8 @@ impl GetTicketRequest {
         let api_endpoint = HelpdeskApiV1::TicketGet(self.ticket_id.clone());
         let request = ApiRequest::<GetTicketResponse>::get(api_endpoint.to_url());
 
-        let response = openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
+        let response =
+            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取工单")
     }
 }

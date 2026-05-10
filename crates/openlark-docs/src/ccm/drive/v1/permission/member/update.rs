@@ -459,4 +459,3 @@ mod tests {
         assert_eq!(request.member_kind, Some("invalid_kind".to_string()));
     }
 }
-

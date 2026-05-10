@@ -7,8 +7,8 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
 use super::models::GetExchangeBindingResponse;
+use crate::common::api_utils::extract_response_data;
 /// 查询 Exchange 账户的绑定状态请求
 pub struct GetExchangeBindingRequest {
     config: Config,
@@ -36,7 +36,10 @@ impl GetExchangeBindingRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<GetExchangeBindingResponse> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<GetExchangeBindingResponse> {
         validate_required!(self.exchange_binding_id, "exchange_binding_id 不能为空");
 
         // url: GET:/open-apis/calendar/v4/exchange_bindings/:exchange_binding_id

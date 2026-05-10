@@ -197,4 +197,3 @@ mod tests {
         assert!(!response2.auth_result);
     }
 }
-

@@ -143,4 +143,3 @@ mod tests {
         assert_eq!(request2.ticket.len(), 100);
     }
 }
-

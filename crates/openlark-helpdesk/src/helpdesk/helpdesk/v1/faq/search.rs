@@ -107,7 +107,8 @@ impl SearchFaqRequest {
 
     /// 执行搜索知识库请求
     pub async fn execute(self) -> SDKResult<SearchFaqResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

@@ -6,10 +6,8 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    };
 use super::models::{ListFreebusyRequestBody, ListFreebusyResponse};
+use crate::common::api_utils::{extract_response_data, serialize_params};
 /// 查询主日历日程忙闲信息请求
 pub struct ListFreebusyRequest {
     config: Config,

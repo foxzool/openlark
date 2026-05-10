@@ -67,7 +67,8 @@ impl ListFaqRequest {
 
     /// 执行获取知识库列表请求
     pub async fn execute(self) -> SDKResult<ListFaqResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

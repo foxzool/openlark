@@ -166,4 +166,3 @@ mod tests {
         assert!(err.to_string().contains("minutes"));
     }
 }
-

@@ -65,7 +65,8 @@ impl GetAgentSkillRequest {
 
     /// 执行获取指定客服技能请求
     pub async fn execute(self) -> SDKResult<GetAgentSkillResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

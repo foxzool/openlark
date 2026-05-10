@@ -244,4 +244,3 @@ mod tests {
         assert_eq!(request2.extra, Some("extra_param".to_string()));
     }
 }
-

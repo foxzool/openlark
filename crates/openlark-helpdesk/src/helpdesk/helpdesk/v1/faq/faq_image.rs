@@ -53,7 +53,8 @@ impl GetFaqImageRequest {
 
     /// 执行获取知识库图片请求
     pub async fn execute(self) -> SDKResult<GetFaqImageResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

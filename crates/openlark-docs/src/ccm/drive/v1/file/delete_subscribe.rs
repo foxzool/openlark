@@ -189,4 +189,3 @@ mod tests {
         assert!(request.event_type.is_none());
     }
 }
-

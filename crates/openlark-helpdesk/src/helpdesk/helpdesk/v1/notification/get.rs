@@ -68,7 +68,8 @@ impl GetNotificationRequest {
 
     /// 执行获取指定推送通知请求
     pub async fn execute(self) -> SDKResult<GetNotificationResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求

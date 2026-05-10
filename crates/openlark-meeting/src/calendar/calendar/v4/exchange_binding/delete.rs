@@ -7,11 +7,8 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data,
-    endpoints::CALENDAR_V4_EXCHANGE_BINDINGS,
-    };
 use super::models::DeleteExchangeBindingResponse;
+use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_EXCHANGE_BINDINGS};
 
 /// 解除 Exchange 账户绑定请求
 pub struct DeleteExchangeBindingRequest {
@@ -40,7 +37,10 @@ impl DeleteExchangeBindingRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<DeleteExchangeBindingResponse> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteExchangeBindingResponse> {
         validate_required!(self.exchange_binding_id, "exchange_binding_id 不能为空");
 
         // url: DELETE:/open-apis/calendar/v4/exchange_bindings/:exchange_binding_id

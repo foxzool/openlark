@@ -6,11 +6,11 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
+use super::models::{BatchFreebusyRequestBody, BatchFreebusyResponse};
 use crate::{
     common::api_endpoints::CalendarApiV4,
     common::api_utils::{extract_response_data, serialize_params},
-    };
-use super::models::{BatchFreebusyRequestBody, BatchFreebusyResponse};
+};
 
 /// 批量查询主日历日程忙闲信息请求
 pub struct BatchFreebusyRequest {

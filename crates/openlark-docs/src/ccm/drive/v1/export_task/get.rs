@@ -187,4 +187,3 @@ mod tests {
         assert_eq!(request2.token.len(), 27);
     }
 }
-

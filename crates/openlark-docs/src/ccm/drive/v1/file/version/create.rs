@@ -4,7 +4,9 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create
 
-use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
+};
 use serde::Serialize;
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
