@@ -30,12 +30,7 @@ impl EmployeeDeleteBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<EmployeeDeleteResponse> {
-        let url = format!("/open-apis/directory/v1/employees/{}", self.employee_id);
-
-        let req: ApiRequest<EmployeeDeleteResponse> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("离职员工", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

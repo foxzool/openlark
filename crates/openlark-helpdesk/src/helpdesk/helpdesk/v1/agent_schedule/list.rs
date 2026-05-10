@@ -113,6 +113,14 @@ impl ListAgentScheduleRequest {
 
     /// 执行获取客服工作日程列表请求
     pub async fn execute(self) -> SDKResult<ListAgentScheduleResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListAgentScheduleResponse> {
         let api_endpoint = HelpdeskApiV1::AgentScheduleList;
         let mut request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url());
 
@@ -124,7 +132,7 @@ impl ListAgentScheduleRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取客服工作日程列表")
     }
 }

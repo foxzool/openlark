@@ -53,23 +53,7 @@ impl TableRecordsDeleteBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<TableRecordsDeleteResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/workspaces/{}/tables/{}/records",
-            self.workspace_id, self.table_name
-        );
-
-        use serde_json::json;
-
-        let request = json!({
-            "record_ids": self.record_ids,
-        });
-
-        let mut api_request = ApiRequest::<TableRecordsDeleteResponse>::delete(&url);
-        api_request = api_request.body(request);
-
-        let resp = Transport::request(api_request, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除数据表记录", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

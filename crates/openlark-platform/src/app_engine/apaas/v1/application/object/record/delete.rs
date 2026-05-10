@@ -41,15 +41,7 @@ impl RecordDeleteBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<RecordDeleteResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/objects/{}/records/{}",
-            self.namespace, self.object_api_name, self.record_id
-        );
-
-        let req: ApiRequest<RecordDeleteResponse> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除记录", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

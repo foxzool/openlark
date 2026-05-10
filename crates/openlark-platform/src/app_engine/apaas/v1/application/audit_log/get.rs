@@ -33,17 +33,7 @@ impl AuditLogGetBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<AuditLogGetResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/audit_log",
-            self.namespace
-        );
-
-        let mut req: ApiRequest<AuditLogGetResponse> = ApiRequest::get(&url);
-        req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询审计日志详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

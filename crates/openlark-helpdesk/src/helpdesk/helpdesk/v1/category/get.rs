@@ -65,10 +65,18 @@ impl GetCategoryRequest {
 
     /// 执行获取指定知识库分类请求
     pub async fn execute(self) -> SDKResult<GetCategoryResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<GetCategoryResponse> {
         let api_endpoint = HelpdeskApiV1::CategoryGet(self.id.clone());
         let request = ApiRequest::<GetCategoryResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取指定知识库分类")
     }
 }

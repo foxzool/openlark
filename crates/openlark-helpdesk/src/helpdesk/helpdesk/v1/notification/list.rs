@@ -61,10 +61,18 @@ impl ListNotificationRequest {
 
     /// 执行获取推送通知列表请求
     pub async fn execute(self) -> SDKResult<ListNotificationResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListNotificationResponse> {
         let api_endpoint = HelpdeskApiV1::NotificationList;
         let request = ApiRequest::<ListNotificationResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取推送通知列表")
     }
 }

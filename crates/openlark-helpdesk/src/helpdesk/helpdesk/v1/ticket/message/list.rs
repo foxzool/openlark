@@ -65,10 +65,18 @@ impl ListTicketMessageRequest {
 
     /// 执行获取工单消息列表请求
     pub async fn execute(self) -> SDKResult<ListTicketMessageResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListTicketMessageResponse> {
         let api_endpoint = HelpdeskApiV1::TicketMessageList(self.ticket_id.clone());
         let request = ApiRequest::<ListTicketMessageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取工单消息列表")
     }
 }

@@ -61,10 +61,18 @@ impl ListAgentSkillRequest {
 
     /// 执行获取客服技能列表请求
     pub async fn execute(self) -> SDKResult<ListAgentSkillResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListAgentSkillResponse> {
         let api_endpoint = HelpdeskApiV1::AgentSkillList;
         let request = ApiRequest::<ListAgentSkillResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取客服技能列表")
     }
 }

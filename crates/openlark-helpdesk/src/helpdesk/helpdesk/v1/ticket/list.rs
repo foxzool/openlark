@@ -41,6 +41,14 @@ impl TicketListRequest {
 
     /// 执行请求。
     pub async fn execute(self) -> SDKResult<TicketListResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<TicketListResponse> {
         let api_endpoint = HelpdeskApiV1::TicketList;
         let mut request = ApiRequest::<TicketListResponse>::get(api_endpoint.to_url());
 
@@ -52,7 +60,7 @@ impl TicketListRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response = openlark_core::http::Transport::request(request, &self.config, None).await?;
+        let response = openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取工单列表")
     }
 }

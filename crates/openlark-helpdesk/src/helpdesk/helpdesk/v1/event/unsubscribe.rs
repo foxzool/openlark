@@ -40,10 +40,18 @@ impl EventUnsubscribeRequest {
 
     /// 执行取消订阅服务台事件请求
     pub async fn execute(self) -> SDKResult<EventUnsubscribeResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<EventUnsubscribeResponse> {
         let request =
             ApiRequest::<EventUnsubscribeResponse>::post(HelpdeskApiV1::EventUnsubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "取消订阅服务台事件")
     }
 }

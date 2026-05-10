@@ -53,10 +53,18 @@ impl GetFaqImageRequest {
 
     /// 执行获取知识库图片请求
     pub async fn execute(self) -> SDKResult<GetFaqImageResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<GetFaqImageResponse> {
         let api_endpoint = HelpdeskApiV1::FaqImage(self.id.clone(), self.image_key.clone());
         let request = ApiRequest::<GetFaqImageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取知识库图片")
     }
 }

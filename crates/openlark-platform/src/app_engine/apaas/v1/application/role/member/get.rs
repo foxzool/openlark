@@ -56,19 +56,7 @@ impl RoleMemberGetBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<RoleMemberGetResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/roles/{}/member",
-            self.namespace, self.role_api_name
-        );
-
-        let mut req: ApiRequest<RoleMemberGetResponse> = ApiRequest::get(&url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        Transport::request(req, &self.config, None).await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

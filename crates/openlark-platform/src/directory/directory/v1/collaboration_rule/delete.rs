@@ -30,16 +30,7 @@ impl CollaborationRuleDeleteBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<CollaborationRuleDeleteResponse> {
-        let url = format!(
-            "/open-apis/directory/v1/collaboration_rules/{}",
-            self.collaboration_rule_id
-        );
-
-        let req: ApiRequest<CollaborationRuleDeleteResponse> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("删除可搜可见规则", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

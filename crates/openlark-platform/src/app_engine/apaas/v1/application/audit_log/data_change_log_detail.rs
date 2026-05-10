@@ -33,17 +33,7 @@ impl DataChangeLogDetailBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<DataChangeLogDetailResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/audit_log/data_change_log_detail",
-            self.namespace
-        );
-
-        let mut req: ApiRequest<DataChangeLogDetailResponse> = ApiRequest::get(&url);
-        req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询数据变更日志详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

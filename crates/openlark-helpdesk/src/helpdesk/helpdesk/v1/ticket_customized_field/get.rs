@@ -62,10 +62,18 @@ impl GetTicketCustomizedFieldRequest {
 
     /// 执行获取指定工单自定义字段请求
     pub async fn execute(self) -> SDKResult<GetTicketCustomizedFieldResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<GetTicketCustomizedFieldResponse> {
         let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldGet(self.id.clone());
         let request = ApiRequest::<GetTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取指定工单自定义字段")
     }
 }

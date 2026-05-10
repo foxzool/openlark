@@ -30,16 +30,7 @@ impl EmployeeRegularBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<EmployeeRegularResponse> {
-        let url = format!(
-            "/open-apis/directory/v1/employees/{}/regular",
-            self.employee_id
-        );
-
-        let req: ApiRequest<EmployeeRegularResponse> = ApiRequest::patch(&url);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("更新待离职成员为在职", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

@@ -67,10 +67,18 @@ impl ListFaqRequest {
 
     /// 执行获取知识库列表请求
     pub async fn execute(self) -> SDKResult<ListFaqResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListFaqResponse> {
         let api_endpoint = HelpdeskApiV1::FaqList;
         let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取知识库列表")
     }
 }

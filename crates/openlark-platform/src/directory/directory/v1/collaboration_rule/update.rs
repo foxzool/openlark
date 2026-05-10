@@ -67,27 +67,7 @@ impl CollaborationRuleUpdateBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<CollaborationRuleUpdateResponse> {
-        let url = format!(
-            "/open-apis/directory/v1/collaboration_rules/{}",
-            self.collaboration_rule_id
-        );
-
-        use serde_json::json;
-
-        let request = json!({
-            "name": self.name,
-            "search_visible_scope_type": self.search_visible_scope_type,
-            "search_visible_scope_user_ids": self.search_visible_scope_user_ids,
-            "search_visible_scope_department_ids": self.search_visible_scope_department_ids,
-        });
-
-        let mut api_request = ApiRequest::<CollaborationRuleUpdateResponse>::put(&url);
-        api_request = api_request.body(request);
-
-        let resp = Transport::request(api_request, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("更新可搜可见规则", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

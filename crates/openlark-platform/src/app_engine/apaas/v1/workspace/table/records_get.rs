@@ -73,27 +73,7 @@ impl TableRecordsGetBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<TableRecordsGetResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/workspaces/{}/tables/{}/records",
-            self.workspace_id, self.table_name
-        );
-
-        let mut req: ApiRequest<TableRecordsGetResponse> = ApiRequest::get(&url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        if let Some(filter) = self.filter {
-            req = req.query("filter", &filter);
-        }
-        if let Some(order_by) = self.order_by {
-            req = req.query("order_by", &order_by);
-        }
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询数据表记录", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求

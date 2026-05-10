@@ -40,10 +40,18 @@ impl EventSubscribeRequest {
 
     /// 执行订阅服务台事件请求
     pub async fn execute(self) -> SDKResult<EventSubscribeResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<EventSubscribeResponse> {
         let request =
             ApiRequest::<EventSubscribeResponse>::post(HelpdeskApiV1::EventSubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
+        let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "订阅服务台事件")
     }
 }

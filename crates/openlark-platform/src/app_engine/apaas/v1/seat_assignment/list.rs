@@ -45,19 +45,7 @@ impl SeatAssignmentListBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<SeatAssignmentListResponse> {
-        let url = "/open-apis/apaas/v1/seat_assignments";
-
-        let mut req: ApiRequest<SeatAssignmentListResponse> = ApiRequest::get(url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位分配详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
