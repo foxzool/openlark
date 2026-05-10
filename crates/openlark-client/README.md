@@ -32,7 +32,7 @@
 
 ```toml
 [dependencies]
-openlark-client = { version = "0.15.0", features = ["docs"] }
+openlark-client = { version = "0.16.0", features = ["docs"] }
 ```
 
 ### 功能标志
@@ -66,7 +66,7 @@ features = ["p0-services"]
 
 ```toml
 [dependencies]
-openlark = { version = "0.15.0", features = ["essential"] }
+openlark = { version = "0.16.0", features = ["essential"] }
 ```
 
 ## 入口定位

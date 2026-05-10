@@ -1,6 +1,6 @@
 # Legacy Entrypoint Migration Notes
 
-本文档记录 `0.15.0` 起开始标记为 deprecated 的 legacy entrypoints，以及每类入口的推荐迁移方向。
+本文档记录 `0.16.0` 起开始标记为 deprecated 的 legacy entrypoints，以及每类入口的推荐迁移方向。
 
 ## 1. 范围
 
@@ -17,7 +17,7 @@
 
 ## 2. 类别一：原始 crate-name passthrough re-export
 
-这些路径历史上为了兼容旧代码保留，但从 `0.15.0` 起不再建议继续直接使用。
+这些路径历史上为了兼容旧代码保留，但从 `0.16.0` 起不再建议继续直接使用。
 
 | 已 deprecated 的入口 | 推荐替代路径 | 说明 |
 | --- | --- | --- |
@@ -30,7 +30,7 @@
 
 ## 3. 类别二：根 crate 顶层 `*Client` compatibility alias
 
-以下根 crate 顶层 alias 从 `0.15.0` 起标记为 deprecated：
+以下根 crate 顶层 alias 从 `0.16.0` 起标记为 deprecated：
 
 - `AuthClient`
 - `CommunicationClient`

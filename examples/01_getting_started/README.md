@@ -1,6 +1,6 @@
 # 入门示例
 
-这一组示例对齐 `0.15.0` 的根 crate 用法，重点是 `Client` 单入口和按需 feature。
+这一组示例对齐 `0.16.0` 的根 crate 用法，重点是 `Client` 单入口和按需 feature。
 
 ## 示例列表
 
@@ -54,7 +54,7 @@ export OPENLARK_APPROVAL_TOPIC="1"
 1. 先运行 `client_setup`，确认 `Client::from_env()` 和 `Client::builder()` 都能正常工作。
 2. 如需验证真实 lookup 请求，可设置 `OPENLARK_USER_SEARCH_NAME` / `OPENLARK_CHAT_SEARCH_NAME` 后再次运行 `client_setup`。
 3. 再运行 `communication_workflows`，查看 Communication / Workflow helper 如何串成完整业务流。
-4. 接着运行 `readme_quick_start` 或 `docs_helpers`，理解 `0.15.0` 推荐的文档 helper 能力。
+4. 接着运行 `readme_quick_start` 或 `docs_helpers`，理解 `0.16.0` 推荐的文档 helper 能力。
 5. 再运行 `docs_workflows`，查看任务型 Docs 工作流如何组合 Drive / Sheets / Wiki / Bitable helper。
 6. 最后运行 `websocket_echo_bot`，验证长连接能力。
 

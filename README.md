@@ -27,37 +27,37 @@ Canonical public API 入口已经冻结：
 
 ```toml
 [dependencies]
-openlark = { version = "0.15.0", default-features = false, features = ["auth"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth"] }
 ```
 
 ### 2. 选择功能组合
 
 **默认配置**（仅认证能力）：
 ```toml
-openlark = "0.15.0"
+openlark = "0.16.0"
 ```
 
 **推荐业务开发**：
 ```toml
-openlark = { version = "0.15.0", default-features = false, features = ["auth", "communication"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth", "communication"] }
 ```
 
 **按需选择**：
 ```toml
 # 文档协作：多维表格 + Sheets helper
-openlark = { version = "0.15.0", default-features = false, features = ["auth", "docs-bitable"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth", "docs-bitable"] }
 
 # 云盘上传/文件夹遍历
-openlark = { version = "0.15.0", default-features = false, features = ["auth", "docs-drive"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth", "docs-drive"] }
 
 # 自定义机器人卡片 + 签名
-openlark = { version = "0.15.0", default-features = false, features = ["webhook-card", "webhook-signature"] }
+openlark = { version = "0.16.0", default-features = false, features = ["webhook-card", "webhook-signature"] }
 
 # 通讯 + 文档组合
-openlark = { version = "0.15.0", default-features = false, features = ["auth", "communication", "docs-bitable"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth", "communication", "docs-bitable"] }
 
 # 文档全量能力
-openlark = { version = "0.15.0", default-features = false, features = ["auth", "docs-full"] }
+openlark = { version = "0.16.0", default-features = false, features = ["auth", "docs-full"] }
 ```
 
 ### 2.1 Feature 组合矩阵

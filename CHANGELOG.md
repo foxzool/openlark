@@ -25,6 +25,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.16.0] - 2026-05-10
+
+### 🔄 变更
+
+- **style(fmt)**: 统一代码格式化，修复多个文件的格式问题
+- **docs(docPath)**: 为 260+ 个 API 文件补充 docPath 官方文档链接
+- **refactor(api)**: 删除 explorer/permission v2 的函数式 API，统一使用 Builder 模式
+- **refactor(api)**: 统一 platform/helpdesk 40 个文件的 execute() 委托模式，消除代码重复
+- **refactor(validate)**: 统一 44 个文件的必填字段校验，使用 validate_required! 宏替换手工校验
+- **refactor(types)**: 替换 calendar v4 的 serde_json::Value 为强类型结构体
+- **fix(exports)**: 补充 5 个 mod.rs 文件的模型显式导出
+- **fix(url)**: 修复 exchange_binding/get.rs 的 API 端点路径拼写错误
+- **ci**: 修复 clippy 警告和文档注释缺失
+
+### 🐛 修复
+
+- **fix(ci)**: 修复 CI 持续失败问题（clippy 警告、格式问题）
+
 ## [0.15.0] - 2026-04-05
 
 ### 🔄 变更
