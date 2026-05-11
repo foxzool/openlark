@@ -2,7 +2,7 @@
 //!
 //! 提供卡片和组件相关的通用验证函数，消除 API 实现中的代码重复。
 
-use openlark_core::error;
+use openlark_core::{error, validate_required};
 
 /// 验证卡片 ID 是否有效
 ///
@@ -23,14 +23,8 @@ use openlark_core::error;
 /// validate_card_id("")?;          // Err(CoreError)
 /// ```
 pub fn validate_card_id(card_id: &str) -> Result<(), error::CoreError> {
-    if card_id.trim().is_empty() {
-        Err(error::validation_error(
-            "card_id 不能为空",
-            "卡片 ID 不能为空或仅包含空白字符",
-        ))
-    } else {
-        Ok(())
-    }
+    validate_required!(card_id, "card_id 不能为空");
+    Ok(())
 }
 
 /// 验证组件 ID 是否有效
@@ -52,14 +46,8 @@ pub fn validate_card_id(card_id: &str) -> Result<(), error::CoreError> {
 /// validate_element_id("")?;          // Err(CoreError)
 /// ```
 pub fn validate_element_id(element_id: &str) -> Result<(), error::CoreError> {
-    if element_id.trim().is_empty() {
-        Err(error::validation_error(
-            "element_id 不能为空",
-            "组件 ID 不能为空或仅包含空白字符",
-        ))
-    } else {
-        Ok(())
-    }
+    validate_required!(element_id, "element_id 不能为空");
+    Ok(())
 }
 
 /// 验证 ID 类型是否有效
@@ -82,14 +70,8 @@ pub fn validate_element_id(element_id: &str) -> Result<(), error::CoreError> {
 /// validate_id_type("", "用户ID")?;         // Err(CoreError)
 /// ```
 pub fn validate_id_type(id_type: &str, field_name: &str) -> Result<(), error::CoreError> {
-    if id_type.trim().is_empty() {
-        Err(error::validation_error(
-            format!("{field_name} 不能为空"),
-            format!("{field_name} 不能为空或仅包含空白字符"),
-        ))
-    } else {
-        Ok(())
-    }
+    validate_required!(id_type, format!("{field_name} 不能为空"));
+    Ok(())
 }
 
 /// 验证 ID 列表是否非空
