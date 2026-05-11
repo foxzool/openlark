@@ -12,13 +12,16 @@ env:
   CARGO_TOOLCHAIN: stable
   # Sparse cargo registry for faster updates
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  # Force Node 24 for JS actions to eliminate Node 20 deprecation warnings
+  # TODO: Remove once arduino/setup-protoc upgrades to Node 24 (PR #113)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
@@ -40,7 +43,7 @@ jobs:
     env:
       RUSTDOCFLAGS: "-D warnings -A rustdoc::bare_urls"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
@@ -57,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -87,7 +90,7 @@ jobs:
     env:
       RUSTFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
@@ -163,7 +166,7 @@ jobs:
           # === Edge Cases ===
           - "full"  # all enterprise features
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -214,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: 1.88
@@ -234,7 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
@@ -250,7 +253,7 @@ jobs:
     timeout-minutes: 30
     continue-on-error: true  # 允许失败，因为可能有误报
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
