@@ -48,9 +48,7 @@ impl GetExportTaskRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetExportTaskResponse> {
-        // ===== 验证必填字段 =====
         validate_required!(self.ticket, "ticket 不能为空");
-        // ===== 验证字段长度 =====
         let token_len = self.token.len();
         if token_len == 0 || token_len > 27 {
             return Err(openlark_core::error::validation_error(

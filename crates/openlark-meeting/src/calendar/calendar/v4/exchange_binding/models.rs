@@ -1,7 +1,3 @@
-//! Exchange 账户绑定模型
-//!
-//! 定义 Exchange 账户绑定相关的请求体和响应体类型。
-
 use chrono::{DateTime, Utc};
 use openlark_core::api::{ApiResponseTrait, ResponseFormat};
 use serde::{Deserialize, Serialize};

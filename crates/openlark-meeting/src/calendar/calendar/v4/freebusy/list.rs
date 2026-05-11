@@ -33,7 +33,6 @@ impl ListFreebusyRequest {
         option: RequestOption,
         body: ListFreebusyRequestBody,
     ) -> SDKResult<ListFreebusyResponse> {
-        // url: POST:/open-apis/calendar/v4/freebusy/list
         let url = "/open-apis/calendar/v4/freebusy/list";
         let req: ApiRequest<ListFreebusyResponse> =
             ApiRequest::post(url).body(serialize_params(&body, "查询主日历日程忙闲信息")?);

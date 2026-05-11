@@ -59,7 +59,6 @@ impl DownloadExportRequest {
         let result = Transport::request(api_request, &self.config, Some(option)).await;
         match result {
             Ok(response) => {
-                // 检查下载大小是否超过限制
                 let data_len = response.data.as_ref().map_or(0, <Vec<u8>>::len);
                 if data_len > self.max_size {
                     return Err(openlark_core::error::validation_error(

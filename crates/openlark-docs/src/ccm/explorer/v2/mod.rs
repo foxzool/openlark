@@ -100,7 +100,6 @@ impl GetRootFolderMetaRequest {
     }
 
     /// 使用默认请求选项执行请求。
-    /// 使用默认请求选项执行请求。
     pub async fn execute(self) -> SDKResult<FolderMetaResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -439,9 +438,6 @@ impl CreateFolderRequest {
 ///
 /// 获取 "我的空间" 的元信息。
 /// docPath: /document/server-docs/docs/drive-v1/folder/get-root-folder-meta
-// API函数已经在模块中定义，不需要重复导出
-
-/// 重新导出 Explorer v2 模型。
 pub use models::{
     CopyFileParams, CopyFileResponse, CopyResult, CreateFileParams, CreateFileResponse,
     CreateFolderParams, CreateFolderResponse, DeleteFileResponse, DeleteResult, FileInfo, FileItem,

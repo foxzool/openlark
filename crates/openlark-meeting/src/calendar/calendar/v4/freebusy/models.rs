@@ -1,7 +1,3 @@
-//! 日历忙闲信息模型
-//!
-//! 定义日历忙闲查询相关的请求体和响应体类型。
-
 use openlark_core::api::{ApiResponseTrait, ResponseFormat};
 use serde::{Deserialize, Serialize};
 
