@@ -2,7 +2,5 @@
 
 pub mod batch;
 pub mod list;
+/// 模型定义
 pub mod models;
-
-pub use self::models::*;
-pub use self::models::*;
