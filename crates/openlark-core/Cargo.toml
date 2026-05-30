@@ -46,7 +46,7 @@ serde_with = { workspace = true }
 # Internal dependencies暂时移除，避免循环依赖
 
 [features]
-default = ["testing"]
+default = []
 
 # Tracing initialization support
 tracing-init = ["tracing-subscriber"]

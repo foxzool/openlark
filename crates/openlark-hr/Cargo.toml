@@ -41,6 +41,7 @@ log = { workspace = true }
 rand = { workspace = true }
 
 [dev-dependencies]
+openlark-core = { workspace = true, features = ["testing"] }
 rstest = { workspace = true }
 wiremock = { workspace = true }
 mockall = { workspace = true }

@@ -101,6 +101,7 @@ base64 = { workspace = true }
 
 
 [dev-dependencies]
+openlark-core = { workspace = true, features = ["testing"] }
 tokio-test = "0.4"
 wiremock = { workspace = true }
 rstest = { workspace = true }

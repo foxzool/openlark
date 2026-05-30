@@ -236,8 +236,6 @@
 //! ```
 
 //#![deny(missing_docs)]  // 暂时禁用以完成基本编译
-// async_fn_in_trait: 当前 crate 仍显式保留该 allow，避免对使用者暴露额外 lint 噪声。
-#![allow(async_fn_in_trait)]
 
 // 核心模块
 pub mod client;

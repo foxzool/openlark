@@ -1,18 +1,18 @@
 ## 1. 快速修复（P2 级，低风险）
 
-- [ ] 1.1 移除 `openlark-core/Cargo.toml` 中 `default = ["testing"]`，改为 `default = []`
-- [ ] 1.2 移除 `openlark-client/src/lib.rs` 中的 `#![allow(async_fn_in_trait)]`
-- [ ] 1.3 在根 `Cargo.toml` 添加 `[package.metadata.docs.rs]` 配置，启用 `all-features`
-- [ ] 1.4 运行 `cargo check --workspace` 确认所有修改无编译错误
+- [x] 1.1 移除 `openlark-core/Cargo.toml` 中 `default = ["testing"]`，改为 `default = []`
+- [x] 1.2 移除 `openlark-client/src/lib.rs` 中的 `#![allow(async_fn_in_trait)]`
+- [x] 1.3 在根 `Cargo.toml` 添加 `[package.metadata.docs.rs]` 配置，启用 `all-features`
+- [x] 1.4 运行 `cargo check --workspace` 确认所有修改无编译错误
 
 ## 2. 根 crate deprecated 清理
 
-- [ ] 2.1 移除 `src/lib.rs` 中所有 `#[deprecated(since = "0.15.0")]` 的 crate re-export（`pub use openlark_xxx`）
-- [ ] 2.2 移除所有 `#[deprecated(since = "0.15.0")]` 的 `*Client` 类型别名 re-export
-- [ ] 2.3 清理 `prelude` 模块，移除 `#[allow(deprecated)]` 和对应的 deprecated 导出
-- [ ] 2.4 保留命名空间 re-export（`pub use openlark_auth as auth` 等）和新版公共类型
-- [ ] 2.5 更新 `src/lib.rs` 模块文档，反映清理后的导出结构
-- [ ] 2.6 运行 `cargo test --workspace` 确认无破坏
+- [x] 2.1 移除 `src/lib.rs` 中所有 `#[deprecated(since = "0.15.0")]` 的 crate re-export（`pub use openlark_xxx`）
+- [x] 2.2 移除所有 `#[deprecated(since = "0.15.0")]` 的 `*Client` 类型别名 re-export
+- [x] 2.3 清理 `prelude` 模块，移除 `#[allow(deprecated)]` 和对应的 deprecated 导出
+- [x] 2.4 保留命名空间 re-export（`pub use openlark_auth as auth` 等）和新版公共类型
+- [x] 2.5 更新 `src/lib.rs` 模块文档，反映清理后的导出结构
+- [x] 2.6 运行 `cargo test --workspace` 确认无破坏
 
 ## 3. 业务 crate Client 类型命名统一
 
