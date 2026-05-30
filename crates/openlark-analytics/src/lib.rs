@@ -52,7 +52,8 @@ pub mod prelude;
 // 重新导出核心服务
 pub use service::AnalyticsService;
 
-// 配置类型
+/// 数据分析服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type AnalyticsClient = AnalyticsService;
 pub use openlark_core::config::Config;
 
 /// 数据分析模块版本信息

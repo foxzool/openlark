@@ -129,6 +129,31 @@ impl SecurityServices {
     }
 }
 
+/// 安全服务客户端 — Arc 包装的 [`SecurityServices`]，支持零成本克隆。
+///
+/// 用法：`client.security.acs...`
+#[derive(Debug, Clone)]
+pub struct SecurityClient {
+    inner: std::sync::Arc<SecurityServices>,
+}
+
+impl SecurityClient {
+    /// 从安全配置创建客户端实例。
+    pub fn new(config: crate::models::SecurityConfig) -> Self {
+        Self {
+            inner: std::sync::Arc::new(SecurityServices::new(config)),
+        }
+    }
+}
+
+impl std::ops::Deref for SecurityClient {
+    type Target = SecurityServices;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl Default for SecurityServices {
     fn default() -> Self {
         Self::new(crate::models::SecurityConfig::default())
@@ -140,7 +165,7 @@ pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
 
 /// 预导出模块
 pub mod prelude {
-    pub use super::{AcsProject, SecurityAndComplianceProject, SecurityResult, SecurityServices};
+    pub use super::{AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult, SecurityServices};
 
     // 避免v1命名空间冲突，明确导出需要的类型
     pub use super::models::*;

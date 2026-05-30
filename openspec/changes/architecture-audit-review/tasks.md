@@ -16,11 +16,11 @@
 
 ## 3. 业务 crate Client 类型命名统一
 
-- [ ] 3.1 制定命名规范文档：所有业务 crate 导出 `XxxClient` struct（非 type alias、非 Arc 包装）
-- [ ] 3.2 将 `SecurityClient` 从 `Arc<SecurityServices>` 改为独立 struct（内部持有 Arc）
-- [ ] 3.3 统一 `WorkflowClient`、`PlatformClient` 等从 type alias 改为正式 struct
-- [ ] 3.4 更新 `openlark-client/src/lib.rs` 中的对应 re-export
-- [ ] 3.5 运行 `cargo test --workspace` 确认所有业务 crate 测试通过
+- [x] 3.1 制定命名规范文档：所有业务 crate 导出 `XxxClient` struct（非 type alias、非 Arc 包装）
+- [x] 3.2 将 `SecurityClient` 从 `Arc<SecurityServices>` 改为独立 struct（内部持有 Arc）
+- [x] 3.3 统一 `WorkflowClient`、`PlatformClient` 等从 type alias 改为正式 struct
+- [x] 3.4 更新 `openlark-client/src/lib.rs` 中的对应 re-export
+- [x] 3.5 运行 `cargo test --workspace` 确认所有业务 crate 测试通过
 
 ## 4. Config 统一（Phase 1: Deprecated）
 

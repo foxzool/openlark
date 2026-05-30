@@ -71,7 +71,8 @@ pub mod prelude;
 // 重新导出核心服务
 pub use service::PlatformService;
 
-// 配置类型
+/// 平台服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type PlatformClient = PlatformService;
 pub use openlark_core::config::Config;
 
 /// 平台服务模块版本信息

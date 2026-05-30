@@ -338,42 +338,33 @@ pub use openlark_meeting::MeetingClient;
 // 其他服务（当前未启用但已规划）
 //（历史上曾尝试在 openlark-client 内重复实现业务服务包装层，但现已收敛为 meta 单入口。）
 
-// 为没有 Client 类型的子 crate 创建类型别名
+// 业务 crate 的 Client 类型导出（统一从源 crate re-export）
 #[cfg(feature = "ai")]
 pub use openlark_ai::AiClient;
 
 #[cfg(feature = "workflow")]
-/// 工作流服务客户端别名。
-pub type WorkflowClient = openlark_workflow::WorkflowService;
+pub use openlark_workflow::WorkflowClient;
 
 #[cfg(feature = "platform")]
-/// 平台服务客户端别名。
-pub type PlatformClient = openlark_platform::PlatformService;
+pub use openlark_platform::PlatformClient;
 
 #[cfg(feature = "application")]
-/// 应用服务客户端别名。
-pub type ApplicationClient = openlark_application::ApplicationService;
+pub use openlark_application::ApplicationClient;
 
 #[cfg(feature = "helpdesk")]
-/// 帮助台服务客户端别名。
-pub type HelpdeskClient = openlark_helpdesk::HelpdeskService;
+pub use openlark_helpdesk::HelpdeskClient;
 
 #[cfg(feature = "mail")]
-/// 邮件服务客户端别名。
-pub type MailClient = openlark_mail::MailService;
+pub use openlark_mail::MailClient;
 
 #[cfg(feature = "analytics")]
-/// 分析服务客户端别名。
-pub type AnalyticsClient = openlark_analytics::AnalyticsService;
+pub use openlark_analytics::AnalyticsClient;
 
 #[cfg(feature = "user")]
-/// 用户设置服务客户端别名。
-pub type UserClient = openlark_user::UserService;
+pub use openlark_user::UserClient;
 
 #[cfg(feature = "security")]
-/// Security 服务客户端别名（Arc 包装以支持 Client 克隆）
-pub type SecurityClient = std::sync::Arc<openlark_security::SecurityServices>;
-//（历史上曾尝试在 openlark-client 内重复实现业务服务包装层，但现已收敛为 meta 单入口。）
+pub use openlark_security::SecurityClient;
 
 // ============================================================================
 // Core 系统类型重新导出

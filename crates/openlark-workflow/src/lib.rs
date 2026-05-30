@@ -99,6 +99,9 @@ pub use service::{
     WorkflowTaskMutation,
 };
 
+/// 工作流服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type WorkflowClient = WorkflowService;
+
 /// 工作流模块版本信息
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

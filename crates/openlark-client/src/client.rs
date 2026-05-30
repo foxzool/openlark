@@ -288,7 +288,7 @@ impl Client {
                 config.app_secret.clone(),
             )
             .with_base_url(&config.base_url);
-            std::sync::Arc::new(openlark_security::SecurityServices::new(security_config))
+            openlark_security::SecurityClient::new(security_config)
         };
 
         Ok(Client {

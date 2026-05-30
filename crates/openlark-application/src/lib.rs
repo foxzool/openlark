@@ -22,6 +22,9 @@ pub mod prelude;
 /// 应用管理服务统一入口。
 pub use service::ApplicationService;
 
+/// 应用服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type ApplicationClient = ApplicationService;
+
 /// 当前 crate 版本号。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

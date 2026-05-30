@@ -55,6 +55,9 @@ pub mod prelude;
 /// 邮件服务统一入口。
 pub use service::MailService;
 
+/// 邮件服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type MailClient = MailService;
+
 /// 邮件模块版本信息
 /// 当前 crate 版本号。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

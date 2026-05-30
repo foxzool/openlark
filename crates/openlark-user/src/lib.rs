@@ -58,7 +58,8 @@ pub mod prelude;
 /// 用户服务统一入口。
 pub use service::UserService;
 
-// 配置类型
+/// 用户服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type UserClient = UserService;
 /// `openlark-core` 配置类型的便捷导出。
 pub use openlark_core::config::Config;
 
