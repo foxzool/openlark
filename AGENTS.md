@@ -2,7 +2,7 @@
 
 **Project**: OpenLark - 飞书开放平台 Rust SDK  
 **Stack**: Rust, Tokio, Reqwest, WebSocket  
-**Version**: 0.16.1
+**Version**: 0.17.0
 **Repository**: https://github.com/foxzool/openlark
 
 ## OVERVIEW

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.17.0] - 2026-05-30
 
 ### Breaking Changes
 
@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`AuthClient`, `DocsClient`, `HrClient`, etc.). Use `client.auth`, `client.docs`,
   `client.hr` field access instead.
 - **Cleaned** root `prelude` — no longer exports deprecated `*Client` aliases
+- **`Client.config()` now returns `&openlark_core::config::Config`** (was `&openlark_client::Config`).
+  Access fields via methods: `client.config().app_id()`, `client.config().base_url()`, etc.
 - **Migration**: Replace `use open_lark::AuthClient` → access via `client.auth` field
-  or use `open_lark::auth` module namespace directly
+  or use `open_lark::auth` module namespace directly. Replace `client.config().app_id`
+  → `client.config().app_id()` (method call, not field access)
 
 ### Deprecated
 
