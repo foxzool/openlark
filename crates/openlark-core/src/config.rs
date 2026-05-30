@@ -62,6 +62,10 @@ pub struct ConfigInner {
     pub(crate) token_provider: Arc<dyn TokenProvider>,
     /// 响应体最大大小（字节），超过返回 ResponseTooLarge 错误，默认 100MB
     pub(crate) max_response_size: u64,
+    /// 默认重试次数，默认 3
+    pub(crate) retry_count: u32,
+    /// 是否启用日志记录，默认 true
+    pub(crate) enable_log: bool,
 }
 
 impl Default for ConfigInner {
@@ -77,6 +81,8 @@ impl Default for ConfigInner {
             header: Default::default(),
             token_provider: Arc::new(NoOpTokenProvider),
             max_response_size: 100 * 1024 * 1024, // 100MB
+            retry_count: 3,
+            enable_log: true,
         }
     }
 }
@@ -91,6 +97,8 @@ impl std::fmt::Debug for ConfigInner {
             .field("app_type", &self.app_type)
             .field("req_timeout", &self.req_timeout)
             .field("max_response_size", &self.max_response_size)
+            .field("retry_count", &self.retry_count)
+            .field("enable_log", &self.enable_log)
             .field("header", &format!("{} headers", self.header.len()))
             .finish()
     }
@@ -143,6 +151,8 @@ impl Config {
             header: self.header.clone(),
             token_provider: Arc::new(provider),
             max_response_size: self.max_response_size,
+            retry_count: self.retry_count,
+            enable_log: self.enable_log,
         })
     }
 
@@ -200,6 +210,16 @@ impl Config {
     pub fn max_response_size(&self) -> u64 {
         self.inner.max_response_size
     }
+
+    /// 获取重试次数
+    pub fn retry_count(&self) -> u32 {
+        self.inner.retry_count
+    }
+
+    /// 是否启用日志记录
+    pub fn enable_log(&self) -> bool {
+        self.inner.enable_log
+    }
 }
 
 /// 配置构建器
@@ -215,6 +235,8 @@ pub struct ConfigBuilder {
     header: Option<HashMap<String, String>>,
     token_provider: Option<Arc<dyn TokenProvider>>,
     max_response_size: Option<u64>,
+    retry_count: Option<u32>,
+    enable_log: Option<bool>,
 }
 
 impl ConfigBuilder {
@@ -306,6 +328,18 @@ impl ConfigBuilder {
         self
     }
 
+    /// 设置默认重试次数，默认 3
+    pub fn retry_count(mut self, count: u32) -> Self {
+        self.retry_count = Some(count);
+        self
+    }
+
+    /// 设置是否启用日志记录，默认 true
+    pub fn enable_log(mut self, enable: bool) -> Self {
+        self.enable_log = Some(enable);
+        self
+    }
+
     /// 构建 Config 实例
     pub fn build(self) -> Config {
         let default = ConfigInner::default();
@@ -322,6 +356,8 @@ impl ConfigBuilder {
             header: self.header.unwrap_or(default.header),
             token_provider: self.token_provider.unwrap_or(default.token_provider),
             max_response_size: self.max_response_size.unwrap_or(default.max_response_size),
+            retry_count: self.retry_count.unwrap_or(default.retry_count),
+            enable_log: self.enable_log.unwrap_or(default.enable_log),
         })
     }
 }
@@ -349,6 +385,8 @@ mod tests {
             header: HashMap::new(),
             token_provider: Arc::new(NoOpTokenProvider),
             max_response_size: 100 * 1024 * 1024,
+            retry_count: 3,
+            enable_log: true,
         });
 
         assert_eq!(config.app_id, "test_app_id");
@@ -388,6 +426,8 @@ mod tests {
             },
             token_provider: Arc::new(NoOpTokenProvider),
             max_response_size: 100 * 1024 * 1024,
+            retry_count: 3,
+            enable_log: true,
         });
 
         let cloned_config = config.clone();

@@ -2,7 +2,7 @@
 //!
 //! 定义客户端的统一接口和行为
 
-use crate::Config;
+use openlark_core::config::Config as CoreConfig;
 use std::time::Duration;
 
 /// 🚀 OpenLark客户端核心特征
@@ -16,44 +16,44 @@ use std::time::Duration;
 /// - 错误处理：统一的错误处理机制
 pub trait LarkClient: Send + Sync {
     /// 🔧 获取客户端配置
-    fn config(&self) -> &Config;
+    fn config(&self) -> &CoreConfig;
 
     /// ✅ 检查客户端是否已正确配置
     ///
     /// # 返回值
     /// 返回true如果app_id和app_secret都不为空
     fn is_configured(&self) -> bool {
-        !self.config().app_id.is_empty() && !self.config().app_secret.is_empty()
+        !self.config().app_id().is_empty() && !self.config().app_secret().is_empty()
     }
 
     /// 🔍 获取应用ID
     fn app_id(&self) -> &str {
-        &self.config().app_id
+        self.config().app_id()
     }
 
     /// 🔑 获取应用密钥
     fn app_secret(&self) -> &str {
-        &self.config().app_secret
+        self.config().app_secret()
     }
 
     /// 🌐 获取API基础URL
     fn base_url(&self) -> &str {
-        &self.config().base_url
+        self.config().base_url()
     }
 
     /// ⏱️ 获取请求超时时间
-    fn timeout(&self) -> Duration {
-        self.config().timeout
+    fn timeout(&self) -> Option<Duration> {
+        self.config().req_timeout()
     }
 
     /// 🔄 获取重试次数
     fn retry_count(&self) -> u32 {
-        self.config().retry_count
+        self.config().retry_count()
     }
 
     /// 📝 检查是否启用了日志
     fn is_log_enabled(&self) -> bool {
-        self.config().enable_log
+        self.config().enable_log()
     }
 }
 
@@ -61,7 +61,7 @@ pub trait LarkClient: Send + Sync {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use std::time::Duration;
+    use openlark_core::config::Config;
 
     struct TestClient {
         config: Config,
@@ -75,27 +75,21 @@ mod tests {
 
     #[test]
     fn test_lark_client_basic_methods() {
-        let config = Config {
-            app_id: "test_app_id".to_string(),
-            app_secret: "test_app_secret".to_string(),
-            app_type: openlark_core::constants::AppType::SelfBuild,
-            enable_token_cache: true,
-            base_url: "https://test.feishu.cn".to_string(),
-            allow_custom_base_url: false,
-            timeout: Duration::from_secs(30),
-            retry_count: 3,
-            enable_log: true,
-            headers: std::collections::HashMap::new(),
-            max_response_size: 100 * 1024 * 1024,
-            core_config: None,
-        };
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .base_url("https://test.feishu.cn")
+            .req_timeout(std::time::Duration::from_secs(30))
+            .retry_count(3)
+            .enable_log(true)
+            .build();
 
         let client = TestClient { config };
 
         assert_eq!(client.app_id(), "test_app_id");
         assert_eq!(client.app_secret(), "test_app_secret");
         assert_eq!(client.base_url(), "https://test.feishu.cn");
-        assert_eq!(client.timeout(), Duration::from_secs(30));
+        assert_eq!(client.timeout(), Some(std::time::Duration::from_secs(30)));
         assert_eq!(client.retry_count(), 3);
         assert!(client.is_log_enabled());
         assert!(client.is_configured());
@@ -103,11 +97,7 @@ mod tests {
 
     #[test]
     fn test_not_configured_client() {
-        let config = Config {
-            app_id: String::new(),
-            app_secret: String::new(),
-            ..Default::default()
-        };
+        let config = Config::default();
 
         let client = TestClient { config };
         assert!(!client.is_configured());

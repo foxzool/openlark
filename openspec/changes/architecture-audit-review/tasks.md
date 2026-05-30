@@ -25,11 +25,11 @@
 ## 4. Config 统一（Phase 1: Deprecated）
 
 - [x] 4.1 将 `openlark_client::Config` 标记为 `#[deprecated(since = "0.17.0")]`
-- [ ] 4.2 扩展 `openlark_core::config::Config::builder()` 支持 `enable_log`、`retry_count` 等原属 client Config 的选项 <!-- DEFERRED: requires extending CoreConfig across all 18 crates -->
-- [ ] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config <!-- DEFERRED: depends on 4.2 -->
-- [ ] 4.4 移除 Client 中 `config: Arc<Config>` 字段，仅保留 `core_config` <!-- DEFERRED: depends on 4.3 -->
-- [ ] 4.5 更新 `Client::config()` 返回 `&openlark_core::config::Config` <!-- DEFERRED: depends on 4.4 -->
-- [ ] 4.6 运行 `cargo test --workspace` 确认无破坏 <!-- DEFERRED: depends on 4.5 -->
+- [x] 4.2 扩展 `openlark_core::config::Config::builder()` 支持 `enable_log`、`retry_count` 等原属 client Config 的选项
+- [x] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config
+- [x] 4.4 移除 Client 中 `config: Arc<Config>` 字段，仅保留 `core_config`
+- [x] 4.5 更新 `Client::config()` 返回 `&openlark_core::config::Config`
+- [x] 4.6 运行 `cargo test --workspace` 确认无破坏
 
 ## 5. ServiceRegistry 宏化改造 <!-- DEFERRED: v0.18, separate PR -->
 

@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn root_minimal_builder_works_without_service_features() {
         let client = build_test_client().expect("client should build with minimal features");
-        assert_eq!(client.config().app_id, "test_app");
+        assert_eq!(client.config().app_id(), "test_app");
     }
 
     #[cfg(feature = "auth")]

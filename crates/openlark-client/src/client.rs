@@ -61,12 +61,10 @@ impl AuthClient {
 /// ```
 #[derive(Clone)]
 pub struct Client {
-    /// 客户端配置
-    config: Arc<Config>,
     /// 服务注册表
     registry: Arc<DefaultServiceRegistry>,
-    /// 底层 core 配置（供各 meta client 复用）
-    core_config: openlark_core::config::Config,
+    /// 统一配置（Arc 零拷贝共享，供所有 meta client 复用）
+    config: openlark_core::config::Config,
 
     /// CardKit meta 调用链：client.cardkit.v1.card.create(...)
     #[cfg(feature = "cardkit")]
@@ -132,9 +130,8 @@ pub struct Client {
 impl std::fmt::Debug for Client {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Client")
-            .field("config", &"<Config>")
+            .field("config", &"<CoreConfig>")
             .field("registry", &"<Registry>")
-            .field("core_config", &"<CoreConfig>")
             .field("cardkit", &cfg!(feature = "cardkit"))
             .field("auth", &cfg!(feature = "auth"))
             .field("docs", &cfg!(feature = "docs"))
@@ -183,8 +180,8 @@ impl Client {
         ClientBuilder::new()
     }
 
-    /// 🔧 获取客户端配置
-    pub fn config(&self) -> &Config {
+    /// 🔧 获取客户端配置（统一的 CoreConfig）
+    pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 
@@ -193,23 +190,25 @@ impl Client {
         &self.registry
     }
 
-    /// 🔧 获取底层 core 配置（高级用法/调试用）
+    /// 🔧 获取底层 core 配置
+    ///
+    /// 与 [`Self::config`] 返回同一份配置。保留此别名是为了向后兼容。
     pub fn core_config(&self) -> &openlark_core::config::Config {
-        &self.core_config
+        &self.config
     }
 
     /// 🔧 获取可直接传给函数式 API 的认证后配置
     ///
-    /// 与 [`Self::core_config`] 返回同一份配置，保留这个别名是为了让
+    /// 与 [`Self::config`] 返回同一份配置。保留此别名是为了让
     /// 业务侧更容易理解它的用途：可直接传给 `openlark_docs::*`、
     /// `openlark_auth::*` 等函数式 API。
     pub fn api_config(&self) -> &openlark_core::config::Config {
-        &self.core_config
+        &self.config
     }
 
     /// ✅ 检查客户端是否已正确配置
     pub fn is_configured(&self) -> bool {
-        !self.config.app_id.is_empty() && !self.config.app_secret.is_empty()
+        !self.config.app_id().is_empty() && !self.config.app_secret().is_empty()
     }
 
     /// 🆕 创建带有自定义配置的客户端
@@ -219,7 +218,6 @@ impl Client {
             return with_context(Err(err), "operation", "Client::with_config");
         }
 
-        let config = Arc::new(config);
         let mut registry = DefaultServiceRegistry::new();
 
         // 加载启用的服务
@@ -229,15 +227,14 @@ impl Client {
 
         let registry = Arc::new(registry);
 
-        // 从 client Config 获取 core Config
+        // 从 client Config 构建 core Config（统一配置入口）
         #[cfg(feature = "auth")]
-        let base_core_config = config.as_ref().build_core_config();
+        let base_core_config = config.build_core_config();
         #[cfg(feature = "auth")]
         let core_config = config
-            .as_ref()
-            .get_or_build_core_config_with_token_provider();
+            .build_core_config_with_token_provider();
         #[cfg(not(feature = "auth"))]
-        let core_config = config.as_ref().get_or_build_core_config();
+        let core_config = config.build_core_config();
 
         #[cfg(feature = "cardkit")]
         let cardkit = openlark_cardkit::CardkitClient::new(core_config.clone());
@@ -284,17 +281,16 @@ impl Client {
         #[cfg(feature = "security")]
         let security = {
             let security_config = openlark_security::models::SecurityConfig::new(
-                config.app_id.clone(),
-                config.app_secret.clone(),
+                core_config.app_id().to_string(),
+                core_config.app_secret().to_string(),
             )
-            .with_base_url(&config.base_url);
+            .with_base_url(core_config.base_url());
             openlark_security::SecurityClient::new(security_config)
         };
 
         Ok(Client {
-            config,
+            config: core_config.clone(),
             registry,
-            core_config: core_config.clone(),
             #[cfg(feature = "cardkit")]
             cardkit,
             #[cfg(feature = "auth")]
@@ -340,7 +336,7 @@ impl Client {
 
 // 实现LarkClient trait
 impl LarkClient for Client {
-    fn config(&self) -> &Config {
+    fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 
@@ -520,8 +516,8 @@ mod tests {
         };
 
         let client = Client::with_config(config).unwrap();
-        assert_eq!(client.config().app_id, "test_app_id");
-        assert_eq!(client.config().app_secret, "test_app_secret");
+        assert_eq!(client.config().app_id(), "test_app_id");
+        assert_eq!(client.config().app_secret(), "test_app_secret");
         assert!(client.is_configured());
     }
 
@@ -551,7 +547,7 @@ mod tests {
             .unwrap();
 
         let cloned_client = client.clone();
-        assert_eq!(client.config().app_id, cloned_client.config().app_id);
+        assert_eq!(client.config().app_id(), cloned_client.config().app_id());
     }
 
     #[cfg(feature = "cardkit")]
@@ -670,8 +666,8 @@ mod tests {
                 assert!(result.is_ok());
 
                 if let Ok(client) = result {
-                    assert_eq!(client.config().app_id, "test_app_id");
-                    assert_eq!(client.config().app_secret, "test_secret");
+                    assert_eq!(client.config().app_id(), "test_app_id");
+                    assert_eq!(client.config().app_secret(), "test_secret");
                 }
             },
         );
