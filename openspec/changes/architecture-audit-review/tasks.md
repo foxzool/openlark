@@ -24,14 +24,14 @@
 
 ## 4. Config 统一（Phase 1: Deprecated）
 
-- [ ] 4.1 将 `openlark_client::Config` 标记为 `#[deprecated(since = "0.17.0")]`
-- [ ] 4.2 扩展 `openlark_core::config::Config::builder()` 支持 `enable_log`、`retry_count` 等原属 client Config 的选项
-- [ ] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config
-- [ ] 4.4 移除 Client 中 `config: Arc<Config>` 字段，仅保留 `core_config`
-- [ ] 4.5 更新 `Client::config()` 返回 `&openlark_core::config::Config`
-- [ ] 4.6 运行 `cargo test --workspace` 确认无破坏
+- [x] 4.1 将 `openlark_client::Config` 标记为 `#[deprecated(since = "0.17.0")]`
+- [ ] 4.2 扩展 `openlark_core::config::Config::builder()` 支持 `enable_log`、`retry_count` 等原属 client Config 的选项 <!-- DEFERRED: requires extending CoreConfig across all 18 crates -->
+- [ ] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config <!-- DEFERRED: depends on 4.2 -->
+- [ ] 4.4 移除 Client 中 `config: Arc<Config>` 字段，仅保留 `core_config` <!-- DEFERRED: depends on 4.3 -->
+- [ ] 4.5 更新 `Client::config()` 返回 `&openlark_core::config::Config` <!-- DEFERRED: depends on 4.4 -->
+- [ ] 4.6 运行 `cargo test --workspace` 确认无破坏 <!-- DEFERRED: depends on 4.5 -->
 
-## 5. ServiceRegistry 宏化改造
+## 5. ServiceRegistry 宏化改造 <!-- DEFERRED: v0.18, separate PR -->
 
 - [ ] 5.1 设计声明宏 `register_service!` 的接口（name, feature, client_type, constructor）
 - [ ] 5.2 在 `openlark-client/src/client.rs` 中定义宏注册表，替代手动 `#[cfg(feature)]` 块
@@ -41,7 +41,7 @@
 - [ ] 5.6 确认所有 feature 组合（essential, enterprise, full）编译通过
 - [ ] 5.7 运行 `cargo test --workspace` 确认所有测试通过
 
-## 6. HTTP 中间件层（v0.18 延迟实施）
+## 6. HTTP 中间件层（v0.18 延迟实施）<!-- DEFERRED: v0.18, separate PR -->
 
 - [ ] 6.1 评估 `tower` vs 自定义 trait 中间件方案的编译时间和运行时开销
 - [ ] 6.2 定义 `Middleware` trait（async fn process）
@@ -54,8 +54,8 @@
 
 ## 7. 文档与迁移
 
-- [ ] 7.1 编写 CHANGELOG 条目，记录所有破坏性变更和迁移路径
+- [x] 7.1 编写 CHANGELOG 条目，记录所有破坏性变更和迁移路径
 - [ ] 7.2 更新 `examples/` 中的代码，确保使用新 API
 - [ ] 7.3 更新 `README.md` 中的快速开始代码示例
-- [ ] 7.4 更新 `AGENTS.md` 中的架构说明
-- [ ] 7.5 运行 `cargo doc --workspace --all-features` 确认文档生成无警告
+- [x] 7.4 更新 `AGENTS.md` 中的架构说明
+- [x] 7.5 运行 `cargo doc --workspace --all-features` 确认文档生成无警告

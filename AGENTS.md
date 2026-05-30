@@ -2,7 +2,7 @@
 
 **Project**: OpenLark - 飞书开放平台 Rust SDK  
 **Stack**: Rust, Tokio, Reqwest, WebSocket  
-**Version**: 0.16.0  
+**Version**: 0.16.1
 **Repository**: https://github.com/foxzool/openlark
 
 ## OVERVIEW
@@ -78,6 +78,7 @@ validate_required!(self.field, "字段不能为空");
 - **结构体**: `PascalCase`
 - **API 方法**: `snake_case`
 - **Feature flags**: 短横线连接的小写（`core-services`, `cloud-docs`）
+- **Client 类型**: 所有业务 crate 导出 `XxxClient` 类型（详见 `docs/CLIENT_NAMING_CONVENTION.md`）
 
 ## ANTI-PATTERNS
 
@@ -112,3 +113,5 @@ just release VERSION  # 发布新版本
 - **WebSocket**: 需要单独启用 `websocket` feature
 - **测试**: 使用 `.env` 文件管理测试凭证（不要提交到 git）
 - **文档**: 使用 `cargo doc --workspace --all-features` 生成完整文档
+- **架构审核**: 详见 `openspec/changes/architecture-audit-review/` 中的完整审核报告和改进计划
+- **Config 迁移**: `openlark_client::Config` 已标记 deprecated，计划在 v0.17 与 `openlark_core::config::Config` 合并

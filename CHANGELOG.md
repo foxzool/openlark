@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **Removed** all v0.15.0 deprecated crate re-exports (`open_lark::openlark_client`,
+  `open_lark::openlark_core`, `open_lark::openlark_auth`, etc.)
+- **Removed** all v0.15.0 deprecated `*Client` type aliases from root crate
+  (`AuthClient`, `DocsClient`, `HrClient`, etc.). Use `client.auth`, `client.docs`,
+  `client.hr` field access instead.
+- **Cleaned** root `prelude` — no longer exports deprecated `*Client` aliases
+- **Migration**: Replace `use open_lark::AuthClient` → access via `client.auth` field
+  or use `open_lark::auth` module namespace directly
+
+### Deprecated
+
+- `openlark_client::Config` — will be merged into `openlark_core::config::Config`
+  in v0.17. Use `Client::builder()` or `openlark_core::config::Config` directly.
+
+### Added
+
+- `SecurityClient` struct in `openlark-security` — proper wrapper with `Deref`
+  to `SecurityServices` (replaces `Arc<SecurityServices>` alias)
+- `XxxClient` type aliases in all business crates for consistent naming:
+  `WorkflowClient`, `PlatformClient`, `ApplicationClient`, `HelpdeskClient`,
+  `MailClient`, `AnalyticsClient`, `UserClient`
+- `[package.metadata.docs.rs]` configuration for complete documentation generation
+- `docs/CLIENT_NAMING_CONVENTION.md` — naming convention documentation
+
+### Changed
+
+- `openlark-core` no longer enables `testing` feature by default. Crates using
+  `openlark_core::testing` in tests must add `openlark-core = { features = ["testing"] }`
+  to their `[dev-dependencies]`.
+- All business crate `XxxClient` types now exported from source crates instead of
+  defined as type aliases in `openlark-client`
+
+### Removed
+
+- `#![allow(async_fn_in_trait)]` from `openlark-client` (MSRV 1.88 no longer needs it)
+
 ### Compatibility
 
 #### Typed APIs

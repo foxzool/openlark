@@ -2,6 +2,8 @@
 //!
 //! 提供灵活的配置系统，支持环境变量、验证和默认值
 
+#![allow(deprecated)]  // Config 自身已标记 deprecated，内部方法允许使用
+
 use crate::Result;
 use std::time::Duration;
 
@@ -26,6 +28,9 @@ fn is_known_base_url(url: &str) -> bool {
 ///
 /// 支持从环境变量自动加载配置
 ///
+/// > **注意**: 此类型计划在 v0.17 中与 `openlark_core::config::Config` 合并。
+/// > 推荐直接使用 `Client::builder()` 或 `openlark_core::config::Config`。
+///
 /// # 环境变量
 /// - `OPENLARK_APP_ID`: 应用ID（必需）
 /// - `OPENLARK_APP_SECRET`: 应用密钥（必需）
@@ -48,6 +53,10 @@ fn is_known_base_url(url: &str) -> bool {
 ///     .build();
 /// ```
 #[derive(Clone)]
+#[deprecated(
+    since = "0.17.0",
+    note = "Will be merged into openlark_core::config::Config. Use Client::builder() or openlark_core::config::Config directly."
+)]
 pub struct Config {
     /// 🆔 飞书应用ID
     pub app_id: String,

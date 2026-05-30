@@ -236,6 +236,7 @@
 //! ```
 
 //#![deny(missing_docs)]  // 暂时禁用以完成基本编译
+#![allow(deprecated)]  // 内部使用 Config（已标记 deprecated，v0.17 统一后移除）
 
 // 核心模块
 pub mod client;
