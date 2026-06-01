@@ -276,6 +276,14 @@ pub enum VcApiV1 {
     /// GET /open-apis/vc/v1/meetings
     MeetingList,
 
+    /// 订阅会议变更事件
+    /// POST /open-apis/vc/v1/meetings/subscription
+    MeetingSubscription,
+
+    /// 取消订阅会议变更事件
+    /// POST /open-apis/vc/v1/meetings/unsubscription
+    MeetingUnsubscription,
+
     /// 获取会议录制
     /// GET /open-apis/vc/v1/meetings/:meeting_id/recordings/:recording_id
     MeetingRecordingGet(String, String),
@@ -508,6 +516,10 @@ impl VcApiV1 {
                 format!("/open-apis/vc/v1/meetings/{meeting_id}/set_host")
             }
             VcApiV1::MeetingList => "/open-apis/vc/v1/meetings".to_string(),
+            VcApiV1::MeetingSubscription => "/open-apis/vc/v1/meetings/subscription".to_string(),
+            VcApiV1::MeetingUnsubscription => {
+                "/open-apis/vc/v1/meetings/unsubscription".to_string()
+            }
             VcApiV1::MeetingRecordingGet(meeting_id, recording_id) => {
                 format!("/open-apis/vc/v1/meetings/{meeting_id}/recordings/{recording_id}")
             }
@@ -850,6 +862,8 @@ mod tests {
             VcApiV1::MeetingEnd("id1".to_string()).to_url(),
             VcApiV1::MeetingSetHost("id1".to_string()).to_url(),
             VcApiV1::MeetingList.to_url(),
+            VcApiV1::MeetingSubscription.to_url(),
+            VcApiV1::MeetingUnsubscription.to_url(),
             VcApiV1::MeetingRecordingGet("id1".to_string(), "id2".to_string()).to_url(),
             VcApiV1::MeetingRecordingList("id1".to_string()).to_url(),
             VcApiV1::MeetingRecordingStart("id1".to_string()).to_url(),

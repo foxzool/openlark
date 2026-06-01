@@ -1120,4 +1120,25 @@ mod tests {
             assert_eq!(api.to_url(), expected);
         }
     }
+
+    #[test]
+    fn issue_194_workflow_new_endpoint_paths() {
+        assert_eq!(
+            crate::common::BoardV1Endpoint::WhiteboardNodeBatchDelete("board_123".to_string())
+                .to_url(),
+            "/open-apis/board/v1/whiteboards/board_123/nodes/batch_delete"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::TaskSetAncestorTask("task_123".to_string()).to_url(),
+            "/open-apis/task/v2/tasks/task_123/set_ancestor_task"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::ListRelatedTask.to_url(),
+            "/open-apis/task/v2/task_v2/list_related_task"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::TaskSubscription.to_url(),
+            "/open-apis/task/v2/task_v2/task_subscription"
+        );
+    }
 }

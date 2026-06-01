@@ -15,9 +15,11 @@ pub use download_as_image::{
 };
 // node 模块显式导出
 pub use node::{
-    CreatePlantumlNodeBodyV1, CreatePlantumlNodeRequestV1, CreatePlantumlNodeResponseV1,
-    CreateWhiteboardNodeBodyV1, CreateWhiteboardNodeRequestV1, CreateWhiteboardNodeResponseV1,
-    ListWhiteboardNodeRequestV1, ListWhiteboardNodeResponseV1, NodePosition, WhiteboardNode,
+    BatchDeleteWhiteboardNodeBodyV1, BatchDeleteWhiteboardNodeRequestV1,
+    BatchDeleteWhiteboardNodeResponseV1, CreatePlantumlNodeBodyV1, CreatePlantumlNodeRequestV1,
+    CreatePlantumlNodeResponseV1, CreateWhiteboardNodeBodyV1, CreateWhiteboardNodeRequestV1,
+    CreateWhiteboardNodeResponseV1, ListWhiteboardNodeRequestV1, ListWhiteboardNodeResponseV1,
+    NodePosition, WhiteboardNode,
 };
 // theme 模块显式导出
 pub use theme::{GetWhiteboardThemeRequestV1, GetWhiteboardThemeResponseV1, WhiteboardTheme};

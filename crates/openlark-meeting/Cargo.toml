@@ -49,5 +49,8 @@ async-trait = { workspace = true }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+
 [package.metadata.cargo-machete]
 ignored = ["anyhow", "async-trait", "chrono", "thiserror", "uuid"]

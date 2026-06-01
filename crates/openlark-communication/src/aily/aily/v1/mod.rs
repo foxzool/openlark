@@ -4,3 +4,4 @@
 
 pub mod aily_session;
 pub mod app;
+pub mod tenant;

@@ -4,9 +4,15 @@
 pub mod api_endpoints;
 /// 工作流 API 通用辅助函数。
 pub mod api_utils;
+/// Board v1 新增端点。
+pub mod board_v1_endpoints;
+/// Task v2 新增端点。
+pub mod task_v2_endpoints;
 
 // 重新导出API端点枚举
 pub use api_endpoints::TaskApiV2;
+pub use board_v1_endpoints::BoardV1Endpoint;
+pub use task_v2_endpoints::TaskV2Endpoint;
 
 /// 通用常量定义
 pub mod constants {
@@ -37,6 +43,7 @@ pub mod types {
 mod tests {
     use super::constants;
     use super::types;
+    use super::{board_v1_endpoints::BoardV1Endpoint, task_v2_endpoints::TaskV2Endpoint};
 
     #[test]
     fn test_default_page_size() {
@@ -82,5 +89,25 @@ mod tests {
     fn test_attachment_guid_type() {
         let guid: types::AttachmentGuid = "test_attachment".to_string();
         assert_eq!(guid, "test_attachment");
+    }
+
+    #[test]
+    fn issue_194_split_endpoint_paths() {
+        assert_eq!(
+            BoardV1Endpoint::WhiteboardNodeBatchDelete("board_123".to_string()).to_url(),
+            "/open-apis/board/v1/whiteboards/board_123/nodes/batch_delete"
+        );
+        assert_eq!(
+            TaskV2Endpoint::TaskSetAncestorTask("task_123".to_string()).to_url(),
+            "/open-apis/task/v2/tasks/task_123/set_ancestor_task"
+        );
+        assert_eq!(
+            TaskV2Endpoint::ListRelatedTask.to_url(),
+            "/open-apis/task/v2/task_v2/list_related_task"
+        );
+        assert_eq!(
+            TaskV2Endpoint::TaskSubscription.to_url(),
+            "/open-apis/task/v2/task_v2/task_subscription"
+        );
     }
 }

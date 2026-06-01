@@ -24,6 +24,11 @@ impl SparkV1 {
     pub fn directory(&self) -> directory::SparkDirectoryService {
         directory::SparkDirectoryService::new(self.config.clone())
     }
+
+    /// app 资源
+    pub fn app(&self) -> app::SparkAppService {
+        app::SparkAppService::new(self.config.clone())
+    }
 }
 
 #[cfg(test)]
@@ -38,5 +43,15 @@ mod tests {
             .build();
         let api = SparkV1::new(std::sync::Arc::new(config));
         let _ = api.directory();
+    }
+
+    #[test]
+    fn spark_app_issue_194_app_access() {
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
+        let api = SparkV1::new(std::sync::Arc::new(config));
+        let _ = api.app();
     }
 }

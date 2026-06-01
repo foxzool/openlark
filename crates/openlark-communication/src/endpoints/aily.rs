@@ -42,6 +42,9 @@ pub const AILY_V1_UPLOAD_FILE: &str = "/open-apis/aily/v1/apps/{app_id}/data_ass
 /// AILY 知识问答 v1
 pub const AILY_V1_KNOWLEDGE_ASK: &str = "/open-apis/aily/v1/apps/{app_id}/knowledges/ask";
 
+/// AILY 应用统计数据 v1
+pub const AILY_V1_APP_STATS: &str = "/open-apis/aily/v1/app_stats";
+
 /// AILY 技能管理 v1
 pub const AILY_V1_SKILLS: &str = "/open-apis/aily/v1/apps/{app_id}/skills";
 /// 端点路径常量。
@@ -63,5 +66,6 @@ mod tests {
         assert!(AILY_V1_RUN.contains("{run_id}"));
         assert!(AILY_V1_DATA_ASSETS.contains("{app_id}"));
         assert!(AILY_V1_SKILLS.contains("{app_id}"));
+        assert_eq!(AILY_V1_APP_STATS, "/open-apis/aily/v1/app_stats");
     }
 }

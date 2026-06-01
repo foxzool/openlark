@@ -5,6 +5,7 @@
 pub mod attachment;
 pub mod custom_field;
 pub mod task;
+pub mod task_v2;
 pub mod tasklist;
 pub mod section;
 pub mod comment;
@@ -26,6 +27,7 @@ pub use attachment::{DeleteAttachmentRequest, GetAttachmentRequest, ListAttachme
 // task 模块显式导出
 pub use task::{};
 pub use task::{GetTaskRequest, GetTaskTasklistsRequest, ListSubtasksRequest, ListTasksRequest};
+pub use task_v2::{ListRelatedTaskRequest, TaskSubscriptionRequest};
 // tasklist 模块显式导出
 pub use tasklist::{GetTasklistRequest, GetTasklistTasksRequest, ListTasklistsRequest};
 // section 模块显式导出

@@ -17,6 +17,8 @@ pub mod custom_field;
 pub mod section;
 /// 任务模块。
 pub mod task;
+/// task_v2 资源模块。
+pub mod task_v2;
 /// 任务清单模块。
 pub mod tasklist;
 
@@ -38,6 +40,11 @@ impl TaskV2 {
     /// 访问任务资源
     pub fn task(&self) -> task::Task {
         task::Task::new(self.config.clone())
+    }
+
+    /// 访问 task_v2 资源。
+    pub fn task_v2(&self) -> task_v2::TaskV2Resource {
+        task_v2::TaskV2Resource::new(self.config.clone())
     }
 
     /// 访问任务清单资源

@@ -383,6 +383,10 @@ impl BitableApiV1 {
 pub enum MinutesApiV1 {
     /// 获取妙记信息
     Get(String),
+    /// 订阅妙记变更事件
+    Subscription,
+    /// 取消订阅妙记变更事件
+    Unsubscription,
     /// 下载妙记音视频文件
     MediaGet(String),
     /// 导出妙记文字记录
@@ -397,6 +401,10 @@ impl MinutesApiV1 {
         match self {
             MinutesApiV1::Get(minute_token) => {
                 format!("/open-apis/minutes/v1/minutes/{minute_token}")
+            }
+            MinutesApiV1::Subscription => "/open-apis/minutes/v1/minutes/subscription".to_string(),
+            MinutesApiV1::Unsubscription => {
+                "/open-apis/minutes/v1/minutes/unsubscription".to_string()
             }
             MinutesApiV1::MediaGet(minute_token) => {
                 format!("/open-apis/minutes/v1/minutes/{minute_token}/media")
@@ -2308,6 +2316,18 @@ mod tests {
         assert_eq!(
             endpoint.to_url(),
             "/open-apis/minutes/v1/minutes/minute_token_123/statistics"
+        );
+    }
+
+    #[test]
+    fn minute_subscription_issue_194_endpoints() {
+        assert_eq!(
+            MinutesApiV1::Subscription.to_url(),
+            "/open-apis/minutes/v1/minutes/subscription"
+        );
+        assert_eq!(
+            MinutesApiV1::Unsubscription.to_url(),
+            "/open-apis/minutes/v1/minutes/unsubscription"
         );
     }
 
