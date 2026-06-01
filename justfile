@@ -85,11 +85,10 @@ coverage-check:
   @echo "📊 Running coverage with threshold check..."
   just coverage
   @echo "🔍 Checking coverage threshold..."
-  @cargo llvm-cov report --summary-only | tail -1 | awk '{ \
-    gsub(/%/, "", $$7); \
-    cov = $$7; \
+  @cargo llvm-cov report --summary-only | tail -1 | awk -v min="${MIN_COVERAGE:-54.0}" '{ \
+    gsub(/%/, "", $7); \
+    cov = $7; \
     printf "📊 Coverage: %s%%\n", cov; \
-    min = "${MIN_COVERAGE:-54.0}"; \
     if (cov+0 >= min+0) { \
       print "✅ Coverage " cov "% >= threshold " min "%"; \
     } else { \
@@ -161,7 +160,7 @@ release VERSION:
     echo "⚠️  Warning: You are not on the main branch (current: $(git branch --show-current))"; \
     read -p "Continue anyway? (y/N): " -n 1 -r; \
     echo; \
-    if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
       echo "ℹ️  Aborting release"; \
       exit 1; \
     fi; \
@@ -179,15 +178,15 @@ release VERSION:
   git pull origin main
   
   # Check if tag already exists
-  @if git tag -l | grep -q "^v{{VERSION}}$$"; then \
+  @if git tag -l | grep -q "^v{{VERSION}}$"; then \
     echo "❌ Tag v{{VERSION}} already exists"; \
     exit 1; \
   fi
   
   # Verify version in Cargo.toml
-  @CARGO_VERSION=$$(grep '^version = ' Cargo.toml | cut -d'"' -f2); \
-  if [ "$$CARGO_VERSION" != "{{VERSION}}" ]; then \
-    echo "❌ Version mismatch: Cargo.toml has $$CARGO_VERSION, but you specified {{VERSION}}"; \
+  @CARGO_VERSION=$(grep '^version = ' Cargo.toml | cut -d'"' -f2); \
+  if [ "$CARGO_VERSION" != "{{VERSION}}" ]; then \
+    echo "❌ Version mismatch: Cargo.toml has $CARGO_VERSION, but you specified {{VERSION}}"; \
     echo "ℹ️  Please update Cargo.toml first"; \
     exit 1; \
   fi
@@ -202,7 +201,7 @@ release VERSION:
     echo "ℹ️  Please update CHANGELOG.md before releasing"; \
     read -p "Continue anyway? (y/N): " -n 1 -r; \
     echo; \
-    if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
       echo "ℹ️  Aborting release"; \
       exit 1; \
     fi; \
