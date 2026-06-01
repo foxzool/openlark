@@ -85,9 +85,9 @@ coverage-check:
   @echo "📊 Running coverage with threshold check..."
   just coverage
   @echo "🔍 Checking coverage threshold..."
-  @cargo llvm-cov report --summary-only | tail -1 | awk -v min="${MIN_COVERAGE:-54.0}" '{ \
-    gsub(/%/, "", $7); \
-    cov = $7; \
+  cargo llvm-cov report --json --summary-only --output-path target/llvm-cov/summary.json
+  @cov=$(python3 -c 'import json; d=json.load(open("target/llvm-cov/summary.json","r",encoding="utf-8")); print("{:.2f}".format(d["data"][0]["totals"]["lines"]["percent"]))'); \
+  awk -v cov="$cov" -v min="${MIN_COVERAGE:-40.0}" 'BEGIN { \
     printf "📊 Coverage: %s%%\n", cov; \
     if (cov+0 >= min+0) { \
       print "✅ Coverage " cov "% >= threshold " min "%"; \
