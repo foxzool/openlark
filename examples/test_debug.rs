@@ -1,21 +1,24 @@
+#![allow(deprecated, missing_docs)]
+
 use openlark_client::config::Config as ClientConfig;
 use openlark_core::config::Config;
 
-fn main() {
-    // Test core Config Debug
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let core_config = Config::builder()
         .app_id("test_app_id")
         .app_secret("secret_app_secret_12345")
         .build();
-    println!("Core Config: {:?}", core_config);
+    println!("Core Config (recommended): {:?}", core_config);
 
-    // Test client Config Debug
     let client_config = ClientConfig::builder()
         .app_id("test_app_id")
         .app_secret("secret_app_secret_12345")
-        .build()
-        .unwrap();
-    println!("Client Config: {:?}", client_config);
+        .build()?;
+    println!(
+        "Client Config (deprecated compatibility): {:?}",
+        client_config
+    );
 
     println!("Debug output successfully masks secrets!");
+    Ok(())
 }

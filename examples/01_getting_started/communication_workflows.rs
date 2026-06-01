@@ -21,7 +21,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let client = Client::from_env()?;
 
     println!("Communication / Workflow 任务流示例");
-    println!("当前 app_id: {}", client.config().app_id);
+    println!("当前 app_id: {}", client.config().app_id());
 
     communication_dispatch_flow(&client).await?;
     workflow_execution_flow(&client).await?;

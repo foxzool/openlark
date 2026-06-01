@@ -2,7 +2,7 @@
 //!
 //! 提供灵活的配置系统，支持环境变量、验证和默认值
 
-#![allow(deprecated)]  // Config 自身已标记 deprecated，内部方法允许使用
+#![allow(deprecated)] // Config 自身已标记 deprecated，内部方法允许使用
 
 use crate::Result;
 use std::time::Duration;
@@ -11,7 +11,7 @@ use openlark_core::config::Config as CoreConfig;
 use openlark_core::constants::AppType;
 
 /// Check if the base_url points to a known Lark/Feishu domain
-fn is_known_base_url(url: &str) -> bool {
+pub(crate) fn is_known_base_url(url: &str) -> bool {
     let allowed_suffixes = ["feishu.cn", "larksuite.com", "larkoffice.com"];
     // Parse URL, extract host, check suffix
     if let Ok(parsed) = url::Url::parse(url)
@@ -28,8 +28,8 @@ fn is_known_base_url(url: &str) -> bool {
 ///
 /// 支持从环境变量自动加载配置
 ///
-/// > **注意**: 此类型计划在 v0.17 中与 `openlark_core::config::Config` 合并。
-/// > 推荐直接使用 `Client::builder()` 或 `openlark_core::config::Config`。
+/// > **注意**: 此类型已进入迁移期。
+/// > 推荐直接使用 `Client::builder()`、`Client::with_core_config()` 或 `openlark_core::config::Config`。
 ///
 /// # 环境变量
 /// - `OPENLARK_APP_ID`: 应用ID（必需）

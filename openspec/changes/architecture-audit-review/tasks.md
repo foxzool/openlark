@@ -16,9 +16,9 @@
 
 ## 3. 业务 crate Client 类型命名统一
 
-- [x] 3.1 制定命名规范文档：所有业务 crate 导出 `XxxClient` struct（非 type alias、非 Arc 包装）
+- [x] 3.1 制定命名规范文档：所有业务 crate 导出 `XxxClient` 类型（struct 或兼容性 type alias，非 Arc 包装）
 - [x] 3.2 将 `SecurityClient` 从 `Arc<SecurityServices>` 改为独立 struct（内部持有 Arc）
-- [x] 3.3 统一 `WorkflowClient`、`PlatformClient` 等从 type alias 改为正式 struct
+- [x] 3.3 统一 `WorkflowClient`、`PlatformClient` 等对外导出 `XxxClient` 类型名称
 - [x] 3.4 更新 `openlark-client/src/lib.rs` 中的对应 re-export
 - [x] 3.5 运行 `cargo test --workspace` 确认所有业务 crate 测试通过
 
@@ -26,36 +26,30 @@
 
 - [x] 4.1 将 `openlark_client::Config` 标记为 `#[deprecated(since = "0.17.0")]`
 - [x] 4.2 扩展 `openlark_core::config::Config::builder()` 支持 `enable_log`、`retry_count` 等原属 client Config 的选项
-- [x] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config
+- [x] 4.3 修改 `Client::builder()` 内部直接构建 `CoreConfig`，不再依赖 client Config，并提供 `Client::with_core_config()`
 - [x] 4.4 移除 Client 中 `config: Arc<Config>` 字段，仅保留 `core_config`
 - [x] 4.5 更新 `Client::config()` 返回 `&openlark_core::config::Config`
 - [x] 4.6 运行 `cargo test --workspace` 确认无破坏
 
-## 5. ServiceRegistry 宏化改造 <!-- DEFERRED: v0.18, separate PR -->
+## 5. ServiceRegistry 宏化改造
 
-- [ ] 5.1 设计声明宏 `register_service!` 的接口（name, feature, client_type, constructor）
-- [ ] 5.2 在 `openlark-client/src/client.rs` 中定义宏注册表，替代手动 `#[cfg(feature)]` 块
-- [ ] 5.3 使用宏重新生成 `Client` 结构体的 feature-gated 字段
-- [ ] 5.4 使用宏重新生成 `Client::with_config()` 中的初始化代码
-- [ ] 5.5 简化 `registry/bootstrap.rs`，由宏自动生成注册调用
-- [ ] 5.6 确认所有 feature 组合（essential, enterprise, full）编译通过
-- [ ] 5.7 运行 `cargo test --workspace` 确认所有测试通过
+- [x] 5.1 设计并落地 registry 元信息声明宏（feature, name, dependencies, provides, priority）
+- [x] 5.2 在 `openlark-client/src/client.rs` 中定义业务 client 初始化宏，替代手动 `#[cfg(feature)]` 块
+- [x] 5.3 使用宏重新生成 `Client` 结构体的 feature-gated 字段
+- [x] 5.4 使用宏重新生成 `Client::with_config()` 中的初始化代码
+- [x] 5.5 简化 `registry/bootstrap.rs`，由宏自动生成注册调用
+- [x] 5.6 确认所有 feature 组合（essential, enterprise, full）编译通过
+- [x] 5.7 运行 `cargo test --workspace` 确认所有测试通过
 
-## 6. HTTP 中间件层（v0.18 延迟实施）<!-- DEFERRED: v0.18, separate PR -->
+## 6. 后续架构事项（独立 change 跟踪）
 
-- [ ] 6.1 评估 `tower` vs 自定义 trait 中间件方案的编译时间和运行时开销
-- [ ] 6.2 定义 `Middleware` trait（async fn process）
-- [ ] 6.3 实现 `RetryMiddleware`（指数退避，覆盖当前 Transport 中的硬编码逻辑）
-- [ ] 6.4 实现 `RateLimitMiddleware`（429 Retry-After 感知）
-- [ ] 6.5 实现 `LoggingMiddleware`（tracing span 集成）
-- [ ] 6.6 改造 Transport 支持中间件管道注入
-- [ ] 6.7 添加性能基准测试（criterion），对比中间件 vs 直接调用的开销
-- [ ] 6.8 运行 `cargo test --workspace` 确认所有测试通过
+- [x] 6.1 在 design 中明确 HTTP middleware/layer 延迟到 v0.18+ 独立 change，当前 change 不引入 Transport 行为变化
+- [x] 6.2 在 design 中记录 `ApiRequest<R>` 类型约束复核为后续 core API 设计项
 
 ## 7. 文档与迁移
 
 - [x] 7.1 编写 CHANGELOG 条目，记录所有破坏性变更和迁移路径
-- [ ] 7.2 更新 `examples/` 中的代码，确保使用新 API
-- [ ] 7.3 更新 `README.md` 中的快速开始代码示例
+- [x] 7.2 更新 `examples/` 中的代码，确保使用新 API
+- [x] 7.3 更新 `README.md` 中的快速开始代码示例
 - [x] 7.4 更新 `AGENTS.md` 中的架构说明
-- [x] 7.5 运行 `cargo doc --workspace --all-features` 确认文档生成无警告
+- [x] 7.5 运行 `cargo doc --workspace --all-features --no-deps` 确认文档可生成；现有生成型业务 API 文档仍有 `rustdoc::bare_urls` warning，后续单独清理

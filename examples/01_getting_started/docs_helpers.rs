@@ -1,6 +1,6 @@
 //! 文档 helper 示例
 //!
-//! 演示 `openlark` 根 crate 在 `0.16.0` 中提供的通用 docs helper：
+//! 演示 `openlark` 根 crate 在 `0.17.0` 中提供的通用 docs helper：
 //! - 文件夹自动分页遍历
 //! - 文件夹 typed pagination helper
 //! - Drive 文件上传/下载 helper
@@ -26,7 +26,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let client = Client::from_env()?;
 
     println!("docs helper 示例");
-    println!("当前 app_id: {}", client.config().app_id);
+    println!("当前 app_id: {}", client.config().app_id());
 
     if let Ok(folder_token) = std::env::var("OPENLARK_FOLDER_TOKEN") {
         let mut pager = client

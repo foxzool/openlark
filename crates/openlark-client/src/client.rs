@@ -2,12 +2,25 @@
 //!
 //! 极简设计：仅保留 meta 链式字段访问（单入口，KISS）
 
+#[macro_use]
+mod macros;
+
+mod builder;
+mod error_handling;
+#[cfg(test)]
+mod tests;
+
+pub use builder::ClientBuilder;
+pub use error_handling::ClientErrorHandling;
+
+#[allow(deprecated)]
+use crate::Config;
 use crate::{
-    Config, DefaultServiceRegistry, Result,
+    DefaultServiceRegistry, Result,
+    client_build_config::{ClientBuildConfig, validate_core_config},
     error::{with_context, with_operation_context},
     traits::LarkClient,
 };
-use openlark_core::error::ErrorTrait;
 use std::sync::Arc;
 
 /// 🔐 认证 meta 入口：`client.auth.app / client.auth.user / client.auth.oauth`
@@ -33,122 +46,147 @@ impl AuthClient {
     }
 }
 
-/// 🚀 OpenLark客户端 - 极简设计
-///
-/// # 特性
-/// - 零配置启动：`Client::from_env()`
-/// - 单入口：meta 链式字段访问（`client.docs/...`）
-/// - 编译时feature优化
-/// - 高性能异步
-/// - 现代化错误处理
-///
-/// # 示例
-/// ```rust,no_run
-/// use openlark_client::prelude::*;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///     // 从环境变量创建客户端
-///     let client = Client::from_env()?;
-///
-///     // meta 链式入口（需要对应 feature）
-///     // - 通讯：client.communication.im...
-///     // - 文档：client.docs.ccm...
-///     // - 认证：client.auth.app / client.auth.user / client.auth.oauth
-///
-///     Ok(())
-/// }
-/// ```
-#[derive(Clone)]
-pub struct Client {
-    /// 服务注册表
-    registry: Arc<DefaultServiceRegistry>,
-    /// 统一配置（Arc 零拷贝共享，供所有 meta client 复用）
-    config: openlark_core::config::Config,
-
-    /// CardKit meta 调用链：client.cardkit.v1.card.create(...)
-    #[cfg(feature = "cardkit")]
-    pub cardkit: openlark_cardkit::CardkitClient,
-
-    /// Auth meta 调用链入口：client.auth.app / client.auth.user / client.auth.oauth
-    #[cfg(feature = "auth")]
-    pub auth: AuthClient,
-
-    /// Docs meta 调用链入口：client.docs.ccm / client.docs.base ...
-    #[cfg(feature = "docs")]
-    pub docs: openlark_docs::DocsClient,
-
-    /// Communication meta 调用链入口：client.communication.im / client.communication.contact ...
-    #[cfg(feature = "communication")]
-    pub communication: openlark_communication::CommunicationClient,
-
-    /// HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...
-    #[cfg(feature = "hr")]
-    pub hr: openlark_hr::HrClient,
-
-    /// Meeting meta 调用链入口：client.meeting.vc.v1.room.create() ...
-    #[cfg(feature = "meeting")]
-    pub meeting: openlark_meeting::MeetingClient,
-
-    /// AI meta 调用链入口：client.ai.chat.create() ...
-    #[cfg(feature = "ai")]
-    pub ai: openlark_ai::AiClient,
-
-    /// Workflow meta 调用链入口：client.workflow.task.create() ...
-    #[cfg(feature = "workflow")]
-    pub workflow: crate::WorkflowClient,
-
-    /// Platform meta 调用链入口：client.platform.app_engine... ...
-    #[cfg(feature = "platform")]
-    pub platform: crate::PlatformClient,
-
-    /// Application meta 调用链入口：client.application.applet... ...
-    #[cfg(feature = "application")]
-    pub application: crate::ApplicationClient,
-
-    /// Helpdesk meta 调用链入口：client.helpdesk.ticket... ...
-    #[cfg(feature = "helpdesk")]
-    pub helpdesk: crate::HelpdeskClient,
-
-    /// Mail meta 调用链入口：client.mail.group... ...
-    #[cfg(feature = "mail")]
-    pub mail: crate::MailClient,
-
-    /// Analytics meta 调用链入口：client.analytics.report... ...
-    #[cfg(feature = "analytics")]
-    pub analytics: crate::AnalyticsClient,
-
-    /// User meta 调用链入口：client.user.setting... ...
-    #[cfg(feature = "user")]
-    pub user: crate::UserClient,
-
-    /// Security meta 调用链入口：client.security.acs... ...
-    #[cfg(feature = "security")]
-    pub security: crate::SecurityClient,
-}
-
-impl std::fmt::Debug for Client {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Client")
-            .field("config", &"<CoreConfig>")
-            .field("registry", &"<Registry>")
-            .field("cardkit", &cfg!(feature = "cardkit"))
-            .field("auth", &cfg!(feature = "auth"))
-            .field("docs", &cfg!(feature = "docs"))
-            .field("communication", &cfg!(feature = "communication"))
-            .field("hr", &cfg!(feature = "hr"))
-            .field("meeting", &cfg!(feature = "meeting"))
-            .field("ai", &cfg!(feature = "ai"))
-            .field("workflow", &cfg!(feature = "workflow"))
-            .field("platform", &cfg!(feature = "platform"))
-            .field("application", &cfg!(feature = "application"))
-            .field("helpdesk", &cfg!(feature = "helpdesk"))
-            .field("mail", &cfg!(feature = "mail"))
-            .field("analytics", &cfg!(feature = "analytics"))
-            .field("user", &cfg!(feature = "user"))
-            .field("security", &cfg!(feature = "security"))
-            .finish()
-    }
+declare_client! {
+    {
+        feature: "cardkit",
+        field: cardkit,
+        ty: openlark_cardkit::CardkitClient,
+        doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
+        init: |_core_config, _base_core_config| {
+            openlark_cardkit::CardkitClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "auth",
+        field: auth,
+        ty: AuthClient,
+        doc: "Auth meta 调用链入口：client.auth.app / client.auth.user / client.auth.oauth",
+        init: |_core_config, _base_core_config| {
+            AuthClient::new(_base_core_config.clone())
+        },
+    },
+    {
+        feature: "docs",
+        field: docs,
+        ty: openlark_docs::DocsClient,
+        doc: "Docs meta 调用链入口：client.docs.ccm / client.docs.base ...",
+        init: |_core_config, _base_core_config| {
+            openlark_docs::DocsClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "communication",
+        field: communication,
+        ty: openlark_communication::CommunicationClient,
+        doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
+        init: |_core_config, _base_core_config| {
+            openlark_communication::CommunicationClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "hr",
+        field: hr,
+        ty: openlark_hr::HrClient,
+        doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
+        init: |_core_config, _base_core_config| {
+            openlark_hr::HrClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "meeting",
+        field: meeting,
+        ty: openlark_meeting::MeetingClient,
+        doc: "Meeting meta 调用链入口：client.meeting.vc.v1.room.create() ...",
+        init: |_core_config, _base_core_config| {
+            openlark_meeting::MeetingClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "ai",
+        field: ai,
+        ty: openlark_ai::AiClient,
+        doc: "AI meta 调用链入口：client.ai.chat.create() ...",
+        init: |_core_config, _base_core_config| {
+            openlark_ai::AiClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "workflow",
+        field: workflow,
+        ty: crate::WorkflowClient,
+        doc: "Workflow meta 调用链入口：client.workflow.task.create() ...",
+        init: |_core_config, _base_core_config| {
+            crate::WorkflowClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "platform",
+        field: platform,
+        ty: crate::PlatformClient,
+        doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
+        init: |_core_config, _base_core_config| {
+            crate::PlatformClient::new(_core_config.clone())?
+        },
+    },
+    {
+        feature: "application",
+        field: application,
+        ty: crate::ApplicationClient,
+        doc: "Application meta 调用链入口：client.application.applet... ...",
+        init: |_core_config, _base_core_config| {
+            crate::ApplicationClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "helpdesk",
+        field: helpdesk,
+        ty: crate::HelpdeskClient,
+        doc: "Helpdesk meta 调用链入口：client.helpdesk.ticket... ...",
+        init: |_core_config, _base_core_config| {
+            crate::HelpdeskClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "mail",
+        field: mail,
+        ty: crate::MailClient,
+        doc: "Mail meta 调用链入口：client.mail.group... ...",
+        init: |_core_config, _base_core_config| {
+            crate::MailClient::new(_core_config.clone())
+        },
+    },
+    {
+        feature: "analytics",
+        field: analytics,
+        ty: crate::AnalyticsClient,
+        doc: "Analytics meta 调用链入口：client.analytics.report... ...",
+        init: |_core_config, _base_core_config| {
+            crate::AnalyticsClient::new(_core_config.clone())?
+        },
+    },
+    {
+        feature: "user",
+        field: user,
+        ty: crate::UserClient,
+        doc: "User meta 调用链入口：client.user.setting... ...",
+        init: |_core_config, _base_core_config| {
+            crate::UserClient::new(_core_config.clone())?
+        },
+    },
+    {
+        feature: "security",
+        field: security,
+        ty: crate::SecurityClient,
+        doc: "Security meta 调用链入口：client.security.acs... ...",
+        init: |_core_config, _base_core_config| {
+            let security_config = openlark_security::models::SecurityConfig::new(
+                _core_config.app_id().to_string(),
+                _core_config.app_secret().to_string(),
+            )
+            .with_base_url(_core_config.base_url());
+            openlark_security::SecurityClient::new(security_config)
+        },
+    },
 }
 
 impl Client {
@@ -212,116 +250,47 @@ impl Client {
     }
 
     /// 🆕 创建带有自定义配置的客户端
+    #[allow(deprecated)]
     pub fn with_config(config: Config) -> Result<Self> {
-        let validation_result = config.validate();
-        if let Err(err) = validation_result {
+        let build_config = ClientBuildConfig::from(config);
+        if let Err(err) = build_config.validate() {
             return with_context(Err(err), "operation", "Client::with_config");
         }
 
+        Self::with_validated_core_config(build_config.build_core_config(), "Client::with_config")
+    }
+
+    /// 🆕 使用统一 CoreConfig 创建客户端
+    pub fn with_core_config(config: openlark_core::config::Config) -> Result<Self> {
+        if let Err(err) = validate_core_config(&config) {
+            return with_context(Err(err), "operation", "Client::with_core_config");
+        }
+
+        Self::with_validated_core_config(config, "Client::with_core_config")
+    }
+
+    pub(crate) fn with_validated_core_config(
+        base_core_config: openlark_core::config::Config,
+        operation: &str,
+    ) -> Result<Self> {
         let mut registry = DefaultServiceRegistry::new();
 
-        // 加载启用的服务
         if let Err(err) = crate::registry::bootstrap::register_compiled_services(&mut registry) {
-            return with_operation_context(Err(err), "Client::with_config", "service_loading");
+            return with_operation_context(Err(err), operation, "service_loading");
         }
 
         let registry = Arc::new(registry);
 
-        // 从 client Config 构建 core Config（统一配置入口）
         #[cfg(feature = "auth")]
-        let base_core_config = config.build_core_config();
-        #[cfg(feature = "auth")]
-        let core_config = config
-            .build_core_config_with_token_provider();
-        #[cfg(not(feature = "auth"))]
-        let core_config = config.build_core_config();
-
-        #[cfg(feature = "cardkit")]
-        let cardkit = openlark_cardkit::CardkitClient::new(core_config.clone());
-
-        #[cfg(feature = "auth")]
-        let auth = AuthClient::new(base_core_config.clone());
-
-        #[cfg(feature = "docs")]
-        let docs = openlark_docs::DocsClient::new(core_config.clone());
-
-        #[cfg(feature = "communication")]
-        let communication = openlark_communication::CommunicationClient::new(core_config.clone());
-
-        #[cfg(feature = "hr")]
-        let hr = openlark_hr::HrClient::new(core_config.clone());
-
-        #[cfg(feature = "meeting")]
-        let meeting = openlark_meeting::MeetingClient::new(core_config.clone());
-
-        #[cfg(feature = "ai")]
-        let ai = openlark_ai::AiClient::new(core_config.clone());
-
-        #[cfg(feature = "workflow")]
-        let workflow = crate::WorkflowClient::new(core_config.clone());
-
-        #[cfg(feature = "platform")]
-        let platform = crate::PlatformClient::new(core_config.clone())?;
-
-        #[cfg(feature = "application")]
-        let application = crate::ApplicationClient::new(core_config.clone());
-
-        #[cfg(feature = "helpdesk")]
-        let helpdesk = crate::HelpdeskClient::new(core_config.clone());
-
-        #[cfg(feature = "mail")]
-        let mail = crate::MailClient::new(core_config.clone());
-
-        #[cfg(feature = "analytics")]
-        let analytics = crate::AnalyticsClient::new(core_config.clone())?;
-
-        #[cfg(feature = "user")]
-        let user = crate::UserClient::new(core_config.clone())?;
-
-        #[cfg(feature = "security")]
-        let security = {
-            let security_config = openlark_security::models::SecurityConfig::new(
-                core_config.app_id().to_string(),
-                core_config.app_secret().to_string(),
-            )
-            .with_base_url(core_config.base_url());
-            openlark_security::SecurityClient::new(security_config)
+        let core_config = {
+            use openlark_auth::AuthTokenProvider;
+            let provider = AuthTokenProvider::new(base_core_config.clone());
+            base_core_config.with_token_provider(provider)
         };
+        #[cfg(not(feature = "auth"))]
+        let core_config = base_core_config.clone();
 
-        Ok(Client {
-            config: core_config.clone(),
-            registry,
-            #[cfg(feature = "cardkit")]
-            cardkit,
-            #[cfg(feature = "auth")]
-            auth,
-            #[cfg(feature = "docs")]
-            docs,
-            #[cfg(feature = "communication")]
-            communication,
-            #[cfg(feature = "hr")]
-            hr,
-            #[cfg(feature = "meeting")]
-            meeting,
-            #[cfg(feature = "ai")]
-            ai,
-            #[cfg(feature = "workflow")]
-            workflow,
-            #[cfg(feature = "platform")]
-            platform,
-            #[cfg(feature = "application")]
-            application,
-            #[cfg(feature = "helpdesk")]
-            helpdesk,
-            #[cfg(feature = "mail")]
-            mail,
-            #[cfg(feature = "analytics")]
-            analytics,
-            #[cfg(feature = "user")]
-            user,
-            #[cfg(feature = "security")]
-            security,
-        })
+        Self::from_parts(registry, base_core_config, core_config)
     }
 
     /// 🔧 执行带有错误上下文的操作
@@ -334,7 +303,6 @@ impl Client {
     }
 }
 
-// 实现LarkClient trait
 impl LarkClient for Client {
     fn config(&self) -> &openlark_core::config::Config {
         &self.config
@@ -342,354 +310,5 @@ impl LarkClient for Client {
 
     fn is_configured(&self) -> bool {
         self.is_configured()
-    }
-}
-
-/// 🏗️ 客户端构建器 - 流畅API
-///
-/// 提供链式调用的客户端构建方式
-///
-/// # 示例
-/// ```rust,no_run
-/// use openlark_client::Client;
-/// use openlark_client::Result;
-/// use std::time::Duration;
-///
-/// fn main() -> Result<()> {
-///     let _client = Client::builder()
-///         .app_id("your_app_id")
-///         .app_secret("your_app_secret")
-///         .base_url("https://open.feishu.cn")
-///         .timeout(Duration::from_secs(30))
-///         .build()?;
-///     Ok(())
-/// }
-/// ```
-#[derive(Debug, Clone)]
-pub struct ClientBuilder {
-    config: Config,
-}
-
-impl ClientBuilder {
-    /// 🆕 创建新的构建器实例
-    pub fn new() -> Self {
-        Self {
-            config: Config::default(),
-        }
-    }
-
-    /// 🆔 设置应用ID
-    pub fn app_id<S: Into<String>>(mut self, app_id: S) -> Self {
-        self.config.app_id = app_id.into();
-        self
-    }
-
-    /// 🔑 设置应用密钥
-    pub fn app_secret<S: Into<String>>(mut self, app_secret: S) -> Self {
-        self.config.app_secret = app_secret.into();
-        self
-    }
-
-    /// 🏷️ 设置应用类型（自建 / 商店）
-    pub fn app_type(mut self, app_type: openlark_core::constants::AppType) -> Self {
-        self.config.app_type = app_type;
-        self
-    }
-
-    /// 🔐 设置是否允许自动获取 token（默认 true）
-    pub fn enable_token_cache(mut self, enable: bool) -> Self {
-        self.config.enable_token_cache = enable;
-        self
-    }
-
-    /// 🌐 设置基础URL
-    pub fn base_url<S: Into<String>>(mut self, base_url: S) -> Self {
-        self.config.base_url = base_url.into();
-        self
-    }
-
-    /// ⏱️ 设置请求超时时间
-    pub fn timeout(mut self, timeout: std::time::Duration) -> Self {
-        self.config.timeout = timeout;
-        self
-    }
-
-    /// 🔄 设置重试次数
-    pub fn retry_count(mut self, retry_count: u32) -> Self {
-        self.config.retry_count = retry_count;
-        self
-    }
-
-    /// 📝 启用或禁用日志
-    pub fn enable_log(mut self, enable: bool) -> Self {
-        self.config.enable_log = enable;
-        self
-    }
-
-    /// 🌍 从环境变量加载配置
-    pub fn from_env(mut self) -> Self {
-        self.config.load_from_env();
-        self
-    }
-
-    /// 🔨 构建客户端实例
-    ///
-    /// # 返回值
-    /// 返回配置好的客户端实例或验证错误
-    ///
-    /// # 错误
-    /// 如果配置验证失败，会返回相应的错误信息，包含用户友好的恢复建议
-    pub fn build(self) -> Result<Client> {
-        let result = Client::with_config(self.config);
-        if let Err(ref error) = result {
-            tracing::error!(
-                "客户端构建失败: {}",
-                error.user_message().unwrap_or("未知错误")
-            );
-        }
-        result
-    }
-}
-
-impl Default for ClientBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Client的便利构造函数
-impl From<Config> for Result<Client> {
-    fn from(config: Config) -> Self {
-        Client::with_config(config)
-    }
-}
-
-/// 客户端错误处理扩展特征
-pub trait ClientErrorHandling {
-    /// 处理错误并添加客户端上下文
-    fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T>;
-    /// 处理异步错误并添加客户端上下文
-    async fn handle_async_error<T, F>(&self, f: F, operation: &str) -> Result<T>
-    where
-        F: std::future::Future<Output = Result<T>>;
-}
-
-impl ClientErrorHandling for Client {
-    fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T> {
-        with_operation_context(result, operation, "Client")
-    }
-
-    async fn handle_async_error<T, F>(&self, f: F, operation: &str) -> Result<T>
-    where
-        F: std::future::Future<Output = Result<T>>,
-    {
-        let result = f.await;
-        with_operation_context(result, operation, "Client")
-    }
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use super::*;
-    use openlark_core::error::ErrorTrait;
-    use std::time::Duration;
-
-    #[test]
-    fn test_client_builder() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        assert!(client.is_ok());
-    }
-
-    #[test]
-    fn test_client_config() {
-        let config = Config {
-            app_id: "test_app_id".to_string(),
-            app_secret: "test_app_secret".to_string(),
-            base_url: "https://open.feishu.cn".to_string(),
-            ..Default::default()
-        };
-
-        let client = Client::with_config(config).unwrap();
-        assert_eq!(client.config().app_id(), "test_app_id");
-        assert_eq!(client.config().app_secret(), "test_app_secret");
-        assert!(client.is_configured());
-    }
-
-    #[test]
-    fn test_client_not_configured() {
-        let config = Config {
-            app_id: String::new(),
-            app_secret: String::new(),
-            ..Default::default()
-        };
-
-        let client_result = Client::with_config(config);
-        assert!(client_result.is_err());
-
-        if let Err(error) = client_result {
-            assert!(error.is_config_error() || error.is_validation_error());
-            assert!(!error.user_message().unwrap_or("未知错误").is_empty());
-        }
-    }
-
-    #[test]
-    fn test_client_clone() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        let cloned_client = client.clone();
-        assert_eq!(client.config().app_id(), cloned_client.config().app_id());
-    }
-
-    #[cfg(feature = "cardkit")]
-    #[test]
-    fn test_cardkit_chain_exists() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        let _ = &client.cardkit.v1.card;
-    }
-
-    #[cfg(feature = "docs")]
-    #[test]
-    fn test_docs_chain_exists() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        let _ = client.docs.config();
-    }
-
-    #[cfg(feature = "communication")]
-    #[test]
-    fn test_communication_chain_exists() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        let _ = client.communication.config();
-    }
-
-    #[cfg(feature = "meeting")]
-    #[test]
-    fn test_meeting_chain_exists() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        let _ = client.meeting.config();
-    }
-
-    #[test]
-    fn test_client_error_handling() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        // 测试错误上下文处理
-        let error_result: Result<i32> =
-            Err(crate::error::validation_error("field", "validation failed"));
-        let result = client.handle_error(error_result, "test_operation");
-
-        assert!(result.is_err());
-        if let Err(error) = result {
-            assert!(error.context().has_context("operation"));
-            assert_eq!(
-                error.context().get_context("operation"),
-                Some("test_operation")
-            );
-            assert_eq!(error.context().get_context("component"), Some("Client"));
-        }
-    }
-
-    #[tokio::test]
-    async fn test_async_error_handling() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        // 测试异步错误上下文处理
-        let result = client
-            .handle_async_error(
-                async { Err::<i32, _>(crate::error::network_error("async error")) },
-                "async_test",
-            )
-            .await;
-
-        assert!(result.is_err());
-        if let Err(error) = result {
-            assert!(error.context().has_context("operation"));
-            assert_eq!(error.context().get_context("operation"), Some("async_test"));
-            assert_eq!(error.context().get_context("component"), Some("Client"));
-        }
-    }
-
-    #[test]
-    fn test_from_env_missing_vars() {
-        // 验证默认构建器未配置 app_id/app_secret 时会失败（不依赖环境变量）。
-        let builder = ClientBuilder::default();
-        let result = builder.build();
-        assert!(result.is_err()); // 没有app_id和app_secret应该失败
-    }
-
-    #[test]
-    fn test_from_app_id_string() {
-        crate::test_utils::with_env_vars(
-            &[
-                ("OPENLARK_APP_ID", Some("test_app_id")),
-                ("OPENLARK_APP_SECRET", Some("test_secret")),
-            ],
-            || {
-                let result: Result<Client> = Client::from_env();
-                assert!(result.is_ok());
-
-                if let Ok(client) = result {
-                    assert_eq!(client.config().app_id(), "test_app_id");
-                    assert_eq!(client.config().app_secret(), "test_secret");
-                }
-            },
-        );
-    }
-
-    #[test]
-    fn test_builder_default() {
-        let builder = ClientBuilder::default();
-        assert!(builder.config.app_id.is_empty());
-        assert!(builder.config.app_secret.is_empty());
-    }
-
-    #[cfg(feature = "communication")]
-    #[test]
-    fn test_communication_service_access() {
-        let client = Client::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build()
-            .unwrap();
-
-        // 单入口：meta 链式字段访问（这里只验证字段可用）
-        let _comm = &client.communication;
     }
 }

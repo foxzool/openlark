@@ -27,18 +27,22 @@ pub trait ServiceTrait: Send + Sync {
     }
 
     /// ✅ 检查服务健康状态
-    async fn health_check(&self) -> Result<bool>;
+    fn health_check(&self) -> impl std::future::Future<Output = Result<bool>> + Send + '_;
 
     /// 🔄 启动服务
-    async fn start(&self) -> Result<()> {
-        tracing::info!("服务 '{}' 启动", self.name());
-        Ok(())
+    fn start(&self) -> impl std::future::Future<Output = Result<()>> + Send + '_ {
+        async move {
+            tracing::info!("服务 '{}' 启动", self.name());
+            Ok(())
+        }
     }
 
     /// 🛑 停止服务
-    async fn stop(&self) -> Result<()> {
-        tracing::info!("服务 '{}' 停止", self.name());
-        Ok(())
+    fn stop(&self) -> impl std::future::Future<Output = Result<()>> + Send + '_ {
+        async move {
+            tracing::info!("服务 '{}' 停止", self.name());
+            Ok(())
+        }
     }
 }
 
@@ -47,27 +51,33 @@ pub trait ServiceTrait: Send + Sync {
 /// 定义服务的启动、停止和健康检查生命周期管理
 pub trait ServiceLifecycle: Send + Sync {
     /// 🚀 启动服务
-    async fn start(&self) -> Result<()> {
-        tracing::info!("服务启动");
-        Ok(())
+    fn start(&self) -> impl std::future::Future<Output = Result<()>> + Send + '_ {
+        async {
+            tracing::info!("服务启动");
+            Ok(())
+        }
     }
 
     /// 🛑 停止服务
-    async fn stop(&self) -> Result<()> {
-        tracing::info!("服务停止");
-        Ok(())
+    fn stop(&self) -> impl std::future::Future<Output = Result<()>> + Send + '_ {
+        async {
+            tracing::info!("服务停止");
+            Ok(())
+        }
     }
 
     /// 🔄 重启服务
-    async fn restart(&self) -> Result<()> {
-        tracing::info!("服务重启");
-        self.stop().await?;
-        self.start().await
+    fn restart(&self) -> impl std::future::Future<Output = Result<()>> + Send + '_ {
+        async {
+            tracing::info!("服务重启");
+            self.stop().await?;
+            self.start().await
+        }
     }
 
     /// ✅ 健康检查
-    async fn health_check(&self) -> Result<bool> {
-        Ok(true)
+    fn health_check(&self) -> impl std::future::Future<Output = Result<bool>> + Send + '_ {
+        std::future::ready(Ok(true))
     }
 }
 
@@ -85,8 +95,8 @@ mod tests {
             self.name
         }
 
-        async fn health_check(&self) -> Result<bool> {
-            Ok(true)
+        fn health_check(&self) -> impl std::future::Future<Output = Result<bool>> + Send + '_ {
+            std::future::ready(Ok(true))
         }
     }
 

@@ -165,7 +165,9 @@ pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
 
 /// 预导出模块
 pub mod prelude {
-    pub use super::{AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult, SecurityServices};
+    pub use super::{
+        AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult, SecurityServices,
+    };
 
     // 避免v1命名空间冲突，明确导出需要的类型
     pub use super::models::*;

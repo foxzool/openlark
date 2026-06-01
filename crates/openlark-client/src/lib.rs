@@ -236,10 +236,10 @@
 //! ```
 
 //#![deny(missing_docs)]  // 暂时禁用以完成基本编译
-#![allow(deprecated)]  // 内部使用 Config（已标记 deprecated，v0.17 统一后移除）
 
 // 核心模块
 pub mod client;
+mod client_build_config;
 pub mod config;
 pub mod error;
 pub mod features;
@@ -273,6 +273,7 @@ pub mod ws_client;
 
 // 客户端和配置
 pub use client::{Client, ClientBuilder};
+#[allow(deprecated)]
 pub use config::Config;
 
 // 企业级错误处理系统 - 基于 CoreError
@@ -408,7 +409,7 @@ pub mod prelude {
     // ============================================================================
 
     // 客户端和配置
-    pub use crate::{Client, ClientBuilder, Config};
+    pub use crate::{Client, ClientBuilder};
 
     // 企业级错误处理系统
     pub use crate::{Error, Result};
@@ -547,6 +548,7 @@ pub mod info {
 pub mod utils;
 
 #[cfg(test)]
+#[allow(deprecated)]
 #[allow(unused_imports)]
 mod tests {
     use super::*;
@@ -574,7 +576,10 @@ mod tests {
         let _builder: ClientBuilder = ClientBuilder::new();
 
         // 测试配置创建
-        let _config = Config::builder().app_id("test").app_secret("test").build();
+        let _config = CoreConfig::builder()
+            .app_id("test")
+            .app_secret("test")
+            .build();
     }
 
     #[test]

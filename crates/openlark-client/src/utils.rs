@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use crate::config::ConfigSummary;
 use crate::{Config, Result, configuration_error, validation_error, with_context};
 use openlark_core::error::ErrorTrait;

@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! openlark = { version = "0.16.0", default-features = false, features = ["auth", "docs-drive", "docs-bitable", "webhook-signature"] }
+//! openlark = { version = "0.17.0", default-features = false, features = ["auth", "docs-drive", "docs-bitable", "webhook-signature"] }
 //! ```
 //!
 //! - 统一客户端入口：[`Client`]
@@ -22,13 +22,14 @@
 
 // 允许测试模块中的未使用导入（测试桩代码常见模式）
 #![allow(unused_imports)]
-#![allow(deprecated)]  // Config 已标记 deprecated，待 v0.17 统一后移除
 
 // ============================================================================
 // 核心类型导出
 // ============================================================================
 
-pub use openlark_client::{Client, ClientBuilder, Config, Error, Result};
+#[allow(deprecated)]
+pub use openlark_client::Config;
+pub use openlark_client::{Client, ClientBuilder, Error, Result};
 pub use openlark_core::SDKResult;
 pub use openlark_core::config::Config as CoreConfig;
 pub use openlark_core::error::{CoreError, ErrorCode, ErrorSeverity, ErrorTrait, ErrorType};
@@ -113,7 +114,7 @@ pub use openlark_cardkit as cardkit;
 /// registry / feature loader / traits 等高级客户端层能力保留在 `openlark-client`。
 pub mod prelude {
     pub use crate::SDKResult;
-    pub use crate::{Client, ClientBuilder, Config, CoreConfig, Error, Result};
+    pub use crate::{Client, ClientBuilder, CoreConfig, Error, Result};
     pub use crate::{CoreError, ErrorCode, ErrorSeverity, ErrorTrait, ErrorType, RequestOption};
     pub use openlark_core::prelude::*;
 }
@@ -134,11 +135,10 @@ mod tests {
         use crate::prelude::*;
 
         let _builder: ClientBuilder = Client::builder();
-        let _config: Config = Config::builder()
+        let _config: CoreConfig = CoreConfig::builder()
             .app_id("test_app")
             .app_secret("test_secret")
-            .build()
-            .expect("test config should build");
+            .build();
         let _request_option: Option<RequestOption> = None;
     }
 

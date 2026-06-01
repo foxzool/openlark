@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`AuthClient`, `DocsClient`, `HrClient`, etc.). Use `client.auth`, `client.docs`,
   `client.hr` field access instead.
 - **Cleaned** root `prelude` — no longer exports deprecated `*Client` aliases
+- **Cleaned** root and `openlark-client` preludes — no longer export deprecated
+  `openlark_client::Config`; use `CoreConfig` or `Client::builder()` instead.
 - **`Client.config()` now returns `&openlark_core::config::Config`** (was `&openlark_client::Config`).
   Access fields via methods: `client.config().app_id()`, `client.config().base_url()`, etc.
 - **Migration**: Replace `use open_lark::AuthClient` → access via `client.auth` field
@@ -23,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-- `openlark_client::Config` — will be merged into `openlark_core::config::Config`
-  in v0.17. Use `Client::builder()` or `openlark_core::config::Config` directly.
+- `openlark_client::Config` — planned for removal after the migration window.
+  Use `Client::builder()` or `openlark_core::config::Config` directly.
 
 ### Added
 

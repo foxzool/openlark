@@ -19,7 +19,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let client = Client::from_env()?;
 
     println!("Docs 任务型工作流示例");
-    println!("当前 app_id: {}", client.config().app_id);
+    println!("当前 app_id: {}", client.config().app_id());
 
     workflow_drive_file_flow(&client).await?;
     workflow_spreadsheet_reporting_flow(&client).await?;

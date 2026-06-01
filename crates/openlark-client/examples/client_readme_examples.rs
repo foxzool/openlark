@@ -18,11 +18,23 @@ fn from_env_example() -> Result<()> {
     Ok(())
 }
 
+fn core_config_example() -> Result<()> {
+    let config = CoreConfig::builder()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        .base_url("https://open.feishu.cn")
+        .build();
+
+    let _client = Client::with_core_config(config)?;
+    Ok(())
+}
+
 fn service_access_example() -> Result<()> {
     let client = Client::builder()
         .app_id("your_app_id")
         .app_secret("your_app_secret")
         .build()?;
+    let _config = client.config();
 
     #[cfg(feature = "docs")]
     let _docs_config = client.docs.config();
@@ -54,6 +66,7 @@ fn main() -> Result<()> {
     {
         from_env_example()?;
     }
+    core_config_example()?;
     service_access_example()?;
     registry_example()?;
     Ok(())

@@ -32,7 +32,7 @@
 
 ```toml
 [dependencies]
-openlark-client = { version = "0.16.1", features = ["docs"] }
+openlark-client = { version = "0.17.0", features = ["docs"] }
 ```
 
 ### 功能标志
@@ -66,7 +66,7 @@ features = ["p0-services"]
 
 ```toml
 [dependencies]
-openlark = { version = "0.16.1", features = ["essential"] }
+openlark = { version = "0.17.0", features = ["essential"] }
 ```
 
 ## 入口定位
@@ -114,6 +114,25 @@ use openlark_client::prelude::*;
 fn main() -> Result<()> {
     // 需要配置 OPENLARK_APP_ID / OPENLARK_APP_SECRET
     let _client = Client::from_env()?;
+    Ok(())
+}
+```
+
+### 使用 CoreConfig
+
+`Client::builder()` 是普通入口；如果你已经在底层模块中构建了 `openlark_core::config::Config`，可以直接传给 `Client::with_core_config()`：
+
+```rust,no_run
+use openlark_client::prelude::*;
+
+fn main() -> Result<()> {
+    let config = CoreConfig::builder()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        .base_url("https://open.feishu.cn")
+        .build();
+
+    let _client = Client::with_core_config(config)?;
     Ok(())
 }
 ```
