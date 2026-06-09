@@ -213,7 +213,7 @@ fn test_hr_okr_v2_chain_exists() {
     let _ = okr_v2.alignment().get("alignment_123");
     let _ = okr_v2.alignment().delete("alignment_123");
     let _ = okr_v2.category().list();
-    let _ = okr_v2.cycle().list();
+    let _ = okr_v2.cycle().list("user_123");
     let _ = okr_v2.cycle().objectives_position("cycle_123");
     let _ = okr_v2.cycle().objectives_weight("cycle_123");
     let _ = okr_v2.cycle().create_objective("cycle_123");

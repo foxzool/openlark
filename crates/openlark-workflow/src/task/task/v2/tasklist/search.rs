@@ -11,12 +11,38 @@ use std::sync::Arc;
 /// 搜索清单请求
 pub struct SearchTasklistRequest {
     config: Arc<Config>,
+    page_size: Option<i32>,
+    page_token: Option<String>,
+    user_id_type: Option<String>,
 }
 
 impl SearchTasklistRequest {
     /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            page_size: None,
+            page_token: None,
+            user_id_type: None,
+        }
+    }
+
+    /// 设置分页大小（可选）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记（可选）。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（可选）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行请求。
@@ -38,9 +64,20 @@ impl SearchTasklistRequest {
             ));
         }
 
-        let req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<serde_json::Value> =
             ApiRequest::post(TaskApiV2::TasklistSearch.to_url())
                 .body(serialize_params(&body, "搜索清单")?);
+
+        if let Some(page_size) = self.page_size {
+            req = req.query("page_size", page_size.to_string());
+        }
+        if let Some(page_token) = self.page_token {
+            req = req.query("page_token", page_token);
+        }
+        if let Some(user_id_type) = self.user_id_type {
+            req = req.query("user_id_type", user_id_type);
+        }
+
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "搜索清单")
     }
@@ -53,6 +90,21 @@ mod tests {
     #[test]
     fn builder_initializes() {
         let config = Arc::new(Config::default());
-        let _request = SearchTasklistRequest::new(config);
+        let request = SearchTasklistRequest::new(config);
+        assert!(request.page_size.is_none());
+        assert!(request.page_token.is_none());
+        assert!(request.user_id_type.is_none());
+    }
+
+    #[test]
+    fn builder_sets_params() {
+        let config = Arc::new(Config::default());
+        let request = SearchTasklistRequest::new(config)
+            .page_size(50)
+            .page_token("token_abc")
+            .user_id_type("open_id");
+        assert_eq!(request.page_size, Some(50));
+        assert_eq!(request.page_token, Some("token_abc".to_string()));
+        assert_eq!(request.user_id_type, Some("open_id".to_string()));
     }
 }

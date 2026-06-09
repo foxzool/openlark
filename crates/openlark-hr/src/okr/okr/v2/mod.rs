@@ -129,8 +129,8 @@ impl CycleResource {
     }
 
     /// 创建获取用户 OKR 周期列表请求。
-    pub fn list(&self) -> cycle::list::Request {
-        cycle::list::Request::new(Arc::new(self.config.clone()))
+    pub fn list(&self, user_id: impl Into<String>) -> cycle::list::Request {
+        cycle::list::Request::new(Arc::new(self.config.clone())).user_id(user_id)
     }
 
     /// 创建修改 OKR 目标位置请求。
