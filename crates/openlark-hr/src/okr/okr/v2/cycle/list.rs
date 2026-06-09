@@ -110,4 +110,11 @@ mod tests {
         assert_eq!(req.page_size, Some(50));
         assert_eq!(req.page_token, Some("token_abc".to_string()));
     }
+
+    #[test]
+    fn test_url_construction() {
+        use crate::common::api_endpoints::OkrApiV2;
+        let url = OkrApiV2::CycleList.to_url();
+        assert_eq!(url, "/open-apis/okr/v2/cycles");
+    }
 }

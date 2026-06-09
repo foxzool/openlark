@@ -213,7 +213,11 @@ fn test_hr_okr_v2_chain_exists() {
     let _ = okr_v2.alignment().get("alignment_123");
     let _ = okr_v2.alignment().delete("alignment_123");
     let _ = okr_v2.category().list();
-    let _ = okr_v2.cycle().list("user_123");
+    let _ = okr_v2
+        .cycle()
+        .list("user_123")
+        .user_id_type("open_id")
+        .page_size(20);
     let _ = okr_v2.cycle().objectives_position("cycle_123");
     let _ = okr_v2.cycle().objectives_weight("cycle_123");
     let _ = okr_v2.cycle().create_objective("cycle_123");
@@ -283,9 +287,19 @@ fn test_workflow_task_v2_chain_exists() {
     let _ = task.add_dependencies("task_123");
     let _ = task.remove_dependencies("task_123");
     let _ = task.set_ancestor_task("task_123");
-    let _ = task.search();
+    let _ = task
+        .search()
+        .page_size(20)
+        .page_token("token_abc")
+        .user_id_type("open_id");
 
-    let _ = client.workflow.tasklist().search();
+    let _ = client
+        .workflow
+        .tasklist()
+        .search()
+        .page_size(20)
+        .page_token("token_abc")
+        .user_id_type("open_id");
 }
 
 #[test]

@@ -107,4 +107,11 @@ mod tests {
         assert_eq!(request.page_token, Some("token_abc".to_string()));
         assert_eq!(request.user_id_type, Some("open_id".to_string()));
     }
+
+    #[test]
+    fn test_url_construction() {
+        use crate::common::api_endpoints::TaskApiV2;
+        let url = TaskApiV2::TaskSearch.to_url();
+        assert_eq!(url, "/open-apis/task/v2/tasks/search");
+    }
 }
