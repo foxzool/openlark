@@ -5,6 +5,8 @@ use openlark_core::config::Config;
 
 /// v1 子模块。
 pub mod v1;
+/// v2 子模块。
+pub mod v2;
 
 /// okr 项目 v1 版本服务
 /// OkrV1 服务入口。
@@ -25,17 +27,20 @@ impl OkrV1 {
     }
 }
 
+/// okr 项目 v2 版本服务
+/// OkrV2 服务入口。
+pub type OkrV2 = v2::OkrV2;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-
+    use super::*;
     #[test]
     fn test_serialization_roundtrip() {
         // 基础序列化测试
         let json = r#"{"test": "value"}"#;
         assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
     }
-
     #[test]
     fn test_deserialization_from_json() {
         // 基础反序列化测试

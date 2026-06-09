@@ -52,6 +52,21 @@ pub const AILY_V1_SKILL: &str = "/open-apis/aily/v1/apps/{app_id}/skills/{skill_
 /// 端点路径常量。
 pub const AILY_V1_SKILL_START: &str = "/open-apis/aily/v1/apps/{app_id}/skills/{skill_id}/start";
 
+// ==================== AILY Agent（智能体）v1 ====================
+
+/// AILY 智能体产物 v1
+pub const AILY_V1_AGENT_ARTIFACT: &str =
+    "/open-apis/aily/v1/agents/{agent_id}/artifacts/{agent_artifact_id}";
+/// AILY 智能体附件 v1
+pub const AILY_V1_AGENT_ATTACHMENTS: &str = "/open-apis/aily/v1/agents/{agent_id}/attachments";
+/// AILY 智能体会话 v1
+pub const AILY_V1_AGENT_CHATS: &str = "/open-apis/aily/v1/agents/{agent_id}/chats";
+/// AILY 智能体会话详情 v1
+pub const AILY_V1_AGENT_CHAT: &str = "/open-apis/aily/v1/agents/{agent_id}/chats/{agent_chat_id}";
+/// AILY 智能体可见性检查 v1
+pub const AILY_V1_AGENT_VISIBILITY_CHECK: &str =
+    "/open-apis/aily/v1/agents/{agent_id}/agent_visibility/check";
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {

@@ -16,6 +16,8 @@ pub mod models;
 pub mod patch;
 /// 移除成员接口。
 pub mod remove_members;
+#[path = "../../task/task/v2/tasklist/search.rs"]
+pub mod search;
 /// 任务列表接口。
 pub mod tasks;
 /// 更新接口。
@@ -92,6 +94,10 @@ impl Tasklist {
     ) -> remove_members::RemoveTasklistMembersRequest {
         remove_members::RemoveTasklistMembersRequest::new(self.config.clone(), tasklist_guid.into())
     }
+    /// 创建搜索清单请求。
+    pub fn search(&self) -> search::SearchTasklistRequest {
+        search::SearchTasklistRequest::new(self.config.clone())
+    }
 }
 
 // 重新导出请求类型
@@ -102,6 +108,7 @@ pub use get::GetTasklistRequest;
 pub use list::ListTasklistsRequest;
 pub use patch::UpdateTasklistRequest;
 pub use remove_members::RemoveTasklistMembersRequest;
+pub use search::SearchTasklistRequest;
 pub use tasks::GetTasklistTasksRequest;
 
 // 重新导出响应类型

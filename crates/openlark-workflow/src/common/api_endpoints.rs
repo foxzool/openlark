@@ -249,6 +249,12 @@ pub enum TaskApiV2 {
     CustomFieldAdd(String),
     /// 从任务清单移除自定义字段
     CustomFieldRemove(String),
+
+    // 搜索
+    /// 搜索任务
+    TaskSearch,
+    /// 搜索清单
+    TasklistSearch,
 }
 
 impl TaskApiV2 {
@@ -445,6 +451,10 @@ impl TaskApiV2 {
             TaskApiV2::CustomFieldRemove(custom_field_guid) => {
                 format!("/open-apis/task/v2/custom_fields/{custom_field_guid}/remove")
             }
+
+            // 搜索
+            TaskApiV2::TaskSearch => "/open-apis/task/v2/tasks/search".to_string(),
+            TaskApiV2::TasklistSearch => "/open-apis/task/v2/tasklists/search".to_string(),
         }
     }
 }

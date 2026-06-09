@@ -459,6 +459,15 @@ pub enum VcApiV1 {
     /// PATCH /open-apis/vc/v1/scope_config/:scope_config_id
     ScopeConfigPatch(String),
 
+    // ========== Note 纪要 ==========
+    /// 订阅纪要变更事件
+    /// POST /open-apis/vc/v1/notes/subscription
+    NoteSubscription,
+
+    /// 取消订阅纪要变更事件
+    /// POST /open-apis/vc/v1/notes/unsubscription
+    NoteUnsubscription,
+
     // ========== Alert 告警 ==========
     /// 获取告警列表
     /// GET /open-apis/vc/v1/alerts
@@ -636,6 +645,10 @@ impl VcApiV1 {
             VcApiV1::ScopeConfigPatch(scope_config_id) => {
                 format!("/open-apis/vc/v1/scope_config/{scope_config_id}")
             }
+
+            // Note
+            VcApiV1::NoteSubscription => "/open-apis/vc/v1/notes/subscription".to_string(),
+            VcApiV1::NoteUnsubscription => "/open-apis/vc/v1/notes/unsubscription".to_string(),
 
             // Alert
             VcApiV1::AlertList => "/open-apis/vc/v1/alerts".to_string(),

@@ -55,6 +55,10 @@ impl VcV1Service {
     pub fn reserve(&self) -> ReserveResource {
         ReserveResource::new(self.config.clone())
     }
+    /// 访问 note 资源。
+    pub fn note(&self) -> NoteResource {
+        NoteResource::new(self.config.clone())
+    }
 }
 
 /// Room 资源
@@ -129,5 +133,23 @@ mod tests {
         let json = r#"{"field": "data"}"#;
         let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(value["field"], "data");
+    }
+}
+
+/// Note 资源
+#[derive(Debug, Clone)]
+pub struct NoteResource {
+    config: Config,
+}
+
+impl NoteResource {
+    /// 创建新的实例。
+    pub fn new(config: Config) -> Self {
+        Self { config }
+    }
+
+    /// 返回配置引用。
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 }

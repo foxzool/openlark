@@ -30,6 +30,10 @@ impl Okr {
     pub fn v1(&self) -> okr::OkrV1 {
         okr::OkrV1::new(self.config.clone())
     }
+    /// 获取 okr 项目 v2 版本服务
+    pub fn v2(&self) -> okr::OkrV2 {
+        okr::OkrV2::new(self.config.clone())
+    }
 }
 
 #[cfg(test)]

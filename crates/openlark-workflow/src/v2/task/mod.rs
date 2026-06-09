@@ -37,6 +37,8 @@ pub mod remove_members;
 pub mod remove_reminders;
 /// 移出任务清单接口。
 pub mod remove_tasklist;
+#[path = "../../task/task/v2/task/search.rs"]
+pub mod search;
 /// 设置父任务接口。
 #[path = "../../task/task/v2/task/set_ancestor_task.rs"]
 pub mod set_ancestor_task;
@@ -174,6 +176,10 @@ impl Task {
     ) -> set_ancestor_task::SetAncestorTaskRequest {
         set_ancestor_task::SetAncestorTaskRequest::new(self.config.clone(), task_guid.into())
     }
+    /// 创建搜索任务请求。
+    pub fn search(&self) -> search::SearchTaskRequest {
+        search::SearchTaskRequest::new(self.config.clone())
+    }
 }
 
 // 重新导出请求类型
@@ -211,6 +217,7 @@ pub use remove_tasklist::{RemoveTasklistBody, RemoveTasklistResponse};
 pub use set_ancestor_task::{SetAncestorTaskBody, SetAncestorTaskResponse};
 pub use tasklists::{GetTaskTasklistsResponse, TaskTasklistItem};
 
+pub use search::SearchTaskRequest;
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_imports)]

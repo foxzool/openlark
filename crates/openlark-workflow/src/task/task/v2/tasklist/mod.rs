@@ -8,11 +8,13 @@ pub mod create;
 pub mod add_members;
 pub mod get;
 pub mod list;
+pub mod search;
 pub mod tasks;
 
 pub use activity_subscription::{GetActivitySubscriptionRequest, ListActivitySubscriptionsRequest};
 pub use get::GetTasklistRequest;
 pub use list::ListTasklistsRequest;
+pub use search::SearchTasklistRequest;
 pub use tasks::GetTasklistTasksRequest;
 
 pub use add_members::AddTasklistMembersRequest;

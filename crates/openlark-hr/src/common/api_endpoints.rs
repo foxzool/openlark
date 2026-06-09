@@ -1934,6 +1934,164 @@ impl OkrApiV1 {
     }
 }
 
+// OKR API V2 - 目标管理 (25 APIs)
+
+/// OKR API V2 端点枚举
+#[derive(Debug, Clone, PartialEq)]
+pub enum OkrApiV2 {
+    // === alignment 资源 (2个) ===
+    /// 删除 OKR 对齐
+    AlignmentDelete(String), // alignment_id
+    /// 获取 OKR 对齐
+    AlignmentGet(String), // alignment_id
+
+    // === category 资源 (1个) ===
+    /// 获取所有 OKR 分类
+    CategoryList,
+
+    // === cycle 资源 (5个) ===
+    /// 获取用户 OKR 周期列表
+    CycleList,
+    /// 修改 OKR 目标位置
+    CycleObjectivesPosition(String), // cycle_id
+    /// 修改 OKR 目标权重
+    CycleObjectivesWeight(String), // cycle_id
+    /// 创建 OKR 目标
+    CycleObjectiveCreate(String), // cycle_id
+    /// 获取用户 OKR 周期内的目标
+    CycleObjectiveList(String), // cycle_id
+
+    // === indicator 资源 (1个) ===
+    /// 更新量化指标
+    IndicatorPatch(String), // indicator_id
+
+    // === key_result 资源 (5个) ===
+    /// 删除关键结果
+    KeyResultDelete(String), // key_result_id
+    /// 获取关键结果
+    KeyResultGet(String), // key_result_id
+    /// 编辑关键结果
+    KeyResultPatch(String), // key_result_id
+    /// 获取关键结果的量化指标
+    KeyResultIndicatorList(String), // key_result_id
+    /// 获取关键结果下的进展记录
+    KeyResultProgressList(String), // key_result_id
+
+    // === objective 资源 (11个) ===
+    /// 删除 OKR 目标
+    ObjectiveDelete(String), // objective_id
+    /// 获取目标详细信息
+    ObjectiveGet(String), // objective_id
+    /// 编辑 OKR 目标
+    ObjectivePatch(String), // objective_id
+    /// 修改关键结果位置
+    ObjectiveKeyResultsPosition(String), // objective_id
+    /// 修改关键结果权重
+    ObjectiveKeyResultsWeight(String), // objective_id
+    /// 创建目标对齐关系
+    ObjectiveAlignmentCreate(String), // objective_id
+    /// 获取目标的对齐信息
+    ObjectiveAlignmentList(String), // objective_id
+    /// 获取目标的量化指标
+    ObjectiveIndicatorList(String), // objective_id
+    /// 在目标下创建关键结果
+    ObjectiveKeyResultCreate(String), // objective_id
+    /// 获取目标下的所有关键结果
+    ObjectiveKeyResultList(String), // objective_id
+    /// 获取目标下的进展记录
+    ObjectiveProgressList(String), // objective_id
+}
+
+impl OkrApiV2 {
+    /// 生成对应的 URL
+    pub fn to_url(&self) -> String {
+        match self {
+            // alignment
+            OkrApiV2::AlignmentDelete(alignment_id) => {
+                format!("/open-apis/okr/v2/alignments/{alignment_id}")
+            }
+            OkrApiV2::AlignmentGet(alignment_id) => {
+                format!("/open-apis/okr/v2/alignments/{alignment_id}")
+            }
+
+            // category
+            OkrApiV2::CategoryList => "/open-apis/okr/v2/categories".to_string(),
+
+            // cycle
+            OkrApiV2::CycleList => "/open-apis/okr/v2/cycles".to_string(),
+            OkrApiV2::CycleObjectivesPosition(cycle_id) => {
+                format!("/open-apis/okr/v2/cycles/{cycle_id}/objectives_position")
+            }
+            OkrApiV2::CycleObjectivesWeight(cycle_id) => {
+                format!("/open-apis/okr/v2/cycles/{cycle_id}/objectives_weight")
+            }
+            OkrApiV2::CycleObjectiveCreate(cycle_id) => {
+                format!("/open-apis/okr/v2/cycles/{cycle_id}/objectives")
+            }
+            OkrApiV2::CycleObjectiveList(cycle_id) => {
+                format!("/open-apis/okr/v2/cycles/{cycle_id}/objectives")
+            }
+
+            // indicator
+            OkrApiV2::IndicatorPatch(indicator_id) => {
+                format!("/open-apis/okr/v2/indicators/{indicator_id}")
+            }
+
+            // key_result
+            OkrApiV2::KeyResultDelete(key_result_id) => {
+                format!("/open-apis/okr/v2/key_results/{key_result_id}")
+            }
+            OkrApiV2::KeyResultGet(key_result_id) => {
+                format!("/open-apis/okr/v2/key_results/{key_result_id}")
+            }
+            OkrApiV2::KeyResultPatch(key_result_id) => {
+                format!("/open-apis/okr/v2/key_results/{key_result_id}")
+            }
+            OkrApiV2::KeyResultIndicatorList(key_result_id) => {
+                format!("/open-apis/okr/v2/key_results/{key_result_id}/indicators")
+            }
+            OkrApiV2::KeyResultProgressList(key_result_id) => {
+                format!("/open-apis/okr/v2/key_results/{key_result_id}/progresses")
+            }
+
+            // objective
+            OkrApiV2::ObjectiveDelete(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}")
+            }
+            OkrApiV2::ObjectiveGet(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}")
+            }
+            OkrApiV2::ObjectivePatch(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}")
+            }
+            OkrApiV2::ObjectiveKeyResultsPosition(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/key_results_position")
+            }
+            OkrApiV2::ObjectiveKeyResultsWeight(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/key_results_weight")
+            }
+            OkrApiV2::ObjectiveAlignmentCreate(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/alignments")
+            }
+            OkrApiV2::ObjectiveAlignmentList(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/alignments")
+            }
+            OkrApiV2::ObjectiveIndicatorList(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/indicators")
+            }
+            OkrApiV2::ObjectiveKeyResultCreate(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/key_results")
+            }
+            OkrApiV2::ObjectiveKeyResultList(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/key_results")
+            }
+            OkrApiV2::ObjectiveProgressList(objective_id) => {
+                format!("/open-apis/okr/v2/objectives/{objective_id}/progresses")
+            }
+        }
+    }
+}
+
 // EHR API V1 - EHR 功能 (2 APIs)
 
 /// EHR API V1 端点枚举
