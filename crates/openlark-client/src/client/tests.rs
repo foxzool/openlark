@@ -285,7 +285,7 @@ fn test_workflow_task_v2_chain_exists() {
     let _ = task.set_ancestor_task("task_123");
     let _ = task.search();
 
-    let _ = client.workflow.tasklist();
+    let _ = client.workflow.tasklist().search();
 }
 
 #[test]
