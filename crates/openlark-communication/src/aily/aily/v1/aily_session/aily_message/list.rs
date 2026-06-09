@@ -75,7 +75,7 @@ impl ListAilyMessagesRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_MESSAGES.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_MESSAGES.replace("{session_id}", &self.aily_session_id);
         let mut req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
         for (k, v) in self.query {
             req = req.query(&k, &v);

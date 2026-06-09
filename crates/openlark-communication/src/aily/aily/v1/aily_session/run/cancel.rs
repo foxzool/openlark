@@ -71,7 +71,7 @@ impl CancelRunRequest {
         validate_required!(self.run_id, "run_id 不能为空");
 
         let url = AILY_V1_RUN_CANCEL
-            .replace("{aily_session_id}", &self.aily_session_id)
+            .replace("{session_id}", &self.aily_session_id)
             .replace("{run_id}", &self.run_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(&url);
 

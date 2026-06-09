@@ -59,7 +59,7 @@ impl GetSessionRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_SESSION.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
@@ -100,4 +100,15 @@ mod tests {
         let request = GetSessionRequest::new(Config::default());
         assert!(request.aily_session_id.is_empty());
     }
+}
+
+#[test]
+fn test_get_session_url_construction() {
+    use crate::endpoints::aily::AILY_V1_SESSION;
+    let url = AILY_V1_SESSION.replace("{session_id}", "session_123");
+    assert_eq!(url, "/open-apis/aily/v1/sessions/session_123");
+    assert!(
+        !url.contains("{session_id}"),
+        "URL should not contain unreplaced placeholder"
+    );
 }

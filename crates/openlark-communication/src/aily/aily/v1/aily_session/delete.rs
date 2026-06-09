@@ -59,7 +59,7 @@ impl DeleteSessionRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_SESSION.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<()> = ApiRequest::delete(&url);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;

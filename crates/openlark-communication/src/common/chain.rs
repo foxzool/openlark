@@ -327,6 +327,7 @@ struct ChatLookupResponse {
 #[derive(Debug, Clone)]
 pub struct CommunicationClient {
     config: Arc<Config>,
+    #[cfg(feature = "aily")]
     /// AILY helper 入口。
     pub aily: AilyClient,
 
@@ -343,12 +344,14 @@ pub struct CommunicationClient {
     pub moments: MomentsClient,
 }
 
+#[cfg(feature = "aily")]
 /// AILY 链式 helper 入口。
 #[derive(Debug, Clone)]
 pub struct AilyClient {
     config: Arc<Config>,
 }
 
+#[cfg(feature = "aily")]
 impl AilyClient {
     fn new(config: Arc<Config>) -> Self {
         Self { config }
@@ -366,6 +369,7 @@ impl CommunicationClient {
         let config = Arc::new(config);
         Self {
             config: config.clone(),
+            #[cfg(feature = "aily")]
             aily: AilyClient::new(config.clone()),
             #[cfg(feature = "im")]
             im: ImClient::new(config.clone()),
