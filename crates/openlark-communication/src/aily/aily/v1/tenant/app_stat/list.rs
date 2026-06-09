@@ -64,4 +64,15 @@ mod tests {
             Some(&"1780273529".to_string())
         );
     }
+
+    #[test]
+    fn test_list_app_stats_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_APP_STATS;
+        let url = AILY_V1_APP_STATS.to_string();
+        assert_eq!(url, "/open-apis/aily/v1/app_stats");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

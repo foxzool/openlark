@@ -133,4 +133,15 @@ mod tests {
         let request = ListAilyMessagesRequest::new(Config::default()).aily_session_id("test_id");
         assert!(request.query.is_empty());
     }
+
+    #[test]
+    fn test_list_aily_messages_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_MESSAGES;
+        let url = AILY_V1_MESSAGES.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/messages");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

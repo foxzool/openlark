@@ -118,12 +118,8 @@ mod tests {
     fn test_get_skill_request_url_construction() {
         use crate::endpoints::aily::AILY_V1_SKILL;
         let url = AILY_V1_SKILL
-            .replace("{session_id}", "sess_1")
-            .replace("{run_id}", "run_1")
             .replace("{app_id}", "app_1")
-            .replace("{data_asset_id}", "asset_1")
-            .replace("{skill_id}", "skill_1")
-            .replace("{message_id}", "msg_1");
+            .replace("{skill_id}", "skill_1");
         assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills/skill_1");
         assert!(
             !url.contains("{"),

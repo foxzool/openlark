@@ -165,4 +165,15 @@ mod tests {
         assert!(body.tags.is_some());
         assert_eq!(body.description, None);
     }
+
+    #[test]
+    fn test_create_data_asset_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_DATA_ASSETS;
+        let url = AILY_V1_DATA_ASSETS.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

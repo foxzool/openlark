@@ -79,4 +79,20 @@ mod tests {
         assert_eq!(request.agent_id, "agent_123");
         assert_eq!(request.agent_artifact_id, "artifact_456");
     }
+
+    #[test]
+    fn test_get_agent_artifact_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_AGENT_ARTIFACT;
+        let url = AILY_V1_AGENT_ARTIFACT
+            .replace("{agent_id}", "agent_1")
+            .replace("{agent_artifact_id}", "art_1");
+        assert_eq!(
+            url,
+            "/open-apis/aily/v1/agents/agent_1/artifacts/art_1"
+        );
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

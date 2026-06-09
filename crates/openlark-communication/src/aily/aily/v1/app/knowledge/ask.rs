@@ -146,4 +146,15 @@ mod tests {
         let request = AskKnowledgeRequest::new(config).app_id("app_123");
         assert_eq!(request.app_id, "app_123");
     }
+
+    #[test]
+    fn test_ask_knowledge_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_KNOWLEDGE_ASK;
+        let url = AILY_V1_KNOWLEDGE_ASK.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/knowledges/ask");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

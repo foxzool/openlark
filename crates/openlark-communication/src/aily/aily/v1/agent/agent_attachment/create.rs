@@ -78,4 +78,15 @@ mod tests {
         let request = CreateAgentAttachmentRequest::new(config).agent_id("agent_123");
         assert_eq!(request.agent_id, "agent_123");
     }
+
+    #[test]
+    fn test_create_agent_attachment_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_AGENT_ATTACHMENTS;
+        let url = AILY_V1_AGENT_ATTACHMENTS.replace("{agent_id}", "agent_1");
+        assert_eq!(url, "/open-apis/aily/v1/agents/agent_1/attachments");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

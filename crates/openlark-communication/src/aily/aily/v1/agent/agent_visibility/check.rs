@@ -78,4 +78,18 @@ mod tests {
         let request = CheckAgentVisibilityRequest::new(config).agent_id("agent_123");
         assert_eq!(request.agent_id, "agent_123");
     }
+
+    #[test]
+    fn test_check_agent_visibility_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_AGENT_VISIBILITY_CHECK;
+        let url = AILY_V1_AGENT_VISIBILITY_CHECK.replace("{agent_id}", "agent_1");
+        assert_eq!(
+            url,
+            "/open-apis/aily/v1/agents/agent_1/agent_visibility/check"
+        );
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

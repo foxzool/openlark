@@ -78,4 +78,15 @@ mod tests {
         let request = CreateAgentChatRequest::new(config).agent_id("agent_123");
         assert_eq!(request.agent_id, "agent_123");
     }
+
+    #[test]
+    fn test_create_agent_chat_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_AGENT_CHATS;
+        let url = AILY_V1_AGENT_CHATS.replace("{agent_id}", "agent_1");
+        assert_eq!(url, "/open-apis/aily/v1/agents/agent_1/chats");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

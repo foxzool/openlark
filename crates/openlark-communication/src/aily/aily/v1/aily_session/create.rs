@@ -132,4 +132,15 @@ mod tests {
         assert_eq!(body.name, "完整会话");
         assert_eq!(body.description, Some("包含所有字段".to_string()));
     }
+
+    #[test]
+    fn test_create_session_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SESSIONS;
+        let url = AILY_V1_SESSIONS.to_string();
+        assert_eq!(url, "/open-apis/aily/v1/sessions");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

@@ -136,4 +136,15 @@ mod tests {
         let request = ListDataAssetTagsRequest::new(Config::default()).app_id("test_app");
         assert!(request.query.is_empty());
     }
+
+    #[test]
+    fn test_list_data_asset_tags_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_DATA_ASSET_TAGS;
+        let url = AILY_V1_DATA_ASSET_TAGS.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_asset_tags");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

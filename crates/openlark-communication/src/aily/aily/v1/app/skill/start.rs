@@ -153,4 +153,17 @@ mod tests {
         let body = StartSkillBody::new(input);
         assert!(body.input["query"].is_string());
     }
+
+    #[test]
+    fn test_start_skill_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SKILL_START;
+        let url = AILY_V1_SKILL_START
+            .replace("{app_id}", "app_1")
+            .replace("{skill_id}", "skill_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills/skill_1/start");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

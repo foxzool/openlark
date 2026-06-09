@@ -148,4 +148,15 @@ mod tests {
         assert_eq!(body.name, Some("仅名称".to_string()));
         assert_eq!(body.description, None);
     }
+
+    #[test]
+    fn test_update_session_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SESSION;
+        let url = AILY_V1_SESSION.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

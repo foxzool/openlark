@@ -142,4 +142,15 @@ mod tests {
             .query_param("status", "running");
         assert_eq!(request.query.get("status"), Some(&"running".to_string()));
     }
+
+    #[test]
+    fn test_list_runs_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_RUNS;
+        let url = AILY_V1_RUNS.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/runs");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

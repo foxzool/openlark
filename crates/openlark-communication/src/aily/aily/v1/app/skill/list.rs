@@ -136,4 +136,15 @@ mod tests {
         let request = ListSkillsRequest::new(Config::default()).app_id("test_app");
         assert!(request.query.is_empty());
     }
+
+    #[test]
+    fn test_list_skills_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SKILLS;
+        let url = AILY_V1_SKILLS.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

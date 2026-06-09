@@ -115,4 +115,15 @@ mod tests {
         });
         assert_eq!(body["file_name"], "document.pdf");
     }
+
+    #[test]
+    fn test_upload_file_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_UPLOAD_FILE;
+        let url = AILY_V1_UPLOAD_FILE.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets/upload_file");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
+    }
 }

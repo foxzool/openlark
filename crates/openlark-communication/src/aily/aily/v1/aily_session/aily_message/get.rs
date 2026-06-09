@@ -114,8 +114,8 @@ mod tests {
     #[test]
     fn test_get_message_request_url_construction() {
         use crate::endpoints::aily::AILY_V1_MESSAGES;
-        let url = AILY_V1_MESSAGES.replace("{session_id}", "sess_1");
-        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/messages");
+        let url = AILY_V1_MESSAGES.replace("{session_id}", "sess_1") + "/msg_1";
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/messages/msg_1");
         assert!(
             !url.contains("{"),
             "URL should not contain unreplaced placeholders"
