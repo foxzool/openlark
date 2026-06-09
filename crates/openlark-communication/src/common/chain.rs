@@ -361,6 +361,113 @@ impl AilyClient {
     pub fn config(&self) -> &Config {
         &self.config
     }
+
+    /// 访问 aily_session 资源。
+    pub fn aily_session(&self) -> AilySessionResource {
+        AilySessionResource::new(self.config.clone())
+    }
+
+    /// 访问 app 资源。
+    pub fn app(&self) -> AppResource {
+        AppResource::new(self.config.clone())
+    }
+}
+
+/// AILY 会话资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AilySessionResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AilySessionResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建获取会话请求。
+    pub fn get(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::get::GetSessionRequest {
+        crate::aily::aily::v1::aily_session::get::GetSessionRequest::new((*self.config).clone())
+            .aily_session_id(session_id)
+    }
+
+    /// 访问 run 资源。
+    pub fn run(&self) -> RunResource {
+        RunResource::new(self.config.clone())
+    }
+}
+
+/// AILY 运行资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct RunResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl RunResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建获取运行请求。
+    pub fn get(
+        &self,
+        session_id: impl Into<String>,
+        run_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::run::get::GetRunRequest {
+        crate::aily::aily::v1::aily_session::run::get::GetRunRequest::new((*self.config).clone())
+            .aily_session_id(session_id)
+            .run_id(run_id)
+    }
+}
+
+/// AILY 应用资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AppResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AppResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 访问 skill 资源。
+    pub fn skill(&self) -> SkillResource {
+        SkillResource::new(self.config.clone())
+    }
+}
+
+/// AILY 技能资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct SkillResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl SkillResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建获取技能请求。
+    pub fn get(
+        &self,
+        app_id: impl Into<String>,
+        skill_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::skill::get::GetSkillRequest {
+        crate::aily::aily::v1::app::skill::get::GetSkillRequest::new((*self.config).clone())
+            .app_id(app_id)
+            .skill_id(skill_id)
+    }
 }
 
 impl CommunicationClient {

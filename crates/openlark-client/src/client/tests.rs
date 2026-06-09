@@ -157,6 +157,19 @@ fn test_communication_aily_chain_exists() {
         .unwrap();
 
     // Verify AILY chain access compiles
+    let _ = client.communication.aily.aily_session().get("session_123");
+    let _ = client
+        .communication
+        .aily
+        .aily_session()
+        .run()
+        .get("session_123", "run_123");
+    let _ = client
+        .communication
+        .aily
+        .app()
+        .skill()
+        .get("app_123", "skill_123");
     let _ = client.communication.aily.config();
 }
 

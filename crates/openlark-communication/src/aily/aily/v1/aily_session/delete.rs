@@ -97,7 +97,12 @@ mod tests {
 
     #[test]
     fn test_delete_session_request_url_construction() {
-        let request = DeleteSessionRequest::new(Config::default()).aily_session_id("test_id");
-        assert_eq!(request.aily_session_id, "test_id");
+        use crate::endpoints::aily::AILY_V1_SESSION;
+        let url = AILY_V1_SESSION.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1");
+        assert!(
+            !url.contains("{session_id}"),
+            "URL should not contain unreplaced placeholder"
+        );
     }
 }
