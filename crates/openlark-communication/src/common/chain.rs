@@ -327,6 +327,8 @@ struct ChatLookupResponse {
 #[derive(Debug, Clone)]
 pub struct CommunicationClient {
     config: Arc<Config>,
+    /// AILY helper 入口。
+    pub aily: AilyClient,
 
     #[cfg(feature = "im")]
     /// IM helper 入口。
@@ -341,12 +343,30 @@ pub struct CommunicationClient {
     pub moments: MomentsClient,
 }
 
+/// AILY 链式 helper 入口。
+#[derive(Debug, Clone)]
+pub struct AilyClient {
+    config: Arc<Config>,
+}
+
+impl AilyClient {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 返回底层共享配置。
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+}
+
 impl CommunicationClient {
     /// 使用配置创建 communication 链式入口。
     pub fn new(config: Config) -> Self {
         let config = Arc::new(config);
         Self {
             config: config.clone(),
+            aily: AilyClient::new(config.clone()),
             #[cfg(feature = "im")]
             im: ImClient::new(config.clone()),
             #[cfg(feature = "contact")]

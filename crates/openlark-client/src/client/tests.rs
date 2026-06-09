@@ -147,6 +147,58 @@ fn test_meeting_chain_exists() {
     let _ = client.meeting.config();
 }
 
+#[cfg(feature = "communication")]
+#[test]
+fn test_communication_aily_chain_exists() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // Verify AILY chain access compiles
+    let _ = client.communication.aily.config();
+}
+
+#[cfg(feature = "hr")]
+#[test]
+fn test_hr_okr_v2_chain_exists() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // Verify OKR v2 chain access compiles
+    let _ = client.hr.okr.v2().config();
+}
+
+#[cfg(feature = "meeting")]
+#[test]
+fn test_meeting_vc_note_chain_exists() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // Verify VC note chain access compiles
+    let _ = client.meeting.vc.v1.note.config();
+}
+
+#[cfg(feature = "workflow")]
+#[test]
+fn test_workflow_task_v2_chain_exists() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // Verify workflow task v2 chain access compiles
+    let _ = client.workflow.task();
+}
+
 #[test]
 fn test_client_error_handling() {
     let client = Client::builder()

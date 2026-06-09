@@ -148,6 +148,8 @@ pub struct VcV1Client {
     pub meeting: VcMeetingResourceClient,
     /// reserve 资源入口。
     pub reserve: VcReserveResourceClient,
+    /// note 资源入口。
+    pub note: VcNoteResourceClient,
 }
 
 #[cfg(feature = "vc")]
@@ -157,7 +159,8 @@ impl VcV1Client {
             config: config.clone(),
             room: VcRoomResourceClient::new(config.clone()),
             meeting: VcMeetingResourceClient::new(config.clone()),
-            reserve: VcReserveResourceClient::new(config),
+            reserve: VcReserveResourceClient::new(config.clone()),
+            note: VcNoteResourceClient::new(config),
         }
     }
 
@@ -214,6 +217,25 @@ pub struct VcReserveResourceClient {
 
 #[cfg(feature = "vc")]
 impl VcReserveResourceClient {
+    fn new(config: Config) -> Self {
+        Self { config }
+    }
+
+    /// 返回配置引用。
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+}
+
+/// 视频会议 note 资源客户端。
+#[cfg(feature = "vc")]
+#[derive(Debug, Clone)]
+pub struct VcNoteResourceClient {
+    config: Config,
+}
+
+#[cfg(feature = "vc")]
+impl VcNoteResourceClient {
     fn new(config: Config) -> Self {
         Self { config }
     }
