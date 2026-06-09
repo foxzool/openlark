@@ -113,11 +113,19 @@ mod tests {
 
     #[test]
     fn test_cancel_run_request_url_construction() {
-        let request = CancelRunRequest::new(Config::default())
-            .aily_session_id("sess_1")
-            .run_id("run_1");
-        assert_eq!(request.aily_session_id, "sess_1");
-        assert_eq!(request.run_id, "run_1");
+        use crate::endpoints::aily::AILY_V1_RUN_CANCEL;
+        let url = AILY_V1_RUN_CANCEL
+            .replace("{session_id}", "sess_1")
+            .replace("{run_id}", "run_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/runs/run_1/cancel");
+        assert!(
+            !url.contains("{session_id}"),
+            "URL should not contain unreplaced session_id"
+        );
+        assert!(
+            !url.contains("{run_id}"),
+            "URL should not contain unreplaced run_id"
+        );
     }
 
     #[test]

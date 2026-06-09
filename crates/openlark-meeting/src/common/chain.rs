@@ -244,6 +244,22 @@ impl VcNoteResourceClient {
     pub fn config(&self) -> &Config {
         &self.config
     }
+
+    /// 获取纪要详情。
+    pub fn get(&self, note_id: impl Into<String>) -> crate::vc::vc::v1::note::get::NoteGetRequest {
+        crate::vc::vc::v1::note::get::NoteGetRequest::new(std::sync::Arc::new(self.config.clone()))
+            .note_id(note_id)
+    }
+
+    /// 订阅纪要变更事件。
+    pub fn subscribe(&self) -> crate::vc::vc::v1::note::subscription::SubscribeNoteRequest {
+        crate::vc::vc::v1::note::subscription::SubscribeNoteRequest::new(self.config.clone())
+    }
+
+    /// 取消订阅纪要变更事件。
+    pub fn unsubscribe(&self) -> crate::vc::vc::v1::note::unsubscription::UnsubscribeNoteRequest {
+        crate::vc::vc::v1::note::unsubscription::UnsubscribeNoteRequest::new(self.config.clone())
+    }
 }
 
 /// 会议室链式调用客户端。

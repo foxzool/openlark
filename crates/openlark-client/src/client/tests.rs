@@ -170,6 +170,9 @@ fn test_hr_okr_v2_chain_exists() {
         .unwrap();
 
     // Verify OKR v2 chain access compiles
+    let _ = client.hr.okr.v2().cycle().list();
+    let _ = client.hr.okr.v2().objective().get("obj_123");
+    let _ = client.hr.okr.v2().key_result().get("kr_123");
     let _ = client.hr.okr.v2().config();
 }
 
@@ -183,6 +186,9 @@ fn test_meeting_vc_note_chain_exists() {
         .unwrap();
 
     // Verify VC note chain access compiles
+    let _ = client.meeting.vc.v1.note.get("note_123");
+    let _ = client.meeting.vc.v1.note.subscribe();
+    let _ = client.meeting.vc.v1.note.unsubscribe();
     let _ = client.meeting.vc.v1.note.config();
 }
 
@@ -196,6 +202,7 @@ fn test_workflow_task_v2_chain_exists() {
         .unwrap();
 
     // Verify workflow task v2 chain access compiles
+    let _ = client.workflow.task();
     let _ = client.workflow.task();
 }
 
