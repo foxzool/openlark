@@ -38,7 +38,7 @@ impl Request {
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         validate_required!(self.cycle_id, "cycle_id 不能为空");
-        let path = format!("/open-apis/okr/v2/{}/objectives", self.cycle_id);
+        let path = format!("/open-apis/okr/v2/cycles/{}/objectives", self.cycle_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
@@ -50,9 +50,20 @@ impl Request {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _req = Request::new(config);
+    }
+
+    #[test]
+    fn test_url_path() {
+        let config = Arc::new(Config::default());
+        let _req = Request::new(config).cycle_id("cycle_123");
+        assert_eq!(
+            format!("/open-apis/okr/v2/cycles/{}/objectives", "cycle_123"),
+            "/open-apis/okr/v2/cycles/cycle_123/objectives"
+        );
     }
 }

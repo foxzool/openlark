@@ -152,4 +152,14 @@ impl NoteResource {
     pub fn config(&self) -> &Config {
         &self.config
     }
+
+    /// 订阅纪要变更事件。
+    pub fn subscribe(&self) -> crate::vc::vc::v1::note::subscription::SubscribeNoteRequest {
+        crate::vc::vc::v1::note::subscription::SubscribeNoteRequest::new(self.config.clone())
+    }
+
+    /// 取消订阅纪要变更事件。
+    pub fn unsubscribe(&self) -> crate::vc::vc::v1::note::unsubscription::UnsubscribeNoteRequest {
+        crate::vc::vc::v1::note::unsubscription::UnsubscribeNoteRequest::new(self.config.clone())
+    }
 }

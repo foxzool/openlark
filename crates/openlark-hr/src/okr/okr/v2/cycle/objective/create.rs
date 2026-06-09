@@ -49,7 +49,7 @@ impl Request {
                 "请求体不能为空",
             ));
         }
-        let path = format!("/open-apis/okr/v2/{}/objectives", self.cycle_id);
+        let path = format!("/open-apis/okr/v2/cycles/{}/objectives", self.cycle_id);
         let body_val = serde_json::to_value(&body).map_err(|e| {
             openlark_core::error::validation_error("请求体序列化失败", format!("无法序列化: {e}"))
         })?;
@@ -63,9 +63,20 @@ impl Request {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _req = Request::new(config);
+    }
+
+    #[test]
+    fn test_url_path() {
+        let config = Arc::new(Config::default());
+        let _req = Request::new(config).cycle_id("cycle_123");
+        assert_eq!(
+            format!("/open-apis/okr/v2/cycles/{}/objectives", "cycle_123"),
+            "/open-apis/okr/v2/cycles/cycle_123/objectives"
+        );
     }
 }
