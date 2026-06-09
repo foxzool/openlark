@@ -371,6 +371,16 @@ impl AilyClient {
     pub fn app(&self) -> AppResource {
         AppResource::new(self.config.clone())
     }
+
+    /// 访问 agent 资源。
+    pub fn agent(&self) -> AgentResource {
+        AgentResource::new(self.config.clone())
+    }
+
+    /// 访问 tenant 资源。
+    pub fn tenant(&self) -> TenantResource {
+        TenantResource::new(self.config.clone())
+    }
 }
 
 /// AILY 会话资源。
@@ -386,6 +396,24 @@ impl AilySessionResource {
         Self { config }
     }
 
+    /// 创建会话请求。
+    pub fn create(&self) -> crate::aily::aily::v1::aily_session::create::CreateSessionRequest {
+        crate::aily::aily::v1::aily_session::create::CreateSessionRequest::new(
+            (*self.config).clone(),
+        )
+    }
+
+    /// 创建删除会话请求。
+    pub fn delete(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::delete::DeleteSessionRequest {
+        crate::aily::aily::v1::aily_session::delete::DeleteSessionRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+    }
+
     /// 创建获取会话请求。
     pub fn get(
         &self,
@@ -395,9 +423,74 @@ impl AilySessionResource {
             .aily_session_id(session_id)
     }
 
+    /// 创建更新会话请求。
+    pub fn update(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::update::UpdateSessionRequest {
+        crate::aily::aily::v1::aily_session::update::UpdateSessionRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+    }
+
+    /// 访问 aily_message 资源。
+    pub fn aily_message(&self) -> AilyMessageResource {
+        AilyMessageResource::new(self.config.clone())
+    }
+
     /// 访问 run 资源。
     pub fn run(&self) -> RunResource {
         RunResource::new(self.config.clone())
+    }
+}
+
+/// AILY 消息资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AilyMessageResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AilyMessageResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建 Aily 消息请求。
+    pub fn create(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::aily_message::create::CreateAilyMessageRequest {
+        crate::aily::aily::v1::aily_session::aily_message::create::CreateAilyMessageRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+    }
+
+    /// 创建获取 Aily 消息请求。
+    pub fn get(
+        &self,
+        session_id: impl Into<String>,
+        message_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::aily_message::get::GetMessageRequest {
+        crate::aily::aily::v1::aily_session::aily_message::get::GetMessageRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+        .aily_message_id(message_id)
+    }
+
+    /// 创建列出 Aily 消息请求。
+    pub fn list(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::aily_message::list::ListAilyMessagesRequest {
+        crate::aily::aily::v1::aily_session::aily_message::list::ListAilyMessagesRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
     }
 }
 
@@ -414,6 +507,30 @@ impl RunResource {
         Self { config }
     }
 
+    /// 创建取消运行请求。
+    pub fn cancel(
+        &self,
+        session_id: impl Into<String>,
+        run_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::run::cancel::CancelRunRequest {
+        crate::aily::aily::v1::aily_session::run::cancel::CancelRunRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+        .run_id(run_id)
+    }
+
+    /// 创建运行请求。
+    pub fn create(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::run::create::CreateRunRequest {
+        crate::aily::aily::v1::aily_session::run::create::CreateRunRequest::new(
+            (*self.config).clone(),
+        )
+        .aily_session_id(session_id)
+    }
+
     /// 创建获取运行请求。
     pub fn get(
         &self,
@@ -423,6 +540,15 @@ impl RunResource {
         crate::aily::aily::v1::aily_session::run::get::GetRunRequest::new((*self.config).clone())
             .aily_session_id(session_id)
             .run_id(run_id)
+    }
+
+    /// 创建列出运行请求。
+    pub fn list(
+        &self,
+        session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::aily_session::run::list::ListRunsRequest {
+        crate::aily::aily::v1::aily_session::run::list::ListRunsRequest::new((*self.config).clone())
+            .aily_session_id(session_id)
     }
 }
 
@@ -439,9 +565,145 @@ impl AppResource {
         Self { config }
     }
 
+    /// 访问 data_asset 资源。
+    pub fn data_asset(&self) -> DataAssetResource {
+        DataAssetResource::new(self.config.clone())
+    }
+
+    /// 访问 data_asset_tag 资源。
+    pub fn data_asset_tag(&self) -> DataAssetTagResource {
+        DataAssetTagResource::new(self.config.clone())
+    }
+
+    /// 访问 knowledge 资源。
+    pub fn knowledge(&self) -> KnowledgeResource {
+        KnowledgeResource::new(self.config.clone())
+    }
+
     /// 访问 skill 资源。
     pub fn skill(&self) -> SkillResource {
         SkillResource::new(self.config.clone())
+    }
+}
+
+/// AILY 数据知识资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct DataAssetResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl DataAssetResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建数据知识请求。
+    pub fn create(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset::create::CreateDataAssetRequest {
+        crate::aily::aily::v1::app::data_asset::create::CreateDataAssetRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+    }
+
+    /// 创建删除数据知识请求。
+    pub fn delete(
+        &self,
+        app_id: impl Into<String>,
+        data_asset_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset::delete::DeleteDataAssetRequest {
+        crate::aily::aily::v1::app::data_asset::delete::DeleteDataAssetRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+        .data_asset_id(data_asset_id)
+    }
+
+    /// 创建获取数据知识请求。
+    pub fn get(
+        &self,
+        app_id: impl Into<String>,
+        data_asset_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset::get::GetDataAssetRequest {
+        crate::aily::aily::v1::app::data_asset::get::GetDataAssetRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+        .data_asset_id(data_asset_id)
+    }
+
+    /// 创建查询数据知识列表请求。
+    pub fn list(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset::list::ListDataAssetsRequest {
+        crate::aily::aily::v1::app::data_asset::list::ListDataAssetsRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+    }
+
+    /// 创建上传文件请求。
+    pub fn upload_file(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset::upload_file::UploadFileRequest {
+        crate::aily::aily::v1::app::data_asset::upload_file::UploadFileRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+    }
+}
+
+/// AILY 数据知识分类资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct DataAssetTagResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl DataAssetTagResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建获取数据知识分类列表请求。
+    pub fn list(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::data_asset_tag::list::ListDataAssetTagsRequest {
+        crate::aily::aily::v1::app::data_asset_tag::list::ListDataAssetTagsRequest::new(
+            (*self.config).clone(),
+        )
+        .app_id(app_id)
+    }
+}
+
+/// AILY 数据知识问答资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct KnowledgeResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl KnowledgeResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建数据知识问答请求。
+    pub fn ask(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::knowledge::ask::AskKnowledgeRequest {
+        crate::aily::aily::v1::app::knowledge::ask::AskKnowledgeRequest::new((*self.config).clone())
+            .app_id(app_id)
     }
 }
 
@@ -467,6 +729,213 @@ impl SkillResource {
         crate::aily::aily::v1::app::skill::get::GetSkillRequest::new((*self.config).clone())
             .app_id(app_id)
             .skill_id(skill_id)
+    }
+
+    /// 创建查询技能列表请求。
+    pub fn list(
+        &self,
+        app_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::skill::list::ListSkillsRequest {
+        crate::aily::aily::v1::app::skill::list::ListSkillsRequest::new((*self.config).clone())
+            .app_id(app_id)
+    }
+
+    /// 创建调用技能请求。
+    pub fn start(
+        &self,
+        app_id: impl Into<String>,
+        skill_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::app::skill::start::StartSkillRequest {
+        crate::aily::aily::v1::app::skill::start::StartSkillRequest::new((*self.config).clone())
+            .app_id(app_id)
+            .skill_id(skill_id)
+    }
+}
+
+/// AILY 智能体资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 访问 agent_artifact 资源。
+    pub fn agent_artifact(&self) -> AgentArtifactResource {
+        AgentArtifactResource::new(self.config.clone())
+    }
+
+    /// 访问 agent_attachment 资源。
+    pub fn agent_attachment(&self) -> AgentAttachmentResource {
+        AgentAttachmentResource::new(self.config.clone())
+    }
+
+    /// 访问 agent_chat 资源。
+    pub fn agent_chat(&self) -> AgentChatResource {
+        AgentChatResource::new(self.config.clone())
+    }
+
+    /// 访问 agent_visibility 资源。
+    pub fn agent_visibility(&self) -> AgentVisibilityResource {
+        AgentVisibilityResource::new(self.config.clone())
+    }
+}
+
+/// AILY 智能体产物资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentArtifactResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentArtifactResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建下载智能体产物请求。
+    pub fn get(
+        &self,
+        agent_id: impl Into<String>,
+        agent_artifact_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_artifact::get::GetAgentArtifactRequest {
+        crate::aily::aily::v1::agent::agent_artifact::get::GetAgentArtifactRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+        .agent_artifact_id(agent_artifact_id)
+    }
+}
+
+/// AILY 智能体附件资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentAttachmentResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentAttachmentResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建上传附件请求。
+    pub fn create(
+        &self,
+        agent_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_attachment::create::CreateAgentAttachmentRequest {
+        crate::aily::aily::v1::agent::agent_attachment::create::CreateAgentAttachmentRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+    }
+}
+
+/// AILY 智能体会话资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentChatResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentChatResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建发起智能体会话请求。
+    pub fn create(
+        &self,
+        agent_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat::create::CreateAgentChatRequest {
+        crate::aily::aily::v1::agent::agent_chat::create::CreateAgentChatRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+    }
+
+    /// 创建获取会话结果请求。
+    pub fn get(
+        &self,
+        agent_id: impl Into<String>,
+        agent_chat_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat::get::GetAgentChatRequest {
+        crate::aily::aily::v1::agent::agent_chat::get::GetAgentChatRequest::new(self.config.clone())
+            .agent_id(agent_id)
+            .agent_chat_id(agent_chat_id)
+    }
+}
+
+/// AILY 智能体可见性资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentVisibilityResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentVisibilityResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建获取当前用户可见性请求。
+    pub fn check(
+        &self,
+        agent_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_visibility::check::CheckAgentVisibilityRequest {
+        crate::aily::aily::v1::agent::agent_visibility::check::CheckAgentVisibilityRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+    }
+}
+
+/// AILY 租户资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct TenantResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl TenantResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 访问 app_stat 资源。
+    pub fn app_stat(&self) -> AppStatResource {
+        AppStatResource::new(self.config.clone())
+    }
+}
+
+/// AILY 应用统计资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AppStatResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AppStatResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建查询应用统计数据请求。
+    pub fn list(&self) -> crate::aily::aily::v1::tenant::app_stat::list::ListAppStatsRequest {
+        crate::aily::aily::v1::tenant::app_stat::list::ListAppStatsRequest::new(
+            (*self.config).clone(),
+        )
     }
 }
 

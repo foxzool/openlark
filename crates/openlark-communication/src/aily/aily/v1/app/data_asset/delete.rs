@@ -119,7 +119,6 @@ mod tests {
         use crate::endpoints::aily::AILY_V1_DATA_ASSET;
         let url = AILY_V1_DATA_ASSET
             .replace("{session_id}", "sess_1")
-            .replace("{aily_session_id}", "sess_1")
             .replace("{run_id}", "run_1")
             .replace("{app_id}", "app_1")
             .replace("{data_asset_id}", "asset_1")

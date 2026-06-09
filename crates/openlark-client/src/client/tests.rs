@@ -156,20 +156,46 @@ fn test_communication_aily_chain_exists() {
         .build()
         .unwrap();
 
-    // Verify AILY chain access compiles
-    let _ = client.communication.aily.aily_session().get("session_123");
-    let _ = client
-        .communication
-        .aily
+    let aily = &client.communication.aily;
+
+    let _ = aily.aily_session().create();
+    let _ = aily.aily_session().delete("session_123");
+    let _ = aily.aily_session().get("session_123");
+    let _ = aily.aily_session().update("session_123");
+
+    let _ = aily.aily_session().aily_message().create("session_123");
+    let _ = aily
         .aily_session()
-        .run()
-        .get("session_123", "run_123");
-    let _ = client
-        .communication
-        .aily
-        .app()
-        .skill()
-        .get("app_123", "skill_123");
+        .aily_message()
+        .get("session_123", "message_123");
+    let _ = aily.aily_session().aily_message().list("session_123");
+
+    let _ = aily.aily_session().run().cancel("session_123", "run_123");
+    let _ = aily.aily_session().run().create("session_123");
+    let _ = aily.aily_session().run().get("session_123", "run_123");
+    let _ = aily.aily_session().run().list("session_123");
+
+    let _ = aily.app().data_asset().create("app_123");
+    let _ = aily.app().data_asset().delete("app_123", "asset_123");
+    let _ = aily.app().data_asset().get("app_123", "asset_123");
+    let _ = aily.app().data_asset().list("app_123");
+    let _ = aily.app().data_asset().upload_file("app_123");
+    let _ = aily.app().data_asset_tag().list("app_123");
+    let _ = aily.app().knowledge().ask("app_123");
+    let _ = aily.app().skill().get("app_123", "skill_123");
+    let _ = aily.app().skill().list("app_123");
+    let _ = aily.app().skill().start("app_123", "skill_123");
+
+    let _ = aily
+        .agent()
+        .agent_artifact()
+        .get("agent_123", "artifact_123");
+    let _ = aily.agent().agent_attachment().create("agent_123");
+    let _ = aily.agent().agent_chat().create("agent_123");
+    let _ = aily.agent().agent_chat().get("agent_123", "chat_123");
+    let _ = aily.agent().agent_visibility().check("agent_123");
+
+    let _ = aily.tenant().app_stat().list();
     let _ = client.communication.aily.config();
 }
 
@@ -182,11 +208,34 @@ fn test_hr_okr_v2_chain_exists() {
         .build()
         .unwrap();
 
-    // Verify OKR v2 chain access compiles
-    let _ = client.hr.okr.v2().cycle().list();
-    let _ = client.hr.okr.v2().objective().get("obj_123");
-    let _ = client.hr.okr.v2().key_result().get("kr_123");
-    let _ = client.hr.okr.v2().config();
+    let okr_v2 = client.hr.okr.v2();
+
+    let _ = okr_v2.alignment().get("alignment_123");
+    let _ = okr_v2.alignment().delete("alignment_123");
+    let _ = okr_v2.category().list();
+    let _ = okr_v2.cycle().list();
+    let _ = okr_v2.cycle().objectives_position("cycle_123");
+    let _ = okr_v2.cycle().objectives_weight("cycle_123");
+    let _ = okr_v2.cycle().create_objective("cycle_123");
+    let _ = okr_v2.cycle().list_objectives("cycle_123");
+    let _ = okr_v2.indicator().patch("indicator_123");
+    let _ = okr_v2.key_result().get("kr_123");
+    let _ = okr_v2.key_result().delete("kr_123");
+    let _ = okr_v2.key_result().patch("kr_123");
+    let _ = okr_v2.key_result().list_indicators("kr_123");
+    let _ = okr_v2.key_result().list_progresses("kr_123");
+    let _ = okr_v2.objective().get("obj_123");
+    let _ = okr_v2.objective().delete("obj_123");
+    let _ = okr_v2.objective().patch("obj_123");
+    let _ = okr_v2.objective().key_results_position("obj_123");
+    let _ = okr_v2.objective().key_results_weight("obj_123");
+    let _ = okr_v2.objective().create_alignment("obj_123");
+    let _ = okr_v2.objective().list_alignments("obj_123");
+    let _ = okr_v2.objective().list_indicators("obj_123");
+    let _ = okr_v2.objective().create_key_result("obj_123");
+    let _ = okr_v2.objective().list_key_results("obj_123");
+    let _ = okr_v2.objective().list_progresses("obj_123");
+    let _ = okr_v2.config();
 }
 
 #[cfg(feature = "meeting")]
@@ -214,9 +263,29 @@ fn test_workflow_task_v2_chain_exists() {
         .build()
         .unwrap();
 
-    // Verify workflow task v2 chain access compiles
-    let _ = client.workflow.task();
-    let _ = client.workflow.task();
+    let task = client.workflow.task();
+
+    let _ = task.create();
+    let _ = task.update("task_123");
+    let _ = task.delete("task_123");
+    let _ = task.get("task_123");
+    let _ = task.list();
+    let _ = task.complete("task_123");
+    let _ = task.uncomplete("task_123");
+    let _ = task.subtask("task_123");
+    let _ = task.add_tasklist("task_123");
+    let _ = task.remove_tasklist("task_123");
+    let _ = task.tasklists("task_123");
+    let _ = task.add_members("task_123");
+    let _ = task.remove_members("task_123");
+    let _ = task.add_reminders("task_123");
+    let _ = task.remove_reminders("task_123");
+    let _ = task.add_dependencies("task_123");
+    let _ = task.remove_dependencies("task_123");
+    let _ = task.set_ancestor_task("task_123");
+    let _ = task.search();
+
+    let _ = client.workflow.tasklist();
 }
 
 #[test]
