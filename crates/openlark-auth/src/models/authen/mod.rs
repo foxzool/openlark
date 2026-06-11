@@ -4,7 +4,8 @@
 
 use chrono::{DateTime, Utc};
 use openlark_core::api::responses::ApiResponseTrait;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::ops::Deref;
 
 mod token;
 
@@ -14,10 +15,30 @@ pub use token::{
 };
 
 /// 用户信息响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct UserInfoResponse {
     /// 用户信息
     pub data: UserInfo,
+}
+
+impl<'de> Deserialize<'de> for UserInfoResponse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let data_value = value.get("data").cloned().unwrap_or(value);
+        let data = UserInfo::deserialize(data_value).map_err(serde::de::Error::custom)?;
+        Ok(Self { data })
+    }
+}
+
+impl Deref for UserInfoResponse {
+    type Target = UserInfo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
 }
 
 /// 用户信息

@@ -21,7 +21,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _builder1 = auth_service
         .app_access_token()
         .app_id("app_id")
-        .app_secret("app_secret");
+        .app_secret("app_secret")
+        .app_ticket("app_ticket");
 
     println!("✅ 2. 自建应用获取app_access_token_internal");
     let _builder2 = auth_service
@@ -32,8 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ 3. 商店应用获取tenant_access_token");
     let _builder3 = auth_service
         .tenant_access_token()
-        .app_id("app_id")
-        .app_secret("app_secret");
+        .app_access_token("app_access_token")
+        .tenant_key("tenant_key");
 
     println!("✅ 4. 自建应用获取tenant_access_token_internal");
     let _builder4 = auth_service

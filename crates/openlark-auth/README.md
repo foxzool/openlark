@@ -26,7 +26,7 @@ graph TD
     A --> D[authen/]
     A --> E[oauth/]
 
-    B --> B1[AuthConfig]
+    B --> B1[Config]
     B --> B2[AuthError]
     B --> B3[TokenInfo]
     B --> B4[UserInfo]
@@ -52,17 +52,36 @@ graph TD
 
 ```rust
 // 认证服务统一入口
-use openlark_auth::{AuthServices, AuthConfig};
+use openlark_auth::{AuthService, AuthenService, OAuthService};
+use openlark_core::config::Config;
 
-let config = AuthConfig::new("app_id", "app_secret")
-.with_base_url("https://open.feishu.cn");
+let config = Config::builder()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .base_url("https://open.feishu.cn")
+    .build();
 
-let auth = AuthServices::new(config);
+let auth = AuthService::new(config.clone());
+let authen = AuthenService::new(config.clone());
+let oauth = OAuthService::new(config);
 
 // 访问各个项目
-let tenant_token = auth.auth.v3().tenant_access_token().internal().send().await?;
-let user_info = auth.authen.v1.user_info().get().user_access_token("token").send().await?;
-let oauth_url = auth.oauth.old.authorization().get_index().app_id("app_id").send().await?;
+let tenant_token = auth.v3()
+    .tenant_access_token_internal()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .execute()
+    .await?;
+let user_info = authen.v1()
+    .user_info()
+    .get()
+    .user_access_token("user_access_token")
+    .execute()
+    .await?;
+let oauth_url = oauth.old()
+    .authorization()
+    .app_id("app_id")
+    .redirect_uri("https://example.com/callback");
 ```
 
 ## 快速开始
@@ -78,33 +97,41 @@ tokio = { version = "1.0", features = ["full"] }
 ### 基础使用
 
 ```rust,no_run
-use openlark_auth::{AuthServices, AuthConfig};
+use openlark_auth::{AuthService, AuthenService};
+use openlark_core::config::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. 创建认证配置
-    let config = AuthConfig::new("your_app_id", "your_app_secret")
-        .with_base_url("https://open.feishu.cn");
+    let config = Config::builder()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        .base_url("https://open.feishu.cn")
+        .build();
 
     // 2. 创建认证服务
-    let auth = AuthServices::new(config);
+    let auth = AuthService::new(config.clone());
+    let authen = AuthenService::new(config);
 
     // 3. 获取自建应用租户访问令牌
-    let tenant_token = auth.auth.v3().tenant_access_token()
-        .internal()
-        .send()
+    let tenant_token = auth.v3()
+        .tenant_access_token_internal()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        .execute()
         .await?;
 
-    println!("租户令牌: {}", tenant_token.tenant_access_token);
+    println!("租户令牌: {}", tenant_token.data.tenant_access_token);
 
     // 4. 获取用户信息
-    let user_info = auth.authen.v1().user_info()
+    let user_info = authen.v1()
+        .user_info()
         .get()
-        .user_access_token(&tenant_token.tenant_access_token)
-        .send()
+        .user_access_token("user_access_token")
+        .execute()
         .await?;
 
-    println!("用户名称: {}", user_info.name);
+    println!("用户 Open ID: {}", user_info.data.open_id);
 
     Ok(())
 }
@@ -118,17 +145,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 // 自建应用租户访问令牌
-let tenant_token = auth.auth.v3().tenant_access_token()
-    .internal()
-    .send()
+let tenant_token = auth.v3()
+    .tenant_access_token_internal()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .execute()
     .await?;
 
 // 商店应用租户访问令牌
-let tenant_token = auth.auth.v3().tenant_access_token()
-    .store()
-    .app_access_token("app_token")
+let tenant_token = auth.v3()
+    .tenant_access_token()
+    .app_access_token("app_access_token")
     .tenant_key("tenant_key")
-    .send()
+    .execute()
     .await?;
 ```
 
@@ -136,15 +165,20 @@ let tenant_token = auth.auth.v3().tenant_access_token()
 
 ```rust
 // 自建应用访问令牌
-let app_token = auth.auth.v3().app_access_token()
-    .internal()
-    .send()
+let app_token = auth.v3()
+    .app_access_token_internal()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .execute()
     .await?;
 
 // 商店应用访问令牌
-let app_token = auth.auth.v3().app_access_token()
-    .store()
-    .send()
+let app_token = auth.v3()
+    .app_access_token()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .app_ticket("app_ticket")
+    .execute()
     .await?;
 ```
 
@@ -152,9 +186,11 @@ let app_token = auth.auth.v3().app_access_token()
 
 ```rust
 // 重新推送应用票据
-let response = auth.auth.v3().app_ticket()
-    .resend()
-    .send()
+let response = auth.v3()
+    .app_ticket_resend()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .execute()
     .await?;
 ```
 
@@ -163,11 +199,12 @@ let response = auth.auth.v3().app_ticket()
 #### 用户信息获取
 
 ```rust
-let user_info = auth.authen.v1().user_info()
+let user_info = authen.v1()
+    .user_info()
     .get()
     .user_access_token("user_access_token")
     .user_id_type("open_id")
-    .send()
+    .execute()
     .await?;
 ```
 
@@ -175,11 +212,12 @@ let user_info = auth.authen.v1().user_info()
 
 ```rust
 // 使用授权码获取访问令牌
-let access_token = auth.authen.v1().access_token()
-    .create()
-    .grant_type("authorization_code")
-    .code("authorization_code")
-    .send()
+let access_token = authen.v1()
+    .access_token()
+    .grant_code("authorization_code")
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .execute()
     .await?;
 ```
 
@@ -187,11 +225,13 @@ let access_token = auth.authen.v1().access_token()
 
 ```rust
 // 刷新 OIDC 访问令牌
-let oidc_token = auth.authen.v1().oidc()
-    .create_refresh_access_token()
+let oidc_token = authen.v1()
+    .oidc()
+    .refresh_access_token()
     .refresh_token("refresh_token")
-    .grant_type("refresh_token")
-    .send()
+    .client_id("client_id")
+    .client_secret("client_secret")
+    .execute()
     .await?;
 ```
 
@@ -200,26 +240,30 @@ let oidc_token = auth.authen.v1().oidc()
 #### 获取预授权码
 
 ```rust
-let pre_auth_code = auth.oauth.old.authorization()
-    .get_index()
+let pre_auth_code = oauth.old()
+    .authorization()
     .app_id("app_id")
     .redirect_uri("https://example.com/callback")
     .scope("user:info")
     .state("random_state")
-    .send()
+    .execute()
     .await?;
 ```
 
 ## 数据模型
 
-### 认证配置 (AuthConfig)
+### 认证配置 (Config)
 
 ```rust
-let config = AuthConfig::new("app_id", "app_secret")
-    .with_base_url("https://open.feishu.cn");
+use openlark_core::config::Config;
 
-// 或者使用默认配置
-let default_config = AuthConfig::default();
+let config = Config::builder()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .base_url("https://open.feishu.cn")
+    .build();
+
+let default_config = Config::default();
 ```
 
 ### 令牌信息 (TokenInfo)
@@ -317,7 +361,11 @@ if token_info.is_expired() || token_info.needs_refresh(30) {
 
 // 网络错误重试
 let result = retry_async_operation(|| {
-    auth.auth.v3().tenant_access_token().internal().send()
+    auth.v3()
+        .tenant_access_token_internal()
+        .app_id("app_id")
+        .app_secret("app_secret")
+        .execute()
 }).await;
 ```
 
@@ -329,23 +377,30 @@ let result = retry_async_operation(|| {
 use std::sync::Arc;
 use tokio::task::JoinSet;
 
-let auth = Arc::new(AuthServices::new(config));
+let auth = Arc::new(AuthService::new(config));
 let mut join_set = JoinSet::new();
 
 // 并发获取多个令牌
 for i in 0..5 {
-let auth_clone = auth.clone();
-join_set.spawn(async move {
-auth_clone.auth.v3().tenant_access_token().internal().send().await
-});
+    let auth_clone = auth.clone();
+    join_set.spawn(async move {
+        auth_clone
+            .v3()
+            .tenant_access_token_internal()
+            .app_id("app_id")
+            .app_secret("app_secret")
+            .execute()
+            .await
+    });
 }
 
 // 等待所有请求完成
 while let Some(result) = join_set.join_next().await {
-match result {
-Ok(token) => println ! ("令牌 {} 获取成功", i),
-Err(e) => println !("令牌 {} 获取失败: {}", i, e),
-}
+    match result {
+        Ok(Ok(token)) => println!("令牌获取成功: {}", token.data.tenant_access_token),
+        Ok(Err(e)) => println!("令牌获取失败: {}", e),
+        Err(e) => println!("任务执行失败: {}", e),
+    }
 }
 ```
 
@@ -354,15 +409,19 @@ Err(e) => println !("令牌 {} 获取失败: {}", i, e),
 ```rust
 // 自定义 HTTP 客户端
 use reqwest::Client;
+use openlark_core::config::Config;
 
 let client = Client::builder()
     .timeout(Duration::from_secs(30))
     .user_agent("OpenLark-SDK/1.0")
     .build()?;
 
-let config = AuthConfig::new("app_id", "app_secret")
-    .with_base_url("https://open.feishu.cn")
-    .with_client(client);
+let config = Config::builder()
+    .app_id("app_id")
+    .app_secret("app_secret")
+    .base_url("https://open.feishu.cn")
+    .http_client(client)
+    .build();
 ```
 
 ## 最佳实践
@@ -378,7 +437,10 @@ let app_id = env::var("LARK_APP_ID")
 let app_secret = env::var("LARK_APP_SECRET")
     .expect("LARK_APP_SECRET must be set");
 
-let config = AuthConfig::new(app_id, app_secret);
+let config = Config::builder()
+    .app_id(app_id)
+    .app_secret(app_secret)
+    .build();
 ```
 
 ### 2. 令牌缓存

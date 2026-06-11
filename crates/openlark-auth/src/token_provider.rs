@@ -12,7 +12,9 @@ use openlark_core::{
 };
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
 use std::future::Future;
+use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -89,6 +91,12 @@ impl AuthTokenProvider {
     }
 
     /// 生成缓存键
+    fn cache_key_component(value: &str) -> String {
+        let mut hasher = DefaultHasher::new();
+        value.hash(&mut hasher);
+        format!("{:016x}", hasher.finish())
+    }
+
     fn cache_key(
         token_type: &AccessTokenType,
         app_type: &AppType,
@@ -101,7 +109,8 @@ impl AuthTokenProvider {
             }
             AccessTokenType::App if app_type == &AppType::Marketplace => {
                 let app_ticket = request.app_ticket.as_deref().unwrap_or("default");
-                format!("{token_type:?}_{app_type:?}_{app_ticket}")
+                let app_ticket_key = Self::cache_key_component(app_ticket);
+                format!("{token_type:?}_{app_type:?}_{app_ticket_key}")
             }
             _ => format!("{token_type:?}_{app_type:?}"),
         }
@@ -212,11 +221,18 @@ impl TokenProvider for AuthTokenProvider {
                                 .await?
                             }
                             AppType::Marketplace => {
+                                let app_ticket = request.app_ticket.clone().ok_or_else(|| {
+                                    configuration_error(
+                                        "token_provider: marketplace app requires app_ticket to fetch app_access_token",
+                                    )
+                                })?;
+
                                 self.fetch_token_via_http(
                                     "/open-apis/auth/v3/app_access_token",
                                     json!({
                                         "app_id": self.config.app_id(),
                                         "app_secret": self.config.app_secret(),
+                                        "app_ticket": app_ticket,
                                     }),
                                     "app_access_token",
                                 )
@@ -234,40 +250,47 @@ impl TokenProvider for AuthTokenProvider {
                         &request,
                     );
                     self.get_or_fetch(cache_key, || async {
-                    let (token, expires_in) = match self.config.app_type() {
-                        AppType::SelfBuild => {
-                            self.fetch_token_via_http(
-                                "/open-apis/auth/v3/tenant_access_token/internal",
-                                json!({
-                                    "app_id": self.config.app_id(),
-                                    "app_secret": self.config.app_secret(),
-                                }),
-                                "tenant_access_token",
-                            )
-                            .await?
-                        }
-                        AppType::Marketplace => {
-                            let app_ticket = request.app_ticket.clone().ok_or_else(|| {
-                                configuration_error(
-                                    "token_provider: marketplace app requires app_ticket to fetch tenant_access_token",
+                        let (token, expires_in) = match self.config.app_type() {
+                            AppType::SelfBuild => {
+                                self.fetch_token_via_http(
+                                    "/open-apis/auth/v3/tenant_access_token/internal",
+                                    json!({
+                                        "app_id": self.config.app_id(),
+                                        "app_secret": self.config.app_secret(),
+                                    }),
+                                    "tenant_access_token",
                                 )
-                            })?;
+                                .await?
+                            }
+                            AppType::Marketplace => {
+                                let tenant_key = request.tenant_key.clone().ok_or_else(|| {
+                                    configuration_error(
+                                        "token_provider: marketplace app requires tenant_key to fetch tenant_access_token",
+                                    )
+                                })?;
+                                let app_ticket = request.app_ticket.clone().ok_or_else(|| {
+                                    configuration_error(
+                                        "token_provider: marketplace app requires app_ticket to fetch tenant_access_token",
+                                    )
+                                })?;
+                                let app_access_token =
+                                    self.get_token(TokenRequest::app().app_ticket(app_ticket))
+                                        .await?;
 
-                            self.fetch_token_via_http(
-                                "/open-apis/auth/v3/tenant_access_token",
-                                json!({
-                                    "app_id": self.config.app_id(),
-                                    "app_secret": self.config.app_secret(),
-                                    "app_ticket": app_ticket,
-                                }),
-                                "tenant_access_token",
-                            )
-                            .await?
-                        }
-                    };
-                    Ok((token, expires_in))
-                })
-                .await
+                                self.fetch_token_via_http(
+                                    "/open-apis/auth/v3/tenant_access_token",
+                                    json!({
+                                        "app_access_token": app_access_token,
+                                        "tenant_key": tenant_key,
+                                    }),
+                                    "tenant_access_token",
+                                )
+                                .await?
+                            }
+                        };
+                        Ok((token, expires_in))
+                    })
+                    .await
                 }
                 AccessTokenType::User => Err(configuration_error(
                     "token_provider: user token 不应由 core 自动获取，请在 RequestOption 中显式传入 user_access_token（或由上层自行实现 TokenProvider 扩展）。",
@@ -281,55 +304,4 @@ impl TokenProvider for AuthTokenProvider {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use super::AuthTokenProvider;
-    use openlark_core::{
-        auth::{TokenProvider, TokenRequest},
-        config::Config,
-        constants::AppType,
-    };
-
-    #[tokio::test]
-    async fn tenant_token_fetch_no_longer_uses_noop_provider() {
-        let config = Config::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .base_url("http://127.0.0.1:9")
-            .build();
-
-        let provider = AuthTokenProvider::new(config);
-        let err = provider
-            .get_token(TokenRequest::tenant())
-            .await
-            .expect_err("should fail on unreachable test endpoint");
-
-        assert!(!err.to_string().contains("NoOpTokenProvider"));
-    }
-
-    #[tokio::test]
-    async fn tenant_cache_key_should_include_tenant_key() {
-        let request = TokenRequest::tenant().tenant_key("tenant_key_001");
-
-        let key = AuthTokenProvider::cache_key(
-            &openlark_core::constants::AccessTokenType::Tenant,
-            &AppType::SelfBuild,
-            &request,
-        );
-
-        assert_eq!(key, "Tenant_SelfBuild_tenant_key_001");
-    }
-
-    #[tokio::test]
-    async fn app_cache_key_should_include_app_ticket_for_marketplace() {
-        let request = TokenRequest::app().app_ticket("ticket_001");
-
-        let key = AuthTokenProvider::cache_key(
-            &openlark_core::constants::AccessTokenType::App,
-            &AppType::Marketplace,
-            &request,
-        );
-
-        assert_eq!(key, "App_Marketplace_ticket_001");
-    }
-}
+mod tests;

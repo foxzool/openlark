@@ -203,7 +203,10 @@ impl ImprovedResponseHandler {
 
         let body_bytes = read_body_with_limit(response, max_size).await?;
         let response_text = String::from_utf8_lossy(&body_bytes).to_string();
-        debug!("Raw response: {response_text}");
+        debug!(
+            response_size_bytes = body_bytes.len(),
+            "Flatten response received"
+        );
 
         // 解析阶段
         let raw_value: Value = match serde_json::from_str(&response_text) {
@@ -447,6 +450,8 @@ mod tests {
     use super::*;
     use crate::api::ResponseFormat;
     use serde::{Deserialize, Serialize};
+    use tracing_test::traced_test;
+    use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method, matchers::path};
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
     struct TestData {
@@ -469,6 +474,21 @@ mod tests {
     }
 
     impl ApiResponseTrait for TestFlattenData {
+        fn data_format() -> ResponseFormat {
+            ResponseFormat::Flatten
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
+    struct TestTokenFlattenData {
+        code: i32,
+        msg: String,
+        app_access_token: String,
+        #[serde(alias = "expire")]
+        expires_in: i64,
+    }
+
+    impl ApiResponseTrait for TestTokenFlattenData {
         fn data_format() -> ResponseFormat {
             ResponseFormat::Flatten
         }
@@ -826,6 +846,44 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[traced_test]
+    #[tokio::test]
+    async fn test_handle_flatten_response_does_not_log_token_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "app_access_token": "app-token-secret",
+                "expire": 7200
+            })))
+            .mount(&server)
+            .await;
+
+        let response = reqwest::Client::new()
+            .get(format!("{}/token", server.uri()))
+            .send()
+            .await
+            .expect("mock response should be fetched");
+
+        let parsed =
+            ImprovedResponseHandler::handle_response::<TestTokenFlattenData>(response, 1024 * 1024)
+                .await
+                .expect("flatten token response should parse");
+
+        assert_eq!(
+            parsed
+                .data
+                .expect("flatten data should exist")
+                .app_access_token,
+            "app-token-secret"
+        );
+        assert!(logs_contain("Flatten response received"));
+        assert!(!logs_contain("app-token-secret"));
+        assert!(!logs_contain("app_access_token"));
     }
 
     #[test]
