@@ -28,6 +28,7 @@ pub struct UserAccessTokenV1Builder {
 
 /// 用户访问令牌响应（v1版本）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct UserAccessTokenV1ResponseData {
     /// 用户访问令牌响应
     pub data: UserAccessTokenResponse,
@@ -182,7 +183,8 @@ mod tests {
 
     #[test]
     fn test_user_access_token_v1_response_data_deserialization() {
-        let json = r#"{"data":{"user_access_token":"token123","expires_in":7200,"refresh_token":"refresh456"}}"#;
+        let json =
+            r#"{"user_access_token":"token123","expires_in":7200,"refresh_token":"refresh456"}"#;
         let response: UserAccessTokenV1ResponseData =
             serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.data.user_access_token, "token123");

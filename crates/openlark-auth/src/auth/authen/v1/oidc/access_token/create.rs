@@ -30,6 +30,7 @@ pub struct OidcAccessTokenBuilder {
 
 /// OIDC 用户访问令牌响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct OidcAccessTokenResponseData {
     /// 用户访问令牌响应
     pub data: UserAccessTokenResponse,
@@ -227,7 +228,8 @@ mod tests {
 
     #[test]
     fn test_oidc_access_token_response_data_deserialization() {
-        let json = r#"{"data":{"user_access_token":"token123","expires_in":7200,"refresh_token":"refresh456"}}"#;
+        let json =
+            r#"{"user_access_token":"token123","expires_in":7200,"refresh_token":"refresh456"}"#;
         let response: OidcAccessTokenResponseData =
             serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.data.user_access_token, "token123");

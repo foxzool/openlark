@@ -29,6 +29,7 @@ pub struct RefreshUserAccessTokenV1Builder {
 
 /// 用户访问令牌刷新响应（v1版本）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct RefreshUserAccessTokenV1ResponseData {
     /// 用户访问令牌响应
     pub data: UserAccessTokenResponse,
