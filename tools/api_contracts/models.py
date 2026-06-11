@@ -6,6 +6,17 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
+_HTTP_METHODS = {"GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE"}
+
+
+def _split_official_url(value: str) -> tuple[str, str]:
+    method, _, path = value.partition(":")
+    method = method.strip().upper()
+    if method in _HTTP_METHODS and path:
+        return method, path.strip()
+    return "", value.strip()
+
+
 @dataclass(frozen=True)
 class ApiIdentity:
     api_id: str
@@ -22,12 +33,18 @@ class ApiIdentity:
 
     @property
     def official_method(self) -> str:
-        method, _, _ = self.url.partition(":")
-        return method.upper()
+        method, path = _split_official_url(self.url)
+        if method:
+            return method
+        method, _ = _split_official_url(self.full_path)
+        return method
 
     @property
     def official_path(self) -> str:
-        _, _, path = self.url.partition(":")
+        _, path = _split_official_url(self.url)
+        if path:
+            return path
+        _, path = _split_official_url(self.full_path)
         return path
 
 
