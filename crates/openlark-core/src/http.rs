@@ -222,6 +222,31 @@ fn determine_token_type(
     enable_token_cache: bool,
 ) -> AccessTokenType {
     if !enable_token_cache {
+        if !access_token_types.is_empty() {
+            for access_token_type in access_token_types.iter() {
+                match access_token_type {
+                    AccessTokenType::User => {
+                        if option.user_access_token.is_some() {
+                            return AccessTokenType::User;
+                        }
+                    }
+                    AccessTokenType::Tenant => {
+                        if option.tenant_access_token.is_some() || option.tenant_key.is_some() {
+                            return AccessTokenType::Tenant;
+                        }
+                    }
+                    AccessTokenType::App => {
+                        if option.app_access_token.is_some() {
+                            return AccessTokenType::App;
+                        }
+                    }
+                    AccessTokenType::None => {}
+                }
+            }
+
+            return AccessTokenType::None;
+        }
+
         if option.user_access_token.is_some() {
             return AccessTokenType::User;
         }
