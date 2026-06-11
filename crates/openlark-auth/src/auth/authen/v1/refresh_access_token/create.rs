@@ -10,6 +10,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
     validate_required,
@@ -19,6 +20,7 @@ use serde::{Deserialize, Serialize};
 /// 用户访问令牌刷新请求（v1版本）
 pub struct RefreshUserAccessTokenV1Builder {
     refresh_token: String,
+    grant_type: String,
     app_id: String,
     app_secret: String,
     /// 配置信息
@@ -34,7 +36,7 @@ pub struct RefreshUserAccessTokenV1ResponseData {
 
 impl ApiResponseTrait for RefreshUserAccessTokenV1ResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
@@ -43,6 +45,7 @@ impl RefreshUserAccessTokenV1Builder {
     pub fn new(config: Config) -> Self {
         Self {
             refresh_token: String::new(),
+            grant_type: "refresh_token".to_string(),
             app_id: String::new(),
             app_secret: String::new(),
             config,
@@ -52,6 +55,12 @@ impl RefreshUserAccessTokenV1Builder {
     /// 设置刷新令牌
     pub fn refresh_token(mut self, refresh_token: impl Into<String>) -> Self {
         self.refresh_token = refresh_token.into();
+        self
+    }
+
+    /// 设置授权类型
+    pub fn grant_type(mut self, grant_type: impl Into<String>) -> Self {
+        self.grant_type = grant_type.into();
         self
     }
 
@@ -79,8 +88,6 @@ impl RefreshUserAccessTokenV1Builder {
     ) -> SDKResult<RefreshUserAccessTokenV1ResponseData> {
         // 验证必填字段
         validate_required!(self.refresh_token, "刷新令牌不能为空");
-        validate_required!(self.app_id, "应用ID不能为空");
-        validate_required!(self.app_secret, "应用密钥不能为空");
 
         // 🚀 使用新的enum+builder系统生成API端点
         use crate::common::api_endpoints::AuthenApiV1;
@@ -88,14 +95,17 @@ impl RefreshUserAccessTokenV1Builder {
 
         // 构建请求体
         let request_body = RefreshUserAccessTokenV1Request {
+            grant_type: self.grant_type.clone(),
             refresh_token: self.refresh_token.clone(),
-            app_id: self.app_id.clone(),
-            app_secret: self.app_secret.clone(),
+            app_id: (!self.app_id.is_empty()).then(|| self.app_id.clone()),
+            app_secret: (!self.app_secret.is_empty()).then(|| self.app_secret.clone()),
         };
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<RefreshUserAccessTokenV1ResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -108,6 +118,13 @@ impl RefreshUserAccessTokenV1Builder {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use openlark_core::{config::Config, req_option::RequestOption};
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, header, method, path},
+    };
 
     #[test]
     fn test_serialization_roundtrip() {
@@ -122,5 +139,53 @@ mod tests {
         let json = r#"{"field": "data"}"#;
         let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(value["field"], "data");
+    }
+
+    #[tokio::test]
+    async fn test_execute_uses_current_json_body_and_access_token_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/authen/v1/refresh_access_token"))
+            .and(header("authorization", "Bearer app_token"))
+            .and(header("content-type", "application/json; charset=utf-8"))
+            .and(body_json(json!({
+                "grant_type": "refresh_token",
+                "refresh_token": "old_refresh_token"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "access_token": "new-u-token",
+                    "refresh_token": "new-refresh-token",
+                    "token_type": "Bearer",
+                    "expires_in": 7140,
+                    "refresh_expires_in": 2591999
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = RequestOption::builder()
+            .app_access_token("app_token")
+            .build();
+
+        let response = RefreshUserAccessTokenV1Builder::new(config)
+            .refresh_token("old_refresh_token")
+            .execute_with_options(option)
+            .await
+            .expect("refresh_access_token 请求应成功");
+
+        assert_eq!(response.data.user_access_token, "new-u-token");
+        assert_eq!(
+            response.data.refresh_token,
+            Some("new-refresh-token".to_string())
+        );
     }
 }

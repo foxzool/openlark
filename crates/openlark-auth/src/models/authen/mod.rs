@@ -6,6 +6,13 @@ use chrono::{DateTime, Utc};
 use openlark_core::api::responses::ApiResponseTrait;
 use serde::{Deserialize, Serialize};
 
+mod token;
+
+pub use token::{
+    OidcRefreshUserAccessTokenRequest, OidcUserAccessTokenRequest, RefreshUserAccessTokenV1Request,
+    UserAccessTokenResponse, UserAccessTokenV1Request,
+};
+
 /// 用户信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfoResponse {
@@ -14,7 +21,7 @@ pub struct UserInfoResponse {
 }
 
 /// 用户信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfo {
     /// 用户Open ID
     pub open_id: String,
@@ -57,7 +64,7 @@ pub struct UserInfo {
 }
 
 /// 用户头像
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserAvatar {
     /// 头像72x72
     pub avatar_72: Option<String>,
@@ -70,7 +77,7 @@ pub struct UserAvatar {
 }
 
 /// 用户状态
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserStatus {
     /// 是否激活
     pub is_activated: Option<bool>,
@@ -83,7 +90,7 @@ pub struct UserStatus {
 }
 
 /// 企业扩展属性
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserEnterpriseExtension {
     /// 入职时间
     pub hire_date: Option<DateTime<Utc>>,
@@ -114,79 +121,12 @@ pub struct UserEnterpriseExtension {
 }
 
 /// 用户自定义属性
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserCustomAttr {
     /// 属性Key
     pub key: Option<String>,
     /// 属性值
     pub value: Option<serde_json::Value>,
-}
-
-/// 用户访问令牌响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct UserAccessTokenResponse {
-    /// 用户访问令牌
-    pub user_access_token: String,
-    /// 刷新令牌
-    pub refresh_token: Option<String>,
-    /// 令牌有效期（秒）
-    pub expires_in: u64,
-    /// 令牌类型
-    pub token_type: Option<String>,
-    /// 授权范围
-    pub scope: Option<String>,
-}
-
-/// 用户访问令牌请求（v1版本）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserAccessTokenV1Request {
-    /// 授权码
-    pub grant_code: String,
-    /// 应用ID
-    pub app_id: String,
-    /// 应用密钥
-    pub app_secret: String,
-}
-
-/// 用户访问令牌刷新请求（v1版本）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RefreshUserAccessTokenV1Request {
-    /// 刷新令牌
-    pub refresh_token: String,
-    /// 应用ID
-    pub app_id: String,
-    /// 应用密钥
-    pub app_secret: String,
-}
-
-/// OIDC用户访问令牌请求
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OidcUserAccessTokenRequest {
-    /// 授权码
-    pub code: String,
-    /// 授权验证码
-    pub code_verifier: Option<String>,
-    /// 授权流程
-    pub redirect_uri: Option<String>,
-    /// 客户端ID
-    pub client_id: Option<String>,
-    /// 客户端密钥
-    pub client_secret: Option<String>,
-    /// 授权类型
-    pub grant_type: Option<String>,
-}
-
-/// OIDC用户访问令牌刷新请求
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OidcRefreshUserAccessTokenRequest {
-    /// 刷新令牌
-    pub refresh_token: String,
-    /// 客户端ID
-    pub client_id: Option<String>,
-    /// 客户端密钥
-    pub client_secret: Option<String>,
-    /// 授权类型
-    pub grant_type: Option<String>,
 }
 
 /// 用户信息获取请求
@@ -196,72 +136,6 @@ pub struct UserInfoRequest {
     pub user_access_token: String,
     /// 用户ID类型
     pub user_id_type: Option<String>,
-}
-
-impl PartialEq for UserInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.open_id == other.open_id
-            && self.union_id == other.union_id
-            && self.user_id == other.user_id
-            && self.name == other.name
-            && self.en_name == other.en_name
-            && self.email == other.email
-            && self.enterprise_email == other.enterprise_email
-            && self.mobile == other.mobile
-            && self.avatar_url == other.avatar_url
-            && self.avatar == other.avatar
-            && self.status == other.status
-            && self.department_ids == other.department_ids
-            && self.group_ids == other.group_ids
-            && self.positions == other.positions
-            && self.employee_no == other.employee_no
-            && self.dingtalk_user_id == other.dingtalk_user_id
-            && self.enterprise_extension == other.enterprise_extension
-            && self.custom_attrs == other.custom_attrs
-            && self.tenant_key == other.tenant_key
-    }
-}
-
-impl PartialEq for UserAvatar {
-    fn eq(&self, other: &Self) -> bool {
-        self.avatar_72 == other.avatar_72
-            && self.avatar_240 == other.avatar_240
-            && self.avatar_640 == other.avatar_640
-            && self.avatar_origin == other.avatar_origin
-    }
-}
-
-impl PartialEq for UserStatus {
-    fn eq(&self, other: &Self) -> bool {
-        self.is_activated == other.is_activated
-            && self.is_joined == other.is_joined
-            && self.is_reserved == other.is_reserved
-            && self.is_exited == other.is_exited
-    }
-}
-
-impl PartialEq for UserEnterpriseExtension {
-    fn eq(&self, other: &Self) -> bool {
-        self.hire_date == other.hire_date
-            && self.location == other.location
-            && self.work_station == other.work_station
-            && self.work_station_id == other.work_station_id
-            && self.address == other.address
-            && self.postcode == other.postcode
-            && self.mobile_phone == other.mobile_phone
-            && self.extension_number == other.extension_number
-            && self.contact_phone == other.contact_phone
-            && self.primary_phone == other.primary_phone
-            && self.emergency_contact == other.emergency_contact
-            && self.emergency_phone == other.emergency_phone
-            && self.home_phone == other.home_phone
-    }
-}
-
-impl PartialEq for UserCustomAttr {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key && self.value == other.value
-    }
 }
 
 // 为所有响应类型实现ApiResponseTrait

@@ -9,6 +9,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
     validate_required,
@@ -18,6 +19,7 @@ use serde::{Deserialize, Serialize};
 /// 用户访问令牌请求（v1版本）
 pub struct UserAccessTokenV1Builder {
     grant_code: String,
+    grant_type: String,
     app_id: String,
     app_secret: String,
     /// 配置信息
@@ -33,7 +35,7 @@ pub struct UserAccessTokenV1ResponseData {
 
 impl ApiResponseTrait for UserAccessTokenV1ResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
@@ -42,6 +44,7 @@ impl UserAccessTokenV1Builder {
     pub fn new(config: Config) -> Self {
         Self {
             grant_code: String::new(),
+            grant_type: "authorization_code".to_string(),
             app_id: String::new(),
             app_secret: String::new(),
             config,
@@ -51,6 +54,17 @@ impl UserAccessTokenV1Builder {
     /// 设置授权码
     pub fn grant_code(mut self, grant_code: impl Into<String>) -> Self {
         self.grant_code = grant_code.into();
+        self
+    }
+
+    /// 设置登录预授权码
+    pub fn code(self, code: impl Into<String>) -> Self {
+        self.grant_code(code)
+    }
+
+    /// 设置授权类型
+    pub fn grant_type(mut self, grant_type: impl Into<String>) -> Self {
+        self.grant_type = grant_type.into();
         self
     }
 
@@ -78,8 +92,6 @@ impl UserAccessTokenV1Builder {
     ) -> SDKResult<UserAccessTokenV1ResponseData> {
         // 验证必填字段
         validate_required!(self.grant_code, "授权码不能为空");
-        validate_required!(self.app_id, "应用ID不能为空");
-        validate_required!(self.app_secret, "应用密钥不能为空");
 
         // 🚀 使用新的enum+builder系统生成API端点
         use crate::common::api_endpoints::AuthenApiV1;
@@ -87,14 +99,17 @@ impl UserAccessTokenV1Builder {
 
         // 构建请求体
         let request_body = UserAccessTokenV1Request {
+            grant_type: self.grant_type.clone(),
             grant_code: self.grant_code.clone(),
-            app_id: self.app_id.clone(),
-            app_secret: self.app_secret.clone(),
+            app_id: (!self.app_id.is_empty()).then(|| self.app_id.clone()),
+            app_secret: (!self.app_secret.is_empty()).then(|| self.app_secret.clone()),
         };
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<UserAccessTokenV1ResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -109,6 +124,12 @@ impl UserAccessTokenV1Builder {
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use openlark_core::req_option::RequestOption;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, header, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -173,7 +194,51 @@ mod tests {
     fn test_user_access_token_v1_response_data_format() {
         assert_eq!(
             UserAccessTokenV1ResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
         );
+    }
+
+    #[tokio::test]
+    async fn test_execute_uses_current_json_body_and_access_token_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/authen/v1/access_token"))
+            .and(header("authorization", "Bearer app_token"))
+            .and(header("content-type", "application/json; charset=utf-8"))
+            .and(body_json(json!({
+                "grant_type": "authorization_code",
+                "code": "login_code"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "access_token": "u-token",
+                    "token_type": "Bearer",
+                    "expires_in": 7140,
+                    "refresh_token": "ur-token"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = RequestOption::builder()
+            .app_access_token("app_token")
+            .build();
+
+        let response = UserAccessTokenV1Builder::new(config)
+            .code("login_code")
+            .execute_with_options(option)
+            .await
+            .expect("access_token 请求应成功");
+
+        assert_eq!(response.data.user_access_token, "u-token");
+        assert_eq!(response.data.refresh_token, Some("ur-token".to_string()));
     }
 }

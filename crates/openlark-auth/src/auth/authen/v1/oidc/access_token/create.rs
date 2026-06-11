@@ -1,6 +1,6 @@
 //! OIDC 用户访问令牌获取API
 //! docPath: https://open.feishu.cn/document/historic-version/authen/create-3
-use crate::models::authen::UserAccessTokenResponse;
+use crate::models::authen::{OidcUserAccessTokenRequest, UserAccessTokenResponse};
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/user-authentication/access-token/oidc_access_token
 ///
@@ -9,6 +9,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
     validate_required,
@@ -36,7 +37,7 @@ pub struct OidcAccessTokenResponseData {
 
 impl ApiResponseTrait for OidcAccessTokenResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
@@ -107,30 +108,21 @@ impl OidcAccessTokenBuilder {
         use crate::common::api_endpoints::AuthenApiV1;
         let api_endpoint = AuthenApiV1::OidcAccessToken;
 
-        // 构建表单数据
-        let mut form_data = std::collections::HashMap::new();
-        form_data.insert("code".to_string(), self.code.clone());
-        if let Some(ref code_verifier) = self.code_verifier {
-            form_data.insert("code_verifier".to_string(), code_verifier.clone());
-        }
-        if let Some(ref redirect_uri) = self.redirect_uri {
-            form_data.insert("redirect_uri".to_string(), redirect_uri.clone());
-        }
-        if let Some(ref client_id) = self.client_id {
-            form_data.insert("client_id".to_string(), client_id.clone());
-        }
-        if let Some(ref client_secret) = self.client_secret {
-            form_data.insert("client_secret".to_string(), client_secret.clone());
-        }
-        if let Some(ref grant_type) = self.grant_type {
-            form_data.insert("grant_type".to_string(), grant_type.clone());
-        }
+        // 构建请求体
+        let request_body = OidcUserAccessTokenRequest {
+            code: self.code.clone(),
+            code_verifier: self.code_verifier.clone(),
+            redirect_uri: self.redirect_uri.clone(),
+            client_id: self.client_id.clone(),
+            client_secret: self.client_secret.clone(),
+            grant_type: self.grant_type.clone(),
+        };
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<OidcAccessTokenResponseData> =
             ApiRequest::post(api_endpoint.path())
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .body(openlark_core::api::RequestData::Form(form_data));
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -145,6 +137,12 @@ impl OidcAccessTokenBuilder {
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use openlark_core::req_option::RequestOption;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, header, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -241,7 +239,56 @@ mod tests {
     fn test_oidc_access_token_response_data_format() {
         assert_eq!(
             OidcAccessTokenResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
+        );
+    }
+
+    #[tokio::test]
+    async fn test_execute_uses_json_body_and_access_token_response() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/authen/v1/oidc/access_token"))
+            .and(header("authorization", "Bearer app_token"))
+            .and(header("content-type", "application/json; charset=utf-8"))
+            .and(body_json(json!({
+                "grant_type": "authorization_code",
+                "code": "login_code"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "access_token": "u-oidc-token",
+                    "refresh_token": "ur-oidc-token",
+                    "token_type": "Bearer",
+                    "expires_in": 7199,
+                    "refresh_expires_in": 2591999,
+                    "scope": "auth:user.id:read"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = RequestOption::builder()
+            .app_access_token("app_token")
+            .build();
+
+        let response = OidcAccessTokenBuilder::new(config)
+            .code("login_code")
+            .execute_with_options(option)
+            .await
+            .expect("OIDC access_token 请求应成功");
+
+        assert_eq!(response.data.user_access_token, "u-oidc-token");
+        assert_eq!(
+            response.data.refresh_token,
+            Some("ur-oidc-token".to_string())
         );
     }
 }
