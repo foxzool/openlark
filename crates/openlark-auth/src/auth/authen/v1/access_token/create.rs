@@ -35,7 +35,7 @@ pub struct UserAccessTokenV1ResponseData {
 
 impl ApiResponseTrait for UserAccessTokenV1ResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Flatten
+        ResponseFormat::Data
     }
 }
 
@@ -194,7 +194,7 @@ mod tests {
     fn test_user_access_token_v1_response_data_format() {
         assert_eq!(
             UserAccessTokenV1ResponseData::data_format(),
-            ResponseFormat::Flatten
+            ResponseFormat::Data
         );
     }
 

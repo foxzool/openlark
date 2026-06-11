@@ -36,7 +36,7 @@ pub struct RefreshUserAccessTokenV1ResponseData {
 
 impl ApiResponseTrait for RefreshUserAccessTokenV1ResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Flatten
+        ResponseFormat::Data
     }
 }
 

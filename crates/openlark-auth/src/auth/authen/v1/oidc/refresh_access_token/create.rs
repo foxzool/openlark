@@ -35,7 +35,7 @@ pub struct OidcRefreshAccessTokenResponseData {
 
 impl ApiResponseTrait for OidcRefreshAccessTokenResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Flatten
+        ResponseFormat::Data
     }
 }
 
@@ -204,7 +204,7 @@ mod tests {
     fn test_oidc_refresh_access_token_response_data_format() {
         assert_eq!(
             OidcRefreshAccessTokenResponseData::data_format(),
-            ResponseFormat::Flatten
+            ResponseFormat::Data
         );
     }
 
