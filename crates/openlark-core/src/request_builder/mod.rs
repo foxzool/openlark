@@ -44,6 +44,9 @@ impl UnifiedRequestBuilder {
 
             // 2. 构建请求头
             req_builder = HeaderBuilder::build_headers(req_builder, config, option);
+            for (key, value) in &req.headers {
+                req_builder = HeaderBuilder::add_header(req_builder, key, value);
+            }
 
             // 3. 处理认证
             req_builder =
@@ -407,6 +410,27 @@ mod tests {
                 .await;
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_build_request_applies_api_request_headers() {
+        let mut api_req = create_test_api_request().header("X-Api-Header", "api-value");
+        let config = create_test_config();
+        let option = RequestOption::default();
+
+        let req_builder =
+            UnifiedRequestBuilder::build(&mut api_req, AccessTokenType::None, &config, &option)
+                .await
+                .expect("request builder should be created");
+        let request = req_builder.build().expect("request should build");
+
+        assert_eq!(
+            request
+                .headers()
+                .get("X-Api-Header")
+                .and_then(|value| value.to_str().ok()),
+            Some("api-value")
+        );
     }
 
     #[tokio::test]

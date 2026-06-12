@@ -32,13 +32,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .v3()
         .app_access_token()
         .app_id("demo_app_id")
-        .app_secret("demo_app_secret");
+        .app_secret("demo_app_secret")
+        .app_ticket("demo_app_ticket");
 
     let _tenant_token_builder = auth_service
         .v3()
         .tenant_access_token()
-        .app_id("demo_app_id")
-        .app_secret("demo_app_secret");
+        .app_access_token("demo_app_access_token")
+        .tenant_key("demo_tenant_key");
 
     let _app_ticket_builder = auth_service
         .v3()

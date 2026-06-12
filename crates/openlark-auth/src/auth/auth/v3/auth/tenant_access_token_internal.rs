@@ -7,6 +7,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
     validate_required,
@@ -23,6 +24,7 @@ pub struct TenantAccessTokenInternalRequestBuilder {
 
 /// 自建应用获取 tenant_access_token 响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct TenantAccessTokenInternalResponseData {
     /// 租户访问令牌响应
     pub data: TenantAccessTokenResponse,
@@ -30,7 +32,7 @@ pub struct TenantAccessTokenInternalResponseData {
 
 impl ApiResponseTrait for TenantAccessTokenInternalResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
@@ -82,7 +84,9 @@ impl TenantAccessTokenInternalRequestBuilder {
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<TenantAccessTokenInternalResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -100,6 +104,11 @@ impl TenantAccessTokenInternalRequestBuilder {
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -130,16 +139,55 @@ mod tests {
     fn test_tenant_access_token_internal_response_data_format() {
         assert_eq!(
             TenantAccessTokenInternalResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
         );
     }
 
     #[test]
     fn test_tenant_access_token_internal_response_deserialization() {
-        let json = r#"{"data":{"tenant_access_token":"tenant_token","expires_in":7200}}"#;
+        let json =
+            r#"{"code":0,"msg":"success","tenant_access_token":"tenant_token","expire":7200}"#;
         let response: TenantAccessTokenInternalResponseData =
             serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.data.tenant_access_token, "tenant_token");
         assert_eq!(response.data.expires_in, 7200);
+    }
+
+    #[tokio::test]
+    async fn test_execute_uses_official_body_without_authorization() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/tenant_access_token/internal"))
+            .and(body_json(json!({
+                "app_id": "test_app",
+                "app_secret": "test_secret"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "tenant_access_token": "tenant-token",
+                "expire": 7200
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .build();
+
+        let response = TenantAccessTokenInternalRequestBuilder::new(config)
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .execute()
+            .await
+            .expect("tenant_access_token_internal 请求应成功");
+
+        assert_eq!(response.data.tenant_access_token, "tenant-token");
+
+        let received_requests = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received_requests.len(), 1);
+        assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }

@@ -115,6 +115,7 @@ Thumbs.db
 .sisyphus/
 
 # AI assistant work files and memories
+.omo/
 .omx/
 .claude/memories/
 .claude/plan/

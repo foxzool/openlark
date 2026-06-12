@@ -6,16 +6,23 @@ use chrono::{DateTime, Utc};
 use openlark_core::api::responses::ApiResponseTrait;
 use serde::{Deserialize, Serialize};
 
+fn default_app_ticket_resend_success() -> bool {
+    true
+}
+
 /// 访问令牌响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AccessTokenResponse {
     /// 应用访问令牌
     pub app_access_token: String,
     /// 令牌有效期（秒）
+    #[serde(alias = "expire")]
     pub expires_in: u64,
     /// 租户标识（租户在飞书上的唯一标识）
+    #[serde(default)]
     pub tenant_key: String,
     /// 令牌类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_type: Option<String>,
 }
 
@@ -25,8 +32,10 @@ pub struct TenantAccessTokenResponse {
     /// 租户访问令牌
     pub tenant_access_token: String,
     /// 令牌有效期（秒）
+    #[serde(alias = "expire")]
     pub expires_in: u64,
     /// 令牌类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_type: Option<String>,
 }
 
@@ -34,10 +43,13 @@ pub struct TenantAccessTokenResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppTicketResponse {
     /// 应用票据
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub app_ticket: String,
     /// 操作结果
+    #[serde(default = "default_app_ticket_resend_success")]
     pub success: bool,
     /// 错误信息
+    #[serde(default, alias = "msg", skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
 }
 
