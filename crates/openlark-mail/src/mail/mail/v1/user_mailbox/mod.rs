@@ -75,6 +75,23 @@ impl UserMailbox {
     pub fn search(&self) -> search::SearchMailRequest {
         search::SearchMailRequest::new(self.config.clone(), self.mailbox_id.clone())
     }
+
+    /// 创建取消定时发送请求。
+    pub fn cancel_scheduled_send(
+        &self,
+        message_id: impl Into<String>,
+    ) -> draft::cancel_scheduled_send::CancelScheduledSendRequest {
+        draft::cancel_scheduled_send::CancelScheduledSendRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+            message_id,
+        )
+    }
+
+    /// 创建获取签名列表请求。
+    pub fn get_signatures(&self) -> setting::get_signatures::GetSignaturesRequest {
+        setting::get_signatures::GetSignaturesRequest::new(self.config.clone(), self.mailbox_id.clone())
+    }
 }
 
 #[cfg(test)]
