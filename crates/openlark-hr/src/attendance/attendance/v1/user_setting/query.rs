@@ -7,7 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +40,7 @@ impl QueryRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.user_ids, "user_ids");
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
 
         // 2. 构建端点
         let api_endpoint = AttendanceApiV1::UserSettingQuery;

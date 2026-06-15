@@ -2,13 +2,13 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/performance-v2/additional_information/query
 
-use openlark_core::validate_required;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
 };
+use openlark_core::{validate_required, validate_required_list};
 use serde::{Deserialize, Serialize};
 
 /// 批量查询补充信息请求
@@ -53,7 +53,7 @@ impl QueryRequest {
         use crate::common::api_endpoints::PerformanceApiV1;
 
         validate_required!(self.cycle_id.trim(), "cycle_id");
-        validate_required!(self.user_ids, "user_ids");
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
 
         // 1. 构建端点
         let api_endpoint = PerformanceApiV1::AdditionalInformationQuery;

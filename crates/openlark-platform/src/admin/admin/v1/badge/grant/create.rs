@@ -9,7 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +53,7 @@ impl CreateBadgeGrantBuilder {
         option: RequestOption,
     ) -> SDKResult<CreateBadgeGrantResponse> {
         validate_required!(self.badge_id, "勋章ID不能为空");
-        validate_required!(self.user_ids, "用户ID列表不能为空");
+        validate_required_list!(self.user_ids, 50, "用户ID列表不能为空且不能超过 50 个");
 
         let request_body = CreateBadgeGrantRequest {
             user_ids: self.user_ids,

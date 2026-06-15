@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +29,7 @@ impl TextTranslateBody {
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
         validate_required!(self.source_language, "source_language 不能为空");
         validate_required!(self.target_language, "target_language 不能为空");
-        validate_required!(self.texts, "texts 不能为空");
+        validate_required_list!(self.texts, 50, "texts 不能为空且不能超过 50 个");
         for text in &self.texts {
             validate_required!(text, "texts 中的文本不能为空");
         }

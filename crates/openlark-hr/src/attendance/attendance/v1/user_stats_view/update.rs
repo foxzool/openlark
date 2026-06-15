@@ -7,7 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -60,7 +60,7 @@ impl UpdateRequest {
         // 1. 验证必填字段
         validate_required!(self.view_id.trim(), "view_id");
         validate_required!(self.name.trim(), "name");
-        validate_required!(self.field_ids, "field_ids");
+        validate_required_list!(self.field_ids, 50, "field_ids 不能为空且不能超过 50 个");
 
         // 2. 构建端点
         let api_endpoint = AttendanceApiV1::UserStatsViewUpdate
