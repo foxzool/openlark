@@ -1,0 +1,37 @@
+[package]
+name = "openlark-bot"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+description = "OpenLark 机器人模块 - 提供飞书机器人搜索 API"
+
+[lints]
+workspace = true
+
+[dependencies]
+openlark-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true, optional = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+
+[features]
+default = ["v4", "async"]
+async = ["tokio"]
+
+# 机器人 API 版本
+v4 = []
+
+# 完整功能集
+full = ["v4", "async"]
+
+[package.metadata.cargo-machete]
+ignored = ["reqwest", "tokio", "tracing"]
