@@ -10,6 +10,8 @@ pub mod folder;
 pub mod mail_contact;
 /// 消息模块。
 pub mod message;
+/// profile 模块。
+pub mod profile;
 /// 规则模块。
 pub mod rule;
 
@@ -60,6 +62,11 @@ impl UserMailbox {
     /// 获取规则管理
     pub fn rule(&self) -> rule::Rule {
         rule::Rule::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建获取用户邮箱信息请求。
+    pub fn profile(&self) -> profile::GetUserMailboxProfileRequest {
+        profile::GetUserMailboxProfileRequest::new(self.config.clone(), self.mailbox_id.clone())
     }
 }
 

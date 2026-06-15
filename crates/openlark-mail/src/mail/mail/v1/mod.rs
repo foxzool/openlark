@@ -2,6 +2,8 @@
 
 /// 邮件组模块。
 pub mod mailgroup;
+/// 多实体搜索模块。
+pub mod multi_entity;
 /// 公共邮箱模块。
 pub mod public_mailbox;
 /// 用户邮箱服务模块。
@@ -42,6 +44,11 @@ impl MailV1 {
     /// 访问用户邮箱资源
     pub fn user_mailbox(&self, mailbox_id: impl Into<String>) -> user_mailbox::UserMailbox {
         user_mailbox::UserMailbox::new(self.config.clone(), mailbox_id.into())
+    }
+
+    /// 访问多实体搜索资源
+    pub fn multi_entity(&self) -> multi_entity::MultiEntity {
+        multi_entity::MultiEntity::new(self.config.clone())
     }
 }
 
