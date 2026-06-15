@@ -5,12 +5,23 @@ use crate::{Config, Result, configuration_error, validation_error, with_context}
 use openlark_core::error::ErrorTrait;
 use std::env;
 
+/// 环境变量校验结果
+///
+/// 由 `check_env_config` 返回，承载已校验的必填凭证，
+/// 避免调用方重复读取环境变量。
+pub struct EnvConfig {
+    /// 飞书应用 App ID（已校验非空）
+    pub app_id: String,
+    /// 飞书应用 App Secret（已校验非空）
+    pub app_secret: String,
+}
+
 /// 🔍 检查环境变量配置
 ///
 /// 验证飞书应用所需的环境变量是否正确设置
 ///
 /// # 返回
-/// - `Ok(())`: 环境变量配置正确
+/// - `Ok(EnvConfig)`: 环境变量配置正确，返回已校验的凭证
 /// - `Err(Error)`: 环境变量配置错误，包含详细的错误信息和恢复建议
 ///
 /// # 示例
@@ -18,7 +29,7 @@ use std::env;
 /// use openlark_client::{prelude::*, utils};
 ///
 /// match utils::check_env_config() {
-///     Ok(()) => println!("环境变量配置正确"),
+///     Ok(_) => println!("环境变量配置正确"),
 ///     Err(error) => {
 ///         eprintln!("❌ {}", error.user_message().unwrap_or("未知错误"));
 ///         for step in error.recovery_steps() {
@@ -27,7 +38,7 @@ use std::env;
 ///     }
 /// }
 /// ```
-pub fn check_env_config() -> Result<()> {
+pub fn check_env_config() -> Result<EnvConfig> {
     // 检查 OPENLARK_APP_ID
     let app_id = env::var("OPENLARK_APP_ID")
         .map_err(|_| configuration_error("环境变量检查失败 [variable: OPENLARK_APP_ID]"))?;
@@ -87,7 +98,7 @@ pub fn check_env_config() -> Result<()> {
         );
     }
 
-    Ok(())
+    Ok(EnvConfig { app_id, app_secret })
 }
 
 /// 🔧 从环境变量创建配置
@@ -98,11 +109,11 @@ pub fn check_env_config() -> Result<()> {
 /// - `Ok(Config)`: 成功创建配置
 /// - `Err(Error)`: 配置创建失败，包含详细错误信息
 pub fn create_config_from_env() -> Result<Config> {
-    // 先检查环境变量
-    check_env_config()?;
+    // 校验环境变量并获取已校验的凭证
+    let env_cfg = check_env_config()?;
 
-    let app_id = env::var("OPENLARK_APP_ID").unwrap();
-    let app_secret = env::var("OPENLARK_APP_SECRET").unwrap();
+    let app_id = env_cfg.app_id;
+    let app_secret = env_cfg.app_secret;
 
     let base_url =
         env::var("OPENLARK_BASE_URL").unwrap_or_else(|_| "https://open.feishu.cn".to_string());
@@ -223,7 +234,7 @@ pub fn diagnose_system() -> SystemDiagnostics {
 
     // 检查环境变量
     match check_env_config() {
-        Ok(()) => {
+        Ok(_) => {
             diagnostics.env_config_status = "✅ 正常".to_string();
         }
         Err(error) => {
