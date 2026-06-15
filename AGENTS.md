@@ -106,6 +106,21 @@ just audit            # 安全审计
 just release VERSION  # 发布新版本
 ```
 
+## SKILLS
+
+项目内置 6 个领域技能（位于 `.agents/skills/`），Agent 在对应场景下应优先调用。调用权限如需预授权，在各端本地配置中放行（`.claude/settings.json` 已被 `.gitignore` 忽略，不入库）：
+
+| Skill | 用途 | 触发场景 |
+|-------|------|----------|
+| `openlark-api` | API 接口实现规范（落盘路径、Body/Response、Builder、endpoints） | 添加/重构飞书 API、调用服务端 API |
+| `openlark-api-validation` | API 覆盖率验证（`tools/validate_apis.py` 对比 `api_list_export.csv`） | 统计 API 数量、检查覆盖率 |
+| `openlark-code-standards` | 架构一致性、命名、导出规范检查 | 审查代码规范 |
+| `openlark-design-review` | 公共 API 设计审查（feature gating、端点体系、Builder/Service 一致性） | 设计审查、crate 设计 |
+| `openlark-naming` | Client/Service/Resource/Request/Builder 命名规范 | 重命名、调整模块导出/prelude |
+| `openlark-validation-style` | `validate_required` 函数 vs 宏、空白字符串处理 | 统一 `validate()` 写法 |
+
+> 另有 OpenSpec 工作流技能（`.claude/skills/openspec-*`）配合 `openspec/` 目录管理变更提案，详见各 skill 文件。
+
 ## NOTES
 
 - **MSRV**: Rust 1.88+
