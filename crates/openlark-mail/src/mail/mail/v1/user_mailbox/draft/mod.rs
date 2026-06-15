@@ -1,3 +1,5 @@
+/// cancel_scheduled_send 模块。
+pub mod cancel_scheduled_send;
 /// create 模块。
 pub mod create;
 /// delete 模块。

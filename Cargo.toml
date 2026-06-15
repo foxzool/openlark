@@ -41,6 +41,7 @@ members = [
     # 专业服务
     "crates/openlark-helpdesk",       # 帮助台
     "crates/openlark-mail",           # 邮件服务
+    "crates/openlark-bot",            # 机器人服务
     "crates/openlark-analytics",      # 数据分析
     "crates/openlark-user",           # 用户设置
 ]
@@ -140,6 +141,7 @@ openlark-application = { path = "crates/openlark-application", version = "0.17.0
 openlark-platform = { path = "crates/openlark-platform", version = "0.17.0" }
 openlark-helpdesk = { path = "crates/openlark-helpdesk", version = "0.17.0" }
 openlark-mail = { path = "crates/openlark-mail", version = "0.17.0" }
+openlark-bot = { path = "crates/openlark-bot", version = "0.17.0" }
 openlark-meeting = { path = "crates/openlark-meeting", version = "0.17.0" }
 openlark-workflow = { path = "crates/openlark-workflow", version = "0.17.0" }
 openlark-analytics = { path = "crates/openlark-analytics", version = "0.17.0" }
@@ -201,6 +203,7 @@ openlark-application = { workspace = true, optional = true }
 openlark-platform = { workspace = true, optional = true }
 openlark-helpdesk = { workspace = true, optional = true }
 openlark-mail = { workspace = true, optional = true }
+openlark-bot = { workspace = true, optional = true }
 openlark-meeting = { workspace = true, optional = true }
 openlark-workflow = { workspace = true, optional = true }
 openlark-analytics = { workspace = true, optional = true }
@@ -333,6 +336,7 @@ platform = ["auth", "dep:openlark-platform", "openlark-client/platform"]
 application = ["auth", "dep:openlark-application", "openlark-client/application"]
 helpdesk = ["auth", "dep:openlark-helpdesk", "openlark-client/helpdesk"]
 mail = ["auth", "dep:openlark-mail", "openlark-client/mail"]
+bot = ["auth", "dep:openlark-bot", "openlark-client/bot"]
 analytics = ["auth", "dep:openlark-analytics", "openlark-client/analytics"]
 user = ["auth", "dep:openlark-user", "openlark-client/user"]
 

@@ -52,6 +52,7 @@ openlark-platform = { workspace = true, optional = true }
 openlark-application = { workspace = true, optional = true }
 openlark-helpdesk = { workspace = true, optional = true }
 openlark-mail = { workspace = true, optional = true }
+openlark-bot = { workspace = true, optional = true }
 openlark-analytics = { workspace = true, optional = true }
 openlark-user = { workspace = true, optional = true }
 
@@ -79,6 +80,7 @@ platform = ["auth", "dep:openlark-platform"]
 application = ["auth", "dep:openlark-application"]
 helpdesk = ["auth", "dep:openlark-helpdesk"]
 mail = ["auth", "dep:openlark-mail"]
+bot = ["auth", "dep:openlark-bot"]
 analytics = ["auth", "dep:openlark-analytics"]
 user = ["auth", "dep:openlark-user"]
 

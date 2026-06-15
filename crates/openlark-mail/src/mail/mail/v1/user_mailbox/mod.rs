@@ -10,8 +10,12 @@ pub mod folder;
 pub mod mail_contact;
 /// 消息模块。
 pub mod message;
+/// profile 模块。
+pub mod profile;
 /// 规则模块。
 pub mod rule;
+/// 搜索邮件模块。
+pub mod search;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -60,6 +64,36 @@ impl UserMailbox {
     /// 获取规则管理
     pub fn rule(&self) -> rule::Rule {
         rule::Rule::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建获取用户邮箱信息请求。
+    pub fn profile(&self) -> profile::GetUserMailboxProfileRequest {
+        profile::GetUserMailboxProfileRequest::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建搜索邮件请求。
+    pub fn search(&self) -> search::SearchMailRequest {
+        search::SearchMailRequest::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建取消定时发送请求。
+    pub fn cancel_scheduled_send(
+        &self,
+        message_id: impl Into<String>,
+    ) -> draft::cancel_scheduled_send::CancelScheduledSendRequest {
+        draft::cancel_scheduled_send::CancelScheduledSendRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+            message_id,
+        )
+    }
+
+    /// 创建获取签名列表请求。
+    pub fn get_signatures(&self) -> setting::get_signatures::GetSignaturesRequest {
+        setting::get_signatures::GetSignaturesRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+        )
     }
 }
 

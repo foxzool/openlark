@@ -1583,6 +1583,7 @@ dependencies = [
  "openlark-analytics",
  "openlark-application",
  "openlark-auth",
+ "openlark-bot",
  "openlark-cardkit",
  "openlark-client",
  "openlark-communication",
@@ -1695,6 +1696,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "openlark-bot"
+version = "0.17.0"
+dependencies = [
+ "openlark-core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "openlark-cardkit"
 version = "0.17.0"
 dependencies = [
@@ -1720,6 +1733,7 @@ dependencies = [
  "openlark-analytics",
  "openlark-application",
  "openlark-auth",
+ "openlark-bot",
  "openlark-cardkit",
  "openlark-communication",
  "openlark-core",
