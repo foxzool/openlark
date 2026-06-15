@@ -4,8 +4,12 @@ pub mod get;
 pub mod get_by_card;
 /// 列表接口。
 pub mod list;
+/// recall 模块（邮件撤回）。
+pub mod recall;
 /// send 模块。
 pub mod send;
+/// send_status 模块（查询发送状态）。
+pub mod send_status;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -47,6 +51,23 @@ impl Message {
     /// send。
     pub fn send(&self) -> send::SendMailboxMessageRequest {
         send::SendMailboxMessageRequest::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建查询发送状态请求。
+    pub fn send_status(
+        &self,
+        message_id: impl Into<String>,
+    ) -> send_status::GetMailSendStatusRequest {
+        send_status::GetMailSendStatusRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+            message_id,
+        )
+    }
+
+    /// 访问邮件撤回资源。
+    pub fn recall(&self, message_id: impl Into<String>) -> recall::Recall {
+        recall::Recall::new(self.config.clone(), self.mailbox_id.clone(), message_id)
     }
 }
 
