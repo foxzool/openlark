@@ -144,11 +144,9 @@ impl SearchBotRequest {
     }
 
     /// 使用指定请求选项执行请求。
-    pub async fn execute_with_options(
-        self,
-        option: RequestOption,
-    ) -> SDKResult<SearchBotResponse> {
-        let mut req: ApiRequest<SearchBotResponse> = ApiRequest::post("/open-apis/bot/v4/bot/search");
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<SearchBotResponse> {
+        let mut req: ApiRequest<SearchBotResponse> =
+            ApiRequest::post("/open-apis/bot/v4/bot/search");
 
         // 查询参数
         if let Some(ps) = self.page_size {
@@ -163,10 +161,7 @@ impl SearchBotRequest {
 
         // 请求体
         let body = serde_json::to_value(&self.body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "搜索机器人",
-                format!("请求体序列化失败: {e}"),
-            )
+            openlark_core::error::validation_error("搜索机器人", format!("请求体序列化失败: {e}"))
         })?;
         req = req.body(body);
 

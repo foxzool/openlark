@@ -23,8 +23,11 @@ pub struct GetSignaturesRequest {
 /// 获取签名列表响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetSignaturesResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<SignaturesData>,
 }
 

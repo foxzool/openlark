@@ -24,8 +24,11 @@ pub struct GetMailSendStatusRequest {
 /// 查询邮件发送状态响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetMailSendStatusResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<MailSendStatusData>,
 }
 

@@ -90,7 +90,10 @@ impl UserMailbox {
 
     /// 创建获取签名列表请求。
     pub fn get_signatures(&self) -> setting::get_signatures::GetSignaturesRequest {
-        setting::get_signatures::GetSignaturesRequest::new(self.config.clone(), self.mailbox_id.clone())
+        setting::get_signatures::GetSignaturesRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+        )
     }
 }
 

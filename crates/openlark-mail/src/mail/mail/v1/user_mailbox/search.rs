@@ -67,8 +67,11 @@ pub struct MailSearchTimeRange {
 /// 搜索邮件响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SearchMailResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<SearchMailData>,
 }
 
@@ -167,8 +170,9 @@ impl SearchMailRequest {
             self.mailbox_id
         );
         let req: ApiRequest<SearchMailResponse> = ApiRequest::post(&path);
-        let body = serde_json::to_value(&self.body)
-            .map_err(|e| openlark_core::error::validation_error("搜索邮件", format!("请求体序列化失败: {e}")))?;
+        let body = serde_json::to_value(&self.body).map_err(|e| {
+            openlark_core::error::validation_error("搜索邮件", format!("请求体序列化失败: {e}"))
+        })?;
         let req = req.body(body);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;

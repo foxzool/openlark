@@ -24,8 +24,11 @@ pub struct GetRecallDetailRequest {
 /// 获取邮件撤回进度响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetRecallDetailResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<RecallDetailData>,
 }
 

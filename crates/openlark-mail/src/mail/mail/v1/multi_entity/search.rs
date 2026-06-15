@@ -32,8 +32,11 @@ pub struct MultiEntitySearchRequestBody {
 /// 多实体搜索响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct MultiEntitySearchResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<MultiEntitySearchData>,
 }
 

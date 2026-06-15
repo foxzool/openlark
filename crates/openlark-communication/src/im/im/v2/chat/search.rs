@@ -54,8 +54,11 @@ pub struct ChatSearchFilter {
 /// 搜索群组响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SearchChatsResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<SearchChatsData>,
 }
 
@@ -191,10 +194,7 @@ impl SearchChatsRequest {
         }
 
         let body = serde_json::to_value(&self.body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "搜索群组",
-                format!("请求体序列化失败: {e}"),
-            )
+            openlark_core::error::validation_error("搜索群组", format!("请求体序列化失败: {e}"))
         })?;
         req = req.body(body);
 
@@ -211,7 +211,9 @@ mod tests {
     #[test]
     fn builder_sets_params() {
         let config = Arc::new(Config::default());
-        let request = SearchChatsRequest::new(config).query("部门群").page_size(10);
+        let request = SearchChatsRequest::new(config)
+            .query("部门群")
+            .page_size(10);
         assert_eq!(request.body.query, Some("部门群".to_string()));
         assert_eq!(request.page_size, Some(10));
     }

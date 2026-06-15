@@ -24,8 +24,11 @@ pub struct CancelScheduledSendRequest {
 /// 取消定时发送响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CancelScheduledSendResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -68,9 +71,8 @@ impl CancelScheduledSendRequest {
         );
         let req: ApiRequest<CancelScheduledSendResponse> = ApiRequest::post(&path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("取消定时发送", "响应数据为空")
-        })
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("取消定时发送", "响应数据为空"))
     }
 }
 

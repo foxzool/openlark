@@ -24,8 +24,11 @@ pub struct RecallMessageRequest {
 /// 撤回已发送邮件响应。
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecallMessageResponse {
+    /// 错误码，非 0 表示失败。
     pub code: i32,
+    /// 错误描述。
     pub msg: String,
+    /// 响应数据。
     pub data: Option<RecallMessageData>,
 }
 
@@ -91,6 +94,9 @@ mod tests {
     fn response_deserializes() {
         let json = r#"{ "code": 0, "msg": "success", "data": { "recall_status": "available" } }"#;
         let resp: RecallMessageResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(resp.data.unwrap().recall_status, Some("available".to_string()));
+        assert_eq!(
+            resp.data.unwrap().recall_status,
+            Some("available".to_string())
+        );
     }
 }
