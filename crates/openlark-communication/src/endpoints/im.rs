@@ -86,6 +86,11 @@ pub const EPHEMERAL_V1_SEND: &str = "/open-apis/ephemeral/v1/send";
 /// IM 交互式卡片 - 延时更新消息卡片
 pub const INTERACTIVE_V1_CARD_UPDATE: &str = "/open-apis/interactive/v1/card/update";
 
+// ==================== IM v2 群组搜索 ====================
+
+/// IM v2 群组搜索
+pub const IM_V2_CHATS_SEARCH: &str = "/open-apis/im/v2/chats/search";
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {

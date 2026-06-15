@@ -4,6 +4,7 @@
 
 pub mod app_feed_card;
 pub mod biz_entity_tag_relation;
+pub mod chat;
 pub mod chat_button;
 pub mod feed_card;
 pub mod tag;
