@@ -7,7 +7,7 @@ use openlark_core::{
     config::Config,
     error::SDKResult,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -117,7 +117,7 @@ impl BatchCreateRecordRequest {
         // === 必填字段验证 ===
         validate_required!(self.app_token.trim(), "app_token");
         validate_required!(self.table_id.trim(), "table_id");
-        validate_required!(self.records, "records");
+        validate_required_list!(self.records, 100, "records 不能为空且不能超过 100 个");
 
         // === 业务规则验证 ===
         if self.records.len() > 500 {

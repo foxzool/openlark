@@ -7,7 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -55,8 +55,12 @@ impl SaveRequest {
 
         // 1. 验证必填字段
         validate_required!(self.datasource_id.trim(), "datasource_id");
-        validate_required!(self.employee_ids, "employee_ids");
-        validate_required!(self.records, "records");
+        validate_required_list!(
+            self.employee_ids,
+            50,
+            "employee_ids 不能为空且不能超过 50 个"
+        );
+        validate_required_list!(self.records, 100, "records 不能为空且不能超过 100 个");
 
         // 2. 构建端点
         let api_endpoint = PayrollApiV1::DatasourceRecordSave;
