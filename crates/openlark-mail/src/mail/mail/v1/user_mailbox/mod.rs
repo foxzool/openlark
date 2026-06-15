@@ -14,6 +14,8 @@ pub mod message;
 pub mod profile;
 /// 规则模块。
 pub mod rule;
+/// 搜索邮件模块。
+pub mod search;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -67,6 +69,11 @@ impl UserMailbox {
     /// 创建获取用户邮箱信息请求。
     pub fn profile(&self) -> profile::GetUserMailboxProfileRequest {
         profile::GetUserMailboxProfileRequest::new(self.config.clone(), self.mailbox_id.clone())
+    }
+
+    /// 创建搜索邮件请求。
+    pub fn search(&self) -> search::SearchMailRequest {
+        search::SearchMailRequest::new(self.config.clone(), self.mailbox_id.clone())
     }
 }
 
