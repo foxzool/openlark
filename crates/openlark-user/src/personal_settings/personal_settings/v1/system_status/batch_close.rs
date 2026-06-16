@@ -6,7 +6,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
+    validate_required, validate_required_list, SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -56,6 +56,13 @@ impl BatchCloseSystemStatusRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<BatchCloseSystemStatusResponse> {
+        validate_required!(self.status_id.trim(), "status_id 不能为空");
+        validate_required_list!(
+            self.body.user_ids,
+            1000,
+            "user_ids 不能为空且不能超过 1000 个"
+        );
+
         let path = format!(
             "/open-apis/personal_settings/v1/system_statuses/{}/batch_close",
             self.status_id
