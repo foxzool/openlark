@@ -6,7 +6,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
+    validate_required, validate_required_list, SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -56,6 +56,13 @@ impl BatchDeleteMailGroupManagerRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<BatchDeleteMailGroupManagerResponse> {
+        validate_required!(self.mailgroup_id.trim(), "mailgroup_id 不能为空");
+        validate_required_list!(
+            self.body.manager_ids,
+            1000,
+            "manager_ids 不能为空且不能超过 1000 个"
+        );
+
         let path = format!(
             "/open-apis/mail/v1/mailgroups/{}/managers/batch_delete",
             self.mailgroup_id
