@@ -53,10 +53,10 @@ impl DepartmentDeleteBuilder {
 pub struct DepartmentDeleteResponse {
     /// 部门 ID
     #[serde(rename = "department_id")]
-    department_id: String,
+    pub department_id: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for DepartmentDeleteResponse {

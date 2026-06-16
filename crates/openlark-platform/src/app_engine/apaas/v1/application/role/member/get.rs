@@ -97,10 +97,10 @@ pub struct RoleMember {
 pub struct RoleMemberGetResponse {
     /// 角色成员列表
     #[serde(rename = "items")]
-    items: Vec<RoleMember>,
+    pub items: Vec<RoleMember>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
 }
 
 impl ApiResponseTrait for RoleMemberGetResponse {

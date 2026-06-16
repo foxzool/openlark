@@ -91,10 +91,10 @@ struct RecordPermissionBatchCreateAuthRequest {
 pub struct RecordPermissionBatchCreateAuthResponse {
     /// 授权的用户数量
     #[serde(rename = "authorized_count")]
-    authorized_count: u32,
+    pub authorized_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for RecordPermissionBatchCreateAuthResponse {

@@ -80,7 +80,7 @@ pub struct EnvironmentVariableDetail {
 pub struct EnvironmentVariableGetResponse {
     /// 环境变量详情
     #[serde(rename = "environment_variable")]
-    environment_variable: EnvironmentVariableDetail,
+    pub environment_variable: EnvironmentVariableDetail,
 }
 
 impl ApiResponseTrait for EnvironmentVariableGetResponse {

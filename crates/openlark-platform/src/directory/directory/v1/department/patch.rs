@@ -113,13 +113,13 @@ struct DepartmentPatchRequest {
 pub struct DepartmentPatchResponse {
     /// 部门 ID
     #[serde(rename = "department_id")]
-    department_id: String,
+    pub department_id: String,
     /// 更新后的名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 更新时间
     #[serde(rename = "updated_at")]
-    updated_at: i64,
+    pub updated_at: i64,
 }
 
 impl ApiResponseTrait for DepartmentPatchResponse {

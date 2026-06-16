@@ -128,7 +128,7 @@ pub struct RecordInfo {
 pub struct RecordBatchQueryResponse {
     /// 记录列表
     #[serde(rename = "items")]
-    items: Vec<RecordInfo>,
+    pub items: Vec<RecordInfo>,
 }
 
 impl ApiResponseTrait for RecordBatchQueryResponse {

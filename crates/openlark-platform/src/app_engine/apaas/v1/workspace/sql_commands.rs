@@ -84,7 +84,7 @@ pub struct SqlResult {
 pub struct SqlCommandsResponse {
     /// SQL 执行结果
     #[serde(rename = "result")]
-    result: SqlResult,
+    pub result: SqlResult,
 }
 
 impl ApiResponseTrait for SqlCommandsResponse {

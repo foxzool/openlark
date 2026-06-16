@@ -92,13 +92,13 @@ struct DepartmentCreateRequest {
 pub struct DepartmentCreateResponse {
     /// 部门 ID
     #[serde(rename = "department_id")]
-    department_id: String,
+    pub department_id: String,
     /// 部门名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 创建时间
     #[serde(rename = "created_at")]
-    created_at: i64,
+    pub created_at: i64,
 }
 
 impl ApiResponseTrait for DepartmentCreateResponse {

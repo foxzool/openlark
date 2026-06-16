@@ -81,7 +81,7 @@ pub struct AuditLogDetail {
 pub struct AuditLogGetResponse {
     /// 审计日志详情
     #[serde(rename = "audit_log")]
-    audit_log: AuditLogDetail,
+    pub audit_log: AuditLogDetail,
 }
 
 impl ApiResponseTrait for AuditLogGetResponse {

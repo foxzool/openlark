@@ -94,7 +94,7 @@ struct RecordBatchCreateRequest {
 pub struct RecordBatchCreateResponse {
     /// 创建的记录列表
     #[serde(rename = "items")]
-    items: Vec<RecordCreateResult>,
+    pub items: Vec<RecordCreateResult>,
 }
 
 /// 记录创建结果

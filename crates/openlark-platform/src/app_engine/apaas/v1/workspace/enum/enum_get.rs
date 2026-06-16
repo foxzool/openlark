@@ -57,19 +57,19 @@ impl EnumGetBuilder {
 pub struct EnumGetResponse {
     /// 枚举名称
     #[serde(rename = "enum_name")]
-    enum_name: String,
+    pub enum_name: String,
     /// 枚举描述
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
     /// 枚举值列表
     #[serde(rename = "values")]
-    values: Vec<EnumValue>,
+    pub values: Vec<EnumValue>,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 /// 枚举值

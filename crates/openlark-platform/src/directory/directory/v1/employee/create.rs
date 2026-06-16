@@ -109,16 +109,16 @@ struct EmployeeCreateRequest {
 pub struct EmployeeCreateResponse {
     /// 员工 ID
     #[serde(rename = "employee_id")]
-    employee_id: String,
+    pub employee_id: String,
     /// 员工名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 手机号
     #[serde(rename = "mobile")]
-    mobile: String,
+    pub mobile: String,
     /// 创建时间
     #[serde(rename = "created_at")]
-    created_at: i64,
+    pub created_at: i64,
 }
 
 impl ApiResponseTrait for EmployeeCreateResponse {

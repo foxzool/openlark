@@ -77,19 +77,19 @@ pub struct FieldInfo {
 pub struct TableGetResponse {
     /// 数据表名称
     #[serde(rename = "table_name")]
-    table_name: String,
+    pub table_name: String,
     /// 数据表描述
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
     /// 字段列表
     #[serde(rename = "fields")]
-    fields: Vec<FieldInfo>,
+    pub fields: Vec<FieldInfo>,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 impl ApiResponseTrait for TableGetResponse {

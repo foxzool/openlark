@@ -95,16 +95,16 @@ struct RecordQueryRequest {
 pub struct RecordQueryResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 记录数据
     #[serde(rename = "data")]
-    data: serde_json::Value,
+    pub data: serde_json::Value,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 impl ApiResponseTrait for RecordQueryResponse {

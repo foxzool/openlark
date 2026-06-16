@@ -98,10 +98,10 @@ struct RecordPatchRequest {
 pub struct RecordPatchResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 impl ApiResponseTrait for RecordPatchResponse {

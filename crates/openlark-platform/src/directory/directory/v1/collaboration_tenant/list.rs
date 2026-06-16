@@ -65,7 +65,7 @@ pub struct CollaborationTenantInfo {
 pub struct CollaborationTenantListResponse {
     /// 关联组织列表
     #[serde(rename = "items")]
-    items: Vec<CollaborationTenantInfo>,
+    pub items: Vec<CollaborationTenantInfo>,
 }
 
 impl ApiResponseTrait for CollaborationTenantListResponse {

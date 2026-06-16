@@ -172,19 +172,19 @@ pub struct TaskInfo {
 pub struct UserTaskQueryResponse {
     /// 任务列表
     #[serde(rename = "tasks")]
-    tasks: Vec<TaskInfo>,
+    pub tasks: Vec<TaskInfo>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
     /// 总数
     #[serde(rename = "total_count")]
-    total_count: u32,
+    pub total_count: u32,
 }
 
 impl ApiResponseTrait for UserTaskQueryResponse {

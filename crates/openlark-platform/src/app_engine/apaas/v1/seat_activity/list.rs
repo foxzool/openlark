@@ -116,16 +116,16 @@ pub struct SeatActivity {
 pub struct SeatActivityListResponse {
     /// 席位活跃列表
     #[serde(rename = "items")]
-    items: Vec<SeatActivity>,
+    pub items: Vec<SeatActivity>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for SeatActivityListResponse {

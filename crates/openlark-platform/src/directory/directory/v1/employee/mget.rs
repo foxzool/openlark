@@ -105,7 +105,7 @@ pub struct EmployeeInfo {
 pub struct EmployeeMgetResponse {
     /// 员工信息列表
     #[serde(rename = "items")]
-    items: Vec<EmployeeInfo>,
+    pub items: Vec<EmployeeInfo>,
 }
 
 impl ApiResponseTrait for EmployeeMgetResponse {

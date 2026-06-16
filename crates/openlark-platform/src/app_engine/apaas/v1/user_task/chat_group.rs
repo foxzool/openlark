@@ -111,13 +111,13 @@ struct ChatGroupRequest {
 pub struct ChatGroupResponse {
     /// 群聊 ID
     #[serde(rename = "chat_id")]
-    chat_id: String,
+    pub chat_id: String,
     /// 群名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for ChatGroupResponse {

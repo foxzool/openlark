@@ -99,10 +99,10 @@ pub struct OqlRecord {
 pub struct OqlQueryResponse {
     /// 查询结果列表
     #[serde(rename = "items")]
-    items: Vec<OqlRecord>,
+    pub items: Vec<OqlRecord>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
 }
 
 impl ApiResponseTrait for OqlQueryResponse {

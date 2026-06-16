@@ -85,13 +85,13 @@ struct FunctionInvokeRequest {
 pub struct FunctionInvokeResponse {
     /// 执行结果
     #[serde(rename = "result")]
-    result: serde_json::Value,
+    pub result: serde_json::Value,
     /// 执行状态
     #[serde(rename = "status")]
-    status: String,
+    pub status: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for FunctionInvokeResponse {

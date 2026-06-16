@@ -74,7 +74,7 @@ pub struct CollaborationRuleInfo {
 pub struct CollaborationRuleListResponse {
     /// 可搜可见规则列表
     #[serde(rename = "items")]
-    items: Vec<CollaborationRuleInfo>,
+    pub items: Vec<CollaborationRuleInfo>,
 }
 
 impl ApiResponseTrait for CollaborationRuleListResponse {

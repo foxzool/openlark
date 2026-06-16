@@ -87,10 +87,10 @@ impl TableRecordsDeleteBuilder {
 pub struct TableRecordsDeleteResponse {
     /// 删除的记录数量
     #[serde(rename = "deleted_count")]
-    deleted_count: u32,
+    pub deleted_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for TableRecordsDeleteResponse {

@@ -106,13 +106,13 @@ struct CollaborationRuleCreateRequest {
 pub struct CollaborationRuleCreateResponse {
     /// 规则 ID
     #[serde(rename = "collaboration_rule_id")]
-    collaboration_rule_id: String,
+    pub collaboration_rule_id: String,
     /// 规则名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 创建时间
     #[serde(rename = "created_at")]
-    created_at: i64,
+    pub created_at: i64,
 }
 
 impl ApiResponseTrait for CollaborationRuleCreateResponse {

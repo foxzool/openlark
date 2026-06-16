@@ -102,7 +102,7 @@ pub struct DepartmentInfo {
 pub struct DepartmentMgetResponse {
     /// 部门信息列表
     #[serde(rename = "items")]
-    items: Vec<DepartmentInfo>,
+    pub items: Vec<DepartmentInfo>,
 }
 
 impl ApiResponseTrait for DepartmentMgetResponse {

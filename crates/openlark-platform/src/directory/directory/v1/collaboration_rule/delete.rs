@@ -57,10 +57,10 @@ impl CollaborationRuleDeleteBuilder {
 pub struct CollaborationRuleDeleteResponse {
     /// 规则 ID
     #[serde(rename = "collaboration_rule_id")]
-    collaboration_rule_id: String,
+    pub collaboration_rule_id: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for CollaborationRuleDeleteResponse {

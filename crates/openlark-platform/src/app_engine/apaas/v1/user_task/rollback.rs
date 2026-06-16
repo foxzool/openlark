@@ -82,13 +82,13 @@ struct RollbackTaskRequest {
 pub struct RollbackTaskResponse {
     /// 任务 ID
     #[serde(rename = "task_id")]
-    task_id: String,
+    pub task_id: String,
     /// 退回结果
     #[serde(rename = "result")]
-    result: bool,
+    pub result: bool,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for RollbackTaskResponse {

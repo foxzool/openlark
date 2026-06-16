@@ -105,13 +105,13 @@ impl CollaborationRuleUpdateBuilder {
 pub struct CollaborationRuleUpdateResponse {
     /// 规则 ID
     #[serde(rename = "collaboration_rule_id")]
-    collaboration_rule_id: String,
+    pub collaboration_rule_id: String,
     /// 更新后的名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 更新时间
     #[serde(rename = "updated_at")]
-    updated_at: i64,
+    pub updated_at: i64,
 }
 
 impl ApiResponseTrait for CollaborationRuleUpdateResponse {

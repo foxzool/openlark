@@ -129,7 +129,7 @@ struct RecordBatchUpdateRequest {
 pub struct RecordBatchUpdateResponse {
     /// 更新的记录列表
     #[serde(rename = "items")]
-    items: Vec<RecordUpdateResult>,
+    pub items: Vec<RecordUpdateResult>,
 }
 
 /// 记录更新结果

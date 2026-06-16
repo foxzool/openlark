@@ -92,10 +92,10 @@ struct RecordBatchDeleteRequest {
 pub struct RecordBatchDeleteResponse {
     /// 删除的记录数量
     #[serde(rename = "deleted_count")]
-    deleted_count: u32,
+    pub deleted_count: u32,
     /// 删除结果列表
     #[serde(rename = "items")]
-    items: Vec<RecordDeleteResult>,
+    pub items: Vec<RecordDeleteResult>,
 }
 
 /// 记录删除结果

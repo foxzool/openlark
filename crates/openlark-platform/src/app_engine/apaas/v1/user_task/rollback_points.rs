@@ -73,10 +73,10 @@ pub struct RollbackPoint {
 pub struct RollbackPointsResponse {
     /// 任务 ID
     #[serde(rename = "task_id")]
-    task_id: String,
+    pub task_id: String,
     /// 可退回节点列表
     #[serde(rename = "rollback_points")]
-    rollback_points: Vec<RollbackPoint>,
+    pub rollback_points: Vec<RollbackPoint>,
 }
 
 impl ApiResponseTrait for RollbackPointsResponse {

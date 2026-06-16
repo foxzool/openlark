@@ -90,7 +90,7 @@ pub struct DataChangeLogDetail {
 pub struct DataChangeLogDetailResponse {
     /// 数据变更日志详情
     #[serde(rename = "data_change_log")]
-    data_change_log: DataChangeLogDetail,
+    pub data_change_log: DataChangeLogDetail,
 }
 
 impl ApiResponseTrait for DataChangeLogDetailResponse {

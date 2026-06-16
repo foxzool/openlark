@@ -67,10 +67,10 @@ impl RecordDeleteBuilder {
 pub struct RecordDeleteResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for RecordDeleteResponse {

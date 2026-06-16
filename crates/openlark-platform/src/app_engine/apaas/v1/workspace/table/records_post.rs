@@ -108,7 +108,7 @@ pub struct RecordOperationResult {
 pub struct TableRecordsPostResponse {
     /// 操作结果列表
     #[serde(rename = "items")]
-    items: Vec<RecordOperationResult>,
+    pub items: Vec<RecordOperationResult>,
 }
 
 impl ApiResponseTrait for TableRecordsPostResponse {

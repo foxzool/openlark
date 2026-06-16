@@ -91,13 +91,13 @@ struct CcTaskRequest {
 pub struct CcTaskResponse {
     /// 任务 ID
     #[serde(rename = "task_id")]
-    task_id: String,
+    pub task_id: String,
     /// 抄送记录 ID
     #[serde(rename = "cc_id")]
-    cc_id: String,
+    pub cc_id: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for CcTaskResponse {

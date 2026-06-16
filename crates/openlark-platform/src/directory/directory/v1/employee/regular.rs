@@ -57,13 +57,13 @@ impl EmployeeRegularBuilder {
 pub struct EmployeeRegularResponse {
     /// 员工 ID
     #[serde(rename = "employee_id")]
-    employee_id: String,
+    pub employee_id: String,
     /// 状态
     #[serde(rename = "status")]
-    status: String,
+    pub status: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for EmployeeRegularResponse {

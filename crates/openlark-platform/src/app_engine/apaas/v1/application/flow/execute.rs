@@ -81,13 +81,13 @@ struct FlowExecuteRequest {
 pub struct FlowExecuteResponse {
     /// 实例 ID
     #[serde(rename = "instance_id")]
-    instance_id: String,
+    pub instance_id: String,
     /// 流程状态
     #[serde(rename = "status")]
-    status: String,
+    pub status: String,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for FlowExecuteResponse {

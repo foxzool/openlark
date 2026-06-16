@@ -83,10 +83,10 @@ struct RecordCreateRequest {
 pub struct RecordCreateResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
 }
 
 impl ApiResponseTrait for RecordCreateResponse {

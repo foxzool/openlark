@@ -107,10 +107,10 @@ struct TableRecordsPatchRequest {
 pub struct TableRecordsPatchResponse {
     /// 更新的记录数量
     #[serde(rename = "updated_count")]
-    updated_count: u32,
+    pub updated_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for TableRecordsPatchResponse {

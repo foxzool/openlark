@@ -124,7 +124,7 @@ struct TableRecordsBatchUpdateRequest {
 pub struct TableRecordsBatchUpdateResponse {
     /// 更新的记录数量
     #[serde(rename = "updated_count")]
-    updated_count: u32,
+    pub updated_count: u32,
     /// 操作结果列表
     #[serde(rename = "items")]
     pub items: Vec<RecordOperationResult>,
