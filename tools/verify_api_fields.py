@@ -297,17 +297,208 @@ def detect_suspicious_patterns(
 
 
 # ---------------------------------------------------------------------------
+# 报告生成
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ApiFieldReport:
+    """单个 API 的核对结果。"""
+
+    api: ApiRecord
+    file_path: str
+    file_exists: bool
+    structs: List[StructFields]
+    issues: List[FieldIssue]
+
+
+def run_quick_mode(
+    csv_path: Path,
+    src_root: Path,
+    output_md: Optional[Path] = None,
+    output_json: Optional[Path] = None,
+    filter_tags: Optional[List[str]] = None,
+) -> str:
+    """快速模式：扫描代码字段 + 可疑模式检测，不抓文档。返回报告文本。"""
+    apis = load_apis_from_csv(csv_path, filter_tags)
+    reports: List[ApiFieldReport] = []
+
+    for api in apis:
+        rel_path = generate_expected_file_path(api)
+        full_path = src_root / rel_path
+        if not full_path.exists():
+            reports.append(
+                ApiFieldReport(
+                    api=api, file_path=rel_path, file_exists=False,
+                    structs=[], issues=[],
+                )
+            )
+            continue
+        source = full_path.read_text(encoding="utf-8")
+        structs = extract_structs(source)
+        issues = detect_suspicious_patterns(api, structs, source)
+        reports.append(
+            ApiFieldReport(
+                api=api, file_path=rel_path, file_exists=True,
+                structs=structs, issues=issues,
+            )
+        )
+
+    md = _render_report(reports, mode="quick")
+    if output_md:
+        output_md.parent.mkdir(parents=True, exist_ok=True)
+        output_md.write_text(md, encoding="utf-8")
+    if output_json:
+        _write_summary_json(reports, output_json, mode="quick")
+    return md
+
+
+def _render_report(reports: List[ApiFieldReport], mode: str) -> str:
+    """渲染 Markdown 报告。"""
+    import datetime
+
+    total = len(reports)
+    found = [r for r in reports if r.file_exists]
+    missing = [r for r in reports if not r.file_exists]
+    with_issues = [r for r in found if r.issues]
+
+    lines = [
+        "# API 字段核对报告",
+        "",
+        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"**模式**: {mode}",
+        "",
+        "## 一、总体统计",
+        "",
+        "| 指标 | 数量 |",
+        "|------|------|",
+        f"| 核对 API 数 | {total} |",
+        f"| 文件存在 | {len(found)} |",
+        f"| 文件缺失 | {len(missing)} |",
+        f"| 有问题 | {len(with_issues)} |",
+        "",
+    ]
+
+    if with_issues:
+        lines.append("## 二、问题详情（按严重度）")
+        lines.append("")
+        for sev, label in [("error", "🔴 硬错误"), ("warning", "🟡 警告"), ("info", "🟢 提示")]:
+            sev_issues = [
+                (r, i) for r in with_issues for i in r.issues if i.severity == sev
+            ]
+            if not sev_issues:
+                continue
+            lines.append(f"### {label}（{len(sev_issues)}）")
+            lines.append("")
+            lines.append("| API | 文件 | 问题 |")
+            lines.append("|-----|------|------|")
+            for r, i in sev_issues:
+                lines.append(f"| {r.api.name} | `{r.file_path}` | {i.detail} |")
+            lines.append("")
+
+    if missing:
+        lines.append("## 三、文件缺失（无法核对）")
+        lines.append("")
+        for r in missing:
+            lines.append(f"- {r.api.name}: `{r.file_path}`")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _write_summary_json(reports: List[ApiFieldReport], path: Path, mode: str) -> None:
+    """写机器可读的 JSON 汇总。"""
+    import json
+
+    with_issues = sum(1 for r in reports if r.issues)
+    data = {
+        "mode": mode,
+        "total_apis": len(reports),
+        "apis_with_issues": with_issues,
+        "apis": [
+            {
+                "id": r.api.api_id,
+                "name": r.api.name,
+                "url": r.api.url,
+                "file": r.file_path,
+                "file_exists": r.file_exists,
+                "issues": [
+                    {"severity": i.severity, "category": i.category, "detail": i.detail}
+                    for i in r.issues
+                ],
+            }
+            for r in reports
+        ],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
 
 
 def main() -> int:
-    """CLI 入口（后续 task 逐步充实）。"""
     parser = argparse.ArgumentParser(description="API 字段核对工具")
     parser.add_argument("--csv", default=str(DEFAULT_CSV), help="API 清单 CSV 路径")
+    parser.add_argument("--crate", help="指定单个 crate（如 openlark-workflow）")
+    parser.add_argument("--all-crates", action="store_true", help="核对所有 crate")
+    parser.add_argument("--fetch-docs", action="store_true", help="完整模式：抓飞书文档对比（慢）")
+    parser.add_argument("--output-dir", default="reports/api_field_verify", help="报告输出目录")
     args = parser.parse_args()
-    print(f"📂 CSV: {args.csv}")
+
+    csv_path = Path(args.csv)
+    out_dir = Path(args.output_dir)
+
+    # 确定 src 根目录和 bizTag 过滤
+    if args.crate:
+        src_root = REPO_ROOT / "crates" / args.crate / "src"
+        filter_tags = _load_crate_tags(args.crate)
+        crate_label = args.crate
+    else:
+        src_root = REPO_ROOT / "crates"
+        filter_tags = None
+        crate_label = "all"
+
+    print(f"📂 CSV: {csv_path}")
+    print(f"📁 源码根: {src_root}")
+    print(f"🏷️  过滤 bizTag: {filter_tags or '(全部)'}")
+
+    if args.fetch_docs:
+        print("🐌 完整模式（抓文档）")
+        return _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags)
+
+    # 快速模式
+    print("⚡ 快速模式（代码自检）")
+    md = run_quick_mode(
+        csv_path=csv_path,
+        src_root=src_root,
+        output_md=out_dir / f"{crate_label}.md",
+        output_json=out_dir / "summary.json",
+        filter_tags=filter_tags,
+    )
+    print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
     return 0
+
+
+def _load_crate_tags(crate: str) -> Optional[List[str]]:
+    """从 tools/api_coverage.toml 读 crate 的 biz_tags。"""
+    import tomllib  # Python 3.11+
+
+    toml_path = REPO_ROOT / "tools" / "api_coverage.toml"
+    if not toml_path.exists():
+        return None
+    with open(toml_path, "rb") as f:
+        data = tomllib.load(f)
+    crate_cfg = data.get("crates", {}).get(crate, {})
+    return crate_cfg.get("biz_tags")
+
+
+def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
+    """完整模式占位（Task 5 实现）。"""
+    print("⚠️ 完整模式尚未实现，见 Task 5")
+    return 1
 
 
 if __name__ == "__main__":

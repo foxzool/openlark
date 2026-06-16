@@ -160,5 +160,56 @@ class TestDetectSuspiciousPatterns(unittest.TestCase):
         self.assertTrue(len(empty_resp) >= 1)
         self.assertEqual(empty_resp[0].severity, "info")
 
+
+class TestQuickModeReport(unittest.TestCase):
+    def test_run_quick_mode_on_temp_files(self):
+        """用临时 CSV + 临时 .rs 文件跑快速模式，生成报告。"""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            # 构造一个 CSV（单条用户级 API，含 user_id 红旗）
+            csv_file = tmpdir / "apis.csv"
+            csv_file.write_text(
+                "id,name,bizTag,meta.Project,meta.Version,meta.Resource,meta.Name,"
+                "detail,chargingMethod,fullDose,fullPath,url,orderMark,supportAppTypes,"
+                "tags,updateTime,isCharge,meta.Type,docPath\n"
+                '1,同意,approval,approval,v4,task,pass,x,none,true,'
+                '/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass,'
+                'POST:/open-apis/approval/v4/tasks/pass,1,"[]",[],0,false,1,\n',
+                encoding="utf-8",
+            )
+            # 构造对应的 .rs 文件
+            src_dir = tmpdir / "src" / "approval" / "approval" / "v4" / "task"
+            src_dir.mkdir(parents=True)
+            (src_dir / "pass.rs").write_text(
+                "pub struct PassTaskBodyV4 {\n"
+                "    pub user_id: String,\n"
+                "    pub instance_code: String,\n"
+                "}\n"
+                "pub struct PassTaskResponseV4 {}\n",
+                encoding="utf-8",
+            )
+            out_md = tmpdir / "report.md"
+            out_json = tmpdir / "summary.json"
+
+            report = verify_api_fields.run_quick_mode(
+                csv_path=csv_file,
+                src_root=tmpdir / "src",
+                output_md=out_md,
+                output_json=out_json,
+            )
+
+            # 报告应包含 user_id 警告
+            self.assertIn("user_id", report)
+            self.assertTrue(out_md.exists())
+            self.assertTrue(out_json.exists())
+            import json
+
+            data = json.loads(out_json.read_text(encoding="utf-8"))
+            self.assertEqual(data["total_apis"], 1)
+            self.assertGreaterEqual(data["apis_with_issues"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
