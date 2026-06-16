@@ -538,20 +538,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="API 字段核对工具")
     parser.add_argument("--csv", default=str(DEFAULT_CSV), help="API 清单 CSV 路径")
     parser.add_argument("--crate", help="指定单个 crate（如 openlark-workflow）")
-    parser.add_argument("--all-crates", action="store_true", help="核对所有 crate")
-    parser.add_argument("--fetch-docs", action="store_true", help="完整模式：抓飞书文档对比（慢）")
+    parser.add_argument("--fetch-docs", action="store_true", help="完整模式：抓飞书文档对比（慢，默认跳过已缓存）")
     parser.add_argument("--output-dir", default="reports/api_field_verify", help="报告输出目录")
-    parser.add_argument(
-        "--max-workers", type=int, default=1, help="文档抓取并发数（默认 1，防限流）"
-    )
-    parser.add_argument(
-        "--resume", action="store_true", help="跳过已抓取的文档（按缓存文件判断）"
-    )
-    parser.add_argument("--api-id", help="只核对单个 API（调试用）")
+    parser.add_argument("--api-id", help="只核对单个 API（调试用，按 CSV id 过滤）")
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
     out_dir = Path(args.output_dir)
+
+    # 单 API 模式：按 id 过滤，src 根用 crates 目录（路径推断会定位到具体文件）
+    if args.api_id:
+        src_root = REPO_ROOT / "crates"
+        crate_label = f"api-{args.api_id}"
+        # 自定义过滤：只保留指定 id 的 API
+        all_apis = load_apis_from_csv(csv_path)
+        filter_tags = None  # 由 _filter_by_id 处理
+        _run_single_api(args.api_id, all_apis, src_root, out_dir, crate_label, args.fetch_docs)
+        return 0
 
     # 确定 src 根目录和 bizTag 过滤
     if args.crate:
@@ -559,6 +562,7 @@ def main() -> int:
         filter_tags = _load_crate_tags(args.crate)
         crate_label = args.crate
     else:
+        # --all-crates 或无参数：扫描整个 crates 目录
         src_root = REPO_ROOT / "crates"
         filter_tags = None
         crate_label = "all"
@@ -568,7 +572,7 @@ def main() -> int:
     print(f"🏷️  过滤 bizTag: {filter_tags or '(全部)'}")
 
     if args.fetch_docs:
-        print("🐌 完整模式（抓文档）")
+        print("🐌 完整模式（抓文档，默认跳过已缓存）")
         return _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags)
 
     # 快速模式
@@ -582,6 +586,42 @@ def main() -> int:
     )
     print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
     return 0
+
+
+def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs):
+    """核对单个 API（调试用）。"""
+    api = next((a for a in all_apis if a.api_id == api_id), None)
+    if api is None:
+        print(f"❌ CSV 中找不到 id={api_id} 的 API")
+        return
+    print(f"🔍 单 API 核对: {api.name} ({api.url})")
+    rel_path = generate_expected_file_path(api)
+    # 单 API 模式：在所有 crate 的 src 目录下查找文件
+    full_path = None
+    for crate_dir in src_root.iterdir():
+        candidate = crate_dir / "src" / rel_path
+        if candidate.exists():
+            full_path = candidate
+            break
+    if full_path is None:
+        print(f"❌ 文件不存在（在所有 crate 中查找）: {rel_path}")
+        return
+    source = full_path.read_text(encoding="utf-8")
+    structs = extract_structs(source)
+    issues = detect_suspicious_patterns(api, structs, source)
+    report = ApiFieldReport(
+        api=api, file_path=rel_path, file_exists=True, structs=structs, issues=issues,
+    )
+    md = _render_report([report], mode="quick")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{crate_label}.md").write_text(md, encoding="utf-8")
+    if issues:
+        print(f"⚠️ 发现 {len(issues)} 个问题:")
+        for i in issues:
+            print(f"  [{i.severity}] {i.detail}")
+    else:
+        print("✅ 无可疑模式")
+    print(f"📄 报告: {out_dir / f'{crate_label}.md'}")
 
 
 def _load_crate_tags(crate: str) -> Optional[List[str]]:

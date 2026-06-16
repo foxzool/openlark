@@ -120,19 +120,16 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 
 ```bash
 # 快速模式：全仓代码自检（秒级，不抓文档）
-python3 tools/verify_api_fields.py --all-crates
+python3 tools/verify_api_fields.py
 
 # 快速模式：单个 crate
 python3 tools/verify_api_fields.py --crate openlark-workflow
 
-# 完整模式：抓飞书文档对比字段（慢，约 8 秒/API）
+# 完整模式：抓飞书文档对比字段（慢，约 8 秒/API，默认跳过已缓存）
 python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
 
-# 完整模式 + 断点续跑
-python3 tools/verify_api_fields.py --crate openlark-docs --fetch-docs --resume
-
-# 单个 API 调试
-python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
+# 单个 API 调试（只跑可疑模式检测，不抓文档）
+python3 tools/verify_api_fields.py --api-id 7642253323628383198
 ```
 
 工具自动完成路径解析、字段提取、文档抓取、差异对比，输出 `reports/api_field_verify/` 报告。
