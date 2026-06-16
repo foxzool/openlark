@@ -114,6 +114,30 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
   --out-dir /tmp/docs
 ```
 
+#### 批量自动化（推荐用于多接口/全 crate 核对）
+
+对于多接口或全 crate 核对，使用自动化工具而非手动逐个：
+
+```bash
+# 快速模式：全仓代码自检（秒级，不抓文档）
+python3 tools/verify_api_fields.py --all-crates
+
+# 快速模式：单个 crate
+python3 tools/verify_api_fields.py --crate openlark-workflow
+
+# 完整模式：抓飞书文档对比字段（慢，约 8 秒/API）
+python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
+
+# 完整模式 + 断点续跑
+python3 tools/verify_api_fields.py --crate openlark-docs --fetch-docs --resume
+
+# 单个 API 调试
+python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
+```
+
+工具自动完成路径解析、字段提取、文档抓取、差异对比，输出 `reports/api_field_verify/` 报告。
+设计文档见 `docs/superpowers/specs/2026-06-16-api-field-verify-tool-design.md`。
+
 ### 第 3 步：解析字段
 
 抓取到的 `innerText` 是拍平的表格（参数名、类型、必填、描述交错成行）。解析规则：

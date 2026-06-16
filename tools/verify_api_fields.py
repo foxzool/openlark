@@ -541,6 +541,13 @@ def main() -> int:
     parser.add_argument("--all-crates", action="store_true", help="核对所有 crate")
     parser.add_argument("--fetch-docs", action="store_true", help="完整模式：抓飞书文档对比（慢）")
     parser.add_argument("--output-dir", default="reports/api_field_verify", help="报告输出目录")
+    parser.add_argument(
+        "--max-workers", type=int, default=1, help="文档抓取并发数（默认 1，防限流）"
+    )
+    parser.add_argument(
+        "--resume", action="store_true", help="跳过已抓取的文档（按缓存文件判断）"
+    )
+    parser.add_argument("--api-id", help="只核对单个 API（调试用）")
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
