@@ -706,6 +706,21 @@ def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
                             )
                         )
 
+                # 对比响应体字段（文档示例 vs 代码 Response struct）
+                doc_resp = parse_doc_response_fields(doc_text)
+                code_resp = next((s.fields for s in structs if "Response" in s.name), [])
+                if doc_resp and code_resp:
+                    code_resp_names = {f.effective_name for f in code_resp}
+                    doc_resp_set = set(doc_resp)
+                    missing_resp = sorted(doc_resp_set - code_resp_names)
+                    if missing_resp:
+                        issues.append(
+                            FieldIssue(
+                                "info", "missing_response_field",
+                                f"响应体可能缺字段: {', '.join(missing_resp)}",
+                            )
+                        )
+
         reports.append(
             ApiFieldReport(
                 api=api, file_path=rel_path, file_exists=True,

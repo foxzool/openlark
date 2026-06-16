@@ -248,6 +248,25 @@ class TestParseDocFields(unittest.TestCase):
         self.assertIn("status", fields)
         self.assertIn("tasks", fields)
 
+    def test_parse_param_table_skips_banned_words(self):
+        """_parse_param_table 跳过 parameter/type/required 等表头词。"""
+        section = (
+            "parameter\n\ntype\n\nrequired\n\n"  # 表头（应跳过）
+            "instance_code\n\nstring\n\nYes\n\n实例 Code\n\n"
+            "comment\n\nstring\n\nNo\n\n意见\n"
+        )
+        fields = verify_api_fields._parse_param_table(section)
+        names = {f.name for f in fields}
+        self.assertEqual(names, {"instance_code", "comment"})
+        # 确认表头词没被当成字段
+        self.assertNotIn("parameter", names)
+        self.assertNotIn("type", names)
+        self.assertNotIn("required", names)
+        # 必填性正确
+        req_map = {f.name: f.required for f in fields}
+        self.assertTrue(req_map["instance_code"])
+        self.assertFalse(req_map["comment"])
+
 
 class TestCompareFields(unittest.TestCase):
     def test_compare_finds_missing_and_extra(self):
