@@ -1,4 +1,4 @@
-//! 绑定门禁规则设备
+//! 设备绑定权限组
 //! docPath: https://open.feishu.cn/document/acs-v1/rule_external/device_bind
 
 use openlark_core::{
@@ -12,39 +12,44 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct DeviceBindRuleExternalRequest {
+pub struct BindDeviceToRuleRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeviceBindRuleExternalResponse {
+pub struct BindDeviceToRuleResponse {
     pub data: Option<serde_json::Value>,
 }
 
-impl ApiResponseTrait for DeviceBindRuleExternalResponse {
+impl ApiResponseTrait for BindDeviceToRuleResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
 }
 
-impl DeviceBindRuleExternalRequest {
+impl BindDeviceToRuleRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
-    pub async fn execute(self) -> SDKResult<DeviceBindRuleExternalResponse> {
+    pub async fn execute(self) -> SDKResult<BindDeviceToRuleResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     pub async fn execute_with_options(
         self,
         option: RequestOption,
-    ) -> SDKResult<DeviceBindRuleExternalResponse> {
-        let req: ApiRequest<DeviceBindRuleExternalResponse> =
-            ApiRequest::post("/open-apis/acs/v1/rule_external/device_bind");
-        let _resp: openlark_core::api::Response<DeviceBindRuleExternalResponse> =
+    ) -> SDKResult<BindDeviceToRuleResponse> {
+        let path = format!("/open-apis/acs/v1/rule_external/device_bind");
+        let req: ApiRequest<BindDeviceToRuleResponse> = ApiRequest::post(&path);
+
+        let _resp: openlark_core::api::Response<BindDeviceToRuleResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
-        Ok(DeviceBindRuleExternalResponse { data: None })
+        Ok(BindDeviceToRuleResponse { data: None })
     }
 }
 

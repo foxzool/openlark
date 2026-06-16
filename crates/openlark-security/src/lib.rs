@@ -89,10 +89,11 @@ pub mod error;
 pub mod models;
 
 // Project: acs - 访问控制系统
+pub mod acs;
 pub mod security;
 
 // 重新导出主要类型
-pub use security::acs::{AcsProject, AcsV1Service};
+pub use acs::acs::{AcsProject, AcsV1Service};
 pub use security::security_and_compliance::{
     SecurityAndComplianceProject, SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
 };
@@ -170,8 +171,8 @@ pub mod prelude {
     };
 
     // 避免v1命名空间冲突，明确导出需要的类型
+    pub use super::acs::acs::{AcsProject as Acs, AcsV1Service};
     pub use super::models::*;
-    pub use super::security::acs::{AcsProject as Acs, AcsV1Service};
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };

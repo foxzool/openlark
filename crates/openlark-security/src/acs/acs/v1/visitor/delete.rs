@@ -6,7 +6,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -44,10 +44,9 @@ impl DeleteVisitorRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<DeleteVisitorResponse> {
-        validate_required!(self.visitor_id.trim(), "visitor_id 不能为空");
-
         let path = format!("/open-apis/acs/v1/visitors/{}", self.visitor_id);
         let req: ApiRequest<DeleteVisitorResponse> = ApiRequest::delete(&path);
+
         let _resp: openlark_core::api::Response<DeleteVisitorResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(DeleteVisitorResponse { data: None })

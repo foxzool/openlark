@@ -24,5 +24,5 @@ pub use crate::models::common::{
 };
 
 // 重新导出项目服务
-pub use crate::security::acs::{AcsV1Service};
+pub use crate::acs::{AcsV1Service};
 pub use crate::security::security_and_compliance::{SecurityAndComplianceV1Service, SecurityAndComplianceV2Service};

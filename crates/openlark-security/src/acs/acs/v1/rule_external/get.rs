@@ -1,4 +1,4 @@
-//! 获取门禁规则
+//! 获取权限组信息
 //! docPath: https://open.feishu.cn/document/acs-v1/rule_external/get
 
 use openlark_core::{
@@ -14,6 +14,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct GetRuleExternalRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +30,10 @@ impl ApiResponseTrait for GetRuleExternalResponse {
 
 impl GetRuleExternalRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
     pub async fn execute(self) -> SDKResult<GetRuleExternalResponse> {
@@ -40,8 +44,9 @@ impl GetRuleExternalRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<GetRuleExternalResponse> {
-        let req: ApiRequest<GetRuleExternalResponse> =
-            ApiRequest::get("/open-apis/acs/v1/rule_external");
+        let path = format!("/open-apis/acs/v1/rule_external");
+        let req: ApiRequest<GetRuleExternalResponse> = ApiRequest::get(&path);
+
         let _resp: openlark_core::api::Response<GetRuleExternalResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(GetRuleExternalResponse { data: None })

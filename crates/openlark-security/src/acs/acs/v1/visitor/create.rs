@@ -1,4 +1,4 @@
-//! 创建访客
+//! 添加访客
 //! docPath: https://open.feishu.cn/document/acs-v1/visitor/create
 
 use openlark_core::{
@@ -14,6 +14,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct CreateVisitorRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +30,10 @@ impl ApiResponseTrait for CreateVisitorResponse {
 
 impl CreateVisitorRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
     pub async fn execute(self) -> SDKResult<CreateVisitorResponse> {
@@ -40,7 +44,9 @@ impl CreateVisitorRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<CreateVisitorResponse> {
-        let req: ApiRequest<CreateVisitorResponse> = ApiRequest::post("/open-apis/acs/v1/visitors");
+        let path = format!("/open-apis/acs/v1/visitors");
+        let req: ApiRequest<CreateVisitorResponse> = ApiRequest::post(&path);
+
         let _resp: openlark_core::api::Response<CreateVisitorResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(CreateVisitorResponse { data: None })

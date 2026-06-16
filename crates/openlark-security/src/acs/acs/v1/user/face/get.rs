@@ -19,18 +19,13 @@ pub struct GetUserFaceRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetUserFaceResponse {
-    pub data: Option<FaceData>,
+    pub data: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for GetUserFaceResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FaceData {
-    pub face_url: String,
 }
 
 impl GetUserFaceRequest {
@@ -52,10 +47,9 @@ impl GetUserFaceRequest {
         let path = format!("/open-apis/acs/v1/users/{}/face", self.user_id);
         let req: ApiRequest<GetUserFaceResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("下载人脸图片", "响应数据为空")
-        })
+        let _resp: openlark_core::api::Response<GetUserFaceResponse> =
+            Transport::request(req, &self.config, Some(option)).await?;
+        Ok(GetUserFaceResponse { data: None })
     }
 }
 

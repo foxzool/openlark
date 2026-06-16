@@ -36,26 +36,26 @@ impl AcsProject {
 pub struct AcsV1Service {
     #[allow(dead_code)]
     config: Arc<crate::models::SecurityConfig>,
-    users: crate::security::acs::v1::users::UsersService,
-    user_faces: crate::security::acs::v1::user_faces::UserFacesService,
-    rule_external: crate::security::acs::v1::rule_external::RuleExternalService,
-    visitors: crate::security::acs::v1::visitors::VisitorsService,
-    devices: crate::security::acs::v1::devices::DevicesService,
-    access_records: crate::security::acs::v1::access_records::AccessRecordsService,
+    users: crate::acs::acs::v1::users::UsersService,
+    user_faces: crate::acs::acs::v1::user_faces::UserFacesService,
+    rule_external: crate::acs::acs::v1::rule_external::RuleExternalService,
+    visitors: crate::acs::acs::v1::visitors::VisitorsService,
+    devices: crate::acs::acs::v1::devices::DevicesService,
+    access_records: crate::acs::acs::v1::access_records::AccessRecordsService,
 }
 
 impl AcsV1Service {
     /// 创建新的 v1 服务实例
     pub fn new(config: Arc<crate::models::SecurityConfig>) -> Self {
         Self {
-            users: crate::security::acs::v1::users::UsersService::new(config.clone()),
-            user_faces: crate::security::acs::v1::user_faces::UserFacesService::new(config.clone()),
-            rule_external: crate::security::acs::v1::rule_external::RuleExternalService::new(
+            users: crate::acs::acs::v1::users::UsersService::new(config.clone()),
+            user_faces: crate::acs::acs::v1::user_faces::UserFacesService::new(config.clone()),
+            rule_external: crate::acs::acs::v1::rule_external::RuleExternalService::new(
                 config.clone(),
             ),
-            visitors: crate::security::acs::v1::visitors::VisitorsService::new(config.clone()),
-            devices: crate::security::acs::v1::devices::DevicesService::new(config.clone()),
-            access_records: crate::security::acs::v1::access_records::AccessRecordsService::new(
+            visitors: crate::acs::acs::v1::visitors::VisitorsService::new(config.clone()),
+            devices: crate::acs::acs::v1::devices::DevicesService::new(config.clone()),
+            access_records: crate::acs::acs::v1::access_records::AccessRecordsService::new(
                 config.clone(),
             ),
             config,
@@ -63,34 +63,32 @@ impl AcsV1Service {
     }
 
     /// 获取用户管理服务
-    pub fn users(&self) -> &crate::security::acs::v1::users::UsersService {
+    pub fn users(&self) -> &crate::acs::acs::v1::users::UsersService {
         &self.users
     }
 
     /// 获取人脸识别管理服务
-    pub fn user_faces(&self) -> &crate::security::acs::v1::user_faces::UserFacesService {
+    pub fn user_faces(&self) -> &crate::acs::acs::v1::user_faces::UserFacesService {
         &self.user_faces
     }
 
     /// 获取权限规则管理服务
-    pub fn rule_external(&self) -> &crate::security::acs::v1::rule_external::RuleExternalService {
+    pub fn rule_external(&self) -> &crate::acs::acs::v1::rule_external::RuleExternalService {
         &self.rule_external
     }
 
     /// 获取访客管理服务
-    pub fn visitors(&self) -> &crate::security::acs::v1::visitors::VisitorsService {
+    pub fn visitors(&self) -> &crate::acs::acs::v1::visitors::VisitorsService {
         &self.visitors
     }
 
     /// 获取设备管理服务
-    pub fn devices(&self) -> &crate::security::acs::v1::devices::DevicesService {
+    pub fn devices(&self) -> &crate::acs::acs::v1::devices::DevicesService {
         &self.devices
     }
 
     /// 获取访问记录服务
-    pub fn access_records(
-        &self,
-    ) -> &crate::security::acs::v1::access_records::AccessRecordsService {
+    pub fn access_records(&self) -> &crate::acs::acs::v1::access_records::AccessRecordsService {
         &self.access_records
     }
 }

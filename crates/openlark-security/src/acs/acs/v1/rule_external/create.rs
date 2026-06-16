@@ -1,4 +1,4 @@
-//! 创建门禁规则
+//! 创建或更新权限组
 //! docPath: https://open.feishu.cn/document/acs-v1/rule_external/create
 
 use openlark_core::{
@@ -14,6 +14,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct CreateRuleExternalRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +30,10 @@ impl ApiResponseTrait for CreateRuleExternalResponse {
 
 impl CreateRuleExternalRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
     pub async fn execute(self) -> SDKResult<CreateRuleExternalResponse> {
@@ -40,8 +44,9 @@ impl CreateRuleExternalRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<CreateRuleExternalResponse> {
-        let req: ApiRequest<CreateRuleExternalResponse> =
-            ApiRequest::post("/open-apis/acs/v1/rule_external");
+        let path = format!("/open-apis/acs/v1/rule_external");
+        let req: ApiRequest<CreateRuleExternalResponse> = ApiRequest::post(&path);
+
         let _resp: openlark_core::api::Response<CreateRuleExternalResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(CreateRuleExternalResponse { data: None })

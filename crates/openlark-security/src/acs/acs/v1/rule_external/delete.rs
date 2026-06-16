@@ -1,4 +1,4 @@
-//! 删除门禁规则
+//! 删除权限组
 //! docPath: https://open.feishu.cn/document/acs-v1/rule_external/delete
 
 use openlark_core::{
@@ -14,6 +14,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct DeleteRuleExternalRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +30,10 @@ impl ApiResponseTrait for DeleteRuleExternalResponse {
 
 impl DeleteRuleExternalRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
     pub async fn execute(self) -> SDKResult<DeleteRuleExternalResponse> {
@@ -40,8 +44,9 @@ impl DeleteRuleExternalRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<DeleteRuleExternalResponse> {
-        let req: ApiRequest<DeleteRuleExternalResponse> =
-            ApiRequest::delete("/open-apis/acs/v1/rule_external");
+        let path = format!("/open-apis/acs/v1/rule_external");
+        let req: ApiRequest<DeleteRuleExternalResponse> = ApiRequest::delete(&path);
+
         let _resp: openlark_core::api::Response<DeleteRuleExternalResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(DeleteRuleExternalResponse { data: None })

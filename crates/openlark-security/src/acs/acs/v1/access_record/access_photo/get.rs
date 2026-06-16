@@ -1,11 +1,11 @@
-//! 获取门禁通行记录照片
+//! 下载开门时的人脸识别图片
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -43,13 +43,9 @@ impl GetAccessPhotoRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<GetAccessPhotoResponse> {
-        validate_required!(self.access_record_id.trim(), "access_record_id 不能为空");
-
-        let path = format!(
-            "/open-apis/acs/v1/access_records/{}/access_photo",
-            self.access_record_id
-        );
+        let path = format!("/open-apis/acs/v1/access_records/{}/access_photo", self.access_record_id);
         let req: ApiRequest<GetAccessPhotoResponse> = ApiRequest::get(&path);
+
         let _resp: openlark_core::api::Response<GetAccessPhotoResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(GetAccessPhotoResponse { data: None })

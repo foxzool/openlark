@@ -1,4 +1,4 @@
-//! 获取门禁通行记录列表
+//! 获取门禁记录列表
 //! docPath: https://open.feishu.cn/document/server-docs/acs-v1/access_record/list
 
 use openlark_core::{
@@ -12,39 +12,44 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct ListAccessRecordRequest {
+pub struct ListAccessRecordsRequest {
     config: Arc<Config>,
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ListAccessRecordResponse {
+pub struct ListAccessRecordsResponse {
     pub data: Option<serde_json::Value>,
 }
 
-impl ApiResponseTrait for ListAccessRecordResponse {
+impl ApiResponseTrait for ListAccessRecordsResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
 }
 
-impl ListAccessRecordRequest {
+impl ListAccessRecordsRequest {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            
+        }
     }
 
-    pub async fn execute(self) -> SDKResult<ListAccessRecordResponse> {
+    pub async fn execute(self) -> SDKResult<ListAccessRecordsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     pub async fn execute_with_options(
         self,
         option: RequestOption,
-    ) -> SDKResult<ListAccessRecordResponse> {
-        let req: ApiRequest<ListAccessRecordResponse> =
-            ApiRequest::get("/open-apis/acs/v1/access_records");
-        let _resp: openlark_core::api::Response<ListAccessRecordResponse> =
+    ) -> SDKResult<ListAccessRecordsResponse> {
+        let path = format!("/open-apis/acs/v1/access_records");
+        let req: ApiRequest<ListAccessRecordsResponse> = ApiRequest::get(&path);
+
+        let _resp: openlark_core::api::Response<ListAccessRecordsResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
-        Ok(ListAccessRecordResponse { data: None })
+        Ok(ListAccessRecordsResponse { data: None })
     }
 }
 

@@ -1,4 +1,4 @@
-//! 更新门禁用户
+//! 修改用户部分信息
 //! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/patch
 
 use openlark_core::{
@@ -6,7 +6,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -40,11 +40,13 @@ impl PatchUserRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<PatchUserResponse> {
-        validate_required!(self.user_id.trim(), "user_id 不能为空");
-
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<PatchUserResponse> {
         let path = format!("/open-apis/acs/v1/users/{}", self.user_id);
         let req: ApiRequest<PatchUserResponse> = ApiRequest::patch(&path);
+
         let _resp: openlark_core::api::Response<PatchUserResponse> =
             Transport::request(req, &self.config, Some(option)).await?;
         Ok(PatchUserResponse { data: None })
