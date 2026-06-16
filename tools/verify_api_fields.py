@@ -609,10 +609,44 @@ def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs
     source = full_path.read_text(encoding="utf-8")
     structs = extract_structs(source)
     issues = detect_suspicious_patterns(api, structs, source)
+
+    # 完整模式：抓文档对比字段
+    mode = "quick"
+    if fetch_docs and api.full_path:
+        mode = "full"
+        doc_text = _fetch_single_doc(api, out_dir)
+        if doc_text:
+            # 对比请求体字段
+            doc_req = parse_doc_request_fields(doc_text, api.http_method)
+            code_body = next((s.fields for s in structs if "Body" in s.name), [])
+            if doc_req and code_body:
+                diff = compare_fields(code_body, doc_req)
+                if diff.missing:
+                    issues.append(
+                        FieldIssue("error", "missing_field",
+                                   f"请求体缺字段: {', '.join(diff.missing)}")
+                    )
+                if diff.extra:
+                    issues.append(
+                        FieldIssue("warning", "extra_field",
+                                   f"请求体多余字段: {', '.join(diff.extra)}")
+                    )
+            # 对比响应体字段
+            doc_resp = parse_doc_response_fields(doc_text)
+            code_resp = next((s.fields for s in structs if "Response" in s.name), [])
+            if doc_resp and code_resp:
+                code_resp_names = {f.effective_name for f in code_resp}
+                missing_resp = sorted(set(doc_resp) - code_resp_names)
+                if missing_resp:
+                    issues.append(
+                        FieldIssue("info", "missing_response_field",
+                                   f"响应体可能缺字段: {', '.join(missing_resp)}")
+                    )
+
     report = ApiFieldReport(
         api=api, file_path=rel_path, file_exists=True, structs=structs, issues=issues,
     )
-    md = _render_report([report], mode="quick")
+    md = _render_report([report], mode=mode)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{crate_label}.md").write_text(md, encoding="utf-8")
     if issues:
@@ -622,6 +656,33 @@ def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs
     else:
         print("✅ 无可疑模式")
     print(f"📄 报告: {out_dir / f'{crate_label}.md'}")
+
+
+def _fetch_single_doc(api: ApiRecord, out_dir: Path) -> str:
+    """抓取单个 API 的文档（带缓存）。返回文档文本，失败返回空串。"""
+    import subprocess
+
+    fetch_script = (
+        REPO_ROOT / ".agents" / "skills" / "openlark-api-field-verify" / "scripts" / "fetch_doc.js"
+    )
+    if not fetch_script.exists():
+        print(f"⚠️ 找不到抓取脚本: {fetch_script}")
+        return ""
+    doc_cache = out_dir / "doc_cache"
+    doc_cache.mkdir(parents=True, exist_ok=True)
+    doc_file = doc_cache / f"{api.api_id}.txt"
+    if not doc_file.exists():
+        url = "https://open.feishu.cn" + api.full_path
+        print(f"📄 抓取文档: {url}")
+        try:
+            subprocess.run(
+                ["node", str(fetch_script), url, str(doc_file)],
+                check=True, capture_output=True, timeout=90,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            print("⚠️ 文档抓取失败")
+            return ""
+    return doc_file.read_text(encoding="utf-8") if doc_file.exists() else ""
 
 
 def _load_crate_tags(crate: str) -> Optional[List[str]]:
