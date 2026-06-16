@@ -1,15 +1,26 @@
+pub mod add_cc;
 pub mod add_sign;
 pub mod cancel;
 pub mod cc;
 pub mod comment;
 pub mod create;
+pub mod detail;
 pub mod get;
+pub mod initiated;
 pub mod list;
 pub mod preview;
 pub mod query;
+pub mod recall;
+pub mod remind;
 pub mod search_cc;
 pub mod specified_rollback;
 
+// add_cc 模块显式导出
+pub use add_cc::{
+    AddCcInstanceBodyV4,
+    AddCcInstanceRequestV4,
+    AddCcInstanceResponseV4,
+};
 // add_sign 模块显式导出
 
 pub use add_sign::{
@@ -58,6 +69,19 @@ pub use get::{
     GetInstanceRequestV4,
     GetInstanceResponseV4,
 };
+// detail 模块显式导出
+pub use detail::{
+    DetailInstanceRequestV4,
+    DetailInstanceResponseV4,
+    DetailInstanceTaskV4,
+};
+// initiated 模块显式导出
+pub use initiated::{
+    InitiatedInstanceItemV4,
+    InitiatedInstanceRequestV4,
+    InitiatedInstanceResponseV4,
+    InstanceSummaryV4,
+};
 // list 模块显式导出
 pub use list::{
     InstanceItemV4,
@@ -83,6 +107,18 @@ pub use search_cc::{
     CcItemV4,
     SearchCcRequestV4,
     SearchCcResponseV4,
+};
+// recall 模块显式导出
+pub use recall::{
+    RecallInstanceBodyV4,
+    RecallInstanceRequestV4,
+    RecallInstanceResponseV4,
+};
+// remind 模块显式导出
+pub use remind::{
+    RemindInstanceBodyV4,
+    RemindInstanceRequestV4,
+    RemindInstanceResponseV4,
 };
 // specified_rollback 模块显式导出
 pub use specified_rollback::{

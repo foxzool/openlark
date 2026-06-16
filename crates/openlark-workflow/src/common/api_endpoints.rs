@@ -482,14 +482,20 @@ pub enum ApprovalApiV4 {
     ExternalTaskList,
     /// 审批任务加签
     InstanceAddSign,
+    /// 抄送审批实例（用户级）
+    InstanceAddCc,
     /// 撤回审批实例
     InstanceCancel,
     /// 抄送审批实例
     InstanceCc,
     /// 创建审批实例
     InstanceCreate,
+    /// 获取单个审批实例详情（用户级）
+    InstanceDetail,
     /// 获取单个审批实例详情
     InstanceGet(String),
+    /// 查询用户的已发起审批列表（用户级）
+    InstanceInitiated,
     /// 批量获取审批实例 ID
     InstanceList(String),
     /// 预览审批流程
@@ -498,6 +504,10 @@ pub enum ApprovalApiV4 {
     InstanceQuery,
     /// 查询抄送列表
     InstanceSearchCc,
+    /// 单据催办（用户级）
+    InstanceRemind,
+    /// 撤回审批实例（用户级）
+    InstanceRecall,
     /// 退回审批任务
     InstanceSpecifiedRollback(String),
     /// 创建评论
@@ -506,12 +516,24 @@ pub enum ApprovalApiV4 {
     InstanceCommentDelete(String, String),
     /// 获取评论列表
     InstanceCommentList(String),
+    /// 审批任务加签（用户级）
+    TaskAddSign,
     /// 同意审批任务
     TaskApprove,
+    /// 转交审批任务（用户级）
+    TaskForward,
+    /// 查询审批任务列表（用户级）
+    TaskList,
+    /// 同意审批任务（用户级）
+    TaskPass,
     /// 查询用户的任务列表
     TaskQuery,
+    /// 拒绝审批任务（用户级）
+    TaskRefuse,
     /// 拒绝审批任务
     TaskReject,
+    /// 退回审批任务（用户级）
+    TaskRollback,
     /// 重新提交审批任务
     TaskResubmit,
     /// 查询任务列表
@@ -559,11 +581,16 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceAddSign => {
                 "/open-apis/approval/v4/instances/add_sign".to_string()
             }
+            ApprovalApiV4::InstanceAddCc => "/open-apis/approval/v4/instances/add_cc".to_string(),
             ApprovalApiV4::InstanceCancel => "/open-apis/approval/v4/instances/cancel".to_string(),
             ApprovalApiV4::InstanceCc => "/open-apis/approval/v4/instances/cc".to_string(),
             ApprovalApiV4::InstanceCreate => "/open-apis/approval/v4/instances".to_string(),
+            ApprovalApiV4::InstanceDetail => "/open-apis/approval/v4/instances/detail".to_string(),
             ApprovalApiV4::InstanceGet(instance_id) => {
                 format!("/open-apis/approval/v4/instances/{instance_id}")
+            }
+            ApprovalApiV4::InstanceInitiated => {
+                "/open-apis/approval/v4/instances/initiated".to_string()
             }
             ApprovalApiV4::InstanceList(approval_code) => {
                 format!("/open-apis/approval/v4/instances?approval_code={approval_code}")
@@ -575,6 +602,8 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceSearchCc => {
                 "/open-apis/approval/v4/instances/search_cc".to_string()
             }
+            ApprovalApiV4::InstanceRemind => "/open-apis/approval/v4/instances/remind".to_string(),
+            ApprovalApiV4::InstanceRecall => "/open-apis/approval/v4/instances/recall".to_string(),
             ApprovalApiV4::InstanceSpecifiedRollback(_) => {
                 "/open-apis/approval/v4/instances/specified_rollback".to_string()
             }
@@ -591,9 +620,15 @@ impl ApprovalApiV4 {
             }
 
             // 审批任务相关
+            ApprovalApiV4::TaskAddSign => "/open-apis/approval/v4/tasks/add_sign".to_string(),
             ApprovalApiV4::TaskApprove => "/open-apis/approval/v4/tasks/approve".to_string(),
+            ApprovalApiV4::TaskForward => "/open-apis/approval/v4/tasks/forward".to_string(),
+            ApprovalApiV4::TaskList => "/open-apis/approval/v4/tasks".to_string(),
+            ApprovalApiV4::TaskPass => "/open-apis/approval/v4/tasks/pass".to_string(),
             ApprovalApiV4::TaskQuery => "/open-apis/approval/v4/tasks/query".to_string(),
+            ApprovalApiV4::TaskRefuse => "/open-apis/approval/v4/tasks/refuse".to_string(),
             ApprovalApiV4::TaskReject => "/open-apis/approval/v4/tasks/reject".to_string(),
+            ApprovalApiV4::TaskRollback => "/open-apis/approval/v4/tasks/rollback".to_string(),
             ApprovalApiV4::TaskResubmit => "/open-apis/approval/v4/tasks/resubmit".to_string(),
             ApprovalApiV4::TaskSearch => "/open-apis/approval/v4/tasks/search".to_string(),
             ApprovalApiV4::TaskTransfer => "/open-apis/approval/v4/tasks/transfer".to_string(),

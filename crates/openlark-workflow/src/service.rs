@@ -7,6 +7,60 @@ mod approval_task_reject;
 #[path = "approval/approval/v4/task/resubmit.rs"]
 mod approval_task_resubmit;
 
+// approval v4 用户级接口（用户态，需 user_access_token）
+#[path = "approval/approval/v4/instance/add_cc.rs"]
+mod approval_instance_add_cc;
+#[path = "approval/approval/v4/instance/detail.rs"]
+mod approval_instance_detail;
+#[path = "approval/approval/v4/instance/initiated.rs"]
+mod approval_instance_initiated;
+#[path = "approval/approval/v4/instance/recall.rs"]
+mod approval_instance_recall;
+#[path = "approval/approval/v4/instance/remind.rs"]
+mod approval_instance_remind;
+#[path = "approval/approval/v4/task/add_sign.rs"]
+mod approval_task_add_sign;
+#[path = "approval/approval/v4/task/forward.rs"]
+mod approval_task_forward;
+#[path = "approval/approval/v4/task/list.rs"]
+mod approval_task_list;
+#[path = "approval/approval/v4/task/pass.rs"]
+mod approval_task_pass;
+#[path = "approval/approval/v4/task/refuse.rs"]
+mod approval_task_refuse;
+#[path = "approval/approval/v4/task/rollback.rs"]
+mod approval_task_rollback;
+
+// approval v4 用户级接口的公开类型重新导出
+// 这些 Request/Body/Response 类型供用户直接 new() + builder + execute() 使用
+// （用户态接口需 user_access_token，不适合封装成 service helper）
+pub use approval_instance_add_cc::{
+    AddCcInstanceBodyV4, AddCcInstanceRequestV4, AddCcInstanceResponseV4,
+};
+pub use approval_instance_detail::{
+    DetailInstanceRequestV4, DetailInstanceResponseV4, DetailInstanceTaskV4,
+};
+pub use approval_instance_initiated::{
+    InitiatedInstanceItemV4, InitiatedInstanceRequestV4, InitiatedInstanceResponseV4,
+    InstanceSummaryV4,
+};
+pub use approval_instance_recall::{
+    RecallInstanceBodyV4, RecallInstanceRequestV4, RecallInstanceResponseV4,
+};
+pub use approval_instance_remind::{
+    RemindInstanceBodyV4, RemindInstanceRequestV4, RemindInstanceResponseV4,
+};
+pub use approval_task_add_sign::{AddSignTaskBodyV4, AddSignTaskRequestV4, AddSignTaskResponseV4};
+pub use approval_task_forward::{ForwardTaskBodyV4, ForwardTaskRequestV4, ForwardTaskResponseV4};
+pub use approval_task_list::{
+    ListTaskItemV4, ListTaskRequestV4, ListTaskResponseV4, TaskSummaryV4,
+};
+pub use approval_task_pass::{PassTaskBodyV4, PassTaskRequestV4, PassTaskResponseV4};
+pub use approval_task_refuse::{RefuseTaskBodyV4, RefuseTaskRequestV4, RefuseTaskResponseV4};
+pub use approval_task_rollback::{
+    RollbackTaskBodyV4, RollbackTaskRequestV4, RollbackTaskResponseV4,
+};
+
 use openlark_core::{SDKResult, config::Config};
 use std::sync::Arc;
 

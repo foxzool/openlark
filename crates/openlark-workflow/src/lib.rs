@@ -99,6 +99,20 @@ pub use service::{
     WorkflowTaskMutation,
 };
 
+// 重新导出 approval v4 用户级接口类型（用户态，需 user_access_token）
+// 用户可直接 new() + builder + execute_with_options(option) 调用
+pub use service::{
+    AddCcInstanceBodyV4, AddCcInstanceRequestV4, AddCcInstanceResponseV4, AddSignTaskBodyV4,
+    AddSignTaskRequestV4, AddSignTaskResponseV4, DetailInstanceRequestV4, DetailInstanceResponseV4,
+    DetailInstanceTaskV4, ForwardTaskBodyV4, ForwardTaskRequestV4, ForwardTaskResponseV4,
+    InitiatedInstanceItemV4, InitiatedInstanceRequestV4, InitiatedInstanceResponseV4,
+    InstanceSummaryV4, ListTaskItemV4, ListTaskRequestV4, ListTaskResponseV4, PassTaskBodyV4,
+    PassTaskRequestV4, PassTaskResponseV4, RecallInstanceBodyV4, RecallInstanceRequestV4,
+    RecallInstanceResponseV4, RefuseTaskBodyV4, RefuseTaskRequestV4, RefuseTaskResponseV4,
+    RemindInstanceBodyV4, RemindInstanceRequestV4, RemindInstanceResponseV4, RollbackTaskBodyV4,
+    RollbackTaskRequestV4, RollbackTaskResponseV4, TaskSummaryV4,
+};
+
 /// 工作流服务客户端类型别名（统一命名为 `XxxClient`）。
 pub type WorkflowClient = WorkflowService;
 
