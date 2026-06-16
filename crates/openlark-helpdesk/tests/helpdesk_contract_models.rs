@@ -96,19 +96,25 @@ fn ticket_update_body_roundtrip() {
     let body = UpdateTicketBody {
         title: Some("更新后的标题".to_string()),
         description: None,
-        status: Some("resolved".to_string()),
+        status: Some(2),
+        tag_names: None,
+        comment: None,
+        customized_fields: None,
+        ticket_type: None,
+        solved: None,
+        channel: None,
     };
     assert_json_contract(
         &body,
         json!({
             "title": "更新后的标题",
-            "status": "resolved"
+            "status": 2
         }),
     );
 
     let serialized = to_value(&body).unwrap();
     assert_eq!(serialized["title"], "更新后的标题");
-    assert_eq!(serialized["status"], "resolved");
+    assert_eq!(serialized["status"], 2);
 }
 
 #[test]

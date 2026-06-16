@@ -41,9 +41,45 @@ impl UpdateTicketRequest {
         self
     }
 
-    /// status。
-    pub fn status(mut self, status: impl Into<String>) -> Self {
-        self.body.status = Some(status.into());
+    /// status（0=未处理，1=处理中，2=已解决）。
+    pub fn status(mut self, status: i32) -> Self {
+        self.body.status = Some(status);
+        self
+    }
+
+    /// 设置标签名列表。
+    pub fn tag_names(mut self, tag_names: Vec<String>) -> Self {
+        self.body.tag_names = Some(tag_names);
+        self
+    }
+
+    /// 设置评论。
+    pub fn comment(mut self, comment: impl Into<String>) -> Self {
+        self.body.comment = Some(comment.into());
+        self
+    }
+
+    /// 设置自定义字段（JSON）。
+    pub fn customized_fields(mut self, customized_fields: serde_json::Value) -> Self {
+        self.body.customized_fields = Some(customized_fields);
+        self
+    }
+
+    /// 设置工单类型。
+    pub fn ticket_type(mut self, ticket_type: i32) -> Self {
+        self.body.ticket_type = Some(ticket_type);
+        self
+    }
+
+    /// 设置是否解决（0=未解决，1=已解决）。
+    pub fn solved(mut self, solved: i32) -> Self {
+        self.body.solved = Some(solved);
+        self
+    }
+
+    /// 设置渠道。
+    pub fn channel(mut self, channel: i32) -> Self {
+        self.body.channel = Some(channel);
         self
     }
 
