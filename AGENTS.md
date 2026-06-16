@@ -113,6 +113,7 @@ just release VERSION  # 发布新版本
 | Skill | 用途 | 触发场景 |
 |-------|------|----------|
 | `openlark-api` | API 接口实现规范（落盘路径、Body/Response、Builder、endpoints） | 添加/重构飞书 API、调用服务端 API |
+| `openlark-api-field-verify` | API 字段核对（playwright 渲染飞书文档，对比真实字段与代码实现） | 核对请求/响应字段、用户级接口字段、推断字段验证 |
 | `openlark-api-validation` | API 覆盖率验证（`tools/validate_apis.py` 对比 `api_list_export.csv`） | 统计 API 数量、检查覆盖率 |
 | `openlark-code-standards` | 架构一致性、命名、导出规范检查 | 审查代码规范 |
 | `openlark-design-review` | 公共 API 设计审查（feature gating、端点体系、Builder/Service 一致性） | 设计审查、crate 设计 |
