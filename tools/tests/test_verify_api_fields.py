@@ -103,5 +103,62 @@ pub struct PassTaskResponseV4 {
         self.assertIn("PassTaskResponseV4", names)
         self.assertNotIn("PassTaskRequestV4", names)  # Request struct 不提取
 
+
+class TestDetectSuspiciousPatterns(unittest.TestCase):
+    def test_user_level_with_user_id_field(self):
+        """用户级接口的 Body 含 user_id -> 警告。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="1", name="同意", biz_tag="approval", meta_project="approval",
+            meta_version="v4", meta_resource="task", meta_name="pass",
+            url="POST:/open-apis/approval/v4/tasks/pass", doc_path="",
+            full_path="/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass",
+        )
+        structs = [
+            verify_api_fields.StructFields(
+                name="PassTaskBodyV4",
+                fields=[
+                    verify_api_fields.FieldInfo("user_id", "String", True),
+                    verify_api_fields.FieldInfo("instance_code", "String", True),
+                ],
+            )
+        ]
+        source = "pub fn execute() {}"  # 无 validate_required_list
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
+        # 应检测到 user_id 警告
+        user_id_issues = [i for i in issues if "user_id" in i.detail]
+        self.assertEqual(len(user_id_issues), 1)
+        self.assertEqual(user_id_issues[0].severity, "warning")
+
+    def test_vec_field_without_validate_required_list(self):
+        """Body 有 Vec 字段但源码无 validate_required_list -> 警告。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="2", name="抄送", biz_tag="approval", meta_project="approval",
+            meta_version="v4", meta_resource="instance", meta_name="add_cc",
+            url="POST:/open-apis/approval/v4/instances/add_cc", doc_path="", full_path="",
+        )
+        structs = [
+            verify_api_fields.StructFields(
+                name="AddCcBody",
+                fields=[verify_api_fields.FieldInfo("cc_user_ids", "String", True)],
+            )
+        ]
+        source = "validate_required!(self.body.instance_code)"  # 无 _list
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
+        vec_issues = [i for i in issues if "validate_required_list" in i.detail]
+        self.assertTrue(len(vec_issues) >= 1)
+
+    def test_get_with_empty_response(self):
+        """GET 查询接口 Response 无字段 -> 提示。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="3", name="详情", biz_tag="approval", meta_project="approval",
+            meta_version="v4", meta_resource="instance", meta_name="detail",
+            url="GET:/open-apis/approval/v4/instances/detail", doc_path="", full_path="",
+        )
+        structs = [verify_api_fields.StructFields(name="DetailResponse", fields=[])]
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, "")
+        empty_resp = [i for i in issues if "Response" in i.detail or "响应" in i.detail]
+        self.assertTrue(len(empty_resp) >= 1)
+        self.assertEqual(empty_resp[0].severity, "info")
+
 if __name__ == "__main__":
     unittest.main()

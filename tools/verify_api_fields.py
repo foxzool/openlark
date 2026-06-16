@@ -214,6 +214,89 @@ def _unwrap_generic(type_str: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# 可疑模式检测
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FieldIssue:
+    """一个检测到的字段问题。"""
+
+    severity: str  # "error" | "warning" | "info"
+    category: str  # 问题类别标识
+    detail: str  # 人可读的描述
+
+
+def detect_suspicious_patterns(
+    api: ApiRecord, structs: List[StructFields], source: str
+) -> List[FieldIssue]:
+    """检测不抓文档就能发现的字段问题（三类红旗）。
+
+    红旗依据：
+      1. 用户级接口 Body 含 user_id/approval_code（用户级从 token 推断，不应有）
+      2. Vec 字段缺 validate_required_list! 校验
+      3. GET 查询接口 Response 为空（可能漏建响应字段）
+    """
+    issues: List[FieldIssue] = []
+
+    # 收集所有 Body struct 的字段
+    body_structs = [s for s in structs if "Body" in s.name]
+
+    # 红旗 1：用户级接口含 user_id / approval_code
+    if api.is_user_level:
+        for s in body_structs:
+            for f in s.fields:
+                if f.name in ("user_id", "approval_code"):
+                    issues.append(
+                        FieldIssue(
+                            severity="warning",
+                            category="user_level_extra_field",
+                            detail=(
+                                f"用户级接口 {s.name} 含 {f.name} 字段——"
+                                "用户级接口的操作者身份从 user_access_token 推断，"
+                                "请求体通常不应含此字段"
+                            ),
+                        )
+                    )
+
+    # 红旗 2：Vec 字段缺 validate_required_list!
+    has_validate_list = "validate_required_list!" in source
+    for s in body_structs:
+        vec_fields = [f for f in s.fields if f.name.endswith("_ids") or f.name.endswith("_user_ids")]
+        # 启发式：字段名暗示数组（_ids）但源码没用 list 校验
+        if vec_fields and not has_validate_list:
+            for f in vec_fields:
+                issues.append(
+                    FieldIssue(
+                        severity="warning",
+                        category="missing_validate_required_list",
+                        detail=(
+                            f"Body {s.name} 的 {f.name} 疑似数组字段，"
+                            "但 execute_with_options 未使用 validate_required_list! 校验"
+                        ),
+                    )
+                )
+
+    # 红旗 3：GET 查询接口 Response 为空
+    if api.http_method == "GET":
+        resp_structs = [s for s in structs if "Response" in s.name]
+        for s in resp_structs:
+            if not s.fields:
+                issues.append(
+                    FieldIssue(
+                        severity="info",
+                        category="empty_get_response",
+                        detail=(
+                            f"GET 接口 {s.name} 无响应字段——"
+                            "查询接口通常应返回数据，可能漏建响应体"
+                        ),
+                    )
+                )
+
+    return issues
+
+
+# ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
 
