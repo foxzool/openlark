@@ -108,6 +108,112 @@ def load_apis_from_csv(
 
 
 # ---------------------------------------------------------------------------
+# Rust 源码字段提取
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FieldInfo:
+    """单个字段信息。"""
+
+    name: str  # Rust 字段名（rename 前的 snake_case）
+    type_name: str  # 类型名（Vec<String> -> String，Option<i32> -> i32）
+    required: bool  # 是否必填（Option -> False，其余 -> True）
+    rename: Optional[str] = None  # serde rename 后的名字，无则 None
+
+    @property
+    def effective_name(self) -> str:
+        """对比时用的名字：rename 优先。"""
+        return self.rename or self.name
+
+
+@dataclass
+class StructFields:
+    """一个 struct 提取出的字段集合。"""
+
+    name: str  # struct 名
+    fields: List[FieldInfo] = field(default_factory=list)
+
+
+def extract_structs(source: str) -> List[StructFields]:
+    """从 Rust 源码提取 Body/Response struct 的字段。
+
+    只提取名字含 Body 或 Response 的 struct（请求体/响应体），
+    跳过 Request struct（那是 builder，不是字段定义）。
+    """
+    results: List[StructFields] = []
+    # 匹配 pub struct Name { ... }，非贪婪到第一个 }
+    pattern = re.compile(r"pub\s+struct\s+(\w+)\s*\{([^}]*)\}", re.S)
+    for m in pattern.finditer(source):
+        name = m.group(1)
+        if "Body" not in name and "Response" not in name:
+            continue
+        body = m.group(2)
+        results.append(StructFields(name=name, fields=_extract_fields_from_block(body)))
+    return results
+
+
+def _extract_fields_from_block(block: str) -> List[FieldInfo]:
+    """从 struct 体内提取字段列表。"""
+    fields: List[FieldInfo] = []
+    lines = block.split("\n")
+    pending_rename: Optional[str] = None
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # 收集 serde rename 属性
+        rename_match = re.search(r'#\[serde\s*\([^)]*rename\s*=\s*"([^"]+)"', stripped)
+        if rename_match:
+            pending_rename = rename_match.group(1)
+            continue
+        # 跳过其他属性行和注释行
+        if stripped.startswith("#[") or stripped.startswith("//"):
+            continue
+        # 匹配 pub field_name: Type,
+        field_match = re.match(r"pub\s+(\w+)\s*:\s*(.+?),?\s*$", stripped)
+        if not field_match:
+            continue
+        fname = field_match.group(1)
+        raw_type = field_match.group(2).strip().rstrip(",")
+        required, type_name = _parse_type(raw_type)
+        fields.append(
+            FieldInfo(
+                name=fname,
+                type_name=type_name,
+                required=required,
+                rename=pending_rename,
+            )
+        )
+        pending_rename = None
+    return fields
+
+
+def _parse_type(raw: str) -> Tuple[bool, str]:
+    """解析类型字符串，返回 (是否必填, 规范化类型名)。"""
+    raw = raw.strip()
+    # Option<T> -> 选填，内部类型
+    opt_match = re.match(r"Option<(.+)>$", raw)
+    if opt_match:
+        inner = opt_match.group(1).strip()
+        return False, _unwrap_generic(inner)
+    # Vec<T> -> 必填，元素类型
+    vec_match = re.match(r"Vec<(.+)>$", raw)
+    if vec_match:
+        return True, _unwrap_generic(vec_match.group(1).strip())
+    # 裸类型
+    return True, _unwrap_generic(raw)
+
+
+def _unwrap_generic(type_str: str) -> str:
+    """去掉外层泛型，取核心类型名（Vec<String> -> String，HashMap<K,V> -> K）。"""
+    inner_match = re.match(r"\w+<(.+)>$", type_str)
+    if inner_match:
+        return inner_match.group(1).split(",")[0].strip()
+    return type_str
+
+
+# ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
 
