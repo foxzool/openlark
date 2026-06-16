@@ -111,15 +111,7 @@ impl BatchUpdateRecordRequest {
         // === 必填字段验证 ===
         validate_required!(self.app_token.trim(), "app_token");
         validate_required!(self.table_id.trim(), "table_id");
-        validate_required_list!(self.records, 100, "records 不能为空且不能超过 100 个");
-
-        // === 业务规则验证 ===
-        if self.records.len() > 500 {
-            return Err(openlark_core::error::validation_error(
-                "records",
-                "单次最多更新 500 条记录",
-            ));
-        }
+        validate_required_list!(self.records, 1000, "records 不能为空且单次最多 1000 条");
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint =
