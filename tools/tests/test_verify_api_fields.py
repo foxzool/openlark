@@ -211,5 +211,60 @@ class TestQuickModeReport(unittest.TestCase):
             self.assertGreaterEqual(data["apis_with_issues"], 1)
 
 
+class TestParseDocFields(unittest.TestCase):
+    def test_parse_request_body_fields(self):
+        """从文档文本提取 POST 请求体字段。"""
+        doc_text = (
+            "目录 Request Request body Request example Response\n"  # 导航（第1次）
+            "Request body\n"  # 正文标题（第2次）
+            "Parameter Type Required Description\n\n"
+            "instance_code\n\nstring\n\nYes\n\n审批实例 Code\n\n"
+            "task_id\n\nstring\n\nYes\n\n任务 ID\n\n"
+            "Request example\n"
+        )
+        fields = verify_api_fields.parse_doc_request_fields(doc_text, method="POST")
+        names = {f.name for f in fields}
+        self.assertIn("instance_code", names)
+        self.assertIn("task_id", names)
+        required_map = {f.name: f.required for f in fields}
+        self.assertTrue(required_map["instance_code"])
+
+    def test_parse_response_fields_from_example(self):
+        """从响应示例 JSON 提取响应字段名。"""
+        doc_text = (
+            'Response body example\n'
+            '{\n'
+            '    "code": 0,\n'
+            '    "data": {\n'
+            '        "definition_name": "请假",\n'
+            '        "status": "PENDING",\n'
+            '        "tasks": [{"id": "1"}]\n'
+            '    }\n'
+            '}\n'
+            'Error code\n'
+        )
+        fields = verify_api_fields.parse_doc_response_fields(doc_text)
+        self.assertIn("definition_name", fields)
+        self.assertIn("status", fields)
+        self.assertIn("tasks", fields)
+
+
+class TestCompareFields(unittest.TestCase):
+    def test_compare_finds_missing_and_extra(self):
+        """对比代码字段与文档字段，找出缺失和多余。"""
+        code_fields = [
+            verify_api_fields.FieldInfo("instance_code", "String", True),
+            verify_api_fields.FieldInfo("user_id", "String", True),  # 多余
+        ]
+        doc_fields = [
+            verify_api_fields.FieldInfo("instance_code", "String", True),
+            verify_api_fields.FieldInfo("task_id", "String", True),  # 代码缺失
+        ]
+        diff = verify_api_fields.compare_fields(code_fields, doc_fields)
+        self.assertIn("task_id", diff.missing)  # 文档有代码无
+        self.assertIn("user_id", diff.extra)  # 代码有文档无
+        self.assertIn("instance_code", diff.matched)
+
+
 if __name__ == "__main__":
     unittest.main()

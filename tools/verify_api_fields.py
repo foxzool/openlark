@@ -435,6 +435,101 @@ def _write_summary_json(reports: List[ApiFieldReport], path: Path, mode: str) ->
 
 
 # ---------------------------------------------------------------------------
+# 文档字段解析与对比（完整模式）
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FieldDiff:
+    """代码字段与文档字段的对比结果。"""
+
+    matched: List[str] = field(default_factory=list)  # 两边都有
+    missing: List[str] = field(default_factory=list)  # 文档有、代码无
+    extra: List[str] = field(default_factory=list)  # 代码有、文档无
+
+
+def parse_doc_request_fields(doc_text: str, method: str) -> List[FieldInfo]:
+    """从文档 innerText 提取请求体/查询参数字段。
+
+    POST: Request body（第2次出现）→ Request example
+    GET:  Query parameters → Request example
+    """
+    if method == "POST":
+        section = _extract_section(doc_text, "Request body", "Request example", occurrence=2)
+    else:
+        section = _extract_section(doc_text, "Query parameters", "Request example", occurrence=1)
+    if not section:
+        return []
+    return _parse_param_table(section)
+
+
+def parse_doc_response_fields(doc_text: str) -> List[str]:
+    """从响应示例 JSON 提取字段名集合。
+
+    Response body 的 data 子字段在折叠区拿不到，从示例 JSON 反推。
+    返回 data 内部的字段名列表。
+    """
+    section = _extract_section(doc_text, "Response body example", "Error code", occurrence=1)
+    if not section:
+        return []
+    # 提取所有 "field": 的字段名（排除外层 code/msg/data）
+    names = re.findall(r'"([a-z_]+)"\s*:', section)
+    return [n for n in names if n not in ("code", "msg", "data")]
+
+
+def _extract_section(text: str, start: str, end: str, occurrence: int = 1) -> str:
+    """提取 start（第 occurrence 次出现）到 end 之间的文本。"""
+    parts = text.split(start)
+    if len(parts) <= occurrence:
+        return ""
+    chunk = start.join(parts[occurrence:])
+    end_idx = chunk.find(end)
+    if end_idx < 0:
+        return chunk
+    return chunk[:end_idx]
+
+
+def _parse_param_table(section: str) -> List[FieldInfo]:
+    """解析参数表（参数名/类型/必填交错成行）。"""
+    lines = [l.strip() for l in section.split("\n")]
+    results: List[FieldInfo] = []
+    banned = {
+        "parameter", "type", "required", "description", "authorization",
+        "content", "value", "example",
+    }
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # 候选参数名：snake_case，非 banned 词
+        if re.fullmatch(r"[a-z][a-z0-9_]*", line) and line not in banned and len(line) >= 2:
+            # 往后找 Yes/No
+            for j in range(i + 1, min(i + 8, len(lines))):
+                if lines[j] in ("Yes", "No"):
+                    required = lines[j] == "Yes"
+                    results.append(FieldInfo(name=line, type_name="", required=required))
+                    i = j + 1
+                    break
+            else:
+                i += 1
+        else:
+            i += 1
+    return results
+
+
+def compare_fields(
+    code_fields: List[FieldInfo], doc_fields: List[FieldInfo]
+) -> FieldDiff:
+    """对比代码字段与文档字段。"""
+    code_names = {f.effective_name for f in code_fields}
+    doc_names = {f.effective_name for f in doc_fields}
+    return FieldDiff(
+        matched=sorted(code_names & doc_names),
+        missing=sorted(doc_names - code_names),
+        extra=sorted(code_names - doc_names),
+    )
+
+
+# ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
 
@@ -496,9 +591,94 @@ def _load_crate_tags(crate: str) -> Optional[List[str]]:
 
 
 def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
-    """完整模式占位（Task 5 实现）。"""
-    print("⚠️ 完整模式尚未实现，见 Task 5")
-    return 1
+    """完整模式：抓飞书文档对比字段（慢）。"""
+    import json
+    import subprocess
+
+    apis = load_apis_from_csv(csv_path, filter_tags)
+    fetch_script = (
+        REPO_ROOT / ".agents" / "skills" / "openlark-api-field-verify" / "scripts" / "fetch_doc.js"
+    )
+    if not fetch_script.exists():
+        print(f"❌ 找不到抓取脚本: {fetch_script}")
+        return 1
+
+    reports: List[ApiFieldReport] = []
+    doc_cache = out_dir / "doc_cache"
+    doc_cache.mkdir(parents=True, exist_ok=True)
+    failed: List[Tuple[str, str]] = []
+
+    for idx, api in enumerate(apis, 1):
+        rel_path = generate_expected_file_path(api)
+        full_path = src_root / rel_path
+        if not full_path.exists():
+            continue
+
+        source = full_path.read_text(encoding="utf-8")
+        structs = extract_structs(source)
+        issues = detect_suspicious_patterns(api, structs, source)
+
+        # 抓文档
+        doc_text = ""
+        if api.full_path:
+            url = "https://open.feishu.cn" + api.full_path
+            doc_file = doc_cache / f"{api.api_id}.txt"
+            if not doc_file.exists():  # 简单 resume：文件存在则跳过
+                try:
+                    subprocess.run(
+                        ["node", str(fetch_script), url, str(doc_file)],
+                        check=True, capture_output=True, timeout=90,
+                    )
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                    failed.append((api.api_id, str(e)[:80]))
+                else:
+                    doc_text = (
+                        doc_file.read_text(encoding="utf-8") if doc_file.exists() else ""
+                    )
+            else:
+                doc_text = doc_file.read_text(encoding="utf-8")
+
+            # 对比请求体字段
+            if doc_text:
+                doc_req = parse_doc_request_fields(doc_text, api.http_method)
+                code_body = next((s.fields for s in structs if "Body" in s.name), [])
+                if doc_req and code_body:
+                    diff = compare_fields(code_body, doc_req)
+                    if diff.missing:
+                        issues.append(
+                            FieldIssue(
+                                "error", "missing_field",
+                                f"请求体缺字段: {', '.join(diff.missing)}",
+                            )
+                        )
+                    if diff.extra:
+                        issues.append(
+                            FieldIssue(
+                                "warning", "extra_field",
+                                f"请求体多余字段: {', '.join(diff.extra)}",
+                            )
+                        )
+
+        reports.append(
+            ApiFieldReport(
+                api=api, file_path=rel_path, file_exists=True,
+                structs=structs, issues=issues,
+            )
+        )
+        print(f"⏳ [{idx}/{len(apis)}] {api.name} ({len(issues)} 问题)")
+
+    md = _render_report(reports, mode="full")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{crate_label}.md").write_text(md, encoding="utf-8")
+    _write_summary_json(reports, out_dir / "summary.json", mode="full")
+
+    if failed:
+        print(f"⚠️ {len(failed)} 个文档抓取失败，详见 failed.json")
+        (out_dir / "failed.json").write_text(
+            json.dumps(failed, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
+    return 0
 
 
 if __name__ == "__main__":
