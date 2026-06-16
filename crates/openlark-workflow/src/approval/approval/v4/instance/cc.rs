@@ -5,7 +5,7 @@
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required, validate_required_list, SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -65,6 +65,11 @@ impl CcInstanceRequestV4 {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CcInstanceResponseV4> {
         validate_required!(self.body.instance_code.trim(), "审批实例 Code 不能为空");
+        validate_required_list!(
+            self.body.cc_user_ids,
+            1000,
+            "被抄送人用户 ID 列表不能为空且不能超过 1000 个"
+        );
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceCc;
         let mut request = ApiRequest::<CcInstanceResponseV4>::post(api_endpoint.to_url());

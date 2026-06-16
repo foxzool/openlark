@@ -106,7 +106,7 @@ pub struct PassTaskResponseV4 {
 
 class TestDetectSuspiciousPatterns(unittest.TestCase):
     def test_user_level_with_user_id_field(self):
-        """用户级接口的 Body 含 user_id -> 警告。"""
+        """用户级接口的 Body 含 user_id -> info 提示（弱启发式）。"""
         api = verify_api_fields.ApiRecord(
             api_id="1", name="同意", biz_tag="approval", meta_project="approval",
             meta_version="v4", meta_resource="task", meta_name="pass",
@@ -122,15 +122,14 @@ class TestDetectSuspiciousPatterns(unittest.TestCase):
                 ],
             )
         ]
-        source = "pub fn execute() {}"  # 无 validate_required_list
+        source = "pub fn execute() {}"
         issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
-        # 应检测到 user_id 警告
         user_id_issues = [i for i in issues if "user_id" in i.detail]
         self.assertEqual(len(user_id_issues), 1)
-        self.assertEqual(user_id_issues[0].severity, "warning")
+        self.assertEqual(user_id_issues[0].severity, "info")
 
-    def test_vec_field_without_validate_required_list(self):
-        """Body 有 Vec 字段但源码无 validate_required_list -> 警告。"""
+    def test_vec_field_without_any_validation(self):
+        """必填 Vec 字段无任何非空校验 -> 警告。"""
         api = verify_api_fields.ApiRecord(
             api_id="2", name="抄送", biz_tag="approval", meta_project="approval",
             meta_version="v4", meta_resource="instance", meta_name="add_cc",
@@ -142,10 +141,50 @@ class TestDetectSuspiciousPatterns(unittest.TestCase):
                 fields=[verify_api_fields.FieldInfo("cc_user_ids", "String", True)],
             )
         ]
-        source = "validate_required!(self.body.instance_code)"  # 无 _list
+        source = "validate_required!(self.body.instance_code)"  # 无 _list 也无 is_empty
         issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
-        vec_issues = [i for i in issues if "validate_required_list" in i.detail]
+        vec_issues = [i for i in issues if "cc_user_ids" in i.detail and "校验" in i.detail]
         self.assertTrue(len(vec_issues) >= 1)
+        self.assertEqual(vec_issues[0].severity, "warning")
+
+    def test_vec_field_with_manual_is_empty_check_not_flagged(self):
+        """必填 Vec 字段用手写 is_empty() 校验 -> 不报。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="4", name="创建用户", biz_tag="contact", meta_project="contact",
+            meta_version="v3", meta_resource="user", meta_name="create",
+            url="POST:/open-apis/contact/v3/users", doc_path="", full_path="",
+        )
+        structs = [
+            verify_api_fields.StructFields(
+                name="CreateUserBody",
+                fields=[verify_api_fields.FieldInfo("department_ids", "String", True)],
+            )
+        ]
+        # 手写校验
+        source = "if body.department_ids.is_empty() { return Err(...); }"
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
+        vec_issues = [i for i in issues if "department_ids" in i.detail and "校验" in i.detail]
+        self.assertEqual(len(vec_issues), 0)  # 手写校验不应报
+
+    def test_optional_vec_field_not_flagged(self):
+        """Option<Vec> 选填字段 -> 不报（选填本不该校验非空）。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="5", name="恢复用户", biz_tag="contact", meta_project="contact",
+            meta_version="v3", meta_resource="user", meta_name="resurrect",
+            url="POST:/open-apis/contact/v3/users/x/resurrect", doc_path="", full_path="",
+        )
+        structs = [
+            verify_api_fields.StructFields(
+                name="ResurrectBody",
+                fields=[
+                    verify_api_fields.FieldInfo("subscription_ids", "String", required=False),
+                ],
+            )
+        ]
+        source = "validate_required!(body.user_id)"  # 无 subscription 校验
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
+        vec_issues = [i for i in issues if "subscription_ids" in i.detail]
+        self.assertEqual(len(vec_issues), 0)  # Option 字段不应报
 
     def test_get_with_empty_response(self):
         """GET 查询接口 Response 无字段 -> 提示。"""

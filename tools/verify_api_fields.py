@@ -233,8 +233,9 @@ def detect_suspicious_patterns(
     """检测不抓文档就能发现的字段问题（三类红旗）。
 
     红旗依据：
-      1. 用户级接口 Body 含 user_id/approval_code（用户级从 token 推断，不应有）
-      2. Vec 字段缺 validate_required_list! 校验
+      1. 用户级接口 Body 含 user_id/approval_code（弱启发式，info 级——
+         /reference/ 路径也含管理员级接口，需人工判断）
+      2. 必填 Vec 字段缺非空校验（认 validate_required_list! 或 is_empty()）
       3. GET 查询接口 Response 为空（可能漏建响应字段）
     """
     issues: List[FieldIssue] = []
@@ -243,36 +244,49 @@ def detect_suspicious_patterns(
     body_structs = [s for s in structs if "Body" in s.name]
 
     # 红旗 1：用户级接口含 user_id / approval_code
+    # 注意：is_user_level 基于 /reference/ 路径，但 reference 也含管理员级接口，
+    # 故降为 info 级提示，detail 说明"若用 tenant_token 则可忽略"。
     if api.is_user_level:
         for s in body_structs:
             for f in s.fields:
                 if f.name in ("user_id", "approval_code"):
                     issues.append(
                         FieldIssue(
-                            severity="warning",
+                            severity="info",
                             category="user_level_extra_field",
                             detail=(
-                                f"用户级接口 {s.name} 含 {f.name} 字段——"
-                                "用户级接口的操作者身份从 user_access_token 推断，"
-                                "请求体通常不应含此字段"
+                                f"{s.name} 含 {f.name} 字段，且文档在 /reference/ 路径下——"
+                                "若为用户级接口（user_access_token）此字段多余；"
+                                "若为管理员级接口（tenant_access_token）则正常，可忽略"
                             ),
                         )
                     )
 
-    # 红旗 2：Vec 字段缺 validate_required_list!
-    has_validate_list = "validate_required_list!" in source
+    # 红旗 2：必填 Vec 字段缺非空校验
+    # 认两种校验写法：validate_required_list! 宏 或 if xxx.is_empty() 手写
+    has_list_macro = "validate_required_list!" in source
     for s in body_structs:
-        vec_fields = [f for f in s.fields if f.name.endswith("_ids") or f.name.endswith("_user_ids")]
-        # 启发式：字段名暗示数组（_ids）但源码没用 list 校验
-        if vec_fields and not has_validate_list:
-            for f in vec_fields:
+        # 只检查必填的数组字段（Option<Vec> 是选填，不报）
+        vec_fields = [
+            f
+            for f in s.fields
+            if f.required  # 跳过 Option 字段
+            and (
+                f.name.endswith(("_ids", "_list", "_tokens", "_keys"))
+                or f.name.endswith("_user_ids")
+            )
+        ]
+        for f in vec_fields:
+            # 检查字段名是否在 is_empty() 校验里出现
+            has_manual_check = f"{f.name}.is_empty()" in source
+            if not has_list_macro and not has_manual_check:
                 issues.append(
                     FieldIssue(
                         severity="warning",
-                        category="missing_validate_required_list",
+                        category="missing_list_validation",
                         detail=(
-                            f"Body {s.name} 的 {f.name} 疑似数组字段，"
-                            "但 execute_with_options 未使用 validate_required_list! 校验"
+                            f"Body {s.name} 的必填数组字段 {f.name} "
+                            "缺少非空校验（validate_required_list! 或 is_empty()）"
                         ),
                     )
                 )
