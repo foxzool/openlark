@@ -120,6 +120,9 @@ impl CreateRuleBuilder {
             extension: None,
         };
 
+        // 文档请求体需要 rule 外层包裹：{"rule": {...}}
+        let wrapped_body = serde_json::json!({ "rule": &request_body });
+
         let response = reqwest::Client::new()
             .post(&url)
             .header(
@@ -127,7 +130,7 @@ impl CreateRuleBuilder {
                 format!("Bearer {}", get_app_token(&self.config).await?),
             )
             .header("Content-Type", "application/json")
-            .json(&request_body)
+            .json(&wrapped_body)
             .send()
             .await?;
 
