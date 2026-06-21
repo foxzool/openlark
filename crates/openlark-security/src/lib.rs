@@ -121,15 +121,13 @@ impl SecurityServices {
     pub fn new(config: crate::models::SecurityConfig) -> Self {
         let config = std::sync::Arc::new(config);
 
-        // Approach A 边界转换：SecurityConfig → openlark_core::Config
+        // Approach A 边界转换：SecurityConfig → openlark_core::Config（owned）
         // （一次性 shim，待 security_and_compliance 也迁移到 Transport 后整体删除）
-        let acs_core_config = std::sync::Arc::new(
-            openlark_core::config::Config::builder()
-                .app_id(&config.app_id)
-                .app_secret(&config.app_secret)
-                .base_url(&config.base_url)
-                .build(),
-        );
+        let acs_core_config = openlark_core::config::Config::builder()
+            .app_id(&config.app_id)
+            .app_secret(&config.app_secret)
+            .base_url(&config.base_url)
+            .build();
 
         Self {
             acs: AcsProject::new(acs_core_config),
