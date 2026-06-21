@@ -1,75 +1,62 @@
 //! 获取门禁记录列表
+//!
 //! docPath: https://open.feishu.cn/document/server-docs/acs-v1/access_record/list
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
+    error::validation_error, http::Transport, req_option::RequestOption,
 };
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+/// 获取门禁记录列表请求
+///
+/// 支持分页。
+#[derive(Debug)]
 pub struct ListAccessRecordsRequest {
-    config: Arc<Config>,
-    
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ListAccessRecordsResponse {
-    pub data: Option<serde_json::Value>,
-}
-
-impl ApiResponseTrait for ListAccessRecordsResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
-    }
+    /// 配置信息。
+    config: Config,
+    /// 页面大小（可选）。
+    page_size: Option<i32>,
+    /// 分页标记（可选）。
+    page_token: Option<String>,
 }
 
 impl ListAccessRecordsRequest {
-    pub fn new(config: Arc<Config>) -> Self {
+    /// 创建新的请求构建器。
+    pub fn new(config: Config) -> Self {
         Self {
             config,
-            
+            page_size: None,
+            page_token: None,
         }
     }
 
-    pub async fn execute(self) -> SDKResult<ListAccessRecordsResponse> {
+    /// 设置页面大小。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 执行请求，返回响应 `data` 字段内容。
+    pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(
-        self,
-        option: RequestOption,
-    ) -> SDKResult<ListAccessRecordsResponse> {
-        let path = format!("/open-apis/acs/v1/access_records");
-        let req: ApiRequest<ListAccessRecordsResponse> = ApiRequest::get(&path);
+    /// 使用指定请求选项执行请求。
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+        let req: ApiRequest<serde_json::Value> =
+            ApiRequest::get("/open-apis/acs/v1/access_records")
+                .query_opt("page_size", self.page_size.map(|v| v.to_string()))
+                .query_opt("page_token", self.page_token.as_ref())
+                .with_supported_access_token_types(vec![AccessTokenType::App]);
 
-        let _resp: openlark_core::api::Response<ListAccessRecordsResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(ListAccessRecordsResponse { data: None })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        resp.data
+            .ok_or_else(|| validation_error("获取门禁记录列表", "响应数据为空"))
     }
 }

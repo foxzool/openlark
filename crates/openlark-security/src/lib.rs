@@ -26,13 +26,13 @@
 //!     let config = SecurityConfig::new("app_id", "app_secret");
 //!     let security = SecurityServices::new(config);
 //!
-//!     // 获取门禁用户列表
+//!     // 获取门禁用户列表（响应 data 透传为 ListUsersResponse）
 //!     let users = security.acs.v1().users().list()
 //!         .page_size(20)
-//!         .send()
+//!         .execute()
 //!         .await?;
 //!
-//!     println!("用户数量: {}", users.users.len());
+//!     println!("是否有更多: {}", users.has_more);
 //!     Ok(())
 //! }
 //! ```
@@ -40,27 +40,35 @@
 //! ## API覆盖
 //!
 //! ### acs (v1) - 访问控制系统
-//! #### 用户管理 (user)
-//! - `users.get()` - 获取单个用户信息
-//! - `users.list()` - 获取用户列表
-//! - `users.patch()` - 修改用户部分信息
 //!
-//! #### 人脸识别 (user.face)
-//! - `user_faces.get()` - 下载人脸图片
-//! - `user_faces.update()` - 上传人脸图片
+//! 所有端点走 `openlark_core::Transport` + App access token，返回响应 `data` 字段内容。
+//! 各 Service 是门面，方法返回 `*Request` 构建器（`.execute()` 发请求）。
+//!
+//! #### 用户管理 (users)
+//! - `users.get(user_id)` / `users.list()` / `users.create()` / `users.patch(user_id)` / `users.delete(user_id)`
+//!
+//! #### 用户人脸 (user_faces，`/users/{user_id}/face`)
+//! - `user_faces.get(user_id)` - 下载用户人脸
+//! - `user_faces.update(user_id)` - 上传用户人脸
+//!
+//! #### 人脸资源 (face，独立资源 `/faces`)
+//! - `face().get(face_id)` / `face().create()` / `face().delete(face_id)`
+//!
+//! #### 设备管理 (devices)
+//! - `devices.get/list/create/update/delete/approve/query`
+//! - `client_device(device_id)` - 客户端设备认证（便捷方法）
 //!
 //! #### 权限规则 (rule_external)
-//! - `rule_external.create()` - 创建或更新权限组
-//! - `rule_external.get()` - 获取权限组信息
-//! - `rule_external.delete()` - 删除权限组
-//! - `rule_external.device_bind()` - 设备绑定权限组
+//! - `rule_external.create(rule_id)` - 创建或更新权限组（body `{"rule":...}`）
+//! - `rule_external.get(device_id)` - 获取权限组
+//! - `rule_external.delete(rule_id)` - 删除权限组（无 body）
+//! - `rule_external.device_bind()` - 设备绑定（`{device_id, rule_ids[]}`）
 //!
-//! #### 访客管理 (visitor)
-//! - `visitors.create()` - 添加访客
-//! - `visitors.delete()` - 删除访客
+//! #### 访客管理 (visitors)
+//! - `visitors.create()` / `visitors.delete(visitor_id)`
 //!
-//! #### 设备管理 (device)
-//! - `devices.list()` - 获取门禁设备列表
+//! #### 访问记录 (access_records)
+//! - `access_records.list()` / `access_records.get_access_photo(access_record_id)`
 //!
 //! ### security_and_compliance (v2/v1) - 安全合规管理
 //! #### 设备记录管理 (device_record - v2)
@@ -114,11 +122,22 @@ pub struct SecurityServices {
 
 impl SecurityServices {
     /// 创建新的安全服务实例
+    ///
+    /// 内部为 acs 构造一份 `openlark_core::Config`（由 SecurityConfig 字段转换而来），
+    /// 供 acs 走 SDK 标准的 Transport 路径；security_and_compliance 仍直接吃 SecurityConfig。
     pub fn new(config: crate::models::SecurityConfig) -> Self {
         let config = std::sync::Arc::new(config);
 
+        // Approach A 边界转换：SecurityConfig → openlark_core::Config（owned）
+        // （一次性 shim，待 security_and_compliance 也迁移到 Transport 后整体删除）
+        let acs_core_config = openlark_core::config::Config::builder()
+            .app_id(&config.app_id)
+            .app_secret(&config.app_secret)
+            .base_url(&config.base_url)
+            .build();
+
         Self {
-            acs: AcsProject::new(config.clone()),
+            acs: AcsProject::new(acs_core_config),
             security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
             config,
         }
