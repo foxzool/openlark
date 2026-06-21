@@ -1,74 +1,65 @@
-//! 查询设备信息
+//! 获取单个设备信息
+//!
+//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/get
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
+    error::validation_error, http::Transport, req_option::RequestOption, validate_required,
 };
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+/// 获取单个设备信息请求
+#[derive(Debug)]
 pub struct GetDeviceRequest {
-    config: Arc<Config>,
+    /// 配置信息。
+    config: Config,
+    /// 设备 ID（路径参数，必填）。
     device_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetDeviceResponse {
-    pub data: Option<serde_json::Value>,
-}
-
-impl ApiResponseTrait for GetDeviceResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
-    }
-}
-
 impl GetDeviceRequest {
-    pub fn new(config: Arc<Config>, device_id: impl Into<String>) -> Self {
+    /// 创建新的请求构建器。
+    pub fn new(config: Config, device_id: impl Into<String>) -> Self {
         Self {
             config,
             device_id: device_id.into(),
         }
     }
 
-    pub async fn execute(self) -> SDKResult<GetDeviceResponse> {
+    /// 执行请求，返回响应 `data` 字段内容。
+    pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(
-        self,
-        option: RequestOption,
-    ) -> SDKResult<GetDeviceResponse> {
-        let path = format!("/open-apis/acs/v1/devices/{}", self.device_id);
-        let req: ApiRequest<GetDeviceResponse> = ApiRequest::get(&path);
+    /// 使用指定请求选项执行请求。
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+        validate_required!(self.device_id, "device_id 不能为空");
 
-        let _resp: openlark_core::api::Response<GetDeviceResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(GetDeviceResponse { data: None })
+        let path = format!("/open-apis/acs/v1/devices/{}", self.device_id);
+        let req: ApiRequest<serde_json::Value> =
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        resp.data
+            .ok_or_else(|| validation_error("获取设备信息", "响应数据为空"))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    fn test_config() -> Config {
+        Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build()
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    #[tokio::test]
+    async fn test_get_device_rejects_empty_id() {
+        let req = GetDeviceRequest::new(test_config(), "  ");
+        let result = req.execute_with_options(RequestOption::default()).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("device_id"));
     }
 }

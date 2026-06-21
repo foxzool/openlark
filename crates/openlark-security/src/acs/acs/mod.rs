@@ -40,11 +40,14 @@ impl AcsProject {
 /// ACS v1 版本服务
 ///
 /// **迁移进行中**：6 个资源 Service 在 Task 2-5 中逐个恢复。当前已恢复：`users`、
-/// `user_faces`。待恢复：rule_external / visitors / devices / access_records。
+/// `user_faces`、`devices`（+ `client_device` 便捷方法）。待恢复：rule_external /
+/// visitors / access_records。
 #[derive(Debug)]
 pub struct AcsV1Service {
     users: crate::acs::acs::v1::users::UsersService,
     user_faces: crate::acs::acs::v1::user_faces::UserFacesService,
+    devices: crate::acs::acs::v1::devices::DevicesService,
+    config: Config,
 }
 
 impl AcsV1Service {
@@ -52,7 +55,9 @@ impl AcsV1Service {
     pub fn new(config: Config) -> Self {
         Self {
             users: crate::acs::acs::v1::users::UsersService::new(config.clone()),
-            user_faces: crate::acs::acs::v1::user_faces::UserFacesService::new(config),
+            user_faces: crate::acs::acs::v1::user_faces::UserFacesService::new(config.clone()),
+            devices: crate::acs::acs::v1::devices::DevicesService::new(config.clone()),
+            config,
         }
     }
 
@@ -64,6 +69,22 @@ impl AcsV1Service {
     /// 获取人脸管理服务
     pub fn user_faces(&self) -> &crate::acs::acs::v1::user_faces::UserFacesService {
         &self.user_faces
+    }
+
+    /// 获取设备管理服务
+    pub fn devices(&self) -> &crate::acs::acs::v1::devices::DevicesService {
+        &self.devices
+    }
+
+    /// 获取客户端设备认证信息（便捷方法，直接返回请求构建器）。
+    pub fn client_device(
+        &self,
+        device_id: impl Into<String>,
+    ) -> crate::acs::acs::v1::client_device::get::GetClientDeviceRequest {
+        crate::acs::acs::v1::client_device::get::GetClientDeviceRequest::new(
+            self.config.clone(),
+            device_id,
+        )
     }
 }
 
