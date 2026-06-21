@@ -1,8 +1,8 @@
 //! 设备管理 API（门面）
 //!
 //! [`DevicesService`] 是轻量门面，返回 `super::device::*` 下的端点构建器。
-//! 客户端设备认证（`client_device`）是独立端点，由 [`AcsV1Service::client_device`]
-//! 直接暴露。
+//! 客户端设备认证（`client_device`）是独立端点，由
+//! [`AcsV1Service`](crate::acs::acs::AcsV1Service) 的 `client_device` 方法直接暴露。
 
 use openlark_core::config::Config;
 

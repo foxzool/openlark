@@ -126,7 +126,7 @@ pub mod v1;
 
 /// 人脸资源访问器（独立的人脸资源，`/acs/v1/faces`）。
 ///
-/// 由 [`AcsV1Service::face`] 返回，提供 `get`/`create`/`delete` 端点构建器。
+/// 由 [`AcsV1Service::face()`] 返回，提供 `get`/`create`/`delete` 端点构建器。
 #[derive(Debug, Clone)]
 pub struct FaceAccessors {
     config: Config,
