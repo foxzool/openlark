@@ -40,13 +40,14 @@ impl AcsProject {
 /// ACS v1 版本服务
 ///
 /// **迁移进行中**：6 个资源 Service 在 Task 2-5 中逐个恢复。当前已恢复：`users`、
-/// `user_faces`、`devices`（+ `client_device` 便捷方法）。待恢复：rule_external /
-/// visitors / access_records。
+/// `user_faces`、`devices`（+ `client_device` 便捷方法）、`rule_external`。
+/// 待恢复：visitors / access_records。
 #[derive(Debug)]
 pub struct AcsV1Service {
     users: crate::acs::acs::v1::users::UsersService,
     user_faces: crate::acs::acs::v1::user_faces::UserFacesService,
     devices: crate::acs::acs::v1::devices::DevicesService,
+    rule_external: crate::acs::acs::v1::rule_external::RuleExternalService,
     config: Config,
 }
 
@@ -57,6 +58,9 @@ impl AcsV1Service {
             users: crate::acs::acs::v1::users::UsersService::new(config.clone()),
             user_faces: crate::acs::acs::v1::user_faces::UserFacesService::new(config.clone()),
             devices: crate::acs::acs::v1::devices::DevicesService::new(config.clone()),
+            rule_external: crate::acs::acs::v1::rule_external::RuleExternalService::new(
+                config.clone(),
+            ),
             config,
         }
     }
@@ -74,6 +78,11 @@ impl AcsV1Service {
     /// 获取设备管理服务
     pub fn devices(&self) -> &crate::acs::acs::v1::devices::DevicesService {
         &self.devices
+    }
+
+    /// 获取权限规则管理服务
+    pub fn rule_external(&self) -> &crate::acs::acs::v1::rule_external::RuleExternalService {
+        &self.rule_external
     }
 
     /// 获取客户端设备认证信息（便捷方法，直接返回请求构建器）。
