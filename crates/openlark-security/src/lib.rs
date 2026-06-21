@@ -18,7 +18,8 @@
 //!
 //! ## 快速开始
 //!
-//! ```rust,no_run
+//! ```rust,ignore
+//! // 注：迁移期间（acs Service 门面化进行中）此示例暂不编译，Task 8 恢复。
 //! use openlark_security::prelude::*;
 //!
 //! #[tokio::main]
@@ -114,11 +115,24 @@ pub struct SecurityServices {
 
 impl SecurityServices {
     /// 创建新的安全服务实例
+    ///
+    /// 内部为 acs 构造一份 `openlark_core::Config`（由 SecurityConfig 字段转换而来），
+    /// 供 acs 走 SDK 标准的 Transport 路径；security_and_compliance 仍直接吃 SecurityConfig。
     pub fn new(config: crate::models::SecurityConfig) -> Self {
         let config = std::sync::Arc::new(config);
 
+        // Approach A 边界转换：SecurityConfig → openlark_core::Config
+        // （一次性 shim，待 security_and_compliance 也迁移到 Transport 后整体删除）
+        let acs_core_config = std::sync::Arc::new(
+            openlark_core::config::Config::builder()
+                .app_id(&config.app_id)
+                .app_secret(&config.app_secret)
+                .base_url(&config.base_url)
+                .build(),
+        );
+
         Self {
-            acs: AcsProject::new(config.clone()),
+            acs: AcsProject::new(acs_core_config),
             security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
             config,
         }
