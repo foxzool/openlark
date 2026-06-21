@@ -9,8 +9,6 @@ pub mod access_record;
 pub mod client_device;
 pub mod device;
 pub mod face;
-pub mod openapi_audit;
-pub mod rule;
 pub mod rule_external;
 pub mod user;
 pub mod visitor;
