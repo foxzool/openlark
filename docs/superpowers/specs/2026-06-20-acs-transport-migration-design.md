@@ -4,6 +4,16 @@
 - **状态**: 待批准
 - **触发**: main 分支代码评审发现 `886ab6bb4`（"acs 子模块消除死代码，真实实现移到覆盖率路径"）与 issue `fc2a1d22b`（14 个接口为空壳）的描述相反，且整个 `openlark-security` crate 存在 crate 级架构债务（23 处原始 `reqwest::Client::new()`）。
 
+> ## ⚠️ 实现期修正（2026-06-21，优先级高于本文下方代码示例）
+>
+> 样板实现（Task 2，分支 `refactor/acs-transport-migration` commit `ec48d07ac`）验证后发现下方 §3/§4 的代码示例有 3 处偏差，**以本节为准**：
+>
+> 1. **`Config` 是 owned，非 `Arc<Config>`**。`openlark_core::Config` 内部已 `Arc<ConfigInner>`，clone 廉价；communication/auth crate 惯例都是 owned `Config`。`AcsProject::new(Config)`、Service/Request 持 `config: Config`。
+> 2. **`R`（`ApiRequest<R>` 泛型）是响应 `data` 字段的内容类型，不是包装层**。core 把 JSON 解析为 `Response<R> = {code,msg,data: R}`，`resp.data: Option<R>`。所以响应 struct **不要**写成 `XxxResponse { data: Option<...> }`（会双重嵌套）。正确：`R` 直接是数据内容——无 schema 用 `serde_json::Value`，execute 返回解包后的值；有 schema（如 face）用 typed struct 并 `impl ApiResponseTrait { data_format() = Data }`。
+> 3. **31 个端点文件此前从未编译**（单数目录 `user/`/`device/`… 没被任何 `mod.rs` 声明），是纯覆盖率填充。实现时需新建 `<singular>/mod.rs` 声明子模块，并在 `v1/mod.rs` 加 `pub mod <singular>;`。
+>
+> **可信模板：commit `ec48d07ac` 的 `user/get.rs`、`user/face/get.rs`、`users/mod.rs`、`v1/mod.rs`。**
+
 ## 1. 背景与问题
 
 ### 1.1 评审发现
