@@ -7,6 +7,9 @@ use serde_json::json;
 use crate::common::signature;
 
 /// Webhook 客户端。
+///
+/// 内部复用进程级共享的 `reqwest::Client`（连接池），不走 `openlark_core::Transport`
+/// ——webhook 是出站自定义机器人 URL，非飞书开放平台 API（见 `send` 模块说明 + issue #214）。
 #[derive(Debug, Clone)]
 pub struct WebhookClient {
     client: reqwest::Client,
@@ -15,10 +18,10 @@ pub struct WebhookClient {
 }
 
 impl WebhookClient {
-    /// 创建新的 Webhook 客户端
+    /// 创建新的 Webhook 客户端（复用进程级共享 HTTP 连接池）
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: super::send::shared_client().clone(),
             #[cfg(feature = "signature")]
             secret: None,
         }
