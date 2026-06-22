@@ -2,12 +2,28 @@ use crate::common::error::{Result, WebhookError};
 use crate::common::validation;
 use crate::models::{FileContent, ImageContent, PostContent, TextContent};
 use serde_json::json;
+use std::sync::OnceLock;
 
 #[cfg(feature = "signature")]
 use crate::common::signature;
 
 #[cfg(feature = "card")]
 use crate::models::InteractiveContent;
+
+/// 进程级共享的 `reqwest::Client`（连接池复用）。
+///
+/// # 为什么不走 `openlark_core::Transport`？
+///
+/// Webhook 自定义机器人**不是飞书开放平台 API**：目标 URL 是用户配置的绝对地址，
+/// 鉴权用 URL 里携带的签名密钥（非 Bearer token），响应体是 `{code,msg}` 等非标准
+/// 包装（非 `{code,msg,data}`）。`Transport` 固定 `/open-apis/` 基址、强制 token 注入、
+/// 且把响应解析为 `ApiResponse<R>`，三者都不适用。因此 webhook **有意保留独立的
+/// reqwest 路径**（见 GitHub issue #214 的调研结论），但通过共享单个 `reqwest::Client`
+/// 避免每个请求 `reqwest::Client::new()` 新建连接池的开销。
+pub(super) fn shared_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(reqwest::Client::new)
+}
 
 /// 发送 Webhook 消息请求构建器。
 #[derive(Debug, Clone)]
@@ -92,9 +108,7 @@ impl SendWebhookMessageRequest {
 
         #[cfg(feature = "signature")]
         let request_builder = {
-            let mut rb = reqwest::Client::new()
-                .post(&self.webhook_url)
-                .json(&payload);
+            let mut rb = shared_client().post(&self.webhook_url).json(&payload);
             if let Some(secret) = &self.secret {
                 let timestamp = signature::current_timestamp();
                 let sign = signature::sign(timestamp, secret);
@@ -106,9 +120,7 @@ impl SendWebhookMessageRequest {
         };
 
         #[cfg(not(feature = "signature"))]
-        let request_builder = reqwest::Client::new()
-            .post(&self.webhook_url)
-            .json(&payload);
+        let request_builder = shared_client().post(&self.webhook_url).json(&payload);
 
         let response = request_builder
             .send()
