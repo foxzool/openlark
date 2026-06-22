@@ -42,6 +42,19 @@ allowed-tools: Read, Grep, Glob, Bash
 - 是否提供 `execute()` 与 `execute_with_options(RequestOption)`
 - 是否通过 `Transport::request(...)` 发送请求
 
+**🔴 硬规则（grep 命中即 P0 违规）：**
+- 业务 crate（除 `openlark-core`）**不得出现 `reqwest::Client::new()`**——一旦命中，说明有端点绕过了 `Transport`，必为不一致源头。检查命令：
+  ```bash
+  rg "reqwest::Client::new" crates/ --type rust -g '!openlark-core/**'
+  ```
+- **不得手工 `Authorization` 头 / `get_app_token`**（token 由 `Transport` 自动注入）
+- **`Service`/`Request` 不得持有 HTTP client 字段**（只持 `Config`）
+
+**🟡 R 语义检查（防止双重嵌套陷阱）：**
+- `ApiRequest<R>` 的 `R` 应是响应 `data` 字段的**内容类型**，不是外层包装。
+- 可疑信号：某个 `XxxResponse` struct 带 `data: Option<...>` 字段、同时又作为 `ApiRequest<XxxResponse>` 的泛型——大概率双重嵌套（core 已把 `R` 当作 data 内容解析）。
+- 详细契约见 `Skill(openlark-api)` 的"🔒 核心契约"。
+
 ### 2) 端点定义规范
 
 - 是否使用 `ApiEndpoint` 枚举/端点常量
@@ -53,6 +66,10 @@ allowed-tools: Read, Grep, Glob, Bash
 - 必填校验是否统一用 `openlark_core::validate_required!`
 - 字符串是否优先 `trim()` 后再校验
 - 列表字段是否校验非空与长度上限（如 `validate_required_list!`）
+
+**🟡 Token 类型与 Config 形态：**
+- 应用级接口（文档要求 `tenant_access_token`/`app_access_token`）是否显式 `.with_supported_access_token_types(vec![AccessTokenType::App])`——`ApiRequest` 默认 `[User, Tenant]`，漏设会导致飞书拒绝。
+- `Request`/`Service` 是否用 owned `Config`（非 `Arc<Config>`）——新代码与重构以 owned 为准（`openlark-docs` 历史用 `Arc` 属例外）。
 
 ### 4) 命名与公开 API 表达
 
