@@ -38,6 +38,23 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 
 本文件只保留"可执行的最小流程"，标准示例与 docPath 抓取能力见 `references/` 与 `scripts/`。
 
+## 🔒 核心契约（所有 crate 必须遵守，不可违反）
+
+> 这些是仓库**唯一规范**，违反任何一条都会导致接口不统一/调用失败。完整正确模板见 `references/standard-example.md`。
+
+1. **`Config` 用 owned，不用 `Arc<Config>`**。`openlark_core::Config` 内部已 `Arc<ConfigInner>`，clone 廉价。`Request`/`Service` 字段一律 `config: Config`，构造用 `Config::build()`（直接返回 `Config`，**不要** `.unwrap()`）。真实 crate（communication/auth/docs）全是 owned；§2.1 的 `Arc<Config>` 示例仅作 docs crate 的旧参考，**以本条为准**。
+
+2. **`R`（`ApiRequest<R>` 泛型）是响应 `data` 字段的内容类型，不是包装层**。`Transport::request` 返回 `ApiResponse<R> = {code,msg,data: R,...}`，`resp.data: Option<R>`。
+   - 无 schema/透传：`R = serde_json::Value`，`execute` 返回 `SDKResult<serde_json::Value>`。
+   - 有 schema：`R` 就是 data 内容的 typed struct，并 `impl ApiResponseTrait { fn data_format() -> ResponseFormat::Data }`。
+   - **❌ 禁止**写成 `XxxResponse { data: Option<T> }` 外面再包一层——core 已自动把 `R` 当作 data 内容解析，再包会**双重嵌套**（运行时才暴露，极难发现）。
+
+3. **禁止绕过 `Transport`**：业务 crate（除 `openlark-core`）**不得** `reqwest::Client::new()` 或自建 HTTP client、不得手工塞 `Authorization` 头、不得手工取 token。全部走 `openlark_core::http::Transport::request`。`Service`/`Request` 只持 `Config`，不持任何 HTTP client 字段。
+
+4. **Token 类型必须显式声明**（应用级接口尤其重要）：`ApiRequest` 默认 `supported_access_token_types = [User, Tenant]`。应用级接口（如 acs）**必须** `.with_supported_access_token_types(vec![AccessTokenType::App])`，否则 Transport 解析到 Tenant/User token 被飞书拒绝。判断方法：接口文档要求 `tenant_access_token` 的 → App token。
+
+5. **端点路径用常量/enum**（禁止手写 `"/open-apis/..."` 字符串字面量散落），**必填校验统一用 `validate_required!`/`validate_required_list!`**，**每个 Request 必须提供 `execute_with_options(..., RequestOption)` 并把 option 透传到 `Transport::request(..., Some(option))`**。
+
 ## 0. 快速工作流（新增一个 API）
 
 1) **定位 API**：在 `./api_list_export.csv` 拿到 `bizTag`、`meta.Project`、`meta.Version`、`meta.Resource`、`meta.Name`
@@ -77,6 +94,11 @@ python3 tools/validate_apis.py --crate openlark-docs
 - `openlark-docs` 特例：为避免 strict API 校验脚本把"链式入口"计为 API 实现文件，链式入口放在 `crates/openlark-docs/src/common/chain.rs`，只做模块级入口与 Config 透传，不为 200+ API 手写方法。
 
 #### ⚠️ Service 层标准模式
+
+> 注：这是 `openlark-docs` crate 的真实写法（用 `Arc<Config>`）。**核心契约 1 规定
+> `Config` 用 owned**——新 crate / 重构优先 owned（`config: Config`）；docs crate 因
+> 历史原因用 `Arc<Config>`，二者都**不持 HTTP client**，这点是硬约束。写法区别只是
+> Config 的所有权形态，不影响"走 Transport"这条核心规则。
 
 **正确示例**（参考 `openlark-docs/src/common/chain.rs`）：
 
@@ -119,7 +141,9 @@ impl DriveService {
 ```
 
 **❌ 禁止模式**：
-- ❌ Service 持有独立的 HTTP client 字段
+- ❌ **`reqwest::Client::new()` 或任何自建 HTTP client**（业务 crate 除 core 外全部禁止，见核心契约 3）
+- ❌ 手工塞 `Authorization` 头 / 手工取 token（由 `Transport` 自动注入）
+- ❌ Service/Request 持有独立的 HTTP client 字段（只持 `Config`）
 - ❌ 使用 `LarkClient` 作为具体类型（它是 trait）
 - ❌ 在测试中使用 `.unwrap()` 调用 `Config::build()`（build() 直接返回 Config）
 
@@ -168,18 +192,35 @@ pub struct {Name}Response {
 
 ### 3.2 Builder + execute/send
 
+> ⚠️ 下面的模板是**骨架**，必须配合 §"🔒 核心契约" 理解。完整正确示例见
+> `references/standard-example.md`（以仓库现有风格为准）。
+
 ```rust
-use std::sync::Arc;
+use openlark_core::{
+    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+};
+use openlark_core::req_option::RequestOption;
+use serde::{Deserialize, Serialize};
+
+// R（ApiRequest<R> 泛型）：无 schema 用 serde_json::Value；有 schema 用 typed struct
+// （见 references/standard-example.md 的 B 范式 + impl ApiResponseTrait）。
+// ❌ 不要在外面再包一层 XxxResponse { data: Option<...> }——会双重嵌套。
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {Name}Body {
+    // 字段按官方文档，用 serde rename 对齐
+    // 可选：Option<T> + #[serde(skip_serializing_if = "Option::is_none")]
+}
 
 pub struct {Name}Request {
-    config: Arc<Config>,
+    config: Config,            // owned（见核心契约 1）
     // 路径/查询参数（按需）
 }
 
 impl {Name}Request {
-    pub fn new(config: Arc<Config>) -> Self { /* ... */ }
+    pub fn new(config: Config) -> Self { /* ... */ }
 
-    pub async fn execute(self, body: {Name}Body) -> SDKResult<{Name}Response> {
+    pub async fn execute(self, body: {Name}Body) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default()).await
     }
 
@@ -187,10 +228,13 @@ impl {Name}Request {
         self,
         body: {Name}Body,
         option: RequestOption,
-    ) -> SDKResult<{Name}Response> {
+    ) -> SDKResult<serde_json::Value> {
+        validate_required!(body.<必填字段>, "<字段> 不能为空"); // 见核心契约 5
         // 端点必须复用 crate 的 endpoints 常量或 enum（禁止手写 "/open-apis/..."）
-        let req: ApiRequest<{Name}Response> = ApiRequest::post({ENDPOINT_CONST_OR_ENUM});
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        let req: ApiRequest<serde_json::Value> = ApiRequest::post({ENDPOINT_CONST_OR_ENUM})
+            .with_supported_access_token_types(vec![AccessTokenType::App]); // 见核心契约 4（按需）
+        let resp = Transport::request(req, &self.config, Some(option)).await?; // 见核心契约 3
+        // resp.data: Option<serde_json::Value>，R 是 data 内容（见核心契约 2）
         resp.data.ok_or_else(|| openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据"))
     }
 }
@@ -200,10 +244,13 @@ impl {Name}Request {
 
 - [ ] 落盘路径正确（与同模块现有结构一致）
 - [ ] Request/Response 字段对齐官方文档（含 `serde(rename)`）
-- [ ] HTTP 方法与 `url` 一致；端点使用常量或 enum
-- [ ] `mod.rs` 已导出
-- [ ] `service.rs` 已提供链式访问
-- [ ] 已提供 `execute_with_options(..., RequestOption)` 并透传到 Transport
+- [ ] **核心契约 1**：`config: Config`（owned），未用 `Arc<Config>`
+- [ ] **核心契约 2**：`R` 是响应 data 内容类型，未在外面再包 `XxxResponse{data}`
+- [ ] **核心契约 3**：无 `reqwest::Client::new()` / 手工 token，全走 `Transport::request`
+- [ ] **核心契约 4**：应用级接口已加 `.with_supported_access_token_types([App])`
+- [ ] **核心契约 5**：端点用常量/enum（禁手写 URL）；必填字段用 `validate_required!`
+- [ ] `execute_with_options(..., RequestOption)` 已提供并透传到 Transport
+- [ ] `mod.rs` 已导出；`service.rs`/链式入口已补
 - [ ] `just fmt && just lint && just test` 通过
 
 ## 5. docPath 网页读取
