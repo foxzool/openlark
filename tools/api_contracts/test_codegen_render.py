@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 
 from tools.api_contracts.codegen_ir import parse_api_schema_to_ir
-from tools.api_contracts.codegen_render import render_api_file, render_endpoint_const_snippet
+from tools.api_contracts.codegen_render import (
+    _emit_token_decl,
+    render_api_file,
+    render_endpoint_const_snippet,
+)
 from tools.api_contracts.models import ApiIdentity
 
 SAMPLES = Path(__file__).resolve().parent.parent / "schema_cache" / "samples"
@@ -92,6 +96,19 @@ def _assert_core_contracts(testcase, code: str) -> None:
     testcase.assertNotIn(", None).await", code)
     # codegen 标记
     testcase.assertIn("由 codegen 自动生成", code)
+
+
+SCHEMA_TENANT_ONLY = {
+    "httpMethod": "post",
+    "path": "/open-apis/contact/v3/departments",
+    "parameters": [],
+    "requestBody": {"content": {"application/json": {"schema": {"properties": [
+        {"name": "name", "type": "string", "required": True},
+    ]}}}},
+    "responses": {"200": {"content": {"application/json": {"schema": {"properties": [
+        {"name": "code", "type": "integer"}, {"name": "msg", "type": "string"}]}}}}},
+    "security": {"supportedAccessToken": ["tenant_access_token"]},
+}
 
 
 class EndpointSnippetTest(unittest.TestCase):
@@ -209,6 +226,87 @@ class RealSampleTest(unittest.TestCase):
         self.assertIn("pub content: String,", code)
         # 把渲染产物落一份到 /tmp 便于人工 review（测试不依赖它）
         Path("/tmp/codegen_create.rs").write_text(code, encoding="utf-8")
+
+
+class TokenDeclTest(unittest.TestCase):
+    """_emit_token_decl 映射逻辑：默认/单值/空/未知/集合顺序。"""
+
+    def test_empty(self):
+        self.assertIsNone(_emit_token_decl(()))
+
+    def test_default_set_unordered(self):
+        # 默认 {User, Tenant} → None，无论 dump 顺序
+        self.assertIsNone(_emit_token_decl(("tenant_access_token", "user_access_token")))
+        self.assertIsNone(_emit_token_decl(("user_access_token", "tenant_access_token")))
+
+    def test_tenant_only(self):
+        self.assertEqual(
+            _emit_token_decl(("tenant_access_token",)),
+            "vec![AccessTokenType::Tenant]",
+        )
+
+    def test_user_only(self):
+        self.assertEqual(
+            _emit_token_decl(("user_access_token",)),
+            "vec![AccessTokenType::User]",
+        )
+
+    def test_app_only(self):
+        self.assertEqual(
+            _emit_token_decl(("app_access_token",)),
+            "vec![AccessTokenType::App]",
+        )
+
+    def test_unknown_degrades_to_default(self):
+        self.assertIsNone(_emit_token_decl(("lambda_access_token",)))
+
+    def test_unknown_skipped_keeps_known(self):
+        # 混合：已知 tenant + 未知 → 只输出 tenant（非默认 → 生成）
+        self.assertEqual(
+            _emit_token_decl(("tenant_access_token", "lambda_access_token")),
+            "vec![AccessTokenType::Tenant]",
+        )
+
+
+class RenderTokenTest(unittest.TestCase):
+    """G5 渲染集成：[tenant] 单值 → 生成 token 声明 + import；默认 → 不生成。"""
+
+    def test_tenant_only_emits_decl_and_import(self):
+        ir = parse_api_schema_to_ir(_api(resource="department"), SCHEMA_TENANT_ONLY)
+        code = render_api_file(ir)
+        self.assertIn(
+            ".with_supported_access_token_types(vec![AccessTokenType::Tenant])",
+            code,
+        )
+        self.assertIn("constants::AccessTokenType", code)  # 条件 import
+
+    def test_default_no_token_decl(self):
+        # SCHEMA_POST 无 security → supported_access_tokens=() → 不生成、不 import
+        ir = parse_api_schema_to_ir(_api(), SCHEMA_POST)
+        code = render_api_file(ir)
+        self.assertNotIn("with_supported_access_token_types", code)
+        self.assertNotIn("AccessTokenType", code)
+
+
+class RenderNestedArrayStructTest(unittest.TestCase):
+    """_reachable 递归 array 内层 struct（array of object 不漏渲染）。"""
+
+    def test_array_of_object_struct_rendered(self):
+        schema = {
+            "httpMethod": "post",
+            "path": "/open-apis/im/v1/messages",
+            "requestBody": {"content": {"application/json": {"schema": {"properties": [
+                {"name": "tags", "type": "array", "required": True,
+                 "items": {"type": "object", "properties": [{"name": "key", "type": "string"}]}},
+            ]}}}},
+            "responses": {"200": {"content": {"application/json": {"schema": {"properties": [
+                {"name": "code", "type": "integer"}]}}}}},
+        }
+        ir = parse_api_schema_to_ir(_api(), schema)
+        code = render_api_file(ir)
+        # 嵌套 struct（tags 的 item）应被渲染，不漏
+        self.assertIn("pub struct CreateMessageBodyTagsItem {", code)
+        self.assertIn("Vec<CreateMessageBodyTagsItem>", code)
 
 
 if __name__ == "__main__":
