@@ -28,6 +28,11 @@ pub struct MoveDocsToWikiRequest {
     obj_type: String,
     /// 目标父节点 wiki token
     parent_wiki_token: String,
+    /// 是否直接执行移动（可选，官方字段 `apply`）
+    ///
+    /// - `true`（默认）：同步执行移动
+    /// - `false`：仅创建移动任务，返回 `task_id` 供后续查询
+    apply: Option<bool>,
 }
 
 /// 移动云空间文档至知识空间请求体（内部使用）
@@ -36,6 +41,8 @@ struct MoveDocsToWikiRequestBody {
     obj_token: String,
     obj_type: String,
     parent_wiki_token: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apply: Option<bool>,
 }
 
 /// 移动云空间文档至知识空间响应
@@ -45,6 +52,9 @@ pub struct MoveDocsToWikiResponse {
     pub wiki_token: Option<String>,
     /// 操作未完成时返回的异步任务 ID
     pub task_id: Option<String>,
+    /// 是否已直接执行移动（官方字段 `applied`，仅 apply=true 时返回）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub applied: Option<bool>,
 }
 
 impl ApiResponseTrait for MoveDocsToWikiResponse {
@@ -62,6 +72,7 @@ impl MoveDocsToWikiRequest {
             obj_token: String::new(),
             obj_type: String::new(),
             parent_wiki_token: String::new(),
+            apply: None,
         }
     }
 
@@ -89,6 +100,15 @@ impl MoveDocsToWikiRequest {
         self
     }
 
+    /// 设置是否直接执行移动（官方字段 `apply`）
+    ///
+    /// - `true`（默认）：同步执行移动
+    /// - `false`：仅创建移动任务，返回 `task_id`
+    pub fn apply(mut self, apply: bool) -> Self {
+        self.apply = Some(apply);
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<MoveDocsToWikiResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
@@ -111,6 +131,7 @@ impl MoveDocsToWikiRequest {
             obj_token: self.obj_token,
             obj_type: self.obj_type,
             parent_wiki_token: self.parent_wiki_token,
+            apply: self.apply,
         };
 
         let api_request: ApiRequest<MoveDocsToWikiResponse> =

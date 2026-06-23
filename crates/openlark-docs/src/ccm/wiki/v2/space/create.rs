@@ -25,6 +25,10 @@ pub struct CreateWikiSpaceRequest {
     name: String,
     /// 知识空间描述
     description: Option<String>,
+    /// 是否开启知识库分享（可选）
+    ///
+    /// 官方字段 `open_sharing`：开启后知识库可被组织外用户访问。
+    open_sharing: Option<String>,
 }
 
 /// 创建知识空间请求体（内部使用）
@@ -33,6 +37,8 @@ struct CreateWikiSpaceRequestBody {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    open_sharing: Option<String>,
 }
 
 /// 创建知识空间响应
@@ -55,6 +61,7 @@ impl CreateWikiSpaceRequest {
             config,
             name: String::new(),
             description: None,
+            open_sharing: None,
         }
     }
 
@@ -67,6 +74,12 @@ impl CreateWikiSpaceRequest {
     /// 设置知识空间描述
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
+        self
+    }
+
+    /// 设置是否开启知识库分享（官方字段 `open_sharing`）
+    pub fn open_sharing(mut self, open_sharing: impl Into<String>) -> Self {
+        self.open_sharing = Some(open_sharing.into());
         self
     }
 
@@ -90,6 +103,7 @@ impl CreateWikiSpaceRequest {
         let request_body = CreateWikiSpaceRequestBody {
             name: self.name,
             description: self.description,
+            open_sharing: self.open_sharing,
         };
 
         let api_request: ApiRequest<CreateWikiSpaceResponse> =
@@ -114,6 +128,9 @@ pub struct CreateWikiSpaceParams {
     /// 知识空间描述
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// 是否开启知识库分享（官方字段 `open_sharing`）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_sharing: Option<String>,
 }
 
 #[cfg(test)]
@@ -186,6 +203,7 @@ mod tests {
         let params = CreateWikiSpaceParams {
             name: "旧API知识库".to_string(),
             description: Some("使用旧API创建".to_string()),
+            open_sharing: None,
         };
 
         assert_eq!(params.name, "旧API知识库");
