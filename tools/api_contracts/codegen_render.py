@@ -105,7 +105,10 @@ def _imports(ir: ApiIR) -> str:
     if has_body:
         utils.append("serialize_params")
     if utils:
-        lines.append("    common::api_utils::{" + ", ".join(utils) + "},")
+        if len(utils) == 1:
+            lines.append(f"    common::api_utils::{utils[0]},")
+        else:
+            lines.append("    common::api_utils::{" + ", ".join(utils) + "},")
     lines.append(f"    endpoints::{ir.endpoint_const_name},")
     lines.append("};")
     return "\n".join(lines)

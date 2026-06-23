@@ -35,16 +35,25 @@ from tools.api_contracts.mod_tree import ensure_mod_chain  # noqa: E402
 from tools.api_contracts.official import load_api_identities  # noqa: E402
 from tools.schema_cache.cache import DEFAULT_CACHE_DIR, get_or_fetch, record_error  # noqa: E402
 
-MVP_CRATE = "openlark-communication"
-CRATE_SRC = REPO_ROOT / "crates" / MVP_CRATE / "src"
+DEFAULT_CRATE = "openlark-communication"
+
+
+def resolve_crate(name: str) -> tuple[str, Path]:
+    """从 api_coverage.toml [crates.<name>].src 读 src，返回 (crate_name, crate_src)。"""
+    import tomllib
+
+    data = tomllib.loads((REPO_ROOT / "tools" / "api_coverage.toml").read_text(encoding="utf-8"))
+    entry = data.get("crates", {}).get(name)
+    if not entry or "src" not in entry:
+        raise SystemExit(f"[ERROR] api_coverage.toml 无 [crates.{name}] 或缺 src 字段")
+    return name, REPO_ROOT / entry["src"]
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="飞书 API → Rust 代码生成器（风格 A）")
-    sel = p.add_mutually_exclusive_group(required=True)
-    sel.add_argument("--api-id", help="单个 API（CSV id）")
-    sel.add_argument("--tag", help="单个 bizTag（如 im）")
-    sel.add_argument("--crate", help="整个 crate（api_coverage.toml 映射的 biz_tags）")
+    p.add_argument("--api-id", help="单个 API（CSV id）")
+    p.add_argument("--tag", help="单个 bizTag（如 im），配合 --crate 过滤")
+    p.add_argument("--crate", help="目标 crate（默认 communication；全量该 crate 的 biz_tags）")
     p.add_argument("--write", action="store_true", help="写入文件（默认 dry-run 打印）")
     p.add_argument("--refresh", action="store_true", help="强制重新拉取 schema（忽略缓存）")
     p.add_argument("--no-validate", action="store_true", help="跳过 fmt+clippy 闭环")
@@ -71,9 +80,12 @@ def is_codegen_file(path: Path) -> bool:
     return False
 
 
-def endpoint_const_exists(const_name: str) -> bool:
+def endpoint_const_exists(crate_src: Path, const_name: str) -> bool:
+    ep_dir = crate_src / "endpoints"
+    if not ep_dir.exists():
+        return False  # 无 endpoints/ 目录（docs/hr/auth 等）→ 视为不存在
     pat = re.compile(rf"pub\s+const\s+{re.escape(const_name)}\s*:")
-    for p in (CRATE_SRC / "endpoints").glob("**/*.rs"):
+    for p in ep_dir.glob("**/*.rs"):
         if pat.search(p.read_text(encoding="utf-8")):
             return True
     return False
@@ -83,12 +95,12 @@ def main() -> int:
     args = parse_args()
     csv_path = REPO_ROOT / args.csv
 
-    if args.crate or args.tag:
-        if args.crate and args.crate != MVP_CRATE:
-            print(f"[WARN] MVP 仅支持 {MVP_CRATE}，忽略 --crate {args.crate}")
-        tags = [args.tag] if args.tag else load_biz_tags(MVP_CRATE)
-        apis = load_api_identities(csv_path, filter_tags=tags, skip_old_versions=True)
-    else:
+    crate_name = args.crate or DEFAULT_CRATE
+    crate_name, crate_src = resolve_crate(crate_name)
+    if args.crate is None:
+        print(f"[INFO] 未指定 --crate，默认 {crate_name}（如目标 API 属其他 crate，加 --crate <name>）")
+
+    if args.api_id:
         apis = [
             a for a in load_api_identities(csv_path, skip_old_versions=True)
             if a.api_id == args.api_id
@@ -96,8 +108,14 @@ def main() -> int:
         if not apis:
             print(f"[ERROR] api_id {args.api_id} 不在 CSV")
             return 1
+    elif args.tag or args.crate:
+        tags = [args.tag] if args.tag else load_biz_tags(crate_name)
+        apis = load_api_identities(csv_path, filter_tags=tags, skip_old_versions=True)
+    else:
+        print("[ERROR] 需指定 --api-id / --tag / --crate 之一")
+        return 1
 
-    print(f"[INFO] 待生成 {len(apis)} 个 API（crate={MVP_CRATE}）")
+    print(f"[INFO] 待生成 {len(apis)} 个 API（crate={crate_name}）")
     stats = {"generated": 0, "skipped": 0, "errors": 0}
     manual_consts: list[str] = []
     mod_actions: list[str] = []
@@ -109,7 +127,7 @@ def main() -> int:
             )
             ir = parse_api_schema_to_ir(api, cache.api_schema)
             content = render_api_file(ir)
-            target = CRATE_SRC / api.expected_file
+            target = crate_src / api.expected_file
             rel = target.relative_to(REPO_ROOT)
 
             if args.write:
@@ -122,12 +140,12 @@ def main() -> int:
                 stats["generated"] += 1
                 print(f"[WRITE] {rel}")
                 # 端点常量提示
-                if not endpoint_const_exists(ir.endpoint_const_name):
+                if not endpoint_const_exists(crate_src, ir.endpoint_const_name):
                     snippet = render_endpoint_const_snippet(ir)
                     manual_consts.append(snippet)
                     print(f"  [MANUAL] endpoints/{api.biz_tag}.rs 追加: {snippet}")
                 # G4: mod.rs 多层增量补全（自动写盘，不重写现有内容）
-                mod_actions.extend(ensure_mod_chain(CRATE_SRC, api.expected_file))
+                mod_actions.extend(ensure_mod_chain(crate_src, api.expected_file))
             else:
                 print(f"\n{'='*70}\n=== {rel}\n{'='*70}")
                 print(content)
@@ -148,7 +166,7 @@ def main() -> int:
             )
         rc = 0
         if stats["generated"] and not args.no_validate:
-            rc = run_closed_loop()
+            rc = run_closed_loop(crate_name)
         print(
             f"\n[DONE] 生成 {stats['generated']}，跳过 {stats['skipped']}，"
             f"错误 {stats['errors']}"
@@ -157,13 +175,13 @@ def main() -> int:
     return 0
 
 
-def run_closed_loop() -> int:
+def run_closed_loop(crate_name: str) -> int:
     """生成后跑 fmt + clippy，验证可编译无 warning。"""
     rc = 0
     commands = [
         ["cargo", "fmt", "--all"],
         [
-            "cargo", "clippy", "-p", MVP_CRATE, "--all-targets", "--all-features",
+            "cargo", "clippy", "-p", crate_name, "--all-targets", "--all-features",
             "--", "-Dwarnings", "-A", "missing_docs",
         ],
     ]
