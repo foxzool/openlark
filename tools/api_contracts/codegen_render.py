@@ -34,7 +34,7 @@ def render_api_file(ir: ApiIR) -> str:
         _module_doc(ir),
         _imports(ir),
     ]
-    # 嵌套 struct：只渲染 body 可达的（MVP 不渲染 response struct 及其 nested，避免 dead code）
+    # 嵌套 struct：渲染 body + response 可达的
     reachable = _reachable_struct_keys(ir)
     for struct in sorted(
         (
@@ -47,6 +47,9 @@ def render_api_file(ir: ApiIR) -> str:
         parts.append(_render_struct(ir, struct))
     if ir.body_struct is not None:
         parts.append(_render_struct(ir, ir.body_struct))
+    if ir.response_struct is not None:
+        parts.append(_render_struct(ir, ir.response_struct, force_optional=True))
+        parts.append(_render_api_response_trait(ir))
     parts.append(_request_struct(ir))
     parts.append(_request_impl(ir))
     parts.append(_tests(ir))
@@ -75,28 +78,40 @@ def _module_doc(ir: ApiIR) -> str:
 
 def _imports(ir: ApiIR) -> str:
     has_body = ir.body_struct is not None
+    is_typed = ir.response_struct is not None
     lines = ["use openlark_core::{"]
-    core_items = ["SDKResult", "api::ApiRequest", "config::Config", "http::Transport"]
+    if is_typed:
+        core_items = [
+            "SDKResult",
+            "api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat}",
+            "config::Config",
+            "http::Transport",
+        ]
+    else:
+        core_items = ["SDKResult", "api::ApiRequest", "config::Config", "http::Transport"]
     if _needs_validate_required(ir):
         core_items.append("validate_required")
     if _emit_token_decl(ir.supported_access_tokens) is not None:
         core_items.append("constants::AccessTokenType")
     lines.append("    " + ", ".join(core_items) + ",")
     lines.append("};")
-    if has_body:
+    if has_body or is_typed:
         lines.append("use serde::{Deserialize, Serialize};")
     lines.append("")
     lines.append("use crate::{")
-    utils = ["extract_response_data"]
+    utils = []
+    if not is_typed:
+        utils.append("extract_response_data")
     if has_body:
         utils.append("serialize_params")
-    lines.append("    common::api_utils::{" + ", ".join(utils) + "},")
+    if utils:
+        lines.append("    common::api_utils::{" + ", ".join(utils) + "},")
     lines.append(f"    endpoints::{ir.endpoint_const_name},")
     lines.append("};")
     return "\n".join(lines)
 
 
-def _render_struct(ir: ApiIR, struct: StructDef) -> str:
+def _render_struct(ir: ApiIR, struct: StructDef, *, force_optional: bool = False) -> str:
     lines: list[str] = []
     if struct.origin == "request_body":
         lines.append(f"/// {ir.name}请求体。")
@@ -108,18 +123,19 @@ def _render_struct(ir: ApiIR, struct: StructDef) -> str:
     lines.append('#[serde(rename_all = "camelCase")]')
     lines.append(f"pub struct {struct.rust_name} {{")
     for field in struct.fields:
-        lines.extend(_field_lines(field))
+        lines.extend(_field_lines(field, force_optional=force_optional))
     lines.append("}")
     return "\n".join(lines)
 
 
-def _field_lines(field: FieldDef) -> list[str]:
+def _field_lines(field: FieldDef, *, force_optional: bool = False) -> list[str]:
+    optional = (not field.required) or force_optional
     out: list[str] = []
     if field.description:
         out.append(f"    /// {_oneliner(field.description)}")
-    if not field.required:
+    if optional:
         out.append('    #[serde(skip_serializing_if = "Option::is_none")]')
-    rust_t = _rust_type(field.type_expr, field.required)
+    rust_t = _rust_type(field.type_expr, field.required and not force_optional)
     out.append(f"    pub {field.rust_name}: {rust_t},")
     return out
 
@@ -157,6 +173,8 @@ def _request_impl(ir: ApiIR) -> str:
     has_body = ir.body_struct is not None
     body_type = ir.body_struct.rust_name if has_body else None
     method = ir.method.lower()
+    resp_type = _response_type(ir)
+    is_typed = ir.response_struct is not None
 
     lines: list[str] = [f"impl {name} {{"]
 
@@ -189,7 +207,7 @@ def _request_impl(ir: ApiIR) -> str:
     # execute（委托）
     exec_sig = f"(self, body: {body_type})" if has_body else "(self)"
     lines.append("    /// 执行请求。")
-    lines.append(f"    pub async fn execute{exec_sig} -> SDKResult<serde_json::Value> {{")
+    lines.append(f"    pub async fn execute{exec_sig} -> SDKResult<{resp_type}> {{")
     if has_body:
         lines.append(
             "        self.execute_with_options(body, "
@@ -213,7 +231,7 @@ def _request_impl(ir: ApiIR) -> str:
     for i, p in enumerate(params_sig):
         sep = "," if i < len(params_sig) - 1 else ","
         lines.append(f"        {p}{sep}")
-    lines.append("    ) -> SDKResult<serde_json::Value> {")
+    lines.append(f"    ) -> SDKResult<{resp_type}> {{")
     lines.append("        // === 必填字段验证 ===")
     # body required String 字段
     if has_body:
@@ -238,7 +256,7 @@ def _request_impl(ir: ApiIR) -> str:
     # url
     lines.append(f"        // url: {ir.method}:{ir.endpoint_path}")
     url_expr = _endpoint_url_expr(ir)
-    lines.append(f"        let req: ApiRequest<serde_json::Value> = ApiRequest::{method}({url_expr})")
+    lines.append(f"        let req: ApiRequest<{resp_type}> = ApiRequest::{method}({url_expr})")
     # body（无分号，链式续）
     if has_body:
         lines.append(f'            .body(serialize_params(&body, "{ir.name}")?)')
@@ -254,8 +272,19 @@ def _request_impl(ir: ApiIR) -> str:
         lines.append(f"            .with_supported_access_token_types({token_decl})")
     # 统一收口：链尾补分号
     lines[-1] = lines[-1] + ";"
-    lines.append("        let resp = Transport::request(req, &self.config, Some(option)).await?;")
-    lines.append(f'        extract_response_data(resp, "{ir.name}")')
+    if is_typed:
+        lines.append(
+            f"        let response: Response<{resp_type}> = "
+            "Transport::request(req, &self.config, Some(option)).await?;"
+        )
+        lines.append("        response.data.ok_or_else(|| {")
+        lines.append(
+            '            openlark_core::error::validation_error("response", "响应数据为空")'
+        )
+        lines.append("        })")
+    else:
+        lines.append("        let resp = Transport::request(req, &self.config, Some(option)).await?;")
+        lines.append(f'        extract_response_data(resp, "{ir.name}")')
     lines.append("    }")
     lines.append("}")
     return "\n".join(lines)
@@ -362,6 +391,23 @@ def _emit_token_decl(tokens: tuple[str, ...]) -> str | None:
     return "vec![" + ", ".join(f"AccessTokenType::{v}" for v in variants) + "]"
 
 
+def _response_type(ir: ApiIR) -> str:
+    """execute 的返回类型：typed response struct 名，或 serde_json::Value（无 data 时回退）。"""
+    return ir.response_struct.rust_name if ir.response_struct is not None else "serde_json::Value"
+
+
+def _render_api_response_trait(ir: ApiIR) -> str:
+    """渲染 impl ApiResponseTrait for XxxResp（契约 2：R 是 data 内容类型，非包装层）。"""
+    name = ir.response_struct.rust_name
+    return (
+        f"impl ApiResponseTrait for {name} {{\n"
+        f"    fn data_format() -> ResponseFormat {{\n"
+        f"        ResponseFormat::Data\n"
+        f"    }}\n"
+        f"}}"
+    )
+
+
 def _needs_validate_required(ir: ApiIR) -> bool:
     """是否用到 validate_required!（path param 必用；body required String 字段用）。"""
     if ir.path_params:
@@ -388,14 +434,14 @@ def _collect_struct_refs(t: object):
 
 
 def _reachable_struct_keys(ir: ApiIR) -> set[str]:
-    """从 body_struct 出发可达的 struct key 集合（MVP 只渲染 body 子树，排除 response）。
-
-    递归 TypeArray/TypeMap 内层的 TypeStructRef（array of object 等场景）。
-    """
+    """从 body + response 出发可达的 struct key 集合（递归 array/map 内层 TypeStructRef）。"""
     visited: set[str] = set()
-    if ir.body_struct is None:
-        return visited
-    stack = [ir.body_struct.key]
+    roots = []
+    if ir.body_struct is not None:
+        roots.append(ir.body_struct.key)
+    if ir.response_struct is not None:
+        roots.append(ir.response_struct.key)
+    stack = list(roots)
     while stack:
         key = stack.pop()
         if key in visited:

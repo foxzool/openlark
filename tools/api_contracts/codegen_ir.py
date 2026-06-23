@@ -468,9 +468,17 @@ def _body_struct_name(api: ApiIdentity) -> str:
 
 
 def _response_struct_name(api: ApiIdentity, data_schema: dict[str, Any]) -> str:
-    """优先官方 objectName，否则动词+资源+Response。"""
+    """优先官方 objectName（仅当已 PascalCase，如 CreateDraftResp），否则动词+资源+Response。
+
+    objectName 大小写不统一（有的 PascalCase 如 CreateDraftResp，有的小写如 message），
+    小写值不能直接作 Rust struct 名，故仅采纳首字母大写的 objectName。
+    """
     object_name = str(data_schema.get("objectName") or "")
-    if object_name and object_name.replace("_", "").isalnum():
+    if (
+        object_name
+        and object_name.replace("_", "").isalnum()
+        and object_name[0].isupper()
+    ):
         return object_name
     return to_pascal(api.meta_name.replace(":", "_")) + to_pascal(api.meta_resource) + "Response"
 

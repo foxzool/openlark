@@ -85,7 +85,10 @@ def _assert_core_contracts(testcase, code: str) -> None:
     testcase.assertIn("pub async fn execute_with_options", code)
     testcase.assertIn("RequestOption::default()", code)
     testcase.assertIn("Transport::request(req, &self.config, Some(option))", code)
-    testcase.assertIn("extract_response_data(resp,", code)
+    # 取 data（typed: response.data.ok_or_else；value: extract_response_data）
+    testcase.assertTrue(
+        "response.data.ok_or_else" in code or "extract_response_data(resp," in code
+    )
     # 端点用常量（契约 5）
     testcase.assertIn("endpoints::", code)
     # 契约 1：Config owned 非 Arc
@@ -165,6 +168,17 @@ class RenderPostTest(unittest.TestCase):
         self.assertIn("#[cfg(test)]", self.code)
         self.assertIn("fn test_body_construct()", self.code)
 
+    def test_typed_response(self):
+        # typed response：response struct + ApiResponseTrait impl + execute 返回 typed
+        self.assertIn("pub struct CreateMessageResp {", self.code)
+        self.assertIn("impl ApiResponseTrait for CreateMessageResp {", self.code)
+        self.assertIn(
+            "pub async fn execute(self, body: CreateMessageBody) -> SDKResult<CreateMessageResp>",
+            self.code,
+        )
+        self.assertIn("ApiRequest<CreateMessageResp>", self.code)
+        self.assertIn("response.data.ok_or_else", self.code)
+
 
 class RenderGetPathTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -176,7 +190,7 @@ class RenderGetPathTest(unittest.TestCase):
 
     def test_no_body(self):
         # GET 无 body：execute(self) 无 body 参数，不调 serialize_params
-        self.assertIn("pub async fn execute(self) -> SDKResult<serde_json::Value>", self.code)
+        self.assertIn("pub async fn execute(self) -> SDKResult<GetMessageResponse>", self.code)
         self.assertNotIn("serialize_params", self.code)
         self.assertNotIn("Body", self.code)
 
