@@ -239,13 +239,41 @@ class RustSourceContractTests(unittest.TestCase):
         self.assertNotIn("__file_name", names)
 
     def test_scan_api_file_detects_flatten_value_passthrough(self):
-        # docx block patch：#[serde(flatten)] update: serde_json::Value
+        # docx block patch：#[serde(flatten)] update: serde_json::Value（透传写法）
         text = """
         pub struct UpdateDocumentBlockParams {
             #[serde(skip_serializing)]
             pub document_id: String,
             #[serde(flatten)]
             pub update: serde_json::Value,
+        }
+
+        let req: ApiRequest<Response> = ApiRequest::post(BANK_CARD);
+        """
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            src = Path(temp_dir)
+            (src / "endpoints.rs").write_text(
+                'pub const BANK_CARD: &str = "/open-apis/x/v1/y";',
+                encoding="utf-8",
+            )
+            (src / "docx").mkdir(parents=True)
+            (src / "docx" / "patch.rs").write_text(text, encoding="utf-8")
+
+            contract = scan_api_file(src, "docx/patch.rs")
+
+        self.assertIsNotNone(contract)
+        assert contract is not None
+        self.assertTrue(contract.has_flatten_value_passthrough)
+
+    def test_scan_api_file_detects_flatten_typed_enum_passthrough(self):
+        # docx block patch：#[serde(flatten)] update: BlockUpdateOperation（typed 枚举写法）
+        text = """
+        pub struct UpdateDocumentBlockParams {
+            #[serde(skip_serializing)]
+            pub document_id: String,
+            #[serde(flatten)]
+            pub update: BlockUpdateOperation,
         }
 
         let req: ApiRequest<Response> = ApiRequest::post(BANK_CARD);

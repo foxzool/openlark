@@ -593,15 +593,14 @@ def extract_rust_fields(text: str) -> tuple[RustField, ...]:
 
 
 def has_flatten_value_passthrough(text: str) -> bool:
-    """检测 request struct 是否有 ``#[serde(flatten)] xxx: serde_json::Value``。
+    """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
 
-    这种写法把官方 optional request 字段整体透传（例如 docx block 的 ``update_*`` 操作），
-    扫描器无法逐字段对比，应在 contract 比较时跳过这类 API 的 optional 字段缺失告警。
+    flatten 字段把额外的官方 request 字段整体合并到请求体（例如 docx block 的
+    ``update_*`` 操作，无论透传 ``serde_json::Value`` 还是 typed
+    ``BlockUpdateOperation`` 枚举），扫描器无法逐字段对比这类 API 的 optional 字段，
+    应在 contract 比较时跳过其 optional 字段缺失告警。
     """
-    pattern = re.compile(
-        r"#\s*\[\s*serde\s*\(\s*flatten\s*\)\s*\][^\n]*\n\s*"
-        r"pub\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*serde_json::Value\b"
-    )
+    pattern = re.compile(r"#\s*\[\s*serde\s*\(\s*flatten\s*\)\s*\]")
     return bool(pattern.search(text))
 
 

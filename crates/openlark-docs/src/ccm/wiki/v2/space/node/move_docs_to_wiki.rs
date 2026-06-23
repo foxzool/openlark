@@ -156,6 +156,9 @@ pub struct MoveDocsToWikiParams {
     pub obj_type: String,
     /// 目标父节点 wiki token
     pub parent_wiki_token: String,
+    /// 是否直接执行移动（官方字段 `apply`）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apply: Option<bool>,
 }
 
 #[cfg(test)]
