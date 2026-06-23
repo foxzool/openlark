@@ -165,6 +165,107 @@ class RustSourceContractTests(unittest.TestCase):
 
         self.assertEqual([field.serialized_name for field in fields], ["data", "parsing_result"])
 
+    def test_extract_rust_response_fields_reads_resp_suffix_struct(self):
+        # baike 的 MatchEntityResp 等用 Resp 后缀命名响应 struct
+        text = """
+        pub struct MatchEntityResp {
+            #[serde(default)]
+            pub results: Vec<MatchEntityResult>,
+        }
+        """
+
+        fields = extract_rust_response_fields(text)
+
+        self.assertEqual([field.serialized_name for field in fields], ["results"])
+
+    def test_extract_rust_fields_collects_multipart_meta_struct_fields(self):
+        # drive 上传：局部 UploadMeta 结构体组织 multipart 表单字段
+        text = """
+        pub struct UploadAllResponse {
+            pub file_token: String,
+        }
+
+        pub async fn execute(self) -> SDKResult<UploadAllResponse> {
+            #[derive(Serialize)]
+            struct UploadMeta {
+                file_name: String,
+                parent_type: String,
+                parent_node: String,
+                size: usize,
+                #[serde(skip_serializing_if = "Option::is_none")]
+                checksum: Option<String>,
+            }
+
+            let request = ApiRequest::<UploadAllResponse>::post(&api_endpoint.to_url())
+                .json_body(&meta)
+                .file_content(self.file);
+        }
+        """
+
+        fields = extract_rust_fields(text)
+
+        names = {field.serialized_name for field in fields}
+        self.assertIn("file", names)
+        self.assertIn("file_name", names)
+        self.assertIn("parent_type", names)
+        self.assertIn("parent_node", names)
+        self.assertIn("size", names)
+        self.assertIn("checksum", names)
+
+    def test_extract_rust_fields_collects_json_literal_multipart_keys(self):
+        # baike 上传：serde_json::json!({"name": ..., "__file_name": ...})
+        text = """
+        pub struct UploadFileResponse {
+            pub file_token: String,
+        }
+
+        let body = serde_json::json!({
+            "name": name,
+            "__file_name": name,
+        });
+
+        let api_request: ApiRequest<UploadFileResponse> =
+            ApiRequest::post(&BaikeApiV1::FileUpload.to_url())
+                .body(body)
+                .file_content(self.file);
+        """
+
+        fields = extract_rust_fields(text)
+
+        names = {field.serialized_name for field in fields}
+        self.assertIn("file", names)
+        self.assertIn("name", names)
+        # 内部字段（下划线前缀）不应作为表单字段
+        self.assertNotIn("__file_name", names)
+
+    def test_scan_api_file_detects_flatten_value_passthrough(self):
+        # docx block patch：#[serde(flatten)] update: serde_json::Value
+        text = """
+        pub struct UpdateDocumentBlockParams {
+            #[serde(skip_serializing)]
+            pub document_id: String,
+            #[serde(flatten)]
+            pub update: serde_json::Value,
+        }
+
+        let req: ApiRequest<Response> = ApiRequest::post(BANK_CARD);
+        """
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            src = Path(temp_dir)
+            (src / "endpoints.rs").write_text(
+                'pub const BANK_CARD: &str = "/open-apis/x/v1/y";',
+                encoding="utf-8",
+            )
+            (src / "docx").mkdir(parents=True)
+            (src / "docx" / "patch.rs").write_text(text, encoding="utf-8")
+
+            contract = scan_api_file(src, "docx/patch.rs")
+
+        self.assertIsNotNone(contract)
+        assert contract is not None
+        self.assertTrue(contract.has_flatten_value_passthrough)
+
 
 if __name__ == "__main__":
     unittest.main()
