@@ -79,6 +79,8 @@ def _imports(ir: ApiIR) -> str:
     core_items = ["SDKResult", "api::ApiRequest", "config::Config", "http::Transport"]
     if _needs_validate_required(ir):
         core_items.append("validate_required")
+    if _emit_token_decl(ir.supported_access_tokens) is not None:
+        core_items.append("constants::AccessTokenType")
     lines.append("    " + ", ".join(core_items) + ",")
     lines.append("};")
     if has_body:
@@ -237,22 +239,21 @@ def _request_impl(ir: ApiIR) -> str:
     lines.append(f"        // url: {ir.method}:{ir.endpoint_path}")
     url_expr = _endpoint_url_expr(ir)
     lines.append(f"        let req: ApiRequest<serde_json::Value> = ApiRequest::{method}({url_expr})")
-    # body
+    # body（无分号，链式续）
     if has_body:
-        lines.append(f'            .body(serialize_params(&body, "{ir.name}")?);')
-    else:
-        # 无 body：链式终止，末尾分号。把上一行末尾补分号
-        lines[-1] = lines[-1] + ";"
+        lines.append(f'            .body(serialize_params(&body, "{ir.name}")?)')
     # query params（required 用 query(key, String)；optional 用 query_opt）
-    if ir.query_params:
-        # 上一行去掉分号，改链式
-        lines[-1] = lines[-1].rstrip(";")
-        for p in ir.query_params:
-            if p.required:
-                lines.append(f'            .query("{p.name}", {p.rust_name})')
-            else:
-                lines.append(f'            .query_opt("{p.name}", self.{p.rust_name})')
-        lines[-1] = lines[-1] + ";"
+    for p in ir.query_params:
+        if p.required:
+            lines.append(f'            .query("{p.name}", {p.rust_name})')
+        else:
+            lines.append(f'            .query_opt("{p.name}", self.{p.rust_name})')
+    # G5: token 类型声明（非默认 {User, Tenant} 组合才生成，否则保持 core 默认）
+    token_decl = _emit_token_decl(ir.supported_access_tokens)
+    if token_decl is not None:
+        lines.append(f"            .with_supported_access_token_types({token_decl})")
+    # 统一收口：链尾补分号
+    lines[-1] = lines[-1] + ";"
     lines.append("        let resp = Transport::request(req, &self.config, Some(option)).await?;")
     lines.append(f'        extract_response_data(resp, "{ir.name}")')
     lines.append("    }")
@@ -337,6 +338,30 @@ def _oneliner(text: str, limit: int = 80) -> str:
     return ""
 
 
+_TOKEN_MAP = {
+    "user_access_token": "User",
+    "tenant_access_token": "Tenant",
+    "app_access_token": "App",
+}
+
+
+def _emit_token_decl(tokens: tuple[str, ...]) -> str | None:
+    """supportedAccessToken 字符串 → "vec![...]" 或 None（默认/空时不生成）。
+
+    集合 == {User, Tenant}（core getter 默认）→ None，省略显式声明（契约 4 由 core 兜底）。
+    非默认 → 保留 dump 顺序输出。未知值跳过（不阻塞 codegen，演进友好）。
+    绝不返回空 vec（core 会兜底成 [None]，导致不带 token）。
+    """
+    if not tokens:
+        return None
+    variants = [_TOKEN_MAP[t] for t in tokens if t in _TOKEN_MAP]
+    if not variants:
+        return None
+    if set(variants) == {"User", "Tenant"}:
+        return None
+    return "vec![" + ", ".join(f"AccessTokenType::{v}" for v in variants) + "]"
+
+
 def _needs_validate_required(ir: ApiIR) -> bool:
     """是否用到 validate_required!（path param 必用；body required String 字段用）。"""
     if ir.path_params:
@@ -352,8 +377,21 @@ def _needs_validate_required(ir: ApiIR) -> bool:
     return False
 
 
+def _collect_struct_refs(t: object):
+    """从 TypeExpr 收集所有 TypeStructRef 的 struct_key（递归 array/map 内层）。"""
+    if isinstance(t, TypeStructRef):
+        yield t.struct_key
+    elif isinstance(t, TypeArray):
+        yield from _collect_struct_refs(t.item)
+    elif isinstance(t, TypeMap):
+        yield from _collect_struct_refs(t.value)
+
+
 def _reachable_struct_keys(ir: ApiIR) -> set[str]:
-    """从 body_struct 出发可达的 struct key 集合（MVP 只渲染 body 子树，排除 response）。"""
+    """从 body_struct 出发可达的 struct key 集合（MVP 只渲染 body 子树，排除 response）。
+
+    递归 TypeArray/TypeMap 内层的 TypeStructRef（array of object 等场景）。
+    """
     visited: set[str] = set()
     if ir.body_struct is None:
         return visited
@@ -367,10 +405,8 @@ def _reachable_struct_keys(ir: ApiIR) -> set[str]:
         if struct is None:
             continue
         for f in struct.fields:
-            if (
-                isinstance(f.type_expr, TypeStructRef)
-                and f.type_expr.struct_key in ir.structs
-            ):
-                stack.append(f.type_expr.struct_key)
+            for ref_key in _collect_struct_refs(f.type_expr):
+                if ref_key in ir.structs:
+                    stack.append(ref_key)
     return visited
 
