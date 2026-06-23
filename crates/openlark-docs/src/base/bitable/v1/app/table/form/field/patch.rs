@@ -223,6 +223,9 @@ pub struct PatchedFormFieldQuestion {
 pub struct PatchFormFieldQuestionResponse {
     /// 更新后的问题配置。
     pub field: PatchedFormFieldQuestion,
+    /// 字段附加属性（官方 optional object，结构多变，用 Value 透传）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for PatchFormFieldQuestionResponse {

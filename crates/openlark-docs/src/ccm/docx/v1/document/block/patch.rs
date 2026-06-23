@@ -36,6 +36,12 @@ pub struct UpdateDocumentBlockParams {
 pub struct UpdateDocumentBlockResponse {
     /// 更新后的块内容。
     pub block: DocxBlock,
+    /// 文档版本号（操作后的文档版本）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_revision_id: Option<i32>,
+    /// 幂等标记（请求时传入的 client_token 原样回传）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_token: Option<String>,
 }
 
 impl ApiResponseTrait for UpdateDocumentBlockResponse {

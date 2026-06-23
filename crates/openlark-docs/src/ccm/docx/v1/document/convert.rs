@@ -3,6 +3,7 @@
 /// 将 Markdown/HTML 格式的内容转换为文档块，以便于将 Markdown/HTML 格式的内容插入到文档中。目前支持转换为的块类型包含文本、一到九级标题、无序列表、有序列表、代码块、引用、待办事项、图片、表格、表格单元格。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/convert
 /// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/convert
+use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::api_endpoints::DocxApiV1;
 use openlark_core::{
     SDKResult,
@@ -42,6 +43,12 @@ pub struct ConvertContentToBlocksResponse {
     /// 一级块 ID 列表。
     #[serde(default)]
     pub first_level_block_ids: Vec<String>,
+    /// 转换后的完整块列表（部分场景返回）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<DocxBlock>>,
+    /// 块 ID 到图片 URL 的映射（含图片的转换结果）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_id_to_image_urls: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for ConvertContentToBlocksResponse {
