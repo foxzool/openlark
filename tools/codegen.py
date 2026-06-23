@@ -31,6 +31,7 @@ from tools.api_contracts.codegen_render import (  # noqa: E402
     render_api_file,
     render_endpoint_const_snippet,
 )
+from tools.api_contracts.mod_tree import ensure_mod_chain  # noqa: E402
 from tools.api_contracts.official import load_api_identities  # noqa: E402
 from tools.schema_cache.cache import DEFAULT_CACHE_DIR, get_or_fetch, record_error  # noqa: E402
 
@@ -99,7 +100,7 @@ def main() -> int:
     print(f"[INFO] 待生成 {len(apis)} 个 API（crate={MVP_CRATE}）")
     stats = {"generated": 0, "skipped": 0, "errors": 0}
     manual_consts: list[str] = []
-    manual_mods: list[str] = []
+    mod_actions: list[str] = []
 
     for api in apis:
         try:
@@ -125,10 +126,8 @@ def main() -> int:
                     snippet = render_endpoint_const_snippet(ir)
                     manual_consts.append(snippet)
                     print(f"  [MANUAL] endpoints/{api.biz_tag}.rs 追加: {snippet}")
-                # mod.rs 提示（直接父目录）
-                mod_rel = target.parent.relative_to(REPO_ROOT)
-                mod_line = f"pub mod {target.stem};"
-                manual_mods.append(f"{mod_rel}/mod.rs: {mod_line}")
+                # G4: mod.rs 多层增量补全（自动写盘，不重写现有内容）
+                mod_actions.extend(ensure_mod_chain(CRATE_SRC, api.expected_file))
             else:
                 print(f"\n{'='*70}\n=== {rel}\n{'='*70}")
                 print(content)
@@ -138,13 +137,15 @@ def main() -> int:
             print(f"[ERROR] {api.api_id} {api.name}: {exc}")
 
     if args.write:
-        if manual_mods:
-            print("\n[MANUAL] 需在 mod.rs 追加（增量，勿重写）：")
-            seen = set()
-            for m in manual_mods:
-                if m not in seen:
-                    seen.add(m)
-                    print(f"  {m}")
+        if mod_actions:
+            print("\n[MOD-TREE] mod.rs 已增量补全：")
+            for a in mod_actions:
+                print(f"  {a}")
+        if stats["generated"]:
+            print(
+                "\n[MANUAL] service 链（chain.rs）需手动加 client.<biz>...<api>() "
+                "方法（G4-phase2，手工精写不自动生成）"
+            )
         rc = 0
         if stats["generated"] and not args.no_validate:
             rc = run_closed_loop()
