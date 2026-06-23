@@ -164,7 +164,14 @@ impl CreateWikiSpaceNodeRequest {
 
         validate_required!(params.obj_type, "obj_type不能为空");
         // 官方将 node_type 标记为 required，运行时强制校验（保留 Option 以兼容旧调用）
-        validate_required!(params.node_type, "node_type不能为空");
+        match params.node_type.as_deref() {
+            Some(v) if !v.trim().is_empty() => {}
+            _ => {
+                return Err(openlark_core::error::CoreError::validation_msg(
+                    "node_type不能为空",
+                ));
+            }
+        }
 
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceNodeCreate(self.space_id.clone());

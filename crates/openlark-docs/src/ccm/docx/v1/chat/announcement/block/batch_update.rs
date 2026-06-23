@@ -13,6 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::ccm::docx::models::block_update::BlockUpdateOperation;
 use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
 
@@ -31,9 +32,9 @@ pub struct BatchUpdateChatAnnouncementBlocksParams {
 pub struct BatchUpdateRequest {
     /// 块 ID。
     pub block_id: String,
-    /// 操作内容（例如 update_text_elements / merge_table_cells 等）
+    /// 操作内容（update_text_elements / merge_table_cells 等 15 种之一）
     #[serde(flatten)]
-    pub operation: serde_json::Value,
+    pub operation: BlockUpdateOperation,
 }
 
 /// 批量更新群公告块内容响应 data

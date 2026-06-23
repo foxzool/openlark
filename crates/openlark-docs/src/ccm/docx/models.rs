@@ -384,14 +384,14 @@ pub mod common_types {
     }
 
     /// 文本元素
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     pub struct TextElement {
         /// 文本
         pub text_run: Option<TextRun>,
     }
 
     /// 文本运行
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     pub struct TextRun {
         /// 内容
         pub content: String,
@@ -400,7 +400,7 @@ pub mod common_types {
     }
 
     /// 文本样式
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     pub struct TextStyle {
         /// 是否加粗
         pub bold: Option<bool>,
@@ -509,6 +509,264 @@ pub mod common_types {
         #[serde(skip_serializing_if = "Option::is_none")]
         /// 公开项说明。
         pub has_more: Option<bool>,
+    }
+}
+
+/// 文档块更新操作（docx block patch / batch_update 的 update 操作）。
+///
+/// 对应官方 `update_block_request` 的 15 个可选操作字段，每个变体序列化为
+/// `{"<operation_name>": {<fields>}}`（如 `{"insert_table_row": {"row_index": 1}}`）。
+///
+/// # 设计说明
+///
+/// - 表格/分栏/替换类操作（table / grid / replace）做完整 typed 建模。
+/// - 文本元素类操作（`UpdateTextElements`）复用 `common_types::TextElement`。
+/// - `Raw` 变体兜底：官方新增操作或未覆盖字段时直接透传 `serde_json::Value`，
+///   避免 typed 建模阻塞请求发送。
+///
+/// 来源：飞书 docx-v1/document-block/patch 官方 apiSchema（2026-06-23）。
+pub mod block_update {
+    use super::common_types::TextElement;
+    use serde::{Deserialize, Serialize};
+
+    /// 文档块更新操作枚举。
+    ///
+    /// 序列化为单键对象：`{"<op_name>": {<op fields>}}`。
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "snake_case")]
+    pub enum BlockUpdateOperation {
+        /// 更新文本元素请求
+        #[serde(rename = "update_text_elements")]
+        UpdateTextElements(UpdateTextElementsRequest),
+        /// 更新文本样式请求（段落级样式：对齐、完成状态等）
+        #[serde(rename = "update_text_style")]
+        UpdateTextStyle(UpdateTextStyleRequest),
+        /// 更新表格属性请求（列宽）
+        #[serde(rename = "update_table_property")]
+        UpdateTableProperty(UpdateTablePropertyRequest),
+        /// 表格插入新行请求
+        #[serde(rename = "insert_table_row")]
+        InsertTableRow(InsertTableRowRequest),
+        /// 表格插入新列请求
+        #[serde(rename = "insert_table_column")]
+        InsertTableColumn(InsertTableColumnRequest),
+        /// 表格批量删除行请求（区间左闭右开）
+        #[serde(rename = "delete_table_rows")]
+        DeleteTableRows(DeleteTableRowsRequest),
+        /// 表格批量删除列请求（区间左闭右开）
+        #[serde(rename = "delete_table_columns")]
+        DeleteTableColumns(DeleteTableColumnsRequest),
+        /// 表格合并单元格请求（区间左闭右开）
+        #[serde(rename = "merge_table_cells")]
+        MergeTableCells(MergeTableCellsRequest),
+        /// 表格取消单元格合并请求
+        #[serde(rename = "unmerge_table_cells")]
+        UnmergeTableCells(UnmergeTableCellsRequest),
+        /// 分栏插入新列请求
+        #[serde(rename = "insert_grid_column")]
+        InsertGridColumn(InsertGridColumnRequest),
+        /// 分栏删除列请求
+        #[serde(rename = "delete_grid_column")]
+        DeleteGridColumn(DeleteGridColumnRequest),
+        /// 更新分栏列宽比例请求
+        #[serde(rename = "update_grid_column_width_ratio")]
+        UpdateGridColumnWidthRatio(UpdateGridColumnWidthRatioRequest),
+        /// 替换图片请求（需先上传图片）
+        #[serde(rename = "replace_image")]
+        ReplaceImage(ReplaceImageRequest),
+        /// 替换文件请求（需先上传文件）
+        #[serde(rename = "replace_file")]
+        ReplaceFile(ReplaceFileRequest),
+        /// 更新文本元素与样式请求
+        #[serde(rename = "update_text")]
+        UpdateText(UpdateTextRequest),
+        /// 原始透传兜底（未覆盖的官方操作或自定义字段）
+        #[serde(untagged)]
+        Raw(serde_json::Value),
+    }
+
+    /// 更新文本元素请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UpdateTextElementsRequest {
+        /// 更新的文本元素列表
+        pub elements: Vec<TextElement>,
+    }
+
+    /// 更新文本样式请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UpdateTextStyleRequest {
+        /// 文本样式
+        pub style: TextStyle,
+        /// 应更新的字段（必须至少指定一个），如 `["align"]`
+        pub fields: Vec<i32>,
+    }
+
+    /// 文本样式（段落级）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+    pub struct TextStyle {
+        /// 对齐方式
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub align: Option<i32>,
+        /// todo 的完成状态
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub done: Option<bool>,
+        /// 文本的折叠状态
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub folded: Option<bool>,
+        /// 代码块语言
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub language: Option<i32>,
+        /// 代码块是否自动换行
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub wrap: Option<bool>,
+    }
+
+    /// 更新表格属性请求（列宽）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UpdateTablePropertyRequest {
+        /// 表格列宽
+        pub column_width: i32,
+        /// 需要修改列宽的表格列的索引
+        pub column_index: i32,
+    }
+
+    /// 表格插入新行请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct InsertTableRowRequest {
+        /// 插入的行在表格中的索引（-1 表示在末尾插入）
+        pub row_index: i32,
+    }
+
+    /// 表格插入新列请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct InsertTableColumnRequest {
+        /// 插入的列在表格中的索引（-1 表示在末尾插入）
+        pub column_index: i32,
+    }
+
+    /// 表格批量删除行请求（区间左闭右开）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct DeleteTableRowsRequest {
+        /// 行开始索引（区间左闭右开）
+        pub row_start_index: i32,
+        /// 行结束索引（区间左闭右开）
+        pub row_end_index: i32,
+    }
+
+    /// 表格批量删除列请求（区间左闭右开）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct DeleteTableColumnsRequest {
+        /// 列开始索引（区间左闭右开）
+        pub column_start_index: i32,
+        /// 列结束索引（区间左闭右开）
+        pub column_end_index: i32,
+    }
+
+    /// 表格合并单元格请求（区间左闭右开）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct MergeTableCellsRequest {
+        /// 行起始索引（区间左闭右开）
+        pub row_start_index: i32,
+        /// 行结束索引（区间左闭右开）
+        pub row_end_index: i32,
+        /// 列起始索引（区间左闭右开）
+        pub column_start_index: i32,
+        /// 列结束索引（区间左闭右开）
+        pub column_end_index: i32,
+    }
+
+    /// 表格取消单元格合并请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UnmergeTableCellsRequest {
+        /// table 行索引
+        pub row_index: i32,
+        /// table 列索引
+        pub column_index: i32,
+    }
+
+    /// 分栏插入新列请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct InsertGridColumnRequest {
+        /// 插入列索引（从 1 开始；-1 表示在末尾插入）
+        pub column_index: i32,
+    }
+
+    /// 分栏删除列请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct DeleteGridColumnRequest {
+        /// 删除列索引（从 1 开始）
+        pub column_index: i32,
+    }
+
+    /// 更新分栏列宽比例请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UpdateGridColumnWidthRatioRequest {
+        /// 各列宽度比例列表（顺序对应各列）
+        pub width_ratios: Vec<i32>,
+    }
+
+    /// 替换图片请求（需先上传图片）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct ReplaceImageRequest {
+        /// 新图片的 token
+        pub token: String,
+    }
+
+    /// 替换文件请求（需先上传文件）
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct ReplaceFileRequest {
+        /// 新文件的 token
+        pub token: String,
+    }
+
+    /// 更新文本元素与样式请求
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct UpdateTextRequest {
+        /// 文本元素列表
+        pub elements: Vec<TextElement>,
+        /// 文本样式
+        pub style: TextStyle,
+        /// 应更新的字段（必须至少指定一个）
+        pub fields: Vec<i32>,
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_insert_table_row_serializes_to_single_key() {
+            let op = BlockUpdateOperation::InsertTableRow(InsertTableRowRequest { row_index: 2 });
+            let json = serde_json::to_value(&op).unwrap();
+            assert_eq!(json["insert_table_row"]["row_index"], 2);
+            assert_eq!(json.as_object().unwrap().len(), 1);
+        }
+
+        #[test]
+        fn test_merge_table_cells_all_fields() {
+            let op = BlockUpdateOperation::MergeTableCells(MergeTableCellsRequest {
+                row_start_index: 0,
+                row_end_index: 1,
+                column_start_index: 0,
+                column_end_index: 2,
+            });
+            let json = serde_json::to_value(&op).unwrap();
+            let inner = &json["merge_table_cells"];
+            assert_eq!(inner["row_start_index"], 0);
+            assert_eq!(inner["row_end_index"], 1);
+            assert_eq!(inner["column_start_index"], 0);
+            assert_eq!(inner["column_end_index"], 2);
+        }
+
+        #[test]
+        fn test_raw_passthrough_roundtrip() {
+            let raw = serde_json::json!({"some_future_op": {"x": 1}});
+            let op: BlockUpdateOperation = serde_json::from_value(raw.clone()).unwrap();
+            match op {
+                BlockUpdateOperation::Raw(v) => assert_eq!(v, raw),
+                other => panic!("expected Raw, got {other:?}"),
+            }
+        }
     }
 }
 

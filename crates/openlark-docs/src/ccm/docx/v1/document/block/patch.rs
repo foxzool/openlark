@@ -3,6 +3,7 @@
 /// 更新指定块的内容。如果操作成功，接口将返回更新后的块的富文本内容。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block/patch
 /// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block/patch
+use crate::ccm::docx::models::block_update::BlockUpdateOperation;
 use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::api_endpoints::DocxApiV1;
 use openlark_core::{
@@ -26,9 +27,9 @@ pub struct UpdateDocumentBlockParams {
     /// 块ID
     #[serde(skip_serializing)]
     pub block_id: String,
-    /// 更新内容（按文档定义传入，例如 update_text_elements 等）
+    /// 更新操作（update_text_elements / insert_table_row 等 15 种之一）
     #[serde(flatten)]
-    pub update: serde_json::Value,
+    pub update: BlockUpdateOperation,
 }
 
 /// 更新块内容响应
@@ -97,6 +98,11 @@ mod tests {
 
     use serde_json;
 
+    use super::*;
+    use crate::ccm::docx::models::block_update::{
+        BlockUpdateOperation, InsertTableRowRequest, MergeTableCellsRequest,
+    };
+
     #[test]
     fn test_serialization_roundtrip() {
         // 基础序列化测试
@@ -110,5 +116,42 @@ mod tests {
         let json = r#"{"field": "data"}"#;
         let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(value["field"], "data");
+    }
+
+    #[test]
+    fn test_block_update_operation_serializes_to_single_key() {
+        // 官方期望 JSON：{"insert_table_row": {"row_index": 2}}
+        let op = BlockUpdateOperation::InsertTableRow(InsertTableRowRequest { row_index: 2 });
+        let json = serde_json::to_value(&op).unwrap();
+        assert_eq!(json["insert_table_row"]["row_index"], 2);
+        assert_eq!(json.as_object().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_block_update_operation_merge_cells_all_fields() {
+        let op = BlockUpdateOperation::MergeTableCells(MergeTableCellsRequest {
+            row_start_index: 0,
+            row_end_index: 1,
+            column_start_index: 0,
+            column_end_index: 2,
+        });
+        let json = serde_json::to_value(&op).unwrap();
+        let inner = &json["merge_table_cells"];
+        assert_eq!(inner["row_start_index"], 0);
+        assert_eq!(inner["column_end_index"], 2);
+    }
+
+    #[test]
+    fn test_update_document_block_params_flatten_serialization() {
+        // Params 通过 #[serde(flatten)] 把 update 操作平铺到顶层
+        let params = UpdateDocumentBlockParams {
+            document_id: "docx123".to_string(),
+            block_id: "block456".to_string(),
+            update: BlockUpdateOperation::InsertTableRow(InsertTableRowRequest { row_index: 1 }),
+        };
+        let json = serde_json::to_value(&params).unwrap();
+        assert_eq!(json["insert_table_row"]["row_index"], 1);
+        // 路径字段不参与序列化
+        assert!(json.get("document_id").is_none());
     }
 }
