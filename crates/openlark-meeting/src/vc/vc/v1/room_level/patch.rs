@@ -3,8 +3,8 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/patch
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport,
-    req_option::RequestOption, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
@@ -17,6 +17,7 @@ pub struct PatchRoomLevelRequest {
 }
 
 impl PatchRoomLevelRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -36,7 +37,8 @@ impl PatchRoomLevelRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/patch
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -59,7 +61,7 @@ impl PatchRoomLevelRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

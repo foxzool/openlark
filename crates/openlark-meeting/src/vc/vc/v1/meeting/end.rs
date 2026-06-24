@@ -3,11 +3,12 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/end
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +36,7 @@ impl ApiResponseTrait for EndMeetingResponse {
 }
 
 impl EndMeetingRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -54,7 +56,8 @@ impl EndMeetingRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/end
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<EndMeetingResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -76,7 +79,7 @@ impl EndMeetingRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

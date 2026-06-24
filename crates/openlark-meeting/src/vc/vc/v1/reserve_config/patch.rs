@@ -3,8 +3,8 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/patch
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::common::api_endpoints::VcApiV1;
@@ -17,6 +17,7 @@ pub struct PatchReserveConfigRequest {
 }
 
 impl PatchReserveConfigRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -58,7 +59,7 @@ impl PatchReserveConfigRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

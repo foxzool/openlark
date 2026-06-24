@@ -3,7 +3,7 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/reserve_scope
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
 use crate::common::api_utils::extract_response_data;
@@ -15,6 +15,7 @@ pub struct GetReserveScopeRequest {
 }
 
 impl GetReserveScopeRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -52,7 +53,7 @@ impl GetReserveScopeRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

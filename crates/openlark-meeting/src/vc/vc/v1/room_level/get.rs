@@ -3,16 +3,16 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::api_endpoints::VcApiV1;
 use crate::common::api_utils::{extract_response_data, validate_required_field};
-use crate::endpoints::VC_V1_ROOM_LEVEL_GET;
 
 /// 查询会议室层级详情请求
 
@@ -35,6 +35,7 @@ pub struct GetRoomLevelResponse {
     pub name: String,
     /// 容量范围
     pub capacity_min: Option<i32>,
+    /// 待补充文档。
     pub capacity_max: Option<i32>,
 }
 
@@ -99,7 +100,7 @@ impl GetRoomLevelRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

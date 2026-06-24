@@ -3,10 +3,9 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting/list_by_no
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_endpoints::VcApiV1;
 use crate::common::api_utils::extract_response_data;
 
 /// 获取与会议号关联的会议列表请求
@@ -16,6 +15,7 @@ pub struct ListByNoMeetingRequest {
 }
 
 impl ListByNoMeetingRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -52,7 +52,7 @@ impl ListByNoMeetingRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]
