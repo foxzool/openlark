@@ -30,9 +30,6 @@ chrono = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
-# 日志记录
-tracing = { workspace = true }
-
 # UUID
 uuid = { workspace = true, features = ["v4", "serde"] }
 
