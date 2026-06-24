@@ -2,7 +2,7 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：78 个
+# 当前存量孤儿：70 个
 
 openlark-auth: crates/openlark-auth/src/common/cache.rs
 openlark-auth: crates/openlark-auth/src/common/refresh.rs
@@ -15,16 +15,8 @@ openlark-client: crates/openlark-client/src/ws_client/tests.rs
 openlark-communication: crates/openlark-communication/src/card/mod.rs
 openlark-communication: crates/openlark-communication/src/im_message/mod.rs
 openlark-core: crates/openlark-core/src/testing/mock_server.rs
-openlark-docs: crates/openlark-docs/src/ccm/doc/mod.rs
 openlark-docs: crates/openlark-docs/src/ccm/doc/v1/mod.rs
 openlark-docs: crates/openlark-docs/src/ccm/doc/v1/models.rs
-openlark-docs: crates/openlark-docs/src/ccm/doc/v2/mod.rs
-openlark-docs: crates/openlark-docs/src/ccm/doc/v2/models.rs
-openlark-docs: crates/openlark-docs/src/ccm/export_tasks/mod.rs
-openlark-docs: crates/openlark-docs/src/ccm/export_tasks/models.rs
-openlark-docs: crates/openlark-docs/src/ccm/export_tasks/services.rs
-openlark-docs: crates/openlark-docs/src/ccm/models/mod.rs
-openlark-docs: crates/openlark-docs/src/ccm/sheet/mod.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/mod.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/search.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process/query_flow_data_template/create.rs

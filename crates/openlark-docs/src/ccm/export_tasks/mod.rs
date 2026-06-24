@@ -1,43 +1,21 @@
-/// 导出任务API模块
-///
-/// 提供文档导出任务相关的功能，包括：
-/// - 创建导出任务
-/// - 查询导出任务状态
-/// - 下载导出文件
-///
-/// # 示例
-/// ```rust
-/// use openlark_docs::ccm::export_tasks::{ExportTasksService, CreateExportTaskRequest};
-///
-/// let service = ExportTasksService::new(config);
-///
-/// // 创建导出任务
-/// let request = CreateExportTaskRequest {
-///     file_token: "file_token_xxx".to_string(),
-///     file_type: "doc".to_string(),
-///     export_type: "pdf".to_string(),
-///     export_name: Some("导出文档".to_string()),
-///     
-/// };
-///
-/// let response = service.create_export_task(&request).await?;
-/// ```
+//! 导出任务 API 模块。
+//!
+//! 提供文档导出任务相关的数据模型，包括：
+//! - 创建导出任务（`CreateExportTaskRequest`）
+//! - 查询导出任务状态（`GetExportTaskRequest`）
+//! - 下载导出文件（`DownloadExportFileRequest`）
+//!
+//! 注意：服务实现（`services`）为占位模块，待后续补充。
 
 /// 数据模型定义
 pub mod models;
 
-/// API服务实现
+/// API 服务实现（占位）
 pub mod services;
 
 // 重新导出主要类型
-// models 模块显式导出
 pub use models::{
-    CreateExportTaskRequest,
-    CreateExportTaskResponse,
-    DownloadExportFileRequest,
-    DownloadExportFileResponse,
-    ExportTaskResult,
-    ExportTaskStatus,
-    GetExportTaskRequest,
+    CreateExportTaskRequest, CreateExportTaskResponse, DownloadExportFileRequest,
+    DownloadExportFileResponse, ExportTaskResult, ExportTaskStatus, GetExportTaskRequest,
     GetExportTaskResponse,
 };
