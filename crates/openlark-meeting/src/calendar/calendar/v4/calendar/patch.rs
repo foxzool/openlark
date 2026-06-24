@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/patch
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use crate::common::api_utils::{extract_response_data, validate_required_field};
@@ -24,6 +24,7 @@ pub struct PatchCalendarRequest {
 /// 更新日历信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PatchCalendarResponse {
+    /// 待补充文档。
     pub calendar: CalendarData,
 }
 
@@ -62,6 +63,7 @@ pub struct CalendarPermissions {
 }
 
 impl PatchCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -81,9 +83,11 @@ impl PatchCalendarRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/patch
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<PatchCalendarResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         body: serde_json::Value,
@@ -101,7 +105,7 @@ impl PatchCalendarRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

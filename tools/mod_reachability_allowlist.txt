@@ -2,7 +2,7 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：370 个
+# 当前存量孤儿：343 个
 
 openlark-analytics: crates/openlark-analytics/src/common/constants.rs
 openlark-analytics: crates/openlark-analytics/src/report/report/v1/rule/query.rs
@@ -151,33 +151,6 @@ openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/delete.rs
 openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/event/subscription.rs
 openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/message/attachment/download_url.rs
 openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/rule/update.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/create.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/delete.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/attendee/batch_delete.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/attendee/create.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/attendee/list.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/create.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/delete.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/get.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/instance_view.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/instances.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/list.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/patch.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/reply.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/search.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/subscription.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/event/unsubscription.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/get.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/list.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/mget.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/patch.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/primary.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/primarys.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/search.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/subscribe.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/subscription.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/unsubscribe.rs
-openlark-meeting: crates/openlark-meeting/src/calendar/calendar/v4/calendar/unsubscription.rs
 openlark-meeting: crates/openlark-meeting/src/meeting_room/responses.rs
 openlark-meeting: crates/openlark-meeting/src/vc/vc/v1/meeting/end.rs
 openlark-meeting: crates/openlark-meeting/src/vc/vc/v1/meeting/get.rs

@@ -3,11 +3,12 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +36,7 @@ impl ApiResponseTrait for CreateCalendarEventResponse {
 }
 
 impl CreateCalendarEventRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -54,9 +56,11 @@ impl CreateCalendarEventRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateCalendarEventResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         body: serde_json::Value,
@@ -76,13 +80,15 @@ impl CreateCalendarEventRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
-        let request = CreateCalendarEventRequest::new(config.clone())
-            .calendar_id("test".to_string());
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
+        let request =
+            CreateCalendarEventRequest::new(config.clone()).calendar_id("test".to_string());
         let _ = request;
     }
 }

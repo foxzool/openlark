@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use crate::common::api_utils::extract_response_data;
@@ -67,6 +67,7 @@ impl ApiResponseTrait for ListCalendarResponse {
 }
 
 impl ListCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -87,7 +88,11 @@ impl ListCalendarRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListCalendarResponse> {
+    /// 待补充文档。
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<ListCalendarResponse> {
         let mut api_request: ApiRequest<ListCalendarResponse> =
             ApiRequest::get(CALENDAR_V4_CALENDARS);
 
@@ -112,8 +117,14 @@ mod tests {
             .query_param("page_token", "token123");
 
         assert_eq!(request.query_params.len(), 2);
-        assert_eq!(request.query_params[0], ("page_size".to_string(), "20".to_string()));
-        assert_eq!(request.query_params[1], ("page_token".to_string(), "token123".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("page_size".to_string(), "20".to_string())
+        );
+        assert_eq!(
+            request.query_params[1],
+            ("page_token".to_string(), "token123".to_string())
+        );
     }
 
     #[test]
@@ -127,10 +138,12 @@ mod tests {
     #[test]
     fn test_list_calendar_request_single_param() {
         let config = Config::default();
-        let request = ListCalendarRequest::new(config)
-            .query_param("user_id_type", "union_id");
+        let request = ListCalendarRequest::new(config).query_param("user_id_type", "union_id");
 
         assert_eq!(request.query_params.len(), 1);
-        assert_eq!(request.query_params[0], ("user_id_type".to_string(), "union_id".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("user_id_type".to_string(), "union_id".to_string())
+        );
     }
 }

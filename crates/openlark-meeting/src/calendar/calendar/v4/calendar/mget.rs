@@ -3,7 +3,7 @@
 //! docPath: https://open.feishu.cn/document/calendar-v4/calendar/mget-3
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
 use crate::{
@@ -17,6 +17,7 @@ pub struct MgetCalendarRequest {
 }
 
 impl MgetCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -27,9 +28,11 @@ impl MgetCalendarRequest {
     ///
     /// docPath: https://open.feishu.cn/document/calendar-v4/calendar/mget-3
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         body: serde_json::Value,
@@ -46,7 +49,7 @@ impl MgetCalendarRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

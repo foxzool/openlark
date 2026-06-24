@@ -3,10 +3,9 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/unsubscription
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_endpoints::CalendarApiV4;
 use crate::common::api_utils::{extract_response_data, serialize_params};
 
 /// 取消订阅日历变更事件请求
@@ -15,6 +14,7 @@ pub struct UnsubscriptionCalendarRequest {
 }
 
 impl UnsubscriptionCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -47,7 +47,7 @@ impl UnsubscriptionCalendarRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]
