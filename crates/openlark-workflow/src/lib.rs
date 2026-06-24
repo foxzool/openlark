@@ -89,6 +89,10 @@ pub mod v2;
 /// 白板/看板模块。
 pub mod board;
 
+// 审批模块（v4 审批定义/实例/任务、外部审批）
+/// 审批 API 模块。
+pub mod approval;
+
 // Prelude 模块
 /// 常用工作流类型预导出模块。
 pub mod prelude;

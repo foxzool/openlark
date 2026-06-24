@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/cc
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, validate_required_list, SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -34,6 +35,7 @@ pub struct CcInstanceRequestV4 {
 }
 
 impl CcInstanceRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -97,7 +99,6 @@ impl ApiResponseTrait for CcInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_cc_v4_url() {

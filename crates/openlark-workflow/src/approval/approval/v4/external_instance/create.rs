@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_instance/create
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,6 +53,7 @@ pub struct CreateExternalInstanceRequestV4 {
 }
 
 impl CreateExternalInstanceRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -108,7 +110,8 @@ impl CreateExternalInstanceRequestV4 {
         validate_required!(self.body.user_id.trim(), "发起人用户 ID 不能为空");
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::ExternalInstanceCreate;
-        let mut request = ApiRequest::<CreateExternalInstanceResponseV4>::post(api_endpoint.to_url());
+        let mut request =
+            ApiRequest::<CreateExternalInstanceResponseV4>::post(api_endpoint.to_url());
 
         let body_json = serde_json::to_value(&self.body).map_err(|e| {
             openlark_core::error::validation_error("序列化请求体失败", e.to_string().as_str())
@@ -133,7 +136,6 @@ impl ApiResponseTrait for CreateExternalInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_external_instance_create_v4_url() {

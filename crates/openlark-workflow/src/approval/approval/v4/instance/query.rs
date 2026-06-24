@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query-2
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 审批实例列表项（v4）
@@ -37,6 +37,7 @@ pub struct QueryInstanceRequestV4 {
 }
 
 impl QueryInstanceRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
@@ -72,7 +73,6 @@ impl ApiResponseTrait for QueryInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_query_v4_url() {

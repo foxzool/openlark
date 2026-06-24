@@ -44,6 +44,7 @@ pub struct ResubmitTaskRequestV4 {
 }
 
 impl ResubmitTaskRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,

@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval-search/search_cc
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 审批抄送列表项（v4）
@@ -37,6 +37,7 @@ pub struct SearchCcRequestV4 {
 }
 
 impl SearchCcRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
@@ -72,11 +73,13 @@ impl ApiResponseTrait for SearchCcResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_search_cc_v4_url() {
         let endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceSearchCc;
-        assert_eq!(endpoint.to_url(), "/open-apis/approval/v4/instances/search_cc");
+        assert_eq!(
+            endpoint.to_url(),
+            "/open-apis/approval/v4/instances/search_cc"
+        );
     }
 }

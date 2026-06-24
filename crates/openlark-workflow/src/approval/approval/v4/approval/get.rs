@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 审批定义详情（v4）
@@ -27,6 +27,7 @@ pub struct GetApprovalRequestV4 {
 }
 
 impl GetApprovalRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -66,7 +67,6 @@ impl ApiResponseTrait for GetApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_approval_get_v4_url() {

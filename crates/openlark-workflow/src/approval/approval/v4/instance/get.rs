@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 审批实例详情（v4）
@@ -29,6 +29,7 @@ pub struct GetInstanceRequestV4 {
 }
 
 impl GetInstanceRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -68,7 +69,6 @@ impl ApiResponseTrait for GetInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_get_v4_url() {

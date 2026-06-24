@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/add_sign
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -41,6 +42,7 @@ pub struct AddSignRequestV4 {
 }
 
 impl AddSignRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -90,10 +92,7 @@ impl AddSignRequestV4 {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<AddSignResponseV4> {
         validate_required!(self.body.sign_type.trim(), "加签类型不能为空");
-        validate_required!(
-            !self.body.user_ids.is_empty(),
-            "加签处理人用户 ID 列表不能为空"
-        );
+        validate_required!(self.body.user_ids, "加签处理人用户 ID 列表不能为空");
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceAddSign;
         let mut request = ApiRequest::<AddSignResponseV4>::post(api_endpoint.to_url());
@@ -121,7 +120,6 @@ impl ApiResponseTrait for AddSignResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_add_sign_v4_url() {

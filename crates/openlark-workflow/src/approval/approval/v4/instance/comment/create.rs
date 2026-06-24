@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance_comment/create
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -38,6 +39,7 @@ pub struct CreateInstanceCommentRequestV4 {
 }
 
 impl CreateInstanceCommentRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -99,7 +101,6 @@ impl ApiResponseTrait for CreateInstanceCommentResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_comment_create_v4_url() {

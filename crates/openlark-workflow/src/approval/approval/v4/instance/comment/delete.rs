@@ -3,11 +3,12 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance_comment/delete
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 删除审批实例评论响应（v4）
@@ -23,6 +24,7 @@ pub struct DeleteInstanceCommentRequestV4 {
 }
 
 impl DeleteInstanceCommentRequestV4 {
+    /// 待补充文档。
     pub fn new(
         config: Arc<Config>,
         instance_id: impl Into<String>,
@@ -53,8 +55,7 @@ impl DeleteInstanceCommentRequestV4 {
             self.instance_id,
             self.comment_id,
         );
-        let request =
-            ApiRequest::<DeleteInstanceCommentResponseV4>::delete(api_endpoint.to_url());
+        let request = ApiRequest::<DeleteInstanceCommentResponseV4>::delete(api_endpoint.to_url());
 
         let response =
             openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
@@ -73,7 +74,6 @@ impl ApiResponseTrait for DeleteInstanceCommentResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_comment_delete_v4_url() {

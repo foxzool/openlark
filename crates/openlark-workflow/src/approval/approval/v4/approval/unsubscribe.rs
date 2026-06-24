@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/unsubscribe
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 取消订阅审批事件响应（v4）
@@ -25,6 +25,7 @@ pub struct UnsubscribeApprovalRequestV4 {
 }
 
 impl UnsubscribeApprovalRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -65,7 +66,6 @@ impl ApiResponseTrait for UnsubscribeApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_approval_unsubscribe_v4_url() {
