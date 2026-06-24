@@ -124,12 +124,20 @@ tools/tests/test_check_mod_reachability.py  # 单测（unittest，对齐现有 t
 
 ## 风险与边界
 
-- **已知孤儿存量**：main 上 communication 的 event/ 是已知孤儿（#225 未合并）。守卫上线时
-  该孤儿仍在；CI 处理策略：(a) 等 #225 合并后守卫自然转绿；或 (b) 守卫先加临时 allowlist。
-  **推荐 (a)**——#225 是 P0 会尽快合并，守卫作为净新增不引入回归。
+- **已知孤儿存量（重大）**：全仓扫描发现 **375 个孤儿文件，横跨 16 个 crate**
+  （workflow 127 / application 90 / meeting 42 / platform 31 …）。远超 #225 的单一 event/ 案例。
+  采用 **baseline allowlist 策略**：`tools/mod_reachability_allowlist.txt` 记录当前 375 个存量，
+  CI 只对**新增**孤儿失败（防回归），存量由各 crate 修复后从 allowlist 删除逐步收敛。
+  - 生成：`python3 tools/check_mod_reachability.py --update-allowlist`
+  - 脚本默认读 `tools/mod_reachability_allowlist.txt`；可 `--allowlist <path>` 覆盖。
 - **不检测**：非 `src/` 目录（tests/examples/benches）、inline `mod {}` 内的死代码
   （那是 dead_code lint 的职责，与本守卫正交）。
 - **性能**：全 workspace 20 crate × dep-info 解析，秒级；复用 build 缓存不重复编译。
+
+## 后续（不在 #227 范围）
+
+为孤儿最多的 crate 开独立 issue 清理死代码（workflow/application/meeting 优先），
+每修一个 crate 就从 allowlist 删对应行，最终 allowlist 收敛到空。
 
 ## 不在本次范围内（YAGNI）
 
