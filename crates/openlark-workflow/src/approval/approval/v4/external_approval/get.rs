@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_approval/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,6 +53,7 @@ pub struct GetExternalApprovalRequestV4 {
 }
 
 impl GetExternalApprovalRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -70,10 +72,7 @@ impl GetExternalApprovalRequestV4 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetExternalApprovalResponseV4> {
-        validate_required!(
-            self.approval_code.trim(),
-            "审批定义 Code 不能为空"
-        );
+        validate_required!(self.approval_code.trim(), "审批定义 Code 不能为空");
 
         let api_endpoint =
             crate::common::api_endpoints::ApprovalApiV4::ExternalApprovalGet(self.approval_code);
@@ -96,7 +95,6 @@ impl ApiResponseTrait for GetExternalApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_external_approval_get_v4_url() {

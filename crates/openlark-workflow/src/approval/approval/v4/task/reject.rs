@@ -45,6 +45,7 @@ pub struct RejectTaskRequestV4 {
 }
 
 impl RejectTaskRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,

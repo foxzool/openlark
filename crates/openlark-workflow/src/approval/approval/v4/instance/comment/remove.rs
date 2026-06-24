@@ -3,11 +3,12 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance-comment/remove
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 清空评论响应（v4）
@@ -25,6 +26,7 @@ pub struct RemoveInstanceCommentRequestV4 {
 }
 
 impl RemoveInstanceCommentRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -68,16 +70,18 @@ impl ApiResponseTrait for RemoveInstanceCommentResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
+    use super::*;
+    use std::sync::Arc;
 
     #[test]
     fn test_instance_comment_remove_v4_url() {
         let request = RemoveInstanceCommentRequestV4::new(
-            openlark_core::config::Config::builder()
-                .app_id("test_app_id")
-                .app_secret("test_app_secret")
-                .build()
-                .expect("测试配置构建失败"),
+            Arc::new(
+                openlark_core::config::Config::builder()
+                    .app_id("test_app_id")
+                    .app_secret("test_app_secret")
+                    .build(),
+            ),
             "test_instance_id".to_string(),
         );
         // Just verify it doesn't panic

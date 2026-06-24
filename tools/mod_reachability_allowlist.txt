@@ -2,7 +2,7 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：241 个
+# 当前存量孤儿：205 个
 
 openlark-analytics: crates/openlark-analytics/src/common/constants.rs
 openlark-analytics: crates/openlark-analytics/src/report/report/v1/rule/query.rs
@@ -205,42 +205,6 @@ openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/s
 openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/get.rs
 openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/list.rs
 openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/patch.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/approval/create.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/approval/get.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/approval/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/approval/subscribe.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/approval/unsubscribe.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/district/list.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/district/search.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_approval/create.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_approval/get.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_approval/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_instance/check.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_instance/create.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_instance/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_task/list.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/external_task/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/add_sign.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/cancel.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/cc.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/comment/create.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/comment/delete.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/comment/list.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/comment/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/comment/remove.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/create.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/get.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/list.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/preview.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/query.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/search_cc.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/instance/specified_rollback.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/task/mod.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/task/search.rs
-openlark-workflow: crates/openlark-workflow/src/approval/approval/v4/task/transfer.rs
-openlark-workflow: crates/openlark-workflow/src/approval/mod.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_collaborator.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_follower.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v2/custom_field/patch.rs

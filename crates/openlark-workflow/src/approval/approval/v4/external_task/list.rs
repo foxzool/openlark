@@ -3,9 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_task/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -50,6 +51,7 @@ pub struct ListExternalTaskRequestV4 {
 }
 
 impl ListExternalTaskRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -80,10 +82,7 @@ impl ListExternalTaskRequestV4 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListExternalTaskResponseV4> {
-        validate_required!(
-            !self.body.instance_ids.is_empty(),
-            "审批实例 ID 列表不能为空"
-        );
+        validate_required!(self.body.instance_ids, "审批实例 ID 列表不能为空");
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::ExternalTaskList;
         let mut request = ApiRequest::<ListExternalTaskResponseV4>::get(api_endpoint.to_url());

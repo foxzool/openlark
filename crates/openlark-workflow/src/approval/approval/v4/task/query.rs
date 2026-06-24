@@ -59,6 +59,7 @@ pub struct QueryTaskRequestV4 {
 }
 
 impl QueryTaskRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -70,26 +71,31 @@ impl QueryTaskRequestV4 {
         }
     }
 
+    /// 待补充文档。
     pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
         self.user_id = user_id.into();
         self
     }
 
+    /// 待补充文档。
     pub fn topic(mut self, topic: impl Into<String>) -> Self {
         self.topic = topic.into();
         self
     }
 
+    /// 待补充文档。
     pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
         self.user_id_type = Some(user_id_type.into());
         self
     }
 
+    /// 待补充文档。
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
     }
 
+    /// 待补充文档。
     pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
         self.page_token = Some(page_token.into());
         self

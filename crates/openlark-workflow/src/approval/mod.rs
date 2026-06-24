@@ -7,9 +7,7 @@
 //! - 审批流程：审批定义、实例与任务管理
 //! - 外部审批：外部审批单据、实例与任务对接
 
-pub mod v4;
+pub mod approval;
 
 // v4 模块显式导出
-pub use v4::{
-    approval, external_approval, external_instance, external_task, instance, task,
-};
+pub use approval::v4::{external_approval, external_instance, external_task, instance, task};

@@ -3,11 +3,12 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance_comment/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 审批实例评论
@@ -54,6 +55,7 @@ pub struct ListInstanceCommentRequestV4 {
 }
 
 impl ListInstanceCommentRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -90,8 +92,7 @@ impl ListInstanceCommentRequestV4 {
 
         let api_endpoint =
             crate::common::api_endpoints::ApprovalApiV4::InstanceCommentList(self.instance_id);
-        let mut request =
-            ApiRequest::<ListInstanceCommentResponseV4>::get(api_endpoint.to_url());
+        let mut request = ApiRequest::<ListInstanceCommentResponseV4>::get(api_endpoint.to_url());
 
         if let Some(page_size) = self.page_size {
             request = request.query_param("page_size", page_size.to_string());
@@ -117,7 +118,6 @@ impl ApiResponseTrait for ListInstanceCommentResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_comment_list_v4_url() {

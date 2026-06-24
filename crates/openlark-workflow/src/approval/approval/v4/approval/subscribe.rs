@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/subscribe
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 订阅审批事件响应（v4）
@@ -25,6 +25,7 @@ pub struct SubscribeApprovalRequestV4 {
 }
 
 impl SubscribeApprovalRequestV4 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -65,12 +66,12 @@ impl ApiResponseTrait for SubscribeApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_approval_subscribe_v4_url() {
-        let endpoint =
-            crate::common::api_endpoints::ApprovalApiV4::ApprovalSubscribe("approval_123".to_string());
+        let endpoint = crate::common::api_endpoints::ApprovalApiV4::ApprovalSubscribe(
+            "approval_123".to_string(),
+        );
         assert_eq!(
             endpoint.to_url(),
             "/open-apis/approval/v4/approvals/approval_123/subscribe"
