@@ -30,6 +30,11 @@ chrono = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
+# 日志记录
+# 注：tracing 当前在 openlark-auth 源码内未直接使用（原 common/ 缓存实现已删除），
+# 但移除会触发 MSRV(1.88) Cargo.lock 重解析不一致（见 #244 CI）。保留以维持锁文件稳定。
+tracing = { workspace = true }
+
 # UUID
 uuid = { workspace = true, features = ["v4", "serde"] }
 
@@ -76,4 +81,4 @@ advanced-cache = ["cache", "encryption"]
 monitoring = []
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "base64", "criterion", "hex", "hmac", "pbkdf2", "rand", "regex", "reqwest", "ring", "sha2", "thiserror", "url"]
+ignored = ["anyhow", "base64", "criterion", "hex", "hmac", "pbkdf2", "rand", "regex", "reqwest", "ring", "sha2", "thiserror", "tracing", "url"]
