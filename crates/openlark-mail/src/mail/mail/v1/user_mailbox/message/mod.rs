@@ -102,3 +102,5 @@ pub mod list_thread_message;
 pub mod modify;
 /// trash 模块。
 pub mod trash;
+
+pub mod attachment;

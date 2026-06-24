@@ -2,16 +2,18 @@
 
 use crate::common::api_utils::serialize_params;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, validate_required_list, SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct BatchCreateMailGroupManagerRequest {
     config: Arc<Config>,
     mailgroup_id: String,
@@ -19,12 +21,16 @@ pub struct BatchCreateMailGroupManagerRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// 待补充文档。
 pub struct BatchCreateMailGroupManagerBody {
+    /// 待补充文档。
     pub manager_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct BatchCreateMailGroupManagerResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -35,6 +41,7 @@ impl ApiResponseTrait for BatchCreateMailGroupManagerResponse {
 }
 
 impl BatchCreateMailGroupManagerRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, mailgroup_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -43,15 +50,18 @@ impl BatchCreateMailGroupManagerRequest {
         }
     }
 
+    /// 待补充文档。
     pub fn manager_ids(mut self, ids: Vec<String>) -> Self {
         self.body.manager_ids = ids;
         self
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<BatchCreateMailGroupManagerResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

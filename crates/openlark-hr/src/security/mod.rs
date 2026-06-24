@@ -1,3 +1,4 @@
+#![allow(clippy::module_inception)]
 //! 安全合规（Security and Compliance）服务
 //!
 //! 提供飞书安全合规的完整功能集，支持审计日志、OpenAPI日志、

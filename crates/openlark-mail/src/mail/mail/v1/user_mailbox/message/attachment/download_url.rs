@@ -2,16 +2,17 @@
 //! docPath: https://open.feishu.cn/document/mail-v1/user_mailbox-message/user_mailbox-message-attachment/download_url
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetAttachmentDownloadUrlRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
@@ -20,7 +21,9 @@ pub struct GetAttachmentDownloadUrlRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetAttachmentDownloadUrlResponse {
+    /// 待补充文档。
     pub data: Option<DownloadUrlData>,
 }
 
@@ -31,12 +34,16 @@ impl ApiResponseTrait for GetAttachmentDownloadUrlResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct DownloadUrlData {
+    /// 待补充文档。
     pub download_url: String,
+    /// 待补充文档。
     pub expire_time: String,
 }
 
 impl GetAttachmentDownloadUrlRequest {
+    /// 待补充文档。
     pub fn new(
         config: Arc<Config>,
         user_mailbox_id: impl Into<String>,
@@ -51,10 +58,12 @@ impl GetAttachmentDownloadUrlRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetAttachmentDownloadUrlResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

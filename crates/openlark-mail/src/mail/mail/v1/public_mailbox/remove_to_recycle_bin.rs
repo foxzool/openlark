@@ -2,27 +2,37 @@
 //! docPath: https://open.feishu.cn/document/mail-v1/public-mailbox/public_mailbox/remove_to_recycle_bin
 
 use openlark_core::{
-    api::ApiRequest,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct RemovePublicMailboxToRecycleBinRequest {
     config: Arc<Config>,
     public_mailbox_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct RemovePublicMailboxToRecycleBinResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
+impl ApiResponseTrait for RemovePublicMailboxToRecycleBinResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
+    }
+}
+
 impl RemovePublicMailboxToRecycleBinRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, public_mailbox_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -30,10 +40,12 @@ impl RemovePublicMailboxToRecycleBinRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<RemovePublicMailboxToRecycleBinResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
@@ -45,7 +57,9 @@ impl RemovePublicMailboxToRecycleBinRequest {
         let req: ApiRequest<RemovePublicMailboxToRecycleBinResponse> = ApiRequest::delete(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        Ok(resp)
+        resp.data.ok_or_else(|| {
+            openlark_core::error::validation_error("将公共邮箱移至回收站", "响应数据为空")
+        })
     }
 }
 

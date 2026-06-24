@@ -110,3 +110,5 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+pub mod remove_to_recycle_bin;

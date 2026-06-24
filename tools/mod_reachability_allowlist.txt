@@ -2,7 +2,7 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：115 个
+# 当前存量孤儿：97 个
 
 openlark-analytics: crates/openlark-analytics/src/common/constants.rs
 openlark-analytics: crates/openlark-analytics/src/report/report/v1/rule/query.rs
@@ -35,32 +35,14 @@ openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_cust
 openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/list.rs
 openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/mod.rs
 openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/patch.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/company/query_multi_timeline.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/mod.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/search.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/location/query_multi_timeline.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/probation/edit.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process/query_flow_data_template/create.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process_start/create.rs
 openlark-hr: crates/openlark-hr/src/mod.rs
 openlark-hr: crates/openlark-hr/src/security/audit_log/mod.rs
 openlark-hr: crates/openlark-hr/src/security/mod.rs
 openlark-hr: crates/openlark-hr/src/security/openapi_log/mod.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/batch_create.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/batch_delete.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/list.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/member/batch_delete.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/member/get.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/mailgroup/member/list.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/public_mailbox/member/batch_create.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/public_mailbox/member/batch_delete.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/public_mailbox/member/clear.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/public_mailbox/remove_to_recycle_bin.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/user/query.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/delete.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/event/subscription.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/message/attachment/download_url.rs
-openlark-mail: crates/openlark-mail/src/mail/mail/v1/user_mailbox/rule/update.rs
 openlark-platform: crates/openlark-platform/src/admin/admin/v1/audit_info/list.rs
 openlark-platform: crates/openlark-platform/src/admin/admin/v1/audit_info/list/mod.rs
 openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/app/list.rs

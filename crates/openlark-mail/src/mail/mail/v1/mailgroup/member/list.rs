@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct ListMailGroupMemberRequest {
     config: Arc<Config>,
     mailgroup_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ListMailGroupMemberResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,6 +32,7 @@ impl ApiResponseTrait for ListMailGroupMemberResponse {
 }
 
 impl ListMailGroupMemberRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, mailgroup_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -36,10 +40,12 @@ impl ListMailGroupMemberRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<ListMailGroupMemberResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
@@ -72,7 +78,7 @@ mod tests {
                 .app_secret("test_secret")
                 .build(),
         );
-        let config = openlark_core::config::Config::builder()
+        let _config = openlark_core::config::Config::builder()
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
