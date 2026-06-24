@@ -2,11 +2,12 @@
 //!
 //! docPath: https://open.feishu.cn/document/task-v2/custom_field/patch
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_utils::*;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -49,6 +50,7 @@ pub struct PatchCustomFieldRequest {
 }
 
 impl PatchCustomFieldRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, custom_field_guid: impl Into<String>) -> Self {
         Self {
             config,
