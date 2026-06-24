@@ -28,6 +28,9 @@ pub const EVENT_V1_DISPATCHER_STATUS: &str = "/open-apis/event/v1/dispatcher/sta
 /// 事件推送出口 IP 查询接口。
 pub const EVENT_V1_OUTBOUND_IP: &str = "/open-apis/event/v1/outbound_ip";
 
+/// 获取长连接在线数量接口。
+pub const EVENT_V1_CONNECTION: &str = "/open-apis/event/v1/connection";
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -41,5 +44,7 @@ mod tests {
         assert!(EVENT_V1_DISPATCHER.contains("dispatcher"));
         assert!(EVENT_V1_SUBSCRIPTION_CREATE.contains("create"));
         assert!(EVENT_V1_SUBSCRIPTION_DELETE.contains("{subscription_id}"));
+        assert!(EVENT_V1_CONNECTION.starts_with("/open-apis/event/v1/"));
+        assert!(EVENT_V1_CONNECTION.ends_with("/connection"));
     }
 }
