@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat,
-    req_option::RequestOption},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +34,7 @@ impl ApiResponseTrait for CreateRoomLevelResponse {
 }
 
 impl CreateRoomLevelRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -44,7 +45,8 @@ impl CreateRoomLevelRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateRoomLevelResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -65,11 +67,13 @@ impl CreateRoomLevelRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = CreateRoomLevelRequest::new(config.clone());
         let _ = request;
     }

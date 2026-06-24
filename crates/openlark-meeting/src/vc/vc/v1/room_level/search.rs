@@ -2,8 +2,9 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/search
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport,
-    req_option::RequestOption, SDKResult};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+};
 
 use crate::common::api_utils::extract_response_data;
 use crate::endpoints::VC_V1_ROOM_LEVELS;
@@ -15,6 +16,7 @@ pub struct SearchRoomLevelRequest {
 }
 
 impl SearchRoomLevelRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -32,14 +34,11 @@ impl SearchRoomLevelRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/search
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
-
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
-
         // url: GET:/open-apis/vc/v1/room_levels/search
         let mut req: ApiRequest<serde_json::Value> =
             ApiRequest::get(format!("{}/search", VC_V1_ROOM_LEVELS));
@@ -49,14 +48,12 @@ impl SearchRoomLevelRequest {
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "搜索会议室层级")
-
     }
-
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

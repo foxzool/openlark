@@ -17,3 +17,6 @@ pub mod service;
 pub mod summary;
 
 pub use service::MeetingRoomService;
+
+/// responses 模块。
+pub mod responses;

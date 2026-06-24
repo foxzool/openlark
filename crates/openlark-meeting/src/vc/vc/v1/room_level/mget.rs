@@ -2,7 +2,9 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+};
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::VC_V1_ROOM_LEVELS;
@@ -13,6 +15,7 @@ pub struct MgetRoomLevelRequest {
 }
 
 impl MgetRoomLevelRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -21,7 +24,8 @@ impl MgetRoomLevelRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/mget
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -42,7 +46,7 @@ impl MgetRoomLevelRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]
