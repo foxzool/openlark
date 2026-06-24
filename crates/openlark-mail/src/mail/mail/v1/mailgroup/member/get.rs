@@ -2,16 +2,17 @@
 //! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetMailGroupMemberRequest {
     config: Arc<Config>,
     mailgroup_id: String,
@@ -19,7 +20,9 @@ pub struct GetMailGroupMemberRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetMailGroupMemberResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -30,6 +33,7 @@ impl ApiResponseTrait for GetMailGroupMemberResponse {
 }
 
 impl GetMailGroupMemberRequest {
+    /// 待补充文档。
     pub fn new(
         config: Arc<Config>,
         mailgroup_id: impl Into<String>,
@@ -42,10 +46,12 @@ impl GetMailGroupMemberRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetMailGroupMemberResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

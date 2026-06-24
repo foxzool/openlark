@@ -2,24 +2,26 @@
 //! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user_mailbox-alias/delete
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct DeleteUserMailboxRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct DeleteUserMailboxResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -30,18 +32,20 @@ impl ApiResponseTrait for DeleteUserMailboxResponse {
 }
 
 impl DeleteUserMailboxRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, user_mailbox_id: impl Into<String>) -> Self {
         Self {
             config,
             user_mailbox_id: user_mailbox_id.into(),
-            
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<DeleteUserMailboxResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

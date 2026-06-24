@@ -1,23 +1,26 @@
 //! 获取订阅状态
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetMailboxEventSubscriptionRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetMailboxEventSubscriptionResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,6 +31,7 @@ impl ApiResponseTrait for GetMailboxEventSubscriptionResponse {
 }
 
 impl GetMailboxEventSubscriptionRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, user_mailbox_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -35,10 +39,12 @@ impl GetMailboxEventSubscriptionRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetMailboxEventSubscriptionResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

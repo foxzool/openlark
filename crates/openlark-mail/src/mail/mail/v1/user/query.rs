@@ -2,23 +2,25 @@
 //! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user/query
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct QueryMailUserRequest {
     config: Arc<Config>,
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct QueryMailUserResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,22 +31,22 @@ impl ApiResponseTrait for QueryMailUserResponse {
 }
 
 impl QueryMailUserRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            
-        }
+        Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<QueryMailUserResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<QueryMailUserResponse> {
-        let path = format!("/open-apis/mail/v1/users/query");
+        let path = "/open-apis/mail/v1/users/query".to_string();
         let req: ApiRequest<QueryMailUserResponse> = ApiRequest::post(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;

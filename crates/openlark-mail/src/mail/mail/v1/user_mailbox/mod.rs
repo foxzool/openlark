@@ -128,3 +128,5 @@ pub mod setting;
 pub mod template;
 /// thread 模块。
 pub mod thread;
+
+pub mod delete;
