@@ -1,11 +1,11 @@
 //! 移除规则看板
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -43,9 +43,8 @@ impl RemoveReportRuleViewRequest {
         let req: ApiRequest<RemoveReportRuleViewResponse> = ApiRequest::post(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("移除规则看板", "响应数据为空")
-        })
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("移除规则看板", "响应数据为空"))
     }
 }
 

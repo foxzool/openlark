@@ -2,11 +2,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/report-v1/task/query
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -44,9 +44,8 @@ impl QueryReportTaskRequest {
         let req: ApiRequest<QueryReportTaskResponse> = ApiRequest::post(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询任务", "响应数据为空")
-        })
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("查询任务", "响应数据为空"))
     }
 }
 

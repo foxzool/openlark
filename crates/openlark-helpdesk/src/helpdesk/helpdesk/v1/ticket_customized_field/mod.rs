@@ -2,15 +2,15 @@
 //!
 //! 提供工单自定义字段相关的 API。
 
-pub mod list;
 /// 创建接口。
 pub mod create;
-/// 获取接口。
-pub mod get;
-/// 更新接口。
-pub mod patch;
 /// 删除接口。
 pub mod delete;
+/// 获取接口。
+pub mod get;
+pub mod list;
+/// 更新接口。
+pub mod patch;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -53,11 +53,11 @@ impl TicketCustomizedField {
     }
 }
 
-pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
 pub use create::{CreateTicketCustomizedFieldRequest, CreateTicketCustomizedFieldRequestBuilder};
-pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
-pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};
 pub use delete::{DeleteTicketCustomizedFieldRequest, DeleteTicketCustomizedFieldRequestBuilder};
+pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
+pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
+pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};
 
 #[cfg(test)]
 #[allow(unused_imports)]

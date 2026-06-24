@@ -5,11 +5,7 @@
 //! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/create
 
 use openlark_core::{
-    api::ApiRequest,
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
     validate_required,
 };
 use serde::{Deserialize, Serialize};
@@ -73,8 +69,12 @@ impl CreateTicketCustomizedFieldRequest {
     }
 
     /// 执行创建工单自定义字段请求
-    pub async fn execute(self, body: CreateTicketCustomizedFieldBody) -> SDKResult<CreateTicketCustomizedFieldResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+    pub async fn execute(
+        self,
+        body: CreateTicketCustomizedFieldBody,
+    ) -> SDKResult<CreateTicketCustomizedFieldResponse> {
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行创建工单自定义字段请求（支持自定义选项）
@@ -146,9 +146,9 @@ impl CreateTicketCustomizedFieldRequestBuilder {
 
     /// 执行请求
     pub async fn execute(&self) -> SDKResult<CreateTicketCustomizedFieldResponse> {
-        let body = self.body().map_err(|reason| {
-            openlark_core::error::validation_error("body", reason)
-        })?;
+        let body = self
+            .body()
+            .map_err(|reason| openlark_core::error::validation_error("body", reason))?;
         let request = CreateTicketCustomizedFieldRequest::new(self.config.clone());
         request.execute(body).await
     }

@@ -2,12 +2,8 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：97 个
+# 当前存量孤儿：78 个
 
-openlark-analytics: crates/openlark-analytics/src/common/constants.rs
-openlark-analytics: crates/openlark-analytics/src/report/report/v1/rule/query.rs
-openlark-analytics: crates/openlark-analytics/src/report/report/v1/rule/view/remove.rs
-openlark-analytics: crates/openlark-analytics/src/report/report/v1/task/query.rs
 openlark-auth: crates/openlark-auth/src/common/cache.rs
 openlark-auth: crates/openlark-auth/src/common/refresh.rs
 openlark-auth: crates/openlark-auth/src/common/token.rs
@@ -29,12 +25,6 @@ openlark-docs: crates/openlark-docs/src/ccm/export_tasks/models.rs
 openlark-docs: crates/openlark-docs/src/ccm/export_tasks/services.rs
 openlark-docs: crates/openlark-docs/src/ccm/models/mod.rs
 openlark-docs: crates/openlark-docs/src/ccm/sheet/mod.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/create.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/delete.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/get.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/list.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/mod.rs
-openlark-helpdesk: crates/openlark-helpdesk/src/helpdesk/helpdesk/v1/ticket_customized_field/patch.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/mod.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/search.rs
 openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process/query_flow_data_template/create.rs
@@ -88,15 +78,6 @@ openlark-security: crates/openlark-security/src/security_and_compliance/security
 openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/list.rs
 openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/mine.rs
 openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/update.rs
-openlark-user: crates/openlark-user/src/common/constants.rs
-openlark-user: crates/openlark-user/src/personal_settings/mod.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/batch_close.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/batch_open.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/create.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/delete.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/get.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/list.rs
-openlark-user: crates/openlark-user/src/personal_settings/personal_settings/v1/system_status/patch.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_collaborator.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_follower.rs
 openlark-workflow: crates/openlark-workflow/src/task/task/v2/custom_field/patch.rs

@@ -5,11 +5,7 @@
 //! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/delete
 
 use openlark_core::{
-    api::ApiRequest,
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -58,8 +54,9 @@ impl DeleteTicketCustomizedFieldRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<DeleteTicketCustomizedFieldResponse> {
-        let req: ApiRequest<DeleteTicketCustomizedFieldResponse> =
-            ApiRequest::delete(HelpdeskApiV1::TicketCustomizedFieldDelete(self.id.clone()).to_url());
+        let req: ApiRequest<DeleteTicketCustomizedFieldResponse> = ApiRequest::delete(
+            HelpdeskApiV1::TicketCustomizedFieldDelete(self.id.clone()).to_url(),
+        );
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "删除工单自定义字段")
@@ -127,7 +124,10 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = DeleteTicketCustomizedFieldRequestBuilder::new(Arc::new(config), "field_123".to_string());
+        let builder = DeleteTicketCustomizedFieldRequestBuilder::new(
+            Arc::new(config),
+            "field_123".to_string(),
+        );
 
         assert_eq!(builder.id, "field_123");
     }

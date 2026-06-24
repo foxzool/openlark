@@ -5,10 +5,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -61,7 +61,8 @@ impl ListTicketCustomizedFieldRequest {
 
     /// 执行获取工单自定义字段列表请求
     pub async fn execute(self) -> SDKResult<ListTicketCustomizedFieldResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求
@@ -100,7 +101,9 @@ impl ListTicketCustomizedFieldRequestBuilder {
 }
 
 /// 执行获取工单自定义字段列表
-pub async fn list_ticket_customized_fields(config: &Config) -> SDKResult<ListTicketCustomizedFieldResponse> {
+pub async fn list_ticket_customized_fields(
+    config: &Config,
+) -> SDKResult<ListTicketCustomizedFieldResponse> {
     let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldList;
     let request = ApiRequest::<ListTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
