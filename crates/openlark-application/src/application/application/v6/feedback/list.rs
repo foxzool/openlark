@@ -1,22 +1,25 @@
 //! feedback list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct FeedbackListRequest {
     config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct FeedbackListResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -27,28 +30,27 @@ impl ApiResponseTrait for FeedbackListResponse {
 }
 
 impl FeedbackListRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<FeedbackListResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<FeedbackListResponse> {
-        let path = "/open-apis/application/application/v1/feedback/list"
-            .replace("application", "application")
-            .replace("security", "acs")
-            .replace("personal_settings", "personal_settings");
-        let req: ApiRequest<FeedbackListResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/application/v1/feedback/list";
+        let req: ApiRequest<FeedbackListResponse> = ApiRequest::get(path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("feedback list", "响应数据为空")
-        })
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("feedback list", "响应数据为空"))
     }
 }
 

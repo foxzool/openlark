@@ -2,16 +2,17 @@
 //! docPath: https://open.feishu.cn/document/server-docs/application-v6/application/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetApplicationVersionRequest {
     config: Arc<Config>,
     app_id: String,
@@ -19,7 +20,9 @@ pub struct GetApplicationVersionRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetApplicationVersionResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -30,7 +33,12 @@ impl ApiResponseTrait for GetApplicationVersionResponse {
 }
 
 impl GetApplicationVersionRequest {
-    pub fn new(config: Arc<Config>, app_id: impl Into<String>, version_id: impl Into<String>) -> Self {
+    /// 待补充文档。
+    pub fn new(
+        config: Arc<Config>,
+        app_id: impl Into<String>,
+        version_id: impl Into<String>,
+    ) -> Self {
         Self {
             config,
             app_id: app_id.into(),
@@ -38,15 +46,20 @@ impl GetApplicationVersionRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetApplicationVersionResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetApplicationVersionResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/app_versions/{}", self.app_id, self.version_id);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/app_versions/{}",
+            self.app_id, self.version_id
+        );
         let req: ApiRequest<GetApplicationVersionResponse> = ApiRequest::get(&path);
 
         let _resp: openlark_core::api::Response<GetApplicationVersionResponse> =

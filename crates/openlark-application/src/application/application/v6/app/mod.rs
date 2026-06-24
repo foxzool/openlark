@@ -1,19 +1,23 @@
 pub mod get;
+/// 待补充文档。
 pub mod models;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
 
 #[derive(Clone)]
+/// 待补充文档。
 pub struct App {
     config: Arc<Config>,
 }
 
 impl App {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub fn get(&self) -> get::GetAppRequest {
         get::GetAppRequest::new(self.config.clone())
     }
@@ -21,9 +25,7 @@ impl App {
 
 pub use get::GetAppRequest;
 // models 模块显式导出
-pub use models::{
-    GetAppResponse,
-};
+pub use models::GetAppResponse;
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -45,3 +47,8 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+pub mod create;
+pub mod delete;
+pub mod list;
+pub mod patch;

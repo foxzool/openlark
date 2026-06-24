@@ -1,23 +1,26 @@
 //! 查询用户或部门是否在应用的可用或禁用名单
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct CheckApplicationVisibilityWhiteBlackListRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct CheckApplicationVisibilityWhiteBlackListResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,6 +31,7 @@ impl ApiResponseTrait for CheckApplicationVisibilityWhiteBlackListResponse {
 }
 
 impl CheckApplicationVisibilityWhiteBlackListRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -35,16 +39,22 @@ impl CheckApplicationVisibilityWhiteBlackListRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<CheckApplicationVisibilityWhiteBlackListResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<CheckApplicationVisibilityWhiteBlackListResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/visibility/check_white_black_list", self.app_id);
-        let req: ApiRequest<CheckApplicationVisibilityWhiteBlackListResponse> = ApiRequest::post(&path);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/visibility/check_white_black_list",
+            self.app_id
+        );
+        let req: ApiRequest<CheckApplicationVisibilityWhiteBlackListResponse> =
+            ApiRequest::post(&path);
 
         let _resp: openlark_core::api::Response<CheckApplicationVisibilityWhiteBlackListResponse> =
             Transport::request(req, &self.config, Some(option)).await?;

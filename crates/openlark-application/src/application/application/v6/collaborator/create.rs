@@ -1,22 +1,25 @@
 //! collaborator create
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct CollaboratorCreateRequest {
     config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct CollaboratorCreateResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -27,23 +30,23 @@ impl ApiResponseTrait for CollaboratorCreateResponse {
 }
 
 impl CollaboratorCreateRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<CollaboratorCreateResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<CollaboratorCreateResponse> {
-        let path = "/open-apis/application/application/v1/collaborator/create"
-            .replace("application", "application")
-            .replace("security", "acs")
-            .replace("personal_settings", "personal_settings");
-        let req: ApiRequest<CollaboratorCreateResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/application/v1/collaborator/create";
+        let req: ApiRequest<CollaboratorCreateResponse> = ApiRequest::get(path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {

@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct ListAppRecommendRuleRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ListAppRecommendRuleResponse {
+    /// 待补充文档。
     pub data: Option<RecommendRuleListData>,
 }
 
@@ -29,17 +32,23 @@ impl ApiResponseTrait for ListAppRecommendRuleResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct RecommendRuleListData {
+    /// 待补充文档。
     pub rules: Vec<RecommendRule>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct RecommendRule {
+    /// 待补充文档。
     pub rule_id: String,
+    /// 待补充文档。
     pub rule_name: String,
 }
 
 impl ListAppRecommendRuleRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -47,15 +56,20 @@ impl ListAppRecommendRuleRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<ListAppRecommendRuleResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<ListAppRecommendRuleResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/recommend_rules", self.app_id);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/recommend_rules",
+            self.app_id
+        );
         let req: ApiRequest<ListAppRecommendRuleResponse> = ApiRequest::get(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;

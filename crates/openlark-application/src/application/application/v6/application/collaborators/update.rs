@@ -1,23 +1,26 @@
 //! 更新应用协作者
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct UpdateApplicationCollaboratorsRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct UpdateApplicationCollaboratorsResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,6 +31,7 @@ impl ApiResponseTrait for UpdateApplicationCollaboratorsResponse {
 }
 
 impl UpdateApplicationCollaboratorsRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -35,15 +39,20 @@ impl UpdateApplicationCollaboratorsRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<UpdateApplicationCollaboratorsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<UpdateApplicationCollaboratorsResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/collaborators", self.app_id);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/collaborators",
+            self.app_id
+        );
         let req: ApiRequest<UpdateApplicationCollaboratorsResponse> = ApiRequest::put(&path);
 
         let _resp: openlark_core::api::Response<UpdateApplicationCollaboratorsResponse> =

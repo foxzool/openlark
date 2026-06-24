@@ -2,22 +2,25 @@
 //! docPath: https://open.feishu.cn/document/server-docs/workplace-v1/app_recommend_rule/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct ListAppRecommendRuleRequest {
     config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ListAppRecommendRuleResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for ListAppRecommendRuleResponse {
 }
 
 impl ListAppRecommendRuleRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<ListAppRecommendRuleResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
