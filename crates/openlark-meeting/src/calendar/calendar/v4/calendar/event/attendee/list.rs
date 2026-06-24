@@ -3,8 +3,8 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list-2
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::common::api_utils::extract_response_data;
@@ -18,6 +18,7 @@ pub struct ListCalendarEventAttendeeRequest {
 }
 
 impl ListCalendarEventAttendeeRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -74,11 +75,13 @@ impl ListCalendarEventAttendeeRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = ListCalendarEventAttendeeRequest::new(config.clone())
             .calendar_id("test".to_string())
             .event_id("test".to_string());

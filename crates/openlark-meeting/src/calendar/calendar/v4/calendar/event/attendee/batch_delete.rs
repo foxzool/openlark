@@ -3,8 +3,8 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/batch_delete
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::{
@@ -20,6 +20,7 @@ pub struct BatchDeleteCalendarEventAttendeeRequest {
 }
 
 impl BatchDeleteCalendarEventAttendeeRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -71,7 +72,7 @@ impl BatchDeleteCalendarEventAttendeeRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

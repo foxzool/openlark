@@ -2,10 +2,15 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/subscription
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport,
-    req_option::RequestOption, validate_required, SDKResult};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
+};
 
-use crate::{common::api_utils::{extract_response_data, serialize_params}, endpoints::CALENDAR_V4_CALENDARS};
+use crate::{
+    common::api_utils::{extract_response_data, serialize_params},
+    endpoints::CALENDAR_V4_CALENDARS,
+};
 
 /// 订阅日程变更事件请求
 pub struct SubscriptionCalendarEventRequest {
@@ -14,6 +19,7 @@ pub struct SubscriptionCalendarEventRequest {
 }
 
 impl SubscriptionCalendarEventRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -33,9 +39,11 @@ impl SubscriptionCalendarEventRequest {
     ///
     /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/subscription
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         body: serde_json::Value,
@@ -57,7 +65,7 @@ impl SubscriptionCalendarEventRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

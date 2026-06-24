@@ -3,11 +3,11 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/delete
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use crate::common::api_utils::{extract_response_data, validate_required_field};
@@ -32,6 +32,7 @@ impl ApiResponseTrait for DeleteCalendarResponse {
 }
 
 impl DeleteCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -52,7 +53,11 @@ impl DeleteCalendarRequest {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<DeleteCalendarResponse> {
+    /// 待补充文档。
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteCalendarResponse> {
         validate_required_field("calendar_id", Some(&self.calendar_id), "日历 ID 不能为空")?;
 
         let url = format!("{}/{}", CALENDAR_V4_CALENDARS, self.calendar_id);
@@ -65,7 +70,7 @@ impl DeleteCalendarRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]

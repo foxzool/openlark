@@ -3,8 +3,8 @@
 //! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/list
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
@@ -17,6 +17,7 @@ pub struct ListCalendarEventRequest {
 }
 
 impl ListCalendarEventRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -65,11 +66,13 @@ impl ListCalendarEventRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = ListCalendarEventRequest::new(config.clone())
             .calendar_id("test".to_string())
             .query_param("key1".to_string(), "value1".to_string());

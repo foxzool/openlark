@@ -3,7 +3,7 @@
 //! docPath: https://open.feishu.cn/document/calendar-v4/calendar/primarys
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
 use crate::common::api_utils::extract_response_data;
@@ -14,6 +14,7 @@ pub struct PrimarysCalendarRequest {
 }
 
 impl PrimarysCalendarRequest {
+    /// 待补充文档。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -38,7 +39,7 @@ impl PrimarysCalendarRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json;
 
     #[test]
