@@ -144,6 +144,35 @@ class ContractCompareTests(unittest.TestCase):
 
         self.assertEqual(findings[0].code, "W_REQUIRED_REQUEST_FIELD_OPTIONAL")
 
+    def test_compare_request_fields_skips_optional_missing_when_flatten_passthrough(self):
+        # docx block patch：#[serde(flatten)] update: serde_json::Value 透传，
+        # 官方 optional 字段（update_text_elements 等）应跳过缺失告警
+        official_fields = (
+            OfficialField(
+                name="update_text_elements",
+                required=False,
+                location="requestBody:application/json",
+            ),
+        )
+        rust = RustApiContract(
+            rel_path="docx/v1/document/block/patch.rs",
+            fields=(
+                RustField(
+                    struct_name="UpdateDocumentBlockParams",
+                    field_name="update",
+                    serialized_name="update",
+                    type_name="serde_json::Value",
+                    optional=False,
+                    line=30,
+                ),
+            ),
+            has_flatten_value_passthrough=True,
+        )
+
+        findings = compare_request_fields(self._api(), official_fields, rust)
+
+        self.assertEqual(findings, [])
+
     def test_compare_response_fields_warns_for_missing_data_field(self):
         official_fields = (
             OfficialField(

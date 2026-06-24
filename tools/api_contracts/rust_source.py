@@ -11,7 +11,7 @@ from .models import RustApiContract, RustEndpointCall, RustField
 
 
 REQUEST_STRUCT_SUFFIXES = ("Body", "Query", "Params", "RequestBody")
-RESPONSE_STRUCT_SUFFIXES = ("Response", "Result")
+RESPONSE_STRUCT_SUFFIXES = ("Response", "Result", "Resp")
 
 
 @dataclass(frozen=True)
@@ -592,12 +592,41 @@ def extract_rust_fields(text: str) -> tuple[RustField, ...]:
     )
 
 
+def has_flatten_value_passthrough(text: str) -> bool:
+    """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
+
+    flatten 字段把额外的官方 request 字段整体合并到请求体（例如 docx block 的
+    ``update_*`` 操作，无论透传 ``serde_json::Value`` 还是 typed
+    ``BlockUpdateOperation`` 枚举），扫描器无法逐字段对比这类 API 的 optional 字段，
+    应在 contract 比较时跳过其 optional 字段缺失告警。
+    """
+    pattern = re.compile(r"#\s*\[\s*serde\s*\(\s*flatten\s*\)\s*\]")
+    return bool(pattern.search(text))
+
+
 def extract_rust_response_fields(text: str) -> tuple[RustField, ...]:
     return extract_rust_struct_fields(text, RESPONSE_STRUCT_SUFFIXES)
 
 
 def extract_file_content_fields(text: str) -> tuple[RustField, ...]:
+    """提取 multipart/form-data 接口的 request 字段。
+
+    multipart 接口的请求体字段组织方式与普通 JSON 接口不同：
+    - 文件二进制内容通过 ``.file_content(...)`` 传入（序列化为 ``file``）
+    - 其余表单字段（``file_name``/``parent_node``/``size``/``checksum``/``name`` 等）通过
+      局部 ``UploadMeta``/``PartMeta`` 结构体（``.json_body(&meta)``）或
+      ``serde_json::json!({...})`` 字面量组织
+
+    这三类都会被本函数识别，以消除 multipart 接口下大量 ``E_REQUIRED_REQUEST_FIELD_MISSING``
+    与 ``W_OPTIONAL_REQUEST_FIELD_MISSING`` 的扫描器误报。
+    """
+    # 仅当文件使用了 .file_content(...) 才按 multipart 处理
+    if ".file_content(" not in text:
+        return ()
+
     fields: list[RustField] = []
+
+    # 1) file 二进制字段（兼容旧逻辑：.file_content(body|self).field）
     pattern = re.compile(r"\.file_content\(\s*(?:body|self)\.([A-Za-z_][A-Za-z0-9_]*)")
     for match in pattern.finditer(text):
         fields.append(
@@ -610,7 +639,122 @@ def extract_file_content_fields(text: str) -> tuple[RustField, ...]:
                 line=line_of(text, match.start()),
             )
         )
+    # .file_content(self.file) / .file_content(file) 形式（无显式字段名）
+    if not fields:
+        for match in re.finditer(r"\.file_content\(\s*(?:self\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\)", text):
+            fields.append(
+                RustField(
+                    struct_name="MultipartFile",
+                    field_name=match.group(1),
+                    serialized_name="file",
+                    type_name="Vec<u8>",
+                    optional=False,
+                    line=line_of(text, match.start()),
+                )
+            )
+
+    # 2) 局部 UploadMeta / PartMeta 结构体的字段（.json_body(&meta) 组织 multipart 表单）
+    fields.extend(_extract_multipart_meta_fields(text))
+
+    # 3) serde_json::json!({...}) 字面量中的字符串键（baike 风格 multipart）
+    fields.extend(_extract_json_literal_fields(text))
+
     return tuple(fields)
+
+
+def _extract_multipart_meta_fields(text: str) -> list[RustField]:
+    """提取文件内局部定义的 multipart meta 结构体（UploadMeta / PartMeta 等）字段。
+
+    这些结构体不以 Request 后缀（Body/Query/Params/RequestBody）结尾，
+    常规 ``extract_rust_struct_fields`` 识别不到，需要单独扫描。
+    局部结构体的字段通常没有 ``pub`` 前缀（私有），这里放宽匹配。
+    """
+    fields: list[RustField] = []
+    meta_suffixes = ("Meta",)
+    for match in re.finditer(r"struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{", text):
+        struct_name = match.group(1)
+        if not struct_name.endswith(meta_suffixes):
+            continue
+        open_brace = text.find("{", match.end() - 1)
+        close_brace = find_matching_brace(text, open_brace)
+        if close_brace < 0:
+            continue
+        body = text[open_brace + 1 : close_brace]
+        base_line = line_of(text, open_brace + 1)
+        fields.extend(_extract_meta_struct_fields(struct_name, body, base_line))
+    return fields
+
+
+def _extract_meta_struct_fields(struct_name: str, body: str, base_line: int) -> list[RustField]:
+    """解析局部 meta 结构体字段（兼容 ``pub`` 与无 ``pub`` 的私有字段）。"""
+    fields: list[RustField] = []
+    pending_attrs: list[str] = []
+    for offset, line in enumerate(body.splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#["):
+            pending_attrs.append(stripped)
+            continue
+        # 兼容 "pub field: T," 与 "field: T," 两种写法
+        match = re.match(r"(?:pub\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,]+),", stripped)
+        if not match:
+            pending_attrs.clear()
+            continue
+        attrs = "\n".join(pending_attrs)
+        pending_attrs.clear()
+        if "skip_serializing" in attrs and "skip_serializing_if" not in attrs:
+            continue
+        field_name = match.group(1)
+        type_name = match.group(2).strip()
+        rename_match = re.search(r'rename\s*=\s*"([^"]+)"', attrs)
+        serialized_name = rename_match.group(1) if rename_match else field_name
+        fields.append(
+            RustField(
+                struct_name=struct_name,
+                field_name=field_name,
+                serialized_name=serialized_name,
+                type_name=type_name,
+                optional=is_optional_type(type_name),
+                line=base_line + offset,
+            )
+        )
+    return fields
+
+
+def _extract_json_literal_fields(text: str) -> list[RustField]:
+    """提取 ``serde_json::json!({...})`` 字面量里的字符串键（multipart 表单字段）。
+
+    典型场景：baike 文件上传用 ``serde_json::json!({"name": ..., "__file_name": ...})``
+    组织 multipart 表单字段。这里只收集顶层字符串键作为 request 字段名，
+    下划线前缀的内部字段（如 ``__file_name``）跳过。
+    """
+    fields: list[RustField] = []
+    for match in re.finditer(r"json!\s*\(\s*\{", text):
+        open_brace = text.find("{", match.end() - 1)
+        close_brace = find_matching_brace(text, open_brace)
+        if close_brace < 0:
+            continue
+        body = text[open_brace + 1 : close_brace]
+        base_line = line_of(text, open_brace + 1)
+        for offset, line in enumerate(body.splitlines()):
+            key_match = re.search(r'"([A-Za-z_][A-Za-z0-9_]*)"\s*:', line)
+            if not key_match:
+                continue
+            key = key_match.group(1)
+            if key.startswith("__"):
+                continue
+            fields.append(
+                RustField(
+                    struct_name="JsonLiteral",
+                    field_name=key,
+                    serialized_name=key,
+                    type_name="String",
+                    optional=False,
+                    line=base_line + offset,
+                )
+            )
+    return fields
 
 
 def extract_rust_struct_fields(text: str, suffixes: tuple[str, ...]) -> tuple[RustField, ...]:
@@ -714,4 +858,5 @@ def scan_api_file(
         endpoint_calls=extract_endpoint_calls(text, resolver),
         fields=extract_rust_fields(text),
         response_fields=extract_rust_response_fields(text),
+        has_flatten_value_passthrough=has_flatten_value_passthrough(text),
     )

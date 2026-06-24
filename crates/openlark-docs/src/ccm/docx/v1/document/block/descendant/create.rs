@@ -14,6 +14,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
 
 /// 创建嵌套块请求参数
@@ -44,6 +45,15 @@ pub struct CreateDocumentBlockDescendantResponse {
     /// 临时块 ID 与真实块 ID 的映射。
     #[serde(default)]
     pub block_id_relations: Vec<BlockIdRelation>,
+    /// 新建子块列表（部分场景返回）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub children: Option<Vec<DocxBlock>>,
+    /// 文档版本号（操作后的文档版本）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_revision_id: Option<i32>,
+    /// 幂等标记（请求时传入的 client_token 原样回传）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_token: Option<String>,
 }
 
 /// 临时 block_id 与实际 block_id 的映射关系

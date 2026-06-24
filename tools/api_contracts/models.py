@@ -68,6 +68,9 @@ class RustApiContract:
     endpoint_calls: tuple[RustEndpointCall, ...] = ()
     fields: tuple["RustField", ...] = ()
     response_fields: tuple["RustField", ...] = ()
+    # request struct 含 #[serde(flatten)] 字段时，视为该 API 透传所有官方 optional
+    # request 字段（透传 Value 或 typed 枚举，非 correctness bug）。
+    has_flatten_value_passthrough: bool = False
 
 
 @dataclass(frozen=True)

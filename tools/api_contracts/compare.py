@@ -146,6 +146,10 @@ def compare_request_fields(
         if rust_field is None:
             severity = "ERROR" if official_field.required else "WARN"
             code = "E_REQUIRED_REQUEST_FIELD_MISSING" if official_field.required else "W_OPTIONAL_REQUEST_FIELD_MISSING"
+            # 含 #[serde(flatten)] 字段的 API 把所有官方 optional 字段视为已覆盖
+            # （如 docx block 的 update_* 操作，透传 Value 或 typed 枚举），跳过 optional 缺失告警。
+            if not official_field.required and rust_contract.has_flatten_value_passthrough:
+                continue
             findings.append(
                 finding(
                     severity,

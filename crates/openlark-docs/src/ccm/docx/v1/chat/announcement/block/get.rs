@@ -31,6 +31,9 @@ pub struct GetChatAnnouncementBlockResponse {
     /// 块列表。
     #[serde(default)]
     pub items: Vec<DocxBlock>,
+    /// 单块内容（按 block_id 查询单块时返回）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block: Option<DocxBlock>,
     /// 下一页分页标记。
     pub page_token: Option<String>,
     /// 是否还有更多数据。
