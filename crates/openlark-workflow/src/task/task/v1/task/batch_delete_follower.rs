@@ -3,9 +3,9 @@
 //! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskfollower/batch_delete
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -33,6 +33,7 @@ pub struct BatchDeleteTaskFollowerRequestV1 {
 }
 
 impl BatchDeleteTaskFollowerRequestV1 {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, task_id: impl Into<String>) -> Self {
         Self {
             config,
