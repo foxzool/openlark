@@ -2,23 +2,27 @@
 //! docPath: https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/patch
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct SystemStatusPatchRequest {
     config: Arc<Config>,
     status_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct SystemStatusPatchResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,6 +33,7 @@ impl ApiResponseTrait for SystemStatusPatchResponse {
 }
 
 impl SystemStatusPatchRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -36,15 +41,18 @@ impl SystemStatusPatchRequest {
         }
     }
 
+    /// 待补充文档。
     pub fn status_id(mut self, status_id: impl Into<String>) -> Self {
         self.status_id = status_id.into();
         self
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<SystemStatusPatchResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

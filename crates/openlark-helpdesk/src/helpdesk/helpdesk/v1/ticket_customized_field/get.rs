@@ -5,10 +5,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -62,7 +62,8 @@ impl GetTicketCustomizedFieldRequest {
 
     /// 执行获取指定工单自定义字段请求
     pub async fn execute(self) -> SDKResult<GetTicketCustomizedFieldResponse> {
-        self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
     }
 
     /// 使用选项执行请求
@@ -124,7 +125,8 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = GetTicketCustomizedFieldRequestBuilder::new(Arc::new(config), "field_123".to_string());
+        let builder =
+            GetTicketCustomizedFieldRequestBuilder::new(Arc::new(config), "field_123".to_string());
 
         assert_eq!(builder.id, "field_123");
     }

@@ -2,33 +2,37 @@
 //! docPath: https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/batch_open
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct SystemStatusBatch_openRequest {
+/// 待补充文档。
+pub struct SystemStatusBatchOpenRequest {
     config: Arc<Config>,
     status_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SystemStatusBatch_openResponse {
+/// 待补充文档。
+pub struct SystemStatusBatchOpenResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
-impl ApiResponseTrait for SystemStatusBatch_openResponse {
+impl ApiResponseTrait for SystemStatusBatchOpenResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
 }
 
-impl SystemStatusBatch_openRequest {
+impl SystemStatusBatchOpenRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, status_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -36,19 +40,21 @@ impl SystemStatusBatch_openRequest {
         }
     }
 
-    pub async fn execute(self) -> SDKResult<SystemStatusBatch_openResponse> {
+    /// 待补充文档。
+    pub async fn execute(self) -> SDKResult<SystemStatusBatchOpenResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
-    ) -> SDKResult<SystemStatusBatch_openResponse> {
+    ) -> SDKResult<SystemStatusBatchOpenResponse> {
         let path = format!(
             "/open-apis/personal_settings/v1/system_statuses/{}/batch_open",
             self.status_id
         );
-        let req: ApiRequest<SystemStatusBatch_openResponse> = ApiRequest::post(&path);
+        let req: ApiRequest<SystemStatusBatchOpenResponse> = ApiRequest::post(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {

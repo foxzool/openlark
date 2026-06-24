@@ -41,6 +41,8 @@ mod service;
 
 // 通用模块
 pub mod common;
+/// 报告模块。
+pub mod report;
 
 // 业务域模块
 #[cfg(feature = "search")]

@@ -5,11 +5,7 @@
 //! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket_customized_field/patch
 
 use openlark_core::{
-    api::ApiRequest,
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
     validate_required,
 };
 use serde::{Deserialize, Serialize};
@@ -74,8 +70,12 @@ impl PatchTicketCustomizedFieldRequest {
     }
 
     /// 执行更新工单自定义字段请求
-    pub async fn execute(self, body: PatchTicketCustomizedFieldBody) -> SDKResult<PatchTicketCustomizedFieldResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+    pub async fn execute(
+        self,
+        body: PatchTicketCustomizedFieldBody,
+    ) -> SDKResult<PatchTicketCustomizedFieldResponse> {
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行更新工单自定义字段请求（支持自定义选项）
@@ -217,7 +217,10 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = PatchTicketCustomizedFieldRequestBuilder::new(Arc::new(config), "field_123".to_string());
+        let builder = PatchTicketCustomizedFieldRequestBuilder::new(
+            Arc::new(config),
+            "field_123".to_string(),
+        );
 
         assert_eq!(builder.id, "field_123");
         assert!(builder.name.is_none());

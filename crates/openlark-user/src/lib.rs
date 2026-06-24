@@ -40,6 +40,8 @@ mod service;
 // 通用模块
 /// 用户设置与偏好共享模型。
 pub mod common;
+/// 个人设置模块。
+pub mod personal_settings;
 
 // 功能域模块
 #[cfg(feature = "settings")]

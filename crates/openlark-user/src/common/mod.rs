@@ -43,3 +43,5 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+pub mod constants;

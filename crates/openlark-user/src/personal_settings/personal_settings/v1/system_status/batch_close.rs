@@ -2,16 +2,18 @@
 //! docPath: https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/batch_close
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, validate_required_list, SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct BatchCloseSystemStatusRequest {
     config: Arc<Config>,
     status_id: String,
@@ -19,12 +21,16 @@ pub struct BatchCloseSystemStatusRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// 待补充文档。
 pub struct BatchCloseSystemStatusBody {
+    /// 待补充文档。
     pub user_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct BatchCloseSystemStatusResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -35,6 +41,7 @@ impl ApiResponseTrait for BatchCloseSystemStatusResponse {
 }
 
 impl BatchCloseSystemStatusRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, status_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -43,15 +50,18 @@ impl BatchCloseSystemStatusRequest {
         }
     }
 
+    /// 待补充文档。
     pub fn user_ids(mut self, ids: Vec<String>) -> Self {
         self.body.user_ids = ids;
         self
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<BatchCloseSystemStatusResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
@@ -67,14 +77,12 @@ impl BatchCloseSystemStatusRequest {
             "/open-apis/personal_settings/v1/system_statuses/{}/batch_close",
             self.status_id
         );
-        let req: ApiRequest<BatchCloseSystemStatusResponse> =
-            ApiRequest::post(&path).json(&self.body).map_err(|e| {
-                openlark_core::error::CoreError::Serialization(e.to_string())
-            })?;
-
-        let _resp: openlark_core::api::Response<BatchCloseSystemStatusResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(BatchCloseSystemStatusResponse { data: None })
+        let body = serde_json::to_value(&self.body)?;
+        let req: ApiRequest<BatchCloseSystemStatusResponse> = ApiRequest::post(&path).body(body);
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        Ok(resp
+            .data
+            .unwrap_or(BatchCloseSystemStatusResponse { data: None }))
     }
 }
 
