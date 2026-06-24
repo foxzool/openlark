@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/server-docs/application-v6/admin/contacts_range_configuration
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetApplicationContactsRangeConfigurationRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetApplicationContactsRangeConfigurationResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,6 +32,7 @@ impl ApiResponseTrait for GetApplicationContactsRangeConfigurationResponse {
 }
 
 impl GetApplicationContactsRangeConfigurationRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -36,10 +40,12 @@ impl GetApplicationContactsRangeConfigurationRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetApplicationContactsRangeConfigurationResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

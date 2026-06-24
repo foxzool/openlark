@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetMessagePushOverviewRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetMessagePushOverviewResponse {
+    /// 待补充文档。
     pub data: Option<MessagePushOverviewData>,
 }
 
@@ -29,13 +32,18 @@ impl ApiResponseTrait for GetMessagePushOverviewResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct MessagePushOverviewData {
+    /// 待补充文档。
     pub total_push_count: i64,
+    /// 待补充文档。
     pub success_count: i64,
+    /// 待补充文档。
     pub failed_count: i64,
 }
 
 impl GetMessagePushOverviewRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -43,15 +51,20 @@ impl GetMessagePushOverviewRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetMessagePushOverviewResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetMessagePushOverviewResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/app_usage/message_push_overview", self.app_id);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/app_usage/message_push_overview",
+            self.app_id
+        );
         let req: ApiRequest<GetMessagePushOverviewResponse> = ApiRequest::get(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;

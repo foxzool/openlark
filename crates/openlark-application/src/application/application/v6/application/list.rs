@@ -2,23 +2,25 @@
 //! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct ListApplicationsRequest {
     config: Arc<Config>,
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ListApplicationsResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,23 +31,23 @@ impl ApiResponseTrait for ListApplicationsResponse {
 }
 
 impl ListApplicationsRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            
-        }
+        Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<ListApplicationsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<ListApplicationsResponse> {
-        let path = format!("/open-apis/application/v6/applications");
-        let req: ApiRequest<ListApplicationsResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/v6/applications";
+        let req: ApiRequest<ListApplicationsResponse> = ApiRequest::get(path);
 
         let _resp: openlark_core::api::Response<ListApplicationsResponse> =
             Transport::request(req, &self.config, Some(option)).await?;

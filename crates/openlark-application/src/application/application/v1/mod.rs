@@ -44,3 +44,18 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+pub mod app_badge;
+pub mod app_recommend_rule;
+pub mod app_usage;
+pub mod app_version;
+pub mod app_visibility;
+pub mod application;
+pub mod collaborator;
+pub mod contacts_range;
+pub mod feedback;
+pub mod frequently_used;
+pub mod management;
+pub mod owner;
+pub mod usage;
+pub mod visibility;

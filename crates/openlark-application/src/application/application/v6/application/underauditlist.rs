@@ -2,23 +2,25 @@
 //! docPath: https://open.feishu.cn/document/server-docs/application-v6/application/underauditlist
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetApplicationUnderauditlistRequest {
     config: Arc<Config>,
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetApplicationUnderauditlistResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,23 +31,23 @@ impl ApiResponseTrait for GetApplicationUnderauditlistResponse {
 }
 
 impl GetApplicationUnderauditlistRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            
-        }
+        Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetApplicationUnderauditlistResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetApplicationUnderauditlistResponse> {
-        let path = format!("/open-apis/application/v6/applications/underauditlist");
-        let req: ApiRequest<GetApplicationUnderauditlistResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/v6/applications/underauditlist";
+        let req: ApiRequest<GetApplicationUnderauditlistResponse> = ApiRequest::get(path);
 
         let _resp: openlark_core::api::Response<GetApplicationUnderauditlistResponse> =
             Transport::request(req, &self.config, Some(option)).await?;

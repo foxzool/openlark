@@ -46,3 +46,8 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+pub mod create;
+pub mod delete;
+pub mod list;
+pub mod patch;

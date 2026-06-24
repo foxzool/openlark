@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct ListApplicationVersionsRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ListApplicationVersionsResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -29,6 +32,7 @@ impl ApiResponseTrait for ListApplicationVersionsResponse {
 }
 
 impl ListApplicationVersionsRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -36,15 +40,20 @@ impl ListApplicationVersionsRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<ListApplicationVersionsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<ListApplicationVersionsResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/app_versions", self.app_id);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/app_versions",
+            self.app_id
+        );
         let req: ApiRequest<ListApplicationVersionsResponse> = ApiRequest::get(&path);
 
         let _resp: openlark_core::api::Response<ListApplicationVersionsResponse> =

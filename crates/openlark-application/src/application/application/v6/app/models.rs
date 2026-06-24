@@ -1,10 +1,15 @@
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
+/// 待补充文档。
 pub struct GetAppResponse {
+    /// 待补充文档。
     pub app_id: String,
+    /// 待补充文档。
     pub app_name: String,
+    /// 待补充文档。
     pub app_type: String,
+    /// 待补充文档。
     pub description: Option<String>,
 }
 

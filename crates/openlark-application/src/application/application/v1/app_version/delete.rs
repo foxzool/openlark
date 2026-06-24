@@ -1,22 +1,25 @@
 //! app_version delete
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct AppVersionDeleteRequest {
     config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct AppVersionDeleteResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -27,23 +30,23 @@ impl ApiResponseTrait for AppVersionDeleteResponse {
 }
 
 impl AppVersionDeleteRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<AppVersionDeleteResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<AppVersionDeleteResponse> {
-        let path = "/open-apis/application/application/v1/app-version/delete"
-            .replace("application", "application")
-            .replace("security", "acs")
-            .replace("personal_settings", "personal_settings");
-        let req: ApiRequest<AppVersionDeleteResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/application/v1/app-version/delete";
+        let req: ApiRequest<AppVersionDeleteResponse> = ApiRequest::get(path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {

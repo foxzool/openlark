@@ -2,23 +2,26 @@
 //! docPath: https://open.feishu.cn/document/application-v6/admin/list
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetApplicationContactsRangeConfigurationRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetApplicationContactsRangeConfigurationResponse {
+    /// 待补充文档。
     pub data: Option<ContactsRangeConfigurationData>,
 }
 
@@ -29,12 +32,16 @@ impl ApiResponseTrait for GetApplicationContactsRangeConfigurationResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct ContactsRangeConfigurationData {
+    /// 待补充文档。
     pub app_id: String,
+    /// 待补充文档。
     pub contacts_range: serde_json::Value,
 }
 
 impl GetApplicationContactsRangeConfigurationRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -42,16 +49,22 @@ impl GetApplicationContactsRangeConfigurationRequest {
         }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetApplicationContactsRangeConfigurationResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetApplicationContactsRangeConfigurationResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/contacts_range_configuration", self.app_id);
-        let req: ApiRequest<GetApplicationContactsRangeConfigurationResponse> = ApiRequest::get(&path);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/contacts_range_configuration",
+            self.app_id
+        );
+        let req: ApiRequest<GetApplicationContactsRangeConfigurationResponse> =
+            ApiRequest::get(&path);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {

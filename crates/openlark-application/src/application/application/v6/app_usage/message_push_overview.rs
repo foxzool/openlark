@@ -1,23 +1,25 @@
 //! 获取消息推送概览
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetMessagePushOverviewRequest {
     config: Arc<Config>,
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetMessagePushOverviewResponse {
+    /// 待补充文档。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,23 +30,23 @@ impl ApiResponseTrait for GetMessagePushOverviewResponse {
 }
 
 impl GetMessagePushOverviewRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            
-        }
+        Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetMessagePushOverviewResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetMessagePushOverviewResponse> {
-        let path = format!("/open-apis/application/v6/app_usage/message_push_overview");
-        let req: ApiRequest<GetMessagePushOverviewResponse> = ApiRequest::get(&path);
+        let path = "/open-apis/application/v6/app_usage/message_push_overview";
+        let req: ApiRequest<GetMessagePushOverviewResponse> = ApiRequest::get(path);
 
         let _resp: openlark_core::api::Response<GetMessagePushOverviewResponse> =
             Transport::request(req, &self.config, Some(option)).await?;

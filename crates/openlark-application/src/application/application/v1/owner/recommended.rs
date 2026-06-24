@@ -1,22 +1,25 @@
 //! 获取管理员推荐的应用
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
+/// 待补充文档。
 pub struct GetRecommendedAppsRequest {
     config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetRecommendedAppsResponse {
+    /// 待补充文档。
     pub data: Option<RecommendedAppsData>,
 }
 
@@ -27,25 +30,33 @@ impl ApiResponseTrait for GetRecommendedAppsResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct RecommendedAppsData {
+    /// 待补充文档。
     pub apps: Vec<RecommendedApp>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct RecommendedApp {
+    /// 待补充文档。
     pub app_id: String,
+    /// 待补充文档。
     pub app_name: String,
 }
 
 impl GetRecommendedAppsRequest {
+    /// 待补充文档。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 待补充文档。
     pub async fn execute(self) -> SDKResult<GetRecommendedAppsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 待补充文档。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
