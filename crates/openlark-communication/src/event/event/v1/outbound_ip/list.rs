@@ -2,7 +2,7 @@
 //!
 //! docPath: https://open.feishu.cn/document/server-docs/event-subscription-guide/list
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{common::api_utils::extract_response_data, endpoints::EVENT_V1_OUTBOUND_IP};
 
@@ -12,6 +12,7 @@ pub struct ListOutboundIpRequest {
 }
 
 impl ListOutboundIpRequest {
+    /// 创建获取事件出口 IP 请求
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -24,6 +25,7 @@ impl ListOutboundIpRequest {
             .await
     }
 
+    /// 使用指定请求选项执行请求
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,
@@ -32,7 +34,7 @@ impl ListOutboundIpRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(EVENT_V1_OUTBOUND_IP);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "获取事件出口 IP")
-}
+    }
 }
 
 #[cfg(test)]
