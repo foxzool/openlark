@@ -5,9 +5,10 @@
 use serde::{Deserialize, Serialize};
 
 /// 文档类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub enum DocType {
     /// 文本文档
+    #[default]
     #[serde(rename = "doc")]
     Doc,
     /// 电子表格
@@ -24,16 +25,11 @@ pub enum DocType {
     Unknown,
 }
 
-impl Default for DocType {
-    fn default() -> Self {
-        DocType::Doc
-    }
-}
-
 /// 文档状态
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub enum DocStatus {
     /// 草稿
+    #[default]
     #[serde(rename = "draft")]
     Draft,
     /// 已发布
@@ -45,12 +41,6 @@ pub enum DocStatus {
     /// 未知状态
     #[serde(other)]
     Unknown,
-}
-
-impl Default for DocStatus {
-    fn default() -> Self {
-        DocStatus::Draft
-    }
 }
 
 /// 文档基本信息
@@ -170,7 +160,7 @@ pub enum BatchUpdateOperationType {
 }
 
 /// 批量更新操作
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct BatchUpdateOperation {
     /// 操作类型
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -187,18 +177,6 @@ pub struct BatchUpdateOperation {
     /// 新标题（用于更新标题操作）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_title: Option<String>,
-}
-
-impl Default for BatchUpdateOperation {
-    fn default() -> Self {
-        Self {
-            operation_type: None,
-            start_index: None,
-            end_index: None,
-            content: None,
-            new_title: None,
-        }
-    }
 }
 
 #[cfg(test)]
