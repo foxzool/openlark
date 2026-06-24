@@ -82,21 +82,17 @@ pub const EVENT_V1_CONNECTION: &str = "/open-apis/event/v1/connection";
 
 #### 强类型响应
 
+遵循 `contact/v3/job_family` 的既有强类型范式：`Transport::request` 返回 `Response<R>`，
+其中 `R` 是 **data 业务载荷类型**（`extract_response_data` 解包的就是这个 `R`），
+而 `code`/`msg` 由 envelope `RawResponse` 承载，**不在**载荷 struct 内。故只定义载荷 struct：
+
 ```rust
-/// 获取长连接在线数量响应
+/// 获取长连接在线数量响应（data 业务载荷）
+///
+/// 官方 apiSchema 响应体：code (int, envelope) / msg (string, envelope) /
+/// data.online_instance_cnt (int)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetConnectionOnlineCountResponse {
-    /// 错误码，非 0 表示失败
-    pub code: i32,
-    /// 错误描述
-    pub msg: String,
-    /// 业务数据
-    pub data: ConnectionOnlineCountData,
-}
-
-/// 在线数量业务数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConnectionOnlineCountData {
     /// 在线连接数量
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub online_instance_cnt: Option<i64>,
@@ -104,9 +100,10 @@ pub struct ConnectionOnlineCountData {
 ```
 
 > `online_instance_cnt` 用 `Option<i64>` + `#[serde(default)]`，与项目「向后兼容的非破坏性
-> 字段追加」惯例一致（官方未来收紧为必填时不破坏调用方）。
+> 字段追加」惯例一致（官方未来收紧为必填时不破坏调用方）。命名为 `...Response` 而非
+> `...Data`，对齐 `JobFamilyResponse` / `CreateUnitResponse` 既有命名。
 
-#### 请求结构（对齐 `ListOutboundIpRequest` 范式）
+#### 请求结构（对齐 `contact/v3/job_family/get.rs` 强类型范式）
 
 ```rust
 /// 获取长连接在线数量请求
@@ -120,21 +117,24 @@ impl GetConnectionOnlineCountRequest {
     /// 执行请求
     ///
     /// docPath: /document/uAjLw4CM/ukTMukTMukTM/reference/event-v1/connection/get
-    pub async fn execute(self) -> SDKResult<ConnectionOnlineCountData> {
+    pub async fn execute(self) -> SDKResult<GetConnectionOnlineCountResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default()).await
     }
 
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,
-    ) -> SDKResult<ConnectionOnlineCountData> {
+    ) -> SDKResult<GetConnectionOnlineCountResponse> {
         // url: GET:/open-apis/event/v1/connection
-        let req: ApiRequest<serde_json::Value> = ApiRequest::get(EVENT_V1_CONNECTION);
+        let req: ApiRequest<GetConnectionOnlineCountResponse> = ApiRequest::get(EVENT_V1_CONNECTION);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "获取长连接在线数量")
     }
 }
 ```
+
+`extract_response_data` 从 `Response<R>` 解出 `R = GetConnectionOnlineCountResponse`；
+`code`/`msg` 由 envelope 校验（非 0 时 Transport 层已转 `CoreError`）。
 
 #### 模块挂载
 
@@ -149,15 +149,17 @@ impl GetConnectionOnlineCountRequest {
 
 ### 数据流与错误处理
 
-`execute()` → `ApiRequest::get(EVENT_V1_CONNECTION)` → `Transport::request(...)` →
-`extract_response_data(resp, "获取长连接在线数量")` → 返回 `SDKResult<ConnectionOnlineCountData>`。
-错误经 `CoreError`（Transport 层）统一处理，与所有现有接口一致。
+`execute()` → `ApiRequest::<GetConnectionOnlineCountResponse>::get(EVENT_V1_CONNECTION)` →
+`Transport::request(...)` → `extract_response_data(resp, "获取长连接在线数量")` →
+返回 `SDKResult<GetConnectionOnlineCountResponse>`。`code`/`msg` 经 envelope `RawResponse`
+校验（非 0 时 Transport 层转 `CoreError`），错误处理与所有现有接口一致。
 
 ## 测试
 
 - `get.rs` 内 2 个单测：
   1. 序列化往返（与 `outbound_ip/list.rs` 同款）
-  2. 用官方形状 `{"code":0,"msg":"success","data":{"online_instance_cnt":42}}` 反序列化并断言字段值
+  2. 用官方 data 载荷形状 `{"online_instance_cnt":42}` 反序列化为
+     `GetConnectionOnlineCountResponse` 并断言 `online_instance_cnt == Some(42)`
 - `endpoints/event.rs` 内补 `connection` 常量的存在性断言
 - 验证：`just build` + `just lint` + 受影响 crate 的定向测试通过
 
