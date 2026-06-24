@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -59,6 +60,41 @@ def diff_orphans(on_disk: Iterable[Path], compiled: Iterable[Path]) -> Set[Path]
 def list_src_files(crate_src_dir: Path) -> Set[Path]:
     """列出 crate src/ 下所有 .rs 文件。"""
     return set(crate_src_dir.rglob("*.rs"))
+
+
+def is_test_only_module(orphan: Path, crate_src_dir: Path) -> bool:
+    """判断孤儿文件是否通过 ``#[cfg(test)] mod <name>;`` 声明（误报排除）。
+
+    守卫用 ``cargo build --lib``（非 ``--tests``）生成 dep-info，因此所有
+    ``#[cfg(test)]`` 挂载的文件都不会出现在 compiled 集合中，会被误判为孤儿。
+    本函数扫描 crate 源码，若任一 ``.rs`` 文件在 ``#[cfg(test)]`` 下一行声明了
+    该孤儿（``mod <stem>;`` 或 ``pub mod <stem>;``），视为测试专用文件，不算孤儿。
+
+    这样无需引入 ``--tests`` 编译（那样会拖慢 CI、且拉入 dev-dependencies）。
+    """
+    stem = orphan.stem  # tests.rs -> tests, mock_server.rs -> mock_server
+    # 匹配 `mod <stem>;` 或 `pub mod <stem>;`（允许中间多余空白）
+    mod_pattern = re.compile(rf"\b(?:pub\s+)?mod\s+{re.escape(stem)}\b")
+
+    for src_file in crate_src_dir.rglob("*.rs"):
+        try:
+            text = src_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            if not line.strip().startswith("#"):
+                continue
+            # 当前行是否为 cfg(test) 属性（容忍前后空白与多个属性）
+            if "cfg(test)" not in line:
+                continue
+            # 找紧随其后的非空、非属性行，检查是否声明了该模块
+            j = i + 1
+            while j < len(lines) and lines[j].strip() == "":
+                j += 1
+            if j < len(lines) and mod_pattern.search(lines[j]):
+                return True
+    return False
 
 
 def crate_dep_file(crate_name: str) -> Path:
@@ -132,6 +168,9 @@ def main() -> int:
         on_disk = list_src_files(crate_src)
         orphans = diff_orphans(on_disk, compiled)
         for o in sorted(orphans):
+            # 跳过 #[cfg(test)] 挂载的文件（dep-info 不含测试构建，会误报）
+            if is_test_only_module(o, crate_src):
+                continue
             all_orphans.append((crate_dir.name, o))
 
     all_keys = {orphan_key(c, p) for c, p in all_orphans}
