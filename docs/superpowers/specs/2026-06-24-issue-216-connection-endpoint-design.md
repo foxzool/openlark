@@ -139,13 +139,34 @@ impl GetConnectionOnlineCountRequest {
 #### 模块挂载
 
 模块链为 `event/mod.rs → event/event/mod.rs → event/event/v1/mod.rs`（目录规范
-`src/biztag/project/version/resource/name.rs`）。唯一需要改动的是叶子声明文件：
+`src/biztag/project/version/resource/name.rs`）。发现 `event` 模块此前**未在
+`crates/openlark-communication/src/lib.rs` 声明**（连同已有的 `outbound_ip` 一起为死代码）。
+实现时需补齐该声明，使新接口（及既有 `outbound_ip`）真正可达：
 
-- `event/event/v1/mod.rs`：由 `pub mod outbound_ip;` 扩为同时 `pub mod connection;`
-- 上层 `event/mod.rs`、`event/event/mod.rs` 已声明 `pub mod event;` / `pub mod v1;`，**无需改动**
+- `lib.rs`：在 `pub mod endpoints;` 之后追加 `pub mod event;`（无条件，无 feature gating ——
+  event 无对应 feature，与 aily/im/contact 的 feature-gated 声明不同）
+- `event/mod.rs`：补文档注释 + `#![allow(clippy::module_inception)]`（`event::event` 故意嵌套，
+  对齐 contact/moments/aily/im 既有写法）
+- `event/event/mod.rs`、`event/event/v1/mod.rs`：补 `//!` 模块文档（满足 `missing_docs`）
+- `event/event/v1/mod.rs`：由 `pub mod outbound_ip;` 扩为 `pub mod connection;` + `pub mod outbound_ip;`
 - `get.rs` 导入沿用 `outbound_ip/list.rs` 的写法：
   `use crate::{common::api_utils::extract_response_data, endpoints::EVENT_V1_CONNECTION};`
-- 不新增 feature flag —— `event` 已在 communication crate 现有 feature gating 覆盖范围内。
+
+> 附带修复：`outbound_ip/list.rs` 的 `new`/`execute_with_options` 因 event 模块激活而触发
+> `missing_docs`，一并补文档注释（纯文档，无行为改动）。
+
+#### 强类型响应的 ApiResponseTrait 要求
+
+`Transport::request` 约束 `R: ApiResponseTrait`。故载荷类型须实现该 trait（对齐
+`JobFamilyResponse`）：
+
+```rust
+impl ApiResponseTrait for GetConnectionOnlineCountResponse {
+    fn data_format() -> ResponseFormat { ResponseFormat::Data }
+}
+```
+
+import：`use openlark_core::api::{ApiRequest, ApiResponseTrait, ResponseFormat};`
 
 ### 数据流与错误处理
 
