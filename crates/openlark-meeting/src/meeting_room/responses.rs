@@ -19,12 +19,19 @@ impl ApiResponseTrait for CreateRoomResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct GetRoomResponse {
+    /// 待补充文档。
     pub room_id: String,
+    /// 待补充文档。
     pub room_name: String,
+    /// 待补充文档。
     pub description: Option<String>,
+    /// 待补充文档。
     pub capacity: u32,
+    /// 待补充文档。
     pub devices: Option<Vec<DeviceInfo>>,
+    /// 待补充文档。
     pub status: String,
 }
 
@@ -35,9 +42,13 @@ impl ApiResponseTrait for GetRoomResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// 待补充文档。
 pub struct DeviceInfo {
+    /// 待补充文档。
     pub device_id: String,
+    /// 待补充文档。
     pub device_name: String,
+    /// 待补充文档。
     pub device_type: String,
 }
 
