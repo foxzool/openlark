@@ -97,10 +97,12 @@ python3 tools/validate_apis.py --all-crates
 just api-coverage
 ```
 
-`--all-crates` 会遍历 `tools/api_coverage.toml` 中映射的 15 个 crate，逐个生成 `reports/api_validation/<crate>.md`，再产出：
+`--all-crates` 遍历 `tools/api_coverage.toml` 中映射的 15 个 crate 做汇总统计，产出（**注意：不逐个刷新 per-crate 报告**）：
 
 - `reports/api_validation/summary.md` / `summary.json` —— 全仓汇总
 - `reports/api_validation/dashboards/<group>.{md,json}` —— 按 `dashboard_groups` 分组（如 `core_business`）
+
+> ⚠️ per-crate 的 `reports/api_validation/<crate>.md` **不会被 `--all-crates` 刷新**（会保持陈旧，可能与 SUMMARY 数据漂移——例如曾出现 per-crate 报告显示 100% 而 SUMMARY 显示 41.9% 的矛盾）。要拿某 crate 的最新详细报告/缺失清单，单独跑 `python3 tools/validate_apis.py --crate <crate-name>`（如 `--crate openlark-workflow`）。
 
 ## 📊 报告解读
 
