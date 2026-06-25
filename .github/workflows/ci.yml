@@ -113,7 +113,7 @@ jobs:
           python3 -m unittest tools.tests.test_check_mod_reachability
           python3 tools/check_mod_reachability.py
       - name: Run clippy (no default features)
-        run: cargo clippy --workspace --lib --no-default-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
   # Feature combination testing for issue #47
   feature-combinations:
@@ -214,9 +214,9 @@ jobs:
       - name: Run clippy with feature combination
         run: |
           if [ -z "${{ matrix.features }}" ]; then
-            cargo clippy --no-default-features --lib -- -D warnings
+            cargo clippy --no-default-features --all-targets -- -D warnings
           else
-            cargo clippy --no-default-features --features "${{ matrix.features }}" --lib -- -D warnings
+            cargo clippy --no-default-features --features "${{ matrix.features }}" --all-targets -- -D warnings
           fi
 
   # MSRV 检查 (Minimum Supported Rust Version)
