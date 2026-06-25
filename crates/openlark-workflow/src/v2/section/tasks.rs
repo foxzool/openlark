@@ -5,9 +5,10 @@
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::task::models::TaskItem;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -50,6 +51,7 @@ pub struct GetSectionTasksRequest {
 }
 
 impl GetSectionTasksRequest {
+    /// 创建新的实例。
     pub fn new(config: Arc<Config>, section_guid: impl Into<String>) -> Self {
         Self {
             config,
@@ -131,7 +133,8 @@ impl ApiResponseTrait for ListSectionTasksResponse {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
+    use super::{GetSectionTasksRequest, TaskApiV2};
+    use std::sync::Arc;
 
     #[test]
     fn test_get_section_tasks_request() {

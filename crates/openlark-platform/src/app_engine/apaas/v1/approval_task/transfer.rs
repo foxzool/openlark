@@ -4,12 +4,11 @@
 //! docPath: https://open.feishu.cn/document/apaas-v1/flow/user-task/transfer
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,8 +47,7 @@ impl TransferApprovalTaskBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<TransferApprovalTaskResponse> {
-        self.execute_with_options.await
-    }(RequestOption::default()).await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -67,9 +65,11 @@ impl TransferApprovalTaskBuilder {
             reason: self.reason,
         };
 
-        let req = ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+        let req = ApiRequest::<TransferApprovalTaskResponse>::post(&url)
+            .body(serde_json::to_value(&request)?);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
     }
 }
 

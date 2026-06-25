@@ -11,6 +11,8 @@ pub mod admin_dept_stat;
 pub mod admin_user_stat;
 /// 审计兼容 facade。
 pub mod audit;
+/// 审计信息查询接口。
+pub mod audit_info;
 /// 勋章管理接口。
 pub mod badge;
 /// 勋章图片上传接口。

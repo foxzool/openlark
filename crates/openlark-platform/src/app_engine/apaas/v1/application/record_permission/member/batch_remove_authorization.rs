@@ -4,12 +4,11 @@
 //! docPath: https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -54,8 +53,7 @@ impl RecordPermissionBatchRemoveAuthBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<RecordPermissionBatchRemoveAuthResponse> {
-        self.execute_with_options.await
-    }(RequestOption::default()).await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -72,9 +70,11 @@ impl RecordPermissionBatchRemoveAuthBuilder {
             user_ids: self.user_ids,
         };
 
-        let req = ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+        let req = ApiRequest::<RecordPermissionBatchRemoveAuthResponse>::post(&url)
+            .body(serde_json::to_value(&request)?);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
     }
 }
 

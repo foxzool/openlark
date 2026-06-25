@@ -10,6 +10,8 @@ pub mod list;
 pub mod models;
 /// 更新接口。
 pub mod patch;
+/// 分组任务列表接口。
+pub mod tasks;
 /// 更新接口。
 pub mod update;
 
@@ -74,6 +76,11 @@ impl Section {
     pub fn list(&self) -> list::ListSectionsRequest {
         list::ListSectionsRequest::new(self.config.clone(), self.tasklist_guid.clone())
     }
+
+    /// 创建分组任务列表请求。
+    pub fn tasks(&self, section_guid: impl Into<String>) -> tasks::GetSectionTasksRequest {
+        tasks::GetSectionTasksRequest::new(self.config.clone(), section_guid.into())
+    }
 }
 
 // 重新导出请求类型
@@ -82,12 +89,14 @@ pub use delete::DeleteSectionRequest;
 pub use get::GetSectionRequest;
 pub use list::ListSectionsRequest;
 pub use patch::UpdateSectionRequest;
+pub use tasks::GetSectionTasksRequest;
 
 // 重新导出响应类型
 pub use models::{
     CreateSectionBody, CreateSectionResponse, DeleteSectionResponse, GetSectionResponse,
     ListSectionsResponse, SectionItem, UpdateSectionBody, UpdateSectionResponse,
 };
+pub use tasks::ListSectionTasksResponse;
 
 #[cfg(test)]
 #[allow(unused_imports)]
