@@ -108,7 +108,7 @@ just release VERSION  # 发布新版本
 
 ## SKILLS
 
-项目内置 6 个领域技能（位于 `.agents/skills/`），Agent 在对应场景下应优先调用。调用权限如需预授权，在各端本地配置中放行（`.claude/settings.json` 已被 `.gitignore` 忽略，不入库）：
+项目内置 7 个领域技能（位于 `.agents/skills/`），Agent 在对应场景下应优先调用。调用权限如需预授权，在各端本地配置中放行（`.claude/settings.json` 已被 `.gitignore` 忽略，不入库）：
 
 | Skill | 用途 | 触发场景 |
 |-------|------|----------|

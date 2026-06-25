@@ -85,7 +85,8 @@
 - 核心规范：
   - Builder 只拼 Request，不做网络
   - Service 持有 Config，统一执行与注入点
-  - 使用 `trait_system::ExecutableBuilder`（如仓库已有统一约定）
+  - 使用 `openlark_core::trait_system::ExecutableBuilder`（trait 定义在 `crates/openlark-core/src/trait_system/executable_builder.rs:11`；业务 crate 通过宏 impl，如 `crates/openlark-meeting/src/common/macros.rs`）
+  - ⚠️ trait 名是 `ExecutableBuilder`（非单字母 `n`），引用写完整路径
 - 迁移策略：
   - 第 1 步：`<试点模块>`
   - 第 2 步：`<逐步迁移>`

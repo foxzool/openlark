@@ -42,7 +42,7 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 
 > 这些是仓库**唯一规范**，违反任何一条都会导致接口不统一/调用失败。完整正确模板见 `references/standard-example.md`。
 
-1. **`Config` 用 owned，不用 `Arc<Config>`**。`openlark_core::Config` 内部已 `Arc<ConfigInner>`，clone 廉价。`Request`/`Service` 字段一律 `config: Config`，构造用 `Config::build()`（直接返回 `Config`，**不要** `.unwrap()`）。真实 crate（communication/auth/docs）全是 owned；§2.1 的 `Arc<Config>` 示例仅作 docs crate 的旧参考，**以本条为准**。
+1. **新代码默认 `config: Config`（owned）；现有 `Arc<Config>` 的 Service/Client 保持现状，勿为统一所有权单独重构**。`openlark_core::Config` 内部已 `Arc<ConfigInner>`，clone 廉价。新 Request/Service 默认用 `config: Config`，构造用 `Config::build()`（直接返回 `Config`，**不要** `.unwrap()`）。但仓库现有 573+ 文件仍用 `Arc<Config>`（如 `openlark-docs` 的 `DocsClient`/`BaseClient`/`CcmClient`，见 `crates/openlark-docs/src/common/chain.rs:611-629`）——这些保持现状，**不为统一所有权单独重构**。两种形态都不持 HTTP client，"走 Transport"是硬约束。
 
 2. **`R`（`ApiRequest<R>` 泛型）是响应 `data` 字段的内容类型，不是包装层**。`Transport::request` 返回 `ApiResponse<R> = {code,msg,data: R,...}`，`resp.data: Option<R>`。
    - 无 schema/透传：`R = serde_json::Value`，`execute` 返回 `SDKResult<serde_json::Value>`。
@@ -65,7 +65,11 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
    - **必须支持 RequestOption**：用于 `user_access_token` / `tenant_key` / 自定义 header
 5) **补导出**：在 `mod.rs` 中 `pub mod ...` / `pub use ...`
 6) **补链路**：在约定入口补齐链式调用（默认 `service.rs`，但 `openlark-docs` 例外，见 §2）
-7) **验证**：`just fmt && just lint && just test`
+7) **验证**：
+   - 新增 API 所属 crate feature 已在 `Cargo.toml [features]` 声明；
+   - 涉及该 feature 的测试用 `#[cfg(test)]` 模块内 `#![cfg(feature = "...")]`（或模块级 `#[cfg(feature)]`）门控；
+   - 若新增 `examples/` 示例，须在 `Cargo.toml [[example]]` 声明 `required-features`；
+   - 跑 `just fmt && just lint && just test`，其中 `just lint` 须含 `--all-targets`（覆盖 examples + tests）。
 
 ## 1. Feature Crate ↔ bizTag
 
@@ -87,6 +91,8 @@ python3 tools/validate_apis.py --crate openlark-docs
 
 ### 2.1 实现侧：service.rs
 
+> **event/webhook 类 P2 模块不进统一 `service.rs` 链路**：这类模块（如长连接回调、事件订阅）的入口形态与普通 CRUD API 不同，放在各自独立入口，**不强行塞进** `client.<biz>.service()...` 链。
+
 目标：让 `openlark-client` 能走 `client.<biz>.service().<project>().<version>()...<api>()`
 
 - 若 crate 已有 `src/service.rs`：在顶层 service 新增 `pub fn {bizTag}(&self) -> ...`
@@ -95,10 +101,8 @@ python3 tools/validate_apis.py --crate openlark-docs
 
 #### ⚠️ Service 层标准模式
 
-> 注：这是 `openlark-docs` crate 的真实写法（用 `Arc<Config>`）。**核心契约 1 规定
-> `Config` 用 owned**——新 crate / 重构优先 owned（`config: Config`）；docs crate 因
-> 历史原因用 `Arc<Config>`，二者都**不持 HTTP client**，这点是硬约束。写法区别只是
-> Config 的所有权形态，不影响"走 Transport"这条核心规则。
+> 注：这是 `openlark-docs` crate 的真实写法（用 `Arc<Config>`，见 `crates/openlark-docs/src/common/chain.rs:611-629` 的 `DocsClient`）。
+> **核心契约 1 已放宽**：新代码默认 owned（`config: Config`），现有 `Arc<Config>` 的 Service/Client 保持现状、勿为统一所有权单独重构。两种形态都**不持 HTTP client**，这点是硬约束。
 
 **正确示例**（参考 `openlark-docs/src/common/chain.rs`）：
 
@@ -251,12 +255,13 @@ impl {Name}Request {
 - [ ] **核心契约 5**：端点用常量/enum（禁手写 URL）；必填字段用 `validate_required!`
 - [ ] `execute_with_options(..., RequestOption)` 已提供并透传到 Transport
 - [ ] `mod.rs` 已导出；`service.rs`/链式入口已补
-- [ ] `just fmt && just lint && just test` 通过
+- [ ] 新增 feature 已在 `Cargo.toml [features]` 声明；测试/示例的 `#[cfg(feature)]` 与 `[[example]] required-features` 已补
+- [ ] `just fmt && just lint --all-targets && just test` 通过
 
 ## 5. docPath 网页读取
 
 ```bash
-python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
+python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
 ```
 
 ## 6. References

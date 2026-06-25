@@ -1,7 +1,7 @@
 ---
 name: openlark-api-field-verify
 description: OpenLark API 字段核对技能。用于新增/重构飞书 API 后，核对 Rust 实现的请求体/响应体字段是否与飞书官方文档一致。通过 playwright 渲染飞书 SPA 文档页面，提取真实的请求/响应字段定义，对比代码实现找出不符项。触发关键词：字段核对、字段验证、字段不符、文档核对、核对请求字段、核对响应字段、飞书文档字段、推断字段、user 级接口、用户级接口字段
-allowed-tools: Bash, Read, Edit, Write
+allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 
 # OpenLark API 字段核对技能
@@ -120,6 +120,7 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 
 ```bash
 # 快速模式：全仓代码自检（秒级，不抓文档）
+# 无参数裸跑 = 扫描整个 crates，生成 reports/api_field_verify/all.md
 python3 tools/verify_api_fields.py
 
 # 快速模式：单个 crate

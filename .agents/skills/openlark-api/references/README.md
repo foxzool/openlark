@@ -10,7 +10,7 @@
 
 ## docPath 抓取脚本
 
-- 在线抓取（需要网络）：`python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md`
+- 在线抓取（需要网络）：`python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md`
 - 离线解析（无网络/受限环境）：先把页面保存为 HTML，再用 `--html-file` 解析：
-  - `python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --html-file /path/to/page.html --format md --out /tmp/doc.md`
-  - 或直接从 stdin 输入 HTML：`cat /path/to/page.html | python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --stdin --format md`
+  - `python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --html-file /path/to/page.html --format md --out /tmp/doc.md`
+  - 或直接从 stdin 输入 HTML：`cat /path/to/page.html | python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --stdin --format md`

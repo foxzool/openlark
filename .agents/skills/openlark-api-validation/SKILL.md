@@ -61,15 +61,17 @@ python3 tools/validate_apis.py --crate openlark-meeting
 python3 tools/validate_apis.py --list-crates
 ```
 
-**示例输出：**
+**示例输出（以实际 `--list-crates` 输出为准）：**
 ```
 📄 映射文件: tools/api_coverage.toml
 
 - openlark-analytics: src=crates/openlark-analytics/src biz_tags=[search, report]
-- openlark-api: src=crates/openlark-api/src biz_tags=[auth, passport]
-- openlark-application: src=crates/openlark-application/src biz_tags=[application]
+- openlark-application: src=crates/openlark-application/src biz_tags=[application, workplace]
+- openlark-auth: src=crates/openlark-auth/src biz_tags=[auth, passport, verification_information, human_authentication]
 ...
 ```
+
+> 映射共 **15 个 crate**（核对自 `tools/api_coverage.toml`）。新增 crate 时，在 `tools/api_coverage.toml` 追加 `[crates.<name>]` 段（`src` + `biz_tags`，可选 `dashboard_groups`）即自动纳入 `--crate`/`--all-crates`/`--list-crates`，无需改脚本。
 
 ### 3. 自定义验证范围
 
@@ -88,12 +90,17 @@ python3 tools/validate_apis.py --crate openlark-docs --include-old
 ### 4. 验证所有 crates（批量）
 
 ```bash
-# 验证所有 crate 并生成报告
-for crate in openlark-docs openlark-communication openlark-meeting openlark-hr; do
-  echo "验证 $crate..."
-  python3 tools/validate_apis.py --crate $crate
-done
+# 一条命令验证映射里的全部 crate，并生成汇总报告 + 仪表盘
+python3 tools/validate_apis.py --all-crates
+
+# 等价的日常快捷命令（just recipe）
+just api-coverage
 ```
+
+`--all-crates` 会遍历 `tools/api_coverage.toml` 中映射的 15 个 crate，逐个生成 `reports/api_validation/<crate>.md`，再产出：
+
+- `reports/api_validation/summary.md` / `summary.json` —— 全仓汇总
+- `reports/api_validation/dashboards/<group>.{md,json}` —— 按 `dashboard_groups` 分组（如 `core_business`）
 
 ## 📊 报告解读
 
@@ -125,6 +132,8 @@ done
 按模块分组列出所有已实现的 API。
 
 ### 示例报告片段
+
+> 以下数字仅为格式示意，**以实际生成的报告为准**，请勿当作覆盖率基线。
 
 ```markdown
 ## 一、总体统计
@@ -162,8 +171,22 @@ biz_tags = ["bizTag1", "bizTag2", ...]
 
 **添加新 crate 映射：**
 1. 编辑 `tools/api_coverage.toml`
-2. 在 `[crates]` 下添加新条目
+2. 追加 `[crates.<name>]` 段（`src` + `biz_tags`，可选 `dashboard_groups`）
 3. 运行 `--list-crates` 验证配置
+
+### tools/api_priority.toml
+
+缺失 API 的**业务优先级模型**，把“有多少 API 没实现”升级为“缺口按价值怎么排序”。
+
+- **综合分公式**（核对自 `tools/validate_apis.py` 的 `priority_formula()`）：
+
+  `综合分 = 业务价值×0.50 + 高频场景×0.30 + (6 - 实现复杂度)×0.20`
+
+  三个维度均取 1–5（`[defaults]` 默认各为 3），实现复杂度在综合分里**反向计入**（越难分越低）。
+- **评分来源**：`[defaults]` 基线 + `[[rules]]` 覆盖（按声明顺序匹配，后面的更具体规则覆盖前面的；可按 `biz_tags` / `expected_file_prefixes` / `methods` / `name_prefixes` 命中）。
+- **分层**：`[[priority_tiers]]` 定义 P0/P1/P2/P3 阈值（如 `min_score = 4.4` → P0）。
+- **覆盖路径**：脚本默认 `--priority-config tools/api_priority.toml`（见 `tools/validate_apis.py` 参数定义）；如需切换模型可用该参数指向别的 toml。
+- **输出条件**：仅当该 crate **存在缺失 API** 时，才在报告里写「缺失 API 优先级清单」段（含综合分、P 级、判定规则）；无缺口则不输出。
 
 ## 🚨 常见问题
 
@@ -197,6 +220,20 @@ biz_tags = ["bizTag1", "bizTag2", ...]
 - 更新 CSV 文件
 - 检查是否需要更新 `tools/api_coverage.toml` 映射
 
+### 4. 「额外文件」白名单（预期，非缺陷）
+
+**现象：** 报告「额外的实现文件」段里反复出现一批非 API 文件，完成率看着偏低。
+
+**说明：** 以下文件是 crate 的组织骨架/聚合层/测试，**本就不对应任何 CSV 中的 API**，不计入 API 覆盖，出现属预期：
+
+- `prelude.rs`、`mod.rs` —— 模块聚合 / 导出预导出
+- `versions.rs` —— 版本聚合入口
+- `models.rs`、`models/` —— Serde 模型集中存放
+- `services.rs`、`service.rs` —— Service/Client 注册表
+- `tests.rs`、`tests/` —— 测试
+
+只有当「额外文件」里出现**疑似真实 API 落盘但命名不匹配 CSV**（例如拼错 bizTag / version / resource）时，才需要按命名规范排查。
+
 ## 📝 命名规范
 
 API 文件路径严格遵循以下规范：
@@ -225,33 +262,20 @@ src/{bizTag}/{project}/{version}/{resource}/{name}.rs
 
 ## 📚 工作流集成
 
-### CI/CD 集成
+### CI/CD 接线（已存在，勿重复造）
 
-在 CI 中添加 API 覆盖率检查：
+仓库**没有** `.github/workflows/api-validation.yml`，也**没有** pre-commit hook 跑覆盖率。真实接线分布在两个 workflow：
 
-```yaml
-# .github/workflows/api-validation.yml
-name: API Validation
-on: [push, pull_request]
+- **release.yml**（`.github/workflows/release.yml:70`）—— 打 tag 发版时，`github-release` job 执行 `python3 tools/validate_apis.py --all-crates`，生成全仓覆盖率汇总。
+- **pre-release-compatibility.yml**（`.github/workflows/pre-release-compatibility.yml`）—— 当 `tools/validate_apis.py`（以及 release.yml、相关 docs/scripts、`src/lib.rs`）改动时触发；它调用 `scripts/check-pre-release-compatibility.sh`，并上传 `reports/api_validation/{summary.json,summary.md,dashboards/core_business.json,dashboards/core_business.md}` 作为 artifact（`pre-release-compatibility-report`）。
 
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Validate API Coverage
-        run: |
-          python3 tools/validate_apis.py --crate openlark-docs
-          python3 tools/validate_apis.py --crate openlark-communication
-```
-
-### Pre-commit Hook
+### 日常本地
 
 ```bash
-# .git/hooks/pre-commit
-#!/bin/bash
-python3 tools/validate_apis.py --crate openlark-docs --output reports/api_validation/pre-commit.md
+just api-coverage   # 等价 python3 tools/validate_apis.py --all-crates
 ```
+
+> 仓库未配置 pre-commit hook，本地验证靠 `just api-coverage` 或直接跑脚本。
 
 ## 🎓 最佳实践
 
