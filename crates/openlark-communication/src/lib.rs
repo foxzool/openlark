@@ -65,6 +65,7 @@ pub mod common;
 pub mod endpoints;
 
 // Event（事件系统）模块 - 事件订阅、出口 IP、长连接在线数量等
+#[cfg(feature = "event")]
 pub mod event;
 
 // AILY 模块
