@@ -1,5 +1,5 @@
-#![cfg(feature = "v2")]
 //! Representative contract tests for high-frequency workflow request/response models.
+#![cfg(feature = "v2")]
 
 use openlark_workflow::v2::comment::{CreateCommentBody, ListCommentsResponse};
 use openlark_workflow::v2::custom_field::{

@@ -1,4 +1,5 @@
 //! performance tests 集成测试。
+#![cfg(feature = "performance")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::performance::performance::{v1, v2};

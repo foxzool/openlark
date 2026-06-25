@@ -1,4 +1,5 @@
 //! payroll tests 集成测试。
+#![cfg(feature = "payroll")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::payroll::payroll::v1::*;

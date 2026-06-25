@@ -1,4 +1,5 @@
 //! openlark-hr 招聘请求建模测试。
+#![cfg(feature = "hire")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::hire::hire::{

@@ -1,5 +1,5 @@
-#![cfg(feature = "v1")]
 //! Representative contract tests for Application request/response models.
+#![cfg(feature = "v1")]
 
 use openlark_application::application::application::v1::app::GetAppResponse;
 use openlark_application::workplace::workplace::v1::workplace_access_data::search::{

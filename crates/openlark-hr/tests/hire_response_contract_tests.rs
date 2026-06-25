@@ -1,4 +1,5 @@
 //! hire response contract tests 集成测试。
+#![cfg(feature = "hire")]
 
 use openlark_hr::hire::hire::{
     v1::{

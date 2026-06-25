@@ -33,3 +33,11 @@ default = ["robot", "signature"]
 robot = []
 signature = ["hmac", "sha2", "base64"]
 card = []
+
+[[example]]
+name = "webhook_error_handling"
+required-features = ["robot"]
+
+[[example]]
+name = "webhook_text_message"
+required-features = ["robot"]

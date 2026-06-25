@@ -1,5 +1,5 @@
-#![cfg(all(feature = "im", feature = "contact"))]
 //! Representative contract tests for high-frequency communication request/response models.
+#![cfg(all(feature = "im", feature = "contact"))]
 
 use openlark_communication::contact::contact::v3::user::batch::BatchGetUsersResponse;
 use openlark_communication::im::v1::chat::models::GetChatLinkResponse;

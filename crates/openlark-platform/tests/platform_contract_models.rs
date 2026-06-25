@@ -1,3 +1,4 @@
+//! 各业务域 request/response 数据模型的代表性契约测试。
 #![cfg(all(
     feature = "admin",
     feature = "v1",
@@ -8,7 +9,6 @@
     feature = "trust_party",
     feature = "spark"
 ))]
-//! 各业务域 request/response 数据模型的代表性契约测试。
 
 use openlark_platform::common::{AppInfo, DirectoryItem, SystemSettings};
 use serde::Serialize;
