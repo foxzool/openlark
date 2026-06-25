@@ -1,6 +1,6 @@
 ---
 name: openlark-code-standards
-description: OpenLark 项目代码规范检查技能。用于快速审查仓库内的架构一致性、API 实现套路、参数校验、命名与导出规范，并输出可执行检查清单与证据路径。
+description: OpenLark 项目代码规范检查技能。用于快速审查仓库内的架构一致性、API 实现套路、参数校验、命名与导出规范，并输出可执行检查清单与证据路径。Triggers: code review / consistency check / architecture audit / 规范检查 / 风格一致性 / 体检 / 对齐约定。项目锚点见 AGENTS.md#CONVENTIONS 与 AGENTS.md#ANTI-PATTERNS。
 argument-hint: "[crate-name|path]"
 allowed-tools: Read, Grep, Glob, Bash
 ---
@@ -25,14 +25,11 @@ allowed-tools: Read, Grep, Glob, Bash
 
 ## 检查范围
 
-优先覆盖：
+覆盖全部 `crates/openlark-*`（按 `AGENTS.md#STRUCTURE` 有 18 个业务/基础设施 crate）。
 
-- `crates/openlark-core`
-- `crates/openlark-client`
-- `crates/openlark-docs`
-- `crates/openlark-communication`
-
-可按参数缩小为某个 crate 或目录。
+- 重点核审：核心基础设施（`openlark-core`、`openlark-client`、`openlark-protocol`）与高频业务 crate（`openlark-docs`、`openlark-communication`、`openlark-hr`）。
+- Client 命名（`XxxClient`）权威映射表见 `docs/CLIENT_NAMING_CONVENTION.md` 的「当前映射」，命名核审以此为准。
+- 可按参数缩小为某个 crate 或目录（如 `openlark-mail`、`crates/openlark-hr/src/`）。
 
 ## 核心检查项
 
@@ -43,10 +40,11 @@ allowed-tools: Read, Grep, Glob, Bash
 - 是否通过 `Transport::request(...)` 发送请求
 
 **🔴 硬规则（grep 命中即 P0 违规）：**
-- 业务 crate（除 `openlark-core`）**不得出现 `reqwest::Client::new()`**——一旦命中，说明有端点绕过了 `Transport`，必为不一致源头。检查命令：
+- 业务 crate（除 `openlark-core` 与 **`openlark-webhook`**）**不得出现 `reqwest::Client::new()`**——一旦命中，说明有端点绕过了 `Transport`，必为不一致源头。检查命令：
   ```bash
-  rg "reqwest::Client::new" crates/ --type rust -g '!openlark-core/**'
+  rg "reqwest::Client::new" crates/ --type rust -g '!openlark-core/**' -g '!openlark-webhook/**'
   ```
+- **白名单说明：`openlark-webhook` 是有意例外**——自定义机器人不是飞书开放平台 API（目标 URL 为用户配置的绝对地址、用 URL 携带签名密钥鉴权、响应体为非标准 `{code,msg}`），不适用 `Transport` 的 `/open-apis/` 基址与 token 注入，故保留独立 reqwest 路径（见 issue #214 调研结论，注释位于 `crates/openlark-webhook/src/robot/v1/send.rs:13-26`）。**勿改 webhook 的 reqwest 用法**。
 - **不得手工 `Authorization` 头 / `get_app_token`**（token 由 `Transport` 自动注入）
 - **`Service`/`Request` 不得持有 HTTP client 字段**（只持 `Config`）
 
@@ -57,9 +55,12 @@ allowed-tools: Read, Grep, Glob, Bash
 
 ### 2) 端点定义规范
 
-- 是否使用 `ApiEndpoint` 枚举/端点常量
-- 是否避免手写业务 URL
-- 是否通过 `to_url()` 或统一端点入口生成路径
+- 是否使用 **per-crate 类型安全端点枚举**：每个 crate 在 `src/common/api_endpoints.rs` 定义各自的 `<Domain>ApiV1` 枚举，并实现 `pub fn to_url(&self) -> String`（注意 `to_url()` 返回的是相对路径 `String`，形如 `/open-apis/mail/v1/...`，不带基址）。
+- 是否避免手写业务 URL（统一走枚举 `to_url()`）
+- 命名注意：枚举名是 `<Domain>ApiV1`，`Domain` **通常但并非总是**等于 crate 名——以现况为准：
+  - 与 crate 同名：`MailApiV1`（`crates/openlark-mail/src/common/api_endpoints.rs:5`）、`DocsApiV1`（`crates/openlark-docs/src/common/api_endpoints.rs:440`）、`HelpdeskApiV1`、`AppApiV1`（application）。
+  - 与 crate 名不同：`VcApiV1`（meeting，`crates/openlark-meeting/src/common/api_endpoints.rs:224`）、`TaskApiV1`/`BoardApiV1`（workflow）、`AdminApiV1`（platform）、`AuthenApiV1`（auth）、HR 多枚举（`AttendanceApiV1`/`HireApiV1`/`OkrApiV1`/...）、Docs 多枚举（`BitableApiV1`/`WikiApiV1`/`DocxApiV1`/`MinutesApiV1`/...）。
+- 新增端点时改枚举与 `to_url()` match 分支，不要在 Request/Builder 里手写 URL 字面量。
 
 ### 3) 参数校验规范
 
@@ -70,6 +71,11 @@ allowed-tools: Read, Grep, Glob, Bash
 **🟡 Token 类型与 Config 形态：**
 - 应用级接口（文档要求 `tenant_access_token`/`app_access_token`）是否显式 `.with_supported_access_token_types(vec![AccessTokenType::App])`——`ApiRequest` 默认 `[User, Tenant]`，漏设会导致飞书拒绝。
 - `Request`/`Service` 是否用 owned `Config`（非 `Arc<Config>`）——新代码与重构以 owned 为准（`openlark-docs` 历史用 `Arc` 属例外）。
+
+**🟡 `RequestOption`（单数）vs `RequestOptions`（复数）切勿混用：**
+- `openlark_core::req_option::RequestOption`（**单数**，`crates/openlark-core/src/req_option.rs:7`）——`Transport`/`execute_with_options` 实际接受的类型（token、tenant_key、file_upload/download 等运行时请求控制），业务 crate 调用 `execute_with_options(RequestOption::default())`。
+- `openlark_client::types::client::RequestOptions`（**复数**，`crates/openlark-client/src/types/client.rs:180`）——高级客户端的 timeout/retry_count/headers 构造参数，语义不同。
+- 二者字段集合完全不同，**不得互相替代或导出混名**；业务 crate 写 Builder 时用单数 `RequestOption`。
 
 ### 4) 命名与公开 API 表达
 
@@ -82,6 +88,15 @@ allowed-tools: Read, Grep, Glob, Bash
 - `mod.rs` 与 `prelude` 是否完整导出新增 API
 - `Cargo.toml` feature 与 `#[cfg(feature = "...")]` 是否对齐
 - 是否存在导出但不可编译或不可访问路径
+
+### 6) CI 与测试门控（#228 审核闭环）
+
+> 详细背景见 `docs/CI_TEST_TARGET_COVERAGE.md`（相关 issue：#228 / #246 / #248 / #250 / #251；PR：#247 / #249 / #252 / #253 / #254）。
+
+- **测试/`#[cfg(test)]` 改动后必跑 `just lint`**：`just lint` = `cargo clippy --workspace --all-targets --all-features`（justfile:12-14）。CI 在 **all-features / no-default-features / 各 feature 组合** 三个维度都用 `--all-targets`，因此 `#[cfg(test)]` 类 lint 回归（如 #248 的未用 `use super::*`）会被 CI 直接拦住，不只依赖本地。
+- **`tests/*.rs` feature 门控约定**（#251）：文件引用 feature-gated 模块时，文件顶部加 `#![cfg(feature = "...")]`；且 **`//!` 模块文档必须在 `#![cfg]` 之上**（顺序反了会触发 clippy `missing_docs`）。
+- **`examples/*.rs` 禁用 `#![cfg]`**（#251）：feature 门控走 `Cargo.toml` 的 `[[example]] required-features`。example 里写 `#![cfg]` 会把文件清空成无 `main`，报 **`E0601`**。
+- **event 模块（`openlark-communication`）不违规**：event 在 `tools/api_priority.toml` 标为 **P2**（非 P0 核心业务），按基础设施类对待（与 WebSocket `LarkWsClient` 同类），**有意不经统一 client `declare_client!` re-export**（#228 决策）。审查时勿把它当作「漏 re-export 的违规」上报。
 
 ## 输出模板（必须）
 

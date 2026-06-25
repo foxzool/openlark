@@ -7,12 +7,12 @@
 - 输出可直接粘贴到上下文的 Markdown，辅助生成 Rust Request/Response 字段
 
 用法：
-  python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
-  python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format json
+  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
+  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format json
 
 离线模式（无网络/受限环境）：
-  python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --html-file /path/to/page.html --format md
-  cat /path/to/page.html | python3 .claude/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --stdin --format md
+  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --html-file /path/to/page.html --format md
+  cat /path/to/page.html | python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --stdin --format md
 """
 
 from __future__ import annotations

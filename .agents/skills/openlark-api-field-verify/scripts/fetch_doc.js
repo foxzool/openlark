@@ -25,23 +25,27 @@
 const fs = require('fs');
 const path = require('path');
 
-// 尝试加载 playwright（兼容多种安装位置）
+// 尝试加载 playwright（不依赖个人本机绝对路径）
+// 1) 优先用当前 NODE_PATH / 本地已装的 playwright
+// 2) 失败则查 npm 全局 node_modules 根（等价于 npx 全局缓存解析到的位置）
+// 这样在任何机器上都能跑，不写死作者本机的 npx 缓存路径。
 let chromium;
-const candidates = [
-  'playwright',
-  '/Users/zool/.npm/_npx/9833c18b2d85bc59/node_modules/playwright',
-];
-for (const c of candidates) {
+try {
+  ({ chromium } = require('playwright'));
+} catch (e) {
+  let resolved = null;
   try {
-    ({ chromium } = require(c));
-    break;
-  } catch (e) {
-    // 继续尝试下一个
+    const { execSync } = require('child_process');
+    const globalRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+    resolved = require('path').join(globalRoot, 'playwright');
+    ({ chromium } = require(resolved));
+  } catch (e2) {
+    resolved = null;
   }
-}
-if (!chromium) {
-  console.error('❌ 找不到 playwright 模块。请先安装：npm i -g playwright && npx playwright install chromium');
-  process.exit(1);
+  if (!chromium) {
+    console.error('❌ 找不到 playwright 模块。请先安装：npm i -g playwright && npx playwright install chromium');
+    process.exit(1);
+  }
 }
 
 const DOC_BASE = 'https://open.feishu.cn';

@@ -47,7 +47,18 @@ impl CreateMessageRequest {
         self
     }
 
+    /// 执行请求（转调 execute_with_options，传 RequestOption::default()）
     pub async fn execute(self, body: CreateMessageBody) -> SDKResult<serde_json::Value> {
+        self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
+            .await
+    }
+
+    /// 使用指定请求选项执行（option 透传到 Transport::request 的 Some(option)）
+    pub async fn execute_with_options(
+        self,
+        body: CreateMessageBody,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<serde_json::Value> {
         validate_required!(body.receive_id, "receive_id 不能为空");
         validate_required!(body.msg_type, "msg_type 不能为空");
         validate_required!(body.content, "content 不能为空");
@@ -60,14 +71,14 @@ impl CreateMessageRequest {
             .query("receive_id_type", receive_id_type)
             .body(serialize_params(&body, "发送消息")?);
 
-        let resp = Transport::request(req, &self.config, None).await?;
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "发送消息")
     }
 }
 ```
 
 补充约定（新增/重构时统一）：
-- 若该 API 可能需要用户态 token / request_id / 自定义 header：在 builder 上提供 `execute_with_options(..., RequestOption)`，并将 `option` 透传到 `Transport::request(..., Some(option))`
+- **每个 Request 必须提供 `execute_with_options(..., RequestOption)` 并把 option 透传到 `Transport::request(..., Some(option))`**；`execute` 只是无 option 版本的转调（`execute_with_options(.., RequestOption::default())`）。见核心契约 5。
 - 不要只调用 `ApiRequest::request_option(...)`：当前实现仅合并 header，token 推断/注入需要走 `Transport` 的 `option` 参数
 
 ## B) enum 端点 + typed response + ApiResponseTrait
@@ -127,7 +138,17 @@ impl Create {
     pub fn role_name(mut self, v: impl Into<String>) -> Self { self.req.role_name = v.into(); self }
     pub fn table_roles(mut self, v: Vec<serde_json::Value>) -> Self { self.req.table_roles = v; self }
 
-    pub async fn send(self) -> SDKResult<CreateResp> {
+    /// 使用默认请求选项执行（转调 execute_with_options）
+    pub async fn execute(self) -> SDKResult<CreateResp> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
+    }
+
+    /// 使用指定请求选项执行（option 透传到 Transport::request 的 Some(option)）
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<CreateResp> {
         validate_required!(self.app_token, "app_token 不能为空");
         validate_required!(self.req.role_name, "role_name 不能为空");
 
@@ -135,14 +156,14 @@ impl Create {
         let api_request: ApiRequest<CreateResp> = ApiRequest::post(&api_endpoint.to_url())
             .body(serialize_params(&self.req, "新增自定义角色")?);
 
-        let response = Transport::request(api_request, &self.config, None).await?;
+        let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "新增自定义角色")
     }
 }
 ```
 
 补充约定（新增/重构时统一）：
-- 若保留 `send()`：建议额外提供 `send_with_options(option: RequestOption)`（或改为 `send(self, option: Option<RequestOption>)`），并将 option 透传到 `Transport::request(...)`
+- 与 A 范式一致：每个 Request 必须提供 `execute_with_options(..., RequestOption)` 并透传 `Some(option)`；`execute()` 只是无 option 版本的转调。
 
 ## 最小导出约定（mod.rs）
 
@@ -154,31 +175,40 @@ pub mod get;
 pub mod models;
 ```
 
-## service.rs 链式调用（给 openlark-client 调用）
+## DocsClient / 链式入口（openlark-docs 真实形态）
 
-`openlark-client` 推荐以“薄包装 + raw 透传”的方式复用各 feature crate 的 service 链路。
+> ⚠️ **历史纠错**：旧版文档曾给出 `client.docs.service().base().v2().app().role().create()`
+> 这样的深层链式调用——**这些 `service()`/`base()`/`v2()` 方法与 `DocsService`/`BaseService`
+> 类型在仓库中均不存在**。核实 `crates/openlark-docs/src/common/chain.rs:609-651`：`DocsClient`
+> 只暴露 `ccm`/`base`/`baike`/`minutes` 公开字段（按 feature 裁剪）和 `config()` 方法，
+> 没有 `service()` 方法，也没有逐层 `.base().v2().app().role()` 的 Service 链。
 
-### 示例：openlark-docs 的链式结构（真实存在）
+`openlark-docs` 的真实调用形态是**两段式**：
 
-入口：
-- `openlark-client`：`client.docs.service() ...`
-- `feature crate`：`openlark_docs::service::DocsService::new(config) ...`
+1. 用 `DocsClient::new(config)` 拿到 client，再取 `docs.base.config().clone()`（或对应子 client 的 `.config()`）得到 `Config`；
+2. 用户自己 `CreateRole::new(config)...execute()` 直接构造 Builder 调用，**不存在统一的深层 Service 链**。
 
 ```rust
-// 统一调用形态（方案 1）：client.<biz>.service()...<api>() -> Builder
-client.docs.service().base().v2().app().role().create()
+use openlark_docs::DocsClient;
+use openlark_docs::base::base::v2::app::role::create::Create;
+
+// 1) 拿到 Config（DocsClient 内部 Arc<Config>，clone 廉价）
+let docs = DocsClient::new(config);
+let config = docs.base.config().clone();   // crates/openlark-docs/src/common/chain.rs:1080-1091
+
+// 2) 用户直接构造 Builder 调用 API
+let resp = Create::new(config)
+    .app_token("bascn...")
+    .role_name("角色名")
+    .table_roles(vec![...])
+    .execute()
+    .await?;
 ```
 
-其中：
-- `service()` 在 `DocsClient` 上提供：`crates/openlark-docs/src/common/chain.rs`
-- `base()`（bizTag）在 `DocsService` 上提供：`crates/openlark-docs/src/service.rs`
-- `v2()`（meta.Version）在 `BaseService` 上提供：`crates/openlark-docs/src/base/service.rs`
-- `app().role()`（meta.Project/meta.Resource）在各层 `*Service` 上提供
-- `create()`（meta.Name）在 `RoleService` 上提供：`crates/openlark-docs/src/base/base/v2/app/role/mod.rs`
+### 对新 API 的要求
 
-### 对新 API 的要求（建议照此落地）
+`openlark-docs` crate 新增 API 时：
+- 在对应 `mod.rs` 导出 Builder（如 `Create`）即可，**不需要**补任何 `service.rs` / 深层 Service 链；
+- Builder 必须实现 `execute` + `execute_with_options`（见上方 A/B 范式），不依赖外层 Service。
 
-当你新增 `crates/{feature-crate}/src/{bizTag}/{meta.Project}/{meta.Version}/.../{meta.Name}.rs` 时：
-- 确保能从 `crates/{feature-crate}/src/service.rs` 逐层链式访问到该 API builder
-- 并确保 `client.<biz>` 的链式入口提供 `service()`，让调用侧统一走 `client.<biz>.service()...`
-- 每一层 service 只做“路由/分组”，最后一层返回具体 API builder（其上再 `.send()`/`.execute()`）
+其他 crate（非 docs）若已有 `src/service.rs` 链式入口，按该 crate 现有结构补链路即可；event/webhook 类 P2 模块不进统一 `service.rs` 链路。

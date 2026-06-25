@@ -142,8 +142,10 @@ PY
 
 特征：
 - Builder 只拼 Request
-- `ExecutableBuilder`/trait_system 统一 execute
+- 统一 execute 由 `openlark_core::trait_system::ExecutableBuilder` 提供（trait 定义在 `crates/openlark-core/src/trait_system/executable_builder.rs:11`，业务 crate 通过宏批量 impl，例如 `crates/openlark-meeting/src/common/macros.rs` 的 `impl_executable_builder!`/`impl_executable_builder_owned!`）
 - Service 持有 Config，并负责实际请求发送
+
+> ⚠️ trait 名核实：现码中 trait 名是 **`ExecutableBuilder`**（不是单字母 `n`）。引用时写完整路径 `openlark_core::trait_system::ExecutableBuilder`，不要写成 `trait_system::n`。
 
 **规则**：同一个 project/version 内不得同时出现 A+B；若历史原因混用，必须定义清晰的迁移路线。
 
@@ -155,6 +157,7 @@ PY
 - 是否存在“占位/空实现”的 public API（例如 builder setter 不生效）？
 - re-export 是否稳定、是否引入 `ambiguous_glob_reexports` 需要大量 allow？
 - `prelude` 是否只导出“高频且稳定”的类型，避免把内部实现细节暴露出去？
+- **event/回调类不进统一 Client ServiceRegistry**：event 模块在业务优先级模型中属 **P2**（非 P0 核心业务），按**基础设施类**对待（与 WebSocket `LarkWsClient` 同类），仅在所属业务 crate（如 `openlark-communication`）暴露，**不进** `declare_client!`/`ServiceRegistry` 注册表（统一 client 仅注册 P0/P1 资源客户端）。详见 `docs/CI_TEST_TARGET_COVERAGE.md`（#228 决策）。
 
 ### 2.2 Feature gating 一致性（Cargo.toml ↔ cfg）
 
@@ -188,17 +191,21 @@ PY
 **正确模式**（参考 `openlark-docs/src/common/chain.rs`）：
 - ✅ Service 只持有 `Arc<Config>`
 - ✅ 子 Service 通过 `new(Arc<Config>)` 透传配置
-- ✅ HTTP 传输统一由 `openlark_core::Transport` 处理
+- ✅ HTTP 传输统一由 `openlark_core::http::Transport`（`pub struct Transport<T>`，`http.rs:23`，prelude 导出于 `lib.rs:93`）处理
 - ✅ `Config::build()` 直接返回 `Config`，不需要 `.unwrap()`
 
 **检查点**：
 ```bash
 # 搜索错误的 LarkClient 用法
+# 注：本仓已历史清零（无命中），此命令作“回归守卫”——命中即 P0。
 rg "LarkClient::new" crates/
 
 # 搜索错误的 Config::build().unwrap() 用法
+# 注：本仓已历史清零（无命中），此命令作“回归守卫”——命中即 P0。
 rg "Config::builder\(\).*\.build\(\)\.unwrap\(\)" crates/
 ```
+
+> Transport 精确路径：HTTP 传输统一走 `openlark_core::http::Transport`（`pub struct Transport<T>`，定义在 `crates/openlark-core/src/http.rs:23`，由 `crates/openlark-core/src/lib.rs:93` 的 prelude 导出）。
 
 ### 2.5 错误处理与类型边界
 
@@ -211,6 +218,30 @@ rg "Config::builder\(\).*\.build\(\)\.unwrap\(\)" crates/
 - `cargo check --all-features` 是否无 warning？（deprecated/unused 要么修，要么显式 allow）
 - 单元测试是否只验证“构建正确”，避免依赖真实网络？
 - 文档示例是否可 `compile`（必要时 `no_run/ignore` 但要有理由）
+
+### 2.7 CI/测试门控一致性（#251 后约定）
+
+> 背景：CI clippy 三个维度（all-features / no-default-features / 各 feature 组合）统一加 `--all-targets`（#250/#254），把 test/bench target 纳入 lint；门控写法不当会直接被 CI 拦或触发 `E0601`/`missing_docs`。详见 `docs/CI_TEST_TARGET_COVERAGE.md`。
+
+检查点：
+
+1. **example 必须在 `Cargo.toml [[example]]` 声明 `required-features`**（CI clippy 跑 `--all-targets` 会编译 example）。
+   - example **不要**用 `#![cfg(feature="...")]`（会把 example 清空成无 `main`，报 `E0601`）。
+   - 现码范例：`crates/openlark-docs/Cargo.toml` 的 `required-features = ["baike", "bitable", "ccm-core"]`。
+
+2. **feature 契约测试文件结构约定**：`//! 文档注释` 在前 + `#![cfg(feature="x")]` 紧随其后。
+   - 文件首行必须是 `//! ...` 文档；`#![cfg(...)]` 放第 2 行（顺序反了会触发 clippy `missing_docs`）。
+   - **不要**用 `#[cfg]` 包整文件，**不要**把 `#![cfg]` 放在 `//!` 之前。
+   - 现码范例：`crates/openlark-application/tests/application_contract_models.rs:1-2`（`//!` 在第 1 行，`#![cfg(feature = "v1")]` 在第 2 行）。
+
+3. **检查命令**：
+   ```bash
+   # 测试文件门控写法（确认 //! 在前、#![cfg(feature)] 紧随）
+   rg -n '^#!\[cfg\(feature' crates/<crate>/tests/
+
+   # example 是否声明 required-features
+   rg -n 'required-features' crates/<crate>/Cargo.toml
+   ```
 
 ## 3. 常见整改套路（建议）
 
