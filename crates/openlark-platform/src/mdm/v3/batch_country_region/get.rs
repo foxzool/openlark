@@ -4,12 +4,11 @@
 //! docPath: https://open.feishu.cn/document/mdm-v1/mdm-v3/country_region/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
-    validate_required,
     validate_required_list,
 };
 use serde::{Deserialize, Serialize};
@@ -52,7 +51,7 @@ impl CountryRegionBatchGetBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<CountryRegionBatchGetResponse> {
-        let mut url = "/open-apis/mdm/v3/batch_country_region".to_string();
+        let url = "/open-apis/mdm/v3/batch_country_region".to_string();
 
         // 添加查询参数
         validate_required_list!(self.mdm_codes, 50, "mdm_codes 不能为空");
@@ -123,4 +122,3 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
-

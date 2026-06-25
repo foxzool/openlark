@@ -10,5 +10,7 @@ pub mod form_variable_data;
 pub mod get;
 /// list 子模块。
 pub mod list;
+/// 查询流程数据模板子模块。
+pub mod query_flow_data_template;
 /// transfer 子模块。
 pub mod transfer;

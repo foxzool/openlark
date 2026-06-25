@@ -4,12 +4,11 @@
 //! docPath: https://open.feishu.cn/document/apaas-v1/permission/application-role-member/get
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -61,7 +60,10 @@ impl RoleMemberGetBuilder {
     }
 
     /// 使用选项执行请求
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<RoleMemberGetResponse> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<RoleMemberGetResponse> {
         let url = format!(
             "/open-apis/apaas/v1/applications/{}/roles/{}/member",
             self.namespace, self.role_api_name
@@ -74,7 +76,9 @@ impl RoleMemberGetBuilder {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        Transport::request(req, &self.config, Some(option)).await
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        resp.data
+            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
     }
 }
 

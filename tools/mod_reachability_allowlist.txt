@@ -2,66 +2,9 @@
 # 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
 # CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
 # 再跑 --update-allowlist 或直接编辑收敛。
-# 当前存量孤儿：61 个
+# 当前存量孤儿：4 个
 
 openlark-communication: crates/openlark-communication/src/card/mod.rs
 openlark-communication: crates/openlark-communication/src/im_message/mod.rs
 openlark-docs: crates/openlark-docs/src/ccm/doc/v1/mod.rs
 openlark-docs: crates/openlark-docs/src/ccm/doc/v1/models.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/mod.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/enum/search.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process/query_flow_data_template/create.rs
-openlark-hr: crates/openlark-hr/src/feishu_people/corehr/v2/process_start/create.rs
-openlark-hr: crates/openlark-hr/src/mod.rs
-openlark-hr: crates/openlark-hr/src/security/audit_log/mod.rs
-openlark-hr: crates/openlark-hr/src/security/mod.rs
-openlark-hr: crates/openlark-hr/src/security/openapi_log/mod.rs
-openlark-platform: crates/openlark-platform/src/admin/admin/v1/audit_info/list.rs
-openlark-platform: crates/openlark-platform/src/admin/admin/v1/audit_info/list/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/app/list.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/app/list/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/record_permission/member/batch_create_authorization.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/record_permission/member/batch_remove_authorization.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/record_permission/member/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/role/member/batch_create_authorization.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/role/member/batch_remove_authorization.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/role/member/get.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/application/role/member/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/approval_task/transfer.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/apps/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/market/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/tenants/mod.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/workspace/enum/enum_get.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/workspace/enum/list.rs
-openlark-platform: crates/openlark-platform/src/app_engine/apaas/v1/workspace/enum/mod.rs
-openlark-platform: crates/openlark-platform/src/directory/directory/v1/collboration_share_entity/list.rs
-openlark-platform: crates/openlark-platform/src/mdm/mdm/v1/user_auth_data_relation/bind.rs
-openlark-platform: crates/openlark-platform/src/mdm/mdm/v1/user_auth_data_relation/unbind.rs
-openlark-platform: crates/openlark-platform/src/mdm/mdm/v3/batch_country_region/get.rs
-openlark-platform: crates/openlark-platform/src/mdm/mdm/v3/country_region/list.rs
-openlark-platform: crates/openlark-platform/src/mdm/v3/batch_country_region/get.rs
-openlark-platform: crates/openlark-platform/src/tenant/tenant/v2/tenant/product_assign_info/query.rs
-openlark-platform: crates/openlark-platform/src/tenant/tenant/v2/tenant/query.rs
-openlark-platform: crates/openlark-platform/src/trust_party/trust_party/v1/collaboration_tenant/collaboration_department/get.rs
-openlark-platform: crates/openlark-platform/src/trust_party/trust_party/v1/collaboration_tenant/collaboration_user/get.rs
-openlark-platform: crates/openlark-platform/src/trust_party/trust_party/v1/collaboration_tenant/get.rs
-openlark-platform: crates/openlark-platform/src/trust_party/trust_party/v1/collaboration_tenant/list.rs
-openlark-platform: crates/openlark-platform/src/trust_party/trust_party/v1/collaboration_tenant/visible_organization.rs
-openlark-security: crates/openlark-security/src/prelude.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/multi_geo_entity/tenant/get.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/openapi_log/list_data.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/user_migration/cancel.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/user_migration/create.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/user_migration/get.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v1/user_migration/search.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_apply_record/update.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/create.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/delete.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/get.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/list.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/mine.rs
-openlark-security: crates/openlark-security/src/security_and_compliance/security_and_compliance/v2/device_record/update.rs
-openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_collaborator.rs
-openlark-workflow: crates/openlark-workflow/src/task/task/v1/task/batch_delete_follower.rs
-openlark-workflow: crates/openlark-workflow/src/task/task/v2/custom_field/patch.rs
-openlark-workflow: crates/openlark-workflow/src/v2/section/tasks.rs

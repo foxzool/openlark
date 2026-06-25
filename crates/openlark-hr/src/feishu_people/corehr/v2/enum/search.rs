@@ -3,10 +3,10 @@
 //! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/enum/search
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -17,6 +17,7 @@ use serde_json::Value;
 pub struct SearchRequest {
     /// 配置信息
     config: Config,
+    /// 请求体
     body: Option<Value>,
 }
 
@@ -26,6 +27,7 @@ impl SearchRequest {
         Self { config, body: None }
     }
 
+    /// 设置请求体
     pub fn body(mut self, body: Value) -> Self {
         self.body = Some(body);
         self
@@ -37,6 +39,7 @@ impl SearchRequest {
             .await
     }
 
+    /// 执行请求（带选项）
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,
@@ -49,10 +52,7 @@ impl SearchRequest {
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
         response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "接口响应数据为空",
-                "服务器没有返回有效的数据",
-            )
+            openlark_core::error::validation_error("接口响应数据为空", "服务器没有返回有效的数据")
         })
     }
 }
