@@ -26,13 +26,14 @@ tokio = { workspace = true }
 insta = { workspace = true }
 
 [features]
-default = ["im", "contact", "moments", "aily"]
-full = ["im", "contact", "moments", "aily"]
+default = ["im", "contact", "moments", "aily", "event"]
+full = ["im", "contact", "moments", "aily", "event"]
 
 im = []
 contact = []
 moments = []
 aily = []
+event = []
 
 [package.metadata.cargo-machete]
 ignored = ["reqwest", "tracing"]
