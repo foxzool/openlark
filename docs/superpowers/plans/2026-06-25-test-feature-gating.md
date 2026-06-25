@@ -2,6 +2,7 @@
 change: fix-test-feature-gating
 design-doc: docs/superpowers/specs/2026-06-25-test-feature-gating-design.md
 base-ref: 86482802de7e2ebf1977ad21e2207cdd0fae2526
+archived-with: 2026-06-25-fix-test-feature-gating
 ---
 
 # 实施计划 — fix-test-feature-gating（#251）

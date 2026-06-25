@@ -2,6 +2,8 @@
 comet_change: fix-test-feature-gating
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-25-fix-test-feature-gating
+status: final
 ---
 
 # Design Doc — fix-test-feature-gating（#251）
