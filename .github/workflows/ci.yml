@@ -104,7 +104,7 @@ jobs:
       - name: Check format
         run: cargo fmt --all -- --check
       - name: Run clippy (all features)
-        run: cargo clippy --workspace --lib --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
