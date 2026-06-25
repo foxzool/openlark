@@ -1,4 +1,5 @@
 //! openlark-webhook 集成测试。
+#![cfg(feature = "robot")]
 
 use openlark_webhook::common::error::WebhookError;
 use openlark_webhook::robot::v1::client::WebhookClient;

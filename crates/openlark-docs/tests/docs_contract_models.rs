@@ -1,5 +1,5 @@
-#![cfg(all(feature = "ccm-core", feature = "bitable", feature = "v3"))]
 //! Representative contract tests for high-frequency Docs request/response models.
+#![cfg(all(feature = "ccm-core", feature = "bitable"))]
 
 use openlark_core::config::Config;
 use openlark_docs::base::bitable::v1::{SearchRecordRequestBody, SearchRecordResponse};

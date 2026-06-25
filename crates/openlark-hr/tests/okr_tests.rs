@@ -1,4 +1,5 @@
 //! okr tests 集成测试。
+#![cfg(feature = "okr")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::okr::okr::v1;

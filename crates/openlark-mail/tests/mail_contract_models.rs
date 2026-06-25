@@ -1,5 +1,5 @@
-#![cfg(feature = "v1")]
 //! 邮件模块代表性契约测试，覆盖核心 request/response 模型的序列化/反序列化双向一致性。
+#![cfg(feature = "v1")]
 
 use openlark_mail::mail::mail::v1::mailgroup::alias::list::{
     ListMailGroupAliasData, MailGroupAlias,

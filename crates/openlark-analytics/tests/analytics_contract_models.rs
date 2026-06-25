@@ -1,5 +1,5 @@
-#![cfg(feature = "search")]
 //! Representative contract tests for analytics search request/response models.
+#![cfg(feature = "search")]
 
 use openlark_analytics::common::{SearchResult, SearchStats};
 use openlark_analytics::search::search::v2::data_source::get::{

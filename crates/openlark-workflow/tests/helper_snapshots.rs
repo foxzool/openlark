@@ -1,5 +1,5 @@
-#![cfg(feature = "v2")]
 //! Snapshot tests for high-value workflow helper outputs.
+#![cfg(feature = "v2")]
 
 use insta::assert_json_snapshot;
 use openlark_workflow::{

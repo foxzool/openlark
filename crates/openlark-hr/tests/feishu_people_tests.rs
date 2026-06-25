@@ -1,4 +1,5 @@
 //! feishu people tests 集成测试。
+#![cfg(feature = "corehr")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::feishu_people::corehr::v1::{

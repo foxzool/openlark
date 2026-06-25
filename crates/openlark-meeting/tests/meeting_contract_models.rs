@@ -1,5 +1,5 @@
-#![cfg(all(feature = "vc", feature = "calendar"))]
 //! 视频会议和日历核心 request/response 模型的序列化契约测试。
+#![cfg(all(feature = "vc", feature = "calendar"))]
 
 use openlark_meeting::calendar::calendar::v4::calendar::models::{
     Calendar, CalendarPermissions, CreateCalendarResponse, GetCalendarResponse,

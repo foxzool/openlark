@@ -1,4 +1,5 @@
 //! ehr tests 集成测试。
+#![cfg(feature = "ehr")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::ehr::ehr::v1::{attachment, employee};

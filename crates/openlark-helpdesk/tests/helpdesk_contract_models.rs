@@ -2,6 +2,7 @@
 //!
 //! 验证 Ticket、Category、FAQ、Notification、Agent 等主要结构的
 //! 序列化/反序列化双向一致性。
+#![cfg(feature = "v1")]
 
 use openlark_helpdesk::helpdesk::helpdesk::v1::agent::patch::{PatchAgentBody, PatchAgentResult};
 use openlark_helpdesk::helpdesk::helpdesk::v1::category::create::{
