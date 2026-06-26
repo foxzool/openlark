@@ -12,4 +12,4 @@
 - [x] T8: 根 crate `src/lib.rs:31` re-export 改 `openlark_core::config::Config`
 - [x] T9: examples 迁移（test_debug 简化为 core::Config；websocket_echo_bot timeout→req_timeout + build 返回 Config 非 Result）。cargo check --workspace --all-targets --all-features 全绿
 - [x] T10: 文档 + CHANGELOG：breaking 迁移指引 + client::Config → core::Config 字段/方法对应表
-- [ ] T11: `cargo test` + `cargo clippy --all-targets` + `cargo check --workspace --all-targets` 全绿
+- [x] T11: `cargo test --workspace --all-features`（全绿 0 failed）+ `cargo clippy --workspace --all-targets --all-features`（干净）+ `cargo check --workspace --all-targets --all-features`（全绿）；`rg 'openlark_client::Config\b|pub struct Config\b' crates/openlark-client/src` 无残留
