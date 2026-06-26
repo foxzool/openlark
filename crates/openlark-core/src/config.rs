@@ -63,6 +63,7 @@ pub struct Config {
 }
 
 /// 内部配置数据，被多个服务共享
+#[derive(Clone)]
 pub struct ConfigInner {
     pub(crate) app_id: String,
     pub(crate) app_secret: String,
@@ -307,6 +308,83 @@ impl Config {
                 .build());
         }
         Ok(())
+    }
+
+    /// 从 `OPENLARK_*` 环境变量加载配置
+    ///
+    /// 读取环境变量构建 Config，缺失变量用默认值。内部调用 [`validate`](Self::validate)，
+    /// 校验失败仅记录警告、不阻塞返回（与 `builder().build()` 不校验语义一致）。
+    ///
+    /// # 环境变量
+    /// - `OPENLARK_APP_ID` / `OPENLARK_APP_SECRET` / `OPENLARK_APP_TYPE`
+    ///   （`self_build`/`selfbuild`/`self` 或 `marketplace`/`store`）
+    /// - `OPENLARK_BASE_URL` / `OPENLARK_ENABLE_TOKEN_CACHE`
+    /// - `OPENLARK_TIMEOUT`（秒）→ `req_timeout(Some(Duration))`；未设保持 `None`
+    /// - `OPENLARK_RETRY_COUNT` / `OPENLARK_MAX_RESPONSE_SIZE` / `OPENLARK_ENABLE_LOG`
+    pub fn from_env() -> Config {
+        let mut inner = ConfigInner::default();
+        Self::apply_env_vars(&mut inner);
+        let config = Config::new(inner);
+        if let Err(e) = config.validate() {
+            tracing::warn!("from_env 加载的配置未通过校验: {e}");
+        }
+        config
+    }
+
+    /// 从 `OPENLARK_*` 环境变量加载到当前实例（写时复制：独占引用时原地修改）
+    ///
+    /// 仅设置存在且非空的环境变量（`OPENLARK_APP_TYPE` 除外，它对非法值静默忽略）。
+    pub fn load_from_env(&mut self) {
+        let inner = Arc::make_mut(&mut self.inner);
+        Self::apply_env_vars(inner);
+    }
+
+    fn apply_env_vars(inner: &mut ConfigInner) {
+        for (key, value) in std::env::vars() {
+            Self::apply_env_var(inner, &key, &value);
+        }
+    }
+
+    fn apply_env_var(inner: &mut ConfigInner, key: &str, value: &str) {
+        match key {
+            "OPENLARK_APP_ID" if !value.is_empty() => inner.app_id = value.to_string(),
+            "OPENLARK_APP_SECRET" if !value.is_empty() => inner.app_secret = value.to_string(),
+            "OPENLARK_APP_TYPE" => {
+                let v = value.trim().to_lowercase();
+                match v.as_str() {
+                    "self_build" | "selfbuild" | "self" => inner.app_type = AppType::SelfBuild,
+                    "marketplace" | "store" => inner.app_type = AppType::Marketplace,
+                    _ => {}
+                }
+            }
+            "OPENLARK_BASE_URL" if !value.is_empty() => inner.base_url = value.to_string(),
+            "OPENLARK_ENABLE_TOKEN_CACHE" => {
+                let s = value.trim().to_lowercase();
+                if !s.is_empty() {
+                    inner.enable_token_cache = !(s.starts_with('f') || s == "0");
+                }
+            }
+            // 分叉 5：秒数 → req_timeout(Some)；未设保持 None
+            "OPENLARK_TIMEOUT" => {
+                if let Ok(secs) = value.parse::<u64>() {
+                    inner.req_timeout = Some(Duration::from_secs(secs));
+                }
+            }
+            "OPENLARK_RETRY_COUNT" => {
+                if let Ok(n) = value.parse::<u32>() {
+                    inner.retry_count = n;
+                }
+            }
+            "OPENLARK_MAX_RESPONSE_SIZE" => {
+                if let Ok(size) = value.parse::<u64>() {
+                    inner.max_response_size = size;
+                }
+            }
+            "OPENLARK_ENABLE_LOG" => {
+                inner.enable_log = !value.to_lowercase().starts_with('f');
+            }
+            _ => {}
+        }
     }
 }
 
@@ -745,6 +823,127 @@ mod tests {
         // build() 不校验：app_id 空仍返回 Config，不抛错（分叉 1 回归保护）
         let config = Config::builder().app_id("").build();
         assert!(config.validate().is_err());
+    }
+
+    // ===== T3: from_env / load_from_env =====
+
+    /// 临时设置环境变量并在闭包返回后恢复（串行化避免并行测试污染）
+    fn with_env_vars<R>(vars: &[(&str, Option<&str>)], f: impl FnOnce() -> R) -> R {
+        use std::sync::{Mutex, OnceLock};
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        let _guard = LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        struct Restore(Vec<(String, Option<String>)>);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                for (k, v) in self.0.drain(..) {
+                    match v {
+                        Some(v) => unsafe { std::env::set_var(k, v) },
+                        None => unsafe { std::env::remove_var(k) },
+                    }
+                }
+            }
+        }
+
+        let saved = vars
+            .iter()
+            .map(|(k, _)| ((*k).to_string(), std::env::var(k).ok()))
+            .collect::<Vec<_>>();
+        for (k, v) in vars {
+            match v {
+                Some(v) => unsafe { std::env::set_var(k, v) },
+                None => unsafe { std::env::remove_var(k) },
+            }
+        }
+        let _restore = Restore(saved);
+        f()
+    }
+
+    #[test]
+    fn test_config_from_env_reads_all_vars() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("env_app")),
+                ("OPENLARK_APP_SECRET", Some("env_secret")),
+                ("OPENLARK_APP_TYPE", Some("marketplace")),
+                ("OPENLARK_BASE_URL", Some("https://open.larksuite.com")),
+                ("OPENLARK_ENABLE_TOKEN_CACHE", Some("false")),
+                ("OPENLARK_TIMEOUT", Some("60")),
+                ("OPENLARK_RETRY_COUNT", Some("5")),
+                ("OPENLARK_MAX_RESPONSE_SIZE", Some("12345")),
+                ("OPENLARK_ENABLE_LOG", Some("false")),
+            ],
+            || {
+                let config = Config::from_env();
+                assert_eq!(config.app_id(), "env_app");
+                assert_eq!(config.app_secret(), "env_secret");
+                assert_eq!(config.app_type(), AppType::Marketplace);
+                assert_eq!(config.base_url(), "https://open.larksuite.com");
+                assert!(!config.enable_token_cache());
+                // 分叉 5：OPENLARK_TIMEOUT → req_timeout(Some(Duration))
+                assert_eq!(config.req_timeout(), Some(Duration::from_secs(60)));
+                assert_eq!(config.retry_count(), 5);
+                assert_eq!(config.max_response_size(), 12345);
+                assert!(!config.enable_log());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_from_env_missing_uses_defaults() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", None),
+                ("OPENLARK_APP_SECRET", None),
+                ("OPENLARK_APP_TYPE", None),
+                ("OPENLARK_BASE_URL", None),
+                ("OPENLARK_ENABLE_TOKEN_CACHE", None),
+                ("OPENLARK_TIMEOUT", None),
+                ("OPENLARK_RETRY_COUNT", None),
+                ("OPENLARK_MAX_RESPONSE_SIZE", None),
+                ("OPENLARK_ENABLE_LOG", None),
+            ],
+            || {
+                let config = Config::from_env();
+                assert_eq!(config.app_id(), "");
+                assert_eq!(config.app_type(), AppType::SelfBuild);
+                assert!(config.enable_token_cache());
+                // 分叉 5：未设 TIMEOUT → req_timeout 保持 None（非 client 的 30s）
+                assert_eq!(config.req_timeout(), None);
+                assert_eq!(config.retry_count(), 3);
+                assert!(config.enable_log());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_from_env_invalid_does_not_block() {
+        // app_id 空（不设），from_env 仍返回 Config 不 panic；validate 才报错
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", None),
+                ("OPENLARK_APP_SECRET", Some("secret")),
+                ("OPENLARK_BASE_URL", Some("https://open.feishu.cn")),
+            ],
+            || {
+                let config = Config::from_env();
+                assert!(config.app_id().is_empty());
+                assert!(config.validate().is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_load_from_env_mutates() {
+        with_env_vars(&[("OPENLARK_APP_ID", Some("loaded_id"))], || {
+            let mut config = Config::default();
+            assert_eq!(config.app_id(), "");
+            config.load_from_env();
+            assert_eq!(config.app_id(), "loaded_id");
+        });
     }
 
     #[test]
