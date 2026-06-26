@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,13 +7,13 @@ subagent_dispatch: null
 tdd_mode: tdd
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 13676a2b70477cf060b6430865ce2182c37e718a
 design_doc: docs/superpowers/specs/2026-06-26-merge-deprecated-config-design.md
 plan: docs/superpowers/plans/2026-06-26-merge-deprecated-config.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-06-26-merge-deprecated-config-verify.md
 branch_status: pending
 created_at: 2026-06-26
 verified_at: null
