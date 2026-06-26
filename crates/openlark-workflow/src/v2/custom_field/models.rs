@@ -47,6 +47,10 @@ pub struct CreateCustomFieldBody {
     pub name: String,
     /// 字段配置
     pub config: CustomFieldConfig,
+    /// 资源类型（目前官方仅支持 "tasklist"）
+    pub resource_type: String,
+    /// 资源 GUID（挂载的清单 GUID）
+    pub resource_id: String,
 }
 
 /// 更新自定义字段请求体

@@ -8,7 +8,6 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required,
 };
 use std::sync::Arc;
 
@@ -17,8 +16,6 @@ use std::sync::Arc;
 pub struct ListSectionsRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 分页大小
     page_size: Option<i32>,
     /// 分页标记
@@ -27,10 +24,9 @@ pub struct ListSectionsRequest {
 
 impl ListSectionsRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String) -> Self {
+    pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
-            tasklist_guid,
             page_size: None,
             page_token: None,
         }
@@ -59,10 +55,7 @@ impl ListSectionsRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListSectionsResponse> {
-        // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
-
-        let api_endpoint = TaskApiV2::SectionList(self.tasklist_guid.clone());
+        let api_endpoint = TaskApiV2::SectionList;
         let mut request = ApiRequest::<ListSectionsResponse>::get(api_endpoint.to_url());
 
         // 构建查询参数
@@ -99,10 +92,8 @@ mod tests {
             .app_secret("test")
             .build();
 
-        let request =
-            ListSectionsRequest::new(Arc::new(config), "tasklist_123".to_string()).page_size(20);
+        let request = ListSectionsRequest::new(Arc::new(config)).page_size(20);
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.page_size, Some(20));
     }
 }

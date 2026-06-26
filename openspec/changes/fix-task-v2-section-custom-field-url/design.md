@@ -19,6 +19,10 @@
 
 variant 签名相应去掉 `tasklist_guid`：`SectionGet(section_guid)`、`CustomFieldCreate()`、`CustomFieldGet(field_guid)` 等。
 
+### HTTP 方法修正（连带）
+
+官方 section/custom_field 的更新接口均为 **PATCH**（`section/patch`、`custom_field/patch`，已抓 `.md` 确认），代码现用 **PUT**（`update.rs`）——方法同样偏离官方，会 405。本次一并修正：`ApiRequest::put` → `ApiRequest::patch`（section/custom_field 各一处）。
+
 ### custom_field/create 的 body 改造
 
 官方 `POST /custom_fields` 通过 body 指定挂载清单：`{ resource_type: "tasklist", resource_id: <清单 GUID>, ... }`。

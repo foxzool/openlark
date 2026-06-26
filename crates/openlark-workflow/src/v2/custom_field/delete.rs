@@ -17,20 +17,14 @@ use std::sync::Arc;
 pub struct DeleteCustomFieldRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 字段 GUID
     field_guid: String,
 }
 
 impl DeleteCustomFieldRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String, field_guid: String) -> Self {
-        Self {
-            config,
-            tasklist_guid,
-            field_guid,
-        }
+    pub fn new(config: Arc<Config>, field_guid: String) -> Self {
+        Self { config, field_guid }
     }
 
     /// 执行请求
@@ -45,11 +39,9 @@ impl DeleteCustomFieldRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DeleteCustomFieldResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
         validate_required!(self.field_guid.trim(), "字段GUID不能为空");
 
-        let api_endpoint =
-            TaskApiV2::CustomFieldDelete(self.tasklist_guid.clone(), self.field_guid.clone());
+        let api_endpoint = TaskApiV2::CustomFieldDelete(self.field_guid.clone());
         let request = ApiRequest::<DeleteCustomFieldResponse>::delete(api_endpoint.to_url());
 
         let response =
@@ -78,13 +70,8 @@ mod tests {
             .app_secret("test")
             .build();
 
-        let request = DeleteCustomFieldRequest::new(
-            Arc::new(config),
-            "tasklist_123".to_string(),
-            "field_456".to_string(),
-        );
+        let request = DeleteCustomFieldRequest::new(Arc::new(config), "field_456".to_string());
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.field_guid, "field_456");
     }
 }
