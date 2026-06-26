@@ -1,6 +1,4 @@
 use super::Client;
-#[allow(deprecated)]
-use crate::Config;
 use crate::{Result, client_build_config::ClientBuildConfig};
 use openlark_core::error::ErrorTrait;
 
@@ -140,13 +138,5 @@ impl ClientBuilder {
 impl Default for ClientBuilder {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// Client的便利构造函数
-#[allow(deprecated)]
-impl From<Config> for Result<Client> {
-    fn from(config: Config) -> Self {
-        Client::with_config(config)
     }
 }

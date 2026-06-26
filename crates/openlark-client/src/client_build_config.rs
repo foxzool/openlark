@@ -1,6 +1,4 @@
-#![allow(deprecated)]
-
-use crate::{Config, Result};
+use crate::Result;
 use openlark_core::{config::Config as CoreConfig, constants::AppType};
 use std::{collections::HashMap, time::Duration};
 
@@ -33,24 +31,6 @@ impl Default for ClientBuildConfig {
             enable_log: true,
             headers: HashMap::new(),
             max_response_size: 100 * 1024 * 1024,
-        }
-    }
-}
-
-impl From<Config> for ClientBuildConfig {
-    fn from(config: Config) -> Self {
-        Self {
-            app_id: config.app_id,
-            app_secret: config.app_secret,
-            app_type: config.app_type,
-            enable_token_cache: config.enable_token_cache,
-            base_url: config.base_url,
-            allow_custom_base_url: config.allow_custom_base_url,
-            timeout: config.timeout,
-            retry_count: config.retry_count,
-            enable_log: config.enable_log,
-            headers: config.headers,
-            max_response_size: config.max_response_size,
         }
     }
 }
@@ -120,7 +100,7 @@ impl ClientBuildConfig {
 
         validate_base_url(&self.base_url)?;
 
-        if !self.allow_custom_base_url && !crate::config::is_known_base_url(&self.base_url) {
+        if !self.allow_custom_base_url && !openlark_core::config::is_known_base_url(&self.base_url) {
             tracing::warn!(
                 "base_url '{}' is not a known Feishu/Lark domain. If this is intentional, set allow_custom_base_url(true).",
                 self.base_url

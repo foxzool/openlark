@@ -11,8 +11,9 @@ use crate::{
 ///
 /// 已知域名后缀：`feishu.cn`、`larksuite.com`、`larkoffice.com`。
 /// [`Config::validate`](Config::validate) 用本函数做 base_url 白名单校验；
-/// `allow_custom_base_url` 为 true 时跳过该校验。
-pub(crate) fn is_known_base_url(url: &str) -> bool {
+/// `allow_custom_base_url` 为 true 时跳过该校验。公开以便下游（如 client 构建校验）
+/// 复用同一白名单判定。
+pub fn is_known_base_url(url: &str) -> bool {
     let allowed_suffixes = ["feishu.cn", "larksuite.com", "larkoffice.com"];
     if let Ok(parsed) = url::Url::parse(url)
         && let Some(host) = parsed.host_str()
