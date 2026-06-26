@@ -240,7 +240,6 @@
 // 核心模块
 pub mod client;
 mod client_build_config;
-pub mod config;
 pub mod error;
 pub mod features;
 pub mod registry;
@@ -273,8 +272,6 @@ pub mod ws_client;
 
 // 客户端和配置
 pub use client::{Client, ClientBuilder};
-#[allow(deprecated)]
-pub use config::Config;
 
 // 企业级错误处理系统 - 基于 CoreError
 pub use error::{Error, Result};
