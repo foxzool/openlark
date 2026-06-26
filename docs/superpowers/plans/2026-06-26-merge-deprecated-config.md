@@ -2,6 +2,7 @@
 change: merge-deprecated-config
 design-doc: docs/superpowers/specs/2026-06-26-merge-deprecated-config-design.md
 base-ref: 540f9559a0507870d344ed2ba321fbe11375c353
+archived-with: 2026-06-26-merge-deprecated-config
 ---
 
 # 实施计划：merge-deprecated-config

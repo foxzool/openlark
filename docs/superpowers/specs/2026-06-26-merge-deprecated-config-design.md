@@ -2,6 +2,8 @@
 comet_change: merge-deprecated-config
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-26-merge-deprecated-config
+status: final
 ---
 
 # Design Doc: merge-deprecated-config
