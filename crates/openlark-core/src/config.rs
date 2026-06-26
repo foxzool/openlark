@@ -66,6 +66,8 @@ pub struct ConfigInner {
     pub(crate) retry_count: u32,
     /// 是否启用日志记录，默认 true
     pub(crate) enable_log: bool,
+    /// 是否允许自定义 base_url 域名（绕过飞书白名单 SSRF 防护），默认 false
+    pub(crate) allow_custom_base_url: bool,
 }
 
 impl Default for ConfigInner {
@@ -83,6 +85,7 @@ impl Default for ConfigInner {
             max_response_size: 100 * 1024 * 1024, // 100MB
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         }
     }
 }
@@ -99,6 +102,7 @@ impl std::fmt::Debug for ConfigInner {
             .field("max_response_size", &self.max_response_size)
             .field("retry_count", &self.retry_count)
             .field("enable_log", &self.enable_log)
+            .field("allow_custom_base_url", &self.allow_custom_base_url)
             .field("header", &format!("{} headers", self.header.len()))
             .finish()
     }
@@ -153,6 +157,7 @@ impl Config {
             max_response_size: self.max_response_size,
             retry_count: self.retry_count,
             enable_log: self.enable_log,
+            allow_custom_base_url: self.allow_custom_base_url,
         })
     }
 
@@ -220,6 +225,11 @@ impl Config {
     pub fn enable_log(&self) -> bool {
         self.inner.enable_log
     }
+
+    /// 是否允许自定义 base_url 域名（绕过白名单 SSRF 防护）
+    pub fn allow_custom_base_url(&self) -> bool {
+        self.inner.allow_custom_base_url
+    }
 }
 
 /// 配置构建器
@@ -237,6 +247,7 @@ pub struct ConfigBuilder {
     max_response_size: Option<u64>,
     retry_count: Option<u32>,
     enable_log: Option<bool>,
+    allow_custom_base_url: Option<bool>,
 }
 
 impl ConfigBuilder {
@@ -340,6 +351,12 @@ impl ConfigBuilder {
         self
     }
 
+    /// 设置是否允许自定义 base_url 域名（绕过白名单 SSRF 防护），默认 false
+    pub fn allow_custom_base_url(mut self, allow: bool) -> Self {
+        self.allow_custom_base_url = Some(allow);
+        self
+    }
+
     /// 构建 Config 实例
     pub fn build(self) -> Config {
         let default = ConfigInner::default();
@@ -358,6 +375,9 @@ impl ConfigBuilder {
             max_response_size: self.max_response_size.unwrap_or(default.max_response_size),
             retry_count: self.retry_count.unwrap_or(default.retry_count),
             enable_log: self.enable_log.unwrap_or(default.enable_log),
+            allow_custom_base_url: self
+                .allow_custom_base_url
+                .unwrap_or(default.allow_custom_base_url),
         })
     }
 }
@@ -387,6 +407,7 @@ mod tests {
             max_response_size: 100 * 1024 * 1024,
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         });
 
         assert_eq!(config.app_id, "test_app_id");
@@ -428,6 +449,7 @@ mod tests {
             max_response_size: 100 * 1024 * 1024,
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         });
 
         let cloned_config = config.clone();
@@ -535,6 +557,18 @@ mod tests {
 
         assert_eq!(config.app_id, "test_app");
         assert_eq!(config.app_secret, "test_secret");
+    }
+
+    #[test]
+    fn test_config_allow_custom_base_url_default() {
+        let config = Config::default();
+        assert!(!config.allow_custom_base_url());
+    }
+
+    #[test]
+    fn test_config_builder_allow_custom_base_url() {
+        let config = Config::builder().allow_custom_base_url(true).build();
+        assert!(config.allow_custom_base_url());
     }
 
     #[test]
