@@ -18,7 +18,8 @@ OpenLark v0.16.1 已发展到 18 个 workspace crates、335K 行代码、1,560+ 
 
 ### New Capabilities
 - `service-registry-upgrade`: 将 ServiceRegistry 从元信息注册升级为真正的服务容器，支持运行时服务查询和延迟初始化
-- `unified-config`: 统一双重 Config 体系，消除 `openlark_client::Config` 与 `openlark_core::config::Config` 的认知负担
+
+> 归档清理说明：原计划的 `unified-config` 能力已由后续 change `merge-deprecated-config`（v0.18 breaking）交付，并在主 spec 以 `config` 能力落地，本 change 不再单独归档该 delta；`http-middleware-layer` 仅作为 v0.18+ 后续评估方向记录（见 What Changes），未产出 spec，归档时清理其空目录。
 
 ### Modified Capabilities
 <!-- 无现有 spec 需要修改 -->
