@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: 8a990eb9ca6cb29441b1c0b2998281a152dfb743
 design_doc: docs/superpowers/specs/2026-06-26-fix-platform-v1-feature-gating-design.md
 plan: docs/superpowers/plans/2026-06-26-fix-platform-v1-feature-gating.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-26-fix-platform-v1-feature-gating-verify.md
 branch_status: handled
 created_at: 2026-06-26
-verified_at: null
+verified_at: 2026-06-26
 archived: false
 handoff_context: openspec/changes/fix-platform-v1-feature-gating/.comet/handoff/design-context.json
 handoff_hash: f9048a49b9e6a5555193c575d7d1f81db91681a5e9437626253f4c4fa28a14ed
