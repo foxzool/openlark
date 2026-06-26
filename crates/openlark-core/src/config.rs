@@ -386,6 +386,25 @@ impl Config {
             _ => {}
         }
     }
+
+    /// 生成不含敏感信息的配置摘要
+    ///
+    /// `app_secret` 仅以布尔「是否已设置」表示，不泄露明文。
+    pub fn summary(&self) -> ConfigSummary {
+        ConfigSummary {
+            app_id: self.app_id.clone(),
+            app_secret_set: !self.app_secret.is_empty(),
+            app_type: self.app_type,
+            enable_token_cache: self.enable_token_cache,
+            base_url: self.base_url.clone(),
+            allow_custom_base_url: self.allow_custom_base_url,
+            req_timeout: self.req_timeout,
+            retry_count: self.retry_count,
+            enable_log: self.enable_log,
+            header_count: self.header.len(),
+            max_response_size: self.max_response_size,
+        }
+    }
 }
 
 /// 配置构建器
@@ -535,6 +554,70 @@ impl ConfigBuilder {
                 .allow_custom_base_url
                 .unwrap_or(default.allow_custom_base_url),
         })
+    }
+}
+
+/// 配置摘要（不含敏感信息）
+///
+/// 由 [`Config::summary`] 生成。`app_secret` 仅以 `app_secret_set` 布尔表示是否已设置，
+/// 不泄露明文。便于日志、调试和展示。
+#[derive(Debug, Clone)]
+pub struct ConfigSummary {
+    /// 应用 ID
+    pub app_id: String,
+    /// 应用密钥是否已设置（不泄露明文）
+    pub app_secret_set: bool,
+    /// 应用类型
+    pub app_type: AppType,
+    /// 是否允许自动获取 token
+    pub enable_token_cache: bool,
+    /// API 基础 URL
+    pub base_url: String,
+    /// 是否允许自定义 base_url 域名（绕过白名单 SSRF 防护）
+    pub allow_custom_base_url: bool,
+    /// 请求超时时间（None 表示永不超时）
+    pub req_timeout: Option<Duration>,
+    /// 默认重试次数
+    pub retry_count: u32,
+    /// 是否启用日志记录
+    pub enable_log: bool,
+    /// 自定义 headers 数量
+    pub header_count: usize,
+    /// 响应体最大大小限制（字节）
+    pub max_response_size: u64,
+}
+
+impl ConfigSummary {
+    /// 获取友好的中文配置描述
+    pub fn friendly_description(&self) -> String {
+        format!(
+            "应用ID: {}, 基础URL: {}, 超时: {:?}, 重试: {}, 日志: {}, Headers: {}, 最大响应: {}",
+            self.app_id,
+            self.base_url,
+            self.req_timeout,
+            self.retry_count,
+            if self.enable_log { "启用" } else { "禁用" },
+            self.header_count,
+            self.max_response_size
+        )
+    }
+}
+
+impl std::fmt::Display for ConfigSummary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // 注意：只输出 app_secret_set 布尔，绝不输出 app_secret 明文
+        write!(
+            f,
+            "Config {{ app_id: {}, app_secret_set: {}, base_url: {}, req_timeout: {:?}, retry_count: {}, enable_log: {}, header_count: {}, max_response_size: {} }}",
+            self.app_id,
+            self.app_secret_set,
+            self.base_url,
+            self.req_timeout,
+            self.retry_count,
+            self.enable_log,
+            self.header_count,
+            self.max_response_size
+        )
     }
 }
 
@@ -944,6 +1027,58 @@ mod tests {
             config.load_from_env();
             assert_eq!(config.app_id(), "loaded_id");
         });
+    }
+
+    // ===== T4: ConfigSummary + summary() =====
+
+    #[test]
+    fn test_config_summary_fields() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("top-secret-value")
+            .base_url("https://open.feishu.cn")
+            .retry_count(7)
+            .max_response_size(999)
+            .req_timeout(Duration::from_secs(45))
+            .build();
+        let s = config.summary();
+        assert_eq!(s.app_id, "app");
+        assert!(s.app_secret_set);
+        assert_eq!(s.app_type, AppType::SelfBuild);
+        assert!(s.enable_token_cache);
+        assert_eq!(s.base_url, "https://open.feishu.cn");
+        assert!(!s.allow_custom_base_url);
+        assert_eq!(s.req_timeout, Some(Duration::from_secs(45)));
+        assert_eq!(s.retry_count, 7);
+        assert!(s.enable_log);
+        assert_eq!(s.header_count, 0);
+        assert_eq!(s.max_response_size, 999);
+    }
+
+    #[test]
+    fn test_config_summary_secret_not_leaked() {
+        let config = Config::builder()
+            .app_secret("top-secret-value")
+            .build();
+        let s = config.summary();
+        assert!(s.app_secret_set);
+        // app_secret 明文不应出现在 summary 结构体或其 Display 输出
+        let display = format!("{s}");
+        assert!(!display.contains("top-secret-value"));
+    }
+
+    #[test]
+    fn test_config_summary_secret_unset() {
+        let config = Config::default();
+        assert!(!config.summary().app_secret_set);
+    }
+
+    #[test]
+    fn test_config_summary_header_count() {
+        let mut h = HashMap::new();
+        h.insert("X-Custom".to_string(), "v".to_string());
+        let config = Config::builder().header(h).build();
+        assert_eq!(config.summary().header_count, 1);
     }
 
     #[test]
