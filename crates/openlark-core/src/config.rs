@@ -3,8 +3,26 @@ use std::{collections::HashMap, ops::Deref, sync::Arc, time::Duration};
 use crate::{
     auth::token_provider::{NoOpTokenProvider, TokenProvider},
     constants::{AppType, FEISHU_BASE_URL},
+    error::CoreError,
     performance::OptimizedHttpConfig,
 };
+
+/// 检查 base_url 是否指向已知的飞书/Lark 域名（白名单 SSRF 防护）
+///
+/// 已知域名后缀：`feishu.cn`、`larksuite.com`、`larkoffice.com`。
+/// [`Config::validate`](Config::validate) 用本函数做 base_url 白名单校验；
+/// `allow_custom_base_url` 为 true 时跳过该校验。
+pub(crate) fn is_known_base_url(url: &str) -> bool {
+    let allowed_suffixes = ["feishu.cn", "larksuite.com", "larkoffice.com"];
+    if let Ok(parsed) = url::Url::parse(url)
+        && let Some(host) = parsed.host_str()
+    {
+        return allowed_suffixes
+            .iter()
+            .any(|suffix| host == *suffix || host.ends_with(&format!(".{suffix}")));
+    }
+    false
+}
 
 /// # 零拷贝配置共享实现
 ///
@@ -229,6 +247,66 @@ impl Config {
     /// 是否允许自定义 base_url 域名（绕过白名单 SSRF 防护）
     pub fn allow_custom_base_url(&self) -> bool {
         self.inner.allow_custom_base_url
+    }
+
+    /// 校验配置有效性
+    ///
+    /// # 校验规则
+    /// - `app_id` / `app_secret` 非空
+    /// - `base_url` 非空且以 `http://` / `https://` 开头
+    /// - `base_url` 域名在飞书/Lark 白名单内（`*.feishu.cn` / `*.larksuite.com` /
+    ///   `*.larkoffice.com`）；`allow_custom_base_url` 为 true 时豁免（SSRF 防护）
+    /// - `retry_count` 不超过 10
+    ///
+    /// `builder().build()` **不会**自动调用本方法——与 core 现有行为一致，避免破坏
+    /// 所有现有 `core::Config` 用户；`from_env()` 会在内部调用本方法但失败时仅记录、
+    /// 不阻塞返回。需要强校验的调用方应显式调用 `validate()`。
+    pub fn validate(&self) -> Result<(), CoreError> {
+        if self.app_id.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("app_id")
+                .message("app_id 不能为空")
+                .build());
+        }
+        if self.app_secret.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("app_secret")
+                .message("app_secret 不能为空")
+                .build());
+        }
+        if self.base_url.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message("base_url 不能为空")
+                .build());
+        }
+        if !self.base_url.starts_with("http://") && !self.base_url.starts_with("https://") {
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message("base_url 必须以 http:// 或 https:// 开头")
+                .build());
+        }
+        if !self.allow_custom_base_url && !is_known_base_url(&self.base_url) {
+            tracing::warn!(
+                "base_url '{}' 不在飞书/Lark 已知域名白名单中。\
+                 如需使用自定义域名，请设置 allow_custom_base_url(true)。",
+                self.base_url
+            );
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message(
+                    "base_url 域名不在白名单中，已知域名: *.feishu.cn, *.larksuite.com, \
+                     *.larkoffice.com。如需使用自定义域名，请设置 allow_custom_base_url(true)",
+                )
+                .build());
+        }
+        if self.retry_count > 10 {
+            return Err(CoreError::validation_builder()
+                .field("retry_count")
+                .message("retry_count 不能超过 10")
+                .build());
+        }
+        Ok(())
     }
 }
 
@@ -569,6 +647,104 @@ mod tests {
     fn test_config_builder_allow_custom_base_url() {
         let config = Config::builder().allow_custom_base_url(true).build();
         assert!(config.allow_custom_base_url());
+    }
+
+    // ===== T2: validate + is_known_base_url（SSRF 白名单）=====
+
+    #[test]
+    fn test_is_known_base_url_whitelist() {
+        assert!(is_known_base_url("https://open.feishu.cn"));
+        assert!(is_known_base_url("https://api.feishu.cn"));
+        assert!(is_known_base_url("https://open.larksuite.com"));
+        assert!(is_known_base_url("https://custom.larkoffice.com"));
+    }
+
+    #[test]
+    fn test_is_known_base_url_rejects_unknown() {
+        assert!(!is_known_base_url("https://evil.com"));
+        assert!(!is_known_base_url("https://example.com"));
+        assert!(!is_known_base_url("https://fake-larksuite.com"));
+        assert!(!is_known_base_url("not a url"));
+    }
+
+    #[test]
+    fn test_config_validate_whitelist_ok() {
+        for url in [
+            "https://open.feishu.cn",
+            "https://open.larksuite.com",
+            "https://open.larkoffice.com",
+        ] {
+            let config = Config::builder()
+                .app_id("app")
+                .app_secret("secret")
+                .base_url(url)
+                .build();
+            assert!(config.validate().is_ok(), "{url} 应通过白名单校验");
+        }
+    }
+
+    #[test]
+    fn test_config_validate_non_whitelist_rejected() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://evil.com")
+            .build();
+        let err = config.validate().unwrap_err();
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("allow_custom_base_url"),
+            "错误消息应提示 allow_custom_base_url，实际: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_config_validate_allow_custom_exempts_whitelist() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://evil.com")
+            .allow_custom_base_url(true)
+            .build();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_empty_app_id() {
+        let config = Config::builder()
+            .app_secret("secret")
+            .base_url("https://open.feishu.cn")
+            .build();
+        assert!(config.app_id().is_empty());
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_empty_app_secret() {
+        let config = Config::builder()
+            .app_id("app")
+            .base_url("https://open.feishu.cn")
+            .build();
+        assert!(config.app_secret().is_empty());
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_retry_count_too_high() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://open.feishu.cn")
+            .retry_count(11)
+            .build();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_build_does_not_validate() {
+        // build() 不校验：app_id 空仍返回 Config，不抛错（分叉 1 回归保护）
+        let config = Config::builder().app_id("").build();
+        assert!(config.validate().is_err());
     }
 
     #[test]
