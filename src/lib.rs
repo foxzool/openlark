@@ -27,9 +27,9 @@
 // 核心类型导出
 // ============================================================================
 
-pub use openlark_core::config::Config;
 pub use openlark_client::{Client, ClientBuilder, Error, Result};
 pub use openlark_core::SDKResult;
+pub use openlark_core::config::Config;
 pub use openlark_core::config::Config as CoreConfig;
 pub use openlark_core::error::{CoreError, ErrorCode, ErrorSeverity, ErrorTrait, ErrorType};
 pub use openlark_core::req_option::RequestOption;

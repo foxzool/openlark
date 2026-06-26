@@ -1059,9 +1059,7 @@ mod tests {
 
     #[test]
     fn test_config_summary_secret_not_leaked() {
-        let config = Config::builder()
-            .app_secret("top-secret-value")
-            .build();
+        let config = Config::builder().app_secret("top-secret-value").build();
         let s = config.summary();
         assert!(s.app_secret_set);
         // app_secret 明文不应出现在 summary 结构体或其 Display 输出

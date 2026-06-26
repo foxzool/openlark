@@ -100,7 +100,8 @@ impl ClientBuildConfig {
 
         validate_base_url(&self.base_url)?;
 
-        if !self.allow_custom_base_url && !openlark_core::config::is_known_base_url(&self.base_url) {
+        if !self.allow_custom_base_url && !openlark_core::config::is_known_base_url(&self.base_url)
+        {
             tracing::warn!(
                 "base_url '{}' is not a known Feishu/Lark domain. If this is intentional, set allow_custom_base_url(true).",
                 self.base_url

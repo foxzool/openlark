@@ -756,7 +756,10 @@ mod tests {
         assert_eq!(summary.app_id, "test_app_id");
         assert!(summary.app_secret_set);
         assert_eq!(summary.base_url, "https://open.feishu.cn");
-        assert_eq!(summary.req_timeout, Some(std::time::Duration::from_secs(30)));
+        assert_eq!(
+            summary.req_timeout,
+            Some(std::time::Duration::from_secs(30))
+        );
     }
 
     #[test]
