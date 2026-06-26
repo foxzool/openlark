@@ -1,7 +1,5 @@
-#![allow(deprecated)]
-
-use crate::config::ConfigSummary;
-use crate::{Config, Result, configuration_error, validation_error, with_context};
+use crate::{Result, configuration_error, validation_error, with_context};
+use openlark_core::config::{Config, ConfigSummary};
 use openlark_core::error::ErrorTrait;
 use std::env;
 
@@ -128,17 +126,17 @@ pub fn create_config_from_env() -> Result<Config> {
         .and_then(|l| l.parse().ok())
         .unwrap_or(false);
 
-    let mut config = Config::builder()
+    let mut builder = Config::builder()
         .app_id(app_id)
         .app_secret(app_secret)
         .base_url(base_url)
         .enable_log(enable_log);
 
     if let Some(timeout_duration) = timeout {
-        config = config.timeout(timeout_duration);
+        builder = builder.req_timeout(timeout_duration);
     }
 
-    with_context(config.build(), "operation", "create_config_from_env")
+    Ok(builder.build())
 }
 
 /// 📊 获取配置摘要

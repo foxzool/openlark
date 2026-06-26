@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -262,7 +260,7 @@ impl LarkWsClient {
 
     /// 建立 WebSocket 长连接并启动事件处理循环。
     pub async fn open(
-        config: std::sync::Arc<crate::config::Config>,
+        config: std::sync::Arc<openlark_core::config::Config>,
         event_handler: EventDispatcherHandler,
     ) -> WsClientResult<()> {
         let end_point = Self::get_conn_url(&config).await?;
@@ -286,8 +284,8 @@ impl LarkWsClient {
         }
 
         let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig::default()
-            .max_message_size(Some(config.max_response_size as usize))
-            .max_frame_size(Some(config.max_response_size as usize));
+            .max_message_size(Some(config.max_response_size() as usize))
+            .max_frame_size(Some(config.max_response_size() as usize));
 
         let (conn, _response) = connect_async_with_config(conn_url, Some(ws_config), false).await?;
         info!("connected to {url}");
@@ -459,16 +457,20 @@ impl LarkWsClient {
 
     /// 获取连接配置
     async fn get_conn_url(
-        config: &std::sync::Arc<crate::config::Config>,
+        config: &std::sync::Arc<openlark_core::config::Config>,
     ) -> WsClientResult<EndPointResponse> {
         let body = json!({
-            "AppID": &config.app_id,
-            "AppSecret": &config.app_secret
+            "AppID": config.app_id(),
+            "AppSecret": config.app_secret()
         });
 
-        let http_client = Client::builder().timeout(config.timeout).build()?;
+        let mut http_builder = Client::builder();
+        if let Some(timeout) = config.req_timeout() {
+            http_builder = http_builder.timeout(timeout);
+        }
+        let http_client = http_builder.build()?;
 
-        let base_url = config.base_url.trim_end_matches('/');
+        let base_url = config.base_url().trim_end_matches('/');
         let req = http_client
             .post(format!("{base_url}{END_POINT_URL}"))
             .header("locale", "zh")

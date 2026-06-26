@@ -2,9 +2,8 @@
 //!
 //! 根据feature标志动态加载和配置服务
 
-#![allow(deprecated)]
-
-use crate::{Config, DefaultServiceRegistry, Result};
+use crate::{DefaultServiceRegistry, Result};
+use openlark_core::config::Config;
 
 /// 🔥 功能加载器 - 编译时feature驱动加载
 ///

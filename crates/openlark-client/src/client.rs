@@ -13,11 +13,9 @@ mod tests;
 pub use builder::ClientBuilder;
 pub use error_handling::ClientErrorHandling;
 
-#[allow(deprecated)]
-use crate::Config;
 use crate::{
     DefaultServiceRegistry, Result,
-    client_build_config::{ClientBuildConfig, validate_core_config},
+    client_build_config::validate_core_config,
     error::{with_context, with_operation_context},
     traits::LarkClient,
 };
@@ -247,17 +245,6 @@ impl Client {
     /// ✅ 检查客户端是否已正确配置
     pub fn is_configured(&self) -> bool {
         !self.config.app_id().is_empty() && !self.config.app_secret().is_empty()
-    }
-
-    /// 🆕 创建带有自定义配置的客户端
-    #[allow(deprecated)]
-    pub fn with_config(config: Config) -> Result<Self> {
-        let build_config = ClientBuildConfig::from(config);
-        if let Err(err) = build_config.validate() {
-            return with_context(Err(err), "operation", "Client::with_config");
-        }
-
-        Self::with_validated_core_config(build_config.build_core_config(), "Client::with_config")
     }
 
     /// 🆕 使用统一 CoreConfig 创建客户端

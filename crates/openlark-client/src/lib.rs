@@ -240,7 +240,6 @@
 // 核心模块
 pub mod client;
 mod client_build_config;
-pub mod config;
 pub mod error;
 pub mod features;
 pub mod registry;
@@ -273,8 +272,6 @@ pub mod ws_client;
 
 // 客户端和配置
 pub use client::{Client, ClientBuilder};
-#[allow(deprecated)]
-pub use config::Config;
 
 // 企业级错误处理系统 - 基于 CoreError
 pub use error::{Error, Result};
@@ -554,7 +551,6 @@ pub mod info {
 pub mod utils;
 
 #[cfg(test)]
-#[allow(deprecated)]
 #[allow(unused_imports)]
 mod tests {
     use super::*;
@@ -730,8 +726,8 @@ mod tests {
                 let result = utils::create_config_from_env();
                 assert!(result.is_ok());
                 let config = result.unwrap();
-                assert_eq!(config.app_id, "test_app_id");
-                assert_eq!(config.app_secret, "test_secret");
+                assert_eq!(config.app_id(), "test_app_id");
+                assert_eq!(config.app_secret(), "test_secret");
             },
         );
     }
@@ -749,31 +745,33 @@ mod tests {
 
     #[test]
     fn test_get_config_summary() {
-        let config = Config::builder()
+        let config = openlark_core::config::Config::builder()
             .app_id("test_app_id")
             .app_secret("test_secret_key")
             .base_url("https://open.feishu.cn")
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .unwrap();
+            .req_timeout(std::time::Duration::from_secs(30))
+            .build();
 
         let summary = utils::get_config_summary(&config);
         assert_eq!(summary.app_id, "test_app_id");
         assert!(summary.app_secret_set);
         assert_eq!(summary.base_url, "https://open.feishu.cn");
-        assert!(summary.timeout > std::time::Duration::ZERO);
+        assert_eq!(
+            summary.req_timeout,
+            Some(std::time::Duration::from_secs(30))
+        );
     }
 
     #[test]
     fn test_config_summary_friendly_description() {
-        let summary = config::ConfigSummary {
+        let summary = openlark_core::config::ConfigSummary {
             app_id: "test_app".to_string(),
             app_secret_set: true,
             app_type: openlark_core::constants::AppType::SelfBuild,
             enable_token_cache: true,
             base_url: "https://open.feishu.cn".to_string(),
             allow_custom_base_url: false,
-            timeout: std::time::Duration::from_secs(30),
+            req_timeout: Some(std::time::Duration::from_secs(30)),
             retry_count: 3,
             enable_log: false,
             header_count: 0,
@@ -788,14 +786,14 @@ mod tests {
 
     #[test]
     fn test_config_summary_friendly_description_no_timeout() {
-        let summary = config::ConfigSummary {
+        let summary = openlark_core::config::ConfigSummary {
             app_id: "test_app".to_string(),
             app_secret_set: true,
             app_type: openlark_core::constants::AppType::SelfBuild,
             enable_token_cache: true,
             base_url: "https://open.feishu.cn".to_string(),
             allow_custom_base_url: false,
-            timeout: std::time::Duration::ZERO,
+            req_timeout: None,
             retry_count: 3,
             enable_log: false,
             header_count: 0,
@@ -804,7 +802,7 @@ mod tests {
 
         let description = summary.friendly_description();
         assert!(description.contains("test_app"));
-        assert!(description.contains("0ns"));
+        assert!(description.contains("None"));
     }
 
     #[test]

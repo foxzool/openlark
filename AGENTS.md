@@ -130,4 +130,4 @@ just release VERSION  # 发布新版本
 - **测试**: 使用 `.env` 文件管理测试凭证（不要提交到 git）
 - **文档**: 使用 `cargo doc --workspace --all-features` 生成完整文档
 - **架构审核**: 详见 `openspec/changes/architecture-audit-review/` 中的完整审核报告和改进计划
-- **Config 迁移**: `openlark_client::Config` 已标记 deprecated，计划在 v0.17 与 `openlark_core::config::Config` 合并
+- **Config 迁移**: `openlark_client::Config` 已在 merge-deprecated-config 移除（v0.18 breaking），统一到 `openlark_core::config::Config`；根 crate `openlark::Config` 直接 re-export core（见 CHANGELOG 迁移表）

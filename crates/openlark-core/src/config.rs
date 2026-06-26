@@ -3,8 +3,27 @@ use std::{collections::HashMap, ops::Deref, sync::Arc, time::Duration};
 use crate::{
     auth::token_provider::{NoOpTokenProvider, TokenProvider},
     constants::{AppType, FEISHU_BASE_URL},
+    error::CoreError,
     performance::OptimizedHttpConfig,
 };
+
+/// 检查 base_url 是否指向已知的飞书/Lark 域名（白名单 SSRF 防护）
+///
+/// 已知域名后缀：`feishu.cn`、`larksuite.com`、`larkoffice.com`。
+/// [`Config::validate`](Config::validate) 用本函数做 base_url 白名单校验；
+/// `allow_custom_base_url` 为 true 时跳过该校验。公开以便下游（如 client 构建校验）
+/// 复用同一白名单判定。
+pub fn is_known_base_url(url: &str) -> bool {
+    let allowed_suffixes = ["feishu.cn", "larksuite.com", "larkoffice.com"];
+    if let Ok(parsed) = url::Url::parse(url)
+        && let Some(host) = parsed.host_str()
+    {
+        return allowed_suffixes
+            .iter()
+            .any(|suffix| host == *suffix || host.ends_with(&format!(".{suffix}")));
+    }
+    false
+}
 
 /// # 零拷贝配置共享实现
 ///
@@ -45,6 +64,7 @@ pub struct Config {
 }
 
 /// 内部配置数据，被多个服务共享
+#[derive(Clone)]
 pub struct ConfigInner {
     pub(crate) app_id: String,
     pub(crate) app_secret: String,
@@ -66,6 +86,8 @@ pub struct ConfigInner {
     pub(crate) retry_count: u32,
     /// 是否启用日志记录，默认 true
     pub(crate) enable_log: bool,
+    /// 是否允许自定义 base_url 域名（绕过飞书白名单 SSRF 防护），默认 false
+    pub(crate) allow_custom_base_url: bool,
 }
 
 impl Default for ConfigInner {
@@ -83,6 +105,7 @@ impl Default for ConfigInner {
             max_response_size: 100 * 1024 * 1024, // 100MB
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         }
     }
 }
@@ -99,6 +122,7 @@ impl std::fmt::Debug for ConfigInner {
             .field("max_response_size", &self.max_response_size)
             .field("retry_count", &self.retry_count)
             .field("enable_log", &self.enable_log)
+            .field("allow_custom_base_url", &self.allow_custom_base_url)
             .field("header", &format!("{} headers", self.header.len()))
             .finish()
     }
@@ -153,6 +177,7 @@ impl Config {
             max_response_size: self.max_response_size,
             retry_count: self.retry_count,
             enable_log: self.enable_log,
+            allow_custom_base_url: self.allow_custom_base_url,
         })
     }
 
@@ -220,6 +245,168 @@ impl Config {
     pub fn enable_log(&self) -> bool {
         self.inner.enable_log
     }
+
+    /// 是否允许自定义 base_url 域名（绕过白名单 SSRF 防护）
+    pub fn allow_custom_base_url(&self) -> bool {
+        self.inner.allow_custom_base_url
+    }
+
+    /// 校验配置有效性
+    ///
+    /// # 校验规则
+    /// - `app_id` / `app_secret` 非空
+    /// - `base_url` 非空且以 `http://` / `https://` 开头
+    /// - `base_url` 域名在飞书/Lark 白名单内（`*.feishu.cn` / `*.larksuite.com` /
+    ///   `*.larkoffice.com`）；`allow_custom_base_url` 为 true 时豁免（SSRF 防护）
+    /// - `retry_count` 不超过 10
+    ///
+    /// `builder().build()` **不会**自动调用本方法——与 core 现有行为一致，避免破坏
+    /// 所有现有 `core::Config` 用户；`from_env()` 会在内部调用本方法但失败时仅记录、
+    /// 不阻塞返回。需要强校验的调用方应显式调用 `validate()`。
+    pub fn validate(&self) -> Result<(), CoreError> {
+        if self.app_id.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("app_id")
+                .message("app_id 不能为空")
+                .build());
+        }
+        if self.app_secret.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("app_secret")
+                .message("app_secret 不能为空")
+                .build());
+        }
+        if self.base_url.is_empty() {
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message("base_url 不能为空")
+                .build());
+        }
+        if !self.base_url.starts_with("http://") && !self.base_url.starts_with("https://") {
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message("base_url 必须以 http:// 或 https:// 开头")
+                .build());
+        }
+        if !self.allow_custom_base_url && !is_known_base_url(&self.base_url) {
+            tracing::warn!(
+                "base_url '{}' 不在飞书/Lark 已知域名白名单中。\
+                 如需使用自定义域名，请设置 allow_custom_base_url(true)。",
+                self.base_url
+            );
+            return Err(CoreError::validation_builder()
+                .field("base_url")
+                .message(
+                    "base_url 域名不在白名单中，已知域名: *.feishu.cn, *.larksuite.com, \
+                     *.larkoffice.com。如需使用自定义域名，请设置 allow_custom_base_url(true)",
+                )
+                .build());
+        }
+        if self.retry_count > 10 {
+            return Err(CoreError::validation_builder()
+                .field("retry_count")
+                .message("retry_count 不能超过 10")
+                .build());
+        }
+        Ok(())
+    }
+
+    /// 从 `OPENLARK_*` 环境变量加载配置
+    ///
+    /// 读取环境变量构建 Config，缺失变量用默认值。内部调用 [`validate`](Self::validate)，
+    /// 校验失败仅记录警告、不阻塞返回（与 `builder().build()` 不校验语义一致）。
+    /// 返回的 Config 可能未通过校验，关键路径应追加显式 `.validate()` 确认。
+    ///
+    /// # 环境变量
+    /// - `OPENLARK_APP_ID` / `OPENLARK_APP_SECRET` / `OPENLARK_APP_TYPE`
+    ///   （`self_build`/`selfbuild`/`self` 或 `marketplace`/`store`）
+    /// - `OPENLARK_BASE_URL` / `OPENLARK_ENABLE_TOKEN_CACHE`
+    /// - `OPENLARK_TIMEOUT`（秒）→ `req_timeout(Some(Duration))`；未设保持 `None`
+    /// - `OPENLARK_RETRY_COUNT` / `OPENLARK_MAX_RESPONSE_SIZE` / `OPENLARK_ENABLE_LOG`
+    pub fn from_env() -> Config {
+        let mut inner = ConfigInner::default();
+        Self::apply_env_vars(&mut inner);
+        let config = Config::new(inner);
+        if let Err(e) = config.validate() {
+            tracing::warn!("from_env 加载的配置未通过校验: {e}");
+        }
+        config
+    }
+
+    /// 从 `OPENLARK_*` 环境变量加载到当前实例（写时复制：独占引用时原地修改）
+    ///
+    /// 仅设置存在且非空的环境变量（`OPENLARK_APP_TYPE` 除外，它对非法值静默忽略）。
+    pub fn load_from_env(&mut self) {
+        let inner = Arc::make_mut(&mut self.inner);
+        Self::apply_env_vars(inner);
+    }
+
+    fn apply_env_vars(inner: &mut ConfigInner) {
+        for (key, value) in std::env::vars() {
+            Self::apply_env_var(inner, &key, &value);
+        }
+    }
+
+    fn apply_env_var(inner: &mut ConfigInner, key: &str, value: &str) {
+        match key {
+            "OPENLARK_APP_ID" if !value.is_empty() => inner.app_id = value.to_string(),
+            "OPENLARK_APP_SECRET" if !value.is_empty() => inner.app_secret = value.to_string(),
+            "OPENLARK_APP_TYPE" => {
+                let v = value.trim().to_lowercase();
+                match v.as_str() {
+                    "self_build" | "selfbuild" | "self" => inner.app_type = AppType::SelfBuild,
+                    "marketplace" | "store" => inner.app_type = AppType::Marketplace,
+                    _ => {}
+                }
+            }
+            "OPENLARK_BASE_URL" if !value.is_empty() => inner.base_url = value.to_string(),
+            "OPENLARK_ENABLE_TOKEN_CACHE" => {
+                let s = value.trim().to_lowercase();
+                if !s.is_empty() {
+                    inner.enable_token_cache = !(s.starts_with('f') || s == "0");
+                }
+            }
+            // 分叉 5：秒数 → req_timeout(Some)；未设保持 None
+            "OPENLARK_TIMEOUT" => {
+                if let Ok(secs) = value.parse::<u64>() {
+                    inner.req_timeout = Some(Duration::from_secs(secs));
+                }
+            }
+            "OPENLARK_RETRY_COUNT" => {
+                if let Ok(n) = value.parse::<u32>() {
+                    inner.retry_count = n;
+                }
+            }
+            "OPENLARK_MAX_RESPONSE_SIZE" => {
+                if let Ok(size) = value.parse::<u64>() {
+                    inner.max_response_size = size;
+                }
+            }
+            "OPENLARK_ENABLE_LOG" => {
+                inner.enable_log = !value.to_lowercase().starts_with('f');
+            }
+            _ => {}
+        }
+    }
+
+    /// 生成不含敏感信息的配置摘要
+    ///
+    /// `app_secret` 仅以布尔「是否已设置」表示，不泄露明文。
+    pub fn summary(&self) -> ConfigSummary {
+        ConfigSummary {
+            app_id: self.app_id.clone(),
+            app_secret_set: !self.app_secret.is_empty(),
+            app_type: self.app_type,
+            enable_token_cache: self.enable_token_cache,
+            base_url: self.base_url.clone(),
+            allow_custom_base_url: self.allow_custom_base_url,
+            req_timeout: self.req_timeout,
+            retry_count: self.retry_count,
+            enable_log: self.enable_log,
+            header_count: self.header.len(),
+            max_response_size: self.max_response_size,
+        }
+    }
 }
 
 /// 配置构建器
@@ -237,6 +424,7 @@ pub struct ConfigBuilder {
     max_response_size: Option<u64>,
     retry_count: Option<u32>,
     enable_log: Option<bool>,
+    allow_custom_base_url: Option<bool>,
 }
 
 impl ConfigBuilder {
@@ -340,6 +528,12 @@ impl ConfigBuilder {
         self
     }
 
+    /// 设置是否允许自定义 base_url 域名（绕过白名单 SSRF 防护），默认 false
+    pub fn allow_custom_base_url(mut self, allow: bool) -> Self {
+        self.allow_custom_base_url = Some(allow);
+        self
+    }
+
     /// 构建 Config 实例
     pub fn build(self) -> Config {
         let default = ConfigInner::default();
@@ -358,7 +552,74 @@ impl ConfigBuilder {
             max_response_size: self.max_response_size.unwrap_or(default.max_response_size),
             retry_count: self.retry_count.unwrap_or(default.retry_count),
             enable_log: self.enable_log.unwrap_or(default.enable_log),
+            allow_custom_base_url: self
+                .allow_custom_base_url
+                .unwrap_or(default.allow_custom_base_url),
         })
+    }
+}
+
+/// 配置摘要（不含敏感信息）
+///
+/// 由 [`Config::summary`] 生成。`app_secret` 仅以 `app_secret_set` 布尔表示是否已设置，
+/// 不泄露明文。便于日志、调试和展示。
+#[derive(Debug, Clone)]
+pub struct ConfigSummary {
+    /// 应用 ID
+    pub app_id: String,
+    /// 应用密钥是否已设置（不泄露明文）
+    pub app_secret_set: bool,
+    /// 应用类型
+    pub app_type: AppType,
+    /// 是否允许自动获取 token
+    pub enable_token_cache: bool,
+    /// API 基础 URL
+    pub base_url: String,
+    /// 是否允许自定义 base_url 域名（绕过白名单 SSRF 防护）
+    pub allow_custom_base_url: bool,
+    /// 请求超时时间（None 表示永不超时）
+    pub req_timeout: Option<Duration>,
+    /// 默认重试次数
+    pub retry_count: u32,
+    /// 是否启用日志记录
+    pub enable_log: bool,
+    /// 自定义 headers 数量
+    pub header_count: usize,
+    /// 响应体最大大小限制（字节）
+    pub max_response_size: u64,
+}
+
+impl ConfigSummary {
+    /// 获取友好的中文配置描述
+    pub fn friendly_description(&self) -> String {
+        format!(
+            "应用ID: {}, 基础URL: {}, 超时: {:?}, 重试: {}, 日志: {}, Headers: {}, 最大响应: {}",
+            self.app_id,
+            self.base_url,
+            self.req_timeout,
+            self.retry_count,
+            if self.enable_log { "启用" } else { "禁用" },
+            self.header_count,
+            self.max_response_size
+        )
+    }
+}
+
+impl std::fmt::Display for ConfigSummary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // 注意：只输出 app_secret_set 布尔，绝不输出 app_secret 明文
+        write!(
+            f,
+            "Config {{ app_id: {}, app_secret_set: {}, base_url: {}, req_timeout: {:?}, retry_count: {}, enable_log: {}, header_count: {}, max_response_size: {} }}",
+            self.app_id,
+            self.app_secret_set,
+            self.base_url,
+            self.req_timeout,
+            self.retry_count,
+            self.enable_log,
+            self.header_count,
+            self.max_response_size
+        )
     }
 }
 
@@ -387,6 +648,7 @@ mod tests {
             max_response_size: 100 * 1024 * 1024,
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         });
 
         assert_eq!(config.app_id, "test_app_id");
@@ -428,6 +690,7 @@ mod tests {
             max_response_size: 100 * 1024 * 1024,
             retry_count: 3,
             enable_log: true,
+            allow_custom_base_url: false,
         });
 
         let cloned_config = config.clone();
@@ -535,6 +798,287 @@ mod tests {
 
         assert_eq!(config.app_id, "test_app");
         assert_eq!(config.app_secret, "test_secret");
+    }
+
+    #[test]
+    fn test_config_allow_custom_base_url_default() {
+        let config = Config::default();
+        assert!(!config.allow_custom_base_url());
+    }
+
+    #[test]
+    fn test_config_builder_allow_custom_base_url() {
+        let config = Config::builder().allow_custom_base_url(true).build();
+        assert!(config.allow_custom_base_url());
+    }
+
+    // ===== T2: validate + is_known_base_url（SSRF 白名单）=====
+
+    #[test]
+    fn test_is_known_base_url_whitelist() {
+        assert!(is_known_base_url("https://open.feishu.cn"));
+        assert!(is_known_base_url("https://api.feishu.cn"));
+        assert!(is_known_base_url("https://open.larksuite.com"));
+        assert!(is_known_base_url("https://custom.larkoffice.com"));
+    }
+
+    #[test]
+    fn test_is_known_base_url_rejects_unknown() {
+        assert!(!is_known_base_url("https://evil.com"));
+        assert!(!is_known_base_url("https://example.com"));
+        assert!(!is_known_base_url("https://fake-larksuite.com"));
+        assert!(!is_known_base_url("not a url"));
+    }
+
+    #[test]
+    fn test_config_validate_whitelist_ok() {
+        for url in [
+            "https://open.feishu.cn",
+            "https://open.larksuite.com",
+            "https://open.larkoffice.com",
+        ] {
+            let config = Config::builder()
+                .app_id("app")
+                .app_secret("secret")
+                .base_url(url)
+                .build();
+            assert!(config.validate().is_ok(), "{url} 应通过白名单校验");
+        }
+    }
+
+    #[test]
+    fn test_config_validate_non_whitelist_rejected() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://evil.com")
+            .build();
+        let err = config.validate().unwrap_err();
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("allow_custom_base_url"),
+            "错误消息应提示 allow_custom_base_url，实际: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_config_validate_allow_custom_exempts_whitelist() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://evil.com")
+            .allow_custom_base_url(true)
+            .build();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_empty_app_id() {
+        let config = Config::builder()
+            .app_secret("secret")
+            .base_url("https://open.feishu.cn")
+            .build();
+        assert!(config.app_id().is_empty());
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_empty_app_secret() {
+        let config = Config::builder()
+            .app_id("app")
+            .base_url("https://open.feishu.cn")
+            .build();
+        assert!(config.app_secret().is_empty());
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_retry_count_too_high() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("secret")
+            .base_url("https://open.feishu.cn")
+            .retry_count(11)
+            .build();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_build_does_not_validate() {
+        // build() 不校验：app_id 空仍返回 Config，不抛错（分叉 1 回归保护）
+        let config = Config::builder().app_id("").build();
+        assert!(config.validate().is_err());
+    }
+
+    // ===== T3: from_env / load_from_env =====
+
+    /// 临时设置环境变量并在闭包返回后恢复（串行化避免并行测试污染）
+    fn with_env_vars<R>(vars: &[(&str, Option<&str>)], f: impl FnOnce() -> R) -> R {
+        use std::sync::{Mutex, OnceLock};
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        let _guard = LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        struct Restore(Vec<(String, Option<String>)>);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                for (k, v) in self.0.drain(..) {
+                    match v {
+                        Some(v) => unsafe { std::env::set_var(k, v) },
+                        None => unsafe { std::env::remove_var(k) },
+                    }
+                }
+            }
+        }
+
+        let saved = vars
+            .iter()
+            .map(|(k, _)| ((*k).to_string(), std::env::var(k).ok()))
+            .collect::<Vec<_>>();
+        for (k, v) in vars {
+            match v {
+                Some(v) => unsafe { std::env::set_var(k, v) },
+                None => unsafe { std::env::remove_var(k) },
+            }
+        }
+        let _restore = Restore(saved);
+        f()
+    }
+
+    #[test]
+    fn test_config_from_env_reads_all_vars() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("env_app")),
+                ("OPENLARK_APP_SECRET", Some("env_secret")),
+                ("OPENLARK_APP_TYPE", Some("marketplace")),
+                ("OPENLARK_BASE_URL", Some("https://open.larksuite.com")),
+                ("OPENLARK_ENABLE_TOKEN_CACHE", Some("false")),
+                ("OPENLARK_TIMEOUT", Some("60")),
+                ("OPENLARK_RETRY_COUNT", Some("5")),
+                ("OPENLARK_MAX_RESPONSE_SIZE", Some("12345")),
+                ("OPENLARK_ENABLE_LOG", Some("false")),
+            ],
+            || {
+                let config = Config::from_env();
+                assert_eq!(config.app_id(), "env_app");
+                assert_eq!(config.app_secret(), "env_secret");
+                assert_eq!(config.app_type(), AppType::Marketplace);
+                assert_eq!(config.base_url(), "https://open.larksuite.com");
+                assert!(!config.enable_token_cache());
+                // 分叉 5：OPENLARK_TIMEOUT → req_timeout(Some(Duration))
+                assert_eq!(config.req_timeout(), Some(Duration::from_secs(60)));
+                assert_eq!(config.retry_count(), 5);
+                assert_eq!(config.max_response_size(), 12345);
+                assert!(!config.enable_log());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_from_env_missing_uses_defaults() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", None),
+                ("OPENLARK_APP_SECRET", None),
+                ("OPENLARK_APP_TYPE", None),
+                ("OPENLARK_BASE_URL", None),
+                ("OPENLARK_ENABLE_TOKEN_CACHE", None),
+                ("OPENLARK_TIMEOUT", None),
+                ("OPENLARK_RETRY_COUNT", None),
+                ("OPENLARK_MAX_RESPONSE_SIZE", None),
+                ("OPENLARK_ENABLE_LOG", None),
+            ],
+            || {
+                let config = Config::from_env();
+                assert_eq!(config.app_id(), "");
+                assert_eq!(config.app_type(), AppType::SelfBuild);
+                assert!(config.enable_token_cache());
+                // 分叉 5：未设 TIMEOUT → req_timeout 保持 None（非 client 的 30s）
+                assert_eq!(config.req_timeout(), None);
+                assert_eq!(config.retry_count(), 3);
+                assert!(config.enable_log());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_from_env_invalid_does_not_block() {
+        // app_id 空（不设），from_env 仍返回 Config 不 panic；validate 才报错
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", None),
+                ("OPENLARK_APP_SECRET", Some("secret")),
+                ("OPENLARK_BASE_URL", Some("https://open.feishu.cn")),
+            ],
+            || {
+                let config = Config::from_env();
+                assert!(config.app_id().is_empty());
+                assert!(config.validate().is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_load_from_env_mutates() {
+        with_env_vars(&[("OPENLARK_APP_ID", Some("loaded_id"))], || {
+            let mut config = Config::default();
+            assert_eq!(config.app_id(), "");
+            config.load_from_env();
+            assert_eq!(config.app_id(), "loaded_id");
+        });
+    }
+
+    // ===== T4: ConfigSummary + summary() =====
+
+    #[test]
+    fn test_config_summary_fields() {
+        let config = Config::builder()
+            .app_id("app")
+            .app_secret("top-secret-value")
+            .base_url("https://open.feishu.cn")
+            .retry_count(7)
+            .max_response_size(999)
+            .req_timeout(Duration::from_secs(45))
+            .build();
+        let s = config.summary();
+        assert_eq!(s.app_id, "app");
+        assert!(s.app_secret_set);
+        assert_eq!(s.app_type, AppType::SelfBuild);
+        assert!(s.enable_token_cache);
+        assert_eq!(s.base_url, "https://open.feishu.cn");
+        assert!(!s.allow_custom_base_url);
+        assert_eq!(s.req_timeout, Some(Duration::from_secs(45)));
+        assert_eq!(s.retry_count, 7);
+        assert!(s.enable_log);
+        assert_eq!(s.header_count, 0);
+        assert_eq!(s.max_response_size, 999);
+    }
+
+    #[test]
+    fn test_config_summary_secret_not_leaked() {
+        let config = Config::builder().app_secret("top-secret-value").build();
+        let s = config.summary();
+        assert!(s.app_secret_set);
+        // app_secret 明文不应出现在 summary 结构体或其 Display 输出
+        let display = format!("{s}");
+        assert!(!display.contains("top-secret-value"));
+    }
+
+    #[test]
+    fn test_config_summary_secret_unset() {
+        let config = Config::default();
+        assert!(!config.summary().app_secret_set);
+    }
+
+    #[test]
+    fn test_config_summary_header_count() {
+        let mut h = HashMap::new();
+        h.insert("X-Custom".to_string(), "v".to_string());
+        let config = Config::builder().header(h).build();
+        assert_eq!(config.summary().header_count, 1);
     }
 
     #[test]

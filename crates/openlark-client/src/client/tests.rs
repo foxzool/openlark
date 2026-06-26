@@ -1,7 +1,5 @@
-#![allow(deprecated)]
-
 use super::{Client, ClientBuilder, ClientErrorHandling};
-use crate::{Config, Result};
+use crate::Result;
 use openlark_core::error::ErrorTrait;
 use std::time::Duration;
 
@@ -57,14 +55,13 @@ fn test_client_with_core_config() {
 
 #[test]
 fn test_client_config() {
-    let config = Config {
-        app_id: "test_app_id".to_string(),
-        app_secret: "test_app_secret".to_string(),
-        base_url: "https://open.feishu.cn".to_string(),
-        ..Default::default()
-    };
+    let config = openlark_core::config::Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://open.feishu.cn")
+        .build();
 
-    let client = Client::with_config(config).unwrap();
+    let client = Client::with_core_config(config).unwrap();
     assert_eq!(client.config().app_id(), "test_app_id");
     assert_eq!(client.config().app_secret(), "test_app_secret");
     assert!(client.is_configured());
@@ -72,13 +69,9 @@ fn test_client_config() {
 
 #[test]
 fn test_client_not_configured() {
-    let config = Config {
-        app_id: String::new(),
-        app_secret: String::new(),
-        ..Default::default()
-    };
+    let config = openlark_core::config::Config::builder().build();
 
-    let client_result = Client::with_config(config);
+    let client_result = Client::with_core_config(config);
     assert!(client_result.is_err());
 
     if let Err(error) = client_result {

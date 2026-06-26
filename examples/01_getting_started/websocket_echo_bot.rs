@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 //! WebSocket Echo Bot 示例。
 //!
 //! 展示如何使用 openlark 根 crate 建立飞书长连接、接收消息事件，并用服务端 API 回显文本消息。
@@ -51,10 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .app_id(runtime_config.app_id.clone())
         .app_secret(runtime_config.app_secret.clone())
         .base_url(runtime_config.base_url.clone())
-        .timeout(Duration::from_secs(runtime_config.timeout_secs))
+        .req_timeout(Duration::from_secs(runtime_config.timeout_secs))
         .max_response_size(runtime_config.max_response_size)
-        .build()
-        .map_err(|e| format!("构建 WebSocket 配置失败: {e}"))?;
+        .build();
 
     let (payload_tx, payload_rx) = mpsc::unbounded_channel::<Vec<u8>>();
     tokio::spawn(process_payload_loop(payload_rx, runtime_config.clone()));

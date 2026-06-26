@@ -1,0 +1,14 @@
+{
+  "change": "merge-deprecated-config",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "39d13b8d395c65567aa674d9f3d759ea22f5b8d4a96805c5f5fd6af12a3bb230",
+  "files": [
+    { "path": "openspec/changes/merge-deprecated-config/proposal.md", "sha256": "4205973e9769734bcd5e67fcf82d59a2cf8f09d7cb9d38235bdf9132ce755e1c" },
+    { "path": "openspec/changes/merge-deprecated-config/design.md", "sha256": "359bc3a8043d0b5cebdf59d958dd271e9de949893c546c67bb19a8bd8f2def35" },
+    { "path": "openspec/changes/merge-deprecated-config/tasks.md", "sha256": "255e228cd904a1848747110bb61a04d3a10751a31c3b2ffe89eb010625a84ac2" },
+    { "path": "openspec/changes/merge-deprecated-config/specs/config/spec.md", "sha256": "749ff320eecee73f5eb73f952bed227b3eb4e7d529205ab2e3f8476c444aa1b1" }
+  ]
+}
