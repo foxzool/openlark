@@ -138,9 +138,12 @@ async fn test_get_employee_integration() {
         .await;
 
     // 3. 构造 Client 并执行
-    let config = Config::new("id", "secret")
-        .with_base_url(mock_server.uri());
-    let client = Client::new(config);
+    let config = Config::builder()
+        .app_id("id")
+        .app_secret("secret")
+        .base_url(mock_server.uri())
+        .build();
+    let client = Client::with_core_config(config).unwrap();
     
     let resp = client.hr.corehr.v1().employee().get("emp_123").execute().await.unwrap();
     

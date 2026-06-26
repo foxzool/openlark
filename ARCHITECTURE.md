@@ -1013,7 +1013,7 @@ impl Middleware for RetryMiddleware {
 OpenLark的ClientBuilder采用流畅API设计，提供类型安全和配置验证：
 
 ```rust
-use openlark_client::{Client, Config, Result};
+use openlark_client::{Client, CoreConfig as Config, Result};
 use std::time::Duration;
 
 // 🔥 快速创建 - 从环境变量
@@ -1096,7 +1096,8 @@ impl ClientBuilder {
 
     /// 构建客户端实例
     pub fn build(self) -> Result<Client> {
-        let result = Client::with_config(self.config);
+        // Config 即 openlark_core::config::Config（client::Config 已在 v0.18 移除）
+        let result = Client::with_core_config(self.config);
         if let Err(ref error) = result {
             tracing::error!(
                 "客户端构建失败: {}",
