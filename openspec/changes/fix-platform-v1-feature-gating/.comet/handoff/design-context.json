@@ -1,0 +1,14 @@
+{
+  "change": "fix-platform-v1-feature-gating",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "f9048a49b9e6a5555193c575d7d1f81db91681a5e9437626253f4c4fa28a14ed",
+  "files": [
+    { "path": "openspec/changes/fix-platform-v1-feature-gating/proposal.md", "sha256": "9e559499e996b76521a2d52d6aece99ac0750715de1e6157ff7a2e750eb43348" },
+    { "path": "openspec/changes/fix-platform-v1-feature-gating/design.md", "sha256": "23f38c1c1ccab8bd4ab56b76b7da79bbaf1130197553bf3c2d3ff49c2265f6b4" },
+    { "path": "openspec/changes/fix-platform-v1-feature-gating/tasks.md", "sha256": "36eba4fe1a76277ecaa7ad50436002367a228757fd5f0127e1b5756b5583414b" },
+    { "path": "openspec/changes/fix-platform-v1-feature-gating/specs/platform-service-access/spec.md", "sha256": "4555cbbbd37ad894dd700f63cd292f0a4a86c4f5c368092790695e3923c746e3" }
+  ]
+}
