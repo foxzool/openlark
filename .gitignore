@@ -158,3 +158,17 @@ crates/openlark-meeting/report.md
 
 # Git worktrees (isolated development workspaces)
 .worktrees/
+
+# ============================================================================
+# Local AI/tool state and stray build metadata (any depth)
+# ============================================================================
+
+# Serena language-server tool state (local cache, multi-MB pickle)
+.serena/
+
+# Claude Code work dirs at any level (covers sub-crates)
+.claude/
+
+# Stray rustc metadata / dep files emitted outside target/
+*.rmeta
+*.d
