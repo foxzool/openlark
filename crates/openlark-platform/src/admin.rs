@@ -26,13 +26,11 @@ impl AdminService {
     }
 
     /// V1 版本 API
-    #[cfg(feature = "v1")]
     pub fn v1(&self) -> crate::admin::admin::v1::AdminV1 {
         crate::admin::admin::v1::AdminV1::new(self.config.clone())
     }
 }
 
-#[cfg(feature = "v1")]
 pub mod admin;
 
 #[cfg(test)]

@@ -42,6 +42,14 @@ Set `.allow_custom_base_url(true)` on the builder to use a non-whitelisted base_
 - `openlark_core::config::ConfigSummary` + `Config::summary()` — redacts `app_secret`.
 - `openlark_core::config::ConfigInner.allow_custom_base_url` field + builder method.
 
+### Fixed
+
+- **fix(platform)**: 移除 `openlark-platform` 四个 service（Admin/AppEngine/Directory/Spark）
+  facade 与 intermediate 层多余的 `#[cfg(feature = "v1")]` 门控。此前 `default`/`full`
+  feature 下 service 启用却暴露空壳 facade（四个 service 的全部 v1 API 实现被排除在标准构建外）。
+  移除后 "service 启用 = API 可达"，与 hr/communication/meeting 一致。行为补全，非 breaking：
+  仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
+
 ## [0.17.0] - 2026-05-30
 
 ### Breaking Changes
