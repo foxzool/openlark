@@ -1,5 +1,5 @@
 workflow: hotfix
-phase: build
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -7,14 +7,14 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: off
 isolation: branch
-verify_mode: light
+verify_mode: full
 auto_transition: true
 base_ref: d13fe7b253a22b82c584686cb4f141c061bb15d7
 design_doc: null
 plan: null
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-06-26-fix-task-v2-section-custom-field-url-verify.md
+branch_status: handled
 created_at: 2026-06-26
-verified_at: null
-archived: false
+verified_at: 2026-06-26
+archived: true
