@@ -14,7 +14,7 @@
 - [x] 2.2 修正 `src/app_engine.rs` 的门控（`pub fn v1()` + `pub mod apaas`）
 - [x] 2.3 修正 `src/directory/mod.rs` 的门控（`pub fn v1()` + `pub mod directory`）+ `directory/directory/mod.rs:3` intermediate
 - [x] 2.4 修正 `src/spark/mod.rs` 的门控（`pub fn v1()` + `pub mod spark`）+ `spark/spark/mod.rs:3` intermediate
-- [x] 2.5 ~~按 brainstorm 选型调整 Cargo.toml~~ → N/A（方案 A 不改 Cargo.toml）
+- [x] 2.5 N/A（方案 A 不改 Cargo.toml）
 - [x] 2.6 保留 `/// V1 版本 API` 文档注释（crate 有 `missing_docs`，删注释会触发 warning）
 
 ## 3. 编译验证
@@ -32,5 +32,5 @@
 ## 5. 文档与收尾
 
 - [x] 5.1 CHANGELOG `[Unreleased] > Fixed` 记录本次行为补全
-- [x] 5.2 ~~更新 AGENTS.md~~ → N/A（AGENTS.md 不涉及 platform v1 门控细节）
+- [x] 5.2 N/A（AGENTS.md 不涉及 platform v1 门控细节）
 - [x] 5.3 `cargo doc -p openlark-platform --all-features --no-deps` 生成成功（153 个 `bare_urls` warning 为既有问题，非本次引入，architecture-audit-review 已登记后续清理）
