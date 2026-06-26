@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 //! WebSocket Echo Bot 示例。
 //!
 //! 展示如何使用 openlark 根 crate 建立飞书长连接、接收消息事件，并用服务端 API 回显文本消息。

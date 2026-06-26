@@ -551,7 +551,6 @@ pub mod info {
 pub mod utils;
 
 #[cfg(test)]
-#[allow(deprecated)]
 #[allow(unused_imports)]
 mod tests {
     use super::*;

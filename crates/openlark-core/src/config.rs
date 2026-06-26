@@ -315,6 +315,7 @@ impl Config {
     ///
     /// 读取环境变量构建 Config，缺失变量用默认值。内部调用 [`validate`](Self::validate)，
     /// 校验失败仅记录警告、不阻塞返回（与 `builder().build()` 不校验语义一致）。
+    /// 返回的 Config 可能未通过校验，关键路径应追加显式 `.validate()` 确认。
     ///
     /// # 环境变量
     /// - `OPENLARK_APP_ID` / `OPENLARK_APP_SECRET` / `OPENLARK_APP_TYPE`
