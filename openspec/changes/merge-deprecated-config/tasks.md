@@ -10,6 +10,6 @@
 - [x] T6: 字段命名按分叉 2 决策：core 用 req_timeout/header 单数，不保留 client 的 timeout/headers 别名（别名随 client::Config 移除消失）
 - [x] T7: client 移除 deprecated `client::Config`/`ConfigBuilder`/`ConfigSummary`（plan 遗漏面已补全）：迁移 `client.rs`(with_config) / `utils.rs`(create_config_from_env+get_config_summary) / `builder.rs`(From\<Config\>) / `client_build_config.rs`(From\<Config\> + is_known_base_url→core) / `ws_client/client.rs`(Arc\<client::Config\>→core + 字段直访→accessor) / `lib.rs`(3 测试)；删 `config.rs` + `config.rs.backup` + `pub use config::Config`。core `is_known_base_url` 改 pub。分叉 4
 - [x] T8: 根 crate `src/lib.rs:31` re-export 改 `openlark_core::config::Config`
-- [ ] T9: examples 迁移到 core::Config
+- [x] T9: examples 迁移（test_debug 简化为 core::Config；websocket_echo_bot timeout→req_timeout + build 返回 Config 非 Result）。cargo check --workspace --all-targets --all-features 全绿
 - [ ] T10: 文档 + CHANGELOG：breaking 迁移指引 + client::Config → core::Config 字段/方法对应表
 - [ ] T11: `cargo test` + `cargo clippy --all-targets` + `cargo check --workspace --all-targets` 全绿
