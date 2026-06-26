@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking Changes
+
+- **Removed** `openlark_client::Config` / `ConfigBuilder` / `ConfigSummary` (deprecated
+  since 0.17.0). All functionality is merged into `openlark_core::config::Config`. The
+  root crate `openlark::Config` now re-exports `openlark_core::config::Config` directly.
+- **`Client::with_config(client::Config)`** removed — use `Client::with_core_config(core::Config)`
+  or `Client::builder()`.
+- **`From<client::Config> for Result<Client>`** removed.
+- **WebSocket** `LarkWsClient::open` now takes `Arc<openlark_core::config::Config>`
+  (was `Arc<openlark_client::Config>`).
+
+### Migration: `client::Config` → `core::Config`
+
+| v0.17 (`openlark_client::Config`) | v0.18 (`openlark_core::config::Config`) |
+|---|---|
+| `timeout: Duration` (default 30s) | `req_timeout: Option<Duration>` (default `None` = never timeout) |
+| `headers: HashMap` | `header: HashMap` (singular) |
+| `Config::builder().build()` → `Result<Config>` (validates) | `Config::builder().build()` → `Config` (no validation); call `.validate()` explicitly |
+| `Config::from_env()` | `Config::from_env()` (now on core; same `OPENLARK_*` vars) |
+| `Client::with_config(cfg)` | `Client::with_core_config(cfg)` |
+| `config.app_id` (public field) | `config.app_id()` (accessor; `ConfigInner` fields are `pub(crate)`) |
+| base_url whitelist SSRF (client-only) | preserved via `Config::validate()` + `allow_custom_base_url` |
+
+Set `.allow_custom_base_url(true)` on the builder to use a non-whitelisted base_url
+(known domains: `*.feishu.cn`, `*.larksuite.com`, `*.larkoffice.com`).
+
+### Added
+
+- `openlark_core::config::Config::validate()` + `is_known_base_url()` — base_url whitelist
+  SSRF protection migrated from client (previously client-only).
+- `openlark_core::config::Config::from_env()` / `load_from_env()` — env-var loading migrated
+  from client; `OPENLARK_TIMEOUT` (seconds) now maps to `req_timeout(Some(Duration))`.
+- `openlark_core::config::ConfigSummary` + `Config::summary()` — redacts `app_secret`.
+- `openlark_core::config::ConfigInner.allow_custom_base_url` field + builder method.
+
 ## [0.17.0] - 2026-05-30
 
 ### Breaking Changes
