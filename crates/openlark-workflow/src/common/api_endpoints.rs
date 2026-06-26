@@ -147,26 +147,26 @@ pub enum TaskApiV2 {
     TasklistDelete(String),
     /// 获取任务清单列表
     TasklistList,
-    /// 创建分组
-    SectionCreate(String),
+    /// 创建分组（全局端点，无 tasklist 作用域）
+    SectionCreate,
     /// 获取分组详情
-    SectionGet(String, String),
+    SectionGet(String),
     /// 更新分组
-    SectionUpdate(String, String),
+    SectionUpdate(String),
     /// 删除分组
-    SectionDelete(String, String),
+    SectionDelete(String),
     /// 获取分组列表
-    SectionList(String),
-    /// 创建自定义字段
-    CustomFieldCreate(String),
+    SectionList,
+    /// 创建自定义字段（全局端点，清单 GUID 通过 body resource_id 传）
+    CustomFieldCreate,
     /// 获取自定义字段详情
-    CustomFieldGet(String, String),
+    CustomFieldGet(String),
     /// 更新自定义字段
-    CustomFieldUpdate(String, String),
+    CustomFieldUpdate(String),
     /// 删除自定义字段
-    CustomFieldDelete(String, String),
+    CustomFieldDelete(String),
     /// 获取自定义字段列表
-    CustomFieldList(String),
+    CustomFieldList,
     /// 创建评论
     CommentCreate(String),
     /// 获取评论详情
@@ -293,39 +293,31 @@ impl TaskApiV2 {
             }
             TaskApiV2::TasklistList => "/open-apis/task/v2/tasklists".to_string(),
 
-            // 分组相关
-            TaskApiV2::SectionCreate(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/sections")
+            // 分组相关（全局端点，无 tasklist 作用域前缀）
+            TaskApiV2::SectionCreate => "/open-apis/task/v2/sections".to_string(),
+            TaskApiV2::SectionGet(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionGet(tasklist_guid, section_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/sections/{section_guid}")
+            TaskApiV2::SectionUpdate(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionUpdate(tasklist_guid, section_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/sections/{section_guid}")
+            TaskApiV2::SectionDelete(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionDelete(tasklist_guid, section_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/sections/{section_guid}")
-            }
-            TaskApiV2::SectionList(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/sections")
-            }
+            TaskApiV2::SectionList => "/open-apis/task/v2/sections".to_string(),
 
-            // 自定义字段相关
-            TaskApiV2::CustomFieldCreate(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/custom_fields")
+            // 自定义字段相关（全局端点）
+            TaskApiV2::CustomFieldCreate => "/open-apis/task/v2/custom_fields".to_string(),
+            TaskApiV2::CustomFieldGet(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldGet(tasklist_guid, field_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/custom_fields/{field_guid}")
+            TaskApiV2::CustomFieldUpdate(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldUpdate(tasklist_guid, field_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/custom_fields/{field_guid}")
+            TaskApiV2::CustomFieldDelete(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldDelete(tasklist_guid, field_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/custom_fields/{field_guid}")
-            }
-            TaskApiV2::CustomFieldList(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/custom_fields")
-            }
+            TaskApiV2::CustomFieldList => "/open-apis/task/v2/custom_fields".to_string(),
 
             // 评论相关
             TaskApiV2::CommentCreate(task_guid) => {
@@ -832,44 +824,44 @@ mod tests {
                 "/open-apis/task/v2/tasklists".to_string(),
             ),
             (
-                TaskApiV2::SectionCreate("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections".to_string(),
+                TaskApiV2::SectionCreate,
+                "/open-apis/task/v2/sections".to_string(),
             ),
             (
-                TaskApiV2::SectionGet("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionGet("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionUpdate("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionUpdate("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionDelete("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionDelete("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionList("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections".to_string(),
+                TaskApiV2::SectionList,
+                "/open-apis/task/v2/sections".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldCreate("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields".to_string(),
+                TaskApiV2::CustomFieldCreate,
+                "/open-apis/task/v2/custom_fields".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldGet("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldGet("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldUpdate("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldUpdate("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldDelete("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldDelete("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldList("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields".to_string(),
+                TaskApiV2::CustomFieldList,
+                "/open-apis/task/v2/custom_fields".to_string(),
             ),
             (
                 TaskApiV2::CommentCreate("t1".to_string()),

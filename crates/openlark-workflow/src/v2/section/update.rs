@@ -17,8 +17,6 @@ use std::sync::Arc;
 pub struct UpdateSectionRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 分组 GUID
     section_guid: String,
     /// 请求体
@@ -27,10 +25,9 @@ pub struct UpdateSectionRequest {
 
 impl UpdateSectionRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String, section_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, section_guid: String) -> Self {
         Self {
             config,
-            tasklist_guid,
             section_guid,
             body: UpdateSectionBody::default(),
         }
@@ -60,12 +57,10 @@ impl UpdateSectionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UpdateSectionResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
         validate_required!(self.section_guid.trim(), "分组GUID不能为空");
 
-        let api_endpoint =
-            TaskApiV2::SectionUpdate(self.tasklist_guid.clone(), self.section_guid.clone());
-        let mut request = ApiRequest::<UpdateSectionResponse>::put(api_endpoint.to_url());
+        let api_endpoint = TaskApiV2::SectionUpdate(self.section_guid.clone());
+        let mut request = ApiRequest::<UpdateSectionResponse>::patch(api_endpoint.to_url());
 
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "更新分组")?);
@@ -98,14 +93,9 @@ mod tests {
                 .build(),
         );
 
-        let request = UpdateSectionRequest::new(
-            config,
-            "tasklist_123".to_string(),
-            "section_456".to_string(),
-        )
-        .summary("更新的标题");
+        let request =
+            UpdateSectionRequest::new(config, "section_456".to_string()).summary("更新的标题");
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.section_guid, "section_456");
         assert_eq!(request.body.summary, Some("更新的标题".to_string()));
     }

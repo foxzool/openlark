@@ -266,6 +266,8 @@ fn comment_and_custom_field_contract() {
             field_type: CustomFieldType::Select,
             options: Some(vec!["高".to_string(), "中".to_string(), "低".to_string()]),
         },
+        resource_type: "tasklist".to_string(),
+        resource_id: "tasklist_123".to_string(),
     };
     assert_json_contract(
         &custom_field_request,
@@ -274,7 +276,9 @@ fn comment_and_custom_field_contract() {
             "config": {
                 "type": "select",
                 "options": ["高", "中", "低"]
-            }
+            },
+            "resource_type": "tasklist",
+            "resource_id": "tasklist_123"
         }),
     );
 

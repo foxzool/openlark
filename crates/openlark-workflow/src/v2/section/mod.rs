@@ -22,59 +22,37 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct Section {
     config: Arc<Config>,
-    tasklist_guid: String,
 }
 
 impl Section {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            tasklist_guid: String::new(),
-        }
-    }
-
-    /// 绑定任务清单上下文。
-    pub fn with_tasklist(mut self, tasklist_guid: impl Into<String>) -> Self {
-        self.tasklist_guid = tasklist_guid.into();
-        self
+        Self { config }
     }
 
     /// 创建新建请求。
     pub fn create(&self) -> create::CreateSectionRequest {
-        create::CreateSectionRequest::new(self.config.clone(), self.tasklist_guid.clone())
+        create::CreateSectionRequest::new(self.config.clone())
     }
 
     /// 创建获取详情请求。
     pub fn get(&self, section_guid: impl Into<String>) -> get::GetSectionRequest {
-        get::GetSectionRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            section_guid.into(),
-        )
+        get::GetSectionRequest::new(self.config.clone(), section_guid.into())
     }
 
     /// 创建更新请求。
     pub fn update(&self, section_guid: impl Into<String>) -> update::UpdateSectionRequest {
-        update::UpdateSectionRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            section_guid.into(),
-        )
+        update::UpdateSectionRequest::new(self.config.clone(), section_guid.into())
     }
 
     /// 创建删除请求。
     pub fn delete(&self, section_guid: impl Into<String>) -> delete::DeleteSectionRequest {
-        delete::DeleteSectionRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            section_guid.into(),
-        )
+        delete::DeleteSectionRequest::new(self.config.clone(), section_guid.into())
     }
 
     /// 创建列表请求。
     pub fn list(&self) -> list::ListSectionsRequest {
-        list::ListSectionsRequest::new(self.config.clone(), self.tasklist_guid.clone())
+        list::ListSectionsRequest::new(self.config.clone())
     }
 
     /// 创建分组任务列表请求。
@@ -116,49 +94,41 @@ mod tests {
     #[test]
     fn test_section_new() {
         let config = create_test_config();
-        let section = Section::new(config);
-        assert!(section.tasklist_guid.is_empty());
-    }
-
-    #[test]
-    fn test_section_with_tasklist() {
-        let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
-        assert_eq!(section.tasklist_guid, "tasklist_123");
+        let _section = Section::new(config);
     }
 
     #[test]
     fn test_section_create() {
         let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
+        let section = Section::new(config);
         let _request = section.create();
     }
 
     #[test]
     fn test_section_get() {
         let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
+        let section = Section::new(config);
         let _request = section.get("section_456");
     }
 
     #[test]
     fn test_section_update() {
         let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
+        let section = Section::new(config);
         let _request = section.update("section_456");
     }
 
     #[test]
     fn test_section_delete() {
         let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
+        let section = Section::new(config);
         let _request = section.delete("section_456");
     }
 
     #[test]
     fn test_section_list() {
         let config = create_test_config();
-        let section = Section::new(config).with_tasklist("tasklist_123");
+        let section = Section::new(config);
         let _request = section.list();
     }
 }

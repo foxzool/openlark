@@ -17,19 +17,20 @@ use std::sync::Arc;
 pub struct CreateCustomFieldRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 请求体
     body: CreateCustomFieldBody,
 }
 
 impl CreateCustomFieldRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, resource_id: String) -> Self {
         Self {
             config,
-            tasklist_guid,
-            body: CreateCustomFieldBody::default(),
+            body: CreateCustomFieldBody {
+                resource_type: "tasklist".to_string(),
+                resource_id,
+                ..CreateCustomFieldBody::default()
+            },
         }
     }
 
@@ -57,10 +58,10 @@ impl CreateCustomFieldRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateCustomFieldResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
+        validate_required!(self.body.resource_id.trim(), "清单GUID不能为空");
         validate_required!(self.body.name.trim(), "字段名称不能为空");
 
-        let api_endpoint = TaskApiV2::CustomFieldCreate(self.tasklist_guid.clone());
+        let api_endpoint = TaskApiV2::CustomFieldCreate;
         let mut request = ApiRequest::<CreateCustomFieldResponse>::post(api_endpoint.to_url());
 
         let request_body = &self.body;
@@ -105,7 +106,6 @@ mod tests {
             .name("优先级")
             .config(config_value);
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.body.name, "优先级");
     }
 }
