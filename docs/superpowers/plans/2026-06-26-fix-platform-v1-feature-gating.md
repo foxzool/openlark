@@ -54,7 +54,7 @@ base-ref: b92dccb95434ddb5c62c3179cdcce2d8f79dff1b
 
 **目的：** 实施前用 grep+Read 把 v1/v4 的所有引用点钉死，防止 Task 2 误删测试自身的 cfg 门控（那是测试选择何时运行的门控，与我们要删的 service facade 门控是两回事）。
 
-- [ ] **Step 1: grep 全部 `feature = "v[1-4]"` 引用**
+- [x] **Step 1: grep 全部 `feature = "v[1-4]"` 引用**
 
 Run:
 ```bash
@@ -63,15 +63,15 @@ rg -n '"v[1-4]"' crates/openlark-platform/Cargo.toml
 ```
 Expected: src 命中 = 我们要删的 10 处 facade/intermediate 门控（admin.rs:29,35 / app_engine.rs:29,35 / directory/mod.rs:29,35 / directory/directory/mod.rs:3 / spark/mod.rs:26,32 / spark/spark/mod.rs:3）**加上** `lib.rs:161`（测试自身门控，**保留**）和 `tests/platform_contract_models.rs:4`（集成测试自身门控，**保留**）。Cargo.toml 命中 = `v1`/`v2`/`v3`/`v4` 定义行 + `full = [... "v4"]`（**全部保留**）。
 
-- [ ] **Step 2: 确认 lib.rs:161 测试门控语义**
+- [x] **Step 2: 确认 lib.rs:161 测试门控语义**
 
 Read `crates/openlark-platform/src/lib.rs:150-168`。确认第 161 行 `#[cfg(all(feature = "spark", feature = "v1"))]` 是测试模块**自己**选择何时运行该 test 的门控（仅当 `spark` 与 `v1` 同时启用才编译/运行），第 166 行 `service.spark().v1().directory().user().id_convert()` 在该门控下成立。**该 cfg 不在删除清单内**（删除清单只含 6 个 service 源文件的门控）。
 
-- [ ] **Step 3: 确认 tests/platform_contract_models.rs 顶层 `#![cfg(...)]`**
+- [x] **Step 3: 确认 tests/platform_contract_models.rs 顶层 `#![cfg(...)]`**
 
 Read `crates/openlark-platform/tests/platform_contract_models.rs:1-15`。确认 `#![cfg(all(feature = "admin", feature = "v1", ...))]` 是 crate 级测试门控，决定整个集成测试文件何时编译。**保留**（v1 在该门控里，移除会让 default 下该文件尝试编译，但 v1 仍不在 default —— 门控逻辑不变）。
 
-- [ ] **Step 4: 确认 v4 为空 no-op**
+- [x] **Step 4: 确认 v4 为空 no-op**
 
 Run:
 ```bash
@@ -79,7 +79,7 @@ rg -n 'feature\s*=\s*"v4"' crates/openlark-platform/src/ crates/openlark-platfor
 ```
 Expected: `(no v4 cfg in code)` —— 证实 v4 仅在 `Cargo.toml` 的 `full = [... "v4"]` 中出现，不门控任何代码。**保持现状**（设计 D2）。
 
-- [ ] **Step 5: 记录证据，本 task 无代码改动、无需提交**
+- [x] **Step 5: 记录证据，本 task 无代码改动、无需提交**
 
 把 Step 1-4 的命中清单记在心里（或贴到 PR 描述）。本 task 是 read-only 调研，零代码改动，主会话按 tasks.md 1.1-1.3 勾选并提交（如策略要求）。
 
@@ -104,7 +104,7 @@ Expected: `(no v4 cfg in code)` —— 证实 v4 仅在 `Cargo.toml` 的 `full =
 - 模块门控处（`pub mod admin;` / `pub mod apaas;` / `pub mod directory;` / `pub mod spark;`）：仅删除 `#[cfg(feature = "v1")]` 属性行，**保留** `pub mod ...;` 声明。
 - intermediate 门控处（`directory/directory/mod.rs:3` 与 `spark/spark/mod.rs:3` 的 `pub mod v1;`）：仅删除 `#[cfg(feature = "v1")]` 属性行，**保留** `pub mod v1;`。
 
-- [ ] **Step 1: admin.rs — 删 2 处**
+- [x] **Step 1: admin.rs — 删 2 处**
 
 文件 `crates/openlark-platform/src/admin.rs`：
 
@@ -129,7 +129,7 @@ pub mod admin;
 pub mod admin;
 ```
 
-- [ ] **Step 2: app_engine.rs — 删 2 处**
+- [x] **Step 2: app_engine.rs — 删 2 处**
 
 文件 `crates/openlark-platform/src/app_engine.rs`：
 
@@ -154,7 +154,7 @@ pub mod apaas;
 pub mod apaas;
 ```
 
-- [ ] **Step 3: directory/mod.rs — 删 2 处**
+- [x] **Step 3: directory/mod.rs — 删 2 处**
 
 文件 `crates/openlark-platform/src/directory/mod.rs`：
 
@@ -179,7 +179,7 @@ pub mod directory;
 pub mod directory;
 ```
 
-- [ ] **Step 4: directory/directory/mod.rs — 删 intermediate 1 处**
+- [x] **Step 4: directory/directory/mod.rs — 删 intermediate 1 处**
 
 文件 `crates/openlark-platform/src/directory/directory/mod.rs`，第 3 行：
 ```rust
@@ -191,7 +191,7 @@ pub mod v1;
 pub mod v1;
 ```
 
-- [ ] **Step 5: spark/mod.rs — 删 2 处**
+- [x] **Step 5: spark/mod.rs — 删 2 处**
 
 文件 `crates/openlark-platform/src/spark/mod.rs`：
 
@@ -216,7 +216,7 @@ pub mod spark;
 pub mod spark;
 ```
 
-- [ ] **Step 6: spark/spark/mod.rs — 删 intermediate 1 处**
+- [x] **Step 6: spark/spark/mod.rs — 删 intermediate 1 处**
 
 文件 `crates/openlark-platform/src/spark/spark/mod.rs`，第 3 行：
 ```rust
@@ -228,7 +228,7 @@ pub mod v1;
 pub mod v1;
 ```
 
-- [ ] **Step 7: 复核删除计数**
+- [x] **Step 7: 复核删除计数**
 
 Run:
 ```bash
@@ -253,7 +253,7 @@ Expected: 3 处命中（lib.rs:161、tests/platform_contract_models.rs:4、Cargo
 - Consumes: Task 2 的 10 处删除。
 - Produces: `cargo check` 在 default 与 full 两个 feature 组合下均通过；v1 API 子树（长期未被标准构建编译）验证可编译。
 
-- [ ] **Step 1: default 编译**
+- [x] **Step 1: default 编译**
 
 Run:
 ```bash
@@ -261,7 +261,7 @@ cargo check -p openlark-platform
 ```
 Expected: 编译通过，exit 0。此时 `admin/admin/**`、`app_engine/apaas/**`、`directory/directory/**`、`spark/spark/**` 子树首次进入标准构建。
 
-- [ ] **Step 2: full 编译**
+- [x] **Step 2: full 编译**
 
 Run:
 ```bash
@@ -269,7 +269,7 @@ cargo check -p openlark-platform --all-features
 ```
 Expected: 编译通过，exit 0。96 个 API 实现全部参与编译。
 
-- [ ] **Step 3: 处理 latent 编译错误（如有）**
+- [x] **Step 3: 处理 latent 编译错误（如有）**
 
 若 Step 1 或 Step 2 失败（v1 子树长期未被标准构建编译，可能暴露遗留问题），加载 `systematic-debugging` skill 逐个定位修复。**只修暴露的真实编译错误，不做顺手重构。** 在 PR 描述记录每个修复点（文件:行 + 原因）。
 
@@ -286,7 +286,7 @@ Expected: 编译通过，exit 0。96 个 API 实现全部参与编译。
 - Consumes: Task 2 的删除 + Task 3 的编译通过。
 - Produces: 两组 clippy 零 warning + platform 单元/集成测试通过。
 
-- [ ] **Step 1: no-default-features clippy**
+- [x] **Step 1: no-default-features clippy**
 
 Run:
 ```bash
@@ -294,7 +294,7 @@ cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 ```
 Expected: exit 0（无 warning）。验证移除 facade 门控不影响 `--no-default-features` 下 service 模块本就不编译的 test-gating 行为。
 
-- [ ] **Step 2: all-features clippy**
+- [x] **Step 2: all-features clippy**
 
 Run:
 ```bash
@@ -302,7 +302,7 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 ```
 Expected: exit 0（无 warning）。此时 v1 子树全部参与编译，clippy 覆盖最全。
 
-- [ ] **Step 3: platform 测试**
+- [x] **Step 3: platform 测试**
 
 Run:
 ```bash
@@ -312,7 +312,7 @@ Expected: 通过。包含：
 - 4 个 service 的 `test_service_creation` 单元测试（admin/app_engine/directory/spark）。
 - `lib.rs:161` 的 `test_platform_service_spark` 在 default 下因缺 `v1` 被 cfg-skip（正常），在 `--all-features` 下运行并验证 `service.spark().v1().directory().user().id_convert()` 链路编译。
 
-- [ ] **Step 4: 全 feature 组合复测（确认 spark v1 链路）**
+- [x] **Step 4: 全 feature 组合复测（确认 spark v1 链路）**
 
 Run:
 ```bash
@@ -331,7 +331,7 @@ Expected: 通过。`test_platform_service_spark` 此时**会运行**（spark+v1 
 - Consumes: Task 1-4 全部通过。
 - Produces: CHANGELOG 记录本次行为补全。
 
-- [ ] **Step 1: CHANGELOG 加 Fixed 条目**
+- [x] **Step 1: CHANGELOG 加 Fixed 条目**
 
 在 `CHANGELOG.md` 的 `## [Unreleased]` 段下，按现有结构添加一个 `### Fixed`（或 `### Changed`）子段（若已有则在其列表追加）。条目内容（中文，符合项目风格）：
 
@@ -345,7 +345,7 @@ Expected: 通过。`test_platform_service_spark` 此时**会运行**（spark+v1 
   仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
 ```
 
-- [ ] **Step 2: cargo doc 生成确认**
+- [x] **Step 2: cargo doc 生成确认**
 
 Run:
 ```bash
@@ -353,7 +353,7 @@ cargo doc -p openlark-platform --all-features --no-deps
 ```
 Expected: 文档生成成功，exit 0。确认四个 service 的 `.v1()` 方法现在出现在 `--all-features` 文档中（移除门控前因 v1 子树空，方法实际不参与编译）。
 
-- [ ] **Step 3: 不提交 git**
+- [x] **Step 3: 不提交 git**
 
 本计划不执行 git 提交。全部 task 完成后，交主会话：勾选 `openspec/changes/fix-platform-v1-feature-gating/tasks.md` 对应项 → 由主会话按 comet 流程提交。
 
