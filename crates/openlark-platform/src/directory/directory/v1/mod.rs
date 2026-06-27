@@ -25,14 +25,14 @@ pub mod users;
 /// 目录服务 V1 API
 #[derive(Debug, Clone)]
 pub struct DirectoryV1 {
-    /// 客户端配置
-    config: Arc<PlatformConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<PlatformConfig>,
 }
 
 impl DirectoryV1 {
     /// 创建新的目录服务 V1 实例
     pub fn new(config: Arc<PlatformConfig>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 }
 
@@ -49,6 +49,6 @@ mod tests {
             .build();
 
         let api = DirectoryV1::new(std::sync::Arc::new(config));
-        assert_eq!(api.config.app_id(), "test_app_id");
+        assert_eq!(api._config.app_id(), "test_app_id");
     }
 }

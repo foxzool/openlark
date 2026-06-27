@@ -34,7 +34,8 @@ impl QueryApi {
 
 /// 搜索请求
 pub struct SearchRequest {
-    config: Arc<AnalyticsConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<AnalyticsConfig>,
     search_term: Option<String>,
     search_type: Option<String>,
     page_size: Option<u32>,
@@ -43,7 +44,7 @@ pub struct SearchRequest {
 impl SearchRequest {
     fn new(config: Arc<AnalyticsConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             search_term: None,
             search_type: None,
             page_size: None,
@@ -90,14 +91,15 @@ impl SearchRequest {
 
 /// 搜索建议请求
 pub struct SuggestRequest {
-    config: Arc<AnalyticsConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<AnalyticsConfig>,
     query: Option<String>,
 }
 
 impl SuggestRequest {
     fn new(config: Arc<AnalyticsConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             query: None,
         }
     }

@@ -8,13 +8,14 @@ use std::sync::Arc;
 /// Image OCR API
 #[derive(Clone)]
 pub struct Image {
-    config: Arc<Config>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<Config>,
 }
 
 impl Image {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 }
 

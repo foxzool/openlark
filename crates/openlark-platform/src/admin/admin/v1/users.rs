@@ -40,14 +40,15 @@ impl UsersApi {
 
 /// 获取用户列表请求
 pub struct ListAdminUsersRequest {
-    config: Arc<PlatformConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<PlatformConfig>,
     page_size: Option<u32>,
 }
 
 impl ListAdminUsersRequest {
     fn new(config: Arc<PlatformConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             page_size: None,
         }
     }
@@ -76,14 +77,15 @@ impl ListAdminUsersRequest {
 
 /// 禁用用户请求
 pub struct DisableUserRequest {
-    config: Arc<PlatformConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<PlatformConfig>,
     user_id: Option<String>,
 }
 
 impl DisableUserRequest {
     fn new(config: Arc<PlatformConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             user_id: None,
         }
     }
@@ -112,14 +114,15 @@ impl DisableUserRequest {
 
 /// 启用用户请求
 pub struct EnableUserRequest {
-    config: Arc<PlatformConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<PlatformConfig>,
     user_id: Option<String>,
 }
 
 impl EnableUserRequest {
     fn new(config: Arc<PlatformConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             user_id: None,
         }
     }
