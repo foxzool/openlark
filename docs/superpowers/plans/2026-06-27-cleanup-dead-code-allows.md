@@ -76,17 +76,17 @@ base-ref: e4cfc63748279a4178bf14d33f83f539cff4681b
 **Interfaces:**
 - Produces: D3 grep step 的精确插入锚点（job 名 + 相邻 step 名），供 Task 5 引用。
 
-- [ ] **Step 1: 读 `lint` job 确认结构**
+- [x] **Step 1: 读 `lint` job 确认结构**
 
 读 `.github/workflows/ci.yml` 的 `lint:` job（约 L87 起）。确认它包含以下 step 序列：
 - `Check format` → `Run clippy (all features)` → `setup-python` → `Check mod reachability` → `Run clippy (no default features)`
 确认该 job 有 `env: RUSTFLAGS: "-D warnings"`，且 `runs-on: ubuntu-latest`（grep 在 ubuntu 上跑）。
 
-- [ ] **Step 2: 记录插入锚点**
+- [x] **Step 2: 记录插入锚点**
 
 D3 grep step 将插在 **`Check mod reachability (no new orphan src files)` step 之后、`Run clippy (no default features)` step 之前**（即 ci.yml 约 L114–L115 之间）。记录此锚点供 Task 5 使用。
 
-- [ ] **Step 3: 本地预演 grep 命令（dry-run，不改代码）**
+- [x] **Step 3: 本地预演 grep 命令（dry-run，不改代码）**
 
 ```bash
 grep -rn --include='*.rs' -E '^[[:space:]]*#\[allow\(dead_code\)\][[:space:]]*$' crates/ src/ \
@@ -96,7 +96,7 @@ grep -rn --include='*.rs' -E '^[[:space:]]*#\[allow\(dead_code\)\][[:space:]]*$'
 
 Expected（Task 1 执行时，即未删除前）：约 381 文件命中（因为 3 个 platform v1 文件的 allow 也匹配）。这是基线数字，Task 2 删除后期望变 0（在排除 `#[cfg(test)]` 后）。
 
-- [ ] **Step 4: 完成本 task，无需 commit**
+- [x] **Step 4: 完成本 task，无需 commit**
 
 本 task 为只读调研，无代码改动。把锚点与命令确认结果写进 commit message 摘要（由主会话合并到下一个 commit）。
 
@@ -115,7 +115,7 @@ Expected（Task 1 执行时，即未删除前）：约 381 文件命中（因为
 
 > **危险点：必须用缩进感知 sed**。design 原始命令 `/^#\[allow(dead_code)\]$/d` 漏掉 11 文件的 `    #[allow(dead_code)]` 缩进写法（见计划开头「关键技术发现」第 1 条）。
 
-- [ ] **Step 1: 执行批量删除（缩进感知 sed）**
+- [x] **Step 1: 执行批量删除（缩进感知 sed）**
 
 ```bash
 grep -rl --include='*.rs' -E '^[[:space:]]*#\[allow\(dead_code\)\][[:space:]]*$' crates/ src/ \
@@ -124,7 +124,7 @@ grep -rl --include='*.rs' -E '^[[:space:]]*#\[allow\(dead_code\)\][[:space:]]*$'
 
 这会删除每行匹配 `^[[:space:]]*#\[allow(dead_code)\][[:space:]]*$` 的独立属性行。
 
-- [ ] **Step 2: 验证删除彻底（无残留 cruft）**
+- [x] **Step 2: 验证删除彻底（无残留 cruft）**
 
 ```bash
 # 期望：0 命中（所有 allow 行都被删除，包括 platform v1 的 3 个）
@@ -133,7 +133,7 @@ grep -rn --include='*.rs' -E '^[[:space:]]*#\[allow\(dead_code\)\][[:space:]]*$'
 
 Expected: `0`
 
-- [ ] **Step 3: 验证没有误删 inline 变体（应为空）**
+- [x] **Step 3: 验证没有误删 inline 变体（应为空）**
 
 ```bash
 # 检查是否还有任何形式的 #[allow(dead_code)]（包括行内/后缀）
@@ -142,7 +142,7 @@ grep -rn --include='*.rs' '#\[allow(dead_code)\]' crates/ src/
 
 Expected: 空输出（计划实测确认无 inline 变体存在）。
 
-- [ ] **Step 4: 跑 default feature clippy，确认只剩 3 个真死字段 warning**
+- [x] **Step 4: 跑 default feature clippy，确认只剩 3 个真死字段 warning**
 
 ```bash
 cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee /tmp/clippy-default.log
@@ -152,7 +152,7 @@ Expected（**不是** exit 0）：编译通过，但产生 3 条 `field config i
 
 > 注意：如出现**其他** warning（非这 3 个 platform v1 文件的 config 字段），说明 sed 误删或命中了实际需要的 allow，立即停止并按 design doc 风险项排查。
 
-- [ ] **Step 5: Commit（由主会话执行）**
+- [x] **Step 5: Commit（由主会话执行）**
 
 ```bash
 git add -A
@@ -184,7 +184,7 @@ Co-Authored-By: ..."
 
 ### 3.1 admin/admin/v1/mod.rs
 
-- [ ] **Step 1: 改字段名 + 加注释**
+- [x] **Step 1: 改字段名 + 加注释**
 
 `crates/openlark-platform/src/admin/admin/v1/mod.rs` 第 29 行：
 
@@ -209,7 +209,7 @@ Co-Authored-By: ..."
     }
 ```
 
-- [ ] **Step 2: 同步 `#[cfg(test)]` 测试断言**
+- [x] **Step 2: 同步 `#[cfg(test)]` 测试断言**
 
 同文件第 52 行（`#[cfg(test)]` mod 内）：
 
@@ -225,7 +225,7 @@ Co-Authored-By: ..."
 
 ### 3.2 app_engine/apaas/v1/mod.rs
 
-- [ ] **Step 3: 改字段名 + 加注释 + 同步测试**
+- [x] **Step 3: 改字段名 + 加注释 + 同步测试**
 
 `crates/openlark-platform/src/app_engine/apaas/v1/mod.rs`，改动完全同 3.1（字段行 L29、`new()` L34–35、测试断言 L52）。三处文本与 3.1 完全相同：
 
@@ -249,7 +249,7 @@ Co-Authored-By: ..."
 
 ### 3.3 directory/directory/v1/mod.rs
 
-- [ ] **Step 4: 改字段名 + 加注释 + 同步测试**
+- [x] **Step 4: 改字段名 + 加注释 + 同步测试**
 
 `crates/openlark-platform/src/directory/directory/v1/mod.rs`，字段行号略偏移（L30 字段、L35–36 `new()`、L53 测试断言），改动文本同 3.1：
 
@@ -273,7 +273,7 @@ Co-Authored-By: ..."
 
 ### 验证
 
-- [ ] **Step 5: 跑 default feature clippy，确认 3 条 warning 消失**
+- [x] **Step 5: 跑 default feature clippy，确认 3 条 warning 消失**
 
 ```bash
 cargo clippy --workspace --all-targets -- -D warnings
@@ -281,7 +281,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 Expected: exit 0（无任何 warning，包括不再出现 `field config is never read`）。
 
-- [ ] **Step 6: 跑 platform crate 单测，确认改名不破坏测试**
+- [x] **Step 6: 跑 platform crate 单测，确认改名不破坏测试**
 
 ```bash
 cargo test -p openlark-platform
@@ -289,7 +289,7 @@ cargo test -p openlark-platform
 
 Expected: 全部测试通过（3 个文件的 `#[cfg(test)]` 测试因同步改名而继续工作）。
 
-- [ ] **Step 7: Commit（由主会话执行）**
+- [x] **Step 7: Commit（由主会话执行）**
 
 ```bash
 git add crates/openlark-platform/src/admin/admin/v1/mod.rs \
@@ -318,7 +318,7 @@ Co-Authored-By: ..."
 
 > 三组 feature 组合覆盖了仓库的 50+ feature flag 与 no-default 边界；任何一组出现 warning = spec 不达标，必须回到 Task 2/3 排查。
 
-- [ ] **Step 1: default feature clippy**
+- [x] **Step 1: default feature clippy**
 
 ```bash
 cargo clippy --workspace --all-targets -- -D warnings
@@ -326,7 +326,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 Expected: exit 0，无 warning。
 
-- [ ] **Step 2: all-features clippy**
+- [x] **Step 2: all-features clippy**
 
 ```bash
 cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -334,7 +334,7 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 Expected: exit 0，无 warning。
 
-- [ ] **Step 3: no-default-features clippy**
+- [x] **Step 3: no-default-features clippy**
 
 ```bash
 cargo clippy --workspace --all-targets --no-default-features -- -D warnings
@@ -342,7 +342,7 @@ cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
 Expected: exit 0，无 warning。
 
-- [ ] **Step 4: 全 workspace 测试**
+- [x] **Step 4: 全 workspace 测试**
 
 ```bash
 cargo test --workspace
@@ -352,7 +352,7 @@ Expected: 全部测试通过，0 失败。
 
 > 若任一步失败：加载 `systematic-debugging` skill 定位根因。常见原因——某 allow 误删后暴露真正未读字段（需在该字段上也做 Task 3 同款 `_` 改名）、或 sed 误命中其它属性。**禁止**用重新加 `#[allow(dead_code)]` 的方式「修复」失败（那违背整个 change 的目标）。
 
-- [ ] **Step 5: grep 终检（spec Requirement 1 + 2）**
+- [x] **Step 5: grep 终检（spec Requirement 1 + 2）**
 
 ```bash
 # HR crate 命中应为 0（spec Scenario 1）
@@ -368,7 +368,7 @@ grep -rn --include='*.rs' '#\[allow(dead_code)\]' crates/ src/ | wc -l
 
 Expected: `0`
 
-- [ ] **Step 6: 无 commit（验证 task）**
+- [x] **Step 6: 无 commit（验证 task）**
 
 本 task 无代码改动。验证全绿后主会话继续 Task 5。
 
@@ -388,7 +388,7 @@ Expected: `0`
 
 > **grep 范围设计**（design doc 风险项）：排除 `tests/` 目录（集成测试可用 allow）+ 排除 `#[cfg(test)]` 测试 mod。CI 上用 ubuntu grep（支持 `-P` 或 `-E`）。
 
-- [ ] **Step 1: 在 ci.yml `lint` job 加 grep step**
+- [x] **Step 1: 在 ci.yml `lint` job 加 grep step**
 
 在 `.github/workflows/ci.yml` 的 `lint:` job 内，`Check mod reachability (no new orphan src files)` step 之后、`Run clippy (no default features)` step 之前（约 L114–L115 之间），插入新 step：
 
@@ -414,7 +414,7 @@ Expected: `0`
 
 > **精确性说明**：纯 grep 无法可靠判断「某行是否在 `#[cfg(test)] mod` 块内」（块是跨行的）。本 step 的策略是：先排除 `tests/` 目录，再用 `grep -v '#[cfg(test)]'` 排除紧邻 cfg(test) 的 allow（罕见场景）。当前仓库实测：Task 2 删除后非测试代码命中 = 0，`#[cfg(test)]` 内也无 allow（design 实证），所以此 step 基线就是绿的。若未来出现测试 mod 内的 allow 误报，再迭代为脚本级块判断（写入 `tools/check_no_dead_code_allows.py`）。本 change 不过度设计。
 
-- [ ] **Step 2: 在 justfile 加等价 recipe**
+- [x] **Step 2: 在 justfile 加等价 recipe**
 
 在 `justfile` 的 `lint` recipe 之后（约 L15 后）插入：
 
@@ -436,7 +436,7 @@ no-dead-code-allows:
 
 > justfile 里 `$` 必须转义为 `$$`（just 语法）。recipe 用 `@` 前缀静默命令回显。
 
-- [ ] **Step 3: 本地跑 just recipe 验证**
+- [x] **Step 3: 本地跑 just recipe 验证**
 
 ```bash
 just no-dead-code-allows
@@ -444,7 +444,7 @@ just no-dead-code-allows
 
 Expected: `✅ 无非测试 #[allow(dead_code)] 残留`，exit 0。
 
-- [ ] **Step 4: 模拟「复发」确认 grep 真能失败（负向测试）**
+- [x] **Step 4: 模拟「复发」确认 grep 真能失败（负向测试）**
 
 临时在一个**非测试**文件加一行 `#[allow(dead_code)]`（例如在 `src/lib.rs` 顶部），跑 `just no-dead-code-allows`，确认 exit 非 0 并打印命中行。然后立即 `git checkout -- src/lib.rs` 撤销（**不要**用 `git stash`）。
 
@@ -463,7 +463,7 @@ just no-dead-code-allows
 
 Expected: 注入后 exit 1 + 命中输出；还原后 exit 0。
 
-- [ ] **Step 5: Commit（由主会话执行）**
+- [x] **Step 5: Commit（由主会话执行）**
 
 ```bash
 git add .github/workflows/ci.yml justfile
@@ -491,7 +491,7 @@ Co-Authored-By: ..."
 
 > 本次是纯删除 + 私有字段改名 + CI 脚本，**无 API/数据迁移**（design doc「迁移与回滚」）。`_config` 是私有字段改名，非 breaking change，故记入 `### Changed`（而非 `### Breaking Changes`）。
 
-- [ ] **Step 1: 在 CHANGELOG `[Unreleased]` 加 `### Changed` 段**
+- [x] **Step 1: 在 CHANGELOG `[Unreleased]` 加 `### Changed` 段**
 
 读 `CHANGELOG.md` 第 8 行起的 `[Unreleased]` 段。当前结构是 `### Breaking Changes` 开头。在 `### Breaking Changes` 段**之前**插入新的 `### Changed` 段（或若已有 `### Changed`，并入顶部）：
 
@@ -514,11 +514,11 @@ Co-Authored-By: ..."
 
 （保留原有 `### Breaking Changes` 段内容不变，仅在其上方插入 `### Changed`。）
 
-- [ ] **Step 2: 确认 issue 状态（归档阶段处理）**
+- [x] **Step 2: 确认 issue 状态（归档阶段处理）**
 
 issue #267（本 change 闭环）的关闭留给 comet `archive` 阶段处理（归档脚本或手动）；#274（platform v1 导航补全，A-full 拆分目标）保持 open。本 step 仅确认理解，不执行 GitHub 操作。
 
-- [ ] **Step 3: Commit（由主会话执行）**
+- [x] **Step 3: Commit（由主会话执行）**
 
 ```bash
 git add CHANGELOG.md
