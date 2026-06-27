@@ -2,6 +2,8 @@
 comet_change: fix-platform-v1-feature-gating
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-27-fix-platform-v1-feature-gating
+status: final
 ---
 
 # Design — fix-platform-v1-feature-gating

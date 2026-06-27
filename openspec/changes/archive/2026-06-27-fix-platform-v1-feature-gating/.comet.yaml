@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-26-fix-platform-v1-feature
 branch_status: handled
 created_at: 2026-06-26
 verified_at: 2026-06-26
-archived: false
+archived: true
 handoff_context: openspec/changes/fix-platform-v1-feature-gating/.comet/handoff/design-context.json
 handoff_hash: f9048a49b9e6a5555193c575d7d1f81db91681a5e9437626253f4c4fa28a14ed
