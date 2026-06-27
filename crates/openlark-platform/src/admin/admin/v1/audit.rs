@@ -35,7 +35,6 @@ impl AuditApi {
 
 /// 查询审计日志请求
 pub struct QueryAuditLogsRequest {
-    #[allow(dead_code)]
     config: Arc<PlatformConfig>,
     start_time: Option<String>,
     end_time: Option<String>,
@@ -88,7 +87,6 @@ impl QueryAuditLogsRequest {
 
 /// 获取日志详情请求
 pub struct GetAuditLogRequest {
-    #[allow(dead_code)]
     config: Arc<PlatformConfig>,
     log_id: Option<String>,
 }

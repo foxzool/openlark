@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 下载电子签文件请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DownloadRequest {
     /// 配置信息
     config: Config,

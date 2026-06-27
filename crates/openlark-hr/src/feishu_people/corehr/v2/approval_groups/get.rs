@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 根据流程 ID 查询组织架构调整记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

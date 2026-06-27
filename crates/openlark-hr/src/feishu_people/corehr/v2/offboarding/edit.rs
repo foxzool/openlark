@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 编辑离职信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct EditRequest {
     /// 配置信息
     config: Config,

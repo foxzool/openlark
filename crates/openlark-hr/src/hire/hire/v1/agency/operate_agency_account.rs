@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 禁用/取消禁用猎头请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OperateAgencyAccountRequest {
     /// 配置信息
     config: Config,

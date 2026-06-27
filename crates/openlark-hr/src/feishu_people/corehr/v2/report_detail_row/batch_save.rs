@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 批量创建/更新填报行请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchsaveRequest {
     /// 配置信息
     config: Config,

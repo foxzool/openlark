@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::TalentPoolOperationResult;
 
 /// 将人才加入人才库请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MoveTalentRequest {
     /// 配置信息
     config: Config,

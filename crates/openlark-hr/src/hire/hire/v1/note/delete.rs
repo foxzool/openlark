@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 删除备注请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 配置信息
     config: Config,

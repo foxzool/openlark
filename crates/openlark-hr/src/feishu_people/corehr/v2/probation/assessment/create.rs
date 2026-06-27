@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 新增试用期考核信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

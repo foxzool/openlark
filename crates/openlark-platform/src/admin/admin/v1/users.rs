@@ -40,7 +40,6 @@ impl UsersApi {
 
 /// 获取用户列表请求
 pub struct ListAdminUsersRequest {
-    #[allow(dead_code)]
     config: Arc<PlatformConfig>,
     page_size: Option<u32>,
 }
@@ -77,7 +76,6 @@ impl ListAdminUsersRequest {
 
 /// 禁用用户请求
 pub struct DisableUserRequest {
-    #[allow(dead_code)]
     config: Arc<PlatformConfig>,
     user_id: Option<String>,
 }
@@ -114,7 +112,6 @@ impl DisableUserRequest {
 
 /// 启用用户请求
 pub struct EnableUserRequest {
-    #[allow(dead_code)]
     config: Arc<PlatformConfig>,
     user_id: Option<String>,
 }

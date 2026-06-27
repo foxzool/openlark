@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 更新自定义组织信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatchRequest {
     /// 配置信息
     config: Config,

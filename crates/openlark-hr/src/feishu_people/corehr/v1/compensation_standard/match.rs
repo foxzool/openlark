@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 获取员工薪资标准请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MatchRequest {
     config: Config,
     body: Option<Value>,

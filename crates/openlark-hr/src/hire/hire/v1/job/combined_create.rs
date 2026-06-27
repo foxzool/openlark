@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 新建职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CombinedCreateRequest {
     request_body: CombinedCreateRequestBody,
     /// 配置信息

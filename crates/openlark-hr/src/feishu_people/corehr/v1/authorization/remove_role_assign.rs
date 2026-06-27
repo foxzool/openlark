@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 移除用户被授权的角色请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RemoveRoleAssignRequest {
     /// 配置信息
     config: Config,

@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// QueryRecentChangeRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRecentChangeRequest {
     /// 配置信息
     config: Config,

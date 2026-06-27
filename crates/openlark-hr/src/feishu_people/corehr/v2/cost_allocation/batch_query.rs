@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询成本分摊请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchQueryRequest {
     /// 配置信息
     config: Config,

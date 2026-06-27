@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 重启职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OpenRequest {
     job_id: String,
     /// 配置信息

@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 录入被评估人关键指标数据请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ImportRequest {
     /// 绩效周期 ID（必填）
     cycle_id: String,

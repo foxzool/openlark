@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::JobSummary;
 
 /// 获取职位列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     page_size: Option<i32>,
     page_token: Option<String>,

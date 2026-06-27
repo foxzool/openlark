@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 更新人才在职状态请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OnboardStatusRequest {
     /// 配置信息
     config: Config,

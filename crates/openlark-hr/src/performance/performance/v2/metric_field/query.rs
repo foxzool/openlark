@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取指标字段列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 指标库 ID（必填）
     metric_lib_id: String,

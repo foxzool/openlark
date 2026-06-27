@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 批量查询员工请假记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LeaveRequestHistoryRequest {
     config: Config,
     body: Option<Value>,

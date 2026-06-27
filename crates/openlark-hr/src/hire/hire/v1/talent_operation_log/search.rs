@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::TalentOperationLogEntry;
 
 /// 查询人才操作记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,

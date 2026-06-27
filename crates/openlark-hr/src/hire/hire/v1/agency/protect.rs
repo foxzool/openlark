@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 设置猎头保护期请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProtectRequest {
     /// 配置信息
     config: Config,

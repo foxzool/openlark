@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::EcoOperationResult;
 
 /// 删除背调自定义字段请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchDeleteRequest {
     /// 配置信息
     config: Config,

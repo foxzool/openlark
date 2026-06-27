@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 /// 帮助台服务入口。
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct HelpdeskService {
     config: Arc<Config>,
 }

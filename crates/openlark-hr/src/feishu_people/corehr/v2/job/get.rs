@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// GetRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

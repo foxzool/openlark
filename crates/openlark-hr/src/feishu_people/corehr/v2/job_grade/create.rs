@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// CreateRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

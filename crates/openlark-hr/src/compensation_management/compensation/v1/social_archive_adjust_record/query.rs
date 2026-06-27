@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 通过员工ID批量获取社保增减员记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 分页大小（可选）
     page_size: Option<i32>,

@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::JobConfigInfo;
 
 /// 获取职位设置请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConfigRequest {
     job_id: String,
     /// 配置信息

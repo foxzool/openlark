@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::WebsiteChannelSummary;
 
 /// 获取招聘官网推广渠道列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ApplicationOperationResult;
 
 /// 终止投递请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TerminateRequest {
     /// 配置信息
     config: Config,

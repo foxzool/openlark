@@ -24,7 +24,6 @@ pub mod workspace;
 
 /// aPaaS V1 API
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ApaasV1 {
     config: Arc<PlatformConfig>,
 }

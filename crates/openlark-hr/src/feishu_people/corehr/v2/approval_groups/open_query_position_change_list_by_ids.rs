@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 批量查询岗位调整内容请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OpenQueryPositionChangeListByIdsRequest {
     /// 配置信息
     config: Config,

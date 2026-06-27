@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 添加默认成本中心请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateVersionRequest {
     /// 配置信息
     config: Config,

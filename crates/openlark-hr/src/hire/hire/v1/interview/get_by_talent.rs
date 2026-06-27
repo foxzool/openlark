@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::InterviewSummary;
 
 /// 获取人才面试信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetByTalentRequest {
     /// 配置信息
     config: Config,

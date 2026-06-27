@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// QueryMultiTimelineRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryMultiTimelineRequest {
     /// 配置信息
     config: Config,

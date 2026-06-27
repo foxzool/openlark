@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询部门 / 地点的 HRBP / 属地 BP请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,

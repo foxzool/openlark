@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 查询国家/地区信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,

@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::ReferralAccountOperationResult;
 
 /// 全额提取内推账户余额请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct WithdrawRequest {
     /// 配置信息
     config: Config,

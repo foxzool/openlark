@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// RevokeRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RevokeRequest {
     /// 配置信息
     config: Config,

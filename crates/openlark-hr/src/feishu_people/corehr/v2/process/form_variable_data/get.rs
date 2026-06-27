@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 获取流程表单数据请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

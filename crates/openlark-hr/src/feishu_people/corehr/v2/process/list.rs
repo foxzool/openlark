@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询流程实例列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

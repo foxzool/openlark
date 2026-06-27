@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取附件 PDF 格式下载链接请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PreviewRequest {
     /// 配置信息
     config: Config,

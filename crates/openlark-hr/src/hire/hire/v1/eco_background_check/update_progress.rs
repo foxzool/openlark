@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::EcoOperationResult;
 
 /// 更新背调订单进度请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateProgressRequest {
     /// 配置信息
     config: Config,

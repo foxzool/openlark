@@ -8,7 +8,6 @@ use std::sync::Arc;
 /// Image OCR API
 #[derive(Clone)]
 pub struct Image {
-    #[allow(dead_code)]
     config: Arc<Config>,
 }
 

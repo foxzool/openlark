@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量创建经常性支付记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchCreateRequest {
     /// 配置信息
     config: Config,

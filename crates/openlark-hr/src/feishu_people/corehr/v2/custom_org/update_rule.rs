@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 更新自定义组织的匹配规则请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRuleRequest {
     /// 配置信息
     config: Config,

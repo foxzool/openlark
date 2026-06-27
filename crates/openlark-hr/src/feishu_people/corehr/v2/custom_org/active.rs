@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 启用/停用自定义组织请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActiveRequest {
     /// 配置信息
     config: Config,

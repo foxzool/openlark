@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询指定时范围内当前版本信息发生变更的岗位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRecentChangeRequest {
     /// 配置信息
     config: Config,

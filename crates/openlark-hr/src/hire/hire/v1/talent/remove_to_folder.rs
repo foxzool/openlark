@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 将人才从指定文件夹移除请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RemoveToFolderRequest {
     /// 配置信息
     config: Config,

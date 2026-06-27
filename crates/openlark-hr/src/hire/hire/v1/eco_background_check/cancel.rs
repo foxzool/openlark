@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::EcoOperationResult;
 
 /// 终止背调订单请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CancelRequest {
     /// 配置信息
     config: Config,

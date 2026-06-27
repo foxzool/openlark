@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 根据生效日期分页查询参保方案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 生效日期（必填）
     effective_date: i64,

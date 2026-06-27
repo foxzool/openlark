@@ -5,7 +5,6 @@ use std::sync::Arc;
 ///
 /// 提供对邮件 API v1 的访问能力
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct MailService {
     config: Arc<Config>,
 }

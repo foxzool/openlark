@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取项目列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 搜索关键字，支持按项目名称搜索（可选）
     name: Option<String>,

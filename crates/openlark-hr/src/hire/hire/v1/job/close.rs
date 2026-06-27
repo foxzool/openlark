@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 关闭职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CloseRequest {
     job_id: String,
     /// 配置信息

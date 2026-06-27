@@ -34,7 +34,6 @@ impl QueryApi {
 
 /// 搜索请求
 pub struct SearchRequest {
-    #[allow(dead_code)]
     config: Arc<AnalyticsConfig>,
     search_term: Option<String>,
     search_type: Option<String>,
@@ -91,7 +90,6 @@ impl SearchRequest {
 
 /// 搜索建议请求
 pub struct SuggestRequest {
-    #[allow(dead_code)]
     config: Arc<AnalyticsConfig>,
     query: Option<String>,
 }

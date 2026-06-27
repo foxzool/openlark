@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 根据流程获取电子签文件信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListByBizIdRequest {
     /// 配置信息
     config: Config,

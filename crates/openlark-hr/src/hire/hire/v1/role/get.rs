@@ -17,7 +17,6 @@ use crate::hire::hire::v1::role::list::RoleItem;
 
 /// 获取角色详情请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 更新职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CombinedUpdateRequest {
     job_id: Option<String>,
     request_body: CombinedUpdateRequestBody,

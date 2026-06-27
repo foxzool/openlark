@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 撤销成本中心版本请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 配置信息
     config: Config,

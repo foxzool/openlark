@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::I18nText;
 
 /// 获取 Offer 申请表信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 删除岗位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DelPositionRequest {
     /// 配置信息
     config: Config,

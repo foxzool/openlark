@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 创建外部投递请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

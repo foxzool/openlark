@@ -95,7 +95,6 @@ macro_rules! impl_required_builder {
         impl $builder_name {
             /// 创建新的构建器实例（废弃，请使用 builder()）
             #[deprecated(since = "0.5.0", note = "使用 builder() 替代")]
-            #[allow(dead_code)]
             pub fn new() -> Self {
                 Self::default()
             }
@@ -236,7 +235,6 @@ mod tests {
         app_token: String,
         table_id: String,
         user_id_type: Option<String>,
-        #[allow(dead_code)]
         config: Config,
     }
 

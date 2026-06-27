@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 创建薪资档案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

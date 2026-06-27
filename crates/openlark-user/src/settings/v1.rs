@@ -40,7 +40,6 @@ impl SettingsV1 {
 
 /// 获取单个设置的请求构建器。
 pub struct GetSettingRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     key: Option<String>,
 }
@@ -74,7 +73,6 @@ impl GetSettingRequest {
 
 /// 更新单个设置的请求构建器。
 pub struct UpdateSettingRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     key: Option<String>,
     value: Option<String>,
@@ -119,7 +117,6 @@ impl UpdateSettingRequest {
 
 /// 获取所有设置的请求构建器。
 pub struct ListSettingsRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
 }
 

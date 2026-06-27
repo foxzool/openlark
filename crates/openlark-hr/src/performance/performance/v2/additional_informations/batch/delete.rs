@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量删除补充信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 绩效周期 ID（必填）
     cycle_id: String,

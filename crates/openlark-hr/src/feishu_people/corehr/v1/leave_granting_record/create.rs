@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 创建假期发放记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     config: Config,
     body: Value,

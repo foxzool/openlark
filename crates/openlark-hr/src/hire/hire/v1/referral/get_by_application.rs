@@ -17,7 +17,6 @@ use crate::hire::hire::v1::referral::search::ReferralItem;
 
 /// 获取内推信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetByApplicationRequest {
     /// 配置信息
     config: Config,

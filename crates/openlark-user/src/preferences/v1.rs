@@ -45,7 +45,6 @@ impl PreferencesV1 {
 
 /// 获取单个偏好的请求构建器。
 pub struct GetPreferenceRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     key: Option<String>,
 }
@@ -79,7 +78,6 @@ impl GetPreferenceRequest {
 
 /// 更新单个偏好的请求构建器。
 pub struct UpdatePreferenceRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     key: Option<String>,
     value: Option<String>,
@@ -132,7 +130,6 @@ impl UpdatePreferenceRequest {
 
 /// 删除单个偏好的请求构建器。
 pub struct DeletePreferenceRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     key: Option<String>,
 }
@@ -166,7 +163,6 @@ impl DeletePreferenceRequest {
 
 /// 获取偏好列表的请求构建器。
 pub struct ListPreferencesRequest {
-    #[allow(dead_code)]
     config: Arc<UserConfig>,
     category: Option<String>,
 }

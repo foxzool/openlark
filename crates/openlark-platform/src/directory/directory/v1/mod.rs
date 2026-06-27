@@ -24,7 +24,6 @@ pub mod users;
 
 /// 目录服务 V1 API
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DirectoryV1 {
     /// 客户端配置
     config: Arc<PlatformConfig>,

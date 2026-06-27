@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 操作人才标签请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TagRequest {
     /// 配置信息
     config: Config,

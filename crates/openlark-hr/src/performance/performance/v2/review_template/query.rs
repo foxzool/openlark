@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取绩效模板配置请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 搜索关键字（可选）
     name: Option<String>,

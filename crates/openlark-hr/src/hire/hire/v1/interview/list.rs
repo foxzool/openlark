@@ -25,7 +25,6 @@ pub struct ListRequestBody {
 
 /// 获取面试信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

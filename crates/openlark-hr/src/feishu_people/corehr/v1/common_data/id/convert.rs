@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// ID 转换请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConvertRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::GenericOperationResult;
 
 /// 更新 e-HR 导入任务结果请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatchRequest {
     /// 配置信息
     config: Config,

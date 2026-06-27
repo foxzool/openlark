@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::AgencyProtectionSummary;
 
 /// 查询猎头保护期信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProtectSearchRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ExternalApplicationSummary;
 
 /// 查询外部投递列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

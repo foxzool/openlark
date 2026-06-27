@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 通过公司 ID 批量获取公司信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchGetRequest {
     /// 配置信息
     config: Config,

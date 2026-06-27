@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 获取 Offer 列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

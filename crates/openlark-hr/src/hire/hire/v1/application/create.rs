@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ApplicationJobInfo;
 
 /// 创建投递请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

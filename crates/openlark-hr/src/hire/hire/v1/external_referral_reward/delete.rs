@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::ExternalReferralRewardResult;
 
 /// 删除外部内推奖励请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 配置信息
     config: Config,

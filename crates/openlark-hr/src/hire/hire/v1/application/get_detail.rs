@@ -19,7 +19,6 @@ use crate::hire::hire::common_models::{
 
 /// 获取投递详情请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetDetailRequest {
     /// 配置信息
     config: Config,

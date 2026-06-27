@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取指定人员审批任务列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

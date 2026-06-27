@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询编制规划明细信息（不支持自定义组织）请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchRequest {
     /// 配置信息
     config: Config,
