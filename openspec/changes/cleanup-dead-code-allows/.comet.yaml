@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: 396c6d8fbc4a0f6c7d1b9f44595cf5c0690c541d
 design_doc: docs/superpowers/specs/2026-06-27-cleanup-dead-code-allows-design.md
 plan: docs/superpowers/plans/2026-06-27-cleanup-dead-code-allows.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-28-cleanup-dead-code-allows-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-06-27
-verified_at: null
+verified_at: 2026-06-27
 archived: false
 handoff_context: openspec/changes/cleanup-dead-code-allows/.comet/handoff/design-context.json
 handoff_hash: aa98bd5aa5903a98e96205c1362d39ee3ce7bc1c1d4893fa35b2bbe9927411c0
