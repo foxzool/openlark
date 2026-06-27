@@ -13,6 +13,11 @@ lint:
   @echo "🔍 Linting code (exclude benches/dev-tests)..."
   cargo clippy --workspace --all-targets --all-features -- -Dwarnings -A missing_docs
 
+# Check no #[allow(dead_code)] in non-test code (issue #267 防复发)
+no-dead-code-allows:
+  @echo "🛡️ Checking no #[allow(dead_code)] in non-test code..."
+  @bash tools/check_no_dead_code_allows.sh
+
 # Run tests
 test:
   @echo "🧪 Running tests..."
