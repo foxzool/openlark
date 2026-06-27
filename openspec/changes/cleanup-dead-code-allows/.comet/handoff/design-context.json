@@ -1,0 +1,14 @@
+{
+  "change": "cleanup-dead-code-allows",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "aa98bd5aa5903a98e96205c1362d39ee3ce7bc1c1d4893fa35b2bbe9927411c0",
+  "files": [
+    { "path": "openspec/changes/cleanup-dead-code-allows/proposal.md", "sha256": "dc64113ca8f2f538a0948988114217ba9b22bd5404d6c63ab868533a13a95a86" },
+    { "path": "openspec/changes/cleanup-dead-code-allows/design.md", "sha256": "efc5e4052c544ce6f1d2b8f2616dbe1c9746f09aa95c85d11bc63f5743b9784e" },
+    { "path": "openspec/changes/cleanup-dead-code-allows/tasks.md", "sha256": "d7cc68daeec8ee7650edc3ffa953cfab2355f79129ec904466eb87bc516b0525" },
+    { "path": "openspec/changes/cleanup-dead-code-allows/specs/dead-code-lint-hygiene/spec.md", "sha256": "66958e5fa75ac3179a3310d98ba81e18674406ffa394b9c34b1a54c61c1f8521" }
+  ]
+}
