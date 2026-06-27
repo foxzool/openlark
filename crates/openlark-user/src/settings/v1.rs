@@ -40,13 +40,17 @@ impl SettingsV1 {
 
 /// 获取单个设置的请求构建器。
 pub struct GetSettingRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     key: Option<String>,
 }
 
 impl GetSettingRequest {
     fn new(config: Arc<UserConfig>) -> Self {
-        Self { config, key: None }
+        Self {
+            _config: config,
+            key: None,
+        }
     }
 
     /// 设置要查询的配置键。
@@ -73,7 +77,8 @@ impl GetSettingRequest {
 
 /// 更新单个设置的请求构建器。
 pub struct UpdateSettingRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     key: Option<String>,
     value: Option<String>,
 }
@@ -81,7 +86,7 @@ pub struct UpdateSettingRequest {
 impl UpdateSettingRequest {
     fn new(config: Arc<UserConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             key: None,
             value: None,
         }
@@ -117,12 +122,13 @@ impl UpdateSettingRequest {
 
 /// 获取所有设置的请求构建器。
 pub struct ListSettingsRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
 }
 
 impl ListSettingsRequest {
     fn new(config: Arc<UserConfig>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 
     /// 执行请求并返回设置列表。

@@ -45,13 +45,17 @@ impl PreferencesV1 {
 
 /// 获取单个偏好的请求构建器。
 pub struct GetPreferenceRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     key: Option<String>,
 }
 
 impl GetPreferenceRequest {
     fn new(config: Arc<UserConfig>) -> Self {
-        Self { config, key: None }
+        Self {
+            _config: config,
+            key: None,
+        }
     }
 
     /// 设置要查询的偏好键。
@@ -78,7 +82,8 @@ impl GetPreferenceRequest {
 
 /// 更新单个偏好的请求构建器。
 pub struct UpdatePreferenceRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     key: Option<String>,
     value: Option<String>,
     category: Option<String>,
@@ -87,7 +92,7 @@ pub struct UpdatePreferenceRequest {
 impl UpdatePreferenceRequest {
     fn new(config: Arc<UserConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             key: None,
             value: None,
             category: None,
@@ -130,13 +135,17 @@ impl UpdatePreferenceRequest {
 
 /// 删除单个偏好的请求构建器。
 pub struct DeletePreferenceRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     key: Option<String>,
 }
 
 impl DeletePreferenceRequest {
     fn new(config: Arc<UserConfig>) -> Self {
-        Self { config, key: None }
+        Self {
+            _config: config,
+            key: None,
+        }
     }
 
     /// 设置要删除的偏好键。
@@ -163,14 +172,15 @@ impl DeletePreferenceRequest {
 
 /// 获取偏好列表的请求构建器。
 pub struct ListPreferencesRequest {
-    config: Arc<UserConfig>,
+    // reserved：config 无读取者（不完整脚手架，见 #274/#276）
+    _config: Arc<UserConfig>,
     category: Option<String>,
 }
 
 impl ListPreferencesRequest {
     fn new(config: Arc<UserConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             category: None,
         }
     }
