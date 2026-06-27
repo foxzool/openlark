@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::OfferCustomFieldOperationResult;
 
 /// 更新 Offer 申请表自定义字段请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ApplicationOperationResult;
 
 /// 恢复投递请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RecoverRequest {
     /// 配置信息
     config: Config,

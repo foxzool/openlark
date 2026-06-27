@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 将人才加入指定文件夹请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AddToFolderRequest {
     /// 配置信息
     config: Config,

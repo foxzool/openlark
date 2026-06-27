@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 查询经常性支付记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 分页大小（可选）
     page_size: Option<i32>,

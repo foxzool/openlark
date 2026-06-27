@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 启用/停用试用期考核功能请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct EnableDisableAssessmentRequest {
     /// 配置信息
     config: Config,

@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 更新人员组成员请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct WriteRequest {
     /// 用户组 ID（必填）
     user_group_id: String,

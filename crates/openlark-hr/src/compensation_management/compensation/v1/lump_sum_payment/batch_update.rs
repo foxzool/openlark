@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量更正一次性支付记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchUpdateRequest {
     /// 配置信息
     config: Config,

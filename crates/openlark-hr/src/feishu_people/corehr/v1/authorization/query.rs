@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 批量查询用户授权请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,

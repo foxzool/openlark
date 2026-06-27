@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 增加字段枚举值选项请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AddEnumOptionRequest {
     /// 配置信息
     config: Config,

@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 批量查询国家证件类型请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::GenericOperationResult;
 
 /// 加入/移除屏蔽名单请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ChangeTalentBlockRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::JobPublishRecordSummary;
 
 /// 获取职位广告发布记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     request_body: SearchRequestBody,
     /// 配置信息

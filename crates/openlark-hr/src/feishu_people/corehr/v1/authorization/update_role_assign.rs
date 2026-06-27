@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 更新用户被授权的数据范围请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRoleAssignRequest {
     /// 配置信息
     config: Config,

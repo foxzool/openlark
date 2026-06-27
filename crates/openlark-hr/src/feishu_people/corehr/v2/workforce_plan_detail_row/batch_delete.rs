@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 批量删除明细行请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchdeleteRequest {
     /// 配置信息
     config: Config,

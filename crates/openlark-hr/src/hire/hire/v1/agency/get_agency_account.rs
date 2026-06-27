@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::AgencyAccountSummary;
 
 /// 查询猎头供应商下猎头列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetAgencyAccountRequest {
     /// 配置信息
     config: Config,

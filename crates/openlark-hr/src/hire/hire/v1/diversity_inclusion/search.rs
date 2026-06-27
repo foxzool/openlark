@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::DiversityInclusionRecord;
 
 /// 获取申请表附加信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,

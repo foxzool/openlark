@@ -19,7 +19,6 @@ use crate::hire::hire::common_models::BonusAmount;
 
 /// 查询内推账户请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetAccountAssetsRequest {
     /// 配置信息
     config: Config,

@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ApplicationOperationResult;
 
 /// 转移投递阶段请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TransferStageRequest {
     /// 配置信息
     config: Config,

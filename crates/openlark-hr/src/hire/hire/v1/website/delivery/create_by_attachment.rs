@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
 
 /// 根据简历附件创建招聘官网投递任务请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateByAttachmentRequest {
     /// 配置信息
     config: Config,

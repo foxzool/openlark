@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::GenericOperationResult;
 
 /// 发布职位广告请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PublishRequest {
     /// 配置信息
     config: Config,

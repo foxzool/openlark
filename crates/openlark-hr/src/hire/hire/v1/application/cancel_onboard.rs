@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ApplicationOperationResult;
 
 /// 取消候选人入职请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CancelOnboardRequest {
     /// 配置信息
     config: Config,

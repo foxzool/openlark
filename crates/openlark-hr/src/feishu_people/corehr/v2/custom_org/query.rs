@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 查询自定义组织信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,

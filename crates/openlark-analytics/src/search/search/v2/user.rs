@@ -29,8 +29,8 @@ impl UserSearchApi {
 
 /// 搜索用户请求
 pub struct SearchUserRequest {
-    #[allow(dead_code)]
-    config: Arc<AnalyticsConfig>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<AnalyticsConfig>,
     query: Option<String>,
     page_size: Option<u32>,
 }
@@ -38,7 +38,7 @@ pub struct SearchUserRequest {
 impl SearchUserRequest {
     fn new(config: Arc<AnalyticsConfig>) -> Self {
         Self {
-            config,
+            _config: config,
             query: None,
             page_size: None,
         }

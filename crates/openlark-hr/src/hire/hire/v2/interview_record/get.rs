@@ -14,7 +14,6 @@ use super::list::InterviewRecordItem;
 
 /// 获取面试评价详细信息（新版）请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

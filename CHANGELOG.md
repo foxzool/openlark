@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Lint 清理**：移除全 workspace 392 处 `#[allow(dead_code)]`（376 处 cruft 删除 + 16 个
+  不完整脚手架的死 `config` 字段改名为 `_config` + reserved 注释；跨 platform/ai/analytics/
+  user/helpdesk/docs/application）。dead_code lint 信号重新生效。`_config` 均为私有字段，
+  不影响公开 API。补全访问器/execute 的工作拆至 #274 / #275 / #276。
+- **CI 防复发**：`lint` job 新增 `tools/check_no_dead_code_allows.sh` 检查，禁止非测试代码
+  引入 `#[allow(dead_code)]`（本地 `just no-dead-code-allows`）；`#[expect(dead_code)]` 为
+  受控的预期死代码豁免。闭环 #267。
+
 ### Breaking Changes
 
 - **Removed** `openlark_client::Config` / `ConfigBuilder` / `ConfigSummary` (deprecated

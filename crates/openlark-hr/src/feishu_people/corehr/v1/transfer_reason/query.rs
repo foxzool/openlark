@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取异动原因列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     config: Config,
 }

@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::EcoOperationResult;
 
 /// 更新试卷列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchUpdateRequest {
     /// 配置信息
     config: Config,

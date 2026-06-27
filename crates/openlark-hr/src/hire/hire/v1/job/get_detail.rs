@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::JobRecruiterRecord;
 
 /// 获取职位详情请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetDetailRequest {
     job_id: String,
     /// 配置信息

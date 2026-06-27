@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 根据方案ID和生效日期批量查询参保方案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 方案 ID 列表（必填）
     plan_ids: Vec<String>,

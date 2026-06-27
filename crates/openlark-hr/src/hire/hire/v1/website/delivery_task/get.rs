@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
 
 /// 获取招聘官网投递任务结果请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

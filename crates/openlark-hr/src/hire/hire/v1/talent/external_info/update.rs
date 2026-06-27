@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::TalentExternalInfoRecord;
 
 /// 更新人才外部信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRequest {
     /// 配置信息
     config: Config,

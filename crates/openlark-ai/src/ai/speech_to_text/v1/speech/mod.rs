@@ -10,14 +10,14 @@ use std::sync::Arc;
 /// Speech recognition API
 #[derive(Clone)]
 pub struct Speech {
-    #[allow(dead_code)]
-    config: Arc<Config>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<Config>,
 }
 
 impl Speech {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 }
 

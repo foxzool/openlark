@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::EcoBackgroundCheckPackageSummary;
 
 /// 创建背调套餐和附加调查项请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

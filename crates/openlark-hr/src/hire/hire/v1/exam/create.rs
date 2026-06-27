@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::GenericOperationResult;
 
 /// 添加笔试结果请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量查询员工薪资档案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 分页大小（可选）
     page_size: Option<i32>,

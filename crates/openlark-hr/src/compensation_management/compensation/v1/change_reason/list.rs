@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量查询定调薪原因请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,

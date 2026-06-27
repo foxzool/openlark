@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::ExternalInterviewAssessmentResult;
 
 /// 创建外部面评请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

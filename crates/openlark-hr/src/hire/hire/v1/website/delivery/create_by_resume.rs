@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
 
 /// 新建招聘官网投递请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateByResumeRequest {
     /// 配置信息
     config: Config,

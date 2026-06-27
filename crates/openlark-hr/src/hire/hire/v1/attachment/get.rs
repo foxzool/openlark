@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::HireAttachment;
 
 /// 获取附件信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

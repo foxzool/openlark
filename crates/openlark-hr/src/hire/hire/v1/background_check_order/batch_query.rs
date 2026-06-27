@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::BackgroundCheckOrderSummary;
 
 /// 查询背调信息列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchQueryRequest {
     /// 配置信息
     config: Config,

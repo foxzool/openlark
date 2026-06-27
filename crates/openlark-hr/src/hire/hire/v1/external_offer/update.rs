@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 更新外部 Offer请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRequest {
     /// 配置信息
     config: Config,

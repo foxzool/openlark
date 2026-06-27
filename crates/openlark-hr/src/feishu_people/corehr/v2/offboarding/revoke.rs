@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 撤销离职请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RevokeRequest {
     /// 配置信息
     config: Config,

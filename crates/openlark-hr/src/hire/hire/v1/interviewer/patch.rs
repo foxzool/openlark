@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::InterviewerOperationResult;
 
 /// 更新面试官信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatchRequest {
     /// 配置信息
     config: Config,

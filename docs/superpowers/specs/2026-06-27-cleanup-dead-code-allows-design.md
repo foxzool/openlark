@@ -58,3 +58,12 @@ canonical_spec: openspec
 
 - #267（dead_code allows 原始，本 change 闭环）
 - #274（platform v1 导航补全，A-full 拆分至此）
+
+## Implementation Divergence（实现偏差，2026-06-28 verify 记录）
+
+D2 原述「3 个 platform v1 config 字段 → `_config`」。**实证后实际处理 ~24 处死代码**（跨 platform v1 / ai / analytics / user / helpdesk / docs / application），原因：移除 allow 后不同 feature 组合（default / --all-features / --no-default-features）暴露的死字段远超 design 阶段（仅 default）所测的 3 个。
+
+- **偏差性质**：仅「数量与覆盖 crate 更多」，方向与 D2 方案（`_config` + 注释 / `#[expect]]`）完全一致，无方案变更。
+- 另：code review 发现 7 处 inner-attribute `#![allow(dead_code)]`（掩盖 ~109 处死代码）不在本 change 范围（正则盲区），已登记 CI 脚本 KNOWN_INNER_DEBT 并拆至 #277。
+- 完整范围见 tasks.md 与 commit 历史；验证报告 `docs/superpowers/reports/2026-06-28-cleanup-dead-code-allows-verify.md`。
+

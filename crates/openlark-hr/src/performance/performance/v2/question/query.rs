@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取标签填写题配置请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 模板 ID（必填）
     template_id: String,

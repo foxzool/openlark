@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::EmployeeSummary;
 
 /// 更新员工状态请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatchRequest {
     /// 配置信息
     config: Config,

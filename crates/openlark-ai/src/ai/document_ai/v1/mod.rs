@@ -43,14 +43,14 @@ use std::sync::Arc;
 /// Document AI V1 API
 #[derive(Clone)]
 pub struct DocumentAiV1 {
-    #[allow(dead_code)]
-    config: Arc<Config>,
+    // reserved：待装访问器/execute（见 #274，不完整脚手架）
+    _config: Arc<Config>,
 }
 
 impl DocumentAiV1 {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 }
 

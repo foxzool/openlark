@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 撤销转正请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct WithdrawRequest {
     /// 配置信息
     config: Config,

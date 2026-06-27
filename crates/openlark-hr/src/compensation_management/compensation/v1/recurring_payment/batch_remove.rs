@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 批量删除经常性支付记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchRemoveRequest {
     /// 配置信息
     config: Config,

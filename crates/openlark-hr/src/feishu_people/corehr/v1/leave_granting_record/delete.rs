@@ -15,7 +15,6 @@ use serde_json::Value;
 
 /// 删除假期发放记录请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     config: Config,
     record_id: String,

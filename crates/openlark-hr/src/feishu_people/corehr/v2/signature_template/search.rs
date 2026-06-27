@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取电子签模板内容请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,

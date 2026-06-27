@@ -5,7 +5,6 @@ use std::sync::Arc;
 ///
 /// 提供对机器人 API v4 的访问能力
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct BotService {
     config: Arc<Config>,
 }

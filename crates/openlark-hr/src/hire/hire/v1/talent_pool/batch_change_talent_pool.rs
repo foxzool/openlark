@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::TalentPoolOperationResult;
 
 /// 批量加入/移除人才库中人才请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchChangeTalentPoolRequest {
     /// 配置信息
     config: Config,

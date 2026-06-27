@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::EcoExamPaperSummary;
 
 /// 创建试卷列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

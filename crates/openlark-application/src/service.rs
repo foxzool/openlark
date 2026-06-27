@@ -5,23 +5,23 @@ use std::sync::Arc;
 ///
 /// 提供对应用 API v1 的访问能力
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct ApplicationService {
-    config: Arc<Config>,
+    // reserved：feature v1 关闭时无读取者（见 #274 范式）；_config 前缀兼容两种 feature 组合
+    _config: Arc<Config>,
 }
 
 impl ApplicationService {
     /// 创建新的应用管理服务实例。
     pub fn new(config: Config) -> Self {
         Self {
-            config: Arc::new(config),
+            _config: Arc::new(config),
         }
     }
 
     #[cfg(feature = "v1")]
     /// 访问 v1 版本应用 API。
     pub fn v1(&self) -> crate::application::application::v1::ApplicationV1 {
-        crate::application::application::v1::ApplicationV1::new(self.config.clone())
+        crate::application::application::v1::ApplicationV1::new(self._config.clone())
     }
 }
 

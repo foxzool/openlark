@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取飞书人事对象列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListObjectApiNameRequest {
     /// 配置信息
     config: Config,

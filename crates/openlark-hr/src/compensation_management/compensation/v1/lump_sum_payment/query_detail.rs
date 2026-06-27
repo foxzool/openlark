@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 查询一次性支付授予明细请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryDetailRequest {
     /// 分页大小（可选）
     page_size: Option<i32>,

@@ -259,7 +259,8 @@ pub type RecordFields = std::collections::HashMap<String, RecordFieldValue>;
 /// 记录数据序列化辅助函数
 ///
 /// 由于 HashMap 需要特殊处理才能与 serde 兼容
-#[allow(dead_code)]
+/// reserved：RecordFields serde 辅助，待接入结构体（见 #267 清理）
+#[expect(dead_code)]
 pub fn serialize_record_fields<S>(fields: &RecordFields, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -273,7 +274,7 @@ where
 }
 
 /// 记录数据反序列化辅助函数
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn deserialize_record_fields<'de, D>(deserializer: D) -> Result<RecordFields, D::Error>
 where
     D: serde::Deserializer<'de>,

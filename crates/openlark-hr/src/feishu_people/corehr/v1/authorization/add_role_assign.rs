@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 为用户授权角色请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AddRoleAssignRequest {
     /// 配置信息
     config: Config,

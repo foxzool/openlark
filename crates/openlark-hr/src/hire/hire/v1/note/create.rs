@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::NoteRecord;
 
 /// 创建备注请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,

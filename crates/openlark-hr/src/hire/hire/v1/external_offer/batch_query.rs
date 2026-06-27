@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::ExternalOfferSummary;
 
 /// 查询外部 Offer 列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchQueryRequest {
     /// 配置信息
     config: Config,

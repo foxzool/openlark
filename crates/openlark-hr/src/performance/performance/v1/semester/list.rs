@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 /// 获取周期列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 搜索关键字（可选）
     name: Option<String>,

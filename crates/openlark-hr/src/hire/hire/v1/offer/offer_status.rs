@@ -14,7 +14,6 @@ use serde_json::Value;
 
 /// 更新 Offer 状态请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OfferStatusRequest {
     /// 配置信息
     config: Config,

@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取假期类型列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LeaveTypesRequest {
     config: Config,
     query_params: Vec<(String, String)>,

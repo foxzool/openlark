@@ -16,7 +16,6 @@ use super::list::LocationItem;
 
 /// 查询地点列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,

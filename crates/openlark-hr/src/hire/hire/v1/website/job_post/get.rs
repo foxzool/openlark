@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::WebsiteJobPostSummary;
 
 /// 获取招聘官网下职位广告详情请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     /// 配置信息
     config: Config,

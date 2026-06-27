@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::JobManagerOperationResult;
 
 /// 更新职位相关人员请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchUpdateRequest {
     job_id: Option<String>,
     request_body: BatchUpdateRequestBody,

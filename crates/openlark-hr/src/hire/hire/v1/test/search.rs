@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::CatalogItem;
 
 /// 获取笔试列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,

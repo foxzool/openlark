@@ -17,7 +17,6 @@ use crate::hire::hire::common_models::EmployeeSummary;
 
 /// 通过投递 ID 获取入职信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetByApplicationRequest {
     /// 配置信息
     config: Config,

@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 终止电子签文件请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TerminateRequest {
     /// 配置信息
     config: Config,

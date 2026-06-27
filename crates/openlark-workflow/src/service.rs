@@ -293,7 +293,6 @@ pub struct ApprovalTaskActionResult {
 ///
 /// 提供对任务、审批、看板 API 的访问能力
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct WorkflowService {
     config: Arc<Config>,
 }

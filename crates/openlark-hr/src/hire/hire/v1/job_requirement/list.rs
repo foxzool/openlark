@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::JobRequirementSummary;
 
 /// 获取招聘需求列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     page_size: Option<i32>,
     page_token: Option<String>,

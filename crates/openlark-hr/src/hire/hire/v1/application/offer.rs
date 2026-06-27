@@ -17,7 +17,6 @@ use crate::hire::hire::v1::offer::get::OfferDetail;
 
 /// 获取 Offer 信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OfferRequest {
     /// 配置信息
     config: Config,

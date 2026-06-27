@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 获取文件签署节点信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListByFileIdRequest {
     /// 配置信息
     config: Config,

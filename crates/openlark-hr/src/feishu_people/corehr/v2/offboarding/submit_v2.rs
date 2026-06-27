@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// 操作员工离职请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SubmitV2Request {
     /// 配置信息
     config: Config,

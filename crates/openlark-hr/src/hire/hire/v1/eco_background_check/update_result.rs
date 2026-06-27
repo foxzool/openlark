@@ -15,7 +15,6 @@ use crate::hire::hire::common_models::EcoOperationResult;
 
 /// 回传背调订单的最终结果请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateResultRequest {
     /// 配置信息
     config: Config,

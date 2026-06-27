@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// 删除外部背调请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 配置信息
     config: Config,

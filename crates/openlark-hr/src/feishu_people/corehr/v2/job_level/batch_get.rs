@@ -13,7 +13,6 @@ use serde_json::Value;
 
 /// BatchGetRequest
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BatchGetRequest {
     /// 配置信息
     config: Config,
