@@ -2,7 +2,9 @@
 ///
 /// 提供更精确的字段值类型定义，替代通用的 `serde_json::Value`。
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
+#[cfg(test)]
+use serde_json::json;
 
 /// 记录字段值枚举
 ///
@@ -238,17 +240,6 @@ pub struct KanbanItem {
     /// 分组名称
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
-}
-
-impl RecordFieldValue {
-    /// 转换为 serde_json::Value
-    ///
-    /// 这是用于与现有 API 兼容的辅助方法。
-    /// 新代码建议使用 `RecordFieldValue` 枚举类型。
-    #[deprecated(since = "0.15.0", note = "新代码应直接使用 RecordFieldValue 类型")]
-    pub fn to_value(&self) -> serde_json::Value {
-        json!(self)
-    }
 }
 
 /// 记录数据类型别名
