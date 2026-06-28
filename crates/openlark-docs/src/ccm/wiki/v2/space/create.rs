@@ -116,23 +116,6 @@ impl CreateWikiSpaceRequest {
     }
 }
 
-/// 创建知识空间请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 CreateWikiSpaceRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateWikiSpaceParams {
-    /// 知识空间名称
-    pub name: String,
-    /// 知识空间描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 是否开启知识库分享（官方字段 `open_sharing`）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub open_sharing: Option<String>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,19 +177,5 @@ mod tests {
             .description(&long_desc);
 
         assert_eq!(request.description.unwrap().len(), long_desc.len());
-    }
-
-    /// 测试已弃用的参数结构（保留以测试向后兼容性）
-    #[test]
-    #[allow(deprecated)]
-    fn test_deprecated_params() {
-        let params = CreateWikiSpaceParams {
-            name: "旧API知识库".to_string(),
-            description: Some("使用旧API创建".to_string()),
-            open_sharing: None,
-        };
-
-        assert_eq!(params.name, "旧API知识库");
-        assert_eq!(params.description, Some("使用旧API创建".to_string()));
     }
 }

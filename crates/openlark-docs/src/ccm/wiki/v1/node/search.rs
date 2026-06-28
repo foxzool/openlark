@@ -140,25 +140,6 @@ impl SearchWikiRequest {
     }
 }
 
-/// 搜索 Wiki 请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 SearchWikiRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchWikiParams {
-    /// 搜索关键词
-    pub query: String,
-    /// 空间ID（可选）
-    pub space_id: Option<String>,
-    /// 节点ID（可选）
-    pub node_id: Option<String>,
-    /// 每页大小
-    pub page_size: Option<i32>,
-    /// 页面标记
-    pub page_token: Option<String>,
-}
-
 #[cfg(test)]
 mod tests {
 
