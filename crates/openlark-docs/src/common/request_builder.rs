@@ -93,13 +93,6 @@ macro_rules! impl_required_builder {
         }
 
         impl $builder_name {
-            /// 创建新的构建器实例（废弃，请使用 builder()）
-            #[deprecated(since = "0.5.0", note = "使用 builder() 替代")]
-            #[expect(dead_code)]
-            pub fn new() -> Self {
-                Self::default()
-            }
-
             /// 设置配置（链式调用）
             pub fn with_config(mut self, config: openlark_core::config::Config) -> Self {
                 self.config = Some(config);
