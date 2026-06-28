@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-28-remove-deprecated-wiki-
 branch_status: handled
 created_at: 2026-06-28
 verified_at: 2026-06-28
-archived: false
+archived: true
 handoff_context: openspec/changes/remove-deprecated-wiki-params/.comet/handoff/design-context.json
 handoff_hash: 8e3145fb6ed3bb7377acc835988e181323e672897782c6f7a72d58991895bf80

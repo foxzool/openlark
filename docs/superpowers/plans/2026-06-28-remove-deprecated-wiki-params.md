@@ -2,6 +2,7 @@
 change: remove-deprecated-wiki-params
 design-doc: docs/superpowers/specs/2026-06-28-remove-deprecated-wiki-params-design.md
 base-ref: 402f3b66dd1adfcf418abdb7cfc83c67ddfd89ec
+archived-with: 2026-06-28-remove-deprecated-wiki-params
 ---
 
 # remove-deprecated-wiki-params 实施计划

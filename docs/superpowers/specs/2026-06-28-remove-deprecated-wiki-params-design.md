@@ -2,6 +2,8 @@
 comet_change: remove-deprecated-wiki-params
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-28-remove-deprecated-wiki-params
+status: final
 ---
 
 # Design — remove-deprecated-wiki-params
