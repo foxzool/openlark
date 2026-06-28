@@ -2,6 +2,8 @@
 comet_change: remove-deprecated-im-alias
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-28-remove-deprecated-im-alias
+status: final
 ---
 
 # Design — remove-deprecated-im-alias

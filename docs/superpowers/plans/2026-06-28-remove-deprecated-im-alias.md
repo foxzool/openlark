@@ -2,6 +2,7 @@
 change: remove-deprecated-im-alias
 design-doc: docs/superpowers/specs/2026-06-28-remove-deprecated-im-alias-design.md
 base-ref: 9aa40f87804961d92f81a63bc6edd9349dd34da0
+archived-with: 2026-06-28-remove-deprecated-im-alias
 ---
 
 # remove-deprecated-im-alias 实施计划
@@ -23,6 +24,7 @@ base-ref: 9aa40f87804961d92f81a63bc6edd9349dd34da0
 - 本计划不写源代码——所有源码改动是 `sed` 替换 + 整块删除（无手写新行）。
 - Commit 风格沿用本仓库 conventional commits（`refactor:` / `chore:` / `docs(changelog):`）。
 
+archived-with: 2026-06-28-remove-deprecated-im-alias
 ---
 
 ## Task 1: 迁移 47 文件导入路径
