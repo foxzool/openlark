@@ -22,34 +22,34 @@ base-ref: 0156f201975953f58ba37eea9b28e2668770d41c
 
 **Files:** `crates/openlark-auth/src/auth/auth/v3/auth/tenant_access_token.rs`
 
-- [ ] **Step 1:** 删除 `app_id()`/`app_secret()`/`app_ticket()` 3 个 `#[deprecated] pub fn`（约 L85-101，含各自 deprecation 注释 + 文档注释 + 方法体）。
-- [ ] **Step 2:** 验证 `grep -c 'pub fn app_id\|pub fn app_secret\|pub fn app_ticket'` 该文件 = 0。
+- [x] **Step 1:** 删除 `app_id()`/`app_secret()`/`app_ticket()` 3 个 `#[deprecated] pub fn`（约 L85-101，含各自 deprecation 注释 + 文档注释 + 方法体）。
+- [x] **Step 2:** 验证 `grep -c 'pub fn app_id\|pub fn app_secret\|pub fn app_ticket'` 该文件 = 0。
 
 ## Task 2: 删除 D — docs to_value
 
 **Files:** `crates/openlark-docs/src/base/bitable/v1/field_types.rs`
 
-- [ ] **Step 1:** 删除 `to_value()` 方法（约 L248-251，含 `#[deprecated]` + `pub fn to_value` + `json!(self)` 体）。
-- [ ] **Step 2:** 验证 `grep -c 'pub fn to_value'` 该文件 = 0。
+- [x] **Step 1:** 删除 `to_value()` 方法（约 L248-251，含 `#[deprecated]` + `pub fn to_value` + `json!(self)` 体）。
+- [x] **Step 2:** 验证 `grep -c 'pub fn to_value'` 该文件 = 0。
 
 ## Task 3: 删除 C — docs 宏 new()
 
 **Files:** `crates/openlark-docs/src/common/request_builder.rs`
 
-- [ ] **Step 1:** 从 `impl_required_builder!` 宏删除 `new()` 生成块（`#[deprecated]`+`#[expect(dead_code)]`+`pub fn new()`+`Self::default()` 体，约 L96-101）。
-- [ ] **Step 2:** 确认 TestRequest 测试仍用 `builder()`（不依赖 new()）。
+- [x] **Step 1:** 从 `impl_required_builder!` 宏删除 `new()` 生成块（`#[deprecated]`+`#[expect(dead_code)]`+`pub fn new()`+`Self::default()` 体，约 L96-101）。
+- [x] **Step 2:** 确认 TestRequest 测试仍用 `builder()`（不依赖 new()）。
 
 ## Task 4: 验证
 
-- [ ] **Step 1:** 三组 clippy（default / `--all-features` / `--no-default-features`）`-D warnings` exit 0。
-- [ ] **Step 2:** `cargo test --workspace` 通过。
-- [ ] **Step 3:** examples/tests 不引用已移除项（`.to_value()` / `tenant_access_token().app_id` 等 = 0）。
-- [ ] **Step 4:** 目标 deprecated 已删（auth 3 + to_value + 宏 new = 5）。
+- [x] **Step 1:** 三组 clippy（default / `--all-features` / `--no-default-features`）`-D warnings` exit 0。
+- [x] **Step 2:** `cargo test --workspace` 通过。
+- [x] **Step 3:** examples/tests 不引用已移除项（`.to_value()` / `tenant_access_token().app_id` 等 = 0）。
+- [x] **Step 4:** 目标 deprecated 已删（auth 3 + to_value + 宏 new = 5）。
 
 ## Task 5: CHANGELOG + 收尾
 
-- [ ] **Step 1:** CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 迁移映射表（见 design doc）。
-- [ ] **Step 2:** 评论 #278：本 change 处理 G+D+C（5）；B（wiki Params ~16 用法）+ F（im 别名 47 文件）仍 open。
+- [x] **Step 1:** CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 迁移映射表（见 design doc）。
+- [x] **Step 2:** 评论 #278：本 change 处理 G+D+C（5）；B（wiki Params ~16 用法）+ F（im 别名 47 文件）仍 open。
 
 ## Self-Review
 
