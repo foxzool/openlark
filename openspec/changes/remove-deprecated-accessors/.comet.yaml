@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: a6f4032c8ca97c71f0864f10f2a0ca978440473b
 design_doc: docs/superpowers/specs/2026-06-28-remove-deprecated-accessors-design.md
 plan: docs/superpowers/plans/2026-06-28-remove-deprecated-accessors.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-28-remove-deprecated-accessors-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-06-28
-verified_at: null
+verified_at: 2026-06-28
 archived: false
 handoff_context: openspec/changes/remove-deprecated-accessors/.comet/handoff/design-context.json
 handoff_hash: d11f6b67596b5bcfce89eae01e77f515bf9e1bcb9e3ba1661540595c8b7637bf
