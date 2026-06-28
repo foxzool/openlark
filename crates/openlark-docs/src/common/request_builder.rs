@@ -51,7 +51,7 @@
 ///
 /// 该宏会生成：
 /// 1. Builder 结构体（所有字段都是 `Option<T>`）
-/// 2. Builder::new() 和 Builder::default() 方法
+/// 2. Builder::default() 方法（通过 `#[derive(Default)]`）
 /// 3. 每个字段的 setter 方法
 /// 4. Builder::build() 方法（验证必填字段）
 /// 5. Request::builder() 关联方法
