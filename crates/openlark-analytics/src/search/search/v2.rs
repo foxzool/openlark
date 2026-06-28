@@ -8,32 +8,14 @@ use std::sync::Arc;
 /// 搜索服务 V2 API
 #[derive(Debug, Clone)]
 pub struct SearchV2 {
-    /// 客户端配置
-    config: Arc<AnalyticsConfig>,
+    // reserved：query()/user() deprecated 存根移除后无读取者（analytics search 导航缺口，后续补访问器）
+    _config: Arc<AnalyticsConfig>,
 }
 
 impl SearchV2 {
     /// 创建新的搜索服务 V2 实例
     pub fn new(config: Arc<AnalyticsConfig>) -> Self {
-        Self { config }
-    }
-
-    /// 查询搜索
-    #[deprecated(
-        since = "0.15.0",
-        note = "This runtime stub is not wired to a Feishu endpoint. Prefer implemented analytics search surfaces such as `doc_wiki`, `schema`, `app`, or `message`."
-    )]
-    pub fn query(&self) -> super::v2::query::QueryApi {
-        super::v2::query::QueryApi::new(self.config.clone())
-    }
-
-    /// 用户搜索
-    #[deprecated(
-        since = "0.15.0",
-        note = "This runtime stub is not wired to a Feishu endpoint. Prefer implemented analytics search surfaces until a real user-search endpoint is added."
-    )]
-    pub fn user(&self) -> super::v2::user::UserSearchApi {
-        super::v2::user::UserSearchApi::new(self.config.clone())
+        Self { _config: config }
     }
 }
 

@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **Removed deprecated 兼容访问器**：移除 `Hr` 的 8 个 service 访问器方法
+  （`attendance()`/`corehr()`/`compensation()`/`payroll()`/`performance()`/`okr()`/`hire()`/`ehr()`）
+  与 `SearchV2` 的 `query()`/`user()` 未接线存根（deprecated since 0.15.0）。迁移：
+
+  | 旧（移除） | 新 |
+  |---|---|
+  | `hr.attendance()` / `corehr()` / ... | `hr.attendance` / `hr.corehr` / ...（字段访问） |
+  | `search_v2.query()` | 用 `doc_wiki` / `schema` / `app` / `message` surface |
+  | `search_v2.user()` | 无 surface（user-search 未实现）；`UserSearchApi` 经完整路径可达，`execute()` 显式返回未接线错误 |
+
+  `QueryApi`/`UserSearchApi` 类型保留（仅移除便捷存根访问器）。关联 #268。
+
 - **Removed** `openlark_client::Config` / `ConfigBuilder` / `ConfigSummary` (deprecated
   since 0.17.0). All functionality is merged into `openlark_core::config::Config`. The
   root crate `openlark::Config` now re-exports `openlark_core::config::Config` directly.
