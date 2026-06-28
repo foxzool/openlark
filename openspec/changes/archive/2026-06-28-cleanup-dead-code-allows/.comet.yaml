@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-28-cleanup-dead-code-allow
 branch_status: handled
 created_at: 2026-06-27
 verified_at: 2026-06-27
-archived: false
+archived: true
 handoff_context: openspec/changes/cleanup-dead-code-allows/.comet/handoff/design-context.json
 handoff_hash: aa98bd5aa5903a98e96205c1362d39ee3ce7bc1c1d4893fa35b2bbe9927411c0

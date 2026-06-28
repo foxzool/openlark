@@ -2,6 +2,7 @@
 change: cleanup-dead-code-allows
 design-doc: docs/superpowers/specs/2026-06-27-cleanup-dead-code-allows-design.md
 base-ref: e4cfc63748279a4178bf14d33f83f539cff4681b
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 # cleanup-dead-code-allows 实施计划
@@ -28,6 +29,7 @@ base-ref: e4cfc63748279a4178bf14d33f83f539cff4681b
   - 三组 feature clippy（default / `--all-features` / `--no-default-features`）+ `-D warnings` 均 exit 0
   - `cargo test --workspace` 全通过
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## 关键技术发现（写计划时已实测，必读）
@@ -50,6 +52,7 @@ base-ref: e4cfc63748279a4178bf14d33f83f539cff4681b
 
 4. **CI 挂载点**：`.github/workflows/ci.yml` 的 `lint` job（L87–116）已设 `RUSTFLAGS: "-D warnings"`，跑 fmt + clippy(all-features) + mod-reachability + clippy(no-default-features)。D3 grep 加在 mod-reachability 之后、第二个 clippy 之前最顺，无需新 job。
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## File Structure
@@ -64,6 +67,7 @@ base-ref: e4cfc63748279a4178bf14d33f83f539cff4681b
 | `justfile` | 追加 recipe | 本地等价入口 `no-dead-code-allows`，方便本地复跑 |
 | `CHANGELOG.md` | 追加条目 | `[Unreleased] > Changed` 记录 |
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 1: 调研现有 CI 结构并确认 D3 挂载点
@@ -100,6 +104,7 @@ Expected（Task 1 执行时，即未删除前）：约 381 文件命中（因为
 
 本 task 为只读调研，无代码改动。把锚点与命令确认结果写进 commit message 摘要（由主会话合并到下一个 commit）。
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 2: 批量移除 389 处 cruft `#[allow(dead_code)]`
@@ -165,6 +170,7 @@ git commit -m "refactor(lint): 批量移除 389 处 cruft #[allow(dead_code)]
 Co-Authored-By: ..."
 ```
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 3: 修正 3 个真死字段（方案 C：`_config` + 注释）
@@ -305,6 +311,7 @@ git commit -m "refactor(platform): 3 个 v1 入口 config → _config + reserved
 Co-Authored-By: ..."
 ```
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 4: 三组 feature clippy + 全量 test 验证
@@ -372,6 +379,7 @@ Expected: `0`
 
 本 task 无代码改动。验证全绿后主会话继续 Task 5。
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 5: D3 防复发 — CI grep 检查
@@ -477,6 +485,7 @@ git commit -m "ci(lint): 加 #[allow(dead_code)] 防复发 grep 检查
 Co-Authored-By: ..."
 ```
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Task 6: CHANGELOG 与收尾
@@ -527,6 +536,7 @@ git commit -m "docs(changelog): 记录 dead_code allows 清理与 CI 防复发
 Co-Authored-By: ..."
 ```
 
+archived-with: 2026-06-28-cleanup-dead-code-allows
 ---
 
 ## Self-Review（计划自检）
