@@ -2,6 +2,8 @@
 comet_change: remove-deprecated-accessors
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-28-remove-deprecated-accessors
+status: final
 ---
 
 # Design — remove-deprecated-accessors

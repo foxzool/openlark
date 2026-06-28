@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-28-remove-deprecated-acces
 branch_status: handled
 created_at: 2026-06-28
 verified_at: 2026-06-28
-archived: false
+archived: true
 handoff_context: openspec/changes/remove-deprecated-accessors/.comet/handoff/design-context.json
 handoff_hash: d11f6b67596b5bcfce89eae01e77f515bf9e1bcb9e3ba1661540595c8b7637bf

@@ -2,6 +2,7 @@
 change: remove-deprecated-accessors
 design-doc: docs/superpowers/specs/2026-06-28-remove-deprecated-accessors-design.md
 base-ref: e9c4b0267bd69ffdbf400524fd440c9a2b755b31
+archived-with: 2026-06-28-remove-deprecated-accessors
 ---
 
 # remove-deprecated-accessors 实施计划
