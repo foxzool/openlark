@@ -23,5 +23,5 @@
 
 ## 5. 文档与收尾
 
-- [ ] 5.1 CHANGELOG `[Unreleased] > Breaking Changes` 加 D+C 条目 + 迁移映射
-- [ ] 5.2 评论 #278：本 change 处理 D+C（2）；G（functional legacy flow）+ B（wiki Params）+ F（im 别名）仍 open
+- [x] 5.1 CHANGELOG `[Unreleased] > Breaking Changes` 加 D+C 条目 + 迁移映射
+- [x] 5.2 评论 #278：本 change 处理 D+C（2）；G（functional legacy flow）+ B（wiki Params）+ F（im 别名）仍 open
