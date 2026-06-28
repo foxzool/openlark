@@ -14,7 +14,7 @@
 
 ## 项目概览
 
-**Open-Lark** 是为飞书开放平台构建的高覆盖率 Rust SDK，提供对 1,688+ 个 API 的类型安全访问。本文档描述了重构后的模块化架构设计。
+**Open-Lark** 是为飞书开放平台构建的高覆盖率 Rust SDK，提供对 1,560+ 个 API 的类型安全访问。本文档描述了重构后的模块化架构设计。
 
 ## 设计理念
 
@@ -248,6 +248,8 @@ graph TD
 ```
 
 ## openlark-client 服务层重构方案（crates/openlark-client/src/services）
+
+> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client` 采用简化的「字段挂载」模式（见 `crates/openlark-client/src/client.rs` + `registry/` 宏生成的 feature-gated 字段），**未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算系统。保留本节仅作设计演进的历史记录（见 issue #269）。如需了解实际架构，参阅 `client.rs` 与 `registry/{bootstrap,catalog,mod}.rs`。
 
 ### 重构目标
 - 消除重复：统一 `services/` 与 `registry/` 的能力，避免双重工厂/注册逻辑。
