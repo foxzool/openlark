@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   |---|---|
   | `hr.attendance()` / `corehr()` / ... | `hr.attendance` / `hr.corehr` / ...（字段访问） |
   | `search_v2.query()` | 用 `doc_wiki` / `schema` / `app` / `message` surface |
-  | `search_v2.user()` | 无 surface（user-search 未实现）；`UserSearchApi` 经完整路径可达 |
+  | `search_v2.user()` | 无 surface（user-search 未实现）；`UserSearchApi` 经完整路径可达，`execute()` 显式返回未接线错误 |
 
   `QueryApi`/`UserSearchApi` 类型保留（仅移除便捷存根访问器）。关联 #268。
 

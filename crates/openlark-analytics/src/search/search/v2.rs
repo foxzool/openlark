@@ -8,7 +8,7 @@ use std::sync::Arc;
 /// 搜索服务 V2 API
 #[derive(Debug, Clone)]
 pub struct SearchV2 {
-    // reserved：query()/user() deprecated 存根移除后无读取者（见 #275 SearchV2 访问器补全）
+    // reserved：query()/user() deprecated 存根移除后无读取者（analytics search 导航缺口，后续补访问器）
     _config: Arc<AnalyticsConfig>,
 }
 
