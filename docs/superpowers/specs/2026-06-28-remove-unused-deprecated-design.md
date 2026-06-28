@@ -2,6 +2,8 @@
 comet_change: remove-unused-deprecated
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-28-remove-unused-deprecated
+status: final
 ---
 
 # Design — remove-unused-deprecated

@@ -2,6 +2,7 @@
 change: remove-unused-deprecated
 design-doc: docs/superpowers/specs/2026-06-28-remove-unused-deprecated-design.md
 base-ref: 0156f201975953f58ba37eea9b28e2668770d41c
+archived-with: 2026-06-28-remove-unused-deprecated
 ---
 
 # remove-unused-deprecated 实施计划
