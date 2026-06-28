@@ -12,7 +12,7 @@ use crate::{
         models::EmptyData,
     },
     endpoints::IM_V1_CHATS,
-    im::im::v1::{chat::moderation::models::UpdateChatModerationBody, message::models::UserIdType},
+    im::v1::{chat::moderation::models::UpdateChatModerationBody, message::models::UserIdType},
 };
 
 /// 更新群发言权限请求

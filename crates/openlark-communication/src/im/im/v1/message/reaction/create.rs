@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::reaction::models::{CreateMessageReactionBody, MessageReaction},
+    im::v1::message::reaction::models::{CreateMessageReactionBody, MessageReaction},
 };
 
 /// 添加消息表情回复请求

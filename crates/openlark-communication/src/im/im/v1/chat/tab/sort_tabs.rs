@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::tab::models::TabIdsBody,
+    im::v1::chat::tab::models::TabIdsBody,
 };
 
 /// 会话标签页排序请求

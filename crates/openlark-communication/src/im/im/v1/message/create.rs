@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::ReceiveIdType,
+    im::v1::message::models::ReceiveIdType,
 };
 
 /// 发送消息请求体

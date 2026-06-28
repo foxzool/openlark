@@ -7,7 +7,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Tra
 use crate::{
     common::api_utils::extract_response_data,
     endpoints::IM_V1_IMAGES,
-    im::im::v1::image::models::{CreateImageResponse, ImageType},
+    im::v1::image::models::{CreateImageResponse, ImageType},
 };
 
 /// 上传图片请求

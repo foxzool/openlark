@@ -7,7 +7,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 use crate::{
     common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
-    im::im::v1::{chat::models::ChatSortType, message::models::UserIdType},
+    im::v1::{chat::models::ChatSortType, message::models::UserIdType},
 };
 
 /// 获取用户或机器人所在的群列表请求

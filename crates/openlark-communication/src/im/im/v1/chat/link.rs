@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::models::{ChatLinkValidityPeriod, GetChatLinkResponse},
+    im::v1::chat::models::{ChatLinkValidityPeriod, GetChatLinkResponse},
 };
 
 /// 获取群分享链接请求

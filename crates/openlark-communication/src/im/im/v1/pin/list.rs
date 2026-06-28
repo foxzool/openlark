@@ -8,7 +8,7 @@ use openlark_core::{
 
 use crate::{
     common::api_utils::extract_response_data, endpoints::IM_V1_PINS,
-    im::im::v1::pin::models::ListPinsResponse,
+    im::v1::pin::models::ListPinsResponse,
 };
 
 /// 获取群内 Pin 消息请求

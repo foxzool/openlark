@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::UserIdType,
+    im::v1::message::models::UserIdType,
 };
 
 /// 发送短信加急请求体

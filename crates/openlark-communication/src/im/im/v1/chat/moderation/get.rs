@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
-    im::im::v1::{
+    im::v1::{
         chat::moderation::models::GetChatModerationResponse, message::models::UserIdType,
     },
 };

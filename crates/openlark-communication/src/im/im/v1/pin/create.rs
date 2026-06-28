@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_PINS,
-    im::im::v1::pin::models::{CreatePinBody, CreatePinResponse},
+    im::v1::pin::models::{CreatePinBody, CreatePinResponse},
 };
 
 /// Pin 消息请求

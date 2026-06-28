@@ -9,8 +9,8 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V2_FEED_CARDS,
-    im::im::v1::message::models::UserIdType,
-    im::im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody},
+    im::v1::message::models::UserIdType,
+    im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody},
 };
 
 /// 即时提醒请求

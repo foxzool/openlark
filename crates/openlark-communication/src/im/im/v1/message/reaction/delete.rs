@@ -8,7 +8,7 @@ use openlark_core::{
 
 use crate::{
     common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::reaction::models::MessageReaction,
+    im::v1::message::reaction::models::MessageReaction,
 };
 
 /// 删除消息表情回复请求
