@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
-### Requirement: auth 不暴露 deprecated TenantAccessTokenBuilder 方法
-openlark-auth 的 `TenantAccessTokenBuilder` SHALL 不再提供 `app_id()` / `app_secret()` / `app_ticket()` deprecated 方法。用户 SHALL 经 `app_access_token()` + `tenant_key()` 流程。
+### Requirement: auth TenantAccessTokenBuilder legacy 方法保留（functional）
+openlark-auth 的 `TenantAccessTokenBuilder` 的 `app_id()` / `app_secret()` / `app_ticket()` deprecated 方法 **SHALL 保留**——它们喂 functional legacy two-step flow（`execute_with_options` 读取 `legacy_app_id/secret/ticket` 字段，`test_execute_legacy_chain` 验证），**非 unused**。移除该 legacy flow 是独立的更大改动（见 #278）。本 change 不动 auth。
 
-#### Scenario: auth 无目标 deprecated 方法
+#### Scenario: auth legacy 方法保留
 - **WHEN** 在 `crates/openlark-auth/src/auth/auth/v3/auth/tenant_access_token.rs` 中 grep `pub fn app_id|pub fn app_secret|pub fn app_ticket`
-- **THEN** 命中数为 0（3 个 deprecated 方法移除）
+- **THEN** 命中数为 3（functional legacy 方法保留，不移除）
 
 ### Requirement: docs 不暴露 deprecated to_value 与宏 new
 openlark-docs SHALL 不再提供 `RecordFieldValue::to_value()` 与 `impl_required_builder!` 宏生成的 `new()`。

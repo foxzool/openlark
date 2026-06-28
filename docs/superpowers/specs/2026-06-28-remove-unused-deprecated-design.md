@@ -62,3 +62,12 @@ canonical_spec: openspec
 ## 关联 issue
 
 - #278（G+D+C 本 change 处理；B+F 留 #278）
+
+## Implementation Divergence（实现偏差，2026-06-28 verify 记录）
+
+**G（auth app_id/secret/ticket）未删除**——build 核实发现这 3 个 deprecated 方法是 **functional legacy two-step flow**（`execute_with_options` 读取 `legacy_app_id/secret/ticket` 字段做两步换 token，`test_execute_legacy_chain` 验证），**非 unused**。删除需连带移除 legacy flow + 测试，是更大的独立改动。
+
+- **偏差**：proposal/design/spec 原述 G+D+C(5)，实际只做 **D+C(2)**。
+- **处理**：G 还原保留；delta spec req1 已修正为「auth legacy 方法保留（functional）」；移除 legacy flow 的工作留 #278。
+- D（to_value）+ C（宏 new）确实是零调用/dead，按计划删除（连带空 impl 移除 + `json!` import 改 `#[cfg(test)]`）。
+
