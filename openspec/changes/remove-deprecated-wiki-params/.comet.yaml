@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -13,7 +13,7 @@ base_ref: a95341e66e0091ac91cd0ed5a9d516b12577cf24
 design_doc: docs/superpowers/specs/2026-06-28-remove-deprecated-wiki-params-design.md
 plan: docs/superpowers/plans/2026-06-28-remove-deprecated-wiki-params.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-06-28-remove-deprecated-wiki-params-verify.md
 branch_status: pending
 created_at: 2026-06-28
 verified_at: null
