@@ -1,5 +1,5 @@
 workflow: full
-phase: design
+phase: build
 context_compression: off
 build_mode: null
 build_pause: null
@@ -10,7 +10,7 @@ isolation: null
 verify_mode: null
 auto_transition: true
 base_ref: 18a308f1b00a89650198bfbcd98b51214ba047a1
-design_doc: null
+design_doc: docs/superpowers/specs/2026-06-28-remove-unused-deprecated-design.md
 plan: null
 verify_result: pending
 verification_report: null
@@ -18,3 +18,5 @@ branch_status: pending
 created_at: 2026-06-28
 verified_at: null
 archived: false
+handoff_context: openspec/changes/remove-unused-deprecated/.comet/handoff/design-context.json
+handoff_hash: cb01158f5911d0a71ec4a79004c7de2e3ae2428540f5f0f5594f98fb81fbe974
