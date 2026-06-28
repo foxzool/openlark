@@ -20,3 +20,9 @@
 ## 4. CHANGELOG
 
 - [x] 4.1 CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 迁移映射（`im::im::` → `im::`）
+
+## 5. 代码审查（review_mode: standard）
+
+- [x] 5.1 requesting-code-review subagent 审查 `9aa40f878..35f3101bb`：**Ready to merge: Yes**。Critical 0 / Important 0 / Minor 1。
+  - Minor（接受，不修）：被删测试 `nested_im_path_remains_a_compatibility_alias` 本为 deprecated 期保航，随别名退役正确；canonical re-export `pub use project::{v1,v2}` 已被 47 个内部 import 间接覆盖，审查者明确不建议新增替代测试。接受理由：无功能回归，新增测试价值低。
+
