@@ -14,9 +14,9 @@
 ## 3. 验证
 
 - [x] 3.1 `grep -E 'pub mod im\b' crates/openlark-communication/src/im/mod.rs` = 0（word-boundary，排除 `im_ephemeral`/`im_message`）；`grep -rn 'im::im::' crates/openlark-communication/src/` = 0
-- [ ] 3.2 三组 feature clippy（default/all-features/no-default）`-D warnings` exit 0
-- [ ] 3.3 `cargo test --workspace` 通过
+- [x] 3.2 三组 feature clippy（default/all-features/no-default）`-- -Dwarnings -A missing_docs` 全 exit 0
+- [x] 3.3 `cargo test --workspace` 通过（0 failed）
 
 ## 4. CHANGELOG
 
-- [ ] 4.1 CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 迁移映射（`im::im::` → `im::`）
+- [x] 4.1 CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 迁移映射（`im::im::` → `im::`）
