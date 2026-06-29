@@ -2,6 +2,8 @@
 comet_change: clarify-transport-reqwest-boundary
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-29-clarify-transport-reqwest-boundary
+status: final
 ---
 
 # Design — clarify-transport-reqwest-boundary

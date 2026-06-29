@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-29-clarify-transport-reqwe
 branch_status: handled
 created_at: 2026-06-29
 verified_at: 2026-06-29
-archived: false
+archived: true
 handoff_context: openspec/changes/clarify-transport-reqwest-boundary/.comet/handoff/design-context.json
 handoff_hash: 2c2d7bb7ae88f9c5ce371fbb3a243699f48ceff44ec2e3e74f1e0eb2f49fea79
