@@ -18,7 +18,7 @@
 
 ## 4. 边界文档化（ARCHITECTURE.md）
 
-- [ ] 4.1 在 `## 模块详细设计`（line 106）下新增「Transport HTTP 边界」小节：边界定义 + 调用路径图 + Cargo 依赖边界表（core/client/webhook 允许，业务禁止）+ webhook by-design 例外（#214）+ 中间件/熔断/重试层标注「规划中 future、当前未实现」
+- [x] 4.1 在 `## 模块详细设计`（line 106）下新增「Transport HTTP 边界」小节：边界定义 + 调用路径图 + Cargo 依赖边界表（core/client/webhook 允许，业务禁止）+ webhook by-design 例外（#214）+ 中间件/熔断/重试层标注「规划中 future、当前未实现」
 
 ## 5. webhook crate 文档注释强化
 

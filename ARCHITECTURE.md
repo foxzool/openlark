@@ -105,6 +105,38 @@
 
 ## 模块详细设计
 
+### Transport HTTP 边界
+
+> 架构约定：`openlark_core::http::Transport<T>` 是 OpenLark 的**唯一 HTTP 出口**。
+> 业务 crate 经 `Transport` 抽象发请求，**不在各自 `Cargo.toml` 声明 reqwest 依赖、不在源码使用 reqwest 类型**。
+> 此边界由 `tools/check_reqwest_boundary.sh` 机器检验（`just reqwest-boundary` / CI lint job），防止分层泄漏复发（见 issue #270）。
+
+**调用路径**（仅 core 碰 reqwest）：
+
+```
+*Request::execute()
+  └─> openlark_core::http::Transport::request(req, &config, option)
+        └─> ReqTranslator / UnifiedRequestBuilder
+              └─> reqwest::RequestBuilder  ← 仅 openlark-core 这一跳
+```
+
+**Cargo 依赖边界**：
+
+| crate | 可否声明 reqwest | 原因 |
+|-------|----------------|------|
+| `openlark-core` | ✅ 声明 | Transport 抽象本体，reqwest 实现细节收敛于此 |
+| `openlark-client` | ✅ 声明（optional，websocket feature 引用） | 客户端装配 + WebSocket 升级握手 |
+| `openlark-webhook` | ✅ 声明 | by-design 性能例外（见下） |
+| 其余业务 crate（hr/communication/docs/workflow/...） | ❌ 禁止 | 须经 `Transport::request()` 发请求 |
+
+**webhook by-design 例外**：
+
+`openlark-webhook` 直接使用 `reqwest::Client`（`crates/openlark-webhook/src/robot/v1/send.rs::shared_client()`，进程级 `OnceLock` 共享单个 `Client` 复用连接池），**不经 core `Transport`**。原因：webhook 自定义机器人**不是飞书开放平台 API**——目标 URL 是用户配置的绝对地址、鉴权用 URL 携带的签名密钥（非 Bearer token）、响应体是 `{code,msg}` 非标准包装，与 `Transport` 固定的 `/open-apis/` 基址、强制 token 注入、`ApiResponse<R>` 解析三者均不兼容。这是**有意保留的独立 reqwest 路径**（调研见 GitHub issue #214），**不视为分层泄漏**。详见 `send` 模块文档注释。
+
+**Transport 中间件 / 熔断 / 智能重试中间件 — 规划中（future change）**
+
+本文档部分章节（如服务层重构草案、CircuitBreaker、AsyncMiddlewareChain）描述了 Transport 中间件链 / 熔断器 / 智能重试中间件的**目标形态**。这些设计**当前未实现**——实际重试能力是 `openlark_core::error::RetryPolicy` 的配置模式（无中间件链、无熔断器）。本文档顶部「文档内容分级」已将这些标注为 `🚧 规划中`。中间件/熔断/重试链的落地属**独立的 future change**，不属本次 #270 边界澄清范围。
+
 ### 核心模块 (Core Modules)
 
 #### 1. openlark-core
