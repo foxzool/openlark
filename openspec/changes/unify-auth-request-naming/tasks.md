@@ -24,3 +24,9 @@
 - [x] 4.2 三组 feature clippy（default / `--all-features` / `--no-default-features` + `-D warnings`）均 exit 0
 - [x] 4.3 `cargo test -p openlark-auth` 全部通过（0 failed）
 - [x] 4.4 alias warning 实证（旧名 → 成功+warning；新名 → 成功无 warning）+ grep 确认 12 RequestBuilder struct + 12 deprecated alias + AuthorizationUrlBuilder 未动
+
+## 代码审查（review_mode: standard）
+
+Ready to merge: Yes（0 Critical / 0 Important / 3 Minor）。Minor 接受理由：
+- #1 alias note 写 "v1.0"：接受保留——issue #271 明确「纳入 v1.0/v1.x breaking 集合」，且这些是活跃重命名 alias（用户有真实旧名代码），比 v0.18 清的 unused-deprecated 更该给长迁移窗口。
+- #2/#3 注释/文档措辞：接受（cosmetic）。
