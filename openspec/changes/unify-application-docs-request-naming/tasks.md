@@ -14,3 +14,8 @@
 - [x] 2.3 `cargo test -p openlark-application -p openlark-docs` 0 failed
 - [x] 2.4 **`cargo fmt --all -- --check` exit 0**（auth pilot CI 教训：push 前必跑）
 - [x] 2.5 grep 确认 4 RequestBuilder struct + 4 deprecated alias + RecordFieldsBuilder 未动
+
+## 代码审查（review_mode: standard）
+Ready to merge: Yes（0 Critical/Important，1 Minor + 1 Suggestion 接受）。
+- Minor #1（table/mod.rs re-export 顺序 cosmetic）：接受——功能不受影响，脚本按首个 `};` 插入致位置差异，纯样式。
+- Suggestion（既有 builder 测试覆盖弱）：出范围，接受。
