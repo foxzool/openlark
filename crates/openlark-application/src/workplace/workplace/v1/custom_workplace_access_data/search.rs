@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 定制工作台访问数据查询 Builder
 #[derive(Debug, Clone)]
-pub struct AccessDataSearchCustomBuilder {
+pub struct AccessDataSearchCustomRequestBuilder {
     config: Config,
     start_date: String,
     end_date: String,
 }
 
-impl AccessDataSearchCustomBuilder {
+impl AccessDataSearchCustomRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -99,6 +99,10 @@ pub struct WorkplaceAccessData {
 }
 
 impl ApiResponseTrait for AccessDataSearchCustomResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AccessDataSearchCustomRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AccessDataSearchCustomBuilder = AccessDataSearchCustomRequestBuilder;
 
 #[cfg(test)]
 #[allow(unused_imports)]

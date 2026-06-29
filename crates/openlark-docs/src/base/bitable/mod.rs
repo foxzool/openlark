@@ -30,7 +30,7 @@ pub use v1::{
     ListFormFieldQuestionResponse, ListRecordRequest, ListRecordResponse, ListRoleMembersRequest,
     ListRoleMembersResponse, ListTablesRequest, ListTablesResponse, ListViewsRequest,
     ListViewsResponse, ListWorkflowRequest, ListWorkflowResponse, LocationInfo, MentionInfo,
-    PatchFormFieldQuestionBuilder, PatchFormFieldQuestionRequest, PatchFormFieldQuestionResponse,
+    PatchFormFieldQuestionRequestBuilder, PatchFormFieldQuestionRequest, PatchFormFieldQuestionResponse,
     PatchFormFieldRequest, PatchFormRequest, PatchFormResponse, PatchTableRequest,
     PatchTableResponse, PatchViewData, PatchViewRequest, PatchViewResponse,
     PatchedFormFieldQuestion, PeopleInfo, Person, ProgressInfo, Record, RecordFieldValue,
@@ -42,3 +42,6 @@ pub use v1::{
     UpdateRecordRequest, UpdateRecordResponse, UpdateWorkflowBody, UpdateWorkflowRequest,
     UpdateWorkflowResponse, View, Workflow, WorkflowStatus,
 };
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use v1::PatchFormFieldQuestionBuilder;

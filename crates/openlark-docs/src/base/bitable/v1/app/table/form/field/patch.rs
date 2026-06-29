@@ -129,11 +129,11 @@ impl PatchFormFieldQuestionRequest {
 }
 
 /// 更新表单问题 Builder
-pub struct PatchFormFieldQuestionBuilder {
+pub struct PatchFormFieldQuestionRequestBuilder {
     request: PatchFormFieldQuestionRequest,
 }
 
-impl PatchFormFieldQuestionBuilder {
+impl PatchFormFieldQuestionRequestBuilder {
     /// 创建新的表单问题更新 builder。
     pub fn new(config: Config) -> Self {
         Self {
@@ -233,6 +233,10 @@ impl ApiResponseTrait for PatchFormFieldQuestionResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to PatchFormFieldQuestionRequestBuilder, will be removed in v1.0 (#271)")]
+pub type PatchFormFieldQuestionBuilder = PatchFormFieldQuestionRequestBuilder;
 
 #[cfg(test)]
 mod tests {
