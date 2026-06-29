@@ -5,6 +5,6 @@
 mod get;
 
 // 重新导出用户信息服务
-pub use get::{UserInfoRequestBuilder, UserInfoService};
 #[allow(deprecated)]
 pub use get::UserInfoBuilder;
+pub use get::{UserInfoRequestBuilder, UserInfoService};

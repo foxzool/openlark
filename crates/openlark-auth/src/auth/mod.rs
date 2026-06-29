@@ -11,8 +11,9 @@
 
 // v3 auth 模块显式导出（新名）
 pub use self::auth::v3::auth::{
-    AppAccessTokenRequestBuilder, AppAccessTokenInternalRequestBuilder, AppTicketResendRequestBuilder,
-    AuthServiceV3, TenantAccessTokenRequestBuilder, TenantAccessTokenInternalRequestBuilder,
+    AppAccessTokenInternalRequestBuilder, AppAccessTokenRequestBuilder,
+    AppTicketResendRequestBuilder, AuthServiceV3, TenantAccessTokenInternalRequestBuilder,
+    TenantAccessTokenRequestBuilder,
 };
 // 旧名兼容别名（deprecated alias，v1.0 移除）
 #[allow(deprecated)]

@@ -5,6 +5,6 @@
 mod create;
 
 // 重新导出用户访问令牌刷新构建器
-pub use create::RefreshUserAccessTokenV1RequestBuilder;
 #[allow(deprecated)]
 pub use create::RefreshUserAccessTokenV1Builder;
+pub use create::RefreshUserAccessTokenV1RequestBuilder;

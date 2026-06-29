@@ -206,7 +206,8 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_redirect_uri_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenRequestBuilder::new(config).redirect_uri("https://redirect.com");
+        let builder =
+            OidcAccessTokenRequestBuilder::new(config).redirect_uri("https://redirect.com");
         assert_eq!(
             builder.redirect_uri,
             Some("https://redirect.com".to_string())
@@ -223,7 +224,8 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_client_secret_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenRequestBuilder::new(config).client_secret("chained_client_secret");
+        let builder =
+            OidcAccessTokenRequestBuilder::new(config).client_secret("chained_client_secret");
         assert_eq!(
             builder.client_secret,
             Some("chained_client_secret".to_string())

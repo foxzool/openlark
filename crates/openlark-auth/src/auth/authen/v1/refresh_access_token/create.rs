@@ -117,7 +117,9 @@ impl RefreshUserAccessTokenV1RequestBuilder {
 }
 
 /// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to RefreshUserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)")]
+#[deprecated(
+    note = "renamed to RefreshUserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)"
+)]
 pub type RefreshUserAccessTokenV1Builder = RefreshUserAccessTokenV1RequestBuilder;
 
 #[cfg(test)]

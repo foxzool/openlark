@@ -116,7 +116,9 @@ impl OidcRefreshAccessTokenRequestBuilder {
 }
 
 /// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to OidcRefreshAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+#[deprecated(
+    note = "renamed to OidcRefreshAccessTokenRequestBuilder, will be removed in v1.0 (#271)"
+)]
 pub type OidcRefreshAccessTokenBuilder = OidcRefreshAccessTokenRequestBuilder;
 
 #[cfg(test)]
@@ -165,23 +167,24 @@ mod tests {
     #[test]
     fn test_oidc_refresh_access_token_builder_refresh_token_chained() {
         let config = create_test_config();
-        let builder =
-            OidcRefreshAccessTokenRequestBuilder::new(config).refresh_token("chained_refresh_token");
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config)
+            .refresh_token("chained_refresh_token");
         assert_eq!(builder.refresh_token, "chained_refresh_token");
     }
 
     #[test]
     fn test_oidc_refresh_access_token_builder_client_id_chained() {
         let config = create_test_config();
-        let builder = OidcRefreshAccessTokenRequestBuilder::new(config).client_id("chained_client_id");
+        let builder =
+            OidcRefreshAccessTokenRequestBuilder::new(config).client_id("chained_client_id");
         assert_eq!(builder.client_id, Some("chained_client_id".to_string()));
     }
 
     #[test]
     fn test_oidc_refresh_access_token_builder_client_secret_chained() {
         let config = create_test_config();
-        let builder =
-            OidcRefreshAccessTokenRequestBuilder::new(config).client_secret("chained_client_secret");
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config)
+            .client_secret("chained_client_secret");
         assert_eq!(
             builder.client_secret,
             Some("chained_client_secret".to_string())

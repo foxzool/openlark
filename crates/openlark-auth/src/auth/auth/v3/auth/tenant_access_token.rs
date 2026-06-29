@@ -149,8 +149,8 @@ mod tests {
     #[test]
     fn test_tenant_access_token_builder_app_access_token_chained() {
         let config = create_test_config();
-        let builder =
-            TenantAccessTokenRequestBuilder::new(config).app_access_token("chained_app_access_token");
+        let builder = TenantAccessTokenRequestBuilder::new(config)
+            .app_access_token("chained_app_access_token");
         assert_eq!(builder.app_access_token, "chained_app_access_token");
     }
 
