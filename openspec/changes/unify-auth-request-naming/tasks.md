@@ -12,7 +12,7 @@
 
 ## 2. alias deprecation 测试
 
-- [ ] 2.1 app_access_token.rs 追加 alias 可调用测试（`#[allow(deprecated)]`）+ 新名无 warning 测试
+- [x] 2.1 app_access_token.rs 追加 alias 可调用测试（`#[allow(deprecated)]`）+ 新名无 warning 测试
 
 ## 3. CHANGELOG
 

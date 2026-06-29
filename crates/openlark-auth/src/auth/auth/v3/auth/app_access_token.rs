@@ -233,6 +233,34 @@ mod tests {
         assert_eq!(received_requests.len(), 1);
         assert!(!received_requests[0].headers.contains_key("authorization"));
     }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_app_access_token_legacy_alias_still_callable() {
+        // 旧名 alias 经 deprecated type alias 解析到新类型的方法，
+        // 必须仍可调用（源码兼容），仅在编译期产生 deprecation warning。
+        let config = create_test_config();
+        let builder = AppAccessTokenBuilder::new(config)
+            .app_id("legacy")
+            .app_secret("legacy_secret")
+            .app_ticket("legacy_ticket");
+        assert_eq!(builder.app_id, "legacy");
+        assert_eq!(builder.app_secret, "legacy_secret");
+        assert_eq!(builder.app_ticket, "legacy_ticket");
+    }
+
+    #[test]
+    fn test_app_access_token_new_name_no_deprecation() {
+        // 新名正常调用，无 deprecation warning。
+        let config = create_test_config();
+        let builder = AppAccessTokenRequestBuilder::new(config)
+            .app_id("new")
+            .app_secret("new_secret")
+            .app_ticket("new_ticket");
+        assert_eq!(builder.app_id, "new");
+        assert_eq!(builder.app_secret, "new_secret");
+        assert_eq!(builder.app_ticket, "new_ticket");
+    }
 }
 
 /// 旧名兼容别名（将在 v1.0 移除）
