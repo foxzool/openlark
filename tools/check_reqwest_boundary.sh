@@ -10,6 +10,8 @@
 #
 # 被 justfile (just reqwest-boundary) 与 .github/workflows/ci.yml (lint job) 调用。
 set -euo pipefail
+# 空 glob 不展开成字面量（crates/ 为空时循环体不执行，直接 PASS，避免 stderr 噪音）
+shopt -s nullglob
 
 # 例外白名单（精确枚举，不依赖运行时推断）
 ALLOW=(openlark-core openlark-client openlark-webhook)
