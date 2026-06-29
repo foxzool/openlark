@@ -1,0 +1,14 @@
+{
+  "change": "clarify-transport-reqwest-boundary",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "2c2d7bb7ae88f9c5ce371fbb3a243699f48ceff44ec2e3e74f1e0eb2f49fea79",
+  "files": [
+    { "path": "openspec/changes/clarify-transport-reqwest-boundary/proposal.md", "sha256": "9ab91d0ef6a8592aa4c641c47038c29f86c53ced521b71d9ad979f73ff0c28d6" },
+    { "path": "openspec/changes/clarify-transport-reqwest-boundary/design.md", "sha256": "68834e2f6f070190729623c65895045abdc3a3ecc36cf38d719830a74c7ad2c9" },
+    { "path": "openspec/changes/clarify-transport-reqwest-boundary/tasks.md", "sha256": "b55b74b1db33a532ff83c70119da9c626bb31b653a0658d58c759c28e11efa99" },
+    { "path": "openspec/changes/clarify-transport-reqwest-boundary/specs/transport-reqwest-boundary/spec.md", "sha256": "f34c6b1336f78686f32a04e84a2777c0dd19f0b2ce741ecb0865693fe28e0cec" }
+  ]
+}
