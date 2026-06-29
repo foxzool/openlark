@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: build
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,7 +12,7 @@ auto_transition: true
 base_ref: ee2a7a8b8c3be85622b935df6546bbd7037283d4
 design_doc: docs/superpowers/specs/2026-06-29-transport-reqwest-boundary-design.md
 plan: docs/superpowers/plans/2026-06-29-clarify-transport-reqwest-boundary.md
-verify_result: pending
+verify_result: fail
 verification_report: docs/superpowers/reports/2026-06-29-clarify-transport-reqwest-boundary-verify.md
 branch_status: handled
 created_at: 2026-06-29
