@@ -20,7 +20,7 @@
 
 ## 4. 全量验证
 
-- [ ] 4.1 `cargo build --workspace --all-features` exit 0
-- [ ] 4.2 三组 feature clippy（default / `--all-features` / `--no-default-features` + `-D warnings`）均 exit 0
-- [ ] 4.3 `cargo test -p openlark-auth` 全部通过（0 failed）
-- [ ] 4.4 alias warning 实证（旧名 → 成功+warning；新名 → 成功无 warning）+ grep 确认 12 RequestBuilder struct + 12 deprecated alias + AuthorizationUrlBuilder 未动
+- [x] 4.1 `cargo build --workspace --all-features` exit 0
+- [x] 4.2 三组 feature clippy（default / `--all-features` / `--no-default-features` + `-D warnings`）均 exit 0
+- [x] 4.3 `cargo test -p openlark-auth` 全部通过（0 failed）
+- [x] 4.4 alias warning 实证（旧名 → 成功+warning；新名 → 成功无 warning）+ grep 确认 12 RequestBuilder struct + 12 deprecated alias + AuthorizationUrlBuilder 未动
