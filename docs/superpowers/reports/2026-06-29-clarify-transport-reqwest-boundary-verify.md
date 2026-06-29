@@ -80,3 +80,19 @@
 - `cargo test --workspace` → 0 failed（Task 7，同源码状态）
 
 注：verify 阶段无 .rs 业务逻辑改动（仅守卫脚本 nullglob + Cargo.lock + 文档/状态），Task 7 的 clippy/test 在相同源码提交运行，结果有效。
+
+---
+
+## CI 修复迭代（post-verify，PR #279 推送后）
+
+PR 推送后 CI 暴露 2 个失败 job，均非 change 逻辑缺陷，已修复并复测通过：
+
+| job | 根因 | 修复 | CI 结果 |
+|------|------|------|---------|
+| `lint` | `cargo fmt --check` 失败：`communication/.../moderation/get.rs:9` 一处 `use` rustfmt 想折叠（rustfmt 版本漂移，该文件不在本 change diff 内，预存性质） | `cargo fmt --all`（1 行折叠，零行为变化） | ✅ pass |
+| `msrv` | CI msrv job 用 pinned `.github/msrv/Cargo.lock`（`cp` 覆盖仓库 lock 后 `--locked`），与本 change 删 reqwest 后的 Cargo.toml mismatch | 同步移除 `.github/msrv/Cargo.lock` 中 12 业务 crate 的 reqwest 依赖行（保留 core/client/webhook + 所有版本） | ✅ pass |
+
+**关键学习**：本仓库 CI msrv 用独立 pinned lockfile `.github/msrv/Cargo.lock`——**任何删/改依赖的 change 必须同时更新仓库 `Cargo.lock` 与 `.github/msrv/Cargo.lock`**，否则 msrv `--locked` 必失败。
+
+验证：`rust:1.88` linux 容器（装 protoc）复现 CI 确切序列 `cp .github/msrv/Cargo.lock Cargo.lock && cargo check --workspace --all-features --locked` → Finished exit 0。修复后 CI lint + msrv 均 pass，无 fail job。
+
