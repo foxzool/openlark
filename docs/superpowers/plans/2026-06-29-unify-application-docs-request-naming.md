@@ -2,6 +2,7 @@
 change: unify-application-docs-request-naming
 design-doc: docs/superpowers/specs/2026-06-29-unify-application-docs-request-naming-design.md
 base-ref: 1ca5d9e0fe9ca2a9e8c6e8855cb3a6dbae60cf30
+archived-with: 2026-06-29-unify-application-docs-request-naming
 ---
 
 # unify-application-docs-request-naming 实施计划（#271 application+docs 批次）

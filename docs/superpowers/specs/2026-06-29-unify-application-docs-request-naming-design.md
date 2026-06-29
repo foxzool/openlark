@@ -2,6 +2,8 @@
 comet_change: unify-application-docs-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-29-unify-application-docs-request-naming
+status: final
 ---
 
 # Design — unify-application-docs-request-naming（#271 application+docs 批次）
