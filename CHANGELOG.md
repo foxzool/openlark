@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **application+docs 请求类型统一 `RequestBuilder` 后缀**（#271 批次，软 breaking）：
+  openlark-application 的 3 个（`AccessDataSearchBlock`/`AccessDataSearchCustom`/`AccessDataSearchWorkplace`）
+  与 openlark-docs 的 1 个（`PatchFormFieldQuestion`）请求 builder `XxxBuilder` 重命名为
+  `XxxRequestBuilder`，旧名作 `#[deprecated]` type alias 保留至 v1.0。body 模型不动；
+  `RecordFieldsBuilder`（真 builder）不动。迁移：`XxxBuilder` → `XxxRequestBuilder`。
+
 - **auth 请求类型统一 `RequestBuilder` 后缀**（#271 pilot，软 breaking）：openlark-auth 的
   12 个请求类型 builder `XxxBuilder` 重命名为规范 `XxxRequestBuilder`，旧名作 `#[deprecated]`
   type alias 保留至 v1.0（调用方用旧名仍可编译，仅 deprecation warning）。涉及

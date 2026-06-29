@@ -29,8 +29,8 @@ pub use app::{
     ListFieldResponse, ListFormFieldQuestionRequest, ListFormFieldQuestionResponse,
     ListRecordRequest, ListRecordResponse, ListRoleMembersRequest, ListRoleMembersResponse,
     ListTablesRequest, ListTablesResponse, ListViewsRequest, ListViewsResponse,
-    ListWorkflowRequest, ListWorkflowResponse, PatchFormFieldQuestionBuilder,
-    PatchFormFieldQuestionRequest, PatchFormFieldQuestionResponse, PatchFormFieldRequest,
+    ListWorkflowRequest, ListWorkflowResponse, PatchFormFieldQuestionRequest,
+    PatchFormFieldQuestionRequestBuilder, PatchFormFieldQuestionResponse, PatchFormFieldRequest,
     PatchFormRequest, PatchFormResponse, PatchTableRequest, PatchTableResponse, PatchViewData,
     PatchViewRequest, PatchViewResponse, PatchedFormFieldQuestion, Person, Record, Role,
     RoleMemberId, RoleMemberIdType, RoleMemberInfo, RoleMemberType, SearchRecordRequest,
@@ -40,6 +40,10 @@ pub use app::{
     UpdateRecordRequest, UpdateRecordResponse, UpdateWorkflowBody, UpdateWorkflowRequest,
     UpdateWorkflowResponse, View, Workflow, WorkflowStatus,
 };
+
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use app::PatchFormFieldQuestionBuilder;
 // field_types 模块显式导出
 /// 重新导出相关类型。
 pub use field_types::{
