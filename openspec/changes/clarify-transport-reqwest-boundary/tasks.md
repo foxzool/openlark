@@ -10,7 +10,7 @@
 
 ## 2. 防回归守卫脚本
 
-- [ ] 2.1 新增 `tools/check_reqwest_boundary.sh`：遍历 `crates/openlark-*/`，白名单 {core,client,webhook}，业务 crate Cargo.toml 出现 reqwest 则 exit 1 + 列违规项；`set -euo pipefail` + ✅/❌ 风格对齐 `check_no_dead_code_allows.sh`。验证：清理后 exit 0 + 构造违规能抓回归（exit 1）
+- [x] 2.1 新增 `tools/check_reqwest_boundary.sh`：遍历 `crates/openlark-*/`，白名单 {core,client,webhook}，业务 crate Cargo.toml 出现 reqwest 则 exit 1 + 列违规项；`set -euo pipefail` + ✅/❌ 风格对齐 `check_no_dead_code_allows.sh`。验证：清理后 exit 0 + 构造违规能抓回归（exit 1）
 
 ## 3. 守卫接入 justfile 与 CI
 
