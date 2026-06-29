@@ -26,3 +26,10 @@
 ## 5. CHANGELOG
 
 - [x] 5.1 CHANGELOG `[Unreleased] > Breaking Changes` 加条目 + 两步迁移指引（先 `AppAccessTokenBuilder` 取 app_access_token，再传入 `TenantAccessTokenBuilder`）
+
+## 6. 代码审查（review_mode: standard）
+
+- [x] 6.1 requesting-code-review subagent 审查 `db6d9ed704..927e4957a`：**Ready to merge: Yes**。Critical 0 / Important 0 / Minor 2。
+  - Minor #1（已修）：`#[allow(unused_imports)]` 于 tests mod 现 redundant（legacy 测试删除后所有 import 都被用到）→ 已移除，clippy `-Dwarnings` 验证无 unused-import 提示。
+  - Minor #2（接受，不修）：CHANGELOG 无 since 注脚。原 `#[deprecated]` 确无 since 字段，编造版本不准确；且与兄弟 breaking 条目 house style 一致。接受理由：条目本身准确，无需 fabricate 版本。
+
