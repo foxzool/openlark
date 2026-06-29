@@ -14,7 +14,7 @@
 
 ## 3. 守卫接入 justfile 与 CI
 
-- [ ] 3.1 justfile 加 `reqwest-boundary` recipe（平行 `no-dead-code-allows`，line 17-19 后）；ci.yml lint job 加一步「Check Transport/reqwest boundary」（line 115-116 后）。验证：`just reqwest-boundary` 通过 + ci.yml YAML 合法
+- [x] 3.1 justfile 加 `reqwest-boundary` recipe（平行 `no-dead-code-allows`，line 17-19 后）；ci.yml lint job 加一步「Check Transport/reqwest boundary」（line 115-116 后）。验证：`just reqwest-boundary` 通过 + ci.yml YAML 合法
 
 ## 4. 边界文档化（ARCHITECTURE.md）
 

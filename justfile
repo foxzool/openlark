@@ -18,6 +18,11 @@ no-dead-code-allows:
   @echo "🛡️ Checking no #[allow(dead_code)] in non-test code..."
   @bash tools/check_no_dead_code_allows.sh
 
+# Check Transport/reqwest boundary (issue #270 防复发)
+reqwest-boundary:
+  @echo "🛡️ Checking Transport/reqwest boundary (no reqwest in business crates)..."
+  @bash tools/check_reqwest_boundary.sh
+
 # Run tests
 test:
   @echo "🧪 Running tests..."
