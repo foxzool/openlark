@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: db6d9ed704cfaa28bc52f26f66944e3ae2f75c8b
 design_doc: docs/superpowers/specs/2026-06-29-remove-deprecated-tenant-token-legacy-chain-design.md
 plan: docs/superpowers/plans/2026-06-29-remove-deprecated-tenant-token-legacy-chain.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-29-remove-deprecated-tenant-token-legacy-chain-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-06-29
-verified_at: null
+verified_at: 2026-06-29
 archived: false
 handoff_context: openspec/changes/remove-deprecated-tenant-token-legacy-chain/.comet/handoff/design-context.json
 handoff_hash: 81743668119a1c2a9f21c6266c2c9880d5f53c895cec677259b65d12719cc1d5
