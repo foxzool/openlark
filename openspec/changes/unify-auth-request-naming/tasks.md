@@ -16,7 +16,7 @@
 
 ## 3. CHANGELOG
 
-- [ ] 3.1 CHANGELOG v0.18 Breaking Changes 段记录 12 个重命名（→RequestBuilder）+ `#[deprecated]` alias + body 模型不动 + 撞名发现说明 + v1.0 移除指引
+- [x] 3.1 CHANGELOG v0.18 Breaking Changes 段记录 12 个重命名（→RequestBuilder）+ `#[deprecated]` alias + body 模型不动 + 撞名发现说明 + v1.0 移除指引
 
 ## 4. 全量验证
 
