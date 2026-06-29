@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed deprecated im::im 嵌套别名**：移除 `im::im` 旧嵌套路径别名（deprecated since 0.15.0）→ 迁移
   `im::im::v1` / `im::im::v2` → `im::v1` / `im::v2`。关联 #278（F）。
 
+- **Removed deprecated tenant_access_token legacy 链**：移除 `TenantAccessTokenBuilder`
+  的 `app_id`/`app_secret`/`app_ticket` 旧链式入口及两步换取逻辑（deprecated legacy
+  chain）→ 迁移：先 `AppAccessTokenBuilder` 取 `app_access_token`，再
+  `TenantAccessTokenBuilder::new(config).app_access_token(..).tenant_key(..)`。关联 #278。
+
 - **Removed docs deprecated 方法**：移除 `RecordFieldValue::to_value()`（deprecated since 0.15.0，→ 直接用 `RecordFieldValue` 类型）与 `impl_required_builder!` 宏生成的 `new()`（deprecated since 0.5.0，→ 用 `builder()`）。均零调用/dead。关联 #278（D+C 子集）。
 
 - **Removed deprecated 兼容访问器**：移除 `Hr` 的 8 个 service 访问器方法
