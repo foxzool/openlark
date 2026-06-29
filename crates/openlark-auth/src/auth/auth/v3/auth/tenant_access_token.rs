@@ -107,6 +107,10 @@ impl TenantAccessTokenRequestBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TenantAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TenantAccessTokenBuilder = TenantAccessTokenRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,7 +216,3 @@ mod tests {
         assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to TenantAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
-pub type TenantAccessTokenBuilder = TenantAccessTokenRequestBuilder;

@@ -116,6 +116,10 @@ impl AppAccessTokenRequestBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AppAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AppAccessTokenBuilder = AppAccessTokenRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -262,7 +266,3 @@ mod tests {
         assert_eq!(builder.app_ticket, "new_ticket");
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to AppAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
-pub type AppAccessTokenBuilder = AppAccessTokenRequestBuilder;

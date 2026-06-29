@@ -133,6 +133,10 @@ impl OidcAccessTokenRequestBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to OidcAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type OidcAccessTokenBuilder = OidcAccessTokenRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -294,7 +298,3 @@ mod tests {
         );
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to OidcAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
-pub type OidcAccessTokenBuilder = OidcAccessTokenRequestBuilder;

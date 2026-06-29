@@ -61,6 +61,10 @@ pub struct VerificationGetResponse {
 
 impl ApiResponseTrait for VerificationGetResponse {}
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to VerificationGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type VerificationGetBuilder = VerificationGetRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -83,7 +87,3 @@ mod tests {
         assert!(parsed.is_verified);
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to VerificationGetRequestBuilder, will be removed in v1.0 (#271)")]
-pub type VerificationGetBuilder = VerificationGetRequestBuilder;

@@ -120,6 +120,10 @@ impl UserAccessTokenV1RequestBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)")]
+pub type UserAccessTokenV1Builder = UserAccessTokenV1RequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -244,7 +248,3 @@ mod tests {
         assert_eq!(response.data.refresh_token, Some("ur-token".to_string()));
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to UserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)")]
-pub type UserAccessTokenV1Builder = UserAccessTokenV1RequestBuilder;

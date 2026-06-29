@@ -176,6 +176,10 @@ impl IdentityCreateRequestBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to IdentityCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type IdentityCreateBuilder = IdentityCreateRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,7 +245,3 @@ mod tests {
         assert_eq!(builder.mobile.as_deref(), Some("13xxxxxxx"));
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to IdentityCreateRequestBuilder, will be removed in v1.0 (#271)")]
-pub type IdentityCreateBuilder = IdentityCreateRequestBuilder;

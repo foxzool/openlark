@@ -120,6 +120,10 @@ impl UserInfoService {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UserInfoRequestBuilder, will be removed in v1.0 (#271)")]
+pub type UserInfoBuilder = UserInfoRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -303,7 +307,3 @@ mod tests {
         assert!(received_requests.is_empty());
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to UserInfoRequestBuilder, will be removed in v1.0 (#271)")]
-pub type UserInfoBuilder = UserInfoRequestBuilder;

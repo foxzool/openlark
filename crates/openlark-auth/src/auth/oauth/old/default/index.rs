@@ -189,6 +189,10 @@ impl OAuthServiceOld {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuthorizationRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuthorizationBuilder = AuthorizationRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -208,7 +212,3 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
-
-/// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to AuthorizationRequestBuilder, will be removed in v1.0 (#271)")]
-pub type AuthorizationBuilder = AuthorizationRequestBuilder;
