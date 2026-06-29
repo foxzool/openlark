@@ -26,7 +26,7 @@
 
 ## 6. CHANGELOG
 
-- [ ] 6.1 在 CHANGELOG.md `[Unreleased]`（v0.18 待发段）`### Changed` 下补 hygiene 条目：移除 12 业务 crate 未用 reqwest 依赖 + 清 machete ignore 债务 + 新增 `check_reqwest_boundary.sh` 守卫（非 breaking）
+- [x] 6.1 在 CHANGELOG.md `[Unreleased]`（v0.18 待发段）`### Changed` 下补 hygiene 条目：移除 12 业务 crate 未用 reqwest 依赖 + 清 machete ignore 债务 + 新增 `check_reqwest_boundary.sh` 守卫（非 breaking）
 
 ## 7. 全量验证
 

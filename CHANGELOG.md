@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI 防复发**：`lint` job 新增 `tools/check_no_dead_code_allows.sh` 检查，禁止非测试代码
   引入 `#[allow(dead_code)]`（本地 `just no-dead-code-allows`）；`#[expect(dead_code)]` 为
   受控的预期死代码豁免。闭环 #267。
+- **Transport 边界 hygiene**：移除 12 个业务 crate（analytics/auth/bot/application/
+  communication/mail/hr/docs/helpdesk/platform/user/workflow）未用的 `reqwest` 依赖声明，
+  并清除这些 crate 的 `[package.metadata.cargo-machete] ignored` 列表里对应的 `"reqwest"`
+  项（此前用 ignore 列表承认债务而非删除，是 `cargo machete` 假阴性根因）。
+  业务 crate 经 core `Transport<T>` 发请求、源码 0 处直接使用 reqwest（#270 实证）。
+  保留例外：`openlark-core`（抽象本体）/ `openlark-client`（装配 + websocket）/ `openlark-webhook`
+  （by-design 连接池复用例外，见 ARCHITECTURE.md「Transport HTTP 边界」）。新增
+  `tools/check_reqwest_boundary.sh` 守卫并接入 just 与 CI lint job 防回归。
+  **非 breaking**：不改公开 API（业务 crate 无 re-export reqwest）。
 
 ### Breaking Changes
 
