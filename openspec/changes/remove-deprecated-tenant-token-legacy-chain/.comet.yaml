@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,13 +7,13 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: db6d9ed704cfaa28bc52f26f66944e3ae2f75c8b
 design_doc: docs/superpowers/specs/2026-06-29-remove-deprecated-tenant-token-legacy-chain-design.md
 plan: docs/superpowers/plans/2026-06-29-remove-deprecated-tenant-token-legacy-chain.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-06-29-remove-deprecated-tenant-token-legacy-chain-verify.md
 branch_status: pending
 created_at: 2026-06-29
 verified_at: null
