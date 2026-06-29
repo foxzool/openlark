@@ -235,7 +235,9 @@ impl ApiResponseTrait for PatchFormFieldQuestionResponse {
 }
 
 /// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to PatchFormFieldQuestionRequestBuilder, will be removed in v1.0 (#271)")]
+#[deprecated(
+    note = "renamed to PatchFormFieldQuestionRequestBuilder, will be removed in v1.0 (#271)"
+)]
 pub type PatchFormFieldQuestionBuilder = PatchFormFieldQuestionRequestBuilder;
 
 #[cfg(test)]

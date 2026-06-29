@@ -43,6 +43,10 @@ pub use create::{
     CreateTableRequest, CreateTableResponse, FieldDescription, TableData, TableField,
 };
 
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use form::PatchFormFieldQuestionBuilder;
+
 /// 重新导出相关类型。
 pub use delete::{DeleteTableRequest, DeleteTableResponse};
 
@@ -80,9 +84,10 @@ pub use record::{
 /// 重新导出相关类型。
 pub use form::{
     Form, FormFieldQuestion, GetFormRequest, GetFormResponse, ListFormFieldQuestionRequest,
-    ListFormFieldQuestionResponse, PatchFormFieldQuestionBuilder, PatchFormFieldQuestionRequest,
-    PatchFormFieldQuestionResponse, PatchFormFieldRequest, PatchFormRequest, PatchFormResponse,
-    PatchedFormFieldQuestion, UpgradeFormRequest, UpgradeFormResponse, UpgradedForm,
+    ListFormFieldQuestionResponse, PatchFormFieldQuestionRequest,
+    PatchFormFieldQuestionRequestBuilder, PatchFormFieldQuestionResponse, PatchFormFieldRequest,
+    PatchFormRequest, PatchFormResponse, PatchedFormFieldQuestion, UpgradeFormRequest,
+    UpgradeFormResponse, UpgradedForm,
 };
 
 /// 重新导出相关类型。

@@ -101,7 +101,9 @@ pub struct WorkplaceAccessData {
 impl ApiResponseTrait for AccessDataSearchWorkplaceResponse {}
 
 /// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to AccessDataSearchWorkplaceRequestBuilder, will be removed in v1.0 (#271)")]
+#[deprecated(
+    note = "renamed to AccessDataSearchWorkplaceRequestBuilder, will be removed in v1.0 (#271)"
+)]
 pub type AccessDataSearchWorkplaceBuilder = AccessDataSearchWorkplaceRequestBuilder;
 
 #[cfg(test)]

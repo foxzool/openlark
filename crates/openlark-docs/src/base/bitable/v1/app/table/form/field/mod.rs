@@ -15,6 +15,10 @@ pub use models::PatchFormFieldRequest;
 // patch 模块显式导出
 /// 重新导出相关类型。
 pub use patch::{
-    PatchFormFieldQuestionBuilder, PatchFormFieldQuestionRequest, PatchFormFieldQuestionResponse,
-    PatchedFormFieldQuestion,
+    PatchFormFieldQuestionRequest, PatchFormFieldQuestionRequestBuilder,
+    PatchFormFieldQuestionResponse, PatchedFormFieldQuestion,
 };
+
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use patch::PatchFormFieldQuestionBuilder;

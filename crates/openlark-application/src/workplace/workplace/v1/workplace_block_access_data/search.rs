@@ -107,7 +107,9 @@ pub struct BlockAccessData {
 impl ApiResponseTrait for AccessDataSearchBlockResponse {}
 
 /// 旧名兼容别名（将在 v1.0 移除）
-#[deprecated(note = "renamed to AccessDataSearchBlockRequestBuilder, will be removed in v1.0 (#271)")]
+#[deprecated(
+    note = "renamed to AccessDataSearchBlockRequestBuilder, will be removed in v1.0 (#271)"
+)]
 pub type AccessDataSearchBlockBuilder = AccessDataSearchBlockRequestBuilder;
 
 #[cfg(test)]
