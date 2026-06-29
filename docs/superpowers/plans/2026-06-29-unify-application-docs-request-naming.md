@@ -29,21 +29,21 @@ base-ref: 1ca5d9e0fe9ca2a9e8c6e8855cb3a6dbae60cf30
 
 ## Task 1：4 类型重命名 + alias + re-export
 
-- [ ] **Step 1:** application 3 个 search.rs：各 `pub struct XxxBuilder`+`impl` → `XxxRequestBuilder`，文件内 `XxxBuilder::` 引用（含测试）同步；在 `#[cfg(test)]` 前加 `#[deprecated(note="renamed to XxxRequestBuilder, will be removed in v1.0 (#271)")] pub type XxxBuilder = XxxRequestBuilder;`
-- [ ] **Step 2:** docs patch.rs：`PatchFormFieldQuestionBuilder` → `PatchFormFieldQuestionRequestBuilder`（struct+impl+测试），`#[cfg(test)]` 前加 alias
-- [ ] **Step 3:** docs/base/bitable/mod.rs re-export 双块：`pub use ...::PatchFormFieldQuestionRequestBuilder;` + `#[allow(deprecated)] pub use ...::PatchFormFieldQuestionBuilder;`
-- [ ] **Step 4:** 增量验证 `cargo build -p openlark-application -p openlark-docs` exit 0
-- [ ] **Step 5:** commit
+- [x] **Step 1:** application 3 个 search.rs：各 `pub struct XxxBuilder`+`impl` → `XxxRequestBuilder`，文件内 `XxxBuilder::` 引用（含测试）同步；在 `#[cfg(test)]` 前加 `#[deprecated(note="renamed to XxxRequestBuilder, will be removed in v1.0 (#271)")] pub type XxxBuilder = XxxRequestBuilder;`
+- [x] **Step 2:** docs patch.rs：`PatchFormFieldQuestionBuilder` → `PatchFormFieldQuestionRequestBuilder`（struct+impl+测试），`#[cfg(test)]` 前加 alias
+- [x] **Step 3:** docs/base/bitable/mod.rs re-export 双块：`pub use ...::PatchFormFieldQuestionRequestBuilder;` + `#[allow(deprecated)] pub use ...::PatchFormFieldQuestionBuilder;`
+- [x] **Step 4:** 增量验证 `cargo build -p openlark-application -p openlark-docs` exit 0
+- [x] **Step 5:** commit
 
 ## Task 2：全量验证
 
-- [ ] **Step 1:** `cargo build --workspace --all-features` exit 0
-- [ ] **Step 2:** 三组 clippy（default/all/no-default + `-D warnings`）exit 0
-- [ ] **Step 3:** `cargo test -p openlark-application -p openlark-docs` 0 failed
-- [ ] **Step 4:** **`cargo fmt --all -- --check` exit 0**（auth pilot CI 教训）
-- [ ] **Step 5:** grep 确认 4 RequestBuilder struct + 4 deprecated alias + RecordFieldsBuilder 未动
-- [ ] **Step 6:** CHANGELOG v0.18 breaking 段记录 4 个重命名
+- [x] **Step 1:** `cargo build --workspace --all-features` exit 0
+- [x] **Step 2:** 三组 clippy（default/all/no-default + `-D warnings`）exit 0
+- [x] **Step 3:** `cargo test -p openlark-application -p openlark-docs` 0 failed
+- [x] **Step 4:** **`cargo fmt --all -- --check` exit 0**（auth pilot CI 教训）
+- [x] **Step 5:** grep 确认 4 RequestBuilder struct + 4 deprecated alias + RecordFieldsBuilder 未动
+- [x] **Step 6:** CHANGELOG v0.18 breaking 段记录 4 个重命名
 
 ## Task 3：commit + 完成
 
-- [ ] **Step 1:** 提交 CHANGELOG + tasks 勾选
+- [x] **Step 1:** 提交 CHANGELOG + tasks 勾选
