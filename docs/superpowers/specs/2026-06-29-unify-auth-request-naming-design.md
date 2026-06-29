@@ -2,6 +2,8 @@
 comet_change: unify-auth-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-29-unify-auth-request-naming
+status: final
 ---
 
 # Design — unify-auth-request-naming（#271 pilot）

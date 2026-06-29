@@ -2,6 +2,7 @@
 change: unify-auth-request-naming
 design-doc: docs/superpowers/specs/2026-06-29-unify-auth-request-naming-design.md
 base-ref: 6557def919fc4a59d03e664291548d75a01ef4e3
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 # unify-auth-request-naming 实施计划（#271 pilot）
@@ -27,6 +28,7 @@ base-ref: 6557def919fc4a59d03e664291548d75a01ef4e3
 - **库代码禁用** `unwrap()`/`expect()`（既有约定，本次重命名不涉及新增）。
 - **测试不污染输出**：旧名 alias 的 deprecation-warning 测试用 `#[allow(deprecated)]` 标注，避免 `cargo test` 刷屏。
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## 13 个类型旧名 → 新名映射（权威表，后续任务直接引用）
@@ -83,6 +85,7 @@ base-ref: 6557def919fc4a59d03e664291548d75a01ef4e3
 
 **E. 根 crate**：`src/lib.rs:48` 仅 `pub use openlark_auth as auth;`（命名空间 re-export），**不直接再导出 13 个类型名**。→ 无需改根 crate。
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 1: 精确核实可见性与影响面（写代码前的基线）
@@ -129,6 +132,7 @@ Expected: 仅 `pub use openlark_auth as auth;`，无 13 个类型名直接 re-ex
 
 > 核实不通过则停止，回 design 修正；通过则进入 Task 2（不单独 commit 核实）。
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 2: v3 auth 子系统重命名 + alias（5 个类型，批次 1）
@@ -261,6 +265,7 @@ git add crates/openlark-auth/src/auth/auth/v3/auth/ crates/openlark-auth/src/aut
 git commit -m "refactor(auth): v3 auth 5 个请求类型 Builder→Request + #[deprecated] alias（#271 pilot 批次 1）"
 ```
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 3: authen v1 子系统重命名 + alias（5 个类型，批次 2）
@@ -372,6 +377,7 @@ git add crates/openlark-auth/src/auth/authen/
 git commit -m "refactor(auth): authen v1 5 个请求类型 Builder→Request + #[deprecated] alias（#271 pilot 批次 2）"
 ```
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 4: oauth + human_authentication + verification 子系统（3 个类型，批次 3）
@@ -446,6 +452,7 @@ git add crates/openlark-auth/src/auth/oauth/ crates/openlark-auth/src/human_auth
 git commit -m "refactor(auth): oauth/human_authentication/verification 3 个请求类型 Builder→Request + #[deprecated] alias（#271 pilot 批次 3）"
 ```
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 5: alias deprecation warning 行为测试（新增针对性测试）
@@ -504,6 +511,7 @@ git add crates/openlark-auth/src/auth/auth/v3/auth/app_access_token.rs
 git commit -m "test(auth): 覆盖 AppAccessTokenBuilder alias deprecation 行为（#271 pilot）"
 ```
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 6: CHANGELOG v0.18 Breaking Changes 记录
@@ -535,6 +543,7 @@ git add CHANGELOG.md
 git commit -m "docs(changelog): 记录 auth 请求类型 Builder→Request 软 breaking（#271 pilot）"
 ```
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## Task 7: 全量验证（build / clippy×3 / test / alias 实证 / grep）
@@ -604,6 +613,7 @@ Expected: 空输出（13 个旧名已全部从 struct 定义退化为 type alias
 
 若 Step 1-5 全过，本 change 实施完成，进入 verify 阶段（comet-state next）。若任一失败，回对应 Task 用 superpowers:systematic-debugging 定位根因再修，不在此 Task 内盲改。
 
+archived-with: 2026-06-29-unify-auth-request-naming
 ---
 
 ## 自检（Self-Review 结果）

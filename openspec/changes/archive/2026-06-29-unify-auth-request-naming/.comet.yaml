@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-29-unify-auth-request-nami
 branch_status: handled
 created_at: 2026-06-29
 verified_at: 2026-06-29
-archived: false
+archived: true
 handoff_context: openspec/changes/unify-auth-request-naming/.comet/handoff/design-context.json
 handoff_hash: 93e8fde34c33c70c0f347b4d62d46ca321f1a559510dfbe4279667a7fb560303
