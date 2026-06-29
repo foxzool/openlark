@@ -17,7 +17,6 @@ workspace = true
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 tokio = { workspace = true, optional = true }
 tracing = { workspace = true }
 
@@ -40,4 +39,4 @@ board = []
 full = ["v1", "v2", "async", "board"]
 
 [package.metadata.cargo-machete]
-ignored = ["reqwest", "tokio", "tracing"]
+ignored = ["tokio", "tracing"]

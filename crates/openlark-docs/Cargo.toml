@@ -79,7 +79,6 @@ all-cloud-docs = ["full"]
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
@@ -114,4 +113,4 @@ name = "docs_readme_examples"
 required-features = ["baike", "bitable", "ccm-core"]
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "async-trait", "base64", "futures", "futures-util", "once_cell", "rand", "regex", "reqwest", "thiserror", "url", "uuid"]
+ignored = ["anyhow", "async-trait", "base64", "futures", "futures-util", "once_cell", "rand", "regex", "thiserror", "url", "uuid"]
