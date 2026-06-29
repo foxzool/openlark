@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 
 /// 获取认证信息 Builder
 #[derive(Debug, Clone)]
-pub struct VerificationGetBuilder {
+pub struct VerificationGetRequestBuilder {
     config: Config,
 }
 
-impl VerificationGetBuilder {
+impl VerificationGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -83,3 +83,7 @@ mod tests {
         assert!(parsed.is_verified);
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to VerificationGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type VerificationGetBuilder = VerificationGetRequestBuilder;

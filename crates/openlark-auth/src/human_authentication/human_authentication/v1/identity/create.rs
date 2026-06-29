@@ -87,7 +87,7 @@ impl<'de> Deserialize<'de> for IdentityCreateResponse {
 
 /// 录入身份信息 Builder。
 #[derive(Debug, Clone)]
-pub struct IdentityCreateBuilder {
+pub struct IdentityCreateRequestBuilder {
     config: Config,
     user_id: String,
     user_id_type: Option<HumanAuthenticationUserIdType>,
@@ -96,7 +96,7 @@ pub struct IdentityCreateBuilder {
     mobile: Option<String>,
 }
 
-impl IdentityCreateBuilder {
+impl IdentityCreateRequestBuilder {
     /// 创建新的 Builder。
     pub fn new(config: Config) -> Self {
         Self {
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_identity_create_builder_defaults() {
-        let builder = IdentityCreateBuilder::new(Config::default());
+        let builder = IdentityCreateRequestBuilder::new(Config::default());
         assert!(builder.user_id.is_empty());
         assert_eq!(builder.user_id_type, None);
         assert!(builder.identity_name.is_empty());
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_identity_create_builder_chain() {
-        let builder = IdentityCreateBuilder::new(Config::default())
+        let builder = IdentityCreateRequestBuilder::new(Config::default())
             .user_id("ou_xxx")
             .user_id_type(HumanAuthenticationUserIdType::UserId)
             .identity_name("张三")
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_identity_create_legacy_builder_chain_without_user_id() {
-        let builder = IdentityCreateBuilder::new(Config::default())
+        let builder = IdentityCreateRequestBuilder::new(Config::default())
             .identity_name("张三")
             .identity_code("4xxxxxxxx")
             .mobile("13xxxxxxx");
@@ -241,3 +241,7 @@ mod tests {
         assert_eq!(builder.mobile.as_deref(), Some("13xxxxxxx"));
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to IdentityCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type IdentityCreateBuilder = IdentityCreateRequestBuilder;

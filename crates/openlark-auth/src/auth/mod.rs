@@ -9,10 +9,16 @@
 
 #![allow(clippy::module_inception)]
 
-// v3 auth 模块显式导出
+// v3 auth 模块显式导出（新名）
 pub use self::auth::v3::auth::{
-    AppAccessTokenBuilder, AppAccessTokenInternalBuilder, AppTicketResendBuilder, AuthServiceV3,
-    TenantAccessTokenBuilder, TenantAccessTokenInternalRequestBuilder,
+    AppAccessTokenRequestBuilder, AppAccessTokenInternalRequestBuilder, AppTicketResendRequestBuilder,
+    AuthServiceV3, TenantAccessTokenRequestBuilder, TenantAccessTokenInternalRequestBuilder,
+};
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use self::auth::v3::auth::{
+    AppAccessTokenBuilder, AppAccessTokenInternalBuilder, AppTicketResendBuilder,
+    TenantAccessTokenBuilder,
 };
 
 pub mod auth;

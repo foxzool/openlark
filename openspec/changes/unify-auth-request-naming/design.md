@@ -18,10 +18,10 @@ issue #271 要求统一请求类型命名。openlark-auth 的请求类型用 `Bu
 
 ## Decisions
 
-### 决策 1：方向 Builder → Request（非 Request → Builder）
-**选择**：模式 A 的 `XxxBuilder` → `XxxRequest`。
-**理由**：全局 1670 个已是 `Request`（模式 B）+ helpdesk（模式 C）的请求类型也是 `Request`，仅约 167 个模式 A 用 `Builder`。改少数对齐多数，改动面最小。`Request` 更语义化（表明这是 API 请求载体）。
-**备选**：Request → Builder——拒绝，要动 1670+ 个，改动面大 10 倍。
+### 决策 1：方向 Builder → RequestBuilder（build 阶段从「→ Request」修订）
+**选择**：auth 请求 builder 统一 `XxxRequestBuilder`（body 模型保持 `XxxRequest`）。
+**理由**：open/design 原定「→ Request」，但 build 阶段实证发现 **5/13 目标 `XxxRequest` 名与 `crate::models::auth`/`models::authen` 已存在的请求体 body 模型 `XxxRequest` 撞名**（E0255 duplicate）：AppAccessTokenInternal/AppTicketResend/RefreshUserAccessTokenV1/TenantAccessTokenInternal/UserAccessTokenV1 的文件 import 了同名 body。用户确认改为「→ RequestBuilder」——body `XxxRequest` + builder `XxxRequestBuilder` 分离，零撞名，且对齐 helpdesk（47 类型已是此模式）。`TenantAccessTokenInternalRequestBuilder` 已是目标形式（不动）。
+**备选**：A 混合（8 安全→Request、5 撞名→RequestBuilder）——拒绝，同 API 家族命名不一致；D 改 body 模型→XxxRequestBody 保「→Request」——scope 更大。
 
 ### 决策 2：用 `#[deprecated]` type alias 软迁移（非直接硬重命名）
 **选择**：`pub struct XxxRequest { ... }` + `#[deprecated(note = "renamed to XxxRequest, will be removed in v1.0")] pub type XxxBuilder = XxxRequest;`

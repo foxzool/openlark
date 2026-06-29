@@ -11,12 +11,21 @@ mod app_ticket_resend;
 mod tenant_access_token;
 mod tenant_access_token_internal;
 
-// 重新导出各个构建器
-pub use app_access_token::AppAccessTokenBuilder;
-pub use app_access_token_internal::AppAccessTokenInternalBuilder;
-pub use app_ticket_resend::AppTicketResendBuilder;
-pub use tenant_access_token::TenantAccessTokenBuilder;
+// 重新导出各个请求类型（新名）
+pub use app_access_token::AppAccessTokenRequestBuilder;
+pub use app_access_token_internal::AppAccessTokenInternalRequestBuilder;
+pub use app_ticket_resend::AppTicketResendRequestBuilder;
+pub use tenant_access_token::TenantAccessTokenRequestBuilder;
 pub use tenant_access_token_internal::TenantAccessTokenInternalRequestBuilder;
+// 旧名兼容别名（deprecated alias，v1.0 移除；TenantAccessTokenInternalRequestBuilder 已是目标名，无旧别名）
+#[allow(deprecated)]
+pub use app_access_token::AppAccessTokenBuilder;
+#[allow(deprecated)]
+pub use app_access_token_internal::AppAccessTokenInternalBuilder;
+#[allow(deprecated)]
+pub use app_ticket_resend::AppTicketResendBuilder;
+#[allow(deprecated)]
+pub use tenant_access_token::TenantAccessTokenBuilder;
 
 /// Auth v3 API服务
 #[derive(Debug)]
@@ -34,18 +43,18 @@ impl AuthServiceV3 {
     }
 
     /// 商店应用获取app_access_token
-    pub fn app_access_token(&self) -> AppAccessTokenBuilder {
-        AppAccessTokenBuilder::new(self.config.clone())
+    pub fn app_access_token(&self) -> AppAccessTokenRequestBuilder {
+        AppAccessTokenRequestBuilder::new(self.config.clone())
     }
 
     /// 自建应用获取app_access_token
-    pub fn app_access_token_internal(&self) -> AppAccessTokenInternalBuilder {
-        AppAccessTokenInternalBuilder::new(self.config.clone())
+    pub fn app_access_token_internal(&self) -> AppAccessTokenInternalRequestBuilder {
+        AppAccessTokenInternalRequestBuilder::new(self.config.clone())
     }
 
     /// 商店应用获取tenant_access_token
-    pub fn tenant_access_token(&self) -> TenantAccessTokenBuilder {
-        TenantAccessTokenBuilder::new(self.config.clone())
+    pub fn tenant_access_token(&self) -> TenantAccessTokenRequestBuilder {
+        TenantAccessTokenRequestBuilder::new(self.config.clone())
     }
 
     /// 自建应用获取tenant_access_token
@@ -54,8 +63,8 @@ impl AuthServiceV3 {
     }
 
     /// 重新获取app_ticket
-    pub fn app_ticket_resend(&self) -> AppTicketResendBuilder {
-        AppTicketResendBuilder::new(self.config.clone())
+    pub fn app_ticket_resend(&self) -> AppTicketResendRequestBuilder {
+        AppTicketResendRequestBuilder::new(self.config.clone())
     }
 }
 

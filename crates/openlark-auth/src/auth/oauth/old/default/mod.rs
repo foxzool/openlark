@@ -3,4 +3,6 @@
 mod index;
 
 // 重新导出授权构建器和服务
-pub use index::{AuthorizationBuilder, OAuthServiceOld};
+pub use index::{AuthorizationRequestBuilder, OAuthServiceOld};
+#[allow(deprecated)]
+pub use index::AuthorizationBuilder;

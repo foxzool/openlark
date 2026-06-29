@@ -24,7 +24,7 @@ struct TenantAccessTokenBody {
 }
 
 /// 商店应用获取 tenant_access_token 请求
-pub struct TenantAccessTokenBuilder {
+pub struct TenantAccessTokenRequestBuilder {
     app_access_token: String,
     tenant_key: String,
     /// 配置信息
@@ -45,7 +45,7 @@ impl ApiResponseTrait for TenantAccessTokenResponseData {
     }
 }
 
-impl TenantAccessTokenBuilder {
+impl TenantAccessTokenRequestBuilder {
     /// 创建 tenant_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn test_tenant_access_token_builder_new() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config);
+        let builder = TenantAccessTokenRequestBuilder::new(config);
         assert!(builder.app_access_token.is_empty());
         assert!(builder.tenant_key.is_empty());
     }
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_tenant_access_token_builder_chain() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config)
+        let builder = TenantAccessTokenRequestBuilder::new(config)
             .app_access_token("my_app_access_token")
             .tenant_key("my_tenant_key");
         assert_eq!(builder.app_access_token, "my_app_access_token");
@@ -146,14 +146,14 @@ mod tests {
     fn test_tenant_access_token_builder_app_access_token_chained() {
         let config = create_test_config();
         let builder =
-            TenantAccessTokenBuilder::new(config).app_access_token("chained_app_access_token");
+            TenantAccessTokenRequestBuilder::new(config).app_access_token("chained_app_access_token");
         assert_eq!(builder.app_access_token, "chained_app_access_token");
     }
 
     #[test]
     fn test_tenant_access_token_builder_tenant_key_chained() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config).tenant_key("chained_tenant_key");
+        let builder = TenantAccessTokenRequestBuilder::new(config).tenant_key("chained_tenant_key");
         assert_eq!(builder.tenant_key, "chained_tenant_key");
     }
 
@@ -198,7 +198,7 @@ mod tests {
             .base_url(server.uri())
             .build();
 
-        let response = TenantAccessTokenBuilder::new(config)
+        let response = TenantAccessTokenRequestBuilder::new(config)
             .app_access_token("app-token")
             .tenant_key("tenant-001")
             .execute()
@@ -212,3 +212,7 @@ mod tests {
         assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TenantAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TenantAccessTokenBuilder = TenantAccessTokenRequestBuilder;

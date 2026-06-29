@@ -9,7 +9,7 @@ use openlark_core::{SDKResult, config::Config, req_option::RequestOption, valida
 use serde::{Deserialize, Serialize};
 
 /// 授权码请求构建器
-pub struct AuthorizationBuilder {
+pub struct AuthorizationRequestBuilder {
     app_id: String,
     redirect_uri: String,
     scope: Option<String>,
@@ -41,7 +41,7 @@ pub struct AuthorizationUrlResponse {
     pub state: Option<String>,
 }
 
-impl AuthorizationBuilder {
+impl AuthorizationRequestBuilder {
     /// 创建 authorization 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -179,12 +179,12 @@ impl OAuthServiceOld {
     }
 
     /// 获取授权码
-    pub fn authorization(&self) -> AuthorizationBuilder {
-        AuthorizationBuilder::new(self.config.clone())
+    pub fn authorization(&self) -> AuthorizationRequestBuilder {
+        AuthorizationRequestBuilder::new(self.config.clone())
     }
 
     /// 获取登录预授权码（index方法别名）
-    pub fn index(&self) -> AuthorizationBuilder {
+    pub fn index(&self) -> AuthorizationRequestBuilder {
         self.authorization()
     }
 }
@@ -208,3 +208,7 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuthorizationRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuthorizationBuilder = AuthorizationRequestBuilder;

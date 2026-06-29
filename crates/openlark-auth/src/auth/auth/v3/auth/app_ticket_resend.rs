@@ -18,7 +18,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 重新获取 app_ticket 请求
-pub struct AppTicketResendBuilder {
+pub struct AppTicketResendRequestBuilder {
     app_id: String,
     app_secret: String,
     /// 配置信息
@@ -39,7 +39,7 @@ impl ApiResponseTrait for AppTicketResendResponseData {
     }
 }
 
-impl AppTicketResendBuilder {
+impl AppTicketResendRequestBuilder {
     /// 创建 app_ticket_resend 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn test_app_ticket_resend_builder_new() {
         let config = create_test_config();
-        let builder = AppTicketResendBuilder::new(config);
+        let builder = AppTicketResendRequestBuilder::new(config);
         assert!(builder.app_id.is_empty());
         assert!(builder.app_secret.is_empty());
     }
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_app_ticket_resend_builder_chain() {
         let config = create_test_config();
-        let builder = AppTicketResendBuilder::new(config)
+        let builder = AppTicketResendRequestBuilder::new(config)
             .app_id("my_app_id")
             .app_secret("my_app_secret");
         assert_eq!(builder.app_id, "my_app_id");
@@ -176,7 +176,7 @@ mod tests {
             .base_url(server.uri())
             .build();
 
-        let response = AppTicketResendBuilder::new(config)
+        let response = AppTicketResendRequestBuilder::new(config)
             .app_id("test_app")
             .app_secret("test_secret")
             .execute()
@@ -191,3 +191,7 @@ mod tests {
         assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AppTicketResendRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AppTicketResendBuilder = AppTicketResendRequestBuilder;
