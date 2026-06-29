@@ -17,7 +17,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取用户信息请求
-pub struct UserInfoBuilder {
+pub struct UserInfoRequestBuilder {
     user_access_token: String,
     user_id_type: Option<String>,
     /// 配置信息
@@ -37,7 +37,7 @@ impl ApiResponseTrait for UserInfoResponseData {
     }
 }
 
-impl UserInfoBuilder {
+impl UserInfoRequestBuilder {
     /// 创建 user_info 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -115,10 +115,14 @@ impl UserInfoService {
     }
 
     /// 获取用户信息
-    pub fn get(&self) -> UserInfoBuilder {
-        UserInfoBuilder::new(self.config.clone())
+    pub fn get(&self) -> UserInfoRequestBuilder {
+        UserInfoRequestBuilder::new(self.config.clone())
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UserInfoRequestBuilder, will be removed in v1.0 (#271)")]
+pub type UserInfoBuilder = UserInfoRequestBuilder;
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -141,7 +145,7 @@ mod tests {
     #[test]
     fn test_user_info_builder_new() {
         let config = create_test_config();
-        let builder = UserInfoBuilder::new(config);
+        let builder = UserInfoRequestBuilder::new(config);
         assert!(builder.user_access_token.is_empty());
         assert!(builder.user_id_type.is_none());
     }
@@ -149,7 +153,7 @@ mod tests {
     #[test]
     fn test_user_info_builder_chain() {
         let config = create_test_config();
-        let builder = UserInfoBuilder::new(config)
+        let builder = UserInfoRequestBuilder::new(config)
             .user_access_token("my_token")
             .user_id_type("open_id");
         assert_eq!(builder.user_access_token, "my_token");
@@ -159,14 +163,14 @@ mod tests {
     #[test]
     fn test_user_info_builder_user_access_token_chained() {
         let config = create_test_config();
-        let builder = UserInfoBuilder::new(config).user_access_token("chained_token");
+        let builder = UserInfoRequestBuilder::new(config).user_access_token("chained_token");
         assert_eq!(builder.user_access_token, "chained_token");
     }
 
     #[test]
     fn test_user_info_builder_user_id_type_chained() {
         let config = create_test_config();
-        let builder = UserInfoBuilder::new(config).user_id_type("union_id");
+        let builder = UserInfoRequestBuilder::new(config).user_id_type("union_id");
         assert_eq!(builder.user_id_type, Some("union_id".to_string()));
     }
 
@@ -260,7 +264,7 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let response = UserInfoBuilder::new(config)
+        let response = UserInfoRequestBuilder::new(config)
             .user_access_token("user_token")
             .user_id_type("open_id")
             .execute()
@@ -296,7 +300,7 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let result = UserInfoBuilder::new(config).execute().await;
+        let result = UserInfoRequestBuilder::new(config).execute().await;
 
         assert!(result.is_err());
         let received_requests = server.received_requests().await.unwrap_or_default();

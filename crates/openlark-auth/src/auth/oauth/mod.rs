@@ -4,6 +4,8 @@
 //! - authorization.v1/index: 获取登录预授权码
 
 // old 模块显式导出
-pub use old::{AuthorizationBuilder, OAuthServiceOld};
+#[allow(deprecated)]
+pub use old::AuthorizationBuilder;
+pub use old::{AuthorizationRequestBuilder, OAuthServiceOld};
 
 pub mod old;

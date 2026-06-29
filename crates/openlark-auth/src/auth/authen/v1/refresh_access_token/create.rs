@@ -18,7 +18,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 用户访问令牌刷新请求（v1版本）
-pub struct RefreshUserAccessTokenV1Builder {
+pub struct RefreshUserAccessTokenV1RequestBuilder {
     refresh_token: String,
     grant_type: String,
     app_id: String,
@@ -41,7 +41,7 @@ impl ApiResponseTrait for RefreshUserAccessTokenV1ResponseData {
     }
 }
 
-impl RefreshUserAccessTokenV1Builder {
+impl RefreshUserAccessTokenV1RequestBuilder {
     /// 创建 refresh_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -116,6 +116,12 @@ impl RefreshUserAccessTokenV1Builder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to RefreshUserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type RefreshUserAccessTokenV1Builder = RefreshUserAccessTokenV1RequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -177,7 +183,7 @@ mod tests {
             .app_access_token("app_token")
             .build();
 
-        let response = RefreshUserAccessTokenV1Builder::new(config)
+        let response = RefreshUserAccessTokenV1RequestBuilder::new(config)
             .refresh_token("old_refresh_token")
             .execute_with_options(option)
             .await

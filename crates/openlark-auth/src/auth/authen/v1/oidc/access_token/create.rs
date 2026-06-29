@@ -17,7 +17,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// OIDC 用户访问令牌请求
-pub struct OidcAccessTokenBuilder {
+pub struct OidcAccessTokenRequestBuilder {
     code: String,
     code_verifier: Option<String>,
     redirect_uri: Option<String>,
@@ -42,7 +42,7 @@ impl ApiResponseTrait for OidcAccessTokenResponseData {
     }
 }
 
-impl OidcAccessTokenBuilder {
+impl OidcAccessTokenRequestBuilder {
     /// 创建 oidc_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -133,6 +133,10 @@ impl OidcAccessTokenBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to OidcAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type OidcAccessTokenBuilder = OidcAccessTokenRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -155,7 +159,7 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_new() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config);
+        let builder = OidcAccessTokenRequestBuilder::new(config);
         assert!(builder.code.is_empty());
         assert!(builder.code_verifier.is_none());
         assert!(builder.redirect_uri.is_none());
@@ -167,7 +171,7 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_chain() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config)
+        let builder = OidcAccessTokenRequestBuilder::new(config)
             .code("my_code")
             .code_verifier("my_verifier")
             .redirect_uri("https://example.com/callback")
@@ -188,21 +192,22 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_code_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config).code("chained_code");
+        let builder = OidcAccessTokenRequestBuilder::new(config).code("chained_code");
         assert_eq!(builder.code, "chained_code");
     }
 
     #[test]
     fn test_oidc_access_token_builder_code_verifier_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config).code_verifier("chained_verifier");
+        let builder = OidcAccessTokenRequestBuilder::new(config).code_verifier("chained_verifier");
         assert_eq!(builder.code_verifier, Some("chained_verifier".to_string()));
     }
 
     #[test]
     fn test_oidc_access_token_builder_redirect_uri_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config).redirect_uri("https://redirect.com");
+        let builder =
+            OidcAccessTokenRequestBuilder::new(config).redirect_uri("https://redirect.com");
         assert_eq!(
             builder.redirect_uri,
             Some("https://redirect.com".to_string())
@@ -212,14 +217,15 @@ mod tests {
     #[test]
     fn test_oidc_access_token_builder_client_id_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config).client_id("chained_client_id");
+        let builder = OidcAccessTokenRequestBuilder::new(config).client_id("chained_client_id");
         assert_eq!(builder.client_id, Some("chained_client_id".to_string()));
     }
 
     #[test]
     fn test_oidc_access_token_builder_client_secret_chained() {
         let config = create_test_config();
-        let builder = OidcAccessTokenBuilder::new(config).client_secret("chained_client_secret");
+        let builder =
+            OidcAccessTokenRequestBuilder::new(config).client_secret("chained_client_secret");
         assert_eq!(
             builder.client_secret,
             Some("chained_client_secret".to_string())
@@ -281,7 +287,7 @@ mod tests {
             .app_access_token("app_token")
             .build();
 
-        let response = OidcAccessTokenBuilder::new(config)
+        let response = OidcAccessTokenRequestBuilder::new(config)
             .code("login_code")
             .execute_with_options(option)
             .await

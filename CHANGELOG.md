@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **auth 请求类型统一 `RequestBuilder` 后缀**（#271 pilot，软 breaking）：openlark-auth 的
+  12 个请求类型 builder `XxxBuilder` 重命名为规范 `XxxRequestBuilder`，旧名作 `#[deprecated]`
+  type alias 保留至 v1.0（调用方用旧名仍可编译，仅 deprecation warning）。涉及
+  `AppAccessToken`/`AppAccessTokenInternal`/`AppTicketResend`/`Authorization`/`IdentityCreate`/
+  `OidcAccessToken`/`OidcRefreshAccessToken`/`RefreshUserAccessTokenV1`/`TenantAccessToken`/
+  `UserAccessTokenV1`/`UserInfo`/`VerificationGet` 各 `Builder` → `RequestBuilder`；
+  `TenantAccessTokenInternalRequestBuilder` 已是目标形式（不动）。body 模型（`XxxRequest`）不动。
+  `AuthorizationUrlBuilder`（URL builder）不动。迁移：`XxxBuilder` → `XxxRequestBuilder`。
+  方向说明：原拟「→Request」，实证发现 5/13 撞 body 模型名，改「→RequestBuilder」对齐 helpdesk。
+  v1.0 移除 alias。
+
 - **Removed deprecated wiki Params**：移除 `SearchWikiParams` / `ListWikiSpacesParams` /
   `CreateWikiSpaceParams` / `MoveDocsToWikiParams`（deprecated since 0.16.0）→ 用对应
   `XxxRequest` 流式 Builder。无生产用法（仅兼容测试，一并删除）。关联 #268（B）。

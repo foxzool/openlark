@@ -1,0 +1,14 @@
+{
+  "change": "unify-auth-request-naming",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "93e8fde34c33c70c0f347b4d62d46ca321f1a559510dfbe4279667a7fb560303",
+  "files": [
+    { "path": "openspec/changes/unify-auth-request-naming/proposal.md", "sha256": "6103d4845788cab33ffbbeb6f04cf6aa60f4d6518b0ecb72feafd4d2b0db927d" },
+    { "path": "openspec/changes/unify-auth-request-naming/design.md", "sha256": "450152796fde478814596d7f7e321b15f9ae0b10fb415143e228771597f46474" },
+    { "path": "openspec/changes/unify-auth-request-naming/tasks.md", "sha256": "c5d2d24f057f44913940352777fb29d5a5aafbc0d8d0668c38c316c24c3b2234" },
+    { "path": "openspec/changes/unify-auth-request-naming/specs/auth-request-naming/spec.md", "sha256": "778a8935f99e7e1a015f5cc658a271ff8511b1414f9e7ddc98f8be7981aeffb2" }
+  ]
+}

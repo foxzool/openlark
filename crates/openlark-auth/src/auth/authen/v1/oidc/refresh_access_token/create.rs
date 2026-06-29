@@ -17,7 +17,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// OIDC 用户访问令牌刷新请求
-pub struct OidcRefreshAccessTokenBuilder {
+pub struct OidcRefreshAccessTokenRequestBuilder {
     refresh_token: String,
     client_id: Option<String>,
     client_secret: Option<String>,
@@ -40,7 +40,7 @@ impl ApiResponseTrait for OidcRefreshAccessTokenResponseData {
     }
 }
 
-impl OidcRefreshAccessTokenBuilder {
+impl OidcRefreshAccessTokenRequestBuilder {
     /// 创建 oidc_refresh_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -115,6 +115,12 @@ impl OidcRefreshAccessTokenBuilder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to OidcRefreshAccessTokenRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type OidcRefreshAccessTokenBuilder = OidcRefreshAccessTokenRequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -137,7 +143,7 @@ mod tests {
     #[test]
     fn test_oidc_refresh_access_token_builder_new() {
         let config = create_test_config();
-        let builder = OidcRefreshAccessTokenBuilder::new(config);
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config);
         assert!(builder.refresh_token.is_empty());
         assert!(builder.client_id.is_none());
         assert!(builder.client_secret.is_none());
@@ -147,7 +153,7 @@ mod tests {
     #[test]
     fn test_oidc_refresh_access_token_builder_chain() {
         let config = create_test_config();
-        let builder = OidcRefreshAccessTokenBuilder::new(config)
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config)
             .refresh_token("my_refresh_token")
             .client_id("my_client_id")
             .client_secret("my_client_secret")
@@ -161,23 +167,24 @@ mod tests {
     #[test]
     fn test_oidc_refresh_access_token_builder_refresh_token_chained() {
         let config = create_test_config();
-        let builder =
-            OidcRefreshAccessTokenBuilder::new(config).refresh_token("chained_refresh_token");
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config)
+            .refresh_token("chained_refresh_token");
         assert_eq!(builder.refresh_token, "chained_refresh_token");
     }
 
     #[test]
     fn test_oidc_refresh_access_token_builder_client_id_chained() {
         let config = create_test_config();
-        let builder = OidcRefreshAccessTokenBuilder::new(config).client_id("chained_client_id");
+        let builder =
+            OidcRefreshAccessTokenRequestBuilder::new(config).client_id("chained_client_id");
         assert_eq!(builder.client_id, Some("chained_client_id".to_string()));
     }
 
     #[test]
     fn test_oidc_refresh_access_token_builder_client_secret_chained() {
         let config = create_test_config();
-        let builder =
-            OidcRefreshAccessTokenBuilder::new(config).client_secret("chained_client_secret");
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config)
+            .client_secret("chained_client_secret");
         assert_eq!(
             builder.client_secret,
             Some("chained_client_secret".to_string())
@@ -187,7 +194,7 @@ mod tests {
     #[test]
     fn test_oidc_refresh_access_token_builder_grant_type_chained() {
         let config = create_test_config();
-        let builder = OidcRefreshAccessTokenBuilder::new(config).grant_type("refresh_token");
+        let builder = OidcRefreshAccessTokenRequestBuilder::new(config).grant_type("refresh_token");
         assert_eq!(builder.grant_type, Some("refresh_token".to_string()));
     }
 
@@ -246,7 +253,7 @@ mod tests {
             .app_access_token("app_token")
             .build();
 
-        let response = OidcRefreshAccessTokenBuilder::new(config)
+        let response = OidcRefreshAccessTokenRequestBuilder::new(config)
             .refresh_token("old_oidc_refresh_token")
             .execute_with_options(option)
             .await

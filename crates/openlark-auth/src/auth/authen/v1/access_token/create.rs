@@ -17,7 +17,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 用户访问令牌请求（v1版本）
-pub struct UserAccessTokenV1Builder {
+pub struct UserAccessTokenV1RequestBuilder {
     grant_code: String,
     grant_type: String,
     app_id: String,
@@ -40,7 +40,7 @@ impl ApiResponseTrait for UserAccessTokenV1ResponseData {
     }
 }
 
-impl UserAccessTokenV1Builder {
+impl UserAccessTokenV1RequestBuilder {
     /// 创建 access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -120,6 +120,10 @@ impl UserAccessTokenV1Builder {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UserAccessTokenV1RequestBuilder, will be removed in v1.0 (#271)")]
+pub type UserAccessTokenV1Builder = UserAccessTokenV1RequestBuilder;
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
@@ -142,7 +146,7 @@ mod tests {
     #[test]
     fn test_user_access_token_v1_builder_new() {
         let config = create_test_config();
-        let builder = UserAccessTokenV1Builder::new(config);
+        let builder = UserAccessTokenV1RequestBuilder::new(config);
         assert!(builder.grant_code.is_empty());
         assert!(builder.app_id.is_empty());
         assert!(builder.app_secret.is_empty());
@@ -151,7 +155,7 @@ mod tests {
     #[test]
     fn test_user_access_token_v1_builder_chain() {
         let config = create_test_config();
-        let builder = UserAccessTokenV1Builder::new(config)
+        let builder = UserAccessTokenV1RequestBuilder::new(config)
             .grant_code("my_grant_code")
             .app_id("my_app_id")
             .app_secret("my_app_secret");
@@ -163,21 +167,21 @@ mod tests {
     #[test]
     fn test_user_access_token_v1_builder_grant_code_chained() {
         let config = create_test_config();
-        let builder = UserAccessTokenV1Builder::new(config).grant_code("chained_grant_code");
+        let builder = UserAccessTokenV1RequestBuilder::new(config).grant_code("chained_grant_code");
         assert_eq!(builder.grant_code, "chained_grant_code");
     }
 
     #[test]
     fn test_user_access_token_v1_builder_app_id_chained() {
         let config = create_test_config();
-        let builder = UserAccessTokenV1Builder::new(config).app_id("chained_app_id");
+        let builder = UserAccessTokenV1RequestBuilder::new(config).app_id("chained_app_id");
         assert_eq!(builder.app_id, "chained_app_id");
     }
 
     #[test]
     fn test_user_access_token_v1_builder_app_secret_chained() {
         let config = create_test_config();
-        let builder = UserAccessTokenV1Builder::new(config).app_secret("chained_secret");
+        let builder = UserAccessTokenV1RequestBuilder::new(config).app_secret("chained_secret");
         assert_eq!(builder.app_secret, "chained_secret");
     }
 
@@ -234,7 +238,7 @@ mod tests {
             .app_access_token("app_token")
             .build();
 
-        let response = UserAccessTokenV1Builder::new(config)
+        let response = UserAccessTokenV1RequestBuilder::new(config)
             .code("login_code")
             .execute_with_options(option)
             .await
