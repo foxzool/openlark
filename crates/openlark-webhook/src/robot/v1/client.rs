@@ -10,6 +10,9 @@ use crate::common::signature;
 ///
 /// 内部复用进程级共享的 `reqwest::Client`（连接池），不走 `openlark_core::Transport`
 /// ——webhook 是出站自定义机器人 URL，非飞书开放平台 API（见 `send` 模块说明 + issue #214）。
+///
+/// 这是 `Transport` 边界的 **by-design 例外**（白名单见 `ARCHITECTURE.md`
+/// 「Transport HTTP 边界」小节，#270）。
 #[derive(Debug, Clone)]
 pub struct WebhookClient {
     client: reqwest::Client,

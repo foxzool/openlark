@@ -22,7 +22,7 @@
 
 ## 5. webhook crate 文档注释强化
 
-- [ ] 5.1 `crates/openlark-webhook/src/robot/v1/` 的 `shared_client`/`client` doc 注释补一行指向 ARCHITECTURE.md「Transport HTTP 边界」约定（不改源码逻辑/签名）。验证：`cargo build -p openlark-webhook --all-features` + grep
+- [x] 5.1 `crates/openlark-webhook/src/robot/v1/` 的 `shared_client`/`client` doc 注释补一行指向 ARCHITECTURE.md「Transport HTTP 边界」约定（不改源码逻辑/签名）。验证：`cargo build -p openlark-webhook --all-features` + grep
 
 ## 6. CHANGELOG
 
