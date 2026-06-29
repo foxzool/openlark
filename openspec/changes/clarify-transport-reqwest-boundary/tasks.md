@@ -30,7 +30,7 @@
 
 ## 7. 全量验证
 
-- [ ] 7.1 `cargo build --workspace --all-features` exit 0
-- [ ] 7.2 三组 feature clippy（default / `--all-features` / `--no-default-features` + `-D warnings`）均 exit 0
-- [ ] 7.3 `cargo test --workspace` 全部通过（0 failed）
-- [ ] 7.4 `bash tools/check_reqwest_boundary.sh` exit 0 + grep 双重确认（12 crate Cargo.toml 与 src `reqwest` 命中均 0；core/client/webhook 保留；justfile+ci.yml 接线存在）
+- [x] 7.1 `cargo build --workspace --all-features` exit 0
+- [x] 7.2 三组 feature clippy（default / `--all-features` / `--no-default-features` + `-D warnings`）均 exit 0
+- [x] 7.3 `cargo test --workspace` 全部通过（0 failed）
+- [x] 7.4 `bash tools/check_reqwest_boundary.sh` exit 0 + grep 双重确认（12 crate Cargo.toml 与 src `reqwest` 命中均 0；core/client/webhook 保留；justfile+ci.yml 接线存在）
