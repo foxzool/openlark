@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: 6557def919fc4a59d03e664291548d75a01ef4e3
 design_doc: docs/superpowers/specs/2026-06-29-unify-auth-request-naming-design.md
 plan: docs/superpowers/plans/2026-06-29-unify-auth-request-naming.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-29-unify-auth-request-naming-verify.md
 branch_status: handled
 created_at: 2026-06-29
-verified_at: null
+verified_at: 2026-06-29
 archived: false
 handoff_context: openspec/changes/unify-auth-request-naming/.comet/handoff/design-context.json
 handoff_hash: 93e8fde34c33c70c0f347b4d62d46ca321f1a559510dfbe4279667a7fb560303
