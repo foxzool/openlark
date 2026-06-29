@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,7 +7,7 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 6557def919fc4a59d03e664291548d75a01ef4e3
 design_doc: docs/superpowers/specs/2026-06-29-unify-auth-request-naming-design.md

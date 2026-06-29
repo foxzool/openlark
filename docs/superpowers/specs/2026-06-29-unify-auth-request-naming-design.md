@@ -8,6 +8,8 @@ canonical_spec: openspec
 
 > 技术 HOW。需求 WHAT 以 OpenSpec delta spec `openspec/changes/unify-auth-request-naming/specs/auth-request-naming/spec.md` 为 canonical。
 
+> ⚠️ **方向变更（build 阶段）**：open/design 原定 builder「→ Request」，build 实证发现 5/13 目标 `XxxRequest` 名与 `crate::models` 已存在的请求体 body 模型撞名（E0255）。用户确认改为 **builder「→ RequestBuilder」**（body 保持 `XxxRequest`），零撞名 + 对齐 helpdesk。下文「XxxRequest」处均应理解为「XxxRequestBuilder」（除明确指 body 模型外）。本文档其余「→ Request」描述以本说明为准。
+
 ## 1. 背景与目标
 
 issue #271（架构审计立项「Request vs Builder 命名统一」）：请求类型命名跨 crate 不一致——模式 A（platform/ai/auth/hr）请求类型用 `Builder` 后缀，模式 B（docs/communication）用 `Request`，模式 C（helpdesk）用 `XxxRequest`+`XxxRequestBuilder` 分离。全局 1670 个已是 `Request`，仅约 167 个模式 A 用 `Builder`。
