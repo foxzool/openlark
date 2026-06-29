@@ -6,7 +6,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 
 use crate::{
     common::api_utils::extract_response_data, endpoints::IM_V1_CHATS,
-    im::im::v1::message::models::UserIdType,
+    im::v1::message::models::UserIdType,
 };
 
 /// 搜索对用户或机器人可见的群列表请求

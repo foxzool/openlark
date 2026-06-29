@@ -1,0 +1,14 @@
+{
+  "change": "remove-deprecated-im-alias",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "0eba5ae6817e9656598194def15ff7732acb708e127a7d5507e0721b455ebe5a",
+  "files": [
+    { "path": "openspec/changes/remove-deprecated-im-alias/proposal.md", "sha256": "1b62451f39d6cd4c88d54ec4e7b0887d6ce9c2d8c10a7704a2ce488f55a7b9d7" },
+    { "path": "openspec/changes/remove-deprecated-im-alias/design.md", "sha256": "4c433bc71556fdb625879c52dbd697358df9600f10ae0aff7d6e42a8e86e90f4" },
+    { "path": "openspec/changes/remove-deprecated-im-alias/tasks.md", "sha256": "0de189243d92f59a91c6821e65af0a9691187c6144452a534c01ce9259f5c755" },
+    { "path": "openspec/changes/remove-deprecated-im-alias/specs/no-deprecated-im-alias/spec.md", "sha256": "112c9fdf607e643eac0006f5cc5d44c3b9b07549f0482bd50313183bcec818dd" }
+  ]
+}

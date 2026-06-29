@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::menu_tree::models::ChatMenuTopLevelIdsBody,
+    im::v1::chat::menu_tree::models::ChatMenuTopLevelIdsBody,
 };
 
 /// 删除群菜单请求

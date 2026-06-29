@@ -7,7 +7,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V2_APP_FEED_CARD,
-    im::im::v1::message::models::UserIdType,
+    im::v1::message::models::UserIdType,
 };
 
 /// 创建应用消息流卡片请求

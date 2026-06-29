@@ -8,7 +8,7 @@ use openlark_core::{
 
 use crate::{
     common::api_utils::extract_response_data, endpoints::IM_V1_CHATS,
-    im::im::v1::chat::members::models::IsInChatResponse,
+    im::v1::chat::members::models::IsInChatResponse,
 };
 
 /// 判断用户或机器人是否在群里请求

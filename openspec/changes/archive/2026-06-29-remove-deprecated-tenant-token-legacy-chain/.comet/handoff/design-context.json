@@ -1,0 +1,14 @@
+{
+  "change": "remove-deprecated-tenant-token-legacy-chain",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "81743668119a1c2a9f21c6266c2c9880d5f53c895cec677259b65d12719cc1d5",
+  "files": [
+    { "path": "openspec/changes/remove-deprecated-tenant-token-legacy-chain/proposal.md", "sha256": "c4d479c53635fe4d9e92a8799d30e553090aaffc91e8d8aa015380552cd2abd0" },
+    { "path": "openspec/changes/remove-deprecated-tenant-token-legacy-chain/design.md", "sha256": "bb834b067787739bce7a0e0dea98c2d7f271a96f21fea2be158f268cb7b5e404" },
+    { "path": "openspec/changes/remove-deprecated-tenant-token-legacy-chain/tasks.md", "sha256": "3a550711c6f4f48db105aeaa83a32780807d2eb0f7f6e90d8475f995812cfb90" },
+    { "path": "openspec/changes/remove-deprecated-tenant-token-legacy-chain/specs/no-deprecated-tenant-token-legacy-chain/spec.md", "sha256": "ae8c318a466468a24de6fc54957e11b8b0ad96d8d930a93f756a5ebd2983979d" }
+  ]
+}

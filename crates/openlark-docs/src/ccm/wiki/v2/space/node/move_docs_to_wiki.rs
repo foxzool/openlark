@@ -143,24 +143,6 @@ impl MoveDocsToWikiRequest {
     }
 }
 
-/// 移动云空间文档至知识空间请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 MoveDocsToWikiRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MoveDocsToWikiParams {
-    /// 源文档 token
-    pub obj_token: String,
-    /// 源文档类型（例如 doc、docx 等）
-    pub obj_type: String,
-    /// 目标父节点 wiki token
-    pub parent_wiki_token: String,
-    /// 是否直接执行移动（官方字段 `apply`）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub apply: Option<bool>,
-}
-
 #[cfg(test)]
 mod tests {
 

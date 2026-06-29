@@ -7,7 +7,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_CHATS,
-    im::im::v1::message::models::UserIdType,
+    im::v1::message::models::UserIdType,
 };
 
 /// 创建群请求

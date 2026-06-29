@@ -44,8 +44,6 @@ sha2 = { version = "0.10", optional = true }
 hmac = { version = "0.12", optional = true }
 pbkdf2 = { version = "0.12", optional = true }
 
-# HTTP客户端 (OAuth需要)
-reqwest = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
 # 验证工具
@@ -73,7 +71,7 @@ default = ["token-management", "cache", "oauth"]
 # 核心功能模块
 token-management = []
 cache = ["token-management"]
-oauth = ["reqwest", "url"]
+oauth = ["url"]
 encryption = ["ring", "sha2", "hmac", "pbkdf2"]
 
 # 高级功能
@@ -81,4 +79,4 @@ advanced-cache = ["cache", "encryption"]
 monitoring = []
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "base64", "criterion", "hex", "hmac", "pbkdf2", "rand", "regex", "reqwest", "ring", "sha2", "thiserror", "tracing", "url"]
+ignored = ["anyhow", "base64", "criterion", "hex", "hmac", "pbkdf2", "rand", "regex", "ring", "sha2", "thiserror", "tracing", "url"]

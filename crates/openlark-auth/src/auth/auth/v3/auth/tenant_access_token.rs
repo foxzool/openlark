@@ -1,6 +1,5 @@
 //! 商店应用获取 tenant_access_token API
 //! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token
-use super::app_access_token::AppAccessTokenResponseData;
 use crate::models::auth::TenantAccessTokenResponse;
 ///
 /// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token
@@ -24,20 +23,10 @@ struct TenantAccessTokenBody {
     tenant_key: String,
 }
 
-#[derive(Debug, Serialize)]
-struct LegacyAppAccessTokenBody {
-    app_id: String,
-    app_secret: String,
-    app_ticket: String,
-}
-
 /// 商店应用获取 tenant_access_token 请求
 pub struct TenantAccessTokenBuilder {
     app_access_token: String,
     tenant_key: String,
-    legacy_app_id: String,
-    legacy_app_secret: String,
-    legacy_app_ticket: String,
     /// 配置信息
     config: Config,
 }
@@ -62,9 +51,6 @@ impl TenantAccessTokenBuilder {
         Self {
             app_access_token: String::new(),
             tenant_key: String::new(),
-            legacy_app_id: String::new(),
-            legacy_app_secret: String::new(),
-            legacy_app_ticket: String::new(),
             config,
         }
     }
@@ -81,27 +67,6 @@ impl TenantAccessTokenBuilder {
         self
     }
 
-    /// 旧版 app_id 链式入口，保留用于编译兼容。
-    #[deprecated(note = "请改用 app_access_token(...) 并设置 tenant_key(...)")]
-    pub fn app_id(mut self, app_id: impl Into<String>) -> Self {
-        self.legacy_app_id = app_id.into();
-        self
-    }
-
-    /// 旧版 app_secret 链式入口，保留用于编译兼容。
-    #[deprecated(note = "请改用 app_access_token(...) 并设置 tenant_key(...)")]
-    pub fn app_secret(mut self, app_secret: impl Into<String>) -> Self {
-        self.legacy_app_secret = app_secret.into();
-        self
-    }
-
-    /// 旧版 app_ticket 链式入口，保留用于编译兼容。
-    #[deprecated(note = "请先通过 app_ticket 换取 app_access_token，再调用 app_access_token(...)")]
-    pub fn app_ticket(mut self, app_ticket: impl Into<String>) -> Self {
-        self.legacy_app_ticket = app_ticket.into();
-        self
-    }
-
     /// 执行请求
     pub async fn execute(self) -> SDKResult<TenantAccessTokenResponseData> {
         self.execute_with_options(RequestOption::default()).await
@@ -112,48 +77,17 @@ impl TenantAccessTokenBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<TenantAccessTokenResponseData> {
+        validate_required!(self.app_access_token, "应用访问凭证不能为空");
         validate_required!(self.tenant_key, "租户标识不能为空");
 
         // 🚀 使用新的enum+builder系统生成API端点
         use crate::common::api_endpoints::AuthApiV3;
         let api_endpoint = AuthApiV3::TenantAccessToken;
 
-        let app_access_token = if self.app_access_token.is_empty() {
-            validate_required!(self.legacy_app_id, "应用ID不能为空");
-            validate_required!(self.legacy_app_secret, "应用密钥不能为空");
-            validate_required!(self.legacy_app_ticket, "应用票据不能为空");
-
-            let app_token_body = LegacyAppAccessTokenBody {
-                app_id: self.legacy_app_id.clone(),
-                app_secret: self.legacy_app_secret.clone(),
-                app_ticket: self.legacy_app_ticket.clone(),
-            };
-
-            let app_token_request: ApiRequest<AppAccessTokenResponseData> =
-                ApiRequest::post(AuthApiV3::AppAccessToken.path())
-                    .body(serde_json::to_value(&app_token_body)?)
-                    .with_supported_access_token_types(vec![AccessTokenType::None]);
-
-            let app_token_response: openlark_core::api::Response<AppAccessTokenResponseData> =
-                Transport::request(app_token_request, &self.config, Some(option.clone())).await?;
-            app_token_response
-                .data
-                .ok_or_else(|| {
-                    openlark_core::error::validation_error(
-                        "获取商店应用 app_access_token",
-                        "响应数据为空",
-                    )
-                })?
-                .data
-                .app_access_token
-        } else {
-            self.app_access_token.clone()
-        };
-
         // 构建请求体
         let request_body = TenantAccessTokenBody {
-            app_access_token,
-            tenant_key: self.tenant_key.clone(),
+            app_access_token: self.app_access_token,
+            tenant_key: self.tenant_key,
         };
 
         // 创建API请求 - 使用类型安全的URL生成
@@ -174,7 +108,6 @@ impl TenantAccessTokenBuilder {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
@@ -197,9 +130,6 @@ mod tests {
         let builder = TenantAccessTokenBuilder::new(config);
         assert!(builder.app_access_token.is_empty());
         assert!(builder.tenant_key.is_empty());
-        assert!(builder.legacy_app_id.is_empty());
-        assert!(builder.legacy_app_secret.is_empty());
-        assert!(builder.legacy_app_ticket.is_empty());
     }
 
     #[test]
@@ -280,66 +210,5 @@ mod tests {
         let received_requests = server.received_requests().await.unwrap_or_default();
         assert_eq!(received_requests.len(), 1);
         assert!(!received_requests[0].headers.contains_key("authorization"));
-    }
-
-    #[allow(deprecated)]
-    #[tokio::test]
-    async fn test_execute_legacy_chain_fetches_app_token_then_tenant_token() {
-        let server = MockServer::start().await;
-        Mock::given(method("POST"))
-            .and(path("/open-apis/auth/v3/app_access_token"))
-            .and(body_json(json!({
-                "app_id": "legacy_app",
-                "app_secret": "legacy_secret",
-                "app_ticket": "legacy_ticket"
-            })))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "app_access_token": "legacy-app-token",
-                "expire": 7200
-            })))
-            .mount(&server)
-            .await;
-
-        Mock::given(method("POST"))
-            .and(path("/open-apis/auth/v3/tenant_access_token"))
-            .and(body_json(json!({
-                "app_access_token": "legacy-app-token",
-                "tenant_key": "tenant-001"
-            })))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "tenant_access_token": "tenant-token",
-                "expire": 7200
-            })))
-            .mount(&server)
-            .await;
-
-        let config = Config::builder()
-            .app_id("test_app")
-            .app_secret("test_secret")
-            .base_url(server.uri())
-            .build();
-
-        let response = TenantAccessTokenBuilder::new(config)
-            .app_id("legacy_app")
-            .app_secret("legacy_secret")
-            .app_ticket("legacy_ticket")
-            .tenant_key("tenant-001")
-            .execute()
-            .await
-            .expect("legacy tenant_access_token chain should use official two-step flow");
-
-        assert_eq!(response.data.tenant_access_token, "tenant-token");
-
-        let received_requests = server.received_requests().await.unwrap_or_default();
-        assert_eq!(received_requests.len(), 2);
-        assert!(
-            received_requests
-                .iter()
-                .all(|request| !request.headers.contains_key("authorization"))
-        );
     }
 }

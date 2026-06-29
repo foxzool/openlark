@@ -12,7 +12,7 @@ use crate::{
         models::EmptyData,
     },
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::announcement::models::PatchChatAnnouncementBody,
+    im::v1::chat::announcement::models::PatchChatAnnouncementBody,
 };
 
 /// 更新群公告信息请求

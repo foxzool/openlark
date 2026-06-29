@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_FILES,
-    im::im::v1::file::models::CreateFileResponse,
+    im::v1::file::models::CreateFileResponse,
 };
 
 /// 上传文件请求体（multipart 表单字段）

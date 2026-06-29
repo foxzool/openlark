@@ -1,0 +1,14 @@
+{
+  "change": "remove-deprecated-wiki-params",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "8e3145fb6ed3bb7377acc835988e181323e672897782c6f7a72d58991895bf80",
+  "files": [
+    { "path": "openspec/changes/remove-deprecated-wiki-params/proposal.md", "sha256": "73f9d8a12aba7551c430952b27fcc599ecfcf38dca81aade3c43809662b78355" },
+    { "path": "openspec/changes/remove-deprecated-wiki-params/design.md", "sha256": "8b4d5ebd0af0dc639e18d652725cffb2b110c2d21e7abdefb00f87a65accf265" },
+    { "path": "openspec/changes/remove-deprecated-wiki-params/tasks.md", "sha256": "6c73e5d3ae2c0965f28c7baf1e193ec395ceab5a7f44100811cfeebce5cda279" },
+    { "path": "openspec/changes/remove-deprecated-wiki-params/specs/no-deprecated-wiki-params/spec.md", "sha256": "2eb215f473c5502e78b91eb7562a010a214fa4af75eaa44d88f82e8bc62e8958" }
+  ]
+}

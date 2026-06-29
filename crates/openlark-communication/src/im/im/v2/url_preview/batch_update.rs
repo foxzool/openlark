@@ -10,7 +10,7 @@ use crate::{
         models::EmptyData,
     },
     endpoints::IM_V2_URL_PREVIEWS_BATCH_UPDATE,
-    im::im::v2::url_preview::models::BatchUpdateUrlPreviewBody,
+    im::v2::url_preview::models::BatchUpdateUrlPreviewBody,
 };
 
 /// 更新 URL 预览请求

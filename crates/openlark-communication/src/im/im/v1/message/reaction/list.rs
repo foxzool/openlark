@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::extract_response_data,
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::{
+    im::v1::{
         message::models::UserIdType, message::reaction::models::ListMessageReactionsResponse,
     },
 };

@@ -7,8 +7,8 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V2_CHAT_BUTTON,
-    im::im::v1::message::models::UserIdType,
-    im::im::v2::chat_button::models::ChatButtonUpdateResponse,
+    im::v1::message::models::UserIdType,
+    im::v2::chat_button::models::ChatButtonUpdateResponse,
 };
 
 /// 更新消息流卡片按钮请求

@@ -8,7 +8,7 @@ use openlark_core::{
 
 use crate::{
     common::api_utils::extract_response_data, endpoints::IM_V1_BATCH_MESSAGES,
-    im::im::v1::batch_message::models::BatchMessageReadUserResponse,
+    im::v1::batch_message::models::BatchMessageReadUserResponse,
 };
 
 /// 查询批量消息推送和阅读人数请求

@@ -9,7 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::{extract_response_data, serialize_params},
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::members::models::{
+    im::v1::chat::members::models::{
         CreateChatMembersBody, CreateChatMembersResponse, MemberIdType, SucceedType,
     },
 };

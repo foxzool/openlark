@@ -16,8 +16,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI 防复发**：`lint` job 新增 `tools/check_no_dead_code_allows.sh` 检查，禁止非测试代码
   引入 `#[allow(dead_code)]`（本地 `just no-dead-code-allows`）；`#[expect(dead_code)]` 为
   受控的预期死代码豁免。闭环 #267。
+- **Transport 边界 hygiene**：移除 12 个业务 crate（analytics/auth/bot/application/
+  communication/mail/hr/docs/helpdesk/platform/user/workflow）未用的 `reqwest` 依赖声明，
+  并清除这些 crate 的 `[package.metadata.cargo-machete] ignored` 列表里对应的 `"reqwest"`
+  项（此前用 ignore 列表承认债务而非删除，是 `cargo machete` 假阴性根因）。
+  业务 crate 经 core `Transport<T>` 发请求、源码 0 处直接使用 reqwest（#270 实证）。
+  保留例外：`openlark-core`（抽象本体）/ `openlark-client`（装配 + websocket）/ `openlark-webhook`
+  （by-design 连接池复用例外，见 ARCHITECTURE.md「Transport HTTP 边界」）。新增
+  `tools/check_reqwest_boundary.sh` 守卫并接入 just 与 CI lint job 防回归。
+  **非 breaking**：不改公开 API（业务 crate 无 re-export reqwest）。
 
 ### Breaking Changes
+
+- **Removed deprecated wiki Params**：移除 `SearchWikiParams` / `ListWikiSpacesParams` /
+  `CreateWikiSpaceParams` / `MoveDocsToWikiParams`（deprecated since 0.16.0）→ 用对应
+  `XxxRequest` 流式 Builder。无生产用法（仅兼容测试，一并删除）。关联 #268（B）。
+
+- **Removed deprecated im::im 嵌套别名**：移除 `im::im` 旧嵌套路径别名（deprecated since 0.15.0）→ 迁移
+  `im::im::v1` / `im::im::v2` → `im::v1` / `im::v2`。关联 #278（F）。
+
+- **Removed deprecated tenant_access_token legacy 链**：移除 `TenantAccessTokenBuilder`
+  的 `app_id`/`app_secret`/`app_ticket` 旧链式入口及两步换取逻辑（deprecated legacy
+  chain）→ 迁移：先 `AppAccessTokenBuilder` 取 `app_access_token`，再
+  `TenantAccessTokenBuilder::new(config).app_access_token(..).tenant_key(..)`。关联 #278。
+
+- **Removed docs deprecated 方法**：移除 `RecordFieldValue::to_value()`（deprecated since 0.15.0，→ 直接用 `RecordFieldValue` 类型）与 `impl_required_builder!` 宏生成的 `new()`（deprecated since 0.5.0，→ 用 `builder()`）。均零调用/dead。关联 #278（D+C 子集）。
 
 - **Removed deprecated 兼容访问器**：移除 `Hr` 的 8 个 service 访问器方法
   （`attendance()`/`corehr()`/`compensation()`/`payroll()`/`performance()`/`okr()`/`hire()`/`ehr()`）

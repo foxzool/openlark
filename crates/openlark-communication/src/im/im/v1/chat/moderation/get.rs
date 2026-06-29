@@ -9,9 +9,7 @@ use openlark_core::{
 use crate::{
     common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
-    im::im::v1::{
-        chat::moderation::models::GetChatModerationResponse, message::models::UserIdType,
-    },
+    im::v1::{chat::moderation::models::GetChatModerationResponse, message::models::UserIdType},
 };
 
 /// 获取群成员发言权限请求

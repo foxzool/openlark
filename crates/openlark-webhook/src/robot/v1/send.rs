@@ -20,6 +20,10 @@ use crate::models::InteractiveContent;
 /// 且把响应解析为 `ApiResponse<R>`，三者都不适用。因此 webhook **有意保留独立的
 /// reqwest 路径**（见 GitHub issue #214 的调研结论），但通过共享单个 `reqwest::Client`
 /// 避免每个请求 `reqwest::Client::new()` 新建连接池的开销。
+///
+/// 这是 `Transport` 边界的 **by-design 例外**——架构约定与白名单见
+/// `ARCHITECTURE.md`「Transport HTTP 边界」小节，并由
+/// `tools/check_reqwest_boundary.sh` 守卫（#270）。
 pub(super) fn shared_client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(reqwest::Client::new)

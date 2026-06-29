@@ -12,7 +12,7 @@ use crate::{
         models::EmptyData,
     },
     endpoints::IM_V2_BIZ_ENTITY_TAG_RELATION,
-    im::im::v2::biz_entity_tag_relation::models::BizEntityTagRelationBody,
+    im::v2::biz_entity_tag_relation::models::BizEntityTagRelationBody,
 };
 
 /// 解绑标签与群请求
