@@ -2,6 +2,7 @@
 change: remove-deprecated-tenant-token-legacy-chain
 design-doc: docs/superpowers/specs/2026-06-29-remove-deprecated-tenant-token-legacy-chain-design.md
 base-ref: db6d9ed704cfaa28bc52f26f66944e3ae2f75c8b
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 # 移除 tenant_access_token deprecated legacy 链 Implementation Plan
@@ -23,6 +24,7 @@ base-ref: db6d9ed704cfaa28bc52f26f66944e3ae2f75c8b
 - **`validate_required!` move 合法性已实证**：宏源码 `if is_empty_trimmed(&$field)` 是借用，验证结束后 move 字段合法（design 阶段对抗验证 8/8 通过，含 `cargo build -p openlark-auth` 成功）。
 - **commit 粒度**：源码改动（Task 1-3）是原子提交单元——编译只在三件事都完成后才通过，不可拆分提交。Task 4（验证）不产生 commit。Task 5（CHANGELOG）独立提交。
 
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 ## File Structure
@@ -45,6 +47,7 @@ base-ref: db6d9ed704cfaa28bc52f26f66944e3ae2f75c8b
 9. `impl TenantAccessTokenBuilder`：`new` / `app_access_token` / `tenant_key` / `execute` / `execute_with_options`（删 3 个 deprecated 方法；简化 execute）
 10. `#[cfg(test)] mod tests`：保留 6 个 canonical 测试，删 1 个 legacy 测试，调整 `builder_new` 断言
 
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 ## Task 1: 删除 legacy 方法、字段、结构体与 import，并简化 execute
@@ -308,6 +311,7 @@ Refs #278"
 ```
 Expected: commit 成功。注意 `!` 标记 breaking change（conventional commits）。
 
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 ## Task 2: 全仓验证（grep 清零 + 三组 clippy + workspace 测试）
@@ -381,6 +385,7 @@ Expected: 全部通过（0 failed）。对应 spec Scenario "tests 通过" + "ca
 
 在 `openspec/changes/remove-deprecated-tenant-token-legacy-chain/` 下补 verify 证据（按 comet verify 阶段约定；若项目用 `.comet.yaml` 的 verify_result 字段则更新它，否则记入 tasks.md 复核区）。本步骤不写源码，仅落盘验证记录。
 
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 ## Task 3: CHANGELOG 追加 Breaking Changes 条目
@@ -446,6 +451,7 @@ Refs #278"
 ```
 Expected: commit 成功。
 
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
 ---
 
 ## Self-Review

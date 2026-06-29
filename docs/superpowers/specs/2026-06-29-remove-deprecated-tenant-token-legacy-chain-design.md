@@ -2,6 +2,8 @@
 comet_change: remove-deprecated-tenant-token-legacy-chain
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-29-remove-deprecated-tenant-token-legacy-chain
+status: final
 ---
 
 # Design — remove-deprecated-tenant-token-legacy-chain

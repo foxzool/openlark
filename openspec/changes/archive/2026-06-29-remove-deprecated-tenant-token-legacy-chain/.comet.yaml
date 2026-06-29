@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-06-29-remove-deprecated-tenan
 branch_status: handled
 created_at: 2026-06-29
 verified_at: 2026-06-29
-archived: false
+archived: true
 handoff_context: openspec/changes/remove-deprecated-tenant-token-legacy-chain/.comet/handoff/design-context.json
 handoff_hash: 81743668119a1c2a9f21c6266c2c9880d5f53c895cec677259b65d12719cc1d5
