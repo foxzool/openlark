@@ -10,10 +10,10 @@
 
 ## 2. platform directory v1（DirectoryV1，8 子模块，浅）
 
-- [ ] 2.1 为 directory v1 子模块建 service：`department`/`departments`/`users`/`employee`/`sync`/`collaboration_share_entity`/`collaboration_tenant`/`collaboration_rule`
-- [ ] 2.2 `DirectoryV1`：`_config` → `config`，装访问器
-- [ ] 2.3 access 测试链到叶子 builder
-- [ ] 2.4 directory 范围 clippy + fmt 通过
+- [x] 2.1 为 directory v1 子模块建 service：`department`/`departments`/`users`/`employee`/`sync`/`collaboration_share_entity`/`collaboration_tenant`/`collaboration_rule`
+- [x] 2.2 `DirectoryV1`：`_config` → `config`，装访问器
+- [x] 2.3 access 测试链到叶子 builder
+- [x] 2.4 directory 范围 clippy + fmt 通过
 
 ## 3. platform apaas v1（ApaasV1，8 顶层 + 深嵌套）
 

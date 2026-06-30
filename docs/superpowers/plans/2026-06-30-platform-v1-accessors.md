@@ -276,7 +276,7 @@ Expected: 全 exit 0；`-W dead_code` 无新增告警（每个新 service 都被
 
 > **`departments/mod.rs` 与 `users/mod.rs` 注意**：当前内容仅一行模块声明或空（`sync/mod.rs` 是 `//! Sync module`）。`departments` 是「部门兼容 facade」（对照 admin 的 `users.rs`），需先 Read 看是否已有 service 类型；若没有则按浅模块加 `DepartmentsService`。实施前必读这两个文件确认。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `crates/openlark-platform/src/directory/directory/v1/mod.rs` 的 `#[cfg(test)] mod tests` 内加（保留 `test_directory_v1_creation` 但 `_config` → `config`）：
 
@@ -302,16 +302,16 @@ Expected: 全 exit 0；`-W dead_code` 无新增告警（每个新 service 都被
 
 > 实施时把每个 `.create(...)`/`.list()` 的参数照对应 builder 真实 `new()` 补齐（grep 后定）。无 builder 的 facade（如 `sync` 若无操作）访问器返回 service 即可，`let _ = api.sync();`。
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cargo test -p openlark-platform --lib directory::directory::v1::tests::test_directory_v1_chain_access`
 Expected: FAIL（`no method named department` / 字段私有）
 
-- [ ] **Step 3: 改 `v1/mod.rs` 入口**
+- [x] **Step 3: 改 `v1/mod.rs` 入口**
 
 `DirectoryV1._config` → `config`，删 reserved 注释，`new()` 内改名，加 8 访问器（照 Task 1 Step 3 的 admin 模板；浅模块用 `self.config.as_ref().clone()` 喂 owned Config service）。`test_directory_v1_creation` 里 `api._config` → `api.config`。
 
-- [ ] **Step 4: 给 8 个子模块加 `XxxService`**
+- [x] **Step 4: 给 8 个子模块加 `XxxService`**
 
 照 Task 1 Step 4 的 `BadgeService` 模板。每个模块顶部 `use openlark_core::config::Config;`，加 `XxxService { config: Config }` + `impl` 暴露各 `.rs` builder 构造方法。`department/mod.rs` 模板（含 name 参数下传）：
 
@@ -348,12 +348,12 @@ impl DepartmentService {
 }
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `cargo test -p openlark-platform --lib directory::directory::v1::tests`
 Expected: PASS
 
-- [ ] **Step 6: directory 范围 clippy + fmt**
+- [x] **Step 6: directory 范围 clippy + fmt**
 
 Run:
 ```bash
@@ -363,7 +363,7 @@ cargo fmt --check
 ```
 Expected: 全 exit 0，无新 dead_code。
 
-- [ ] **Step 7: 报告主会话勾选 + commit**
+- [x] **Step 7: 报告主会话勾选 + commit**
 
 主会话勾选 `2.1`-`2.4`，commit（`feat(platform): directory v1 链式访问器（#274）`）。
 
