@@ -25,14 +25,53 @@ pub mod workspace;
 /// aPaaS V1 API
 #[derive(Debug, Clone)]
 pub struct ApaasV1 {
-    // reserved：待装访问器/execute（见 #274，不完整脚手架）
-    _config: Arc<PlatformConfig>,
+    config: Arc<PlatformConfig>,
 }
 
 impl ApaasV1 {
     /// 创建新的 aPaaS V1 实例。
     pub fn new(config: Arc<PlatformConfig>) -> Self {
-        Self { _config: config }
+        Self { config }
+    }
+
+    /// app 资源
+    pub fn app(&self) -> app::AppService {
+        app::AppService::new(self.config.as_ref().clone())
+    }
+
+    /// approval_task 资源
+    pub fn approval_task(&self) -> approval_task::ApprovalTaskService {
+        approval_task::ApprovalTaskService::new(self.config.as_ref().clone())
+    }
+
+    /// approval_instance 资源
+    pub fn approval_instance(&self) -> approval_instance::ApprovalInstanceService {
+        approval_instance::ApprovalInstanceService::new(self.config.as_ref().clone())
+    }
+
+    /// user_task 资源
+    pub fn user_task(&self) -> user_task::UserTaskService {
+        user_task::UserTaskService::new(self.config.as_ref().clone())
+    }
+
+    /// seat_activity 资源
+    pub fn seat_activity(&self) -> seat_activity::SeatActivityService {
+        seat_activity::SeatActivityService::new(self.config.as_ref().clone())
+    }
+
+    /// seat_assignment 资源
+    pub fn seat_assignment(&self) -> seat_assignment::SeatAssignmentService {
+        seat_assignment::SeatAssignmentService::new(self.config.as_ref().clone())
+    }
+
+    /// application 资源（中间级，持 namespace 路径参数）
+    pub fn application(&self, namespace: impl Into<String>) -> application::ApplicationService {
+        application::ApplicationService::new(self.config.clone(), namespace)
+    }
+
+    /// workspace 资源（中间级，持 workspace_id 路径参数）
+    pub fn workspace(&self, workspace_id: impl Into<String>) -> workspace::WorkspaceService {
+        workspace::WorkspaceService::new(self.config.clone(), workspace_id)
     }
 }
 
@@ -49,6 +88,84 @@ mod tests {
             .build();
 
         let api = ApaasV1::new(std::sync::Arc::new(config));
-        assert_eq!(api._config.app_id(), "test_app_id");
+        assert_eq!(api.config.app_id(), "test_app_id");
+    }
+
+    #[test]
+    fn test_apaas_v1_top_chain_access() {
+        let config = PlatformConfig::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let api = ApaasV1::new(std::sync::Arc::new(config));
+        // 顶层 6 个浅 service 叶子可达
+        let _ = api.app().list();
+        let _ = api.approval_instance().list();
+        let _ = api.approval_task().agree();
+        let _ = api.approval_task().transfer("task_1", "user_2");
+        let _ = api.user_task().query();
+        let _ = api.user_task().cc("task_1");
+        let _ = api.seat_activity().list();
+        let _ = api.seat_assignment().list();
+        // application/workspace 中间级可达（深链在 Task 4/5 补）
+        let _ = api.application("ns_x");
+        let _ = api.workspace("ws_x");
+    }
+
+    #[test]
+    fn test_apaas_v1_application_deep_chain_access() {
+        let config = PlatformConfig::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let api = ApaasV1::new(std::sync::Arc::new(config));
+        let app = api.application("ns_x");
+        // object → record 深链到叶子
+        let _ = app.object("obj_y").record().create();
+        let _ = app.object("obj_y").record().batch_create();
+        let _ = app.object("obj_y").record().query("rec_1");
+        // object 直接子（search/oql）
+        let _ = app.object("obj_y").search("q");
+        let _ = app.object("obj_y").oql_query("select *");
+        // role → member
+        let _ = app.role("role_a").member().get();
+        let _ = app.role("role_a").member().batch_create_authorization();
+        // record_permission → member
+        let _ = app
+            .record_permission("rp_b")
+            .member()
+            .batch_create_authorization();
+        // application 直接子
+        let _ = app.environment_variable().query();
+        let _ = app.environment_variable().get("var_k");
+        let _ = app.function("fn_a").invoke();
+        let _ = app.flow("flow_1").execute();
+        let _ = app.audit_log().list();
+        let _ = app.audit_log().get("log_9");
+    }
+
+    #[test]
+    fn test_apaas_v1_workspace_deep_chain_access() {
+        let config = PlatformConfig::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let api = ApaasV1::new(std::sync::Arc::new(config));
+        let ws = api.workspace("ws_x");
+        // table → 7 操作（list 不带 table_name；records_patch 带 filter）
+        let _ = ws.table("tbl_a").list();
+        let _ = ws.table("tbl_a").table_get();
+        let _ = ws.table("tbl_a").records_post();
+        let _ = ws.table("tbl_a").records_get();
+        let _ = ws.table("tbl_a").records_delete();
+        let _ = ws.table("tbl_a").records_batch_update();
+        let _ = ws.table("tbl_a").records_patch("filter_q");
+        // view
+        let _ = ws.view("v_1").views_get();
+        // enum_mod（list + get(enum_name)）
+        let _ = ws.enum_mod().list();
+        let _ = ws.enum_mod().get("enum_k");
+        // sql_commands（直接叶子，sql 用户输入）
+        let _ = ws.sql_commands("select 1");
     }
 }

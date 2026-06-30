@@ -1,1 +1,3 @@
-//! Departments module
+//! 部门兼容 facade
+//!
+//! 预留模块，待补具体操作（见 #274）。
