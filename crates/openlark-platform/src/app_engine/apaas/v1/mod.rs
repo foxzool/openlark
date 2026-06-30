@@ -143,4 +143,29 @@ mod tests {
         let _ = app.audit_log().list();
         let _ = app.audit_log().get("log_9");
     }
+
+    #[test]
+    fn test_apaas_v1_workspace_deep_chain_access() {
+        let config = PlatformConfig::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let api = ApaasV1::new(std::sync::Arc::new(config));
+        let ws = api.workspace("ws_x");
+        // table → 7 操作（list 不带 table_name；records_patch 带 filter）
+        let _ = ws.table("tbl_a").list();
+        let _ = ws.table("tbl_a").table_get();
+        let _ = ws.table("tbl_a").records_post();
+        let _ = ws.table("tbl_a").records_get();
+        let _ = ws.table("tbl_a").records_delete();
+        let _ = ws.table("tbl_a").records_batch_update();
+        let _ = ws.table("tbl_a").records_patch("filter_q");
+        // view
+        let _ = ws.view("v_1").views_get();
+        // enum_mod（list + get(enum_name)）
+        let _ = ws.enum_mod().list();
+        let _ = ws.enum_mod().get("enum_k");
+        // sql_commands（直接叶子，sql 用户输入）
+        let _ = ws.sql_commands("select 1");
+    }
 }
