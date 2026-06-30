@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **platform directory 请求类型统一 RequestBuilder**（#271 directory 批，软 breaking）：
+  openlark-platform directory 子系统 21 个请求 builder XxxBuilder → XxxRequestBuilder（Collaboration/Department/Employee 系列），旧名作 #[deprecated] alias。
+
+
 - **platform admin 请求类型统一 RequestBuilder**（#271 admin 批，软 breaking）：
   openlark-platform admin 子系统 14 个请求 builder XxxBuilder → XxxRequestBuilder（Badge/Grant/Stat/AuditInfo/ResetPassword 系列），旧名作 #[deprecated] alias。
 

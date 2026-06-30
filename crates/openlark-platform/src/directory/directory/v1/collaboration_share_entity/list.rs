@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 获取关联组织双方共享成员范围 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationShareEntityListBuilder {
+pub struct CollaborationShareEntityListRequestBuilder {
     config: Config,
     /// 租户 ID
     tenant_id: Option<String>,
 }
 
-impl CollaborationShareEntityListBuilder {
+impl CollaborationShareEntityListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -85,6 +85,12 @@ impl ApiResponseTrait for CollaborationShareEntityListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationShareEntityListRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationShareEntityListBuilder = CollaborationShareEntityListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,8 +101,8 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request =
-            CollaborationShareEntityListBuilder::new(config.clone()).tenant_id("test".to_string());
+        let request = CollaborationShareEntityListRequestBuilder::new(config.clone())
+            .tenant_id("test".to_string());
         let _ = request;
     }
 }

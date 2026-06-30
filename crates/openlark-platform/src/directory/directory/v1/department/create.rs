@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 创建部门 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentCreateBuilder {
+pub struct DepartmentCreateRequestBuilder {
     config: Config,
     /// 部门名称
     name: String,
@@ -24,7 +24,7 @@ pub struct DepartmentCreateBuilder {
     leader_user_id: Option<String>,
 }
 
-impl DepartmentCreateBuilder {
+impl DepartmentCreateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, name: impl Into<String>) -> Self {
         Self {
@@ -107,6 +107,10 @@ impl ApiResponseTrait for DepartmentCreateResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentCreateBuilder = DepartmentCreateRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,7 +121,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = DepartmentCreateBuilder::new(config.clone(), "test".to_string())
+        let request = DepartmentCreateRequestBuilder::new(config.clone(), "test".to_string())
             .parent_id("test".to_string())
             .leader_user_id("test".to_string());
         let _ = request;

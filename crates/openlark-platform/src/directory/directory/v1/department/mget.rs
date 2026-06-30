@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 批量获取部门信息 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentMgetBuilder {
+pub struct DepartmentMgetRequestBuilder {
     config: Config,
     /// 部门 ID 列表
     department_ids: Vec<String>,
 }
 
-impl DepartmentMgetBuilder {
+impl DepartmentMgetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -110,6 +110,10 @@ impl ApiResponseTrait for DepartmentMgetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentMgetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentMgetBuilder = DepartmentMgetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

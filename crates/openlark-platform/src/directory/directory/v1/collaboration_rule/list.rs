@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 
 /// 查询可搜可见规则 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationRuleListBuilder {
+pub struct CollaborationRuleListRequestBuilder {
     config: Config,
 }
 
-impl CollaborationRuleListBuilder {
+impl CollaborationRuleListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -83,6 +83,12 @@ impl ApiResponseTrait for CollaborationRuleListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationRuleListRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationRuleListBuilder = CollaborationRuleListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,7 +99,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CollaborationRuleListBuilder::new(config.clone());
+        let request = CollaborationRuleListRequestBuilder::new(config.clone());
         let _ = request;
     }
 }

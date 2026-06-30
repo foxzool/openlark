@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 更新部门 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentPatchBuilder {
+pub struct DepartmentPatchRequestBuilder {
     config: Config,
     /// 部门 ID
     department_id: String,
@@ -26,7 +26,7 @@ pub struct DepartmentPatchBuilder {
     leader_user_id: Option<String>,
 }
 
-impl DepartmentPatchBuilder {
+impl DepartmentPatchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, department_id: impl Into<String>) -> Self {
         Self {
@@ -127,6 +127,10 @@ impl ApiResponseTrait for DepartmentPatchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentPatchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentPatchBuilder = DepartmentPatchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

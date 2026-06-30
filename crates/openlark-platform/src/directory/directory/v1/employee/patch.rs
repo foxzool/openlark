@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 更新员工信息 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeePatchBuilder {
+pub struct EmployeePatchRequestBuilder {
     config: Config,
     /// 员工 ID
     employee_id: String,
@@ -26,7 +26,7 @@ pub struct EmployeePatchBuilder {
     department_ids: Vec<String>,
 }
 
-impl EmployeePatchBuilder {
+impl EmployeePatchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, employee_id: impl Into<String>) -> Self {
         Self {
@@ -137,6 +137,10 @@ impl ApiResponseTrait for EmployeePatchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeePatchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeePatchBuilder = EmployeePatchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 创建员工 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeCreateBuilder {
+pub struct EmployeeCreateRequestBuilder {
     config: Config,
     /// 员工名称
     name: String,
@@ -26,7 +26,7 @@ pub struct EmployeeCreateBuilder {
     department_ids: Vec<String>,
 }
 
-impl EmployeeCreateBuilder {
+impl EmployeeCreateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, name: impl Into<String>, mobile: impl Into<String>) -> Self {
         Self {
@@ -127,6 +127,10 @@ impl ApiResponseTrait for EmployeeCreateResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeeCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeeCreateBuilder = EmployeeCreateRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,10 +141,13 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request =
-            EmployeeCreateBuilder::new(config.clone(), "test".to_string(), "test".to_string())
-                .email("test".to_string())
-                .department_id("test".to_string());
+        let request = EmployeeCreateRequestBuilder::new(
+            config.clone(),
+            "test".to_string(),
+            "test".to_string(),
+        )
+        .email("test".to_string())
+        .department_id("test".to_string());
         let _ = request;
     }
 }

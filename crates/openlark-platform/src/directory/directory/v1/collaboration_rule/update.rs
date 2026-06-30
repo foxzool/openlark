@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 更新可搜可见规则 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationRuleUpdateBuilder {
+pub struct CollaborationRuleUpdateRequestBuilder {
     config: Config,
     /// 规则 ID
     collaboration_rule_id: String,
@@ -28,7 +28,7 @@ pub struct CollaborationRuleUpdateBuilder {
     search_visible_scope_department_ids: Vec<String>,
 }
 
-impl CollaborationRuleUpdateBuilder {
+impl CollaborationRuleUpdateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, collaboration_rule_id: impl Into<String>) -> Self {
         Self {
@@ -119,6 +119,12 @@ impl ApiResponseTrait for CollaborationRuleUpdateResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationRuleUpdateRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationRuleUpdateBuilder = CollaborationRuleUpdateRequestBuilder;
 
 #[cfg(test)]
 mod tests {

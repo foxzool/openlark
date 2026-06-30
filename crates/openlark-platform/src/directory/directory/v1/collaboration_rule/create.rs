@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 新增可搜可见规则 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationRuleCreateBuilder {
+pub struct CollaborationRuleCreateRequestBuilder {
     config: Config,
     /// 规则名称
     name: String,
@@ -26,7 +26,7 @@ pub struct CollaborationRuleCreateBuilder {
     search_visible_scope_department_ids: Vec<String>,
 }
 
-impl CollaborationRuleCreateBuilder {
+impl CollaborationRuleCreateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, name: impl Into<String>) -> Self {
         Self {
@@ -121,6 +121,12 @@ impl ApiResponseTrait for CollaborationRuleCreateResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationRuleCreateRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationRuleCreateBuilder = CollaborationRuleCreateRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,9 +137,10 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CollaborationRuleCreateBuilder::new(config.clone(), "test".to_string())
-            .search_visible_scope_type("test".to_string())
-            .search_visible_scope_user_id("test".to_string());
+        let request =
+            CollaborationRuleCreateRequestBuilder::new(config.clone(), "test".to_string())
+                .search_visible_scope_type("test".to_string())
+                .search_visible_scope_user_id("test".to_string());
         let _ = request;
     }
 }

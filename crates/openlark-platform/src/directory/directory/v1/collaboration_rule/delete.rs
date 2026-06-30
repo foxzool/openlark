@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 删除可搜可见规则 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationRuleDeleteBuilder {
+pub struct CollaborationRuleDeleteRequestBuilder {
     config: Config,
     /// 规则 ID
     collaboration_rule_id: String,
 }
 
-impl CollaborationRuleDeleteBuilder {
+impl CollaborationRuleDeleteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, collaboration_rule_id: impl Into<String>) -> Self {
         Self {
@@ -68,6 +68,12 @@ impl ApiResponseTrait for CollaborationRuleDeleteResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationRuleDeleteRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationRuleDeleteBuilder = CollaborationRuleDeleteRequestBuilder;
 
 #[cfg(test)]
 mod tests {
