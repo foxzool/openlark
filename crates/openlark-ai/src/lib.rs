@@ -50,10 +50,6 @@ pub mod endpoints;
 /// ai 模块。
 pub mod ai;
 
-// Speech-to-Text 独立模块
-/// speech_to_text 模块。
-pub mod speech_to_text;
-
 // 服务入口
 /// service 模块。
 pub mod service;
