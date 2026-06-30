@@ -82,8 +82,8 @@ impl DocumentAiClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::DocumentAiV1 {
-        super::ai::v1::DocumentAiV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::document_ai::v1::DocumentAiV1 {
+        super::ai::document_ai::v1::DocumentAiV1::new(self.config.clone())
     }
 }
 
@@ -107,8 +107,8 @@ impl OcrClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::OcrV1 {
-        super::ai::v1::OcrV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::optical_char_recognition::v1::OcrV1 {
+        super::ai::optical_char_recognition::v1::OcrV1::new(self.config.clone())
     }
 }
 
@@ -132,8 +132,8 @@ impl SpeechToTextClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::SpeechToTextV1 {
-        super::ai::v1::SpeechToTextV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::speech_to_text::v1::SpeechToTextV1 {
+        super::ai::speech_to_text::v1::SpeechToTextV1::new(self.config.clone())
     }
 }
 
@@ -157,8 +157,8 @@ impl TranslationClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::TranslationV1 {
-        super::ai::v1::TranslationV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::translation::v1::TranslationV1 {
+        super::ai::translation::v1::TranslationV1::new(self.config.clone())
     }
 }
 
