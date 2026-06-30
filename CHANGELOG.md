@@ -118,6 +118,12 @@ Set `.allow_custom_base_url(true)` on the builder to use a non-whitelisted base_
   移除后 "service 启用 = API 可达"，与 hr/communication/meeting 一致。行为补全，非 breaking：
   仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
 
+### Security
+
+- **升级 anyhow 1.0.102 → 1.0.103**（修复 RUSTSEC-2026-0190）：1.0.102 的
+  `Error::downcast_mut()` 在 `Error::context` 后调用时违反借用规则（UB）。patch 版本升级，
+  无 breaking。CI security-audit（cargo-deny）恢复绿。
+
 ## [0.17.0] - 2026-05-30
 
 ### Breaking Changes
