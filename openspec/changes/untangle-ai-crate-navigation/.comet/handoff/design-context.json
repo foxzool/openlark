@@ -1,0 +1,14 @@
+{
+  "change": "untangle-ai-crate-navigation",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "c8ec6a2871378879744888a16afd5ac22b4e43cf0d7b539f885d70450298e262",
+  "files": [
+    { "path": "openspec/changes/untangle-ai-crate-navigation/proposal.md", "sha256": "5976e8441847cae91bec4c2abeef54d23751a705408b421791c56ea5b3a27fa3" },
+    { "path": "openspec/changes/untangle-ai-crate-navigation/design.md", "sha256": "a7512efabd48d1494d0267153d20f783930d9613ba343d0376cadb10de4832ba" },
+    { "path": "openspec/changes/untangle-ai-crate-navigation/tasks.md", "sha256": "33d9edac5efdef7209fb4d6b8da81ead0bd27bd3d03084770eb1e94ab7593f1d" },
+    { "path": "openspec/changes/untangle-ai-crate-navigation/specs/v1-sub-api-accessors/spec.md", "sha256": "4e544d94a33f0fb46ad4977dee197539ab9d89c1dbdc54c1c233a5018df7b621" }
+  ]
+}
