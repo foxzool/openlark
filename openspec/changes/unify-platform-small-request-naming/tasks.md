@@ -4,16 +4,16 @@
 
 ## 1. 重命名 + alias
 
-- [ ] 1.1 12 个定义文件：struct+impl+测试 `XxxBuilder` → `XxxRequestBuilder`；在 `#[cfg(test)]` 前加 `#[deprecated] pub type XxxBuilder = XxxRequestBuilder;`。12 类型：AssignInfoListQuery/CollaborationDepartmentGet/CollaborationTenantGet/CollaborationTenantList/CollaborationUserGet/CountryRegionBatchGet/CountryRegionList/DirectoryUserIdConvert/TenantQuery/UserAuthDataRelationBind/UserAuthDataRelationUnbind/VisibleOrganization
+- [x] 1.1 12 个定义文件：struct+impl+测试 `XxxBuilder` → `XxxRequestBuilder`；在 `#[cfg(test)]` 前加 `#[deprecated] pub type XxxBuilder = XxxRequestBuilder;`。12 类型：AssignInfoListQuery/CollaborationDepartmentGet/CollaborationTenantGet/CollaborationTenantList/CollaborationUserGet/CountryRegionBatchGet/CountryRegionList/DirectoryUserIdConvert/TenantQuery/UserAuthDataRelationBind/UserAuthDataRelationUnbind/VisibleOrganization
 
 ## 2. 验证
 
-- [ ] 2.1 `cargo build --workspace --all-features` exit 0
-- [ ] 2.2 三组 clippy（default/all/no-default + `-D warnings`）均 exit 0
-- [ ] 2.3 `cargo test -p openlark-platform` 0 failed
-- [ ] 2.4 **`cargo fmt --all -- --check` exit 0**（CI lint 教训）
-- [ ] 2.5 grep 确认 12 RequestBuilder struct + 12 deprecated alias + 0 旧 struct 残留
+- [x] 2.1 `cargo build --workspace --all-features` exit 0
+- [x] 2.2 三组 clippy（default/all/no-default + `-D warnings`）均 exit 0
+- [x] 2.3 `cargo test -p openlark-platform` 0 failed
+- [x] 2.4 **`cargo fmt --all -- --check` exit 0**（CI lint 教训）
+- [x] 2.5 grep 确认 12 RequestBuilder struct + 12 deprecated alias + 0 旧 struct 残留
 
 ## 3. CHANGELOG
 
-- [ ] 3.1 CHANGELOG v0.18 breaking 段记录 12 个重命名（platform 小批）
+- [x] 3.1 CHANGELOG v0.18 breaking 段记录 12 个重命名（platform 小批）

@@ -14,12 +14,12 @@ use serde::{Deserialize, Serialize};
 
 /// 获取关联组织可见部门成员 Builder
 #[derive(Debug, Clone)]
-pub struct VisibleOrganizationBuilder {
+pub struct VisibleOrganizationRequestBuilder {
     config: Config,
     target_tenant_key: String,
 }
 
-impl VisibleOrganizationBuilder {
+impl VisibleOrganizationRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -86,6 +86,10 @@ pub struct CollaborationUser {
 }
 
 impl ApiResponseTrait for VisibleOrganizationResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to VisibleOrganizationRequestBuilder, will be removed in v1.0 (#271)")]
+pub type VisibleOrganizationBuilder = VisibleOrganizationRequestBuilder;
 
 #[cfg(test)]
 mod tests {

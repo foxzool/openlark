@@ -21,19 +21,19 @@ AssignInfoListQuery / CollaborationDepartmentGet / CollaborationTenantGet / Coll
 
 ## Task 1：12 类型重命名 + alias
 
-- [ ] **Step 1:** 12 个定义文件：struct+impl+测试 `XxxBuilder` → `XxxRequestBuilder`；`#[cfg(test)]` 前加 `#[deprecated] pub type XxxBuilder = XxxRequestBuilder;`
-- [ ] **Step 2:** `cargo build -p openlark-platform` exit 0
-- [ ] **Step 3:** commit
+- [x] **Step 1:** 12 个定义文件：struct+impl+测试 `XxxBuilder` → `XxxRequestBuilder`；`#[cfg(test)]` 前加 `#[deprecated] pub type XxxBuilder = XxxRequestBuilder;`
+- [x] **Step 2:** `cargo build -p openlark-platform` exit 0
+- [x] **Step 3:** commit
 
 ## Task 2：全量验证
 
-- [ ] **Step 1:** `cargo build --workspace --all-features` exit 0
-- [ ] **Step 2:** 三组 clippy（-D warnings）exit 0
-- [ ] **Step 3:** `cargo test -p openlark-platform` 0 failed
-- [ ] **Step 4:** **`cargo fmt --all -- --check` exit 0**
-- [ ] **Step 5:** grep 12 RequestBuilder struct + 12 alias + 0 残留
-- [ ] **Step 6:** CHANGELOG v0.18 breaking 段记录
+- [x] **Step 1:** `cargo build --workspace --all-features` exit 0
+- [x] **Step 2:** 三组 clippy（-D warnings）exit 0
+- [x] **Step 3:** `cargo test -p openlark-platform` 0 failed
+- [x] **Step 4:** **`cargo fmt --all -- --check` exit 0**
+- [x] **Step 5:** grep 12 RequestBuilder struct + 12 alias + 0 残留
+- [x] **Step 6:** CHANGELOG v0.18 breaking 段记录
 
 ## Task 3：commit + 完成
 
-- [ ] **Step 1:** 提交 CHANGELOG + tasks 勾选
+- [x] **Step 1:** 提交 CHANGELOG + tasks 勾选

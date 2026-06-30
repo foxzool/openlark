@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 用户数据维度解绑 Builder
 #[derive(Debug, Clone)]
-pub struct UserAuthDataRelationUnbindBuilder {
+pub struct UserAuthDataRelationUnbindRequestBuilder {
     config: Config,
     user_ids: Vec<String>,
     data_type: String,
 }
 
-impl UserAuthDataRelationUnbindBuilder {
+impl UserAuthDataRelationUnbindRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -106,6 +106,12 @@ pub struct UserAuthDataRelationResult {
 }
 
 impl ApiResponseTrait for UserAuthDataRelationUnbindResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to UserAuthDataRelationUnbindRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type UserAuthDataRelationUnbindBuilder = UserAuthDataRelationUnbindRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -33,13 +33,13 @@ pub enum UserIdConvertType {
 
 /// 妙搭和飞书用户 ID 转换 Builder
 #[derive(Debug, Clone)]
-pub struct DirectoryUserIdConvertBuilder {
+pub struct DirectoryUserIdConvertRequestBuilder {
     config: Config,
     id_convert_type: UserIdConvertType,
     ids: Vec<String>,
 }
 
-impl DirectoryUserIdConvertBuilder {
+impl DirectoryUserIdConvertRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, id_convert_type: UserIdConvertType) -> Self {
         Self {
@@ -126,6 +126,12 @@ impl ApiResponseTrait for DirectoryUserIdConvertResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to DirectoryUserIdConvertRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type DirectoryUserIdConvertBuilder = DirectoryUserIdConvertRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,7 +143,7 @@ mod tests {
             .app_secret("test_secret")
             .build();
 
-        let request = DirectoryUserIdConvertBuilder::new(
+        let request = DirectoryUserIdConvertRequestBuilder::new(
             config,
             UserIdConvertType::ForceUserIdToFeishuOpenId,
         )

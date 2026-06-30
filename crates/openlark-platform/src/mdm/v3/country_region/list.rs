@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 分页查询国家/地区 Builder
 #[derive(Debug, Clone)]
-pub struct CountryRegionListBuilder {
+pub struct CountryRegionListRequestBuilder {
     config: Config,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
 
-impl CountryRegionListBuilder {
+impl CountryRegionListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -119,6 +119,10 @@ pub struct CountryRegionI18nName {
 
 impl ApiResponseTrait for CountryRegionListResponse {}
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CountryRegionListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CountryRegionListBuilder = CountryRegionListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -129,7 +133,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CountryRegionListBuilder::new(config.clone())
+        let request = CountryRegionListRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

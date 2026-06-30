@@ -17,8 +17,8 @@ impl DirectoryUserService {
     }
 
     /// 转换妙搭和开放平台用户 ID
-    pub fn id_convert(&self) -> id_convert::DirectoryUserIdConvertBuilder {
-        id_convert::DirectoryUserIdConvertBuilder::new(
+    pub fn id_convert(&self) -> id_convert::DirectoryUserIdConvertRequestBuilder {
+        id_convert::DirectoryUserIdConvertRequestBuilder::new(
             self.config.clone(),
             id_convert::UserIdConvertType::ForceUserIdToFeishuOpenId,
         )
