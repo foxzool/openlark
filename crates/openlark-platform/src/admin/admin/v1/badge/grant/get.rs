@@ -11,13 +11,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取勋章授予名单详情的请求构建器。
-pub struct GetBadgeGrantBuilder {
+pub struct GetBadgeGrantRequestBuilder {
     badge_id: String,
     grant_id: String,
     config: Config,
 }
 
-impl GetBadgeGrantBuilder {
+impl GetBadgeGrantRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -80,6 +80,10 @@ impl ApiResponseTrait for GetBadgeGrantResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to GetBadgeGrantRequestBuilder, will be removed in v1.0 (#271)")]
+pub type GetBadgeGrantBuilder = GetBadgeGrantRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -11,7 +11,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取部门维度用户活跃和功能使用数据的请求构建器。
-pub struct ListAdminDeptStatBuilder {
+pub struct ListAdminDeptStatRequestBuilder {
     start_date: String,
     end_date: String,
     page_size: Option<u32>,
@@ -19,7 +19,7 @@ pub struct ListAdminDeptStatBuilder {
     config: Config,
 }
 
-impl ListAdminDeptStatBuilder {
+impl ListAdminDeptStatRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -120,6 +120,10 @@ impl ApiResponseTrait for ListAdminDeptStatResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListAdminDeptStatRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListAdminDeptStatBuilder = ListAdminDeptStatRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,7 +134,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListAdminDeptStatBuilder::new(config.clone())
+        let request = ListAdminDeptStatRequestBuilder::new(config.clone())
             .start_date("test".to_string())
             .end_date("test".to_string());
         let _ = request;

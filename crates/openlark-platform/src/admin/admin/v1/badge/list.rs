@@ -14,13 +14,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取勋章列表请求
-pub struct ListBadgeBuilder {
+pub struct ListBadgeRequestBuilder {
     page_size: Option<u32>,
     page_token: Option<String>,
     config: Config,
 }
 
-impl ListBadgeBuilder {
+impl ListBadgeRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -106,6 +106,10 @@ impl ApiResponseTrait for ListBadgeResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListBadgeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListBadgeBuilder = ListBadgeRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,7 +120,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListBadgeBuilder::new(config.clone())
+        let request = ListBadgeRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

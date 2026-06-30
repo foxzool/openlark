@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取审计日志列表请求 Builder。
-pub struct ListAuditInfoBuilder {
+pub struct ListAuditInfoRequestBuilder {
     /// 查询起始时间。
     start_time: String,
     /// 查询结束时间。
@@ -26,7 +26,7 @@ pub struct ListAuditInfoBuilder {
     config: Config,
 }
 
-impl ListAuditInfoBuilder {
+impl ListAuditInfoRequestBuilder {
     /// 创建新的实例。
     pub fn new(config: Config) -> Self {
         Self {
@@ -125,6 +125,10 @@ impl ApiResponseTrait for ListAuditInfoResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListAuditInfoRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListAuditInfoBuilder = ListAuditInfoRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,7 +139,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListAuditInfoBuilder::new(config.clone())
+        let request = ListAuditInfoRequestBuilder::new(config.clone())
             .start_time("test".to_string())
             .end_time("test".to_string());
         let _ = request;

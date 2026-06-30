@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **platform admin 请求类型统一 RequestBuilder**（#271 admin 批，软 breaking）：
+  openlark-platform admin 子系统 14 个请求 builder XxxBuilder → XxxRequestBuilder（Badge/Grant/Stat/AuditInfo/ResetPassword 系列），旧名作 #[deprecated] alias。
+
+
 - **platform 小批请求类型统一 `RequestBuilder` 后缀**（#271 platform 批 1，软 breaking）：
   openlark-platform 的 trust_party/mdm/tenant/spark 子系统 12 个请求 builder `XxxBuilder`
   重命名为 `XxxRequestBuilder`（含 `UserAuthDataRelationBind/Unbind`、`Collaboration*`、

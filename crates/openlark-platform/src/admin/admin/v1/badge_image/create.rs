@@ -12,12 +12,12 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 上传勋章图片的请求构建器。
-pub struct CreateBadgeImageBuilder {
+pub struct CreateBadgeImageRequestBuilder {
     image: String,
     config: Config,
 }
 
-impl CreateBadgeImageBuilder {
+impl CreateBadgeImageRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -76,6 +76,10 @@ impl ApiResponseTrait for CreateBadgeImageResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CreateBadgeImageRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CreateBadgeImageBuilder = CreateBadgeImageRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,7 +90,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CreateBadgeImageBuilder::new(config.clone()).image("test".to_string());
+        let request = CreateBadgeImageRequestBuilder::new(config.clone()).image("test".to_string());
         let _ = request;
     }
 }
