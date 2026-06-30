@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 获取关联组织部门详情 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationDepartmentGetBuilder {
+pub struct CollaborationDepartmentGetRequestBuilder {
     config: Config,
     target_tenant_key: String,
     target_department_id: String,
 }
 
-impl CollaborationDepartmentGetBuilder {
+impl CollaborationDepartmentGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -78,6 +78,12 @@ pub struct CollaborationDepartmentGetResponse {
 }
 
 impl ApiResponseTrait for CollaborationDepartmentGetResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationDepartmentGetRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationDepartmentGetBuilder = CollaborationDepartmentGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

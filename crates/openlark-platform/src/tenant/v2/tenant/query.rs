@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 
 /// 获取企业信息 Builder
 #[derive(Debug, Clone)]
-pub struct TenantQueryBuilder {
+pub struct TenantQueryRequestBuilder {
     config: Config,
 }
 
-impl TenantQueryBuilder {
+impl TenantQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -73,6 +73,10 @@ pub struct I18nName {
 }
 
 impl ApiResponseTrait for TenantQueryResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TenantQueryRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TenantQueryBuilder = TenantQueryRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -15,12 +15,12 @@ use serde::{Deserialize, Serialize};
 
 /// 批量查询国家/地区 Builder
 #[derive(Debug, Clone)]
-pub struct CountryRegionBatchGetBuilder {
+pub struct CountryRegionBatchGetRequestBuilder {
     config: Config,
     mdm_codes: Vec<String>,
 }
 
-impl CountryRegionBatchGetBuilder {
+impl CountryRegionBatchGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -101,6 +101,12 @@ pub struct CountryRegionI18nName {
 }
 
 impl ApiResponseTrait for CountryRegionBatchGetResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CountryRegionBatchGetRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CountryRegionBatchGetBuilder = CountryRegionBatchGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

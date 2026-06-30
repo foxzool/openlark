@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 获取企业席位信息 Builder
 #[derive(Debug, Clone)]
-pub struct AssignInfoListQueryBuilder {
+pub struct AssignInfoListQueryRequestBuilder {
     config: Config,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
 
-impl AssignInfoListQueryBuilder {
+impl AssignInfoListQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -128,6 +128,10 @@ pub struct ProductI18nName {
 }
 
 impl ApiResponseTrait for AssignInfoListQueryResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AssignInfoListQueryRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AssignInfoListQueryBuilder = AssignInfoListQueryRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -14,12 +14,12 @@ use serde::{Deserialize, Serialize};
 
 /// 获取关联组织详情 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationTenantGetBuilder {
+pub struct CollaborationTenantGetRequestBuilder {
     config: Config,
     target_tenant_key: String,
 }
 
-impl CollaborationTenantGetBuilder {
+impl CollaborationTenantGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -70,6 +70,12 @@ pub struct CollaborationTenantGetResponse {
 }
 
 impl ApiResponseTrait for CollaborationTenantGetResponse {}
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationTenantGetRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationTenantGetBuilder = CollaborationTenantGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

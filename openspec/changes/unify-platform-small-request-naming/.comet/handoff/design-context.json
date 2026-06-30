@@ -1,0 +1,14 @@
+{
+  "change": "unify-platform-small-request-naming",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "519d3697427fed2cebf22909aadceeae02067dd12ff9495e468fda5fef4bdfe1",
+  "files": [
+    { "path": "openspec/changes/unify-platform-small-request-naming/proposal.md", "sha256": "78d0b4a8a644bd84b9e52f986db075b52d5cf3e50f8b7678404bda11b87ebcaf" },
+    { "path": "openspec/changes/unify-platform-small-request-naming/design.md", "sha256": "995b8b0f68243a6246729995a0cfbe569bb65918b8d97e94ec62369af083652f" },
+    { "path": "openspec/changes/unify-platform-small-request-naming/tasks.md", "sha256": "5f6a42d3891ab84a68ec9924b630ece6962693db61f01a8cad4718db3cf2fcfc" },
+    { "path": "openspec/changes/unify-platform-small-request-naming/specs/platform-small-request-naming/spec.md", "sha256": "b3386f22bf61d36a0efa6b4848e83b9e9323ec95fb8b67124521dc7a9928f100" }
+  ]
+}

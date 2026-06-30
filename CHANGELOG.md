@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **platform 小批请求类型统一 `RequestBuilder` 后缀**（#271 platform 批 1，软 breaking）：
+  openlark-platform 的 trust_party/mdm/tenant/spark 子系统 12 个请求 builder `XxxBuilder`
+  重命名为 `XxxRequestBuilder`（含 `UserAuthDataRelationBind/Unbind`、`Collaboration*`、
+  `CountryRegion*`、`DirectoryUserIdConvert`、`TenantQuery`、`AssignInfoListQuery`、
+  `VisibleOrganization`），旧名作 `#[deprecated]` type alias 保留至 v1.0。
+
 - **application+docs 请求类型统一 `RequestBuilder` 后缀**（#271 批次，软 breaking）：
   openlark-application 的 3 个（`AccessDataSearchBlock`/`AccessDataSearchCustom`/`AccessDataSearchWorkplace`）
   与 openlark-docs 的 1 个（`PatchFormFieldQuestion`）请求 builder `XxxBuilder` 重命名为
