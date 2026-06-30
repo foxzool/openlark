@@ -14,7 +14,7 @@ design_doc: null
 plan: null
 verify_result: pending
 verification_report: docs/superpowers/reports/2026-06-30-fix-anyhow-rustsec-2026-0190-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-06-30
 verified_at: null
 archived: false
