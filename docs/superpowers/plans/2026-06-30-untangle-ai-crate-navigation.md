@@ -81,7 +81,7 @@ base-ref: ad4489b94752be032c897c26b8e206244b90d388
 
 **重要**：本 task 删除 `ai/v1/mod.rs` 里的死聚合 `V1` + `DocumentAiV1`/`OcrV1`/`SpeechToTextV1`/`TranslationV1`（这 4 个是死聚合版，与第二代 `ai::document_ai::v1::DocumentAiV1` 同名但不同物）。删除后 `service.rs` 的 `*Client.v1()` 会断引用——**Task 2 紧接着重定向**，两个 task 在一次提交内完成。
 
-- [ ] **Step 1: 重写 `ai/v1/mod.rs`，删除死聚合**
+- [x] **Step 1: 重写 `ai/v1/mod.rs`，删除死聚合**
 
 把 `crates/openlark-ai/src/ai/v1/mod.rs` 整个文件替换为空模块占位（即将整个删除）。实际上最干净的做法是**删除 `ai/v1/` 目录**并在 `ai/mod.rs` 移除 `pub mod v1`。先在 `ai/mod.rs` 删除 `pub mod v1`：
 
@@ -94,13 +94,13 @@ pub mod v1;
 
 保留 `ai/mod.rs` 的：`#![allow(clippy::module_inception)]` + 模块文档 + 4 个 `pub mod {document_ai,optical_char_recognition,speech_to_text,translation};`。
 
-- [ ] **Step 2: 删除 `ai/v1/` 目录**
+- [x] **Step 2: 删除 `ai/v1/` 目录**
 
 ```bash
 rm -rf crates/openlark-ai/src/ai/v1
 ```
 
-- [ ] **Step 3: 暂不编译（已知 service.rs 断引用，Task 2 修复）**
+- [x] **Step 3: 暂不编译（已知 service.rs 断引用，Task 2 修复）**
 
 预期：`cargo build -p openlark-ai` 此时**会失败**（`service.rs` 引用 `super::ai::v1::DocumentAiV1` 等）。这是预期的，Task 2 重定向后即恢复。**不要单独提交本 task**——与 Task 2 一起提交。
 
@@ -118,7 +118,7 @@ rm -rf crates/openlark-ai/src/ai/v1
 - Consumes: Task 1 删除了死聚合；第二代入口已存在（`ai::document_ai::v1::DocumentAiV1` 等，字段 `_config` 待 Task 5 改名，但 `new(Arc<Config>)` 签名已对）。
 - Produces: `*Client.v1()` 返回第二代入口类型；编译恢复。
 
-- [ ] **Step 1: 修改 `service.rs` 四处 `v1()` 返回类型**
+- [x] **Step 1: 修改 `service.rs` 四处 `v1()` 返回类型**
 
 把 `crates/openlark-ai/src/service.rs` 中四处 `*Client.v1()` 的返回类型从死聚合路径改为第二代路径：
 
@@ -150,12 +150,12 @@ pub fn v1(&self) -> super::ai::translation::v1::TranslationV1 {
 
 注意：第二代入口的 `new` 签名是 `pub fn new(config: Arc<Config>) -> Self`（与死聚合一致），`self.config.clone()` 产出 `Arc<Config>`，签名匹配。
 
-- [ ] **Step 2: 编译验证**
+- [x] **Step 2: 编译验证**
 
 Run: `cargo build -p openlark-ai`
 Expected: PASS（第二代入口 `new` 签名与死聚合相同，重定向后即恢复编译）。如失败检查 `OcrV1`/`TranslationV1`/`SpeechToTextV1` 的 `new` 签名是否确为 `Arc<Config>`（已核查：是）。
 
-- [ ] **Step 3: 提交（合并 Task 1 + Task 2）**
+- [x] **Step 3: 提交（合并 Task 1 + Task 2）**
 
 ```bash
 git add crates/openlark-ai/src/ai/mod.rs crates/openlark-ai/src/service.rs
@@ -209,7 +209,7 @@ Refs: #275"
 
 **批量模式说明**：17 个 `recognize.rs` 的 service struct 模板完全相同（只改 doc_type 名 + Builder 类型名）；`resume/parse.rs` 和 `contract/field_extraction.rs` 仅 action 方法名不同。可按下方模板批量生成。
 
-- [ ] **Step 1: 写一个 doc_type service struct（以 id_card 为模板）**
+- [x] **Step 1: 写一个 doc_type service struct（以 id_card 为模板）**
 
 修改 `crates/openlark-ai/src/ai/document_ai/v1/id_card/mod.rs`，在 `pub mod recognize;` 之后追加：
 
@@ -236,16 +236,16 @@ impl IdCardService {
 }
 ```
 
-- [ ] **Step 2: 跑 id_card 现有测试确认未破坏叶子**
+- [x] **Step 2: 跑 id_card 现有测试确认未破坏叶子**
 
 Run: `cargo test -p openlark-ai --lib document_ai::v1::id_card`
 Expected: PASS（叶子文件未改，只是补了上层 service）。
 
-- [ ] **Step 3: 批量套用模板到其余 16 个 recognize doc_type**
+- [x] **Step 3: 批量套用模板到其余 16 个 recognize doc_type**
 
 对其余 16 个 `recognize.rs` 类 doc_type（bank_card / business_card / business_license / chinese_passport / driving_license / food_manage_license / food_produce_license / health_certificate / hkm_mainland_travel_permit / tw_mainland_travel_permit / taxi_invoice / train_invoice / vat_invoice / vehicle_invoice / vehicle_license），在各 `mod.rs` 的 `pub mod recognize;` 后追加同模板，替换 3 处：struct/impl 名（`{DocType}Service`）、doc 注释 doc_type 名、Builder 类型名（`recognize::{DocType}RecognizeRequestBuilder`）。
 
-- [ ] **Step 4: resume doc_type（action=parse）**
+- [x] **Step 4: resume doc_type（action=parse）**
 
 修改 `crates/openlark-ai/src/ai/document_ai/v1/resume/mod.rs`，在 `pub mod parse;` 后追加：
 
@@ -272,7 +272,7 @@ impl ResumeService {
 }
 ```
 
-- [ ] **Step 5: contract doc_type（action=field_extraction）**
+- [x] **Step 5: contract doc_type（action=field_extraction）**
 
 修改 `crates/openlark-ai/src/ai/document_ai/v1/contract/mod.rs`，在 `pub mod field_extraction;` 后追加同模板，struct 名 `ContractService`，方法：
 
@@ -283,7 +283,7 @@ impl ResumeService {
     }
 ```
 
-- [ ] **Step 6: DocumentAiV1 装 18 doc_type accessor + `_config`→`config`**
+- [x] **Step 6: DocumentAiV1 装 18 doc_type accessor + `_config`→`config`**
 
 修改 `crates/openlark-ai/src/ai/document_ai/v1/mod.rs`：
 
@@ -335,17 +335,17 @@ pub struct DocumentAiV1 {
 
 （删除 `_config` 前下划线和 reserved 注释。`#[derive(Debug, Clone)]` 中 `Debug` 可选，原文件无 Debug，保持 `#[derive(Clone)]` 即可。）
 
-- [ ] **Step 7: 编译验证**
+- [x] **Step 7: 编译验证**
 
 Run: `cargo build -p openlark-ai`
 Expected: PASS。
 
-- [ ] **Step 8: 跑 DocumentAi 全量叶子测试**
+- [x] **Step 8: 跑 DocumentAi 全量叶子测试**
 
 Run: `cargo test -p openlark-ai --lib document_ai`
 Expected: PASS（18 个 doc_type 现有测试不破坏）。
 
-- [ ] **Step 9: 提交**
+- [x] **Step 9: 提交**
 
 ```bash
 git add crates/openlark-ai/src/ai/document_ai/
@@ -373,7 +373,7 @@ Refs: #275"
 - Consumes: `BasicRecognizeRequestBuilder::new(Config)`（已存在于 `basic_recognize.rs:141`）。
 - Produces: `Image::basic_recognize() -> BasicRecognizeRequestBuilder`。
 
-- [ ] **Step 1: 修改 `image/mod.rs`**
+- [x] **Step 1: 修改 `image/mod.rs`**
 
 把 `crates/openlark-ai/src/ai/optical_char_recognition/v1/image/mod.rs` 的 `Image` struct + impl 替换为：
 
@@ -399,12 +399,12 @@ impl Image {
 
 （`_config`→`config`，删 reserved 注释，加 accessor。保留 `pub mod basic_recognize;` 和测试模块。）
 
-- [ ] **Step 2: 编译 + 测试**
+- [x] **Step 2: 编译 + 测试**
 
 Run: `cargo build -p openlark-ai && cargo test -p openlark-ai --lib optical_char_recognition`
 Expected: PASS。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add crates/openlark-ai/src/ai/optical_char_recognition/v1/image/mod.rs
@@ -429,7 +429,7 @@ Refs: #275"
 - Consumes: `TextTranslateRequestBuilder::new(Config)`（translate.rs:115）、`TextDetectRequestBuilder::new(Config)`（detect.rs:95）。
 - Produces: `Text::translate() -> TextTranslateRequestBuilder`、`Text::detect() -> TextDetectRequestBuilder`。
 
-- [ ] **Step 1: 修改 `text/mod.rs`**
+- [x] **Step 1: 修改 `text/mod.rs`**
 
 把 `Text` struct + impl 替换为：
 
@@ -460,12 +460,12 @@ impl Text {
 
 （保留 `pub mod detect; pub mod translate;` 和测试模块。）
 
-- [ ] **Step 2: 编译 + 测试**
+- [x] **Step 2: 编译 + 测试**
 
 Run: `cargo build -p openlark-ai && cargo test -p openlark-ai --lib translation`
 Expected: PASS。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add crates/openlark-ai/src/ai/translation/v1/text/mod.rs
@@ -497,7 +497,7 @@ Refs: #275"
 1. URL 常量：B 套用 `SPEECH_TO_TEXT_V1_FILE_RECOGNIZE`（错误 `/v1/file/recognize`）→ 改为 A 套的 `SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE`（正确 `/v1/speech/file_recognize`）。stream 同理：`SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE` → `SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE`。
 2. 模块文档 docPath：B 套已是 `speech_to_text-v1/file_recognize`（正确），保留。
 
-- [ ] **Step 1: 用 B 套内容覆盖 A 套 file_recognize.rs，再改 URL 常量**
+- [x] **Step 1: 用 B 套内容覆盖 A 套 file_recognize.rs，再改 URL 常量**
 
 ```bash
 cp crates/openlark-ai/src/speech_to_text/speech_to_text/v1/recognize/file_recognize.rs \
@@ -517,7 +517,7 @@ use crate::endpoints::SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE;
 
 把 `ApiRequest::post(SPEECH_TO_TEXT_V1_FILE_RECOGNIZE)` 改为 `ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)`（共 1 处，在 `execute_with_options`）。
 
-- [ ] **Step 2: 用 B 套内容覆盖 A 套 stream_recognize.rs，再改 URL 常量**
+- [x] **Step 2: 用 B 套内容覆盖 A 套 stream_recognize.rs，再改 URL 常量**
 
 ```bash
 cp crates/openlark-ai/src/speech_to_text/speech_to_text/v1/recognize/stream_recognize.rs \
@@ -526,7 +526,7 @@ cp crates/openlark-ai/src/speech_to_text/speech_to_text/v1/recognize/stream_reco
 
 修改新文件，把 `use crate::endpoints::SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE;` 改为 `use crate::endpoints::SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE;`，`ApiRequest::post(SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE)` 改为 `ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE)`。
 
-- [ ] **Step 3: 修改 `speech/mod.rs`，Speech 装 accessor + `_config`→`config`**
+- [x] **Step 3: 修改 `speech/mod.rs`，Speech 装 accessor + `_config`→`config`**
 
 把 `crates/openlark-ai/src/ai/speech_to_text/v1/speech/mod.rs` 的 `Speech` struct + impl 替换为：
 
@@ -557,17 +557,17 @@ impl Speech {
 
 （保留 `pub mod file_recognize; pub mod stream_recognize;` 和测试模块。）
 
-- [ ] **Step 4: 编译**
+- [x] **Step 4: 编译**
 
 Run: `cargo build -p openlark-ai`
 Expected: PASS。如失败检查 B 套是否引用了 A 套路径上不存在的符号（B 套 free function 应已自包含）。
 
-- [ ] **Step 5: 跑 Speech 测试（B 套带测试，迁移后应全过）**
+- [x] **Step 5: 跑 Speech 测试（B 套带测试，迁移后应全过）**
 
 Run: `cargo test -p openlark-ai --lib speech_to_text`
 Expected: PASS。B 套测试已随文件迁入 A 套位置。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add crates/openlark-ai/src/ai/speech_to_text/
@@ -595,7 +595,7 @@ Refs: #275"
 - Consumes: Task 3-6 装好的 accessor 链。
 - Produces: 4 个测试断言 `AiClient → 叶子 RequestBuilder` 返回类型正确。
 
-- [ ] **Step 1: 在 `service.rs` 测试模块追加 4 个可达性测试**
+- [x] **Step 1: 在 `service.rs` 测试模块追加 4 个可达性测试**
 
 在 `crates/openlark-ai/src/service.rs` 的 `#[cfg(test)] mod tests` 内追加（保留现有 5 个 client 创建测试）：
 
@@ -652,12 +652,12 @@ Refs: #275"
 
 这些测试主要靠**编译期类型检查**验证链可达（返回类型不对则编译失败），运行期只验证不 panic。
 
-- [ ] **Step 2: 跑测试**
+- [x] **Step 2: 跑测试**
 
 Run: `cargo test -p openlark-ai --lib service::tests`
 Expected: PASS（4 个新测试通过）。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add crates/openlark-ai/src/service.rs
@@ -683,20 +683,20 @@ Refs: #275"
 
 **重要**：chain.rs 的 `RecognizeResource::{resume,id_card,...}_parse/recognize()` 引用 `crate::document_ai::document_ai::v1::recognize::*`。删除第一代会让 chain.rs 编译失败。**本 task 与 Task 9（删 chain.rs）必须同提交**。
 
-- [ ] **Step 1: 删除第一代 document_ai 目录**
+- [x] **Step 1: 删除第一代 document_ai 目录**
 
 ```bash
 rm -rf crates/openlark-ai/src/document_ai
 ```
 
-- [ ] **Step 2: lib.rs 删除 `pub mod document_ai;`**
+- [x] **Step 2: lib.rs 删除 `pub mod document_ai;`**
 
 修改 `crates/openlark-ai/src/lib.rs`，删除第 55 行：
 ```rust
 pub mod document_ai;
 ```
 
-- [ ] **Step 3: 暂不编译（chain.rs 断引用，Task 9 修复）**
+- [x] **Step 3: 暂不编译（chain.rs 断引用，Task 9 修复）**
 
 预期：`cargo build -p openlark-ai` 失败（chain.rs 引用已删的第一代）。与 Task 9 一起提交。
 
@@ -713,13 +713,13 @@ pub mod document_ai;
 - Consumes: Task 2 已让 `service::DocumentAiClient`（第二代）成为唯一 canonical；同名 `chain::DocumentAiClient` 删除后无冲突。
 - Produces: 范式 A 死链清除；同名 `DocumentAiClient` 仅剩 `service::DocumentAiClient`。
 
-- [ ] **Step 1: 删除 chain.rs**
+- [x] **Step 1: 删除 chain.rs**
 
 ```bash
 rm crates/openlark-ai/src/common/chain.rs
 ```
 
-- [ ] **Step 2: 修改 `common/mod.rs`**
+- [x] **Step 2: 修改 `common/mod.rs`**
 
 把 `crates/openlark-ai/src/common/mod.rs` 中：
 ```rust
@@ -734,7 +734,7 @@ pub use chain::{DocumentAiClient, DocumentAiV1Client, RecognizeResource};
 
 保留 `pub mod api_utils;` 和 `pub use api_utils::{ensure_success, extract_response_data, serialize_params};`。
 
-- [ ] **Step 3: lib.rs 删除 chain 版 DocumentAiClient re-export**
+- [x] **Step 3: lib.rs 删除 chain 版 DocumentAiClient re-export**
 
 修改 `crates/openlark-ai/src/lib.rs`，删除第 72 行：
 ```rust
@@ -743,17 +743,17 @@ pub use common::chain::DocumentAiClient;
 
 （`pub use service::AiClient;` 保留不动。）
 
-- [ ] **Step 4: 编译验证（合并 Task 8 + 9）**
+- [x] **Step 4: 编译验证（合并 Task 8 + 9）**
 
 Run: `cargo build -p openlark-ai`
 Expected: PASS（第一代 + chain 都删，第二代链已完整）。
 
-- [ ] **Step 5: 跑全量 ai 测试**
+- [x] **Step 5: 跑全量 ai 测试**
 
 Run: `cargo test -p openlark-ai --lib`
 Expected: PASS。
 
-- [ ] **Step 6: 提交（合并 Task 8 + 9）**
+- [x] **Step 6: 提交（合并 Task 8 + 9）**
 
 ```bash
 git add -A crates/openlark-ai/src/document_ai crates/openlark-ai/src/common crates/openlark-ai/src/lib.rs
@@ -783,13 +783,13 @@ Refs: #275"
 
 **注意**：`ai::speech_to_text`（第二代）与顶层 `speech_to_text`（第一代）同名模块。删的是**顶层** `src/speech_to_text/`，**不是** `src/ai/speech_to_text/`。
 
-- [ ] **Step 1: 删除顶层 speech_to_text 目录**
+- [x] **Step 1: 删除顶层 speech_to_text 目录**
 
 ```bash
 rm -rf crates/openlark-ai/src/speech_to_text
 ```
 
-- [ ] **Step 2: lib.rs 删除顶层 `pub mod speech_to_text;`**
+- [x] **Step 2: lib.rs 删除顶层 `pub mod speech_to_text;`**
 
 修改 `crates/openlark-ai/src/lib.rs`，删除第 59 行：
 ```rust
@@ -798,12 +798,12 @@ pub mod speech_to_text;
 
 （**不删** `ai` 模块下的 `pub mod speech_to_text`——那是 `ai/mod.rs` 内的，是第二代。）
 
-- [ ] **Step 3: 编译 + 测试**
+- [x] **Step 3: 编译 + 测试**
 
 Run: `cargo build -p openlark-ai && cargo test -p openlark-ai --lib`
 Expected: PASS。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add -A crates/openlark-ai/src/speech_to_text crates/openlark-ai/src/lib.rs
@@ -846,25 +846,25 @@ Refs: #275"
 - 所有 `DOCUMENT_AI_*`（已对齐 csv）
 - 所有 `TRANSLATION_V1_*`（已对齐 csv）
 
-- [ ] **Step 1: 先 grep 确认错误常量零引用**
+- [x] **Step 1: 先 grep 确认错误常量零引用**
 
 ```bash
 cd crates/openlark-ai && grep -rnE "OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE\b|SPEECH_TO_TEXT_V1_FILE_RECOGNIZE\b|SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE\b|SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE\b|OCR_BASIC_RECOGNIZE\b|SPEECH_RECOGNIZE\b" src --include="*.rs" | grep -v "endpoints/mod.rs"
 ```
 Expected: 空（Task 6 已把 Speech 叶子改用正确常量；OCR 叶子已用 `OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE`）。如非空，先修复引用。
 
-- [ ] **Step 2: 删除 endpoints/mod.rs 中的错误常量 + 别名 + 文档 + 测试**
+- [x] **Step 2: 删除 endpoints/mod.rs 中的错误常量 + 别名 + 文档 + 测试**
 
 逐个删除上述清单中的常量定义、别名、模块文档示例行（`//! let ocr_basic_endpoint = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;` 等改为正确常量或删）、测试断言（`assert!(OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE...)` 等）。
 
 **保留**正确常量及其测试。测试数组中删除错误常量项。
 
-- [ ] **Step 3: 编译 + 测试**
+- [x] **Step 3: 编译 + 测试**
 
 Run: `cargo build -p openlark-ai && cargo test -p openlark-ai --lib endpoints`
 Expected: PASS。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-ai/src/endpoints/mod.rs
@@ -896,7 +896,7 @@ Refs: #275"
 - Consumes: Task 2-11 完成的导航链。
 - Produces: 文档示例与新导航链一致；openlark-client AiClient 注册编译通过。
 
-- [ ] **Step 1: 更新 lib.rs 模块文档示例**
+- [x] **Step 1: 更新 lib.rs 模块文档示例**
 
 修改 `crates/openlark-ai/src/lib.rs` 顶部模块文档，把示例行：
 ```rust
@@ -909,17 +909,17 @@ Refs: #275"
 
 把文档示例中引用已删常量的行（如 `let ocr_endpoint = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;`）改为正确常量 `OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE`。
 
-- [ ] **Step 2: 编译 openlark-client（AiClient 注册校验）**
+- [x] **Step 2: 编译 openlark-client（AiClient 注册校验）**
 
 Run: `cargo build -p openlark-client`
 Expected: PASS。`client.rs:105` 的 `ty: openlark_ai::AiClient` 类型签名不变，内部导航变化不影响注册。
 
-- [ ] **Step 3: 跑 cargo doc 验证无文档断链**
+- [x] **Step 3: 跑 cargo doc 验证无文档断链**
 
 Run: `cargo doc -p openlark-ai --all-features`
 Expected: PASS（无 warning 关于断链）。如出现 intra-doc link 警告，修复。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-ai/src/lib.rs
@@ -938,14 +938,14 @@ Refs: #275"
 **Files:**
 - 无（验证 task）
 
-- [ ] **Step 1: cargo fmt --check**
+- [x] **Step 1: cargo fmt --check**
 
 Run: `cargo fmt --check`
 Expected: PASS（无 diff 输出）。如失败，先 `cargo fmt` 再提交格式化。
 
 **CI 提示**：CI lint job 第一步是 `cargo fmt --check`（见 [[run-cargo-fmt-check-before-push]]），clippy 通过≠fmt 通过，必须显式跑。
 
-- [ ] **Step 2: cargo clippy（dead_code 验证死链清零）**
+- [x] **Step 2: cargo clippy（dead_code 验证死链清零）**
 
 Run: `cargo clippy -p openlark-ai --all-features -- -W dead_code -D warnings`
 Expected: PASS，**无 dead_code 告警**。重点确认：
@@ -955,12 +955,12 @@ Expected: PASS，**无 dead_code 告警**。重点确认：
 Run（全仓）: `cargo clippy --all-features --workspace -- -D warnings`
 Expected: PASS。
 
-- [ ] **Step 3: cargo test 全量**
+- [x] **Step 3: cargo test 全量**
 
 Run: `cargo test --all-features -p openlark-ai`
 Expected: PASS（含 Task 7 的 4 个可达性测试 + DocumentAi 18 叶子 + Speech 迁移测试 + endpoints 测试）。
 
-- [ ] **Step 4: 终检 grep（死链清零确认）**
+- [x] **Step 4: 终检 grep（死链清零确认）**
 
 ```bash
 cd crates/openlark-ai/src && \
@@ -979,12 +979,12 @@ Expected：
 - 第一代 speech_to_text 目录：已删
 - `DocumentAiClient` 定义：仅 `service.rs` 1 处
 
-- [ ] **Step 5: 全仓构建确认无回归**
+- [x] **Step 5: 全仓构建确认无回归**
 
 Run: `cargo build --all-features --workspace`
 Expected: PASS。
 
-- [ ] **Step 6: 提交（如有 fmt 修复）**
+- [x] **Step 6: 提交（如有 fmt 修复）**
 
 如 Step 1 触发了格式化：
 ```bash
