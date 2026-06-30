@@ -31,3 +31,11 @@
 - [x] 4.3 `cargo clippy -W dead_code` 于 openlark-platform，无新增告警
 - [x] 4.4 grep 确认 3 个 platform 入口无 `_config` 遗留
 - [x] 4.5 闭环 cleanup-dead-code-allows：移除 3 个 platform 入口的"待装访问器"reserved 注释
+
+## 最终代码审查（review_mode=standard，fable reviewer）
+
+结论：**Ready to proceed**，无 Critical/Important。
+
+接受的 Minor（非代码 bug，记录理由）：
+- M1：plan 速查表写 admin badge `get(badge_id)`/`grant(badge_id)` 带参，实际 builder 全 `new(config)` 单参 + setter。落盘代码正确（Task 1 实测核对），仅 plan 历史文档过时。影响：未来照 plan 复盘可能混淆，不影响运行代码。
+- M2：crate 的 missing_docs 实际配置在 Cargo.toml [lints]（非 src `#![deny]`），但新 pub fn 全有 `///` doc，clippy -D warnings 已过。无需动作。
