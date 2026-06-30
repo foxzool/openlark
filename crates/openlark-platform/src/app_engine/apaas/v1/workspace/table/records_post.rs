@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 添加或更新记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsPostBuilder {
+pub struct TableRecordsPostRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -24,7 +24,7 @@ pub struct TableRecordsPostBuilder {
     records: Vec<serde_json::Value>,
 }
 
-impl TableRecordsPostBuilder {
+impl TableRecordsPostRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -116,6 +116,10 @@ impl ApiResponseTrait for TableRecordsPostResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableRecordsPostRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableRecordsPostBuilder = TableRecordsPostRequestBuilder;
 
 #[cfg(test)]
 mod tests {

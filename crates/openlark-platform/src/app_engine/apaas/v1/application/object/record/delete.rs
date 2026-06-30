@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 删除记录 Builder
 #[derive(Debug, Clone)]
-pub struct RecordDeleteBuilder {
+pub struct RecordDeleteRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct RecordDeleteBuilder {
     record_id: String,
 }
 
-impl RecordDeleteBuilder {
+impl RecordDeleteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -78,6 +78,10 @@ impl ApiResponseTrait for RecordDeleteResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordDeleteRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordDeleteBuilder = RecordDeleteRequestBuilder;
 
 #[cfg(test)]
 mod tests {

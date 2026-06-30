@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 退回人工任务 Builder
 #[derive(Debug, Clone)]
-pub struct RollbackTaskBuilder {
+pub struct RollbackTaskRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
@@ -24,7 +24,7 @@ pub struct RollbackTaskBuilder {
     reason: Option<String>,
 }
 
-impl RollbackTaskBuilder {
+impl RollbackTaskRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, task_id: impl Into<String>, node_id: impl Into<String>) -> Self {
         Self {
@@ -96,6 +96,10 @@ impl ApiResponseTrait for RollbackTaskResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RollbackTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RollbackTaskBuilder = RollbackTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {

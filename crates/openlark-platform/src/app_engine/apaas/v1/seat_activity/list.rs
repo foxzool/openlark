@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询席位活跃详情 Builder
 #[derive(Debug, Clone)]
-pub struct SeatActivityListBuilder {
+pub struct SeatActivityListRequestBuilder {
     config: Config,
     /// 页码
     page: Option<u32>,
@@ -26,7 +26,7 @@ pub struct SeatActivityListBuilder {
     end_time: Option<i64>,
 }
 
-impl SeatActivityListBuilder {
+impl SeatActivityListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -134,6 +134,10 @@ impl ApiResponseTrait for SeatActivityListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to SeatActivityListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type SeatActivityListBuilder = SeatActivityListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,7 +148,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = SeatActivityListBuilder::new(config.clone())
+        let request = SeatActivityListRequestBuilder::new(config.clone())
             .page(1)
             .page_size(1);
         let _ = request;

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 搜索记录 Builder
 #[derive(Debug, Clone)]
-pub struct RecordSearchBuilder {
+pub struct RecordSearchRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -28,7 +28,7 @@ pub struct RecordSearchBuilder {
     page_size: Option<u32>,
 }
 
-impl RecordSearchBuilder {
+impl RecordSearchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>, search: impl Into<String>) -> Self {
         Self {
@@ -148,6 +148,10 @@ impl ApiResponseTrait for RecordSearchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordSearchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordSearchBuilder = RecordSearchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

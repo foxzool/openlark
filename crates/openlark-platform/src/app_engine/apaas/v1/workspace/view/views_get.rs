@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询视图记录 Builder
 #[derive(Debug, Clone)]
-pub struct ViewsGetBuilder {
+pub struct ViewsGetRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -28,7 +28,7 @@ pub struct ViewsGetBuilder {
     filter: Option<String>,
 }
 
-impl ViewsGetBuilder {
+impl ViewsGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -130,6 +130,10 @@ impl ApiResponseTrait for ViewsGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ViewsGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ViewsGetBuilder = ViewsGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

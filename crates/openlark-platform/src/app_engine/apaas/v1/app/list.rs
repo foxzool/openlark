@@ -11,7 +11,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 查看应用基本信息请求 Builder。
-pub struct ListAppBuilder {
+pub struct ListAppRequestBuilder {
     /// 分页大小。
     page_size: Option<u32>,
     /// 分页标记。
@@ -20,7 +20,7 @@ pub struct ListAppBuilder {
     config: Config,
 }
 
-impl ListAppBuilder {
+impl ListAppRequestBuilder {
     /// 创建新的实例。
     pub fn new(config: Config) -> Self {
         Self {
@@ -103,6 +103,10 @@ impl ApiResponseTrait for ListAppResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListAppRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListAppBuilder = ListAppRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,7 +117,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListAppBuilder::new(config.clone())
+        let request = ListAppRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

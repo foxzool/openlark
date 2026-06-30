@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询数据变更日志列表 Builder
 #[derive(Debug, Clone)]
-pub struct DataChangeLogsListBuilder {
+pub struct DataChangeLogsListRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -28,7 +28,7 @@ pub struct DataChangeLogsListBuilder {
     page_size: Option<u32>,
 }
 
-impl DataChangeLogsListBuilder {
+impl DataChangeLogsListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>) -> Self {
         Self {
@@ -145,6 +145,10 @@ impl ApiResponseTrait for DataChangeLogsListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DataChangeLogsListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DataChangeLogsListBuilder = DataChangeLogsListRequestBuilder;
 
 #[cfg(test)]
 mod tests {

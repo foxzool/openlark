@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 编辑记录 Builder
 #[derive(Debug, Clone)]
-pub struct RecordPatchBuilder {
+pub struct RecordPatchRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -26,7 +26,7 @@ pub struct RecordPatchBuilder {
     data: serde_json::Value,
 }
 
-impl RecordPatchBuilder {
+impl RecordPatchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -109,6 +109,10 @@ impl ApiResponseTrait for RecordPatchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordPatchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordPatchBuilder = RecordPatchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

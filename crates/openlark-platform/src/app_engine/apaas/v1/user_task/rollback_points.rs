@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 查询可退回位置 Builder
 #[derive(Debug, Clone)]
-pub struct RollbackPointsBuilder {
+pub struct RollbackPointsRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
 }
 
-impl RollbackPointsBuilder {
+impl RollbackPointsRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, task_id: impl Into<String>) -> Self {
         Self {
@@ -84,6 +84,10 @@ impl ApiResponseTrait for RollbackPointsResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RollbackPointsRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RollbackPointsBuilder = RollbackPointsRequestBuilder;
 
 #[cfg(test)]
 mod tests {

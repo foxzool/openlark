@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 获取数据表详情 Builder
 #[derive(Debug, Clone)]
-pub struct TableGetBuilder {
+pub struct TableGetRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -22,7 +22,7 @@ pub struct TableGetBuilder {
     table_name: String,
 }
 
-impl TableGetBuilder {
+impl TableGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -97,6 +97,10 @@ impl ApiResponseTrait for TableGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableGetBuilder = TableGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

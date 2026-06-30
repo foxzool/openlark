@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询人工任务 Builder
 #[derive(Debug, Clone)]
-pub struct UserTaskQueryBuilder {
+pub struct UserTaskQueryRequestBuilder {
     config: Config,
     /// 任务状态列表
     statuses: Vec<String>,
@@ -30,7 +30,7 @@ pub struct UserTaskQueryBuilder {
     user_ids: Vec<String>,
 }
 
-impl UserTaskQueryBuilder {
+impl UserTaskQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -192,6 +192,10 @@ impl ApiResponseTrait for UserTaskQueryResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UserTaskQueryRequestBuilder, will be removed in v1.0 (#271)")]
+pub type UserTaskQueryBuilder = UserTaskQueryRequestBuilder;
 
 #[cfg(test)]
 mod tests {

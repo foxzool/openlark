@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 发起流程 Builder
 #[derive(Debug, Clone)]
-pub struct FlowExecuteBuilder {
+pub struct FlowExecuteRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct FlowExecuteBuilder {
     params: serde_json::Value,
 }
 
-impl FlowExecuteBuilder {
+impl FlowExecuteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>, flow_id: impl Into<String>) -> Self {
         Self {
@@ -95,6 +95,10 @@ impl ApiResponseTrait for FlowExecuteResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to FlowExecuteRequestBuilder, will be removed in v1.0 (#271)")]
+pub type FlowExecuteBuilder = FlowExecuteRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -16,13 +16,13 @@ use serde::{Deserialize, Serialize};
 
 /// 获取枚举列表 Builder
 #[derive(Debug, Clone)]
-pub struct EnumListBuilder {
+pub struct EnumListRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
 }
 
-impl EnumListBuilder {
+impl EnumListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, workspace_id: impl Into<String>) -> Self {
         Self {
@@ -98,6 +98,10 @@ impl ApiResponseTrait for EnumListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EnumListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EnumListBuilder = EnumListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,7 +112,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = EnumListBuilder::new(config.clone(), "test".to_string());
+        let request = EnumListRequestBuilder::new(config.clone(), "test".to_string());
         let _ = request;
     }
 }

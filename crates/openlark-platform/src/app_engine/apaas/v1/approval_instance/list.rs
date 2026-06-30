@@ -10,14 +10,14 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取审批实例列表的请求构建器。
-pub struct ListInstanceBuilder {
+pub struct ListInstanceRequestBuilder {
     page_size: Option<u32>,
     page_token: Option<String>,
     user_id: Option<String>,
     config: Config,
 }
 
-impl ListInstanceBuilder {
+impl ListInstanceRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -113,6 +113,10 @@ impl ApiResponseTrait for ListInstanceResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListInstanceRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListInstanceBuilder = ListInstanceRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,7 +127,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListInstanceBuilder::new(config.clone())
+        let request = ListInstanceRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

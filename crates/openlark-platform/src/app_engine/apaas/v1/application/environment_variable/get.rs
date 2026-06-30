@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询环境变量详情 Builder
 #[derive(Debug, Clone)]
-pub struct EnvironmentVariableGetBuilder {
+pub struct EnvironmentVariableGetRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -22,7 +22,7 @@ pub struct EnvironmentVariableGetBuilder {
     env_var_api_name: String,
 }
 
-impl EnvironmentVariableGetBuilder {
+impl EnvironmentVariableGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -88,6 +88,12 @@ impl ApiResponseTrait for EnvironmentVariableGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to EnvironmentVariableGetRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type EnvironmentVariableGetBuilder = EnvironmentVariableGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

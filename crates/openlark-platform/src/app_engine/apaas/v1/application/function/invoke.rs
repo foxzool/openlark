@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 执行函数 Builder
 #[derive(Debug, Clone)]
-pub struct FunctionInvokeBuilder {
+pub struct FunctionInvokeRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct FunctionInvokeBuilder {
     params: serde_json::Value,
 }
 
-impl FunctionInvokeBuilder {
+impl FunctionInvokeRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -99,6 +99,10 @@ impl ApiResponseTrait for FunctionInvokeResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to FunctionInvokeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type FunctionInvokeBuilder = FunctionInvokeRequestBuilder;
 
 #[cfg(test)]
 mod tests {

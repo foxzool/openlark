@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 转交人工任务 Builder
 #[derive(Debug, Clone)]
-pub struct TransferApprovalTaskBuilder {
+pub struct TransferApprovalTaskRequestBuilder {
     config: Config,
     /// 审批任务 ID
     approval_task_id: String,
@@ -24,7 +24,7 @@ pub struct TransferApprovalTaskBuilder {
     reason: Option<String>,
 }
 
-impl TransferApprovalTaskBuilder {
+impl TransferApprovalTaskRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -103,6 +103,12 @@ impl ApiResponseTrait for TransferApprovalTaskResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to TransferApprovalTaskRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type TransferApprovalTaskBuilder = TransferApprovalTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {

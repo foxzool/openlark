@@ -9,7 +9,7 @@ pub mod view;
 
 pub use enum_mod::enum_get;
 pub use enum_mod::list as enum_list;
-pub use sql_commands::SqlCommandsBuilder;
+pub use sql_commands::SqlCommandsRequestBuilder;
 pub use table::list as table_list;
 pub use table::table_get;
 pub use view::views_get;

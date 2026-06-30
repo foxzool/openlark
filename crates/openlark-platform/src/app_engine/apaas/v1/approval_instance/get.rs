@@ -11,12 +11,12 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 获取审批实例详情的请求构建器。
-pub struct GetInstanceBuilder {
+pub struct GetInstanceRequestBuilder {
     approval_instance_id: String,
     config: Config,
 }
 
-impl GetInstanceBuilder {
+impl GetInstanceRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -74,6 +74,10 @@ impl ApiResponseTrait for GetInstanceResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to GetInstanceRequestBuilder, will be removed in v1.0 (#271)")]
+pub type GetInstanceBuilder = GetInstanceRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 抄送人工任务 Builder
 #[derive(Debug, Clone)]
-pub struct CcTaskBuilder {
+pub struct CcTaskRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
@@ -24,7 +24,7 @@ pub struct CcTaskBuilder {
     reason: Option<String>,
 }
 
-impl CcTaskBuilder {
+impl CcTaskRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, task_id: impl Into<String>) -> Self {
         Self {
@@ -105,6 +105,10 @@ impl ApiResponseTrait for CcTaskResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CcTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CcTaskBuilder = CcTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {

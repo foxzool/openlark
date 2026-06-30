@@ -11,12 +11,12 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 撤销人工任务的请求构建器。
-pub struct CancelTaskBuilder {
+pub struct CancelTaskRequestBuilder {
     approval_task_id: String,
     config: Config,
 }
 
-impl CancelTaskBuilder {
+impl CancelTaskRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -68,6 +68,10 @@ impl ApiResponseTrait for CancelTaskResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CancelTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CancelTaskBuilder = CancelTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {
