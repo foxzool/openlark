@@ -395,7 +395,7 @@ Expected: 全 exit 0，无新 dead_code。
 - `user_task/query.rs`: `new(config)`；`cc/expediting/chat_group/rollback_points/rollback.rs`: `new(config, task_id)`（rollback 还要 node_id）
 - `seat_activity/list.rs` / `seat_assignment/list.rs`: `new(config)`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `crates/openlark-platform/src/app_engine/apaas/v1/mod.rs` 的 `#[cfg(test)] mod tests` 内加（保留 `test_apaas_v1_creation`，`_config` → `config`）：
 
@@ -424,12 +424,12 @@ Expected: 全 exit 0，无新 dead_code。
 
 > transfer 的两参、cc 的 task_id 照 `transfer.rs`/`cc.rs` 真实 `new()` 签名（已查证）。
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cargo test -p openlark-platform --lib app_engine::apaas::v1::tests::test_apaas_v1_top_chain_access`
 Expected: FAIL
 
-- [ ] **Step 3: 改 `v1/mod.rs` 入口**
+- [x] **Step 3: 改 `v1/mod.rs` 入口**
 
 `ApaasV1._config` → `config`，删 reserved 注释，`new()` 改名，加 8 访问器。注意 `application`/`workspace` 是**中间级**（持 `Arc<PlatformConfig>` + 路径参数），访问器签名：
 
@@ -477,7 +477,7 @@ Expected: FAIL
 
 `test_apaas_v1_creation` 里 `api._config` → `api.config`。
 
-- [ ] **Step 4: 给 6 个顶层浅 service 加类型**
+- [x] **Step 4: 给 6 个顶层浅 service 加类型**
 
 照 Task 1 `BadgeService` 模板（持 owned `Config`）。`app/mod.rs` 模板：
 
@@ -509,7 +509,7 @@ impl AppService {
 
 `approval_task`/`user_task` 内部多操作且部分带 `task_id`，照 `BadgeService.grant(badge_id)` 范式：访问器接受 task_id 下传（如 `pub fn cc(&self, task_id: impl Into<String>) -> cc::...Builder`，调 `cc::...Builder::new(self.config.clone(), task_id)`）。`transfer` 两参 `transfer(task_id, transfer_to_user_id)`。
 
-- [ ] **Step 5: 给 `application/mod.rs` 与 `workspace/mod.rs` 加中间级 service**（仅类型 + 构造，深嵌套访问器留 Task 4/5）
+- [x] **Step 5: 给 `application/mod.rs` 与 `workspace/mod.rs` 加中间级 service**（仅类型 + 构造，深嵌套访问器留 Task 4/5）
 
 `application/mod.rs` 顶部加：
 
@@ -534,12 +534,12 @@ impl ApplicationService {
 
 保留现有 `pub mod audit_log; pub mod environment_variable; ...` 声明不动。`workspace/mod.rs` 同理（`WorkspaceService { config: Arc<PlatformConfig>, workspace_id: String }`），保留现有 `pub use` 不动。
 
-- [ ] **Step 6: 跑测试确认通过**
+- [x] **Step 6: 跑测试确认通过**
 
 Run: `cargo test -p openlark-platform --lib app_engine::apaas::v1::tests`
 Expected: PASS（`test_apaas_v1_creation` + `test_apaas_v1_top_chain_access`）
 
-- [ ] **Step 7: clippy + fmt**
+- [x] **Step 7: clippy + fmt**
 
 Run:
 ```bash
@@ -550,7 +550,7 @@ cargo fmt --check
 Expected: 全 exit 0。
 > **预期 dead_code 告警**：`ApplicationService`/`WorkspaceService` 字段（namespace/workspace_id）此刻未消费——若 clippy `-W dead_code` 报这俩字段，**临时**在字段上加 `#[allow(dead_code)]` 并注释 `// Task 4/5 将消费`，Task 4/5 完成后删除 allow。其余新 service 必须零 dead_code（都被 ApaasV1 消费）。
 
-- [ ] **Step 8: 报告主会话勾选 + commit**
+- [x] **Step 8: 报告主会话勾选 + commit**
 
 主会话勾选 `3.1`（顶层 8 service）+ `3.4`（ApaasV1 入口），commit（`feat(platform): apaas v1 顶层链式访问器（#274）`）。`3.2`/`3.3` 留 Task 4/5。
 
