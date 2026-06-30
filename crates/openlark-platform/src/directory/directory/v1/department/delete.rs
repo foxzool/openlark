@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 删除部门 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentDeleteBuilder {
+pub struct DepartmentDeleteRequestBuilder {
     config: Config,
     /// 部门 ID
     department_id: String,
 }
 
-impl DepartmentDeleteBuilder {
+impl DepartmentDeleteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, department_id: impl Into<String>) -> Self {
         Self {
@@ -64,6 +64,10 @@ impl ApiResponseTrait for DepartmentDeleteResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentDeleteRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentDeleteBuilder = DepartmentDeleteRequestBuilder;
 
 #[cfg(test)]
 mod tests {

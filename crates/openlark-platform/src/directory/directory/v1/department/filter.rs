@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 获取部门列表 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentFilterBuilder {
+pub struct DepartmentFilterRequestBuilder {
     config: Config,
     /// 父部门 ID
     parent_id: Option<String>,
@@ -24,7 +24,7 @@ pub struct DepartmentFilterBuilder {
     page_size: Option<u32>,
 }
 
-impl DepartmentFilterBuilder {
+impl DepartmentFilterRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -129,6 +129,10 @@ impl ApiResponseTrait for DepartmentFilterResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentFilterRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentFilterBuilder = DepartmentFilterRequestBuilder;
 
 #[cfg(test)]
 mod tests {

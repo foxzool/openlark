@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 搜索部门 Builder
 #[derive(Debug, Clone)]
-pub struct DepartmentSearchBuilder {
+pub struct DepartmentSearchRequestBuilder {
     config: Config,
     /// 搜索关键词
     keyword: String,
@@ -24,7 +24,7 @@ pub struct DepartmentSearchBuilder {
     page_size: Option<u32>,
 }
 
-impl DepartmentSearchBuilder {
+impl DepartmentSearchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, keyword: impl Into<String>) -> Self {
         Self {
@@ -123,6 +123,10 @@ impl ApiResponseTrait for DepartmentSearchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DepartmentSearchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DepartmentSearchBuilder = DepartmentSearchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 搜索员工信息 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeSearchBuilder {
+pub struct EmployeeSearchRequestBuilder {
     config: Config,
     /// 搜索关键词
     keyword: String,
@@ -26,7 +26,7 @@ pub struct EmployeeSearchBuilder {
     page_size: Option<u32>,
 }
 
-impl EmployeeSearchBuilder {
+impl EmployeeSearchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, keyword: impl Into<String>) -> Self {
         Self {
@@ -142,6 +142,10 @@ impl ApiResponseTrait for EmployeeSearchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeeSearchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeeSearchBuilder = EmployeeSearchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

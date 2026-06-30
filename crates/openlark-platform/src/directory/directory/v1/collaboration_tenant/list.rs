@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 
 /// 管理员获取所有关联组织列表 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationTenantListBuilder {
+pub struct CollaborationTenantListRequestBuilder {
     config: Config,
 }
 
-impl CollaborationTenantListBuilder {
+impl CollaborationTenantListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -74,6 +74,12 @@ impl ApiResponseTrait for CollaborationTenantListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationTenantListRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationTenantListBuilder = CollaborationTenantListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,7 +90,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CollaborationTenantListBuilder::new(config.clone());
+        let request = CollaborationTenantListRequestBuilder::new(config.clone());
         let _ = request;
     }
 }

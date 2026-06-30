@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 更新待离职成员为在职 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeRegularBuilder {
+pub struct EmployeeRegularRequestBuilder {
     config: Config,
     /// 员工 ID
     employee_id: String,
 }
 
-impl EmployeeRegularBuilder {
+impl EmployeeRegularRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, employee_id: impl Into<String>) -> Self {
         Self {
@@ -71,6 +71,10 @@ impl ApiResponseTrait for EmployeeRegularResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeeRegularRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeeRegularBuilder = EmployeeRegularRequestBuilder;
 
 #[cfg(test)]
 mod tests {

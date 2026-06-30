@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 更新在职员工为待离职 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeToBeResignedBuilder {
+pub struct EmployeeToBeResignedRequestBuilder {
     config: Config,
     /// 员工 ID
     employee_id: String,
@@ -22,7 +22,7 @@ pub struct EmployeeToBeResignedBuilder {
     reason: Option<String>,
 }
 
-impl EmployeeToBeResignedBuilder {
+impl EmployeeToBeResignedRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, employee_id: impl Into<String>) -> Self {
         Self {
@@ -105,6 +105,12 @@ impl ApiResponseTrait for EmployeeToBeResignedResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to EmployeeToBeResignedRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type EmployeeToBeResignedBuilder = EmployeeToBeResignedRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 批量获取员工列表 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeFilterBuilder {
+pub struct EmployeeFilterRequestBuilder {
     config: Config,
     /// 部门 ID
     department_id: Option<String>,
@@ -26,7 +26,7 @@ pub struct EmployeeFilterBuilder {
     page_size: Option<u32>,
 }
 
-impl EmployeeFilterBuilder {
+impl EmployeeFilterRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -142,6 +142,10 @@ impl ApiResponseTrait for EmployeeFilterResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeeFilterRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeeFilterBuilder = EmployeeFilterRequestBuilder;
 
 #[cfg(test)]
 mod tests {

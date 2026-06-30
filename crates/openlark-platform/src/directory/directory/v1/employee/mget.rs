@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 
 /// 批量获取员工信息 Builder
 #[derive(Debug, Clone)]
-pub struct EmployeeMgetBuilder {
+pub struct EmployeeMgetRequestBuilder {
     config: Config,
     /// 员工 ID 列表
     employee_ids: Vec<String>,
 }
 
-impl EmployeeMgetBuilder {
+impl EmployeeMgetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -113,6 +113,10 @@ impl ApiResponseTrait for EmployeeMgetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EmployeeMgetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EmployeeMgetBuilder = EmployeeMgetRequestBuilder;
 
 #[cfg(test)]
 mod tests {
