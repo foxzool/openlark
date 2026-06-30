@@ -2,6 +2,8 @@
 comet_change: add-platform-v1-accessors
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-30-add-platform-v1-accessors
+status: final
 ---
 
 # Design: platform v1 入口链式子 API 访问器
