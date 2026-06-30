@@ -3,8 +3,7 @@
 use openlark_ai::ai::document_ai::v1::{
     bank_card::recognize::BankCardRecognizeRequestBuilder,
     business_license::recognize::BusinessLicenseRecognizeRequestBuilder,
-    id_card::recognize::IdCardRecognizeRequestBuilder,
-    resume::parse::ResumeParseRequestBuilder,
+    id_card::recognize::IdCardRecognizeRequestBuilder, resume::parse::ResumeParseRequestBuilder,
     vat_invoice::recognize::VatInvoiceRecognizeRequestBuilder,
 };
 use openlark_ai::prelude::*;
@@ -62,8 +61,7 @@ fn test_business_license_recognize_builder() {
         .app_secret("test_app_secret")
         .build();
 
-    let request =
-        BusinessLicenseRecognizeRequestBuilder::new(config).file_token("test_file_token");
+    let request = BusinessLicenseRecognizeRequestBuilder::new(config).file_token("test_file_token");
 
     let body = request.body();
     assert_eq!(body.file_token, "test_file_token");

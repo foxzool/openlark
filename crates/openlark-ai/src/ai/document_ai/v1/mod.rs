@@ -108,12 +108,16 @@ impl DocumentAiV1 {
     }
 
     /// 港澳居民来往内地通行证识别资源（对齐 URL /document_ai/v1/hkm_mainland_travel_permit）。
-    pub fn hkm_mainland_travel_permit(&self) -> hkm_mainland_travel_permit::HkmMainlandTravelPermitService {
+    pub fn hkm_mainland_travel_permit(
+        &self,
+    ) -> hkm_mainland_travel_permit::HkmMainlandTravelPermitService {
         hkm_mainland_travel_permit::HkmMainlandTravelPermitService::new(self.config.clone())
     }
 
     /// 台湾居民来往大陆通行证识别资源（对齐 URL /document_ai/v1/tw_mainland_travel_permit）。
-    pub fn tw_mainland_travel_permit(&self) -> tw_mainland_travel_permit::TwMainlandTravelPermitService {
+    pub fn tw_mainland_travel_permit(
+        &self,
+    ) -> tw_mainland_travel_permit::TwMainlandTravelPermitService {
         tw_mainland_travel_permit::TwMainlandTravelPermitService::new(self.config.clone())
     }
 

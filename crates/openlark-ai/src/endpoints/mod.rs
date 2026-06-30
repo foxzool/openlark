@@ -189,7 +189,9 @@ mod tests {
             OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE
                 .starts_with("/open-apis/optical_char_recognition/")
         );
-        assert!(OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE.contains("image/basic_recognize"));
+        assert!(
+            OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE.contains("image/basic_recognize")
+        );
     }
 
     #[test]

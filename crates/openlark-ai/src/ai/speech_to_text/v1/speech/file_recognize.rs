@@ -187,8 +187,9 @@ pub async fn file_recognize_with_options(
 ) -> SDKResult<FileRecognizeResponse> {
     body.validate()?;
 
-    let req: ApiRequest<FileRecognizeResponse> = ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)
-        .body(serialize_params(&body, "语音文件识别")?);
+    let req: ApiRequest<FileRecognizeResponse> =
+        ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)
+            .body(serialize_params(&body, "语音文件识别")?);
 
     let resp = Transport::request(req, config, Some(option)).await?;
     extract_response_data(resp, "语音文件识别")

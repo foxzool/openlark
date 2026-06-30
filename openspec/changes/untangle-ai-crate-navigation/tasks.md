@@ -4,20 +4,21 @@
 
 ## 2. 4 能力 accessor 接线（核心）
 
-- [ ] 2.1 `DocumentAiV1`：按 Design Doc 的层级决策装 accessor，链式指向 `document_ai/document_ai/v1/recognize/*` 的 5 个叶子 RequestBuilder（resume_parse/id_card_recognize/bank_card_recognize/business_license_recognize/vat_invoice_recognize）。验证：`ai_client.document_ai().v1().<...>.resume_parse()` 返回 `ResumeParseRequestBuilder`。
-- [ ] 2.2 `OcrV1`（+ `Image` 按 Design 决定中间层去留）：装 accessor 指向 `basic_recognize` 叶子 builder。验证：`ai_client.ocr().v1().<...>.basic_recognize()` 可达。
-- [ ] 2.3 `SpeechToTextV1`（+ `Speech`）：按 Design 决策合并 `ai/.../speech/`(2 个) 与顶层 `speech_to_text/.../recognize/`(3 个) 重复实现，留单套并装 accessor。验证：file_recognize/stream_recognize/speech_recognize 经 `AiClient` 链可达且无重复定义。
-- [ ] 2.4 `TranslationV1`（+ `Text` 按 Design 决定中间层去留）：装 accessor 指向 `translate`/`detect` 叶子 builder。验证：`ai_client.translation().v1().<...>.translate()` 可达。
-- [ ] 2.5 4 个入口 struct 的 `_config` 字段恢复为 `config`，并被新增 accessor 消费（清除 #267 reserved 注释）。验证：4 文件无 `_config` 前缀字段、无 dead_code 例外。
+- [x] 2.1 `DocumentAiV1`：装 18 doc_type accessor（三层 `.v1().{doc_type}().{action}()` 对齐 URL）+ 18 `{DocType}Service` + action accessor（17 recognize + resume.parse + contract.field_extraction）。验证：cargo test document_ai → 107 passed（含可达性测试）。
+- [x] 2.2 `OcrV1.image()`（中间层已存在，保留对齐 URL `/v1/image/`）；`Image._config`→`config` + 装 `.basic_recognize()` → `BasicRecognizeRequestBuilder`。验证：`ai_client.ocr().v1().image().basic_recognize()` 可达（test_ocr_accessor_chain ok）。
+- [x] 2.3 `SpeechToTextV1.speech()`（中间层已存在）；B 套完整实现迁移到 A 套位置 `ai/speech_to_text/v1/speech/` + A 套正确 URL（`/v1/speech/{file,stream}_recognize`）；`Speech._config`→`config` + 装 `.file_recognize()`/`.stream_recognize()`。验证：cargo test speech → 64 passed（含可达性测试）。注：B 套顶层目录 T10 删除；csv 无 speech_recognize。
+- [x] 2.4 `TranslationV1.text()`（中间层已存在，保留对齐 URL `/v1/text/`）；`Text._config`→`config` + 装 `.translate()`/`.detect()` → `TextTranslate/TextDetectRequestBuilder`。验证：`ai_client.translation().v1().text().{translate,detect}()` 可达（test_translation_accessor_chain ok）。
+- [x] 2.5 4 个 `_config` 字段（第二代 `DocumentAiV1` + `Image`/`Text`/`Speech` 中间层）全部恢复为 `config` 并被 accessor 消费（清除 #274 reserved 注释）。验证：T13 终检 `grep -rn "_config" ai/` 无残留。
 
 ## 3. 范式 A（chain.rs）退役
 
-- [ ] 3.1 删除 `src/common/chain.rs`、`src/common/mod.rs` 的 chain re-export、`src/lib.rs:72` 的顶层 `DocumentAiClient` re-export（其 API 能力已由任务 2.1 迁入 `AiClient` 链）。验证：`grep -r "chain::DocumentAiClient\|common::chain" crates/openlark-ai/src` 空，同名两份 `DocumentAiClient` 消除。
+- [x] 3.1 删除 `src/common/chain.rs` + `common/mod.rs` chain re-export + `lib.rs` 顶层 `DocumentAiClient` re-export + 第一代 `src/document_ai/`（chain.rs 引用源）。验证：cargo test --lib → 198 passed；同名 `DocumentAiClient` 仅剩 `service::`（T13 grep 终检）。
+- [x] 3.2 删除第一代顶层 `speech_to_text`（B 套源，已迁 A 套）+ 删除错误 URL 常量（OCR `BASIC_RECOGNIZE` / Speech `FILE`·`STREAM`·`SPEECH_RECOGNIZE` + 别名，非 csv 官方）+ `tests/document_ai_test.rs` 改用第二代 Builder（bank_card 用 `file`/`file_name`）。验证：cargo test 全量（lib+integration+doctest）全过。
 
 ## 4. lib.rs 与 openlark-client 收尾
 
-- [ ] 4.1 清理 `src/lib.rs` 导出：移除 chain 版 `DocumentAiClient`，确认 `AiClient`（line 66）与 endpoints 导出完整、模块文档示例（line 26 `client.document_ai().v1()...`）与新导航链一致。验证：`cargo doc -p openlark-ai --all-features` 无文档断链。
-- [ ] 4.2 确认 `crates/openlark-client/src/client.rs:105` 注册的 `AiClient` 类型与 `lib.rs:342/490` prelude 导出在新导航链下编译通过。验证：`cargo build -p openlark-client` 通过。
+- [x] 4.1 `lib.rs` 清理：chain 版 `DocumentAiClient` 已移除（T9）；`AiClient`/endpoints 导出完整；文档示例改为 `.document_ai().v1().id_card().recognize()`。验证：cargo doc 无 intra-doc 断链（bare_urls 为既有 docPath）。
+- [x] 4.2 `openlark-client` client.rs AiClient 注册 + prelude 导出编译通过。验证：`cargo build -p openlark-client` → Finished。
 
 ## 5. 质量验证
 
