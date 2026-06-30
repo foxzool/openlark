@@ -2,11 +2,11 @@
 
 ## 1. platform admin v1（AdminV1，6 操作集合 + 2 facade，浅）
 
-- [ ] 1.1 为 admin v1 操作集合子模块建 service 入口类型：`badge`/`badge_image`/`password`/`admin_dept_stat`/`admin_user_stat`/`audit_info` 各建 `XxxService { config }` + 暴露叶子 builder 构造方法（如 `badge().create()`）
-- [ ] 1.2 facade `audit.rs`/`users.rs` 复用已有 `AuditApi`/`UsersApi`，不新建类型
-- [ ] 1.3 `AdminV1`：`_config` → `config`，装 `pub fn badge()/badge_image()/password()/admin_dept_stat()/admin_user_stat()/audit_info()/audit()/users()` 访问器
-- [ ] 1.4 补 access 测试（仿 `test_spark_v1_directory_access`），链式到叶子 builder + facade 访问器
-- [ ] 1.5 admin 范围 `cargo clippy -W dead_code` + `cargo fmt` 通过
+- [x] 1.1 为 admin v1 操作集合子模块建 service 入口类型：`badge`/`badge_image`/`password`/`admin_dept_stat`/`admin_user_stat`/`audit_info` 各建 `XxxService { config }` + 暴露叶子 builder 构造方法（如 `badge().create()`）
+- [x] 1.2 facade `audit.rs`/`users.rs` 复用已有 `AuditApi`/`UsersApi`，不新建类型
+- [x] 1.3 `AdminV1`：`_config` → `config`，装 `pub fn badge()/badge_image()/password()/admin_dept_stat()/admin_user_stat()/audit_info()/audit()/users()` 访问器
+- [x] 1.4 补 access 测试（仿 `test_spark_v1_directory_access`），链式到叶子 builder + facade 访问器
+- [x] 1.5 admin 范围 `cargo clippy -W dead_code` + `cargo fmt` 通过
 
 ## 2. platform directory v1（DirectoryV1，8 子模块，浅）
 
