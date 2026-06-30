@@ -27,7 +27,7 @@
 //!
 //! // 使用端点常量
 //! let resume_endpoint = DOCUMENT_AI_RESUME_PARSE;
-//! let ocr_endpoint = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;
+//! let ocr_endpoint = OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE;
 //! let translate_endpoint = TRANSLATION_V1_TEXT_TRANSLATE;
 //! ```
 //!

@@ -20,20 +20,17 @@
 //! let resume_endpoint = DOCUMENT_AI_RESUME_PARSE;
 //! let id_card_endpoint = DOCUMENT_AI_ID_CARD_RECOGNIZE;
 //!
-//! // OCR识别
-//! let ocr_basic_endpoint = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;
+//! // OCR识别（图片基础识别，对齐 /v1/image/basic_recognize）
+//! let ocr_image_endpoint = OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE;
 //!
-//! // 语音转文字
-//! let speech_file_endpoint = SPEECH_TO_TEXT_V1_FILE_RECOGNIZE;
-//! let speech_stream_endpoint = SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE;
+//! // 语音转文字（对齐 /v1/speech/{file,stream}_recognize）
+//! let speech_file_endpoint = SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE;
+//! let speech_stream_endpoint = SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE;
 //!
 //! // 翻译服务
 //! let translate_endpoint = TRANSLATION_V1_TEXT_TRANSLATE;
 //! let detect_endpoint = TRANSLATION_V1_TEXT_DETECT;
 //! ```
-
-// 导入核心端点（auth, application等基础端点）
-// pub use openlark_core::endpoints::{apass, application, auth, platform_integration};
 
 // ==================== Document AI (文档AI识别) ====================
 // 文档AI识别服务 - 支持各种证件和文档的智能识别
@@ -128,42 +125,23 @@ pub const DOCUMENT_AI_VEHICLE_LICENSE_RECOGNIZE: &str =
 // ==================== OCR (光学字符识别) ====================
 // 光学字符识别服务 - 将图片中的文字转换为可编辑文本
 
-/// OCR光学字符识别 - 基础识别
-/// 基础的OCR文字识别服务
-pub const OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE: &str =
-    "/open-apis/optical_char_recognition/v1/basic_recognize";
-
 /// OCR光学字符识别 - 图片基础识别
-/// 专门针对图片的基础OCR识别
+/// 专门针对图片的基础OCR识别（对齐 csv 官方 /v1/image/basic_recognize）
 pub const OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE: &str =
     "/open-apis/optical_char_recognition/v1/image/basic_recognize";
 
 // ==================== Speech to Text (语音转文字) ====================
 // 语音转文字服务 - 将语音转换为文本
 
-/// 语音转文字 - 文件识别
-/// 识别音频文件中的语音内容
-pub const SPEECH_TO_TEXT_V1_FILE_RECOGNIZE: &str = "/open-apis/speech_to_text/v1/file/recognize";
-
-/// 语音转文字 - 流式识别
-/// 实时流式语音识别
-pub const SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE: &str =
-    "/open-apis/speech_to_text/v1/stream/recognize";
-
 /// 语音转文字 - 语音文件识别
-/// 识别整段语音文件中的语音内容
+/// 识别整段语音文件中的语音内容（对齐 csv 官方 /v1/speech/file_recognize）
 pub const SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE: &str =
     "/open-apis/speech_to_text/v1/speech/file_recognize";
 
 /// 语音转文字 - 流式语音识别
-/// 识别流式传入的语音内容
+/// 识别流式传入的语音内容（对齐 csv 官方 /v1/speech/stream_recognize）
 pub const SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE: &str =
     "/open-apis/speech_to_text/v1/speech/stream_recognize";
-
-/// 语音转文字 - 语音识别
-/// 通用语音识别服务
-pub const SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE: &str =
-    "/open-apis/speech_to_text/v1/speech/recognize";
 
 // ==================== Translation (翻译服务) ====================
 // 翻译服务 - 文本翻译和语言检测
@@ -178,23 +156,14 @@ pub const TRANSLATION_V1_TEXT_TRANSLATE: &str = "/open-apis/translation/v1/text/
 
 // ==================== 兼容性别名 ====================
 
-/// 为保持向后兼容性，提供一些简短的别名
-/// DocumentAI别名
-/// 简历解析别名
+/// DocumentAI 别名
 pub const RESUME_PARSE: &str = DOCUMENT_AI_RESUME_PARSE;
 /// 身份证识别别名
 pub const ID_CARD_RECOGNIZE: &str = DOCUMENT_AI_ID_CARD_RECOGNIZE;
 /// 银行卡识别别名
 pub const BANK_CARD_RECOGNIZE: &str = DOCUMENT_AI_BANK_CARD_RECOGNIZE;
 
-/// OCR别名
-pub const OCR_BASIC_RECOGNIZE: &str = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;
-
-/// Speech别名
-pub const SPEECH_RECOGNIZE: &str = SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE;
-
-/// Translation别名
-/// 文本翻译别名
+/// Translation 别名
 pub const TEXT_TRANSLATE: &str = TRANSLATION_V1_TEXT_TRANSLATE;
 /// 文本检测别名
 pub const TEXT_DETECT: &str = TRANSLATION_V1_TEXT_DETECT;
@@ -215,24 +184,20 @@ mod tests {
 
     #[test]
     fn test_ocr_endpoints() {
-        // 验证OCR端点
+        // 验证OCR端点（仅图片基础识别，对齐 csv）
         assert!(
-            OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE
+            OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE
                 .starts_with("/open-apis/optical_char_recognition/")
         );
-        assert!(OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE.contains("recognize"));
-        assert!(OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE.contains("image"));
+        assert!(OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE.contains("image/basic_recognize"));
     }
 
     #[test]
     fn test_speech_to_text_endpoints() {
-        // 验证语音转文字端点
-        assert!(SPEECH_TO_TEXT_V1_FILE_RECOGNIZE.starts_with("/open-apis/speech_to_text/"));
-        assert!(SPEECH_TO_TEXT_V1_FILE_RECOGNIZE.contains("file"));
-        assert!(SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE.contains("stream"));
+        // 验证语音转文字端点（对齐 csv /v1/speech/*）
+        assert!(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE.starts_with("/open-apis/speech_to_text/"));
         assert!(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE.contains("speech/file_recognize"));
         assert!(SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE.contains("speech/stream_recognize"));
-        assert!(SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE.contains("speech"));
     }
 
     #[test]
@@ -258,10 +223,7 @@ mod tests {
             );
         }
 
-        let ocr_endpoints = [
-            OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE,
-            OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE,
-        ];
+        let ocr_endpoints = [OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE];
         for endpoint in ocr_endpoints {
             assert!(
                 endpoint.contains("/optical_char_recognition/"),
@@ -270,11 +232,8 @@ mod tests {
         }
 
         let speech_endpoints = [
-            SPEECH_TO_TEXT_V1_FILE_RECOGNIZE,
-            SPEECH_TO_TEXT_V1_STREAM_RECOGNIZE,
             SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE,
             SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE,
-            SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE,
         ];
         for endpoint in speech_endpoints {
             assert!(
@@ -298,11 +257,6 @@ mod tests {
         assert_eq!(RESUME_PARSE, DOCUMENT_AI_RESUME_PARSE);
         assert_eq!(ID_CARD_RECOGNIZE, DOCUMENT_AI_ID_CARD_RECOGNIZE);
         assert_eq!(BANK_CARD_RECOGNIZE, DOCUMENT_AI_BANK_CARD_RECOGNIZE);
-        assert_eq!(
-            OCR_BASIC_RECOGNIZE,
-            OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE
-        );
-        assert_eq!(SPEECH_RECOGNIZE, SPEECH_TO_TEXT_V1_SPEECH_RECOGNIZE);
         assert_eq!(TEXT_TRANSLATE, TRANSLATION_V1_TEXT_TRANSLATE);
         assert_eq!(TEXT_DETECT, TRANSLATION_V1_TEXT_DETECT);
     }
@@ -311,8 +265,8 @@ mod tests {
     fn test_version_consistency() {
         // 测试版本一致性
         let v1_endpoints = [
-            OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE,
-            SPEECH_TO_TEXT_V1_FILE_RECOGNIZE,
+            OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE,
+            SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE,
             TRANSLATION_V1_TEXT_DETECT,
         ];
         for endpoint in v1_endpoints {
