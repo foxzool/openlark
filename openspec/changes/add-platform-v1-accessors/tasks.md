@@ -22,12 +22,12 @@
 - [x] 3.3 `workspace` 嵌套 service：`table`/`view`/`enum_mod`
 - [x] 3.4 `ApaasV1`：`_config` → `config`，装顶层访问器
 - [x] 3.5 深链 access 测试：`application().object().record()` 等走到叶子 builder
-- [ ] 3.6 apaas 范围 clippy + fmt 通过（含深嵌套无 dead_code）
+- [x] 3.6 apaas 范围 clippy + fmt 通过（含深嵌套无 dead_code）
 
 ## 4. 全局验证 + 闭环
 
-- [ ] 4.1 `cargo fmt --check`（workspace）
-- [ ] 4.2 `cargo clippy --workspace --all-targets --all-features -- -D warnings`
-- [ ] 4.3 `cargo clippy -W dead_code` 于 openlark-platform，无新增告警
-- [ ] 4.4 grep 确认 3 个 platform 入口无 `_config` 遗留
-- [ ] 4.5 闭环 cleanup-dead-code-allows：移除 3 个 platform 入口的"待装访问器"reserved 注释
+- [x] 4.1 `cargo fmt --check`（workspace）
+- [x] 4.2 `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- [x] 4.3 `cargo clippy -W dead_code` 于 openlark-platform，无新增告警
+- [x] 4.4 grep 确认 3 个 platform 入口无 `_config` 遗留
+- [x] 4.5 闭环 cleanup-dead-code-allows：移除 3 个 platform 入口的"待装访问器"reserved 注释

@@ -1031,24 +1031,24 @@ Expected: 全 exit 0，零新 dead_code。
 - 全 workspace（只读验证）
 - 若发现遗漏：回到对应 Task 修
 
-- [ ] **Step 1: `cargo fmt --check`（workspace）**
+- [x] **Step 1: `cargo fmt --check`（workspace）**
 
 Run: `cargo fmt --check`
 Expected: exit 0（无 diff 输出）。
 > **CI 红线**：CI lint job 第一步就是 `cargo fmt --check`，clippy 过 ≠ fmt 过。
 
-- [ ] **Step 2: `cargo clippy --workspace --all-targets --all-features -- -D warnings`**
+- [x] **Step 2: `cargo clippy --workspace --all-targets --all-features -- -D warnings`**
 
 Run: `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 Expected: exit 0。
 
-- [ ] **Step 3: `cargo clippy -p openlark-platform -- -W dead_code`**
+- [x] **Step 3: `cargo clippy -p openlark-platform -- -W dead_code`**
 
 Run: `cargo clippy -p openlark-platform -- -W dead_code`
 Expected: 无新增 dead_code 告警（设计上每个新 service 都被上级访问器消费）。
 > 若有告警：说明某 service 字段/方法未被消费，回到对应 Task 补访问器或修签名。**不要用 `#[allow(dead_code)]` 掩盖**（除 Task 3 Step 7 已说明的中间级临时 allow，且 Task 4/5 已删）。
 
-- [ ] **Step 4: grep 确认 3 入口无 `_config` 遗留**
+- [x] **Step 4: grep 确认 3 入口无 `_config` 遗留**
 
 Run:
 ```bash
@@ -1059,7 +1059,7 @@ grep -rn '_config' crates/openlark-platform/src/admin/admin/v1/mod.rs \
 Expected: 0 匹配（三入口 struct 字段已全 `config`）。
 > 注意：admin 的 `audit.rs`/`users.rs` facade 内的 `QueryAuditLogsRequest._config` 等是**另一回事**（runtime stub 的请求体字段，非入口 struct 字段），不在本 grep 范围（那俩文件不在上面列表里）。它们的 `_config` 是 cleanup-dead-code-allows 留的 stub 脚手架，本 change 不动（D5：不改 stub 行为）。
 
-- [ ] **Step 5: grep 确认 3 入口 reserved 注释已移除**
+- [x] **Step 5: grep 确认 3 入口 reserved 注释已移除**
 
 Run:
 ```bash
@@ -1069,12 +1069,12 @@ grep -rn 'reserved：待装访问器' crates/openlark-platform/src/admin/admin/v
 ```
 Expected: 0 匹配（闭环 cleanup-dead-code-allows：3 个入口的「待装访问器」reserved 注释随 `_config` → `config` 一起删了，Task 1/2/3 Step 3 已做）。
 
-- [ ] **Step 6: 完整测试**
+- [x] **Step 6: 完整测试**
 
 Run: `cargo test -p openlark-platform`
 Expected: 全 PASS（含三入口的 chain access 测试 + 各 builder 原有单测）。
 
-- [ ] **Step 7: 报告主会话勾选 + commit**
+- [x] **Step 7: 报告主会话勾选 + commit**
 
 主会话勾选 `4.1`-`4.5`，commit（`chore(platform): v1 访问器闭环验证（#274）`）。change 进入 verify 阶段。
 
