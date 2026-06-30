@@ -597,7 +597,7 @@ Expected: 全 exit 0。
 - `flow/execute.rs`: `new(config, namespace, flow_id)`
 - `audit_log/audit_log_list.rs` + `data_change_logs_list.rs`: `new(config, namespace)`；`get.rs` + `data_change_log_detail.rs`: `new(config, namespace, log_id)`
 
-- [ ] **Step 1: 写失败测试（深链至少走到叶子）**
+- [x] **Step 1: 写失败测试（深链至少走到叶子）**
 
 在 `crates/openlark-platform/src/app_engine/apaas/v1/mod.rs` 的 tests 内加：
 
@@ -634,12 +634,12 @@ Expected: 全 exit 0。
 
 > 各叶子访问器的参数（如 `search("q")`、`oql_query("select *")`、`get("var_k")`）照 builder `new()` 的用户输入参数照搬；路径参数（namespace/object_api_name/role_api_name）已由上级 service 持有，叶子访问器不再要。
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cargo test -p openlark-platform --lib app_engine::apaas::v1::tests::test_apaas_v1_application_deep_chain_access`
 Expected: FAIL
 
-- [ ] **Step 3: `ApplicationService` 加子访问器**（application/mod.rs）
+- [x] **Step 3: `ApplicationService` 加子访问器**（application/mod.rs）
 
 在 Task 3 建的 `ApplicationService` impl 里加（并删掉 Task 3 Step 5 的临时 `#[allow(dead_code)]`）：
 
@@ -696,7 +696,7 @@ Expected: FAIL
 
 > 注意 config 流转（D2）：`object`/`role`/`record_permission` 是中间级（下还有 member/record 一级），持 `Arc<PlatformConfig>`（`self.config.clone()`）；`environment_variable`/`function`/`flow`/`audit_log` 的子是叶子 builder，这级 service 直接持 owned `Config`（`self.config.as_ref().clone()`）。
 
-- [ ] **Step 4: `ObjectService` 中间级**（object/mod.rs）
+- [x] **Step 4: `ObjectService` 中间级**（object/mod.rs）
 
 ```rust
 use crate::PlatformConfig;
@@ -754,7 +754,7 @@ impl ObjectService {
 }
 ```
 
-- [ ] **Step 5: `RecordService` 叶子级**（object/record/mod.rs）
+- [x] **Step 5: `RecordService` 叶子级**（object/record/mod.rs）
 
 ```rust
 use openlark_core::config::Config;
@@ -794,11 +794,11 @@ impl RecordService {
 }
 ```
 
-- [ ] **Step 6: `RoleService` + `RoleMemberService`、`RecordPermissionService` + `RecordPermissionMemberService`**
+- [x] **Step 6: `RoleService` + `RoleMemberService`、`RecordPermissionService` + `RecordPermissionMemberService`**
 
 照 Step 4/5 同构。`role/mod.rs` 加 `RoleService { config: Arc, namespace, role_api_name }` + `member()` 返回 `member::RoleMemberService`；`role/member/mod.rs` 加 `RoleMemberService { config: Config, namespace, role_api_name }` + `get()/batch_create_authorization()/batch_remove_authorization()` 各喂对应 builder `new(config, namespace, role_api_name)`。record_permission 同构（`record_permission_api_name` 替换 `role_api_name`）。
 
-- [ ] **Step 7: 4 个 application 直接子 service**（environment_variable / function / flow / audit_log）
+- [x] **Step 7: 4 个 application 直接子 service**（environment_variable / function / flow / audit_log）
 
 照 Step 5 叶子级模板（持 owned `Config` + namespace [+ 用户输入参数]）。例如 `environment_variable/mod.rs`：
 
@@ -835,12 +835,12 @@ impl EnvironmentVariableService {
 
 `function`（持 namespace + function_api_name，`invoke()`）、`flow`（namespace + flow_id，`execute()`）、`audit_log`（持 namespace，`list()/get(log_id)/data_change_logs_list()/data_change_log_detail(log_id)`）同理。audit_log 的 list 与 get/data_change_log_detail 的参数差异照 builder 真实 `new()`。
 
-- [ ] **Step 8: 跑测试确认通过**
+- [x] **Step 8: 跑测试确认通过**
 
 Run: `cargo test -p openlark-platform --lib app_engine::apaas::v1::tests`
 Expected: PASS（含 `test_apaas_v1_application_deep_chain_access`）
 
-- [ ] **Step 9: clippy + fmt（含深嵌套无 dead_code）**
+- [x] **Step 9: clippy + fmt（含深嵌套无 dead_code）**
 
 Run:
 ```bash
@@ -850,7 +850,7 @@ cargo fmt --check
 ```
 Expected: 全 exit 0，**零新 dead_code**（Task 3 的临时 allow 已删，所有字段都被下级访问器消费）。
 
-- [ ] **Step 10: 报告主会话勾选 + commit**
+- [x] **Step 10: 报告主会话勾选 + commit**
 
 主会话勾选 `3.2`，commit（`feat(platform): apaas application 深嵌套访问器（#274）`）。
 

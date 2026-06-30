@@ -111,4 +111,36 @@ mod tests {
         let _ = api.application("ns_x");
         let _ = api.workspace("ws_x");
     }
+
+    #[test]
+    fn test_apaas_v1_application_deep_chain_access() {
+        let config = PlatformConfig::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let api = ApaasV1::new(std::sync::Arc::new(config));
+        let app = api.application("ns_x");
+        // object → record 深链到叶子
+        let _ = app.object("obj_y").record().create();
+        let _ = app.object("obj_y").record().batch_create();
+        let _ = app.object("obj_y").record().query("rec_1");
+        // object 直接子（search/oql）
+        let _ = app.object("obj_y").search("q");
+        let _ = app.object("obj_y").oql_query("select *");
+        // role → member
+        let _ = app.role("role_a").member().get();
+        let _ = app.role("role_a").member().batch_create_authorization();
+        // record_permission → member
+        let _ = app
+            .record_permission("rp_b")
+            .member()
+            .batch_create_authorization();
+        // application 直接子
+        let _ = app.environment_variable().query();
+        let _ = app.environment_variable().get("var_k");
+        let _ = app.function("fn_a").invoke();
+        let _ = app.flow("flow_1").execute();
+        let _ = app.audit_log().list();
+        let _ = app.audit_log().get("log_9");
+    }
 }

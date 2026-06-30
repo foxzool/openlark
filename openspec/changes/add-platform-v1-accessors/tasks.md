@@ -18,7 +18,7 @@
 ## 3. platform apaas v1（ApaasV1，8 顶层 + 深嵌套）
 
 - [x] 3.1 顶层 8 service：`app`/`approval_task`/`approval_instance`/`application`/`user_task`/`seat_activity`/`seat_assignment`/`workspace`
-- [ ] 3.2 `application` 深嵌套逐级 service：`object`→`record`、`role`→`member`、`record_permission`→`member`、`environment_variable`/`function`/`flow`/`audit_log`
+- [x] 3.2 `application` 深嵌套逐级 service：`object`→`record`、`role`→`member`、`record_permission`→`member`、`environment_variable`/`function`/`flow`/`audit_log`
 - [ ] 3.3 `workspace` 嵌套 service：`table`/`view`/`enum_mod`
 - [x] 3.4 `ApaasV1`：`_config` → `config`，装顶层访问器
 - [ ] 3.5 深链 access 测试：`application().object().record()` 等走到叶子 builder
