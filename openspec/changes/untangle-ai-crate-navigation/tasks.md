@@ -26,3 +26,10 @@
 - [x] 5.2 `cargo clippy --all-features --workspace` 通过，openlark-ai 无 dead_code 告警。
 - [x] 5.3 `cargo test --all-features -p openlark-ai` 通过（含访问器链可达性测试）。
 - [x] 5.4 终检：同名 `DocumentAiClient` 消除、Speech 实现单套、范式 A/B 死链清零、4 入口字段均为 `config`。
+
+## Review Gate（review_mode=standard）
+
+代码审查通过（reviewer subagent，base-ref ad4489b..HEAD，Ready to merge: Yes）：
+- Critical：无；Important：无
+- 3 个 Minor 均为预先存在的 codegen 模板问题（placeholder 测试 / `use serde_json` 冗余 / doctest 注释），非本 PR 引入，接受不修（surgical 原则，避免超范围）
+- 审查重点全过：导航链对齐 URL、endpoint 与 `api_list_export.csv` 全量一致、Speech 迁移完整 URL 改对、breaking 删除零外部引用、config 流转一致
