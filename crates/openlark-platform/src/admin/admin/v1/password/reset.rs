@@ -12,13 +12,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 重置用户密码的请求构建器。
-pub struct ResetPasswordBuilder {
+pub struct ResetPasswordRequestBuilder {
     user_id: String,
     new_password: String,
     config: Config,
 }
 
-impl ResetPasswordBuilder {
+impl ResetPasswordRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -87,6 +87,10 @@ impl ApiResponseTrait for ResetPasswordResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ResetPasswordRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ResetPasswordBuilder = ResetPasswordRequestBuilder;
 
 #[cfg(test)]
 mod tests {

@@ -11,14 +11,14 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 修改勋章信息的请求构建器。
-pub struct UpdateBadgeBuilder {
+pub struct UpdateBadgeRequestBuilder {
     badge_id: String,
     name: Option<String>,
     description: Option<String>,
     config: Config,
 }
 
-impl UpdateBadgeBuilder {
+impl UpdateBadgeRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -98,6 +98,10 @@ impl ApiResponseTrait for UpdateBadgeResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to UpdateBadgeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type UpdateBadgeBuilder = UpdateBadgeRequestBuilder;
 
 #[cfg(test)]
 mod tests {

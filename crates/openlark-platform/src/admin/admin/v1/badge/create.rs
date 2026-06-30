@@ -15,14 +15,14 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 创建勋章请求
-pub struct CreateBadgeBuilder {
+pub struct CreateBadgeRequestBuilder {
     name: String,
     description: Option<String>,
     icon_url: Option<String>,
     config: Config,
 }
 
-impl CreateBadgeBuilder {
+impl CreateBadgeRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -112,6 +112,10 @@ impl ApiResponseTrait for CreateBadgeResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CreateBadgeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CreateBadgeBuilder = CreateBadgeRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,7 +126,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CreateBadgeBuilder::new(config.clone())
+        let request = CreateBadgeRequestBuilder::new(config.clone())
             .name("test".to_string())
             .description("test".to_string());
         let _ = request;

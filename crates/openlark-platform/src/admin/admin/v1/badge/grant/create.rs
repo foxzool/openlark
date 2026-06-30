@@ -14,13 +14,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 创建勋章授予名单请求
-pub struct CreateBadgeGrantBuilder {
+pub struct CreateBadgeGrantRequestBuilder {
     badge_id: String,
     user_ids: Vec<String>,
     config: Config,
 }
 
-impl CreateBadgeGrantBuilder {
+impl CreateBadgeGrantRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -96,6 +96,10 @@ impl ApiResponseTrait for CreateBadgeGrantResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CreateBadgeGrantRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CreateBadgeGrantBuilder = CreateBadgeGrantRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,7 +110,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CreateBadgeGrantBuilder::new(config.clone())
+        let request = CreateBadgeGrantRequestBuilder::new(config.clone())
             .badge_id("test".to_string())
             .user_ids(vec!["user_001".to_string()]);
         let _ = request;
