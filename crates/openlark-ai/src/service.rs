@@ -220,4 +220,38 @@ mod tests {
         let client = TranslationClient::new(Arc::new(config));
         assert_eq!(client.config().app_id(), "test_app_id");
     }
+
+    #[test]
+    fn test_document_ai_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 三层链对齐 URL /document_ai/v1/id_card/recognize
+        let _ = client.document_ai().v1().id_card().recognize();
+    }
+
+    #[test]
+    fn test_ocr_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /optical_char_recognition/v1/image/basic_recognize
+        let _ = client.ocr().v1().image().basic_recognize();
+    }
+
+    #[test]
+    fn test_translation_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /translation/v1/text/{translate,detect}
+        let _ = client.translation().v1().text().translate();
+        let _ = client.translation().v1().text().detect();
+    }
 }

@@ -10,14 +10,23 @@ use std::sync::Arc;
 /// Text translation API
 #[derive(Clone)]
 pub struct Text {
-    // reserved：待装访问器/execute（见 #274，不完整脚手架）
-    _config: Arc<Config>,
+    config: Arc<Config>,
 }
 
 impl Text {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { _config: config }
+        Self { config }
+    }
+
+    /// 文本翻译（对齐 URL /translation/v1/text/translate）。
+    pub fn translate(&self) -> translate::TextTranslateRequestBuilder {
+        translate::TextTranslateRequestBuilder::new((*self.config).clone())
+    }
+
+    /// 语种检测（对齐 URL /translation/v1/text/detect）。
+    pub fn detect(&self) -> detect::TextDetectRequestBuilder {
+        detect::TextDetectRequestBuilder::new((*self.config).clone())
     }
 }
 
