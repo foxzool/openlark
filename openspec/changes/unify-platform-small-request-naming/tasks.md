@@ -17,3 +17,7 @@
 ## 3. CHANGELOG
 
 - [x] 3.1 CHANGELOG v0.18 breaking 段记录 12 个重命名（platform 小批）
+
+## 代码审查（review_mode: standard）
+Ready to merge: Yes（0 Critical/Important/Minor）。
+**未来提示（directory 批次）**：`CollaborationTenantListBuilder` 在 trust_party（本批已改）和 directory 子系统都有（不同 struct）。directory 批次重命名时两者都会变 `CollaborationTenantListRequestBuilder` → crate 根命名冲突，需特殊处理（如 directory 那个保持原名或换前缀）。
