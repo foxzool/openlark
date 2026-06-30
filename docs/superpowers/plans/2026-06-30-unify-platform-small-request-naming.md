@@ -2,6 +2,7 @@
 change: unify-platform-small-request-naming
 design-doc: docs/superpowers/specs/2026-06-30-unify-platform-small-request-naming-design.md
 base-ref: 015ef54d0e7a76586ed82cd0567fe65a93ab313c
+archived-with: 2026-06-30-unify-platform-small-request-naming
 ---
 
 # unify-platform-small-request-naming 实施计划（#271 platform 第 1 批小批）

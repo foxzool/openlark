@@ -2,6 +2,8 @@
 comet_change: unify-platform-small-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-30-unify-platform-small-request-naming
+status: final
 ---
 
 # Design — unify-platform-small-request-naming（#271 platform 第 1 批小批）
