@@ -23,7 +23,7 @@
 //!     .build();
 //!
 //! let client = AiClient::new(config);
-//! // client.document_ai().v1()...
+//! // client.document_ai().v1().id_card().recognize()...
 //!
 //! // 使用端点常量
 //! let resume_endpoint = DOCUMENT_AI_RESUME_PARSE;
