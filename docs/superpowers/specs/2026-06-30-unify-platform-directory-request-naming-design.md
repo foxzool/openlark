@@ -2,6 +2,8 @@
 comet_change: unify-platform-directory-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-30-unify-platform-directory-request-naming
+status: final
 ---
 # Design — unify-platform-directory-request-naming（#271 directory 批）
 > 技术 HOW。delta spec 为 canonical。
