@@ -222,6 +222,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_document_ai_accessor_chain() {
         let config = Config::builder()
             .app_id("test_app_id")
@@ -233,6 +234,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_ocr_accessor_chain() {
         let config = Config::builder()
             .app_id("test_app_id")
@@ -244,6 +246,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_translation_accessor_chain() {
         let config = Config::builder()
             .app_id("test_app_id")
@@ -256,6 +259,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_speech_accessor_chain() {
         let config = Config::builder()
             .app_id("test_app_id")
