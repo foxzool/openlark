@@ -2,6 +2,8 @@
 comet_change: unify-platform-admin-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-30-unify-platform-admin-request-naming
+status: final
 ---
 
 # Design — unify-platform-admin-request-naming（#271 platform admin 批）

@@ -2,6 +2,7 @@
 change: unify-platform-admin-request-naming
 design-doc: docs/superpowers/specs/2026-06-30-unify-platform-admin-request-naming-design.md
 base-ref: PLACEHOLDER
+archived-with: 2026-06-30-unify-platform-admin-request-naming
 ---
 
 # unify-platform-admin-request-naming（#271 platform admin）
