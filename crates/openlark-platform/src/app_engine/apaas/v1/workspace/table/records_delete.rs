@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 删除数据表记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsDeleteBuilder {
+pub struct TableRecordsDeleteRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -24,7 +24,7 @@ pub struct TableRecordsDeleteBuilder {
     record_ids: Vec<String>,
 }
 
-impl TableRecordsDeleteBuilder {
+impl TableRecordsDeleteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -98,6 +98,10 @@ impl ApiResponseTrait for TableRecordsDeleteResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableRecordsDeleteRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableRecordsDeleteBuilder = TableRecordsDeleteRequestBuilder;
 
 #[cfg(test)]
 mod tests {

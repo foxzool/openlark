@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 批量新建记录 Builder
 #[derive(Debug, Clone)]
-pub struct RecordBatchCreateBuilder {
+pub struct RecordBatchCreateRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct RecordBatchCreateBuilder {
     records: Vec<serde_json::Value>,
 }
 
-impl RecordBatchCreateBuilder {
+impl RecordBatchCreateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -116,6 +116,10 @@ impl ApiResponseTrait for RecordBatchCreateResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordBatchCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordBatchCreateBuilder = RecordBatchCreateRequestBuilder;
 
 #[cfg(test)]
 mod tests {

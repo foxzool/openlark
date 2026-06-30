@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询记录列表 Builder
 #[derive(Debug, Clone)]
-pub struct RecordBatchQueryBuilder {
+pub struct RecordBatchQueryRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -26,7 +26,7 @@ pub struct RecordBatchQueryBuilder {
     fields: Vec<String>,
 }
 
-impl RecordBatchQueryBuilder {
+impl RecordBatchQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -136,6 +136,10 @@ impl ApiResponseTrait for RecordBatchQueryResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordBatchQueryRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordBatchQueryBuilder = RecordBatchQueryRequestBuilder;
 
 #[cfg(test)]
 mod tests {

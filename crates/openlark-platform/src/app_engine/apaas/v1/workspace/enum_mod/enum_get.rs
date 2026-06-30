@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 /// 获取枚举详情 Builder
 #[derive(Debug, Clone)]
-pub struct EnumGetBuilder {
+pub struct EnumGetRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -24,7 +24,7 @@ pub struct EnumGetBuilder {
     enum_name: String,
 }
 
-impl EnumGetBuilder {
+impl EnumGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -96,6 +96,10 @@ impl ApiResponseTrait for EnumGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EnumGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EnumGetBuilder = EnumGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

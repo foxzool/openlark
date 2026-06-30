@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 批量删除记录权限用户授权 Builder
 #[derive(Debug, Clone)]
-pub struct RecordPermissionBatchRemoveAuthBuilder {
+pub struct RecordPermissionBatchRemoveAuthRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct RecordPermissionBatchRemoveAuthBuilder {
     user_ids: Vec<String>,
 }
 
-impl RecordPermissionBatchRemoveAuthBuilder {
+impl RecordPermissionBatchRemoveAuthRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -102,6 +102,12 @@ impl ApiResponseTrait for RecordPermissionBatchRemoveAuthResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to RecordPermissionBatchRemoveAuthRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type RecordPermissionBatchRemoveAuthBuilder = RecordPermissionBatchRemoveAuthRequestBuilder;
 
 #[cfg(test)]
 mod tests {

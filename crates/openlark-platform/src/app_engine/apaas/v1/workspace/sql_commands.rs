@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 执行SQL Builder
 #[derive(Debug, Clone)]
-pub struct SqlCommandsBuilder {
+pub struct SqlCommandsRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -22,7 +22,7 @@ pub struct SqlCommandsBuilder {
     sql: String,
 }
 
-impl SqlCommandsBuilder {
+impl SqlCommandsRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, workspace_id: impl Into<String>, sql: impl Into<String>) -> Self {
         Self {
@@ -92,6 +92,10 @@ impl ApiResponseTrait for SqlCommandsResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to SqlCommandsRequestBuilder, will be removed in v1.0 (#271)")]
+pub type SqlCommandsBuilder = SqlCommandsRequestBuilder;
 
 #[cfg(test)]
 mod tests {

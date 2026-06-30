@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询角色成员信息 Builder
 #[derive(Debug, Clone)]
-pub struct RoleMemberGetBuilder {
+pub struct RoleMemberGetRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -26,7 +26,7 @@ pub struct RoleMemberGetBuilder {
     page_size: Option<u32>,
 }
 
-impl RoleMemberGetBuilder {
+impl RoleMemberGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -112,6 +112,10 @@ impl ApiResponseTrait for RoleMemberGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RoleMemberGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RoleMemberGetBuilder = RoleMemberGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

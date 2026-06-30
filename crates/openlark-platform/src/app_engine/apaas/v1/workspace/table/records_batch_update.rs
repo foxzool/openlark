@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 /// 批量更新记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsBatchUpdateBuilder {
+pub struct TableRecordsBatchUpdateRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -25,7 +25,7 @@ pub struct TableRecordsBatchUpdateBuilder {
     records: Vec<RecordUpdate>,
 }
 
-impl TableRecordsBatchUpdateBuilder {
+impl TableRecordsBatchUpdateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -135,6 +135,12 @@ impl ApiResponseTrait for TableRecordsBatchUpdateResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to TableRecordsBatchUpdateRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type TableRecordsBatchUpdateBuilder = TableRecordsBatchUpdateRequestBuilder;
 
 #[cfg(test)]
 mod tests {

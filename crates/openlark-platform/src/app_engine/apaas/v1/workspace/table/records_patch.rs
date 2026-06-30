@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 按条件更新记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsPatchBuilder {
+pub struct TableRecordsPatchRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -26,7 +26,7 @@ pub struct TableRecordsPatchBuilder {
     data: serde_json::Value,
 }
 
-impl TableRecordsPatchBuilder {
+impl TableRecordsPatchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -118,6 +118,10 @@ impl ApiResponseTrait for TableRecordsPatchResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableRecordsPatchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableRecordsPatchBuilder = TableRecordsPatchRequestBuilder;
 
 #[cfg(test)]
 mod tests {

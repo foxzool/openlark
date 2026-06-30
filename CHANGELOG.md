@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **platform app_engine 请求类型统一 RequestBuilder**（#271 app_engine 批，软 breaking，**最后一批**）：
+  openlark-platform app_engine/apaas 子系统 51 个请求 builder XxxBuilder → XxxRequestBuilder，
+  旧名作 #[deprecated] alias。**本批完成 #271 全部 platform crate 统一**。
+
+
 - **platform directory 请求类型统一 RequestBuilder**（#271 directory 批，软 breaking）：
   openlark-platform directory 子系统 21 个请求 builder XxxBuilder → XxxRequestBuilder（Collaboration/Department/Employee 系列），旧名作 #[deprecated] alias。
 

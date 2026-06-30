@@ -12,13 +12,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 拒绝人工任务的请求构建器。
-pub struct RejectTaskBuilder {
+pub struct RejectTaskRequestBuilder {
     approval_task_id: String,
     reason: Option<String>,
     config: Config,
 }
 
-impl RejectTaskBuilder {
+impl RejectTaskRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -87,6 +87,10 @@ impl ApiResponseTrait for RejectTaskResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RejectTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RejectTaskBuilder = RejectTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {

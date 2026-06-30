@@ -1,0 +1,14 @@
+{
+  "change": "unify-platform-app-engine-request-naming",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "f23adec90b060a87dd211be4a68b04179bc20bd2cb1a83549e501c2ed77dc722",
+  "files": [
+    { "path": "openspec/changes/unify-platform-app-engine-request-naming/proposal.md", "sha256": "c8b9bb7026a487b703b07648d3bbc51ad68a2efed044d9de86fce04143a2d7bb" },
+    { "path": "openspec/changes/unify-platform-app-engine-request-naming/design.md", "sha256": "99ebf7b5372e1112c572ce2a0389094048399842f2210f706a338370f5170d8c" },
+    { "path": "openspec/changes/unify-platform-app-engine-request-naming/tasks.md", "sha256": "d7afef5ace6d8b4cb21c69044229701ae26220ea62f42b580ea4e9acef06ab06" },
+    { "path": "openspec/changes/unify-platform-app-engine-request-naming/specs/platform-app-engine-request-naming/spec.md", "sha256": "410807c49ccbd1c5e6b46cf14ead3dd0d92945b2e0604bc7537a0fd9b587950e" }
+  ]
+}

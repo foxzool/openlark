@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询审计日志详情 Builder
 #[derive(Debug, Clone)]
-pub struct AuditLogGetBuilder {
+pub struct AuditLogGetRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -22,7 +22,7 @@ pub struct AuditLogGetBuilder {
     log_id: String,
 }
 
-impl AuditLogGetBuilder {
+impl AuditLogGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>, log_id: impl Into<String>) -> Self {
         Self {
@@ -89,6 +89,10 @@ impl ApiResponseTrait for AuditLogGetResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuditLogGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuditLogGetBuilder = AuditLogGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {

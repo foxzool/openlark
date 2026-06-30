@@ -14,13 +14,13 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 人工任务加签的请求构建器。
-pub struct AddAssigneeBuilder {
+pub struct AddAssigneeRequestBuilder {
     approval_task_id: String,
     user_ids: Vec<String>,
     config: Config,
 }
 
-impl AddAssigneeBuilder {
+impl AddAssigneeRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -89,6 +89,10 @@ impl ApiResponseTrait for AddAssigneeResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AddAssigneeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AddAssigneeBuilder = AddAssigneeRequestBuilder;
 
 #[cfg(test)]
 mod tests {

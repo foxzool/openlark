@@ -12,12 +12,12 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 /// 撤销审批实例的请求构建器。
-pub struct CancelInstanceBuilder {
+pub struct CancelInstanceRequestBuilder {
     approval_instance_id: String,
     config: Config,
 }
 
-impl CancelInstanceBuilder {
+impl CancelInstanceRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -69,6 +69,10 @@ impl ApiResponseTrait for CancelInstanceResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CancelInstanceRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CancelInstanceBuilder = CancelInstanceRequestBuilder;
 
 #[cfg(test)]
 mod tests {

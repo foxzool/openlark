@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询席位分配详情 Builder
 #[derive(Debug, Clone)]
-pub struct SeatAssignmentListBuilder {
+pub struct SeatAssignmentListRequestBuilder {
     config: Config,
     /// 页码
     page: Option<u32>,
@@ -22,7 +22,7 @@ pub struct SeatAssignmentListBuilder {
     page_size: Option<u32>,
 }
 
-impl SeatAssignmentListBuilder {
+impl SeatAssignmentListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -113,6 +113,10 @@ impl ApiResponseTrait for SeatAssignmentListResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to SeatAssignmentListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type SeatAssignmentListBuilder = SeatAssignmentListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,7 +127,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = SeatAssignmentListBuilder::new(config.clone())
+        let request = SeatAssignmentListRequestBuilder::new(config.clone())
             .page(1)
             .page_size(1);
         let _ = request;

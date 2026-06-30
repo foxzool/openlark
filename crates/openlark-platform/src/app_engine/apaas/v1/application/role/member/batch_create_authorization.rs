@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 批量创建角色成员授权 Builder
 #[derive(Debug, Clone)]
-pub struct RoleMemberBatchCreateAuthBuilder {
+pub struct RoleMemberBatchCreateAuthRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct RoleMemberBatchCreateAuthBuilder {
     user_ids: Vec<String>,
 }
 
-impl RoleMemberBatchCreateAuthBuilder {
+impl RoleMemberBatchCreateAuthRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -102,6 +102,12 @@ impl ApiResponseTrait for RoleMemberBatchCreateAuthResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to RoleMemberBatchCreateAuthRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type RoleMemberBatchCreateAuthBuilder = RoleMemberBatchCreateAuthRequestBuilder;
 
 #[cfg(test)]
 mod tests {

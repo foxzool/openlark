@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询审计日志列表 Builder
 #[derive(Debug, Clone)]
-pub struct AuditLogListBuilder {
+pub struct AuditLogListRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -28,7 +28,7 @@ pub struct AuditLogListBuilder {
     page_size: Option<u32>,
 }
 
-impl AuditLogListBuilder {
+impl AuditLogListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>) -> Self {
         Self {
@@ -139,6 +139,10 @@ impl ApiResponseTrait for AuditLogListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuditLogListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuditLogListBuilder = AuditLogListRequestBuilder;
 
 #[cfg(test)]
 mod tests {
