@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: bfd9b5ae64bab42eb176cf3cc3b75671926613de
 design_doc: docs/superpowers/specs/2026-06-30-platform-v1-accessors-design.md
 plan: docs/superpowers/plans/2026-06-30-platform-v1-accessors.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-06-30-add-platform-v1-accessors-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-06-30
-verified_at: null
+verified_at: 2026-06-30
 archived: false
 handoff_context: openspec/changes/add-platform-v1-accessors/.comet/handoff/design-context.json
 handoff_hash: 2afba3981e3faccd1920bb85475922f054f158dc18da0e67b1d546deda8e351d
