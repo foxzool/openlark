@@ -1,6 +1,6 @@
 ## 1. 死代码清理（范式 B 聚合体）
 
-- [ ] 1.1 删除 `ai::AiService`（`src/ai/mod.rs`）与 `ai::v1::V1` 聚合体（`src/ai/v1/mod.rs`），保留 4 个入口 struct（`DocumentAiV1`/`OcrV1`/`SpeechToTextV1`/`TranslationV1`，因 `service.rs` 的 `*Client.v1()` 依赖它们）。验证：`cargo build -p openlark-ai` 通过，`grep -r "AiService\|v1::V1" crates/openlark-ai/src` 无残留聚合定义。
+- [x] 1.1 删除 `ai::AiService` + `ai::v1::V1` 死聚合（含死聚合版 4 入口 struct `ai::v1::{DocumentAiV1,OcrV1,SpeechToTextV1,TranslationV1}`，与第二代同名不同物）；`service.rs` 四处 `*Client.v1()` 重定向到第二代 `ai::{capability}::v1::*` 真实入口（保留第二代 4 入口）。验证：`cargo test -p openlark-ai --lib` → 207 passed。
 
 ## 2. 4 能力 accessor 接线（核心）
 
