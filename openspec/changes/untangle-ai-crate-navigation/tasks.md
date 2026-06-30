@@ -22,7 +22,7 @@
 
 ## 5. 质量验证
 
-- [ ] 5.1 `cargo fmt --check`（全仓）通过。
-- [ ] 5.2 `cargo clippy --all-features --workspace` 通过，openlark-ai 无 dead_code 告警。
-- [ ] 5.3 `cargo test --all-features -p openlark-ai` 通过（含访问器链可达性测试）。
-- [ ] 5.4 终检：同名 `DocumentAiClient` 消除、Speech 实现单套、范式 A/B 死链清零、4 入口字段均为 `config`。
+- [x] 5.1 `cargo fmt --check`（全仓）通过。
+- [x] 5.2 `cargo clippy --all-features --workspace` 通过，openlark-ai 无 dead_code 告警。
+- [x] 5.3 `cargo test --all-features -p openlark-ai` 通过（含访问器链可达性测试）。
+- [x] 5.4 终检：同名 `DocumentAiClient` 消除、Speech 实现单套、范式 A/B 死链清零、4 入口字段均为 `config`。
