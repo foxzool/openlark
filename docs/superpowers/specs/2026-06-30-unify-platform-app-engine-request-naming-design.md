@@ -2,6 +2,8 @@
 comet_change: unify-platform-app-engine-request-naming
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-30-unify-platform-app-engine-request-naming
+status: final
 ---
 # Design — unify-platform-app-engine-request-naming（#271 app_engine 批，最后一批）
 > 技术 HOW。delta spec 为 canonical。
