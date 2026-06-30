@@ -254,4 +254,16 @@ mod tests {
         let _ = client.translation().v1().text().translate();
         let _ = client.translation().v1().text().detect();
     }
+
+    #[test]
+    fn test_speech_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /speech_to_text/v1/speech/{file,stream}_recognize
+        let _ = client.speech_to_text().v1().speech().file_recognize();
+        let _ = client.speech_to_text().v1().speech().stream_recognize();
+    }
 }
