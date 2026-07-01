@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,13 +7,13 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 5d03e732563d1aba6772d328cda3d621bbed9176
 design_doc: docs/superpowers/specs/2026-07-01-feature-naming-convention-design.md
 plan: docs/superpowers/plans/2026-07-01-feature-naming-convention.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-07-01-feature-naming-convention-verify.md
 branch_status: pending
 created_at: 2026-07-01
 verified_at: null
