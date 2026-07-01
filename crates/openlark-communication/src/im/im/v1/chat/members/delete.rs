@@ -1,6 +1,6 @@
 //! 将用户或机器人移出群聊
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -47,7 +47,7 @@ impl DeleteChatMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/delete>
     pub async fn execute(
         self,
         body: DeleteChatMembersBody,

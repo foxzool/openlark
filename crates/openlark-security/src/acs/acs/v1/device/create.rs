@@ -1,6 +1,6 @@
 //! 新增设备
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/create
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/device/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

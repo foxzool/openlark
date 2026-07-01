@@ -1,6 +1,6 @@
 //! 下载开门时的人脸识别图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/access_record/access_photo/get
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/access_record/access_photo/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

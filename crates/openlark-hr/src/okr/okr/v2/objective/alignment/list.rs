@@ -1,6 +1,6 @@
 //! 获取目标的对齐信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/objective.alignment/get
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective.alignment/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

@@ -1,6 +1,6 @@
 //! 撤回已发送邮件
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/mail-v1/user_mailbox-sent_message/recall
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/mail-v1/user_mailbox-sent_message/recall>
 
 use openlark_core::{
     SDKResult,

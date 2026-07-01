@@ -1,6 +1,6 @@
 //! 审批任务加签（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/add_sign
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/add_sign>
 
 use openlark_core::{
     SDKResult,

@@ -1,5 +1,5 @@
 //! 获取邮件组权限成员
-//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get>
 
 use openlark_core::{
     SDKResult,

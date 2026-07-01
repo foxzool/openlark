@@ -1,6 +1,6 @@
 //! 编辑试用期
 //!
-//! docPath: https://open.feishu.cn/document/corehr-v1/probation/edit
+//! docPath: <https://open.feishu.cn/document/corehr-v1/probation/edit>
 
 use openlark_core::{
     SDKResult,

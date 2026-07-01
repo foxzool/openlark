@@ -1,6 +1,6 @@
 //! 下载用户人脸图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/face/get
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/face/get>
 
 use openlark_core::{
     SDKResult,

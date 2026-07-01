@@ -1,5 +1,5 @@
 //! 查看应用基本信息 API
-//! docPath: https://open.feishu.cn/document/apaas-v1/app/list
+//! docPath: <https://open.feishu.cn/document/apaas-v1/app/list>
 
 use openlark_core::{
     SDKResult,

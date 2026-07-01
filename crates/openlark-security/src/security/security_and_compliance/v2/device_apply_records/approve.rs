@@ -1,6 +1,6 @@
 //! 审批设备申报
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_apply_record-approve
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_apply_record-approve>
 //!
 //! 文档核对：`PUT /open-apis/security_and_compliance/v2/device_apply_records/{device_apply_record_id}`，
 //! body `{approved, comment, remark}`。

@@ -1,6 +1,6 @@
 //! 查询指定时间范围地点版本
 //!
-//! docPath: https://open.feishu.cn/document/corehr-v1/organization-management/location/query_multi_timeline
+//! docPath: <https://open.feishu.cn/document/corehr-v1/organization-management/location/query_multi_timeline>
 
 use openlark_core::{
     SDKResult,

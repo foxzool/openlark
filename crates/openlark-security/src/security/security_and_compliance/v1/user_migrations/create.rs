@@ -1,6 +1,6 @@
 //! 创建用户迁移
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/create
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/create>
 //!
 //! 请求 body 字段较多（源/目标用户、范围等），调用方按飞书文档自行构造 JSON 透传。
 

@@ -1,6 +1,6 @@
 //! 退回审批任务（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/rollback
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/rollback>
 
 use openlark_core::{
     SDKResult,

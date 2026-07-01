@@ -1,6 +1,6 @@
 //! 设备绑定权限组
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/device_bind
+//! docPath: <https://open.feishu.cn/document/acs-v1/rule_external/device_bind>
 //!
 //! 文档核对：`POST /open-apis/acs/v1/rule_external/device_bind`，flat body
 //! `{"device_id": "<单个>", "rule_ids": [...]}`。

@@ -16,7 +16,7 @@ use openlark_core::error::ErrorTrait;
 ///     let _client = Client::builder()
 ///         .app_id("your_app_id")
 ///         .app_secret("your_app_secret")
-///         .base_url("https://open.feishu.cn")
+///         .base_url("<https://open.feishu.cn>")
 ///         .timeout(Duration::from_secs(30))
 ///         .build()?;
 ///     Ok(())

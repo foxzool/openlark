@@ -2,7 +2,7 @@
 //!
 //! 识别火车票信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/train_invoice_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/train_invoice_recognize>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -164,7 +164,7 @@ impl TrainInvoiceRecognizeRequestBuilder {
 
 /// 执行火车票识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/train_invoice_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/train_invoice_recognize>
 pub async fn train_invoice_recognize(
     config: &Config,
     body: TrainInvoiceRecognizeBody,

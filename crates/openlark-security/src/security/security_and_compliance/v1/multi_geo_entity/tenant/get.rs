@@ -1,6 +1,6 @@
 //! 获取地理位置列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/multi_geo_entity-tenant-get
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/multi_geo_entity-tenant-get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

@@ -1,6 +1,6 @@
 //! 更新自定义字段选项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field-option/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field-option/patch>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::custom_field::option::create::CustomFieldOption;

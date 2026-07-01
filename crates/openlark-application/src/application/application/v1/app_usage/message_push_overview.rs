@@ -1,5 +1,5 @@
 //! 获取消息推送概览
-//! docPath: https://open.feishu.cn/document/application-v6/admin/list
+//! docPath: <https://open.feishu.cn/document/application-v6/admin/list>
 
 use openlark_core::{
     SDKResult,

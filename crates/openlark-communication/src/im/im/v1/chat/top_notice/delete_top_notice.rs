@@ -1,6 +1,6 @@
 //! 撤销群置顶
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -47,7 +47,7 @@ impl DeleteTopNoticeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

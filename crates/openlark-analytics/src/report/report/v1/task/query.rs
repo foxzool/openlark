@@ -1,5 +1,5 @@
 //! 查询任务
-//! docPath: https://open.feishu.cn/document/server-docs/report-v1/task/query
+//! docPath: <https://open.feishu.cn/document/server-docs/report-v1/task/query>
 
 use openlark_core::{
     SDKResult,

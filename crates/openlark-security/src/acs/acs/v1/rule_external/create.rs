@@ -1,6 +1,6 @@
 //! 创建或更新权限组
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/create
+//! docPath: <https://open.feishu.cn/document/acs-v1/rule_external/create>
 //!
 //! 文档核对：`POST /open-apis/acs/v1/rule_external?rule_id={rule_id}&user_id_type={...}`，
 //! body 为 `{"rule": {...}}` 包装（`12cc9fe09` 的包装正确，但补回了漏掉的查询参数）。

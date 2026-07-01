@@ -1,6 +1,6 @@
 //! 查询导出任务结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/export/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -41,7 +41,7 @@ impl GetExportTaskRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/export/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

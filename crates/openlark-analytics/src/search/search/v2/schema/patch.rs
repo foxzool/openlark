@@ -1,5 +1,5 @@
 //! 修改数据范式
-//! docPath: https://open.feishu.cn/document/server-docs/search-v2/open-search/schema/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/search-v2/open-search/schema/patch>
 
 use openlark_core::{
     SDKResult,

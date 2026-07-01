@@ -1,6 +1,6 @@
 //! 创建邮件组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/mail-v1/mail_group/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/mail-v1/mail_group/create>
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::mailgroup::models::{CreateMailGroupBody, CreateMailGroupResponse};

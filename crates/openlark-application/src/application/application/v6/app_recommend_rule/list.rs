@@ -1,5 +1,5 @@
 //! 获取当前设置的推荐规则列表
-//! docPath: https://open.feishu.cn/document/server-docs/workplace-v1/app_recommend_rule/list
+//! docPath: <https://open.feishu.cn/document/server-docs/workplace-v1/app_recommend_rule/list>
 
 use openlark_core::{
     SDKResult,

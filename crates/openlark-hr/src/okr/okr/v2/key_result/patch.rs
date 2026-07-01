@@ -1,6 +1,6 @@
 //! 编辑关键结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/key_result/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result/patch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

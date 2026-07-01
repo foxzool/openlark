@@ -1,6 +1,6 @@
 //! 修改用户部分信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/patch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,

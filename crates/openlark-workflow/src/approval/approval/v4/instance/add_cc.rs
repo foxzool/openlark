@@ -1,6 +1,6 @@
 //! 抄送审批实例（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/add_cc
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/add_cc>
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,6 @@
 //! 删除 OKR 对齐
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/alignment/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/alignment/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

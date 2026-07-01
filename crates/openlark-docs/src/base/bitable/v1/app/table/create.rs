@@ -1,6 +1,6 @@
 //! Bitable 新增一个数据表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

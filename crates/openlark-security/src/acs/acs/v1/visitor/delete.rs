@@ -1,6 +1,6 @@
 //! 删除访客
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/visitor/delete
+//! docPath: <https://open.feishu.cn/document/acs-v1/visitor/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

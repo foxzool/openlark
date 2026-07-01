@@ -1,6 +1,6 @@
 //! 删除职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -36,7 +36,7 @@ impl DeleteJobLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 新增设备记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-create
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-create>
 //!
 //! 文档核对：`POST /open-apis/security_and_compliance/v2/device_records`。
 //! body 用 `serde_json::Value` 透传（字段细化不在本次范围）。

@@ -1,6 +1,6 @@
 //! 搜索地理库信息
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/district/search
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/district/search>
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,6 @@
 //! 撤回审批实例（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/recall
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/recall>
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,6 @@
 //! 查询主日历日程忙闲信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -21,7 +21,7 @@ impl ListFreebusyRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list>
     pub async fn execute(self, body: ListFreebusyRequestBody) -> SDKResult<ListFreebusyResponse> {
         self.execute_with_options(RequestOption::default(), body)
             .await

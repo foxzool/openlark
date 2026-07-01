@@ -1,6 +1,6 @@
 //! 审批设备申报
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/approve
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/device/approve>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

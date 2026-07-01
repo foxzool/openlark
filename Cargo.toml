@@ -70,6 +70,9 @@ all = { level = "warn", priority = -1 }
 multiple_crate_versions = "allow"
 module_name_repetitions = "allow"
 
+[workspace.lints.rustdoc]
+bare_urls = "deny"
+
 [workspace.dependencies]
 # === 核心运行时 (Core Runtime) ===
 tokio = { version = "1.38", features = ["rt", "rt-multi-thread", "macros"] }

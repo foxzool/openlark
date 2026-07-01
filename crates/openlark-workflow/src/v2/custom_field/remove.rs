@@ -1,6 +1,6 @@
 //! 将自定义字段移出资源
 //!
-//! docPath: https://open.feishu.cn/document/task-v2/custom_field/remove
+//! docPath: <https://open.feishu.cn/document/task-v2/custom_field/remove>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{

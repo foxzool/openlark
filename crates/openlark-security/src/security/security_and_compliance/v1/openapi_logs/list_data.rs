@@ -1,6 +1,6 @@
 //! 获取 OpenAPI 审计日志数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/openapi_log-list
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/openapi_log-list>
 //!
 //! 文档核对：`POST /open-apis/security_and_compliance/v1/openapi_logs/list_data`，
 //! 过滤条件在 body。本计划范围只做 Transport 迁移，body 用 `serde_json::Value`

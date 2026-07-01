@@ -1,6 +1,6 @@
 //! 删除人脸
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/face/delete
+//! docPath: <https://open.feishu.cn/document/acs-v1/face/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

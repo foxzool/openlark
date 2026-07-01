@@ -1,6 +1,6 @@
 //! 获取所有 OKR 分类
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/category/list
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/category/list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

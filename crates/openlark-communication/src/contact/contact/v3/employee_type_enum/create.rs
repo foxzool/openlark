@@ -1,6 +1,6 @@
 //! 新增人员类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -40,7 +40,7 @@ impl CreateEmployeeTypeEnumRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create>
     pub async fn execute(
         self,
         body: CreateEmployeeTypeEnumBody,

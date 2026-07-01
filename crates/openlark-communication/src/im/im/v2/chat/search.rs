@@ -1,6 +1,6 @@
 //! 搜索群组
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/group/im-v2/chat/search
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/group/im-v2/chat/search>
 
 use crate::endpoints::IM_V2_CHATS_SEARCH;
 use openlark_core::{

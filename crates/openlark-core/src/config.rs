@@ -255,7 +255,7 @@ impl Config {
     ///
     /// # 校验规则
     /// - `app_id` / `app_secret` 非空
-    /// - `base_url` 非空且以 `http://` / `https://` 开头
+    /// - `base_url` 非空且以 `<http://>` / `<https://>` 开头
     /// - `base_url` 域名在飞书/Lark 白名单内（`*.feishu.cn` / `*.larksuite.com` /
     ///   `*.larkoffice.com`）；`allow_custom_base_url` 为 true 时豁免（SSRF 防护）
     /// - `retry_count` 不超过 10

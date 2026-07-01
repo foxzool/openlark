@@ -2,7 +2,7 @@
 //!
 //! 使用该接口可以下载在云空间目录下的文件（不含飞书文档/电子表格/多维表格等在线文档）。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/download/download
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/download/download>
 
 use crate::common::api_endpoints::DriveApi;
 use openlark_core::{

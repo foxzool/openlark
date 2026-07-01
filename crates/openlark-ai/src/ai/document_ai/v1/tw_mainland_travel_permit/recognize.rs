@@ -2,7 +2,7 @@
 //!
 //! 识别台湾通行证信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -158,7 +158,7 @@ impl TwMainlandTravelPermitRecognizeRequestBuilder {
 
 /// 执行台湾通行证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize>
 pub async fn tw_mainland_travel_permit_recognize(
     config: &Config,
     body: TwMainlandTravelPermitRecognizeBody,

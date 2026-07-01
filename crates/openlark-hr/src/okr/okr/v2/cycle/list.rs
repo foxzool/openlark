@@ -1,6 +1,6 @@
 //! 获取用户 OKR 周期列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/cycle/list
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/cycle/list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

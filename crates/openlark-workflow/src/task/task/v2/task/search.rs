@@ -1,6 +1,6 @@
 //! 搜索任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task/search
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/search>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{

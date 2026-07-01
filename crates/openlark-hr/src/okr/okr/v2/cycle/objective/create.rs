@@ -1,6 +1,6 @@
 //! 创建 OKR 目标
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/cycle.objective/create
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/cycle.objective/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

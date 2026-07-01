@@ -1,6 +1,6 @@
 //! 删除设备
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-delete
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

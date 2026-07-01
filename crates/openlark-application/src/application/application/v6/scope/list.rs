@@ -1,5 +1,5 @@
 //! 查询租户授权状态
-//! docPath: https://open.feishu.cn/document/application-v6/scope/list
+//! docPath: <https://open.feishu.cn/document/application-v6/scope/list>
 
 use openlark_core::{
     SDKResult,

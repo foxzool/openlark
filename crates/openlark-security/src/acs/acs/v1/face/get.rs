@@ -1,6 +1,6 @@
 //! 获取人脸信息
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/face/get
+//! docPath: <https://open.feishu.cn/document/acs-v1/face/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

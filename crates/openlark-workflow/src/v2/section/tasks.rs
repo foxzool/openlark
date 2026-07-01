@@ -1,6 +1,6 @@
 //! 获取自定义分组任务列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section-tasks/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section-tasks/list>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::task::models::TaskItem;

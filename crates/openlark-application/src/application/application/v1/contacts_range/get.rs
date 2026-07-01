@@ -1,5 +1,5 @@
 //! 获取应用通讯录权限范围配置
-//! docPath: https://open.feishu.cn/document/application-v6/admin/list
+//! docPath: <https://open.feishu.cn/document/application-v6/admin/list>
 
 use openlark_core::{
     SDKResult,

@@ -2,7 +2,7 @@
 //!
 //! 更新指定知识库的信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/patch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

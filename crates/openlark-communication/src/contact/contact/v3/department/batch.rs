@@ -1,6 +1,6 @@
 //! 批量获取部门信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/department/batch
+//! docPath: <https://open.feishu.cn/document/contact-v3/department/batch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required_list,
@@ -72,7 +72,7 @@ impl BatchGetDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/department/batch
+    /// docPath: <https://open.feishu.cn/document/contact-v3/department/batch>
     pub async fn execute(self) -> SDKResult<BatchGetDepartmentsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

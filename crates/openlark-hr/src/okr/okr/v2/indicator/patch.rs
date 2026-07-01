@@ -1,6 +1,6 @@
 //! 更新量化指标
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/indicator/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/indicator/patch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

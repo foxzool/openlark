@@ -1,6 +1,6 @@
 //! 删除用户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

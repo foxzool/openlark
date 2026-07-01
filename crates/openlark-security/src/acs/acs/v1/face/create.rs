@@ -1,6 +1,6 @@
 //! 创建人脸
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/face/create
+//! docPath: <https://open.feishu.cn/document/acs-v1/face/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

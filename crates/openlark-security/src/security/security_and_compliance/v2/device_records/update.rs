@@ -1,6 +1,6 @@
 //! 更新设备信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-update
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-update>
 //!
 //! 文档核对：`PUT /open-apis/security_and_compliance/v2/device_records/{device_record_id}`。
 //! body 用 `serde_json::Value` 透传（字段细化不在本次范围）。

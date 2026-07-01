@@ -1,6 +1,6 @@
 //! 删除权限组
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/delete
+//! docPath: <https://open.feishu.cn/document/acs-v1/rule_external/delete>
 //!
 //! 文档核对：`DELETE /open-apis/acs/v1/rule_external?rule_id={rule_id}`，**无 body**。
 //! `rule_id` 是查询参数。旧实现错误地发了 JSON body。

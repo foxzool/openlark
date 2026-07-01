@@ -1,6 +1,6 @@
 //! 删除任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/delete>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::task::models::DeleteTaskResponse;

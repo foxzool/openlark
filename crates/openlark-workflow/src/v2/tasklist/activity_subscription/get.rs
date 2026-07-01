@@ -1,6 +1,6 @@
 //! 获取动态订阅
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/get>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::tasklist::activity_subscription::models::GetActivitySubscriptionResponse;

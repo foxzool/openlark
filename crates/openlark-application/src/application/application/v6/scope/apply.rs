@@ -1,5 +1,5 @@
 //! 向管理员申请授权
-//! docPath: https://open.feishu.cn/document/application-v6/scope/apply
+//! docPath: <https://open.feishu.cn/document/application-v6/scope/apply>
 
 use openlark_core::{
     SDKResult,

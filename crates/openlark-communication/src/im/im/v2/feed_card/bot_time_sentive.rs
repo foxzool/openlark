@@ -1,6 +1,6 @@
 //! 机器人单聊即时提醒
 //!
-//! docPath: https://open.feishu.cn/document/im-v2/groups-bots/bot_time_sentive
+//! docPath: <https://open.feishu.cn/document/im-v2/groups-bots/bot_time_sentive>
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
@@ -36,7 +36,7 @@ impl BotTimeSentiveRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v2/groups-bots/bot_time_sentive
+    /// docPath: <https://open.feishu.cn/document/im-v2/groups-bots/bot_time_sentive>
     pub async fn execute(
         self,
         body: FeedCardTimeSensitiveBody,

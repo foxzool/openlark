@@ -1,6 +1,6 @@
 //! 批量查询会议室详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/mget
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/mget>
 
 use openlark_core::{
     SDKResult,
@@ -53,7 +53,7 @@ impl MgetRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/mget
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/mget>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<MgetRoomResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 获取分组列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/list>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::section::models::ListSectionsResponse;

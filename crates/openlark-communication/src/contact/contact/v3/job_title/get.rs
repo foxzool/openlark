@@ -1,6 +1,6 @@
 //! 获取单个职务信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/job_title/get
+//! docPath: <https://open.feishu.cn/document/contact-v3/job_title/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -36,7 +36,7 @@ impl GetJobTitleRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/job_title/get
+    /// docPath: <https://open.feishu.cn/document/contact-v3/job_title/get>
     pub async fn execute(self) -> SDKResult<JobTitleResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

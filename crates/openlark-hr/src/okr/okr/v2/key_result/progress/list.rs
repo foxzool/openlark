@@ -1,6 +1,6 @@
 //! 获取关键结果下的进展记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/key_result.progress/get
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result.progress/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

@@ -1,6 +1,6 @@
 //! 批量添加用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_add
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_add>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -102,7 +102,7 @@ impl BatchAddGroupMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_add
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_add>
     pub async fn execute(
         self,
         body: BatchAddGroupMembersBody,

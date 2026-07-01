@@ -1,6 +1,6 @@
 //! 更新部门 ID
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/department/update_department_id
+//! docPath: <https://open.feishu.cn/document/contact-v3/department/update_department_id>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -84,7 +84,7 @@ impl UpdateDepartmentIdRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/department/update_department_id
+    /// docPath: <https://open.feishu.cn/document/contact-v3/department/update_department_id>
     pub async fn execute(self, body: UpdateDepartmentIdBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
