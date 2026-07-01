@@ -1,7 +1,7 @@
 ## 1. 基线与准备
 
-- [ ] 1.1 记录移除 allow 前的 missing_docs 基线：122 项（68 struct / 36 method / 18 associated fn），分布在 search/v2 与 report/v1 的 API 文件（实测 `cargo doc -p openlark-analytics --all-features` 输出）。
-- [ ] 1.2 确认 analytics 文件级 `//!` + Feishu `docPath` 已覆盖（17 文件）；标记 `search/v2/doc_wiki/search.rs:2` 空 docPath 待补。
+- [x] 1.1 记录移除 allow 前的 missing_docs 基线：122 项（68 struct / 36 method / 18 associated fn），分布在 search/v2 与 report/v1 的 API 文件（实测 `cargo doc -p openlark-analytics --all-features` 输出）。
+- [x] 1.2 确认 analytics 文件级 `//!` + Feishu `docPath` 已覆盖（17 文件）；标记 `search/v2/doc_wiki/search.rs:2` 空 docPath 待补。
 
 ## 2. 回补 analytics 公开项文档（122 项，全在 search/ + report/ 叶子 API 文件）
 

@@ -72,12 +72,12 @@ base-ref: ab61f9c82b2f9dfe92d220112d4aec8665ee3174
 
 **Interfaces:** 无（只读基线）
 
-- [ ] **Step 1: 确认 allow 仍在**
+- [x] **Step 1: 确认 allow 仍在**
 
 Run: `grep -n '#!\[allow(missing_docs)\]' crates/openlark-analytics/src/lib.rs`
 Expected: `35:#![allow(missing_docs)]`（line 35，line 34 是 module_inception）
 
-- [ ] **Step 2: 跑基线 cargo doc，记录被压制的警告数**
+- [x] **Step 2: 跑基线 cargo doc，记录被压制的警告数**
 
 Run:
 ```bash
@@ -85,7 +85,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep -c 'warning: missing 
 ```
 Expected: `0`（因为 allow 仍压制）。这一步确认 allow 在压制——真正计数靠 Step 3。
 
-- [ ] **Step 3: 临时移除 allow 计数真实基线**
+- [x] **Step 3: 临时移除 allow 计数真实基线**
 
 编辑 `crates/openlark-analytics/src/lib.rs`：临时删除 line 35 `#![allow(missing_docs)]`，然后：
 ```bash
@@ -98,7 +98,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'warning: missing doc
 ```
 Expected: 输出按 struct / fn / associated function 分组，总数 122。
 
-- [ ] **Step 4: 还原 allow（基线采集完，恢复压制状态进入 Phase 1）**
+- [x] **Step 4: 还原 allow（基线采集完，恢复压制状态进入 Phase 1）**
 
 ```bash
 git checkout -- crates/openlark-analytics/src/lib.rs
@@ -114,7 +114,7 @@ Expected: `35:#![allow(missing_docs)]`（已还原）。
 - 验证: 18 个叶子文件（见「文件清单」）
 - 标记: `crates/openlark-analytics/src/search/search/v2/doc_wiki/search.rs:2`（空 docPath，Group C 处理）
 
-- [ ] **Step 1: 确认 18 个叶子文件都有文件级 `//!` 标题**
+- [x] **Step 1: 确认 18 个叶子文件都有文件级 `//!` 标题**
 
 Run:
 ```bash
@@ -124,7 +124,7 @@ done
 ```
 Expected: 每行输出形如 `schema/create.rs //! 创建数据范式`（每个文件第一行都是 `//!` 标题，标题即 API 名）。
 
-- [ ] **Step 2: 找出空 docPath（应为 doc_wiki/search.rs:2）**
+- [x] **Step 2: 找出空 docPath（应为 doc_wiki/search.rs:2）**
 
 Run:
 ```bash
@@ -132,7 +132,7 @@ grep -rn '^//! docPath: *$' crates/openlark-analytics/src/ || grep -rn '^//! doc
 ```
 Expected: 命中 `search/search/v2/doc_wiki/search.rs:2`（`//! docPath:` 后为空）。记下，Task 7（Group C）会补全。
 
-- [ ] **Step 3: 确认 doc_wiki/search.rs 的真实 docPath URL**
+- [x] **Step 3: 确认 doc_wiki/search.rs 的真实 docPath URL**
 
 查 `crates/openlark-analytics/src/search/search/v2/doc_wiki/search.rs:1` 的 `//!` 标题（应为「搜索文档」）。对应 Feishu docPath：`https://open.feishu.cn/document/server-docs/docs/search-docs`（与同 crate 其他 search API 同域）。
 > **若不确定 URL**：在该文件 step 用 `//! docPath: <待 Group C 确认>` 占位标记，并在 Task 7 步骤里写明「以 Feishu 文档实际 URL 为准」。但**最终 doc 不得为空**。
