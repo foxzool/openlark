@@ -1,0 +1,14 @@
+{
+  "change": "feature-naming-convention",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6e14e5f1d6c57384d6f910e64889ecb170ba7171582f096f40a1b3e78cb95a27",
+  "files": [
+    { "path": "openspec/changes/feature-naming-convention/proposal.md", "sha256": "51331c149fc42c69336ec8a45c41295bfdd9c4f34e89c0de72d791ff56396216" },
+    { "path": "openspec/changes/feature-naming-convention/design.md", "sha256": "893b75cca86fb492a9caad64e2b57986f1c0e45d9feb1886cbd88d1245954f84" },
+    { "path": "openspec/changes/feature-naming-convention/tasks.md", "sha256": "f40bc4db56554f5ca80bc6a2446265dbc597fdcaa64643a5de4aefc2bc0bc25a" },
+    { "path": "openspec/changes/feature-naming-convention/specs/feature-naming-convention/spec.md", "sha256": "f505a730081bf33ce89a9f1e6e8ac47783882de2799a258e0991238a11c0c435" }
+  ]
+}
