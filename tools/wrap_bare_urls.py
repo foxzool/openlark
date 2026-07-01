@@ -5,14 +5,15 @@
 设计：
   - 仅处理 //! / /// doc comment（bare_urls 是 rustdoc lint，普通 // 不触发）。
   - lookbehind (?<![<(]) 跳过已包裹的 <URL 和 markdown 链接 (url)，防重复包裹。
-  - URL body [^\\s<>)]+ 遇空格/<>/) 结束，避免贪心吞行尾标点。
+  - URL body [^\\s<>"'`)] 遇空格/<>/)/引号/backtick 结束，避免吞掉代码示例里的
+    尾随分隔符（如 .base_url("https://...") 的 " 不能进 <>）。
 幂等：重复运行零改动。
 """
 import re
 import sys
 import pathlib
 
-URL = re.compile(r'(?<![<(])(https?://[^\s<>)]+)')
+URL = re.compile(r"(?<![<(])(https?://[^\s<>\"'`)]+)")
 
 
 def wrap_file(path: pathlib.Path) -> int:

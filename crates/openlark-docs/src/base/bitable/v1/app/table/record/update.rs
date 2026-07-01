@@ -171,7 +171,7 @@ struct UpdateRecordRequestBody {
 ///       "en_name": "Li Si"
 ///     },
 ///     "last_modified_time": 1234567890000,
-///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx">
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx>"
 ///   }
 /// }
 /// ```

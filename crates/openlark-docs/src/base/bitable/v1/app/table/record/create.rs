@@ -155,7 +155,7 @@ struct CreateRecordRequestBody {
 ///       "en_name": "Zhang San"
 ///     },
 ///     "created_time": 1234567890000,
-///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx">
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx>"
 ///   }
 /// }
 /// ```
