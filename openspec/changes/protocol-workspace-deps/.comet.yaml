@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,13 +7,13 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
 design_doc: docs/superpowers/specs/2026-07-01-protocol-workspace-deps-design.md
 plan: docs/superpowers/plans/2026-07-01-protocol-workspace-deps.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-07-01-protocol-workspace-deps-verify.md
 branch_status: pending
 created_at: 2026-07-01
 verified_at: null
