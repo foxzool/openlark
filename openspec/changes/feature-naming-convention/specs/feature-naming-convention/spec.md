@@ -30,14 +30,14 @@
 
 ### Requirement: 禁止门控 0 行的死版本链 feature
 
-**版本链 feature（`v1`/`v2`/`v3`/`v4`）** MUST 门控实际代码。定义了但在整个 crate 的 `src/` 中门控 0 行代码的版本链 feature（特别是 `v1 = [...]` → `v2 = ["v1"]` → `v3 = ["v2"]` → `v4 = ["v3"]` 这类链式占位）SHALL 被移除。
+**版本链 feature（`v1`/`v2`/`v3`/`v4`）** MUST 门控有实际用途的代码。定义了但在整个 crate 的 `src/` 中门控 0 行代码、或仅门控 vestigial（零引用）代码/测试入口的版本链 feature（特别是 `v1 = [...]` → `v2 = ["v1"]` → `v3 = ["v2"]` → `v4 = ["v3"]` 这类链式占位）SHALL 连同其 vestigial 门控代码一并移除。
 
 此约束仅适用于版本链 feature。模块分组 marker feature（如 `core`、`full`、`default`、`all-*` 别名）虽不直接 `cfg` 门控代码，但作为合法的 grouping/aggregation 节点被其他 feature 引用，不在此约束范围内。
 
 #### Scenario: 混合 crate 的死版本链被移除
 
 - **WHEN** 检查 `openlark-platform`、`openlark-analytics`、`openlark-security`、`openlark-docs`、`openlark-user` 的 `Cargo.toml`
-- **THEN** 这些 crate 中门控 0 行代码的版本链 feature（platform/analytics 的 `v1`-`v4`、security/docs 的 `v1`-`v3`、user 的 `v2`-`v4`）MUST 被移除；`full` feature MUST NOT 再引用已移除的版本 feature
+- **THEN** 这些 crate 中的死/vestigial 版本链 feature MUST 被移除——platform/analytics 的 `v1`-`v4`、security 的 `v1`-`v3`、user 的 `v2`-`v4` 真正门控 0 行；docs 的 `v1`-`v3` 仅门控孤立的 vestigial `versions` 模块（零引用）；platform 的 `v1` 仅门控测试入口且所测 `.v1()` API 无条件公开——其 vestigial 门控代码与测试门控一并清理；`full` feature MUST NOT 再引用已移除的版本 feature
 
 #### Scenario: live 版本门控保留不动
 
