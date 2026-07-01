@@ -25,11 +25,8 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let analytics_service = AnalyticsService::new(config)?;
+//! let _analytics_service = AnalyticsService::new(config)?;
 //!
-//! // 获取搜索服务入口（当前 query/user 子路径会显式返回未接线错误）
-//! # #[cfg(all(feature = "search", feature = "v1"))]
-//! let _search_v2 = analytics_service.search().v2();
 //! # Ok(())
 //! # }
 //! ```
