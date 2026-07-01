@@ -13,8 +13,8 @@
 
 ## 3. workspace 级 bare_urls deny（D3）
 
-- [ ] 3.1 根 `Cargo.toml` 新增 `[workspace.lints.rustdoc]` 段，声明 `bare_urls = "deny"`
-- [ ] 3.2 确认 20 业务 crate + 根包经 `[lints] workspace = true` 继承（应已全部继承，sanity check）
+- [x] 3.1 根 `Cargo.toml` 新增 `[workspace.lints.rustdoc]` 段，声明 `bare_urls = "deny"`
+- [x] 3.2 确认 20 业务 crate + 根包经 `[lints] workspace = true` 继承（应已全部继承，sanity check）
 
 ## 4. CI doc job 移除压制（D4）
 
