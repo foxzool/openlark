@@ -1,14 +1,14 @@
 ## 1. codegen 渲染器改造（D2，防复发前置）
 
-- [ ] 1.1 定位 `tools/api_contracts/codegen_render.py` 中发射 `docPath:` / URL 的函数（调研指向 `_module_doc:69-76`，读源确认所有 URL 发射点）
-- [ ] 1.2 改发射 `<URL>` 而非裸 URL（如 `//! docPath: <https://...>`）
-- [ ] 1.3 抽样/单元验证 codegen 渲染输出含 `<URL>`（若 codegen 可离线跑渲染）
+- [x] 1.1 定位 `tools/api_contracts/codegen_render.py` 中发射 `docPath:` / URL 的函数（调研指向 `_module_doc:69-76`，读源确认所有 URL 发射点）
+- [x] 1.2 改发射 `<URL>` 而非裸 URL（如 `//! docPath: <https://...>`）
+- [x] 1.3 抽样/单元验证 codegen 渲染输出含 `<URL>`（若 codegen 可离线跑渲染）
 
 ## 2. 批量修复现存 1578 裸 URL（D1）
 
-- [ ] 2.1 写脚本（sed 或小 Python）包裹 `//!` 行内的裸 `https://`/`http://` token 为 `<...>`，处理：行尾 URL、同一行多 URL、`docPath:` 与 `文档:` 两类标签
-- [ ] 2.2 跑脚本修全 workspace（16 crate）
-- [ ] 2.3 闭环验证：`cargo doc --workspace --all-features 2>&1 | grep -c bare_urls` = **0**
+- [x] 2.1 写脚本（sed 或小 Python）包裹 `//!` 行内的裸 `https://`/`http://` token 为 `<...>`，处理：行尾 URL、同一行多 URL、`docPath:` 与 `文档:` 两类标签
+- [x] 2.2 跑脚本修全 workspace（16 crate）
+- [x] 2.3 闭环验证：`cargo doc --workspace --all-features 2>&1 | grep -c bare_urls` = **0**
 - [ ] 2.4 `git diff` 抽样人工核对（重点：77 处手写 `文档:` URL、多 URL 行、非 URL 尾随文本未被误伤）
 
 ## 3. workspace 级 bare_urls deny（D3）
