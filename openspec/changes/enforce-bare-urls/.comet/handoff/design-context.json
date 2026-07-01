@@ -1,0 +1,14 @@
+{
+  "change": "enforce-bare-urls",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6ee02570ed6c6a26244e19db252e70282d1a23f3fea48090a222e2be69cc677f",
+  "files": [
+    { "path": "openspec/changes/enforce-bare-urls/proposal.md", "sha256": "7c9c034c57ee9843a1bb8435e9bb6505d1731f7c86665a66c9cc83bf205dd634" },
+    { "path": "openspec/changes/enforce-bare-urls/design.md", "sha256": "8d1b1a0680cbb75b558cb31a1b4e1fbe9ffd0eeb2ced53276a262876ec552962" },
+    { "path": "openspec/changes/enforce-bare-urls/tasks.md", "sha256": "56d612d2dc03fceeac1829d02ab120c128996cb61482c591d6b2a25ecbb3aaa1" },
+    { "path": "openspec/changes/enforce-bare-urls/specs/rustdoc-bare-urls/spec.md", "sha256": "8b996e2d1f8aef7661d50007abe87628dca810abcd7bba3bd1ef87a0d5c95135" }
+  ]
+}
