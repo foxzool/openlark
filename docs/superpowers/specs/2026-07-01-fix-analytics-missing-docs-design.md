@@ -2,6 +2,8 @@
 comet_change: fix-analytics-missing-docs
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-fix-analytics-missing-docs
+status: final
 ---
 
 # Design: fix-analytics-missing-docs

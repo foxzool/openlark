@@ -2,6 +2,7 @@
 change: fix-analytics-missing-docs
 design-doc: docs/superpowers/specs/2026-07-01-fix-analytics-missing-docs-design.md
 base-ref: ab61f9c82b2f9dfe92d220112d4aec8665ee3174
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 # fix-analytics-missing-docs 实施计划
@@ -60,6 +61,7 @@ base-ref: ab61f9c82b2f9dfe92d220112d4aec8665ee3174
 - Modify: `crates/openlark-analytics/src/lib.rs:35`（移除 allow）——Task 9
 - Modify: `.github/workflows/ci.yml:111-114`（CI 接线）——Task 10
 
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 ## Phase 0 — 基线锁定（主会话）
@@ -139,6 +141,7 @@ Expected: 命中 `search/search/v2/doc_wiki/search.rs:2`（`//! docPath:` 后为
 
 > 本 task 不 commit（只读勘探）。
 
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 ## Phase 1 — Pilot（主会话）：验证 recipe
@@ -214,6 +217,7 @@ git commit -m "docs(analytics): pilot 回补 schema/create.rs missing_docs (#fix
 
 > **Pilot 审查点（主会话暂停）**：本 task 完成后，对照 Design Doc §3 工作样例人工核对产出。确认 recipe 锁定后再进 Phase 2。
 
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 ## Phase 2 — 批量回补（per-domain）
@@ -521,6 +525,7 @@ git add crates/openlark-analytics/src/report/
 git commit -m "docs(analytics): 回补 report 3 文件 missing_docs (#fix-analytics-missing-docs)"
 ```
 
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 ## Phase 3 — 收尾（主会话）
@@ -667,6 +672,7 @@ git log --oneline -10   # 复核本 change 的 8 个 commit（pilot + 4 组 + al
 
 > 全部通过后：tasks.md 全部打勾 → 触发 verify guard → 进入 Comet verify 阶段。
 
+archived-with: 2026-07-01-fix-analytics-missing-docs
 ---
 
 ## Self-Review（计划作者自检，非执行步骤）
