@@ -4,11 +4,5 @@
 
 pub mod api_utils;
 
-// 链式调用入口
-pub mod chain;
-
 // 重导出 API 工具函数，方便外部使用
 pub use api_utils::{ensure_success, extract_response_data, serialize_params};
-
-// 重导出链式调用入口
-pub use chain::{DocumentAiClient, DocumentAiV1Client, RecognizeResource};

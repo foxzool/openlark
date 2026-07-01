@@ -82,8 +82,8 @@ impl DocumentAiClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::DocumentAiV1 {
-        super::ai::v1::DocumentAiV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::document_ai::v1::DocumentAiV1 {
+        super::ai::document_ai::v1::DocumentAiV1::new(self.config.clone())
     }
 }
 
@@ -107,8 +107,8 @@ impl OcrClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::OcrV1 {
-        super::ai::v1::OcrV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::optical_char_recognition::v1::OcrV1 {
+        super::ai::optical_char_recognition::v1::OcrV1::new(self.config.clone())
     }
 }
 
@@ -132,8 +132,8 @@ impl SpeechToTextClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::SpeechToTextV1 {
-        super::ai::v1::SpeechToTextV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::speech_to_text::v1::SpeechToTextV1 {
+        super::ai::speech_to_text::v1::SpeechToTextV1::new(self.config.clone())
     }
 }
 
@@ -157,8 +157,8 @@ impl TranslationClient {
 
     /// V1 版本 API
     #[cfg(feature = "v1")]
-    pub fn v1(&self) -> super::ai::v1::TranslationV1 {
-        super::ai::v1::TranslationV1::new(self.config.clone())
+    pub fn v1(&self) -> super::ai::translation::v1::TranslationV1 {
+        super::ai::translation::v1::TranslationV1::new(self.config.clone())
     }
 }
 
@@ -219,5 +219,55 @@ mod tests {
 
         let client = TranslationClient::new(Arc::new(config));
         assert_eq!(client.config().app_id(), "test_app_id");
+    }
+
+    #[test]
+    #[cfg(feature = "v1")]
+    fn test_document_ai_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 三层链对齐 URL /document_ai/v1/id_card/recognize
+        let _ = client.document_ai().v1().id_card().recognize();
+    }
+
+    #[test]
+    #[cfg(feature = "v1")]
+    fn test_ocr_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /optical_char_recognition/v1/image/basic_recognize
+        let _ = client.ocr().v1().image().basic_recognize();
+    }
+
+    #[test]
+    #[cfg(feature = "v1")]
+    fn test_translation_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /translation/v1/text/{translate,detect}
+        let _ = client.translation().v1().text().translate();
+        let _ = client.translation().v1().text().detect();
+    }
+
+    #[test]
+    #[cfg(feature = "v1")]
+    fn test_speech_accessor_chain() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let client = AiClient::new(config);
+        // 两层链对齐 URL /speech_to_text/v1/speech/{file,stream}_recognize
+        let _ = client.speech_to_text().v1().speech().file_recognize();
+        let _ = client.speech_to_text().v1().speech().stream_recognize();
     }
 }

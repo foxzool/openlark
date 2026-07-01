@@ -23,11 +23,11 @@
 //!     .build();
 //!
 //! let client = AiClient::new(config);
-//! // client.document_ai().v1()...
+//! // client.document_ai().v1().id_card().recognize()...
 //!
 //! // 使用端点常量
 //! let resume_endpoint = DOCUMENT_AI_RESUME_PARSE;
-//! let ocr_endpoint = OPTICAL_CHAR_RECOGNITION_V1_BASIC_RECOGNIZE;
+//! let ocr_endpoint = OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE;
 //! let translate_endpoint = TRANSLATION_V1_TEXT_TRANSLATE;
 //! ```
 //!
@@ -50,14 +50,6 @@ pub mod endpoints;
 /// ai 模块。
 pub mod ai;
 
-// Document AI 模块（新的组织结构）
-/// document_ai 模块。
-pub mod document_ai;
-
-// Speech-to-Text 独立模块
-/// speech_to_text 模块。
-pub mod speech_to_text;
-
 // 服务入口
 /// service 模块。
 pub mod service;
@@ -67,9 +59,6 @@ pub use service::AiClient;
 
 // 重新导出端点常量，方便外部使用
 pub use endpoints::*;
-
-// 重新导出 Document AI 链式调用入口
-pub use common::chain::DocumentAiClient;
 
 /// Re-exports from openlark-core for convenience.
 pub mod prelude {
