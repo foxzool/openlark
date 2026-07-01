@@ -1,0 +1,14 @@
+{
+  "change": "protocol-workspace-deps",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "d7e31caa44def5206725fa3ac402e00ab48fc59221678f5be3f5e48e92229c5f",
+  "files": [
+    { "path": "openspec/changes/protocol-workspace-deps/proposal.md", "sha256": "239a29a8541639e95cba8ccbf30eec242d9e273b326ceaa6a92343d86025b457" },
+    { "path": "openspec/changes/protocol-workspace-deps/design.md", "sha256": "c2a29e656ff75f3570227a1b64ea8425db99b6e7e012e51fc8ef5dd66107e256" },
+    { "path": "openspec/changes/protocol-workspace-deps/tasks.md", "sha256": "5e8079c106c96a910b9bc5dda67e6dba6ed6bb1b516ff15c6c1a9982b702ca05" },
+    { "path": "openspec/changes/protocol-workspace-deps/specs/workspace-dependency-policy/spec.md", "sha256": "df22d5d032bbcdfd9c1a9963745a0a09d9bc6af9246b7d845f7971d20b63ed59" }
+  ]
+}

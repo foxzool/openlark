@@ -15,8 +15,8 @@ repository = "https://github.com/foxzool/openlark"
 workspace = true
 
 [dependencies]
-bytes = "1.6.0"
-prost = "0.13.1"
+bytes = { workspace = true }
+prost = { workspace = true }
 
 
 [build-dependencies]
@@ -24,4 +24,5 @@ prost-build = "0.12.6"
 
 
 [package.metadata.cargo-machete]
+# bytes 仅由 prost 生成的代码间接使用（src/ 无直接 use），cargo-machete 会误报为未用，故 ignored
 ignored = ["bytes"]
