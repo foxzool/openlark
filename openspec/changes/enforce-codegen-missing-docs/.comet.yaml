@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -7,7 +7,7 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 066a475a360ebde703f9fd196ed323ce1d519926
 design_doc: docs/superpowers/specs/2026-07-02-enforce-codegen-missing-docs-design.md
