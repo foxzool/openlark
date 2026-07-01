@@ -151,7 +151,7 @@ Expected: 命中 `search/search/v2/doc_wiki/search.rs:2`（`//! docPath:` 后为
 **Interfaces:**
 - Produces: recipe 的「锚定样例」。Group A/B/C/D 全部参照本 task 的产出格式。
 
-- [ ] **Step 1: 读取文件，确认 `//!` 标题与公开项**
+- [x] **Step 1: 读取文件，确认 `//!` 标题与公开项**
 
 Run: `head -2 crates/openlark-analytics/src/search/search/v2/schema/create.rs`
 Expected:
@@ -161,14 +161,14 @@ Expected:
 ```
 标题 = 「创建数据范式」。公开项（已确认）：`CreateSchemaRequest`(struct) / `CreateSchemaResponse`(struct + `data` field) / `impl CreateSchemaRequest` 的 `new`/`execute`/`execute_with_options`。`impl ApiResponseTrait` 不加 doc。
 
-- [ ] **Step 2: 给 `CreateSchemaRequest` 加 doc**
+- [x] **Step 2: 给 `CreateSchemaRequest` 加 doc**
 
 在 `pub struct CreateSchemaRequest {` 上一行插入：
 ```rust
 /// 创建数据范式请求。
 ```
 
-- [ ] **Step 3: 给 `CreateSchemaResponse` 及其字段加 doc**
+- [x] **Step 3: 给 `CreateSchemaResponse` 及其字段加 doc**
 
 在 `pub struct CreateSchemaResponse {` 上一行：
 ```rust
@@ -179,7 +179,7 @@ Expected:
     /// 响应数据。
 ```
 
-- [ ] **Step 4: 给 `impl CreateSchemaRequest` 的 3 个方法加 doc**
+- [x] **Step 4: 给 `impl CreateSchemaRequest` 的 3 个方法加 doc**
 
 - `pub fn new` 上一行：`    /// 创建新的请求构建器。`
 - `pub async fn execute` 上一行：`    /// 执行创建数据范式请求。`
@@ -187,7 +187,7 @@ Expected:
 
 **不要**给 `impl ApiResponseTrait for CreateSchemaResponse` 或 `fn data_format()` 加 doc。
 
-- [ ] **Step 5: 单文件自验——cargo doc grep 该文件无 warning**
+- [x] **Step 5: 单文件自验——cargo doc grep 该文件无 warning**
 
 Run:
 ```bash
@@ -195,17 +195,17 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'schema/create.rs' | 
 ```
 Expected: 空输出（该文件的 6 个原 warning 已清零）。allow 仍压制其他文件，所以**总数**从 122 降到 116 是正常的，无需检查总数。
 
-- [ ] **Step 6: 占位符守门（D2）**
+- [x] **Step 6: 占位符守门（D2）**
 
 Run: `grep -rnE '待补充文档|公开项说明|TODO|TBD' crates/openlark-analytics/src/search/search/v2/schema/create.rs`
 Expected: 空输出。
 
-- [ ] **Step 7: fmt 自查**
+- [x] **Step 7: fmt 自查**
 
 Run: `cargo fmt -p openlark-analytics -- --check`
 Expected: 无 diff（只加了注释，不影响格式）。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/schema/create.rs
