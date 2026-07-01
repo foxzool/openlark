@@ -13,7 +13,7 @@ base_ref: ab61f9c82b2f9dfe92d220112d4aec8665ee3174
 design_doc: docs/superpowers/specs/2026-07-01-fix-analytics-missing-docs-design.md
 plan: docs/superpowers/plans/2026-07-01-fix-analytics-missing-docs.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-07-01-fix-analytics-missing-docs-verify.md
 branch_status: pending
 created_at: 2026-07-01
 verified_at: null
