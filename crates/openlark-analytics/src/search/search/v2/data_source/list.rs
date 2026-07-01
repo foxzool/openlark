@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 批量获取数据源请求。
 #[derive(Debug, Clone)]
 pub struct ListDataSourceRequest {
     config: Arc<Config>,
 }
 
+/// 批量获取数据源响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListDataSourceResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for ListDataSourceResponse {
 }
 
 impl ListDataSourceRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行批量获取数据源请求。
     pub async fn execute(self) -> SDKResult<ListDataSourceResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行批量获取数据源请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

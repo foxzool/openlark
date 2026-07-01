@@ -1,0 +1,33 @@
+# Subagent Progress — fix-analytics-missing-docs
+
+- review_mode: standard（无 per-task review；全部完成后一次 final review，最多 1 轮修复）
+- tdd_mode: direct | isolation: branch feature/20260701/fix-analytics-missing-docs | build_mode: subagent-driven-development
+
+## 已完成
+- Phase 0 基线（OpenSpec 1.1/1.2 ✅）：122 warning 基线；17 文件有 docPath，doc_wiki/search.rs:2 空。
+- Task 3 Pilot（commit a941e7812）：schema/create.rs 6 项 doc 回补，recipe 验证通过（doc 在 #[derive] 前、docPath 只文件级、trait impl 不 doc、无占位符、lib.rs 未改）。
+
+## 已完成（续）
+- Group A data_source 8 文件（commit 9e48f5cd6，+55 doc）：get.rs/item/get.rs 的额外 DataSourceData/DataSourceItemData struct + 多字段已按含义补 doc。全局 122→61。
+
+## 已完成（续2）
+- Group B schema 剩余 3 文件（commit 0a2572bf3，+25 doc）：get.rs 含额外 SchemaData/SchemaField。全局 61→36。
+- **范围修正**：temp-toggle 实测 user.rs / query.rs 已 0 missing_docs（不在 122 内），无需回补。剩余 36 warnings 集中在 6 文件：report 3 + search-rest{doc_wiki/search, app/create, message/create} 3。
+
+## 已完成（续3）
+- Group C+D 剩余 6 文件（commit 0f6752da8，+37 doc）：含 doc_wiki/search.rs 空 docPath 补全。**backfill 全部完成，移除 allow 后全 crate 0 警告**。
+
+## 已完成（续4）
+- Task 10+11（commit 448cfd962）：移除 lib.rs crate 级 allow（保留 module_inception）+ ci.yml:114 接线 test_workspace_missing_docs。
+- Task 12 全局验证（全绿）：workspace cargo doc missing_docs=0；just lint（--all-features + --no-default-features 双路径）exit 0；cargo fmt --check OK；analytics 10 test + 1 doc-test pass；3 missing_docs 测试全绿（test#2 FAIL→OK，test#1 OK）；占位符/空 docPath 守门空。
+
+## 阶段：final-review PASS → 进 build guard
+final reviewer 判定 APPROVE（0 CRITICAL/0 IMPORTANT/0 MINOR，7 项全过）。subagent 派发循环结束，返回 comet-build 跑退出条件 + 阶段守卫。
+
+## recipe 要点（批量沿用）
+doc 在 #[derive] 前；trait impl 不 doc；docPath 只文件级；rustdoc 警告文本="missing documentation for a..."，按文件路径 grep 验证。
+
+## 收尾
+- PR 已建: https://github.com/foxzool/openlark/pull/293 (base main, squash merge)
+- branch_status=handled, phase=verify（**保留**，不提前 archive——按本仓库 squash-merge 工作流，归档在 PR merge 后）
+- **merge 后续做**: checkout main → /comet 恢复 → /comet-verify（branch_status 已 handled，跳分支处理）→ verify guard --apply（phase=archive）→ /comet-archive（最终确认）

@@ -10,13 +10,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 移除规则看板请求。
 #[derive(Debug, Clone)]
 pub struct RemoveReportRuleViewRequest {
     config: Arc<Config>,
 }
 
+/// 移除规则看板响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RemoveReportRuleViewResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -27,14 +30,17 @@ impl ApiResponseTrait for RemoveReportRuleViewResponse {
 }
 
 impl RemoveReportRuleViewRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行移除规则看板请求。
     pub async fn execute(self) -> SDKResult<RemoveReportRuleViewResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行移除规则看板请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

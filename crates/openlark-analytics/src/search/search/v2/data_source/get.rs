@@ -11,14 +11,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取数据源请求。
 #[derive(Debug, Clone)]
 pub struct GetDataSourceRequest {
     config: Arc<Config>,
     data_source_id: String,
 }
 
+/// 获取数据源响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetDataSourceResponse {
+    /// 响应数据。
     pub data: Option<DataSourceData>,
 }
 
@@ -28,14 +31,19 @@ impl ApiResponseTrait for GetDataSourceResponse {
     }
 }
 
+/// 数据源详情数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataSourceData {
+    /// 数据源 ID。
     pub data_source_id: String,
+    /// 数据源名称。
     pub name: String,
+    /// 数据源描述。
     pub description: String,
 }
 
 impl GetDataSourceRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>, data_source_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -43,10 +51,12 @@ impl GetDataSourceRequest {
         }
     }
 
+    /// 执行获取数据源请求。
     pub async fn execute(self) -> SDKResult<GetDataSourceResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行获取数据源请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

@@ -32,7 +32,6 @@
 //! ```
 
 #![allow(clippy::module_inception)]
-#![allow(missing_docs)]
 
 mod service;
 

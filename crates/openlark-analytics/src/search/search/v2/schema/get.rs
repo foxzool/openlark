@@ -11,14 +11,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取数据范式请求。
 #[derive(Debug, Clone)]
 pub struct GetSchemaRequest {
     config: Arc<Config>,
     schema_id: String,
 }
 
+/// 获取数据范式响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetSchemaResponse {
+    /// 响应数据。
     pub data: Option<SchemaData>,
 }
 
@@ -28,20 +31,28 @@ impl ApiResponseTrait for GetSchemaResponse {
     }
 }
 
+/// 数据范式详情数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaData {
+    /// 数据范式 ID。
     pub schema_id: String,
+    /// 数据范式名称。
     pub name: String,
+    /// 数据范式字段列表。
     pub fields: Vec<SchemaField>,
 }
 
+/// 数据范式字段。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaField {
+    /// 字段名称。
     pub field_name: String,
+    /// 字段类型。
     pub field_type: String,
 }
 
 impl GetSchemaRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>, schema_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -49,10 +60,12 @@ impl GetSchemaRequest {
         }
     }
 
+    /// 执行获取数据范式请求。
     pub async fn execute(self) -> SDKResult<GetSchemaResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行获取数据范式请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<GetSchemaResponse> {
         let path = format!("/open-apis/search/v2/schemas/{}", self.schema_id);
         let req: ApiRequest<GetSchemaResponse> = ApiRequest::get(&path);
