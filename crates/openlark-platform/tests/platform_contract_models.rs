@@ -1,7 +1,6 @@
 //! 各业务域 request/response 数据模型的代表性契约测试。
 #![cfg(all(
     feature = "admin",
-    feature = "v1",
     feature = "directory",
     feature = "app-engine",
     feature = "mdm",

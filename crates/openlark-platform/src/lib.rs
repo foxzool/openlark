@@ -158,7 +158,7 @@ mod service_tests {
         let _admin = service.admin();
     }
 
-    #[cfg(all(feature = "spark", feature = "v1"))]
+    #[cfg(feature = "spark")]
     #[test]
     fn test_platform_service_spark() {
         let config = create_test_config();

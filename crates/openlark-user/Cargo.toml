@@ -30,15 +30,12 @@ settings = ["settings-core", "core"]
 preferences-core = []
 preferences = ["preferences-core", "core"]
 
-# === API版本支持 ===
+# === API版本支持（v1 门控 live preferences/settings，保留） ===
 v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-v4 = ["v3"]
 
 # === 功能组合 ===
 # 完整用户设置功能
-full = ["settings", "preferences", "v4"]
+full = ["settings", "preferences"]
 
 # 向后兼容别名
 user = ["settings", "preferences"]

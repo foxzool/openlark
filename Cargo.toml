@@ -309,16 +309,12 @@ docs-ccm = [
     "dep:openlark-docs",
     "openlark-client/docs",
     "openlark-docs/ccm-core",
-    "openlark-docs/v2",
-    "openlark-docs/v3",
 ]
 docs-base = ["docs-ccm", "openlark-docs/base"]
 docs-bitable = ["docs-ccm", "openlark-docs/bitable"]
 docs-drive = ["docs-ccm", "openlark-docs/ccm-drive"]
 docs-explorer = ["docs-ccm"]
 docs-sheets = ["docs-ccm"]
-docs-sheets-v2 = ["docs-ccm", "openlark-docs/v2"]
-docs-sheets-v3 = ["docs-ccm", "openlark-docs/v3"]
 docs-full = [
     "docs-ccm",
     "docs-base",

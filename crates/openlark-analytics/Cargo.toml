@@ -30,15 +30,9 @@ search = ["search-core", "core"]
 report-core = []
 report = ["report-core", "core"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-v4 = ["v3"]
-
 # === 功能组合 ===
 # 完整分析功能
-full = ["search", "report", "v4"]
+full = ["search", "report"]
 
 # 向后兼容别名
 analytics = ["search", "report"]

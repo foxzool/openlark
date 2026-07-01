@@ -50,15 +50,9 @@ trust_party = ["trust_party-core", "core"]
 spark-core = []
 spark = ["spark-core", "core"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-v4 = ["v3"]
-
 # === 功能组合 ===
 # 完整平台功能
-full = ["app-engine", "directory", "admin", "mdm", "tenant", "trust_party", "spark", "v4"]
+full = ["app-engine", "directory", "admin", "mdm", "tenant", "trust_party", "spark"]
 
 # 向后兼容别名
 platform = ["app-engine", "directory", "admin", "spark"]

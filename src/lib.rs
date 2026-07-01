@@ -58,8 +58,6 @@ pub use openlark_communication as communication;
     feature = "docs-drive",
     feature = "docs-explorer",
     feature = "docs-sheets",
-    feature = "docs-sheets-v2",
-    feature = "docs-sheets-v3",
     feature = "docs-full"
 ))]
 pub use openlark_docs as docs;
@@ -173,8 +171,6 @@ mod tests {
         feature = "docs-drive",
         feature = "docs-explorer",
         feature = "docs-sheets",
-        feature = "docs-sheets-v2",
-        feature = "docs-sheets-v3",
         feature = "docs-full"
     ))]
     #[test]
