@@ -2,6 +2,8 @@
 comet_change: untangle-ai-crate-navigation
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-untangle-ai-crate-navigation
+status: final
 ---
 
 # Design: untangle-ai-crate-navigation
