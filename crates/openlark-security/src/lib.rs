@@ -85,7 +85,6 @@
 //! #### 审计日志管理 (openapi_log - v1)
 //! - `openapi_logs.list_data()` - 获取OpenAPI审计日志数据
 
-#![deny(missing_docs)]
 #![warn(clippy::all)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

@@ -8,10 +8,11 @@ fmt-check:
   @echo "🔍 Checking code format..."
   cargo fmt --all -- --check
 
-# Lint code
+# Lint code (CI 同款双模式：--all-features + --no-default-features)
 lint:
-  @echo "🔍 Linting code (exclude benches/dev-tests)..."
-  cargo clippy --workspace --all-targets --all-features -- -Dwarnings -A missing_docs
+  @echo "🔍 Linting code (all-features + no-default-features, CI 同款)..."
+  cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+  cargo clippy --workspace --all-targets --no-default-features -- -Dwarnings
 
 # Check no #[allow(dead_code)] in non-test code (issue #267 防复发)
 no-dead-code-allows:
