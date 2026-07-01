@@ -232,7 +232,7 @@ git commit -m "docs(analytics): pilot 回补 schema/create.rs missing_docs (#fix
 
 #### Task 4: data_source 5 个顶层文件（create/get/patch/delete/list）
 
-- [ ] **Step 1: 对每个文件套 recipe**
+- [x] **Step 1: 对每个文件套 recipe**
 
 逐文件读取 `//!` 标题，按下表补 doc（标题列从各文件 `head -1` 取）：
 
@@ -258,7 +258,7 @@ git commit -m "docs(analytics): pilot 回补 schema/create.rs missing_docs (#fix
 
 > **每文件先 `head -2` 读标题再落 doc**——标题以上表为准，若与文件实际 `//!` 不符，以**文件实际**为准（表只列已勘探的）。
 
-- [ ] **Step 2: 自验 5 文件无 warning**
+- [x] **Step 2: 自验 5 文件无 warning**
 
 Run:
 ```bash
@@ -266,17 +266,17 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep -E 'data_source/(crea
 ```
 Expected: 空输出。
 
-- [ ] **Step 3: 占位符守门**
+- [x] **Step 3: 占位符守门**
 
 Run: `grep -rnE '待补充文档|公开项说明|TODO|TBD' crates/openlark-analytics/src/search/search/v2/data_source/`
 Expected: 空输出。
 
-- [ ] **Step 4: fmt**
+- [x] **Step 4: fmt**
 
 Run: `cargo fmt -p openlark-analytics -- --check`
 Expected: 无 diff。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/data_source/
@@ -285,7 +285,7 @@ git commit -m "docs(analytics): 回补 data_source 顶层 5 文件 missing_docs 
 
 #### Task 5: data_source/item 3 文件（create/get/delete）
 
-- [ ] **Step 1: 对每个文件套 recipe**
+- [x] **Step 1: 对每个文件套 recipe**
 
 | 文件 | 标题（已勘探） | Request→doc | Response→doc |
 |------|------|------|------|
@@ -297,7 +297,7 @@ git commit -m "docs(analytics): 回补 data_source 顶层 5 文件 missing_docs 
 
 每文件同 Task 4 Step 1 规则：Response `data` 字段 → `/// 响应数据。`；`new`/`execute`/`execute_with_options` 套模板；不动 trait impl。
 
-- [ ] **Step 2: 自验 3 文件无 warning**
+- [x] **Step 2: 自验 3 文件无 warning**
 
 Run:
 ```bash
@@ -305,7 +305,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'data_source/item/' |
 ```
 Expected: 空输出。
 
-- [ ] **Step 3: 占位符守门 + fmt**
+- [x] **Step 3: 占位符守门 + fmt**
 
 Run:
 ```bash
@@ -314,7 +314,7 @@ cargo fmt -p openlark-analytics -- --check
 ```
 Expected: 第一条空输出；第二条无 diff。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/data_source/item/

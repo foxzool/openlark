@@ -7,7 +7,7 @@
 
 > 每个文件按 D1 模板回补：Request/Response struct + named field + `new`/`execute`/关联函数各一行有意义中文，对齐 `communication/contact/.../task/get.rs` 规范。文件级 `//!`+docPath 已在，不重写。
 
-- [ ] 2.1 回补 `search/v2/data_source/*`：`create/get/patch/delete/list` + `item/{create,get,delete}`。
+- [x] 2.1 回补 `search/v2/data_source/*`：`create/get/patch/delete/list` + `item/{create,get,delete}`。
 - [ ] 2.2 回补 `search/v2/schema/*`：`create/get/patch/delete`。
 - [ ] 2.3 回补 `search/v2/{app/create, message/create, doc_wiki/search, user, query}`；**补全 `doc_wiki/search.rs:2` 空 docPath**。
 - [ ] 2.4 回补 `report/v1/*`：`rule/query`、`rule/view/remove`、`task/query`。
