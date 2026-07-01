@@ -448,7 +448,7 @@ git commit -m "feat(workspace): 新增 [workspace.lints.rustdoc] bare_urls=deny 
 
 **安全性依据（Design Doc §2）：** cargo doc 全量 warning 实测只有 `rustdoc::bare_urls` 一种，无 `broken_intra_doc_links` / `private_doc_tests` 等 → 移除 `-A` 后 `-D warnings` 只会因 bare_urls 失败（已被 Task 3 清零），**解压零意外**。
 
-- [ ] **Step 1: 修改 ci.yml RUSTDOCFLAGS**
+- [x] **Step 1: 修改 ci.yml RUSTDOCFLAGS**
 
 将 `.github/workflows/ci.yml` 第 44 行：
 
@@ -462,7 +462,7 @@ git commit -m "feat(workspace): 新增 [workspace.lints.rustdoc] bare_urls=deny 
       RUSTDOCFLAGS: "-D warnings"
 ```
 
-- [ ] **Step 2: 本地 CI 模拟——RUSTDOCFLAGS=-D warnings cargo doc exit 0**
+- [x] **Step 2: 本地 CI 模拟——RUSTDOCFLAGS=-D warnings cargo doc exit 0**
 
 ```bash
 cd /Users/zool/workspace/openlark && RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps; echo "EXIT=$?"
@@ -472,7 +472,7 @@ Expected: `EXIT=0`（CI 模拟，移除 `-A` 后 doc 不应 fail）。
 
 > 若 EXIT≠0：加载 systematic-debugging。可能暴露 Task 3 未清的残留 bare_urls（变 error），或 Design Doc §2 未预见的其他 rustdoc lint。前者回 Task 2/3 补；后者记录并暂停（属范围外，需 design 决策）。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add .github/workflows/ci.yml

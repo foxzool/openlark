@@ -18,8 +18,8 @@
 
 ## 4. CI doc job 移除压制（D4）
 
-- [ ] 4.1 `.github/workflows/ci.yml:44` 的 doc job `RUSTDOCFLAGS` 移除 `-A rustdoc::bare_urls`
-- [ ] 4.2 实测移除后 `cargo doc --workspace --all-features` 是否暴露其他 rustdoc lint（如 broken_intra_doc_links），若有则记录并在 design 阶段决定处理
+- [x] 4.1 `.github/workflows/ci.yml:44` 的 doc job `RUSTDOCFLAGS` 移除 `-A rustdoc::bare_urls`
+- [x] 4.2 实测移除后 `cargo doc --workspace --all-features` 是否暴露其他 rustdoc lint（如 broken_intra_doc_links），若有则记录并在 design 阶段决定处理
 
 ## 5. 验证（D1-D4 全过）
 
