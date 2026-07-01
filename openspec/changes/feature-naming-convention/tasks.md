@@ -18,10 +18,10 @@
 
 ## 4. 验证
 
-- [ ] 4.1 `just fmt` + `cargo fmt --check` 通过
-- [ ] 4.2 `just lint` 通过（CI 双模式：`--no-default-features` 与 `--all-features` 均过，确认无悬空 feature 引用）
-- [ ] 4.3 `just build` + `just test` 通过
-- [ ] 4.4 核实 `docs/FEATURE_MATRIX.md` 是否需同步更新移除的 feature（Q3）
+- [x] 4.1 `just fmt` + `cargo fmt --check` 通过
+- [x] 4.2 `just lint` 通过（CI 双模式：`--no-default-features` 与 `--all-features` 均过，确认无悬空 feature 引用）
+- [x] 4.3 `just build` + `just test` 通过
+- [x] 4.4 核实 `docs/FEATURE_MATRIX.md` 是否需同步更新移除的 feature（Q3）
 
 ## 5. src vestigial 代码清理（实现中发现，Spec Patch）
 
