@@ -14,8 +14,8 @@
 
 ## 4. 验证
 
-- [ ] 4.1 `cargo fmt --check` 过
-- [ ] 4.2 `just lint` 过（CI 双模式：`--all-features` 与 `--no-default-features` 均过）
-- [ ] 4.3 `cargo build --workspace --all-features` 过
-- [ ] 4.4 msrv 验证：用 `.github/msrv/Cargo.lock` 跑 `--locked` 过（docker rust:1.88 或本地）
-- [ ] 4.5 `cargo deny check` 过（依赖图无新冲突）+ `cargo tree -d`（无 bytes/prost 多版本）
+- [x] 4.1 `cargo fmt --check` 过
+- [x] 4.2 `just lint` 过（CI 双模式：`--all-features` 与 `--no-default-features` 均过）
+- [x] 4.3 `cargo build --workspace --all-features` 过
+- [x] 4.4 msrv 验证：用 `.github/msrv/Cargo.lock` 跑 `--locked` 过（docker rust:1.88 或本地）
+- [x] 4.5 `cargo deny check` 过（依赖图无新冲突）+ `cargo tree -d` 对比 baseline（**不引入** bytes/prost 新多版本；prost 0.12/0.13 既存 split 由 vendored prost-build 引入，不计入新增）

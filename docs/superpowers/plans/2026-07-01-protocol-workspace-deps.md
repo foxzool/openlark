@@ -240,7 +240,7 @@ git status .github/msrv/Cargo.lock
 
 **对应 tasks.md：** 组 4（4.1 ~ 4.5）
 
-- [ ] **Step 1: `cargo fmt --check`（tasks 4.1）**
+- [x] **Step 1: `cargo fmt --check`（tasks 4.1）**
 
 ```bash
 cargo fmt --check
@@ -250,7 +250,7 @@ cargo fmt --check
 
 > **注意：** CI lint job 第一步就是 `cargo fmt --check`，clippy 通过 ≠ fmt 通过，必须显式跑。
 
-- [ ] **Step 2: `just lint` 双模式（tasks 4.2）**
+- [x] **Step 2: `just lint` 双模式（tasks 4.2）**
 
 ```bash
 just lint
@@ -258,7 +258,7 @@ just lint
 
 预期：CI 双模式（`--all-features` + `--no-default-features`，`-Dwarnings`）均过。本 change 不改 `.rs` 代码，应直接通过。
 
-- [ ] **Step 3: `cargo build --workspace --all-features`（tasks 4.3）**
+- [x] **Step 3: `cargo build --workspace --all-features`（tasks 4.3）**
 
 ```bash
 cargo build --workspace --all-features 2>&1 | tail -5
@@ -266,7 +266,7 @@ cargo build --workspace --all-features 2>&1 | tail -5
 
 预期：`Finished` 成功，无 error。
 
-- [ ] **Step 4: `cargo tree -d` 对比 baseline —— 关键断言「不引入新多版本」（tasks 4.5 的一半）**
+- [x] **Step 4: `cargo tree -d` 对比 baseline —— 关键断言「不引入新多版本」（tasks 4.5 的一半）**
 
 ```bash
 cargo tree -d --workspace > /tmp/openlark-tree-d-after.txt 2>&1
@@ -282,7 +282,7 @@ diff /tmp/openlark-tree-d-baseline.txt /tmp/openlark-tree-d-after.txt
 
 若 diff 非空（出现新的重复条目），**停下来排查**——可能是 workspace 版本声明写错导致解析到新版本。
 
-- [ ] **Step 5: `cargo deny check`（tasks 4.5 的另一半）**
+- [x] **Step 5: `cargo deny check`（tasks 4.5 的另一半）**
 
 ```bash
 cargo deny check 2>&1 | tail -15
@@ -290,7 +290,7 @@ cargo deny check 2>&1 | tail -15
 
 预期：无新冲突（`finished` on all checks）。本 change resolved 版本不变，不应引入新 license/ban/advisory 告警。
 
-- [ ] **Step 6: MSRV `--locked` 验证（tasks 4.4）**
+- [x] **Step 6: MSRV `--locked` 验证（tasks 4.4）**
 
 用 pin 的 `.github/msrv/Cargo.lock` 跑（docker rust:1.88 或本地 rustc 1.88）：
 
@@ -323,7 +323,7 @@ git checkout Cargo.lock
 
 > 若 `--locked` 报 lockfile 需更新，说明 Cargo.lock 实际有变化——回 Task 3 Step 2 复查。
 
-- [ ] **Step 7: 全部验证通过后，本 change 无额外 commit**
+- [x] **Step 7: 全部验证通过后，本 change 无额外 commit**
 
 本 Task 全是验证命令，不产生代码改动。所有验证通过即代表 change 实施完成，可进入 comet verify 阶段。
 
