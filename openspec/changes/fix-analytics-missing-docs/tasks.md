@@ -15,20 +15,20 @@
 
 ## 3. 移除 crate 级抑制
 
-- [ ] 3.1 移除 `crates/openlark-analytics/src/lib.rs:36` 的 `#![allow(missing_docs)]`（**保留** line 34 `#![allow(clippy::module_inception)]`，不在范围）。
-- [ ] 3.2 验证 `cargo doc -p openlark-analytics --all-features` 0 missing_docs 警告。
+- [x] 3.1 移除 `crates/openlark-analytics/src/lib.rs:36` 的 `#![allow(missing_docs)]`（**保留** line 34 `#![allow(clippy::module_inception)]`，不在范围）。
+- [x] 3.2 验证 `cargo doc -p openlark-analytics --all-features` 0 missing_docs 警告。
 
 ## 4. 占位符守门（D2）
 
-- [ ] 4.1 `grep -rnE '待补充文档|公开项说明' crates/openlark-analytics/src/` 输出为空（回补未引入占位符）。
+- [x] 4.1 `grep -rnE '待补充文档|公开项说明' crates/openlark-analytics/src/` 输出为空（回补未引入占位符）。
 
 ## 5. CI 接线（D3）
 
-- [ ] 5.1 在 `.github/workflows/ci.yml` 现有 `python3 -m unittest tools.tests.test_check_mod_reachability`（ci.yml:113）旁，加 `python3 -m unittest tools.tests.test_workspace_missing_docs`。
-- [ ] 5.2 本地复现 CI 步骤：运行该模块，确认 3 个测试（`test_workspace_has_no_missing_docs_warnings` / `test_workspace_source_files_do_not_use_crate_level_missing_docs_suppressions` / `test_workspace_item_level_missing_docs_exception_is_protocol_generated_module_only`）全绿。
+- [x] 5.1 在 `.github/workflows/ci.yml` 现有 `python3 -m unittest tools.tests.test_check_mod_reachability`（ci.yml:113）旁，加 `python3 -m unittest tools.tests.test_workspace_missing_docs`。
+- [x] 5.2 本地复现 CI 步骤：运行该模块，确认 3 个测试（`test_workspace_has_no_missing_docs_warnings` / `test_workspace_source_files_do_not_use_crate_level_missing_docs_suppressions` / `test_workspace_item_level_missing_docs_exception_is_protocol_generated_module_only`）全绿。
 
 ## 6. 全局验证
 
-- [ ] 6.1 `cargo doc --workspace --all-features` 无 missing_docs 警告（workspace 整体仍 0）。
-- [ ] 6.2 `cargo fmt --check` 通过 + `just lint`（已无 `-A missing_docs`，会强制 missing_docs）通过。
-- [ ] 6.3 `cargo test -p openlark-analytics` 现有测试不破。
+- [x] 6.1 `cargo doc --workspace --all-features` 无 missing_docs 警告（workspace 整体仍 0）。
+- [x] 6.2 `cargo fmt --check` 通过 + `just lint`（已无 `-A missing_docs`，会强制 missing_docs）通过。
+- [x] 6.3 `cargo test -p openlark-analytics` 现有测试不破。

@@ -17,8 +17,11 @@
 ## 已完成（续3）
 - Group C+D 剩余 6 文件（commit 0f6752da8，+37 doc）：含 doc_wiki/search.rs 空 docPath 补全。**backfill 全部完成，移除 allow 后全 crate 0 警告**。
 
-## 下一 task
-Task 10+11 合并 — 移除 lib.rs:36 allow + ci.yml 接线 test_workspace_missing_docs。阶段：implementing。
+## 已完成（续4）
+- Task 10+11（commit 448cfd962）：移除 lib.rs crate 级 allow（保留 module_inception）+ ci.yml:114 接线 test_workspace_missing_docs。
+- Task 12 全局验证（全绿）：workspace cargo doc missing_docs=0；just lint（--all-features + --no-default-features 双路径）exit 0；cargo fmt --check OK；analytics 10 test + 1 doc-test pass；3 missing_docs 测试全绿（test#2 FAIL→OK，test#1 OK）；占位符/空 docPath 守门空。
+
+## 阶段：final-review（standard 模式，派一次最终轻量 reviewer）
 
 ## recipe 要点（批量沿用）
 doc 在 #[derive] 前；trait impl 不 doc；docPath 只文件级；rustdoc 警告文本="missing documentation for a..."，按文件路径 grep 验证。

@@ -532,7 +532,7 @@ git commit -m "docs(analytics): 回补 report 3 文件 missing_docs (#fix-analyt
 
 **Interfaces:** 无（移除 1 行）
 
-- [ ] **Step 1: 移除 line 35**
+- [x] **Step 1: 移除 line 35**
 
 把
 ```rust
@@ -545,7 +545,7 @@ git commit -m "docs(analytics): 回补 report 3 文件 missing_docs (#fix-analyt
 ```
 **保留 line 34（module_inception）**——它不在范围。
 
-- [ ] **Step 2: 验证 crate 级 0 missing_docs 警告（allow 移除后真验证）**
+- [x] **Step 2: 验证 crate 级 0 missing_docs 警告（allow 移除后真验证）**
 
 Run:
 ```bash
@@ -553,17 +553,17 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'warning: missing doc
 ```
 Expected: `0`（122 个已全部回补）。
 
-- [ ] **Step 3: 验证 grep 无残留 crate 级 allow**
+- [x] **Step 3: 验证 grep 无残留 crate 级 allow**
 
 Run: `grep -rn '#!\[allow(missing_docs)\]' crates/`
 Expected: 空输出（workspace 无 crate 级 missing_docs 抑制；protocol 的 item 级 `#[allow]` 不匹配 `#!`）。
 
-- [ ] **Step 4: fmt**
+- [x] **Step 4: fmt**
 
 Run: `cargo fmt -p openlark-analytics -- --check`
 Expected: 无 diff。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/lib.rs
@@ -577,7 +577,7 @@ git commit -m "refactor(analytics): 移除 crate 级 #![allow(missing_docs)] (#f
 
 **Interfaces:** 无
 
-- [ ] **Step 1: 找到锚点步骤**
+- [x] **Step 1: 找到锚点步骤**
 
 Run: `grep -n 'test_check_mod_reachability' .github/workflows/ci.yml`
 Expected: 命中约 line 111-114 的 `Check mod reachability` step：
@@ -588,7 +588,7 @@ Expected: 命中约 line 111-114 的 `Check mod reachability` step：
           python3 tools/check_mod_reachability.py
 ```
 
-- [ ] **Step 2: 在该 step 之后插入 missing_docs 测试 step**
+- [x] **Step 2: 在该 step 之后插入 missing_docs 测试 step**
 
 在 `Check mod reachability` step 之后（`Check no #[allow(dead_code)]` step 之前）插入：
 ```yaml
@@ -600,7 +600,7 @@ Expected: 命中约 line 111-114 的 `Check mod reachability` step：
 > - `test_workspace_source_files_do_not_use_crate_level_missing_docs_suppressions`（grep 无 `#![allow(missing_docs)]`）
 > - `test_workspace_item_level_missing_docs_exception_is_protocol_generated_module_only`（item 级 allowlist 仅 protocol）
 
-- [ ] **Step 3: 本地复现 CI——3 测试全绿**
+- [x] **Step 3: 本地复现 CI——3 测试全绿**
 
 Run:
 ```bash
@@ -609,12 +609,12 @@ python3 -m unittest tools.tests.test_workspace_missing_docs -v
 Expected: `test_workspace_has_no_missing_docs_warnings ... ok` / `test_workspace_source_files_do_not_use_crate_level_missing_docs_suppressions ... ok` / `test_workspace_item_level_missing_docs_exception_is_protocol_generated_module_only ... ok`，结尾 `OK`。
 > **注**：第一个测试会跑 `cargo test --workspace --all-features --no-run`，耗时较长（首次几分钟，CI 复用缓存更快）。这是 Design Doc 决策 C 接受的成本。
 
-- [ ] **Step 4: yaml 语法自查**
+- [x] **Step 4: yaml 语法自查**
 
 Run: `python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci.yml'))" && echo YAML_OK`
 Expected: `YAML_OK`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/ci.yml
@@ -625,7 +625,7 @@ git commit -m "ci: 接入 missing_docs 验证测试进 lint job (#fix-analytics-
 
 **Files:** 无（只跑验证命令）
 
-- [ ] **Step 1: workspace cargo doc 0 missing_docs**
+- [x] **Step 1: workspace cargo doc 0 missing_docs**
 
 Run:
 ```bash
@@ -633,7 +633,7 @@ cargo doc --workspace --all-features 2>&1 | grep 'warning: missing documentation
 ```
 Expected: `0`。
 
-- [ ] **Step 2: cargo fmt --check + just lint**
+- [x] **Step 2: cargo fmt --check + just lint**
 
 Run:
 ```bash
@@ -643,22 +643,22 @@ just lint
 Expected: fmt 无 diff；`just lint`（`cargo clippy --workspace --all-targets --all-features -- -Dwarnings` + 其他检查）通过 0 错误。
 > **memory 提醒**：CI lint job 第一步是 `cargo fmt --check`，本地必须显式跑（clippy 通过 ≠ fmt 通过）。
 
-- [ ] **Step 3: 现有测试不破**
+- [x] **Step 3: 现有测试不破**
 
 Run: `cargo test -p openlark-analytics`
 Expected: 全部通过（本 change 只加注释，不改逻辑，测试不应受影响）。
 
-- [ ] **Step 4: 占位符全局守门（D2 最终）**
+- [x] **Step 4: 占位符全局守门（D2 最终）**
 
 Run: `grep -rnE '待补充文档|公开项说明' crates/openlark-analytics/src/`
 Expected: 空输出。
 
-- [ ] **Step 5: CI 全链路 dry-run（可选，确认接线）**
+- [x] **Step 5: CI 全链路 dry-run（可选，确认接线）**
 
 Run: `python3 -m unittest tools.tests.test_workspace_missing_docs -v && python3 -m unittest tools.tests.test_check_mod_reachability -v`
 Expected: 两个模块全绿。
 
-- [ ] **Step 6: 最终提交（若前面有未提交的 fmt 修正等）**
+- [x] **Step 6: 最终提交（若前面有未提交的 fmt 修正等）**
 
 ```bash
 git status   # 确认工作树干净
