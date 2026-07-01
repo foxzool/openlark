@@ -67,8 +67,6 @@ docs = [
     "auth",
     "dep:openlark-docs",
     "openlark-docs/ccm-core",
-    "openlark-docs/v2",
-    "openlark-docs/v3",
 ]
 cardkit = ["auth", "dep:openlark-cardkit"]
 security = ["auth", "dep:openlark-security"]
