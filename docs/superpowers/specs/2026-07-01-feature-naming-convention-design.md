@@ -2,6 +2,8 @@
 comet_change: feature-naming-convention
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-feature-naming-convention
+status: final
 ---
 
 # Feature 命名规范与死版本链清理 — 技术设计
