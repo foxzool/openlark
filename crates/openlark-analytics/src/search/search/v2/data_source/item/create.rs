@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 为指定数据项创建索引请求。
 #[derive(Debug, Clone)]
 pub struct CreateDataSourceItemRequest {
     config: Arc<Config>,
 }
 
+/// 为指定数据项创建索引响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateDataSourceItemResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for CreateDataSourceItemResponse {
 }
 
 impl CreateDataSourceItemRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行为指定数据项创建索引请求。
     pub async fn execute(self) -> SDKResult<CreateDataSourceItemResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行为指定数据项创建索引请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
