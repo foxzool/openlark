@@ -235,8 +235,6 @@
 //! }
 //! ```
 
-//#![deny(missing_docs)]  // 暂时禁用以完成基本编译
-
 // 核心模块
 pub mod client;
 mod client_build_config;

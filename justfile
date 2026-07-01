@@ -11,7 +11,7 @@ fmt-check:
 # Lint code
 lint:
   @echo "🔍 Linting code (exclude benches/dev-tests)..."
-  cargo clippy --workspace --all-targets --all-features -- -Dwarnings -A missing_docs
+  cargo clippy --workspace --all-targets --all-features -- -Dwarnings
 
 # Check no #[allow(dead_code)] in non-test code (issue #267 防复发)
 no-dead-code-allows:
