@@ -1,0 +1,14 @@
+{
+  "change": "fix-missing-docs-lint-consistency",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4f1799cd6adfd436c64a7615162232fde2d67c36db7a2719965fefc15845e114",
+  "files": [
+    { "path": "openspec/changes/fix-missing-docs-lint-consistency/proposal.md", "sha256": "8cff2e53f42cb1dd863726d43072b509637be9d6f0cffc9def770f8ed173d2b2" },
+    { "path": "openspec/changes/fix-missing-docs-lint-consistency/design.md", "sha256": "c698b938a4b004062ca8b79b2f8523fb833a9a5366e5b0c65380375d6ffcf1a1" },
+    { "path": "openspec/changes/fix-missing-docs-lint-consistency/tasks.md", "sha256": "1c714be95a24d7aa30baf56b74f2825d009635047a9c53b7246e566fd569d46e" },
+    { "path": "openspec/changes/fix-missing-docs-lint-consistency/specs/lint-execution-consistency/spec.md", "sha256": "af7ea3b91f3af82d96ecc52598033303caec0f358706c1034f6446c873433133" }
+  ]
+}
