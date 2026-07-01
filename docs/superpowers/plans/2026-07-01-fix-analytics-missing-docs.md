@@ -325,7 +325,7 @@ git commit -m "docs(analytics): 回补 data_source/item 3 文件 missing_docs (#
 
 #### Task 6: schema/{get,patch,delete}
 
-- [ ] **Step 1: 对每个文件套 recipe**
+- [x] **Step 1: 对每个文件套 recipe**
 
 | 文件 | 标题（已勘探） | Request→doc | Response→doc |
 |------|------|------|------|
@@ -335,7 +335,7 @@ git commit -m "docs(analytics): 回补 data_source/item 3 文件 missing_docs (#
 
 每文件同 Task 4 规则：`data` 字段 → `/// 响应数据。`；`new`/`execute`/`execute_with_options` 套模板；不动 trait impl。`schema/create.rs` 已在 Task 3 完成，本 task 不再动。
 
-- [ ] **Step 2: 自验 schema 全组无 warning（含 pilot 的 create）**
+- [x] **Step 2: 自验 schema 全组无 warning（含 pilot 的 create）**
 
 Run:
 ```bash
@@ -343,7 +343,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'schema/' | grep 'war
 ```
 Expected: 空输出（4 文件全清）。
 
-- [ ] **Step 3: 占位符守门 + fmt**
+- [x] **Step 3: 占位符守门 + fmt**
 
 Run:
 ```bash
@@ -352,7 +352,7 @@ cargo fmt -p openlark-analytics -- --check
 ```
 Expected: 第一条空；第二条无 diff。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/schema/

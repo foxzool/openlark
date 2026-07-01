@@ -10,8 +10,12 @@
 ## 已完成（续）
 - Group A data_source 8 文件（commit 9e48f5cd6，+55 doc）：get.rs/item/get.rs 的额外 DataSourceData/DataSourceItemData struct + 多字段已按含义补 doc。全局 122→61。
 
+## 已完成（续2）
+- Group B schema 剩余 3 文件（commit 0a2572bf3，+25 doc）：get.rs 含额外 SchemaData/SchemaField。全局 61→36。
+- **范围修正**：temp-toggle 实测 user.rs / query.rs 已 0 missing_docs（不在 122 内），无需回补。剩余 36 warnings 集中在 6 文件：report 3 + search-rest{doc_wiki/search, app/create, message/create} 3。
+
 ## 下一 task
-Group B — schema 剩余 3 文件（get/patch/delete）。阶段：implementing。
+Group C+D 合并 — 剩余 6 文件（含 doc_wiki/search.rs 空 docPath 修复）。阶段：implementing。
 
 ## recipe 要点（批量沿用）
 doc 在 #[derive] 前；trait impl 不 doc；docPath 只文件级；rustdoc 警告文本="missing documentation for a..."，按文件路径 grep 验证。
