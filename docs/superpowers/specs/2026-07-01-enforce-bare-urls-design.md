@@ -2,6 +2,8 @@
 comet_change: enforce-bare-urls
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-enforce-bare-urls
+status: final
 ---
 
 # enforce-bare-urls 技术设计
