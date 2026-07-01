@@ -132,7 +132,7 @@ git commit -m "chore(workspace): 新增 bytes = \"1.6\" workspace 依赖声明
 
 **对应 tasks.md：** 组 2（2.1 bytes + 2.2 prost，合并为一次原子编辑）
 
-- [ ] **Step 1: 修改 protocol Cargo.toml 的 `[dependencies]` 段**
+- [x] **Step 1: 修改 protocol Cargo.toml 的 `[dependencies]` 段**
 
 把 `crates/openlark-protocol/Cargo.toml` 的第 18-19 行：
 
@@ -151,7 +151,7 @@ prost = { workspace = true }
 > **不要动** 第 23 行的 `prost-build = "0.12.6"`（build-dependency，范围外）。
 > **不要动** 第 27 行的 `ignored = ["bytes"]`（cargo-machete 元数据，bytes 仍被 prost 间接使用，标注保留）。
 
-- [ ] **Step 2: 验证 TOML 仍可解析**
+- [x] **Step 2: 验证 TOML 仍可解析**
 
 ```bash
 cargo metadata --no-deps --format-version 1 > /dev/null && echo "TOML OK"
@@ -159,7 +159,7 @@ cargo metadata --no-deps --format-version 1 > /dev/null && echo "TOML OK"
 
 预期：输出 `TOML OK`。
 
-- [ ] **Step 3: 验证 workspace 依赖被正确解析（无 "cannot find" 错误）**
+- [x] **Step 3: 验证 workspace 依赖被正确解析（无 "cannot find" 错误）**
 
 ```bash
 cargo build -p openlark-protocol 2>&1 | tail -5
@@ -167,7 +167,7 @@ cargo build -p openlark-protocol 2>&1 | tail -5
 
 预期：构建成功（无 `failed to parse manifest` / `cannot find bytes in workspace.dependencies` 错误）。若有错误，回查 Task 1 是否已落盘 `bytes = "1.6"`。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-protocol/Cargo.toml

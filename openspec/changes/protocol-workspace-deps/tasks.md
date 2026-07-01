@@ -4,8 +4,8 @@
 
 ## 2. openlark-protocol 改消费 workspace
 
-- [ ] 2.1 `crates/openlark-protocol/Cargo.toml`：`bytes = "1.6.0"` → `bytes = { workspace = true }`
-- [ ] 2.2 `crates/openlark-protocol/Cargo.toml`：`prost = "0.13.1"` → `prost = { workspace = true }`
+- [x] 2.1 `crates/openlark-protocol/Cargo.toml`：`bytes = "1.6.0"` → `bytes = { workspace = true }`
+- [x] 2.2 `crates/openlark-protocol/Cargo.toml`：`prost = "0.13.1"` → `prost = { workspace = true }`
 
 ## 3. lockfile 与 MSRV 同步
 

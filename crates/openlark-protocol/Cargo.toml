@@ -15,8 +15,8 @@ repository = "https://github.com/foxzool/openlark"
 workspace = true
 
 [dependencies]
-bytes = "1.6.0"
-prost = "0.13.1"
+bytes = { workspace = true }
+prost = { workspace = true }
 
 
 [build-dependencies]
