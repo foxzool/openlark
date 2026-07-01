@@ -61,14 +61,9 @@ docs = ["ccm-doc"]
 # 群公告管理 (19 APIs)
 docx = ["ccm-docx"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-
 # === 功能组合 ===
 # 完整云文档功能
-full = ["ccm", "bitable", "base", "baike", "minutes", "v3"]
+full = ["ccm", "bitable", "base", "baike", "minutes"]
 
 # 向后兼容别名
 cloud-docs = ["ccm", "bitable", "base"]
