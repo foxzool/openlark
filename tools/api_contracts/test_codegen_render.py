@@ -6,9 +6,10 @@ import json
 import unittest
 from pathlib import Path
 
-from tools.api_contracts.codegen_ir import parse_api_schema_to_ir
+from tools.api_contracts.codegen_ir import FieldDef, TypePrimitive, parse_api_schema_to_ir
 from tools.api_contracts.codegen_render import (
     _emit_token_decl,
+    _field_lines,
     render_api_file,
     render_endpoint_const_snippet,
 )
@@ -321,6 +322,46 @@ class RenderNestedArrayStructTest(unittest.TestCase):
         # 嵌套 struct（tags 的 item）应被渲染，不漏
         self.assertIn("pub struct CreateMessageBodyTagsItem {", code)
         self.assertIn("Vec<CreateMessageBodyTagsItem>", code)
+
+
+class FieldLinesFallbackDocTest(unittest.TestCase):
+    """D2：无 description 字段用字段名兜底生成 doc。"""
+
+    def test_empty_description_falls_back_to_rust_name(self):
+        field = FieldDef(
+            name="user_id",
+            rust_name="user_id",
+            type_expr=TypePrimitive(rust="String"),
+            required=True,
+            description="",
+        )
+        lines = _field_lines(field)
+        self.assertIn("    /// user_id", lines)
+        # 兜底文案必须是字段真实名，非空 doc 行、非占位符
+        for line in lines:
+            self.assertNotIn("///  ", line)  # 不是空 doc 行（"/// " 后空白）
+            self.assertNotIn("待补充", line)
+            self.assertNotIn("TODO", line)
+
+    def test_present_description_uses_oneliner(self):
+        field = FieldDef(
+            name="user_id",
+            rust_name="user_id",
+            type_expr=TypePrimitive(rust="String"),
+            required=True,
+            description="用户标识",
+        )
+        lines = _field_lines(field)
+        self.assertIn("    /// 用户标识", lines)
+
+    def test_every_field_gets_doc_with_schema_post(self):
+        # 集成层：SCHEMA_POST 的 msg_type/uuid 无 description → 兜底出 doc
+        ir = parse_api_schema_to_ir(_api(), SCHEMA_POST)
+        code = render_api_file(ir)
+        self.assertIn("    /// msg_type", code)
+        self.assertIn("    /// uuid", code)
+        # 有 description 的字段文案不变
+        self.assertIn("    /// 接收者", code)
 
 
 if __name__ == "__main__":
