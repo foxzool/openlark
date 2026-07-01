@@ -68,8 +68,8 @@
 //!
 //! ### Endpoint 切换
 //!
-//! OpenLark 默认使用国内飞书 endpoint：`<https://open.feishu.cn`。>
-//! 如果你的应用运行在国际版 Lark，请将 `base_url` 切换为 `<https://open.larksuite.com`。>
+//! OpenLark 默认使用国内飞书 endpoint：<https://open.feishu.cn>。
+//! 如果你的应用运行在国际版 Lark，请将 `base_url` 切换为 <https://open.larksuite.com>。
 //!
 //! ```rust,no_run
 //! use openlark_client::prelude::*;
