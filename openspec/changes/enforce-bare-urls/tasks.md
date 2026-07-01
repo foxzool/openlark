@@ -23,9 +23,9 @@
 
 ## 5. 验证（D1-D4 全过）
 
-- [ ] 5.1 `cargo fmt --check` 过
-- [ ] 5.2 `cargo doc --workspace --all-features` 过（deny 下 0 warning，exit 0）
-- [ ] 5.3 `just lint` 过（clippy `--all-features` 双模式）+ 补跑 `--no-default-features` clippy（CI 同款）
-- [ ] 5.4 `cargo build --workspace --all-features` 过
-- [ ] 5.5 codegen 渲染器验证：渲染含 URL 的模块 doc，输出 MUST 为 `<URL>` 形态（Spec Req 3）
-- [ ] 5.6 msrv `--locked` 验证（`.github/msrv/Cargo.lock`，rustup +1.88），确认无回归
+- [x] 5.1 `cargo fmt --check` 过
+- [x] 5.2 `cargo doc --workspace --all-features` 过（deny 下 0 warning，exit 0）
+- [x] 5.3 `just lint` 过（clippy `--all-features` 双模式）+ 补跑 `--no-default-features` clippy（CI 同款）
+- [x] 5.4 `cargo build --workspace --all-features` 过
+- [x] 5.5 codegen 渲染器验证：渲染含 URL 的模块 doc，输出 MUST 为 `<URL>` 形态（Spec Req 3）
+- [x] 5.6 msrv `--locked` 验证（`.github/msrv/Cargo.lock`，rustup +1.88），确认无回归

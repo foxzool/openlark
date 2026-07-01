@@ -488,7 +488,7 @@ git commit -m "ci(doc): 移除 -A rustdoc::bare_urls 压制，让 workspace deny
 
 **对应 OpenSpec tasks 5.1-5.6 + Design Doc §6 测试矩阵。**
 
-- [ ] **Step 1: cargo fmt --check（CI lint job 第一步）**
+- [x] **Step 1: cargo fmt --check（CI lint job 第一步）**
 
 ```bash
 cd /Users/zool/workspace/openlark && cargo fmt --check; echo "EXIT=$?"
@@ -496,7 +496,7 @@ cd /Users/zool/workspace/openlark && cargo fmt --check; echo "EXIT=$?"
 
 Expected: `EXIT=0`（本 change 只动 doc comment URL 包裹 + Cargo.toml/yaml，不应引入格式问题；但 CI 第一步即此，必须验证）。
 
-- [ ] **Step 2: cargo doc deny 下 0 warning + exit 0（核心断言最终确认）**
+- [x] **Step 2: cargo doc deny 下 0 warning + exit 0（核心断言最终确认）**
 
 ```bash
 cd /Users/zool/workspace/openlark && cargo doc --workspace --all-features --no-deps 2>&1 | tee /tmp/doc-final.log
@@ -505,7 +505,7 @@ echo "warnings=$(grep -c '^warning:' /tmp/doc-final.log) bare_urls=$(grep -c 'ba
 
 Expected: `warnings=0 bare_urls=0`。
 
-- [ ] **Step 3: just lint（clippy --all-features）**
+- [x] **Step 3: just lint（clippy --all-features）**
 
 ```bash
 cd /Users/zool/workspace/openlark && just lint; echo "EXIT=$?"
@@ -513,7 +513,7 @@ cd /Users/zool/workspace/openlark && just lint; echo "EXIT=$?"
 
 Expected: `EXIT=0`。
 
-- [ ] **Step 4: clippy --no-default-features（CI 同款，门控代码测试）**
+- [x] **Step 4: clippy --no-default-features（CI 同款，门控代码测试）**
 
 ```bash
 cd /Users/zool/workspace/openlark && cargo clippy --workspace --all-targets --no-default-features 2>&1 | tail -5; echo "EXIT=${PIPESTATUS[0]}"
@@ -523,7 +523,7 @@ Expected: 无 error，EXIT=0。
 
 > MEMORY 提醒：CI lint job 跑 `clippy --workspace --all-targets --no-default-features`；调用 cfg(feature) 门控方法的测试自身要 `#[cfg(feature)]`。本 change 不新增门控代码，应无影响，但仍需验证。
 
-- [ ] **Step 5: cargo build --all-features**
+- [x] **Step 5: cargo build --all-features**
 
 ```bash
 cd /Users/zool/workspace/openlark && cargo build --workspace --all-features 2>&1 | tail -3; echo "EXIT=${PIPESTATUS[0]}"
@@ -531,7 +531,7 @@ cd /Users/zool/workspace/openlark && cargo build --workspace --all-features 2>&1
 
 Expected: `Finished`，EXIT=0。
 
-- [ ] **Step 6: codegen 渲染抽样验证 `<URL>`（Spec Req 3）**
+- [x] **Step 6: codegen 渲染抽样验证 `<URL>`（Spec Req 3）**
 
 复用 Task 1 Step 4 的单元验证，确认 codegen 产物 docPath 行为 `<URL>`：
 
@@ -541,7 +541,7 @@ cd /Users/zool/workspace/openlark && grep 'docPath' tools/api_contracts/codegen_
 
 Expected: 见 `f"//! docPath: <{ir.doc_path}>\n"`（`<>` 包裹）。
 
-- [ ] **Step 7: MSRV --locked 验证（无回归）**
+- [x] **Step 7: MSRV --locked 验证（无回归）**
 
 MEMORY 提醒：CI msrv job 用 `.github/msrv/Cargo.lock` pinned。本 change 未改依赖，无需同步 lockfile，但验证 `--locked` 通过。
 
@@ -553,7 +553,7 @@ Expected: `Finished`，EXIT=0。
 
 > 若本地无 1.88 toolchain：`rustup toolchain install 1.88` 后重跑。或按 MEMORY 用 `docker run --rm -v "$PWD":/work -w /work rust:1.88 sh -c 'apt-get update && apt-get install -y protobuf-compiler && cargo check --workspace --all-features --locked'`。
 
-- [ ] **Step 8: 推送前总确认——本地 main clean**
+- [x] **Step 8: 推送前总确认——本地 main clean**
 
 ```bash
 cd /Users/zool/workspace/openlark && git status --short && git log --oneline -6
