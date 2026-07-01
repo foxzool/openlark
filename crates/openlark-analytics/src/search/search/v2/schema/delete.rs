@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 删除数据范式请求。
 #[derive(Debug, Clone)]
 pub struct DeleteSchemaRequest {
     config: Arc<Config>,
 }
 
+/// 删除数据范式响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteSchemaResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for DeleteSchemaResponse {
 }
 
 impl DeleteSchemaRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行删除数据范式请求。
     pub async fn execute(self) -> SDKResult<DeleteSchemaResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行删除数据范式请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
