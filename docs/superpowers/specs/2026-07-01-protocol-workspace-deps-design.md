@@ -2,6 +2,8 @@
 comet_change: protocol-workspace-deps
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-protocol-workspace-deps
+status: final
 ---
 
 # protocol-workspace-deps 技术设计

@@ -2,6 +2,7 @@
 change: protocol-workspace-deps
 design-doc: docs/superpowers/specs/2026-07-01-protocol-workspace-deps-design.md
 base-ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 # protocol-workspace-deps 实施计划
@@ -31,6 +32,7 @@ base-ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
 - **提交规范：** 中文 commit message，每次完成一个可验证单元即提交（不积攒）
 - **MSRV：** Rust 1.88+
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## 任务依赖与结构
@@ -45,6 +47,7 @@ base-ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
 | Task 3 | 组 3 | Cargo.lock 与 MSRV 同步验证（预期无变化） |
 | Task 4 | 组 4 | 完整验证（fmt / lint 双模式 / build / tree -d 对比 / MSRV --locked / deny） |
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## Task 0: 捕获迁移前 `cargo tree -d` baseline
@@ -73,6 +76,7 @@ grep -nE "^bytes|^prost" /tmp/openlark-tree-d-baseline.txt
 
 预期：能看到 `bytes v1.11.1`、`prost v0.12.6`、`prost v0.13.5` 等条目。**记下这个输出**，Task 4 会与之 diff。
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## Task 1: 根 `Cargo.toml` 新增 bytes workspace 声明
@@ -119,6 +123,7 @@ git commit -m "chore(workspace): 新增 bytes = \"1.6\" workspace 依赖声明
 为 protocol 迁移到 { workspace = true } 做准备（issue #273 Part B）。"
 ```
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## Task 2: `openlark-protocol` 改消费 workspace（bytes + prost）
@@ -182,6 +187,7 @@ git commit -m "refactor(protocol): bytes/prost 改用 { workspace = true }
 resolved 版本不变（bytes 1.11.1 / prost 0.13.5），Cargo.lock 无变化。"
 ```
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## Task 3: Cargo.lock 与 MSRV lockfile 同步验证
@@ -228,6 +234,7 @@ git status .github/msrv/Cargo.lock
 
 > **本 Task 不产生 commit**（无文件改动）。若 Step 1/2 显示 Cargo.lock 有变化，则属于意外，需回 Task 1/2 修复后重跑。
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## Task 4: 完整验证
@@ -327,6 +334,7 @@ git checkout Cargo.lock
 
 本 Task 全是验证命令，不产生代码改动。所有验证通过即代表 change 实施完成，可进入 comet verify 阶段。
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## 完成判据
@@ -339,6 +347,7 @@ git checkout Cargo.lock
 4. ✅ Task 4：fmt / lint 双模式 / build / cargo tree -d diff（空）/ cargo deny / MSRV `--locked` 全过
 5. ✅ `cargo tree -d` 前后 diff 为空（不引入新多版本）—— 本 change 的核心断言
 
+archived-with: 2026-07-01-protocol-workspace-deps
 ---
 
 ## 自检（Self-Review）

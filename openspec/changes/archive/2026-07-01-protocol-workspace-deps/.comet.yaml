@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
 design_doc: docs/superpowers/specs/2026-07-01-protocol-workspace-deps-design.md
 plan: docs/superpowers/plans/2026-07-01-protocol-workspace-deps.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-07-01-protocol-workspace-deps-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-01
-verified_at: null
-archived: false
+verified_at: 2026-07-01
+archived: true
 handoff_context: openspec/changes/protocol-workspace-deps/.comet/handoff/design-context.json
 handoff_hash: d7e31caa44def5206725fa3ac402e00ab48fc59221678f5be3f5e48e92229c5f
