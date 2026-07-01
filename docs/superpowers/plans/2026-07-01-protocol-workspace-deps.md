@@ -54,7 +54,7 @@ base-ref: 61faa8fe11651daf7378a422e17682df0e0f93b7
 
 **说明：** 关键验证是「迁移前后 `cargo tree -d` 重复条目 diff 为空」。为此必须先有迁移前 baseline。本任务不产生 git 改动。
 
-- [ ] **Step 1: 跑 `cargo tree -d --workspace` 并存档**
+- [x] **Step 1: 跑 `cargo tree -d --workspace` 并存档**
 
 ```bash
 cargo tree -d --workspace > /tmp/openlark-tree-d-baseline.txt 2>&1
@@ -65,7 +65,7 @@ cargo tree -d --workspace > /tmp/openlark-tree-d-baseline.txt 2>&1
 - `prost v0.12.6` 与 `prost v0.13.5`（vendored prost-build 引入的既存 split）
 - `prost-derive v0.12.6` 与 `prost-derive v0.13.5`（同上）
 
-- [ ] **Step 2: 确认 baseline 已记录 bytes/prost 现状**
+- [x] **Step 2: 确认 baseline 已记录 bytes/prost 现状**
 
 ```bash
 grep -nE "^bytes|^prost" /tmp/openlark-tree-d-baseline.txt
@@ -85,7 +85,7 @@ grep -nE "^bytes|^prost" /tmp/openlark-tree-d-baseline.txt
 
 **对应 tasks.md：** 组 1（1.1）
 
-- [ ] **Step 1: 在 `prost` 行后新增 `bytes` 声明**
+- [x] **Step 1: 在 `prost` 行后新增 `bytes` 声明**
 
 把 `Cargo.toml` 第 87 行：
 
@@ -102,7 +102,7 @@ bytes = "1.6"
 
 > 用 `"1.6"`（非 `"1.6.0"`）——对齐 protocol 现 caret `^1.6.0`，resolved 仍为 1.11.1，零 lockfile 影响（Design Doc D1）。
 
-- [ ] **Step 2: 验证 TOML 仍可解析**
+- [x] **Step 2: 验证 TOML 仍可解析**
 
 ```bash
 cargo metadata --no-deps --format-version 1 > /dev/null && echo "TOML OK"
@@ -110,7 +110,7 @@ cargo metadata --no-deps --format-version 1 > /dev/null && echo "TOML OK"
 
 预期：输出 `TOML OK`（无解析错误）。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add Cargo.toml

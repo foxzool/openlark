@@ -1,6 +1,6 @@
 ## 1. workspace.dependencies 声明 bytes
 
-- [ ] 1.1 根 `Cargo.toml` 的 `[workspace.dependencies]` 段新增 `bytes = "1.6"`（prost 已存在，不动）
+- [x] 1.1 根 `Cargo.toml` 的 `[workspace.dependencies]` 段新增 `bytes = "1.6"`（prost 已存在，不动）
 
 ## 2. openlark-protocol 改消费 workspace
 

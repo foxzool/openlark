@@ -85,6 +85,7 @@ chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 url = { version = "2.5", features = ["serde"] }
 prost = { version = "0.13" }
+bytes = "1.6"
 
 # === 网络与HTTP (Networking & HTTP) ===
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls", "stream", "query"] }
