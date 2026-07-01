@@ -79,6 +79,7 @@ validate_required!(self.field, "字段不能为空");
 - **API 方法**: `snake_case`
 - **Feature flags**: 短横线连接的小写（`core-services`, `cloud-docs`）
 - **Client 类型**: 所有业务 crate 导出 `XxxClient` 类型（详见 `docs/CLIENT_NAMING_CONVENTION.md`）
+- **Feature 命名**: 模块 feature 为主、版本 feature 为单 API 版本 crate 合法例外（详见 `docs/FEATURE_NAMING_CONVENTION.md`）
 
 ## ANTI-PATTERNS
 
