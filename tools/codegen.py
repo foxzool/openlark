@@ -182,7 +182,7 @@ def run_closed_loop(crate_name: str) -> int:
         ["cargo", "fmt", "--all"],
         [
             "cargo", "clippy", "-p", crate_name, "--all-targets", "--all-features",
-            "--", "-Dwarnings", "-A", "missing_docs",
+            "--", "-Dwarnings",
         ],
     ]
     for cmd in commands:
