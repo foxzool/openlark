@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 搜索应用请求。
 #[derive(Debug, Clone)]
 pub struct SearchAppRequest {
     config: Arc<Config>,
 }
 
+/// 搜索应用响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchAppResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for SearchAppResponse {
 }
 
 impl SearchAppRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行搜索应用请求。
     pub async fn execute(self) -> SDKResult<SearchAppResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行搜索应用请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<SearchAppResponse> {
         let path = "/open-apis/search/v2/app".to_string();
         let req: ApiRequest<SearchAppResponse> = ApiRequest::post(&path);

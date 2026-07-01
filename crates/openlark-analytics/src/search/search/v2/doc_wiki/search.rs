@@ -1,5 +1,5 @@
 //! 搜索文档
-//! docPath:
+//! docPath: <https://open.feishu.cn/document/server-docs/search-v2/open-search/doc_wiki/search>
 
 use openlark_core::{
     SDKResult,
@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 搜索文档请求。
 #[derive(Debug, Clone)]
 pub struct SearchDocWikiRequest {
     config: Arc<Config>,
 }
 
+/// 搜索文档响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchDocWikiResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for SearchDocWikiResponse {
 }
 
 impl SearchDocWikiRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行搜索文档请求。
     pub async fn execute(self) -> SDKResult<SearchDocWikiResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行搜索文档请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

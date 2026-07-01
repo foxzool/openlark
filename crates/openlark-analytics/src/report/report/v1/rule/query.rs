@@ -11,13 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 查询规则请求。
 #[derive(Debug, Clone)]
 pub struct QueryReportRuleRequest {
     config: Arc<Config>,
 }
 
+/// 查询规则响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryReportRuleResponse {
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -28,14 +31,17 @@ impl ApiResponseTrait for QueryReportRuleResponse {
 }
 
 impl QueryReportRuleRequest {
+    /// 创建新的请求构建器。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
+    /// 执行查询规则请求。
     pub async fn execute(self) -> SDKResult<QueryReportRuleResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 使用指定请求选项执行查询规则请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
