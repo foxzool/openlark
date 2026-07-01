@@ -14,8 +14,11 @@
 - Group B schema 剩余 3 文件（commit 0a2572bf3，+25 doc）：get.rs 含额外 SchemaData/SchemaField。全局 61→36。
 - **范围修正**：temp-toggle 实测 user.rs / query.rs 已 0 missing_docs（不在 122 内），无需回补。剩余 36 warnings 集中在 6 文件：report 3 + search-rest{doc_wiki/search, app/create, message/create} 3。
 
+## 已完成（续3）
+- Group C+D 剩余 6 文件（commit 0f6752da8，+37 doc）：含 doc_wiki/search.rs 空 docPath 补全。**backfill 全部完成，移除 allow 后全 crate 0 警告**。
+
 ## 下一 task
-Group C+D 合并 — 剩余 6 文件（含 doc_wiki/search.rs 空 docPath 修复）。阶段：implementing。
+Task 10+11 合并 — 移除 lib.rs:36 allow + ci.yml 接线 test_workspace_missing_docs。阶段：implementing。
 
 ## recipe 要点（批量沿用）
 doc 在 #[derive] 前；trait impl 不 doc；docPath 只文件级；rustdoc 警告文本="missing documentation for a..."，按文件路径 grep 验证。

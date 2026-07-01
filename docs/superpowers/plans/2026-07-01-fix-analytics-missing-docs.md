@@ -363,7 +363,7 @@ git commit -m "docs(analytics): 回补 schema 剩余 3 文件 missing_docs (#fix
 
 #### Task 7: doc_wiki/search.rs（含补空 docPath）
 
-- [ ] **Step 1: 读文件，确认标题与当前空 docPath**
+- [x] **Step 1: 读文件，确认标题与当前空 docPath**
 
 Run: `head -2 crates/openlark-analytics/src/search/search/v2/doc_wiki/search.rs`
 Expected:
@@ -373,7 +373,7 @@ Expected:
 ```
 标题 = 「搜索文档」。docPath 为空，需补。
 
-- [ ] **Step 2: 补全 line 2 docPath**
+- [x] **Step 2: 补全 line 2 docPath**
 
 把 `//! docPath:` 改为（URL 以飞书搜索文档实际地址为准；若该 crate 其他 search API 同域参考之）：
 ```
@@ -381,7 +381,7 @@ Expected:
 ```
 > **校验 URL**：执行 `grep -rn 'docPath' crates/openlark-analytics/src/search/ | head`，参考同域已有 URL 格式确认本 URL 形态合法。若该文件标题「搜索文档」对应的飞书 URL 与上述不同，**以飞书文档实际 URL 替换**——但最终不得为空。
 
-- [ ] **Step 3: 给公开项套 recipe（此文件结构同 schema/create.rs）**
+- [x] **Step 3: 给公开项套 recipe（此文件结构同 schema/create.rs）**
 
 - Request struct → `/// 搜索文档请求。`
 - Response struct → `/// 搜索文档响应。`
@@ -391,7 +391,7 @@ Expected:
 - `pub async fn execute_with_options` → `    /// 使用指定请求选项执行搜索文档请求。`
 - 不动 trait impl。
 
-- [ ] **Step 4: 自验 + 占位符 + fmt**
+- [x] **Step 4: 自验 + 占位符 + fmt**
 
 Run:
 ```bash
@@ -405,7 +405,7 @@ grep -n '^//! docPath: *$' crates/openlark-analytics/src/search/search/v2/doc_wi
 ```
 Expected: 空输出（无空 docPath）。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/doc_wiki/search.rs
@@ -416,7 +416,7 @@ git commit -m "docs(analytics): 回补 doc_wiki/search + 补空 docPath (#fix-an
 
 > **注意变体**：`user.rs` 和 `query.rs` 不是单 struct-pair 文件——它们有 API 容器 struct + builder struct + builder 方法。recipe 仍覆盖（见全局约束表的「API 容器 struct / builder struct / builder 方法」行）。
 
-- [ ] **Step 1: 对每个文件读标题 + 落 doc**
+- [x] **Step 1: 对每个文件读标题 + 落 doc**
 
 **app/create.rs**（标题「创建搜索应用」之类，`head -1` 确认）：
 - Request struct → `/// <标题>请求。`
@@ -458,7 +458,7 @@ git commit -m "docs(analytics): 回补 doc_wiki/search + 补空 docPath (#fix-an
 
 > **执行者责任**：每个文件先 `head -1` 确认 `//!` 标题；若实际标题与本计划措辞不同，**以文件实际标题代入**模板（doc 的具体中文措辞允许微调以匹配标题，但结构/句式必须一致）。
 
-- [ ] **Step 2: 自验 4 文件无 warning**
+- [x] **Step 2: 自验 4 文件无 warning**
 
 Run:
 ```bash
@@ -466,7 +466,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep -E 'search/v2/(app/cr
 ```
 Expected: 空输出。
 
-- [ ] **Step 3: 占位符守门 + fmt**
+- [x] **Step 3: 占位符守门 + fmt**
 
 Run:
 ```bash
@@ -475,7 +475,7 @@ cargo fmt -p openlark-analytics -- --check
 ```
 Expected: 第一条空；第二条无 diff。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/search/search/v2/app/create.rs crates/openlark-analytics/src/search/search/v2/message/create.rs crates/openlark-analytics/src/search/search/v2/user.rs crates/openlark-analytics/src/search/search/v2/query.rs
@@ -486,7 +486,7 @@ git commit -m "docs(analytics): 回补 search-rest 4 文件 missing_docs (#fix-a
 
 #### Task 9: report/{rule/query, rule/view/remove, task/query}
 
-- [ ] **Step 1: 对每个文件读标题 + 落 doc**
+- [x] **Step 1: 对每个文件读标题 + 落 doc**
 
 | 文件 | 标题（已勘探） | Request→doc | Response→doc |
 |------|------|------|------|
@@ -497,7 +497,7 @@ git commit -m "docs(analytics): 回补 search-rest 4 文件 missing_docs (#fix-a
 每文件同规则：Response `data` → `/// 响应数据。`；`new`/`execute`/`execute_with_options` 套模板（execute 用该文件 `<标题>`）；不动 trait impl。
 > `view/remove.rs` 注意：当前无 docPath（只有 `//! 移除规则看板`），保留现状不加 docPath（Design Doc 未要求给 report 加 docPath，只补 doc_wiki/search.rs 那一处空值）。
 
-- [ ] **Step 2: 自验 report 全组无 warning**
+- [x] **Step 2: 自验 report 全组无 warning**
 
 Run:
 ```bash
@@ -505,7 +505,7 @@ cargo doc -p openlark-analytics --all-features 2>&1 | grep 'report/' | grep 'war
 ```
 Expected: 空输出。
 
-- [ ] **Step 3: 占位符守门 + fmt**
+- [x] **Step 3: 占位符守门 + fmt**
 
 Run:
 ```bash
@@ -514,7 +514,7 @@ cargo fmt -p openlark-analytics -- --check
 ```
 Expected: 第一条空；第二条无 diff。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/openlark-analytics/src/report/

@@ -9,9 +9,9 @@
 
 - [x] 2.1 回补 `search/v2/data_source/*`：`create/get/patch/delete/list` + `item/{create,get,delete}`。
 - [x] 2.2 回补 `search/v2/schema/*`：`create/get/patch/delete`。
-- [ ] 2.3 回补 `search/v2/{app/create, message/create, doc_wiki/search, user, query}`；**补全 `doc_wiki/search.rs:2` 空 docPath**。
-- [ ] 2.4 回补 `report/v1/*`：`rule/query`、`rule/view/remove`、`task/query`。
-- [ ] 2.5 逐文件自验：每补完一组运行 `cargo doc -p openlark-analytics --all-features 2>&1 | grep <该组文件>` 无新增 warning。
+- [x] 2.3 回补 `search/v2/{app/create, message/create, doc_wiki/search, user, query}`；**补全 `doc_wiki/search.rs:2` 空 docPath**。
+- [x] 2.4 回补 `report/v1/*`：`rule/query`、`rule/view/remove`、`task/query`。
+- [x] 2.5 逐文件自验：每补完一组运行 `cargo doc -p openlark-analytics --all-features 2>&1 | grep <该组文件>` 无新增 warning。
 
 ## 3. 移除 crate 级抑制
 
