@@ -37,14 +37,9 @@ token = ["auth"]
 # 合规审计
 compliance = ["auth"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-
 # === 功能组合 ===
 # 完整安全功能
-full = ["auth", "acs", "audit", "token", "compliance", "v3"]
+full = ["auth", "acs", "audit", "token", "compliance"]
 
 # 向后兼容别名
 security = ["full"]
