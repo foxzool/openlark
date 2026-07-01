@@ -9,8 +9,8 @@
 
 ## 3. lockfile 与 MSRV 同步
 
-- [ ] 3.1 本地 `cargo update -p bytes -p prost --workspace` 后看 `Cargo.lock` diff，确认 resolved 版本是否变化
-- [ ] 3.2 若变化：同步 `.github/msrv/Cargo.lock` 对应 `[package]` 条目（按 Q1 决策：cp 覆盖或手动精准改），保证 msrv `--locked` 可过
+- [x] 3.1 本地 `cargo update -p bytes -p prost --workspace` 后看 `Cargo.lock` diff，确认 resolved 版本是否变化
+- [x] 3.2 若变化：同步 `.github/msrv/Cargo.lock` 对应 `[package]` 条目（按 Q1 决策：cp 覆盖或手动精准改），保证 msrv `--locked` 可过
 
 ## 4. 验证
 

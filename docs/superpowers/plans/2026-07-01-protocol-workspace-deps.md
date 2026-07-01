@@ -196,7 +196,7 @@ resolved 版本不变（bytes 1.11.1 / prost 0.13.5），Cargo.lock 无变化。
 
 **预期结论：** resolved 版本不变 → Cargo.lock 无变化 → 无需同步 MSRV lockfile。本任务用 `git diff` 证实这一点。
 
-- [ ] **Step 1: 跑 `cargo update -p bytes -p prost --workspace` 触发解析器重新求解**
+- [x] **Step 1: 跑 `cargo update -p bytes -p prost --workspace` 触发解析器重新求解**
 
 ```bash
 cargo update -p bytes -p prost --workspace 2>&1 | tail -10
@@ -204,7 +204,9 @@ cargo update -p bytes -p prost --workspace 2>&1 | tail -10
 
 预期：输出 `Updating`/`Locking` 行数极少或为空（resolved 版本应保持 `bytes 1.11.1` / `prost 0.13.5`）。若输出显示版本变化，**停下来查 Design Doc §2**——可能是 workspace 版本写错（应为 `"1.6"` 而非 `"1.6.0"` / `"0.13"` 而非 `"0.13.1"`）。
 
-- [ ] **Step 2: 确认 Cargo.lock 无变化**
+> **执行结果订正（build 阶段发现）：** `cargo update` 是**错误**的验证手段——它本身会"更新到最新兼容版"（实测把 bytes 1.11.1 → 1.12.0、还移除 itertools 0.14.0），与迁移无关（原 `bytes = "1.6.0"` 同样允许 1.12.0）。已 `git checkout Cargo.lock` 回滚。**正确验证 = `cargo build --locked`**（证明既有 lockfile 仍满足新 Cargo.toml），实测 `Finished` 成功、bytes 仍 1.11.1、prost 仍 0.12.6/0.13.5。结论：**迁移本身不改变 Cargo.lock**。
+
+- [x] **Step 2: 确认 Cargo.lock 无变化**
 
 ```bash
 git diff --stat Cargo.lock
@@ -212,7 +214,7 @@ git diff --stat Cargo.lock
 
 预期：**空输出**（Cargo.lock 未改动）。若 `git diff` 显示了变化，记录是哪些 package 变了版本——这违反了 Design Doc §2 的预期，需要回到 Task 1/2 检查 workspace 版本字符串。
 
-- [ ] **Step 3: 确认 `.github/msrv/Cargo.lock` 无需同步**
+- [x] **Step 3: 确认 `.github/msrv/Cargo.lock` 无需同步**
 
 由于 Step 2 已证明根 `Cargo.lock` 不变，`.github/msrv/Cargo.lock`（pin 的副本）也**无需同步**。明确跳过 tasks.md 3.2 的"若变化"分支（Q1 决议：无需做）。
 
