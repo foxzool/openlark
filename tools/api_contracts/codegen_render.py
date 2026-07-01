@@ -134,8 +134,10 @@ def _render_struct(ir: ApiIR, struct: StructDef, *, force_optional: bool = False
 def _field_lines(field: FieldDef, *, force_optional: bool = False) -> list[str]:
     optional = (not field.required) or force_optional
     out: list[str] = []
-    if field.description:
-        out.append(f"    /// {_oneliner(field.description)}")
+    # 始终生成 doc：有 description 用其摘要，缺失则用字段真实名兜底（D2）。
+    # 守卫 `if field.description else` 避免 _oneliner("") 返回空串导致空 doc 行 `/// `。
+    doc = _oneliner(field.description) if field.description else field.rust_name
+    out.append(f"    /// {doc}")
     if optional:
         out.append('    #[serde(skip_serializing_if = "Option::is_none")]')
     rust_t = _rust_type(field.type_expr, field.required and not force_optional)
