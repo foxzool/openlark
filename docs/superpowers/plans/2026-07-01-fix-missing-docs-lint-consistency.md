@@ -2,6 +2,7 @@
 change: fix-missing-docs-lint-consistency
 design-doc: docs/superpowers/specs/2026-07-01-fix-missing-docs-lint-consistency-design.md
 base-ref: ba071decc3ce472220c876b2bd7d3112a1dc2c72
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
 ---
 
 # fix-missing-docs-lint-consistency 实施计划
@@ -24,6 +25,7 @@ base-ref: ba071decc3ce472220c876b2bd7d3112a1dc2c72
 
 > 这是 small / 零风险变更。改动局限于 1 行 justfile recipe + 1 行 deny 删除 + 1 行死注释删除。每个 Task 独立可测、可提交。
 
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
 ---
 
 ### Task 1: just lint 对齐 CI（D1）
@@ -75,6 +77,7 @@ CI ci.yml:91 RUSTFLAGS=\"-D warnings\" 是事实标准，just recipe 之前带
 -A missing_docs 放过导致本地绿 CI 红。移除后统一到单一治理点。"
 ```
 
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
 ---
 
 ### Task 2: 源码 outlier 清理（D2 + D3，D4 确认保留）
@@ -161,6 +164,7 @@ git commit -m "fix(lint): 移除 security deny/client 死注释，统一回落 w
 - protocol lib.rs:9 item 级 #[allow] 保留（vendored 例外，allowlist 登记）"
 ```
 
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
 ---
 
 ### Task 3: 完整验证（对齐 design 第 5 节测试矩阵）
@@ -227,6 +231,7 @@ git add openspec/changes/fix-missing-docs-lint-consistency/tasks.md
 git commit -m "chore(verify): fix-missing-docs-lint-consistency 全验证通过"
 ```
 
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
 ---
 
 ## Self-Review

@@ -2,6 +2,8 @@
 comet_change: fix-missing-docs-lint-consistency
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-01-fix-missing-docs-lint-consistency
+status: final
 ---
 
 # fix-missing-docs-lint-consistency 技术设计
