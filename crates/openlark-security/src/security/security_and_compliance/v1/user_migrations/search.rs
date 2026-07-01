@@ -1,6 +1,6 @@
 //! 批量获取用户迁移状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/search
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/search>
 //!
 //! 过滤条件在 body，调用方按飞书文档自行构造 JSON 透传。
 

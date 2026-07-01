@@ -1,6 +1,6 @@
 //! 获取单个用户信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/get
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

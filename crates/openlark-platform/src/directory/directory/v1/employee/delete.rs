@@ -1,7 +1,7 @@
 //! 离职员工
 //!
-//! 文档: https://open.feishu.cn/document/directory-v1/employee/delete
-//! docPath: https://open.feishu.cn/document/directory-v1/employee/delete
+//! 文档: <https://open.feishu.cn/document/directory-v1/employee/delete>
+//! docPath: <https://open.feishu.cn/document/directory-v1/employee/delete>
 
 use openlark_core::{
     SDKResult,

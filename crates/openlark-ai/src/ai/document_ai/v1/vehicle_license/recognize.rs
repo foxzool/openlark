@@ -2,7 +2,7 @@
 //!
 //! 识别行驶证信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/vehicle_license_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/vehicle_license_recognize>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -170,7 +170,7 @@ impl VehicleLicenseRecognizeRequestBuilder {
 
 /// 执行行驶证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/vehicle_license_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/vehicle_license_recognize>
 pub async fn vehicle_license_recognize(
     config: &Config,
     body: VehicleLicenseRecognizeBody,

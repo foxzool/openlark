@@ -1,6 +1,6 @@
 //! 获取单个用户迁移状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/get
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

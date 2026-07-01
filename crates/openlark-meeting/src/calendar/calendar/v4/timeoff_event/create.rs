@@ -1,6 +1,6 @@
 //! 创建请假日程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -26,7 +26,7 @@ impl CreateTimeoffEventRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await

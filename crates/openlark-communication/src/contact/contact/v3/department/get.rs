@@ -1,6 +1,6 @@
 //! 获取单个部门信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/get
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -71,7 +71,7 @@ impl GetDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/get>
     pub async fn execute(self) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

@@ -1,6 +1,6 @@
 //! 获取部门信息列表
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list>
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
@@ -97,7 +97,7 @@ impl ListDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list
+    /// docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list>
     pub async fn execute(self) -> SDKResult<DepartmentListResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

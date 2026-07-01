@@ -1,6 +1,6 @@
 //! 将自定义字段加入资源
 //!
-//! docPath: https://open.feishu.cn/document/task-v2/custom_field/add
+//! docPath: <https://open.feishu.cn/document/task-v2/custom_field/add>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{

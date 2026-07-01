@@ -1,5 +1,5 @@
 //! 查询邮箱地址状态
-//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/user/query
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/user/query>
 
 use openlark_core::{
     SDKResult,

@@ -1,6 +1,6 @@
 //! 删除人员自定义组织变更记录
 //!
-//! docPath: https://open.feishu.cn/document/corehr-v1/employee/employee-custom_org/del
+//! docPath: <https://open.feishu.cn/document/corehr-v1/employee/employee-custom_org/del>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

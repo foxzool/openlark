@@ -1,6 +1,6 @@
 //! Bitable 更新表单问题
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

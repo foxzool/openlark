@@ -1,6 +1,6 @@
 //! 获取当前用户的可见性
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-visibility/check
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-visibility/check>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::AILY_V1_AGENT_VISIBILITY_CHECK;

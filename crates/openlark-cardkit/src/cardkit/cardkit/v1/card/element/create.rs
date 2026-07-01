@@ -1,6 +1,6 @@
 //! 新增组件
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card-element/create
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -40,7 +40,7 @@ impl CreateCardElementRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/create
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/create>
     pub async fn execute(
         self,
         body: CreateCardElementBody,
@@ -51,7 +51,7 @@ impl CreateCardElementRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/create
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/create>
     pub async fn execute_with_options(
         self,
         body: CreateCardElementBody,
@@ -115,7 +115,7 @@ impl CreateCardElementRequestBuilder {
 
 /// 执行请求
 ///
-/// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/create
+/// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/create>
 pub async fn create(
     config: &Config,
     body: CreateCardElementBody,
@@ -125,7 +125,7 @@ pub async fn create(
 
 /// 执行请求（支持自定义选项）
 ///
-/// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/create
+/// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/create>
 pub async fn create_with_options(
     config: &Config,
     body: CreateCardElementBody,

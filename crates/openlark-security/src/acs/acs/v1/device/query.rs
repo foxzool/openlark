@@ -1,6 +1,6 @@
 //! 查询设备信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/query
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/device/query>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

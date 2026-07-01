@@ -1,6 +1,6 @@
 //! 批量获取脱敏的用户登录信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/query
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/query>
 
 use crate::common::api_endpoints::PassportApiV1;
 use openlark_core::{

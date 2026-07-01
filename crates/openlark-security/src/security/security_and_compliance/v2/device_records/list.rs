@@ -1,6 +1,6 @@
 //! 查询设备信息列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-list
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

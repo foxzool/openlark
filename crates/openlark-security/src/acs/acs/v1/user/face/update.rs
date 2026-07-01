@@ -1,6 +1,6 @@
 //! 上传用户人脸图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/user/face/update
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/face/update>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

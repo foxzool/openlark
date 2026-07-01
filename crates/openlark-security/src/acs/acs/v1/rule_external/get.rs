@@ -1,6 +1,6 @@
 //! 获取权限组信息
 //!
-//! docPath: https://open.feishu.cn/document/acs-v1/rule_external/get
+//! docPath: <https://open.feishu.cn/document/acs-v1/rule_external/get>
 //!
 //! 文档核对：`GET /open-apis/acs/v1/rule_external?device_id={device_id}&user_id_type={...}`。
 //! 查询参数为 `device_id`（必填）+ `user_id_type`（可选），无 body。

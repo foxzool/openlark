@@ -1,6 +1,6 @@
 //! 更新设备
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/device/update
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/device/update>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

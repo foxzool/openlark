@@ -1,6 +1,6 @@
 //! 获取门禁记录列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/access_record/list
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/access_record/list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

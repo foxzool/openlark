@@ -1,6 +1,6 @@
 //! 设置父任务。
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task/set_ancestor_task
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task/set_ancestor_task>
 
 use crate::common::{TaskV2Endpoint, api_utils::*};
 use openlark_core::{

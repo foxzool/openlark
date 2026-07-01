@@ -1,6 +1,6 @@
 //! 批量删除白板节点。
 //!
-//! docPath: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/board-v1/whiteboard-node/batch_delete
+//! docPath: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/board-v1/whiteboard-node/batch_delete>
 
 use crate::common::{BoardV1Endpoint, api_utils::*};
 use openlark_core::{

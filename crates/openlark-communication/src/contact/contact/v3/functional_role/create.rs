@@ -1,6 +1,6 @@
 //! 创建角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -34,7 +34,7 @@ impl CreateFunctionalRoleRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role/create>
     pub async fn execute(
         self,
         body: CreateFunctionalRoleBody,

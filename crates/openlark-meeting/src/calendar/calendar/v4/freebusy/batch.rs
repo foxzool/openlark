@@ -1,6 +1,6 @@
 //! 批量查询主日历日程忙闲信息
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar/batch
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar/batch>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -26,7 +26,7 @@ impl BatchFreebusyRequest {
     /// 执行请求
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar/batch
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar/batch>
     pub async fn execute(self, body: BatchFreebusyRequestBody) -> SDKResult<BatchFreebusyResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await

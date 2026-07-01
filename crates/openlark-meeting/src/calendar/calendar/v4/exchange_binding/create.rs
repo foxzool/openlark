@@ -1,6 +1,6 @@
 //! 将 Exchange 账户绑定到飞书账户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -27,7 +27,7 @@ impl CreateExchangeBindingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/create>
     pub async fn execute(
         self,
         body: CreateExchangeBindingRequestBody,

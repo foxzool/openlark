@@ -2,7 +2,7 @@
 //!
 //! 下载导出的文件内容。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/download
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/download>
 
 use crate::common::api_endpoints::DriveApi;
 use openlark_core::{

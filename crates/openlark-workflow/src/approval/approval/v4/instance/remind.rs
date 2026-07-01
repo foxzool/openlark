@@ -1,6 +1,6 @@
 //! 单据催办（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/remind
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/remind>
 
 use openlark_core::{
     SDKResult,

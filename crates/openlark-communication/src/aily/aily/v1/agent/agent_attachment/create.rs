@@ -1,6 +1,6 @@
 //! 上传附件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-attachment/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-attachment/create>
 
 use crate::common::api_utils::{extract_response_data, serialize_params};
 use crate::endpoints::AILY_V1_AGENT_ATTACHMENTS;

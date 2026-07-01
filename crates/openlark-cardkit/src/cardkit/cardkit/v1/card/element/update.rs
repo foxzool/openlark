@@ -1,6 +1,6 @@
 //! 更新组件
 //!
-//! docPath: https://open.feishu.cn/document/cardkit-v1/card-element/update
+//! docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/update>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -46,7 +46,7 @@ impl UpdateCardElementRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/update>
     pub async fn execute(
         self,
         body: UpdateCardElementBody,
@@ -57,7 +57,7 @@ impl UpdateCardElementRequest {
 
     /// 执行请求（支持自定义选项）
     ///
-    /// docPath: https://open.feishu.cn/document/cardkit-v1/card-element/update
+    /// docPath: <https://open.feishu.cn/document/cardkit-v1/card-element/update>
     pub async fn execute_with_options(
         self,
         body: UpdateCardElementBody,

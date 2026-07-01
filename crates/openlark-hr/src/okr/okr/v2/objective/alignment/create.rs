@@ -1,6 +1,6 @@
 //! 创建目标对齐关系
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/objective.alignment/create
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective.alignment/create>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

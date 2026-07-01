@@ -1,6 +1,6 @@
 //! 查询日历列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2>
 
 use openlark_core::{
     SDKResult,
@@ -83,7 +83,7 @@ impl ListCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2>
     pub async fn execute(self) -> SDKResult<ListCalendarResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -1,6 +1,6 @@
 //! 拒绝审批任务（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/refuse
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/refuse>
 
 use openlark_core::{
     SDKResult,

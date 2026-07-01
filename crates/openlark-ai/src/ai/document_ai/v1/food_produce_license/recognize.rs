@@ -2,7 +2,7 @@
 //!
 //! 识别食品生产许可证信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/food_produce_license_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/food_produce_license_recognize>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -161,7 +161,7 @@ impl FoodProduceLicenseRecognizeRequestBuilder {
 
 /// 执行食品生产许可证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/food_produce_license_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/food_produce_license_recognize>
 pub async fn food_produce_license_recognize(
     config: &Config,
     body: FoodProduceLicenseRecognizeBody,

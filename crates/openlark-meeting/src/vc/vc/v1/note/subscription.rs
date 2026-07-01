@@ -1,6 +1,6 @@
 //! 订阅纪要变更事件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/vc-v1/notes/subscription
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/vc-v1/notes/subscription>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

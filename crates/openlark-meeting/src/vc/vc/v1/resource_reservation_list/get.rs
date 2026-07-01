@@ -1,6 +1,6 @@
 //! 查询会议室预定数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-4
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-4>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -32,7 +32,7 @@ impl GetResourceReservationListRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-4
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/meeting-room-data/get-4>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

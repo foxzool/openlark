@@ -1,6 +1,6 @@
 //! 获取关键结果的量化指标
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/key_result.indicator/get
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result.indicator/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

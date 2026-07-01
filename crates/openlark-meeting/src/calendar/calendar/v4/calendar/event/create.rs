@@ -1,6 +1,6 @@
 //! 创建日程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create>
 
 use openlark_core::{
     SDKResult,
@@ -54,7 +54,7 @@ impl CreateCalendarEventRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateCalendarEventResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await

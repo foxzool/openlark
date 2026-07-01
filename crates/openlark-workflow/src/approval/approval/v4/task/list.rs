@@ -1,6 +1,6 @@
 //! 查询审批任务列表（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/list>
 
 use openlark_core::{
     SDKResult,

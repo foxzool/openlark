@@ -1,6 +1,6 @@
 //! 发起流程
 //!
-//! docPath: https://open.feishu.cn/document/corehr-v1/process-form_variable_data/process-instance/create
+//! docPath: <https://open.feishu.cn/document/corehr-v1/process-form_variable_data/process-instance/create>
 
 use openlark_core::{
     SDKResult,

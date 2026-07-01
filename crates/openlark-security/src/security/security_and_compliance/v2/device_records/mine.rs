@@ -1,6 +1,6 @@
 //! 获取我的设备认证信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-mine
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-mine>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

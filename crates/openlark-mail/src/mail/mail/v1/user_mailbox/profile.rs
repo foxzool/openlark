@@ -1,6 +1,6 @@
 //! 获取用户邮箱信息
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/mail-v1/user_mailbox/profile
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/mail-v1/user_mailbox/profile>
 
 use openlark_core::{
     SDKResult,

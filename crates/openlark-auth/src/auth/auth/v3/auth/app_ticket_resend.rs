@@ -1,8 +1,8 @@
 //! 重新获取 app_ticket API
-//! docPath: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_ticket_resend
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_ticket_resend>
 use crate::models::auth::{AppTicketResendRequest, AppTicketResponse};
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/app-ticket/app_ticket_resend
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/app-ticket/app_ticket_resend>
 ///
 /// 飞书每隔 1 小时会给应用推送一次最新的 app_ticket，应用也可以主动调用此接口，
 /// 触发飞书进行及时的重新推送。（该接口并不能直接获取app_ticket，而是触发事件推送）

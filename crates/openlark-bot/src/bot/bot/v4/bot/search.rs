@@ -1,6 +1,6 @@
 //! 搜索机器人
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/bot-v4/bot/search
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/bot-v4/bot/search>
 
 use openlark_core::{
     SDKResult,

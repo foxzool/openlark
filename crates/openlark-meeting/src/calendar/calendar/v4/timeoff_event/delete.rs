@@ -1,6 +1,6 @@
 //! 删除请假日程
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -32,7 +32,7 @@ impl DeleteTimeoffEventRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/timeoff_event/delete>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }

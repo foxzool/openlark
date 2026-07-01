@@ -1,6 +1,6 @@
 //! 取消用户迁移
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/cancel
+//! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v1/user_migration/cancel>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

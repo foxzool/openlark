@@ -1,6 +1,6 @@
 //! 获取任务详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/get>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::task::models::GetTaskResponse;

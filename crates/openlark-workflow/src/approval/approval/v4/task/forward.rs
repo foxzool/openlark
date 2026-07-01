@@ -1,6 +1,6 @@
 //! 转交审批任务（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/forward
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/forward>
 
 use openlark_core::{
     SDKResult,

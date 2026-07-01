@@ -1,5 +1,5 @@
 //! 删除邮件组别名
-//! docPath: https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete>
 
 use openlark_core::{
     SDKResult,

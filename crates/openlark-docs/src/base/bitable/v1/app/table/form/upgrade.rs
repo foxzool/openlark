@@ -1,6 +1,6 @@
 //! 升级旧版表单
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-form/upgrade
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-form/upgrade>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},

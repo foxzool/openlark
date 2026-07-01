@@ -1,7 +1,7 @@
 //! 获取自定义枚举详细信息
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums/:enum_name
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-enum/enum_get
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-enum/enum_get>
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums/:enum_name
 

@@ -1,6 +1,6 @@
 //! 获取群成员列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-member/get
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -61,7 +61,7 @@ impl GetChatMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-member/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-member/get>
     pub async fn execute(self) -> SDKResult<ListChatMembersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

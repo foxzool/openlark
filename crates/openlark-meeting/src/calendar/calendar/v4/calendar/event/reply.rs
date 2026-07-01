@@ -1,6 +1,6 @@
 //! 回复日程
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar-event/reply
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event/reply>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -45,7 +45,7 @@ impl ReplyCalendarEventRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar-event/reply
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event/reply>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await

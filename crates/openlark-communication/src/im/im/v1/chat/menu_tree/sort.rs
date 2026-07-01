@@ -1,6 +1,6 @@
 //! 排序群菜单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat-menu_tree/sort
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat-menu_tree/sort>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -37,7 +37,7 @@ impl SortChatMenuTreeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat-menu_tree/sort
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat-menu_tree/sort>
     pub async fn execute(self, body: ChatMenuTopLevelIdsBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

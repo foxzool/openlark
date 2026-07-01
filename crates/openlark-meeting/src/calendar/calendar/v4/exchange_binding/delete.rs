@@ -1,6 +1,6 @@
 //! 解除 Exchange 账户绑定
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -32,7 +32,7 @@ impl DeleteExchangeBindingRequest {
     }
 
     /// 执行请求
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete>
     pub async fn execute(self) -> SDKResult<DeleteExchangeBindingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }

@@ -1,6 +1,6 @@
 //! 查询用户的已发起审批列表（用户级，v4）
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/initiated
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/initiated>
 
 use openlark_core::{
     SDKResult,

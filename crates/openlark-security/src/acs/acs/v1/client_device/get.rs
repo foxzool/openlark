@@ -1,6 +1,6 @@
 //! 获取客户端设备认证信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/acs-v1/client_device/get
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/client_device/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,

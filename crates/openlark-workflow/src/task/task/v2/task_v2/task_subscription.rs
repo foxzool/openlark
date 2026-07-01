@@ -1,6 +1,6 @@
 //! 订阅任务变更事件。
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task_v2/task_subscription
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task_v2/task_subscription>
 
 use crate::common::{TaskV2Endpoint, api_utils::*};
 use openlark_core::{

@@ -1,6 +1,6 @@
 //! 获取单个工作城市信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/work_city/get
+//! docPath: <https://open.feishu.cn/document/contact-v3/work_city/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -36,7 +36,7 @@ impl GetWorkCityRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/work_city/get
+    /// docPath: <https://open.feishu.cn/document/contact-v3/work_city/get>
     pub async fn execute(self) -> SDKResult<WorkCityResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await

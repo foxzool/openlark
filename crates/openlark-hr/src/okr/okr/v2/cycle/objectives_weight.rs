@@ -1,6 +1,6 @@
 //! 修改 OKR 目标权重
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/okr-v2/cycle/update
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/cycle/update>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

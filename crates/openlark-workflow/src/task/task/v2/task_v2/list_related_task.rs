@@ -1,6 +1,6 @@
 //! 列取与我相关的任务。
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task_v2/list_related_task
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task_v2/list_related_task>
 
 use crate::common::{TaskV2Endpoint, api_utils::*};
 use openlark_core::{

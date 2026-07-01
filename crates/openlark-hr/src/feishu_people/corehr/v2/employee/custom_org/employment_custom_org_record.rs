@@ -1,6 +1,6 @@
 //! 批量查询人员自定义组织变更记录
 //!
-//! docPath: https://open.feishu.cn/document/corehr-v1/employee/employee-custom_org/employment_custom_org_record
+//! docPath: <https://open.feishu.cn/document/corehr-v1/employee/employee-custom_org/employment_custom_org_record>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,

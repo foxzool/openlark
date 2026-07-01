@@ -1,6 +1,6 @@
 //! 删除自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/delete>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::custom_field::models::DeleteCustomFieldResponse;

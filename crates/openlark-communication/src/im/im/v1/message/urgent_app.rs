@@ -1,6 +1,6 @@
 //! 发送应用内加急
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app>
 
 use openlark_core::{
     SDKResult,
@@ -121,7 +121,7 @@ impl UrgentAppRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app>
     pub async fn execute(self, body: UrgentAppBody) -> SDKResult<UrgentAppResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await

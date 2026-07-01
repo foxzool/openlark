@@ -1,6 +1,6 @@
 //! 获取会话结果
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-chat/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-chat/get>
 
 use crate::common::api_utils::extract_response_data;
 use crate::endpoints::AILY_V1_AGENT_CHAT;

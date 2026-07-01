@@ -1,6 +1,6 @@
 //! 查询指定用户组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/get
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/get>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
@@ -75,7 +75,7 @@ impl GetGroupRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/get>
     pub async fn execute(self) -> SDKResult<GetGroupResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
