@@ -24,4 +24,5 @@ prost-build = "0.12.6"
 
 
 [package.metadata.cargo-machete]
+# bytes 仅由 prost 生成的代码间接使用（src/ 无直接 use），cargo-machete 会误报为未用，故 ignored
 ignored = ["bytes"]

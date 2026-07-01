@@ -10,6 +10,7 @@
 ## 3. lockfile 与 MSRV 同步
 
 - [x] 3.1 本地 `cargo update -p bytes -p prost --workspace` 后看 `Cargo.lock` diff，确认 resolved 版本是否变化
+  - **执行订正**：`cargo update` 自身会 bump 版本（实测 bytes 1.11.1→1.12.0），是错误验证手段；改用 `cargo build --locked` 证明既有 lockfile 满足新 Cargo.toml。详见 plan Task 3 Step 1 订正段
 - [x] 3.2 若变化：同步 `.github/msrv/Cargo.lock` 对应 `[package]` 条目（按 Q1 决策：cp 覆盖或手动精准改），保证 msrv `--locked` 可过
 
 ## 4. 验证
