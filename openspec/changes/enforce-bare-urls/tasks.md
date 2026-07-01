@@ -9,7 +9,7 @@
 - [x] 2.1 写脚本（sed 或小 Python）包裹 `//!` 行内的裸 `https://`/`http://` token 为 `<...>`，处理：行尾 URL、同一行多 URL、`docPath:` 与 `文档:` 两类标签
 - [x] 2.2 跑脚本修全 workspace（16 crate）
 - [x] 2.3 闭环验证：`cargo doc --workspace --all-features 2>&1 | grep -c bare_urls` = **0**
-- [ ] 2.4 `git diff` 抽样人工核对（重点：77 处手写 `文档:` URL、多 URL 行、非 URL 尾随文本未被误伤）
+- [x] 2.4 `git diff` 抽样人工核对（重点：77 处手写 `文档:` URL、多 URL 行、非 URL 尾随文本未被误伤）
 
 ## 3. workspace 级 bare_urls deny（D3）
 
