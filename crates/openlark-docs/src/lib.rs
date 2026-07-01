@@ -106,11 +106,6 @@ pub mod baike;
 /// 会议纪要模块。
 pub mod minutes;
 
-// API版本模块
-#[cfg(any(feature = "v1", feature = "v2", feature = "v3"))]
-/// 版本兼容入口模块。
-pub mod versions;
-
 // 通用模块 - 工具宏和类型
 /// 通用工具、链式 helper 与端点定义。
 pub mod common;
