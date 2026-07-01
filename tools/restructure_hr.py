@@ -43,7 +43,7 @@ def generate_api_file_content(biz_tag: str, project: str, version: str,
 
     content = f'''//! {api_name}
 //!
-//! docPath: {doc_path}
+//! docPath: <{doc_path}>
 
 use openlark_core::{{
     api::{{ApiRequest, ApiResponseTrait, ResponseFormat}},

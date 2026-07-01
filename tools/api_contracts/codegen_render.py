@@ -70,7 +70,7 @@ def _module_doc(ir: ApiIR) -> str:
     return (
         f"//! {ir.name}\n"
         f"//!\n"
-        f"//! docPath: {ir.doc_path}\n"
+        f"//! docPath: <{ir.doc_path}>\n"
         f"//!\n"
         f"//! {CODEGEN_MARKER}（风格 A）。手工修改将在下次生成时覆盖。"
     )
