@@ -533,42 +533,42 @@ git commit -m "docs(hr): hr 占位→有义 doc (41)"
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Placeholder gate — all 5 crates have zero of either placeholder string**
+- [x] **Step 1: Placeholder gate — all 5 crates have zero of either placeholder string**
 
 Run: `grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-{mail,workflow,meeting,user,hr}/src/`
 Expected: no output (empty). If any line remains, identify which group missed it and send a fix patch to that group's implementer.
 
-- [ ] **Step 2: Position gate — no struct doc sits after a derive in any of the 5 crates**
+- [x] **Step 2: Position gate — no struct doc sits after a derive in any of the 5 crates**
 
 Run: `grep -rnE -A1 '^#\[derive' crates/openlark-{mail,workflow,meeting,user,hr}/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 3: Full workspace doc — missing_docs = 0**
+- [x] **Step 3: Full workspace doc — missing_docs = 0**
 
 Run: `cargo doc --workspace --all-features --no-deps 2>&1 | grep -E "missing_docs|warning: unresolved" || echo "clean"`
 Expected: `clean`.
 
-- [ ] **Step 4: Format check**
+- [x] **Step 4: Format check**
 
 Run: `cargo fmt --check`
 Expected: exit 0, no diff output. (If diff appears, a group committed unformatted doc — run `cargo fmt` on the affected crate(s) and amend.)
 
-- [ ] **Step 5: Lint (both CI lint paths)**
+- [x] **Step 5: Lint (both CI lint paths)**
 
 Run: `just lint`
 Expected: exit 0. (CI lint runs `clippy --workspace --all-targets --no-default-features` as well as the default-features path; `just lint` must pass for both. This change writes no code, so any lint failure is pre-existing and should be reported, not fixed here.)
 
-- [ ] **Step 6: 5 crate tests not broken**
+- [x] **Step 6: 5 crate tests not broken**
 
 Run: `cargo test -p openlark-mail -p openlark-workflow -p openlark-meeting -p openlark-user -p openlark-hr`
 Expected: all tests pass (same pass/fail count as before this change — this change writes no code, so tests must be unchanged). If a test was already failing before this change, report it as pre-existing; do not fix.
 
-- [ ] **Step 7: Final sanity — total placeholder count across all 5 crates = 0**
+- [x] **Step 7: Final sanity — total placeholder count across all 5 crates = 0**
 
 Run: `grep -rc '/// 待补充文档。' crates/openlark-{mail,workflow,meeting,user,hr}/src/ | grep -v ':0$' | wc -l`
 Expected: `0`.
 
-- [ ] **Step 8: Cross-crate named-field consistency spot-check**
+- [x] **Step 8: Cross-crate named-field consistency spot-check**
 
 Run these and confirm same Chinese across crates:
 - `items` (workflow + hr): `grep -rn '/// 列表项。' crates/openlark-{workflow,hr}/src/ | wc -l` — should match the field count, all using "列表项".
