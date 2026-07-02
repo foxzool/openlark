@@ -39,7 +39,11 @@ These apply to every task; copy values verbatim:
 | `fn new` | `创建请求实例。` | `pub fn new` |
 | `fn execute` | `执行<API>请求。` | `pub async fn execute` |
 | `fn execute_with_options` | `带自定义请求选项执行。` | `pub async fn execute_with_options` |
+| `fn <field>` (builder setter) | `设置<字段中文名>。` | `pub fn <field>(mut self, ... -> Self)`（如 `app_id`/`badge`/`new_owner_id`） |
+| `fn <api>` (mod.rs request factory) | `返回<API>请求构建器。` | `pub fn <api>(&self) -> ...Request`（mod.rs 门面方法，如 `get`） |
 | module | `<子模块 API 说明>。` | `pub mod` |
+
+> **Spec Patch (2026-07-02)：** G1 发现 4 个 fn 占位不属于 new/execute/execute_with_options——3 个 builder setter（`app_id`/`badge`/`new_owner_id`）+ 1 个 mod.rs request factory（v6/app/mod.rs `get`）。新增上 2 行覆盖。setter 仅 4 处，factory 仅 1 处，均为有界 outlier。
 
 API 中文名 取自文件第一行 `//! ...` 头（去掉版本前缀，翻译成中文动词+宾语）。
 

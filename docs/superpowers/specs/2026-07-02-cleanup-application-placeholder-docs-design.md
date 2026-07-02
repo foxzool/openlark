@@ -33,6 +33,8 @@ canonical_spec: openspec
 | `fn new` | `创建请求实例。` | 占位下一条是 `pub fn new` |
 | `fn execute` | `执行<API>请求。` | 占位下一条是 `pub async fn execute` |
 | `fn execute_with_options` | `带自定义请求选项执行。` | 占位下一条是 `pub async fn execute_with_options` |
+| `fn <field>`（builder setter） | `设置<字段中文名>。` | 占位下一条是 `pub fn <field>(mut self, ... -> Self)`（outlier，仅 3 处：app_id/badge/new_owner_id） |
+| `fn <api>`（mod.rs 门面） | `返回<API>请求构建器。` | 占位下一条是 `pub fn <api>(&self) -> ...Request`（outlier，仅 1 处：v6/app/mod.rs get） |
 | module | `<子模块 API 说明>。` | 占位下一条是 `pub mod` |
 
 named field（17 个）翻译表由 implementer 读字段名按飞书常识填写（如 `app_id`→应用 ID、`app_name`→应用名称、`contacts_range`→通讯录范围、`badge`→徽标）。
