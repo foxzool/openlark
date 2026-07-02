@@ -11,20 +11,18 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 查询指定时间范围公司版本请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
-/// 待补充文档。
 pub struct QueryMultiTimelineBody {
-    /// 待补充文档。
+    /// 开始日期。
     pub from_date: Option<String>,
-    /// 待补充文档。
+    /// 结束日期。
     pub to_date: Option<String>,
 }
+/// 查询指定时间范围公司版本的响应。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
-/// 待补充文档。
 pub struct QueryMultiTimelineResponse {
-    /// 待补充文档。
+    /// 列表项。
     pub items: Vec<serde_json::Value>,
 }
 impl ApiResponseTrait for QueryMultiTimelineResponse {
@@ -32,33 +30,32 @@ impl ApiResponseTrait for QueryMultiTimelineResponse {
         ResponseFormat::Data
     }
 }
-/// 待补充文档。
+/// 查询指定时间范围公司版本的请求。
 #[derive(Debug, Clone)]
 pub struct QueryMultiTimelineRequest {
     config: Arc<Config>,
     body: QueryMultiTimelineBody,
 }
-/// 待补充文档。
-/// 待补充文档。
+/// 查询指定时间范围公司版本请求构建器实现。
 impl QueryMultiTimelineRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
             body: QueryMultiTimelineBody::default(),
         }
     }
-    /// 待补充文档。
+    /// 设置请求体。
     pub fn body(mut self, body: QueryMultiTimelineBody) -> Self {
         self.body = body;
         self
     }
-    /// 待补充文档。
+    /// 执行查询指定时间范围公司版本请求。
     pub async fn execute(self) -> SDKResult<QueryMultiTimelineResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
     }
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,

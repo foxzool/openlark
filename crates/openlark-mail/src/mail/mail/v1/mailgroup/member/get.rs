@@ -11,18 +11,18 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 查询指定邮件组成员的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct GetMailGroupMemberRequest {
     config: Arc<Config>,
     mailgroup_id: String,
     member_id: String,
 }
 
+/// 查询指定邮件组成员的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct GetMailGroupMemberResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -33,7 +33,7 @@ impl ApiResponseTrait for GetMailGroupMemberResponse {
 }
 
 impl GetMailGroupMemberRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(
         config: Arc<Config>,
         mailgroup_id: impl Into<String>,
@@ -46,12 +46,12 @@ impl GetMailGroupMemberRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行查询指定邮件组成员请求。
     pub async fn execute(self) -> SDKResult<GetMailGroupMemberResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

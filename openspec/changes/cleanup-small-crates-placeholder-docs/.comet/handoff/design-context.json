@@ -1,0 +1,14 @@
+{
+  "change": "cleanup-small-crates-placeholder-docs",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "8f3dce305ad6118e227cf2e19be08298ec940297d65e90aa976895b4cfe0f781",
+  "files": [
+    { "path": "openspec/changes/cleanup-small-crates-placeholder-docs/proposal.md", "sha256": "f32e07c46221062dfb6f4c9fdc479e2ab3903af2bc6bac13011e7c8c9e91a943" },
+    { "path": "openspec/changes/cleanup-small-crates-placeholder-docs/design.md", "sha256": "0f9d5c953a320f70d460f9d5410c6dbf42c0ad800bf20e951047eea31ca18eb5" },
+    { "path": "openspec/changes/cleanup-small-crates-placeholder-docs/tasks.md", "sha256": "309e3291f3b261ea21a2b2b471a25b81f5ef88cc868c82b2ab86e76bc13a1e32" },
+    { "path": "openspec/changes/cleanup-small-crates-placeholder-docs/specs/missing-docs-quality/spec.md", "sha256": "c6357d695ca21424905a1b56a5ec18641bccd0fdc6b2e2a209f6c0a78635ceef" }
+  ]
+}

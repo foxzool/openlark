@@ -25,7 +25,7 @@ pub struct UnsubscribeApprovalRequestV4 {
 }
 
 impl UnsubscribeApprovalRequestV4 {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,

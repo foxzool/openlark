@@ -18,20 +18,20 @@ impl ApiResponseTrait for CreateRoomResponse {
     }
 }
 
+/// 会议室响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct GetRoomResponse {
-    /// 待补充文档。
+    /// 会议室 ID。
     pub room_id: String,
-    /// 待补充文档。
+    /// 会议室名称。
     pub room_name: String,
-    /// 待补充文档。
+    /// 描述。
     pub description: Option<String>,
-    /// 待补充文档。
+    /// 容量。
     pub capacity: u32,
-    /// 待补充文档。
+    /// 设备列表。
     pub devices: Option<Vec<DeviceInfo>>,
-    /// 待补充文档。
+    /// 状态。
     pub status: String,
 }
 
@@ -41,14 +41,14 @@ impl ApiResponseTrait for GetRoomResponse {
     }
 }
 
+/// 会议室设备信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct DeviceInfo {
-    /// 待补充文档。
+    /// 设备 ID。
     pub device_id: String,
-    /// 待补充文档。
+    /// 设备名称。
     pub device_name: String,
-    /// 待补充文档。
+    /// 设备类型。
     pub device_type: String,
 }
 

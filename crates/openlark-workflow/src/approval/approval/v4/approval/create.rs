@@ -36,7 +36,7 @@ pub struct CreateApprovalRequestV4 {
 }
 
 impl CreateApprovalRequestV4 {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,

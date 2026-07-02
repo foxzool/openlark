@@ -2,5 +2,5 @@
 
 #![allow(clippy::module_inception)]
 
-/// 待补充文档。
+/// 审批应用 v4 相关 API。
 pub mod v4;

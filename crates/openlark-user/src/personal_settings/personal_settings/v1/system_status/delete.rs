@@ -12,17 +12,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 删除系统状态的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct SystemStatusDeleteRequest {
     config: Arc<Config>,
     status_id: String,
 }
 
+/// 删除系统状态的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct SystemStatusDeleteResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -33,7 +33,7 @@ impl ApiResponseTrait for SystemStatusDeleteResponse {
 }
 
 impl SystemStatusDeleteRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -41,18 +41,18 @@ impl SystemStatusDeleteRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 设置状态 ID。
     pub fn status_id(mut self, status_id: impl Into<String>) -> Self {
         self.status_id = status_id.into();
         self
     }
 
-    /// 待补充文档。
+    /// 执行删除系统状态请求。
     pub async fn execute(self) -> SDKResult<SystemStatusDeleteResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

@@ -11,47 +11,47 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 区划基础信息。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-/// 待补充文档。
 pub struct DistrictBaseInfo {
-    /// 待补充文档。
+    /// ID。
     pub id: String,
-    /// 待补充文档。
+    /// 名称。
     pub name: String,
-    /// 待补充文档。
+    /// 层级。
     pub level: String,
 }
 
+/// 区划项。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-/// 待补充文档。
 pub struct DistrictItem {
-    /// 待补充文档。
+    /// ID。
     pub id: String,
-    /// 待补充文档。
+    /// 名称。
     pub name: String,
-    /// 待补充文档。
+    /// 层级。
     pub level: String,
     #[serde(default)]
-    /// 待补充文档。
+    /// 是否含下级区划。
     pub has_sub_district: bool,
     #[serde(default)]
-    /// 待补充文档。
+    /// 上级区划。
     pub parent_districts: Vec<DistrictBaseInfo>,
 }
 
+/// 查询区划列表的响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-/// 待补充文档。
 pub struct ListDistrictsResponse {
-    /// 待补充文档。
+    /// 版本。
     pub version: String,
     #[serde(default)]
-    /// 待补充文档。
+    /// 是否有更多。
     pub has_more: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 待补充文档。
+    /// 分页标记。
     pub page_token: Option<String>,
     #[serde(default)]
-    /// 待补充文档。
+    /// 列表项。
     pub items: Vec<DistrictItem>,
 }
 
@@ -61,8 +61,8 @@ impl ApiResponseTrait for ListDistrictsResponse {
     }
 }
 
+/// 查询区划列表的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct ListDistrictsRequest {
     config: Arc<Config>,
     page_size: Option<i32>,
@@ -73,7 +73,7 @@ pub struct ListDistrictsRequest {
 }
 
 impl ListDistrictsRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -84,37 +84,37 @@ impl ListDistrictsRequest {
             locale: None,
         }
     }
-    /// 待补充文档。
+    /// 设置分页大小。
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
     }
-    /// 待补充文档。
+    /// 设置分页标记。
     pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
         self.page_token = Some(page_token.into());
         self
     }
-    /// 待补充文档。
+    /// 设置根区划 ID。
     pub fn root_district_id(mut self, root_district_id: impl Into<String>) -> Self {
         self.root_district_id = Some(root_district_id.into());
         self
     }
-    /// 待补充文档。
+    /// 设置列表类型。
     pub fn list_type(mut self, list_type: impl Into<String>) -> Self {
         self.list_type = Some(list_type.into());
         self
     }
-    /// 待补充文档。
+    /// 设置语言。
     pub fn locale(mut self, locale: impl Into<String>) -> Self {
         self.locale = Some(locale.into());
         self
     }
-    /// 待补充文档。
+    /// 执行查询区划列表请求。
     pub async fn execute(self) -> SDKResult<ListDistrictsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
     }
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,

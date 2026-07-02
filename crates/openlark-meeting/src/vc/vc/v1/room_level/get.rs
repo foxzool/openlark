@@ -35,7 +35,7 @@ pub struct GetRoomLevelResponse {
     pub name: String,
     /// 容量范围
     pub capacity_min: Option<i32>,
-    /// 待补充文档。
+    /// 最大容量。
     pub capacity_max: Option<i32>,
 }
 

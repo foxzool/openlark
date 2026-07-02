@@ -11,8 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取附件下载链接的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct GetAttachmentDownloadUrlRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
@@ -20,10 +20,10 @@ pub struct GetAttachmentDownloadUrlRequest {
     attachment_id: String,
 }
 
+/// 获取附件下载链接的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct GetAttachmentDownloadUrlResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<DownloadUrlData>,
 }
 
@@ -33,17 +33,17 @@ impl ApiResponseTrait for GetAttachmentDownloadUrlResponse {
     }
 }
 
+/// 附件下载链接数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct DownloadUrlData {
-    /// 待补充文档。
+    /// 下载地址。
     pub download_url: String,
-    /// 待补充文档。
+    /// 过期时间。
     pub expire_time: String,
 }
 
 impl GetAttachmentDownloadUrlRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(
         config: Arc<Config>,
         user_mailbox_id: impl Into<String>,
@@ -58,12 +58,12 @@ impl GetAttachmentDownloadUrlRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行获取附件下载链接请求。
     pub async fn execute(self) -> SDKResult<GetAttachmentDownloadUrlResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
