@@ -104,7 +104,7 @@ The base path prefix for every file below is `crates/openlark-application/src/ap
 
 **Why pilot first:** 578-site mechanical batch is high-risk for偷懒 (lazy/generic doc). One file proves the recipe produces real, per-item doc and the struct swap is clean before committing to the batch.
 
-- [ ] **Step 1: Read the pilot file and its `//!` header**
+- [x] **Step 1: Read the pilot file and its `//!` header**
 
 Run: `cat crates/openlark-application/src/application/application/v6/app/create.rs`
 Header is `//! app create` → API 中文名 = "创建应用".
@@ -116,7 +116,7 @@ Expected placeholders (6, all confirmed by exploration):
 - `fn execute` → `执行创建应用请求。`, in place.
 - `fn execute_with_options` → `带自定义请求选项执行。`, in place.
 
-- [ ] **Step 2: Apply the 6 edits**
+- [x] **Step 2: Apply the 6 edits**
 
 For the 2 structs, swap doc above derive AND fill recipe text:
 
@@ -133,22 +133,22 @@ pub struct CreateAppResponse {
 
 For the field `data` and the 3 fns, replace text in place (`响应数据。`, `创建请求实例。`, `执行创建应用请求。`, `带自定义请求选项执行。`).
 
-- [ ] **Step 3: Self-verify — pilot file has zero placeholders**
+- [x] **Step 3: Self-verify — pilot file has zero placeholders**
 
 Run: `grep -n '/// 待补充文档。' crates/openlark-application/src/application/application/v6/app/create.rs`
 Expected: no output (empty).
 
-- [ ] **Step 4: Verify pilot file compiles clean under cargo doc**
+- [x] **Step 4: Verify pilot file compiles clean under cargo doc**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | grep -E "(create\.rs|missing_docs|warning)" || echo "clean"`
 Expected: `clean` (no warning mentioning `create.rs` or `missing_docs`).
 
-- [ ] **Step 5: Verify position gate on the pilot file**
+- [x] **Step 5: Verify position gate on the pilot file**
 
 Run: `grep -nA1 '^#\[derive' crates/openlark-application/src/application/application/v6/app/create.rs | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v6/app/create.rs
@@ -172,30 +172,30 @@ git commit -m "docs(application): pilot v6/app/create recipe 验证 (6)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: For each of the 10 files, read `//!` header to get API 中文名**
+- [x] **Step 1: For each of the 10 files, read `//!` header to get API 中文名**
 
 Example headers: `//! app create`→"创建应用", `//! app version list`→"获取应用版本列表", `//! app badge set`→"设置应用徽标". Read each file to confirm exact header before filling recipe.
 
-- [ ] **Step 2: Apply recipe to all 65 placeholders in these 10 files**
+- [x] **Step 2: Apply recipe to all 65 placeholders in these 10 files**
 
 Per the 8-row recipe table. Every struct placeholder gets BOTH the position swap (doc above `#[derive]`) and the recipe text. named fields in this set: `app_id`→"应用 ID", `badge`→"徽标" (in `app_badge/set.rs`). `data` fields → "响应数据。".
 
-- [ ] **Step 3: Self-verify — these 10 files have zero placeholders**
+- [x] **Step 3: Self-verify — these 10 files have zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v1/app/ crates/openlark-application/src/application/application/v1/app_version/ crates/openlark-application/src/application/application/v1/app_badge/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — no struct doc left after derive in these files**
+- [x] **Step 4: Self-verify — no struct doc left after derive in these files**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v1/app/ crates/openlark-application/src/application/application/v1/app_version/ crates/openlark-application/src/application/application/v1/app_badge/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check the crate**
+- [x] **Step 5: Compile-check the crate**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: no `missing_docs` warning, no errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v1/app/ crates/openlark-application/src/application/application/v1/app_version/ crates/openlark-application/src/application/application/v1/app_badge/
@@ -219,30 +219,30 @@ git commit -m "docs(application): G1 v1 app/app_version/app_badge 占位→有�
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header for API 中文名**
+- [x] **Step 1: Read each file's `//!` header for API 中文名**
 
 Examples: `//! collaborator create`→"添加协作者", `//! owner transfer`→"转让所有者", `//! app recommend rule list`→"获取应用推荐规则列表".
 
-- [ ] **Step 2: Apply recipe to all 70 placeholders in these 8 files**
+- [x] **Step 2: Apply recipe to all 70 placeholders in these 8 files**
 
 named fields in this set: `new_owner_id`→"新所有者 ID" (owner/transfer.rs), `apps`→"应用列表" (owner/recommended.rs, frequently_used/get.rs), `rules`→"规则列表", `rule_id`→"规则 ID", `rule_name`→"规则名称" (app_recommend_rule/list.rs), `total_push_count`→"总推送数", `success_count`→"成功数", `failed_count`→"失败数" (app_usage/message_push_overview.rs). Struct placeholders get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders in these files**
+- [x] **Step 3: Self-verify — zero placeholders in these files**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v1/collaborator/ crates/openlark-application/src/application/application/v1/owner/ crates/openlark-application/src/application/application/v1/app_recommend_rule/ crates/openlark-application/src/application/application/v1/app_usage/ crates/openlark-application/src/application/application/v1/frequently_used/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v1/{collaborator,owner,app_recommend_rule,app_usage,frequently_used}/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: no `missing_docs` warning, no errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v1/{collaborator,owner,app_recommend_rule,app_usage,frequently_used}/
@@ -268,30 +268,30 @@ git commit -m "docs(application): G2 v1 collaborator/owner/recommend/usage/freq 
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header**
+- [x] **Step 1: Read each file's `//!` header**
 
 Examples: `//! feedback create`→"创建反馈", `//! management get`→"获取应用管理信息", `//! visibility check`→"检查可见性".
 
-- [ ] **Step 2: Apply recipe to all 78 placeholders**
+- [x] **Step 2: Apply recipe to all 78 placeholders**
 
 named fields in this set: `app_id`→"应用 ID", `contacts_range`→"通讯录范围" (contacts_range/get.rs, application/contacts_range_configuration.rs). Struct placeholders get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders**
+- [x] **Step 3: Self-verify — zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v1/feedback/ crates/openlark-application/src/application/application/v1/app_visibility/ crates/openlark-application/src/application/application/v1/management/ crates/openlark-application/src/application/application/v1/contacts_range/ crates/openlark-application/src/application/application/v1/application/ crates/openlark-application/src/application/application/v1/usage/ crates/openlark-application/src/application/application/v1/visibility/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v1/{feedback,app_visibility,management,contacts_range,application,usage,visibility}/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v1/{feedback,app_visibility,management,contacts_range,application,usage,visibility}/
@@ -313,30 +313,30 @@ git commit -m "docs(application): G3 v1 feedback/visibility/management/cr/app/us
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read headers**
+- [x] **Step 1: Read headers**
 
 `//! application recommend`→"推荐应用", `//! application favourite`→"收藏应用". The root `mod.rs` placeholder is a `pub mod` → fill `<子模块 API 说明>` per the module it documents.
 
-- [ ] **Step 2: Apply recipe to all 13 placeholders**
+- [x] **Step 2: Apply recipe to all 13 placeholders**
 
 Struct placeholders (if any in v5 files) get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders in v5 + root mod**
+- [x] **Step 3: Self-verify — zero placeholders in v5 + root mod**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v5/ crates/openlark-application/src/application/application/mod.rs`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v5/ | grep '/// 待补充文档'`
 Expected: no output (empty). (`mod.rs` has no derives.)
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v5/ crates/openlark-application/src/application/application/mod.rs
@@ -364,30 +364,30 @@ git commit -m "docs(application): G4 v5 + root mod 占位→有义 doc (13)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each of the 23 files' `//!` header**
+- [x] **Step 1: Read each of the 23 files' `//!` header**
 
 API 中文名 examples: `//! application get`→"获取应用", `//! application app version list`→"获取应用版本列表", `//! application collaborators update`→"更新协作者", `//! application underauditlist`→"获取审核中应用列表".
 
-- [ ] **Step 2: Apply recipe to all 138 placeholders**
+- [x] **Step 2: Apply recipe to all 138 placeholders**
 
 named fields present: `app_id`→"应用 ID", `contacts_range`→"通讯录范围" (contacts_range_configuration.rs, app_version/contacts_range.rs). All struct placeholders get position swap + recipe text. The `v6/application/mod.rs` (if it has placeholders, it does not per exploration — only the listed 23 files do).
 
-- [ ] **Step 3: Self-verify — zero placeholders under v6/application/**
+- [x] **Step 3: Self-verify — zero placeholders under v6/application/**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v6/application/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v6/application/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v6/application/
@@ -415,28 +415,28 @@ git commit -m "docs(application): G5 v6/application 全子域 占位→有义 do
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read headers for the 11 remaining files** (skip `app/create.rs`)
+- [x] **Step 1: Read headers for the 11 remaining files** (skip `app/create.rs`)
 
-- [ ] **Step 2: Apply recipe to all 74 placeholders**
+- [x] **Step 2: Apply recipe to all 74 placeholders**
 
 `app/models.rs` has named fields `app_id`→"应用 ID", `app_name`→"应用名称", `app_type`→"应用类型", `description`→"描述". `app_badge/set.rs` has `app_id`→"应用 ID", `badge`→"徽标". `app/mod.rs` has `pub mod` placeholders → `<子模块 API 说明>。`. Struct placeholders get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders in these dirs**
+- [x] **Step 3: Self-verify — zero placeholders in these dirs**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v6/app/ crates/openlark-application/src/application/application/v6/app_badge/ crates/openlark-application/src/application/application/v6/app_recommend_rule/ crates/openlark-application/src/application/application/v6/app_usage/ crates/openlark-application/src/application/application/v6/frequently_used/ crates/openlark-application/src/application/application/v6/management/`
 Expected: no output (empty). (This includes app/create.rs as a redundant re-check — should already be empty from G0.)
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v6/{app,app_badge,app_recommend_rule,app_usage,frequently_used,management}/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v6/{app,app_badge,app_recommend_rule,app_usage,frequently_used,management}/
@@ -460,30 +460,30 @@ git commit -m "docs(application): G6 v6 app/badge/recommend/usage/freq/mgmt 占�
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read headers**
+- [x] **Step 1: Read headers**
 
 Examples: `//! app version create`→"创建应用版本", `//! collaborator list`→"获取协作者列表", `//! scope apply`→"申请权限范围".
 
-- [ ] **Step 2: Apply recipe to all 84 placeholders**
+- [x] **Step 2: Apply recipe to all 84 placeholders**
 
 named fields: `app_id`→"应用 ID", `contacts_range`→"通讯录范围" (contacts_range/get.rs), `scope_type`→"权限范围类型", `reason`→"原因说明" (scope/apply.rs), `new_owner_id`→"新所有者 ID" (owner/transfer.rs). Struct placeholders get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders**
+- [x] **Step 3: Self-verify — zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v6/app_version/ crates/openlark-application/src/application/application/v6/collaborator/ crates/openlark-application/src/application/application/v6/contacts_range/ crates/openlark-application/src/application/application/v6/owner/ crates/openlark-application/src/application/application/v6/scope/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v6/{app_version,collaborator,contacts_range,owner,scope}/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v6/{app_version,collaborator,contacts_range,owner,scope}/
@@ -507,30 +507,30 @@ git commit -m "docs(application): G7 v6 app_version/collaborator/cr/owner/scope 
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read headers**
+- [x] **Step 1: Read headers**
 
 Examples: `//! feedback create`→"创建反馈", `//! app visibility get`→"获取应用可见性", `//! usage get`→"获取用量". `v6/mod.rs` `pub mod` placeholders → `<子模块 API 说明>。`.
 
-- [ ] **Step 2: Apply recipe to all 50 placeholders**
+- [x] **Step 2: Apply recipe to all 50 placeholders**
 
 Struct placeholders get position swap + recipe text.
 
-- [ ] **Step 3: Self-verify — zero placeholders**
+- [x] **Step 3: Self-verify — zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-application/src/application/application/v6/feedback/ crates/openlark-application/src/application/application/v6/app_visibility/ crates/openlark-application/src/application/application/v6/visibility/ crates/openlark-application/src/application/application/v6/usage/ crates/openlark-application/src/application/application/v6/mod.rs`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-application/src/application/application/v6/{feedback,app_visibility,visibility,usage}/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Compile-check**
+- [x] **Step 5: Compile-check**
 
 Run: `cargo doc -p openlark-application --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-application/src/application/application/v6/{feedback,app_visibility,visibility,usage}/ crates/openlark-application/src/application/application/v6/mod.rs
@@ -547,37 +547,37 @@ git commit -m "docs(application): G8 v6 feedback/app_vis/visibility/usage + mod 
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Placeholder gate — application crate has zero of either placeholder string**
+- [x] **Step 1: Placeholder gate — application crate has zero of either placeholder string**
 
 Run: `grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-application/src/`
 Expected: no output (empty). If any line remains, identify which group missed it and send a fix patch to that group.
 
-- [ ] **Step 2: Position gate — no struct doc sits after a derive**
+- [x] **Step 2: Position gate — no struct doc sits after a derive**
 
 Run: `grep -rnE -A1 '^#\[derive' crates/openlark-application/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 3: Full workspace doc — missing_docs = 0**
+- [x] **Step 3: Full workspace doc — missing_docs = 0**
 
 Run: `cargo doc --workspace --all-features --no-deps 2>&1 | grep -E "missing_docs|warning: unresolved" || echo "clean"`
 Expected: `clean`.
 
-- [ ] **Step 4: Format check**
+- [x] **Step 4: Format check**
 
 Run: `cargo fmt --check`
 Expected: exit 0, no diff output.
 
-- [ ] **Step 5: Lint**
+- [x] **Step 5: Lint**
 
 Run: `just lint`
 Expected: exit 0.
 
-- [ ] **Step 6: Application crate tests not broken**
+- [x] **Step 6: Application crate tests not broken**
 
 Run: `cargo test -p openlark-application`
 Expected: all tests pass (same pass/fail count as before this change — this change writes no code, so tests must be unchanged).
 
-- [ ] **Step 7: Final sanity — total placeholder count across whole crate = 0**
+- [x] **Step 7: Final sanity — total placeholder count across whole crate = 0**
 
 Run: `grep -rc '/// 待补充文档。' crates/openlark-application/src/ | grep -v ':0$' | wc -l`
 Expected: `0`.
