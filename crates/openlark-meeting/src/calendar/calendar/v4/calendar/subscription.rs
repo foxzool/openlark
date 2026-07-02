@@ -17,7 +17,7 @@ pub struct SubscriptionCalendarRequest {
 }
 
 impl SubscriptionCalendarRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -32,7 +32,7 @@ impl SubscriptionCalendarRequest {
             .await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         body: serde_json::Value,

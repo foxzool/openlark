@@ -25,7 +25,7 @@ pub struct GetCalendarRequest {
 /// 查询日历信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetCalendarResponse {
-    /// 待补充文档。
+    /// 日历。
     pub calendar: CalendarData,
 }
 
@@ -64,7 +64,7 @@ impl ApiResponseTrait for GetCalendarResponse {
 }
 
 impl GetCalendarRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,

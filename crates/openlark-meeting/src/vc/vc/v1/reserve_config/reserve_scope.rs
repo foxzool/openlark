@@ -15,7 +15,7 @@ pub struct GetReserveScopeRequest {
 }
 
 impl GetReserveScopeRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
