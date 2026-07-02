@@ -93,7 +93,7 @@ The base path prefix for every file below is `crates/openlark-application/src/ap
 
 ---
 
-## Task 0 (G0): Pilot — validate recipe + position transform on 1 file
+## Task 0 (G0): Pilot — validate recipe + position transform on 1 file ✅ DONE (commit ee42e03e0)
 
 **Files:**
 - Modify: `crates/openlark-application/src/application/application/v6/app/create.rs` (6 placeholders)
