@@ -10,7 +10,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// 转让应用所有者的请求。
+/// 转移应用所有者的请求。
 #[derive(Debug, Clone)]
 pub struct TransferAppOwnerRequest {
     config: Arc<Config>,
@@ -18,14 +18,14 @@ pub struct TransferAppOwnerRequest {
     body: TransferAppOwnerBody,
 }
 
-/// 转让应用所有者的请求体。
+/// 转移应用所有者的请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TransferAppOwnerBody {
     /// 新所有者 ID。
     pub new_owner_id: String,
 }
 
-/// 转让应用所有者的响应。
+/// 转移应用所有者的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferAppOwnerResponse {
     /// 响应数据。
@@ -54,7 +54,7 @@ impl TransferAppOwnerRequest {
         self
     }
 
-    /// 执行转让应用所有者请求。
+    /// 执行转移应用所有者请求。
     pub async fn execute(self) -> SDKResult<TransferAppOwnerResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
