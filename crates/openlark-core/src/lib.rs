@@ -15,7 +15,6 @@ pub mod error;
 /// HTTP 客户端模块（Transport、请求构建等）
 pub mod http;
 pub(crate) mod observability;
-pub(crate) mod query_params;
 /// 请求选项模块（RequestOption、自定义头部、租户键等）
 pub mod req_option;
 pub(crate) mod request_builder;

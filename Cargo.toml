@@ -104,11 +104,6 @@ base64 = "0.22.1"
 # === 日志与追踪 (Logging & Tracing) ===
 log = "0.4.21"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tracing-opentelemetry = { version = "0.25" }
-opentelemetry = { version = "0.24" }
-opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.17" }
 
 # === 工具库 (Utilities) ===
 anyhow = "1.0.86"
@@ -367,7 +362,6 @@ full = [
 
 # === 技术特性 (Technical Features) ===
 websocket = ["openlark-client/websocket"]  # WebSocket 支持
-otel = ["openlark-core/otel"]  # OpenTelemetry 支持
 
 [package.metadata.docs.rs]
 all-features = true

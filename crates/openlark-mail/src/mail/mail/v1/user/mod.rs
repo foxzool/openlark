@@ -6,6 +6,8 @@ use std::sync::Arc;
 /// 用户邮箱服务
 #[derive(Clone)]
 pub struct User {
+    /// 导航 struct，accessor 待补（见 #274/#275 范式），本 change 不接线。
+    #[expect(dead_code)]
     config: Arc<Config>,
 }
 

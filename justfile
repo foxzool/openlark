@@ -126,8 +126,8 @@ update-audit-db:
 # Test feature combinations (requires cargo-hack)
 test-features:
   @echo "🧪 Testing feature combinations..."
-  @echo "Testing each feature individually (excluding websocket/otel)..."
-  cargo hack test --each-feature --exclude-features websocket,otel --lib
+  @echo "Testing each feature individually (excluding websocket)..."
+  cargo hack test --each-feature --exclude-features websocket --lib
   @echo "Testing common feature combinations..."
   cargo test --no-default-features --lib
   cargo test --no-default-features --features "auth,communication" --lib

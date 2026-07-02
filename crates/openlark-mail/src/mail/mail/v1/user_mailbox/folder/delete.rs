@@ -17,7 +17,6 @@ pub struct DeleteMailboxFolderRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     folder_id: String,
-    delete_id: String,
 }
 
 /// Delete Mailbox Folder Response。
@@ -44,7 +43,6 @@ impl DeleteMailboxFolderRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             folder_id: folder_id.into(),
-            delete_id: String::new(),
         }
     }
 

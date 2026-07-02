@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::{
     config::Config,
     constants::{CUSTOM_REQUEST_ID, USER_AGENT_HEADER},
@@ -42,17 +40,6 @@ impl HeaderBuilder {
     /// 添加单个请求头（工具方法）
     pub fn add_header(req_builder: RequestBuilder, key: &str, value: &str) -> RequestBuilder {
         req_builder.header(key, value)
-    }
-
-    /// 批量添加请求头（工具方法）
-    pub fn add_headers(
-        mut req_builder: RequestBuilder,
-        headers: &[(String, String)],
-    ) -> RequestBuilder {
-        for (key, value) in headers {
-            req_builder = req_builder.header(key, value);
-        }
-        req_builder
     }
 }
 
@@ -200,47 +187,6 @@ mod tests {
         let result = HeaderBuilder::add_header(req_builder, "", "");
 
         // Should handle empty key/value without panicking
-        assert!(format!("{result:?}").contains("RequestBuilder"));
-    }
-
-    #[test]
-    fn test_add_headers_empty_list() {
-        let req_builder = create_test_request_builder();
-        let headers: &[(String, String)] = &[];
-
-        let result = HeaderBuilder::add_headers(req_builder, headers);
-
-        // Should handle empty header list
-        assert!(format!("{result:?}").contains("RequestBuilder"));
-    }
-
-    #[test]
-    fn test_add_headers_multiple() {
-        let req_builder = create_test_request_builder();
-        let headers = &[
-            ("X-Header-1".to_string(), "value-1".to_string()),
-            ("X-Header-2".to_string(), "value-2".to_string()),
-            ("X-Header-3".to_string(), "value-3".to_string()),
-        ];
-
-        let result = HeaderBuilder::add_headers(req_builder, headers);
-
-        // Should add multiple headers successfully
-        assert!(format!("{result:?}").contains("RequestBuilder"));
-    }
-
-    #[test]
-    fn test_add_headers_duplicate_keys() {
-        let req_builder = create_test_request_builder();
-        let headers = &[
-            ("X-Duplicate".to_string(), "value-1".to_string()),
-            ("X-Duplicate".to_string(), "value-2".to_string()),
-            ("X-Other".to_string(), "other-value".to_string()),
-        ];
-
-        let result = HeaderBuilder::add_headers(req_builder, headers);
-
-        // Should handle duplicate header keys
         assert!(format!("{result:?}").contains("RequestBuilder"));
     }
 

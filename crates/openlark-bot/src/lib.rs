@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![allow(clippy::module_inception)]
 //! # OpenLark 机器人模块
 //!

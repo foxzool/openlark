@@ -16,7 +16,6 @@ pub struct PatchMailboxFolderRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     folder_id: String,
-    patch_id: String,
 }
 
 /// Patch Mailbox Folder Response。
@@ -43,7 +42,6 @@ impl PatchMailboxFolderRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             folder_id: folder_id.into(),
-            patch_id: String::new(),
         }
     }
 

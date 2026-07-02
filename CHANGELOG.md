@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-core 移除 `tracing-init` / `otel` feature 及直接依赖**（#277 inner-attribute 收尾）：
+  `openlark-core` 的 `tracing-init` 与 `otel` feature 仅门控已删的 `observability.rs` 死代码（0 引用），移除。
+  连带删 4 个直接依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`）
+  与 `tracing-subscriber` 直接引用（根 `[workspace.dependencies]` 同步；`tracing-subscriber` 仍可能作为
+  `tracing-test` 的传递依赖出现）。`testing` feature **保留**并解耦为 `testing = []`（不再拉 `tracing-init`，
+  因 `pub mod testing` 被 hr/docs 测试大量使用）。`observability` 模块现仅保留被 `response_handler` 使用
+  的 `ResponseTracker`。根 crate `openlark` 的 `otel = ["openlark-core/otel"]` 转发 feature 同步移除。
+  **迁移**：若启用过 `tracing-init`/`otel` feature，直接从 `Cargo.toml` 移除即可，无行为变化
+  （原 feature 只编译死代码）。`tracing` 本体与其他 feature 不受影响。
+
 - **platform app_engine 请求类型统一 RequestBuilder**（#271 app_engine 批，软 breaking，**最后一批**）：
   openlark-platform app_engine/apaas 子系统 51 个请求 builder XxxBuilder → XxxRequestBuilder，
   旧名作 #[deprecated] alias。**本批完成 #271 全部 platform crate 统一**。

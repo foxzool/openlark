@@ -16,7 +16,6 @@ pub struct PatchMailContactRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     mail_contact_id: String,
-    patch_id: String,
 }
 
 /// Patch Mail Contact Response。
@@ -43,7 +42,6 @@ impl PatchMailContactRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             mail_contact_id: mail_contact_id.into(),
-            patch_id: String::new(),
         }
     }
 

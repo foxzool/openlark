@@ -6,6 +6,8 @@ use std::sync::Arc;
 /// 提供对机器人 API v4 的访问能力
 #[derive(Clone)]
 pub struct BotService {
+    // config 仅在 v4 feature 开启时被 bot() accessor 读取；feature 关闭时受控标注为预期死代码。
+    #[cfg_attr(not(feature = "v4"), expect(dead_code))]
     config: Arc<Config>,
 }
 
