@@ -17,7 +17,6 @@ pub struct DeleteMailboxAliasRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     alias_id: String,
-    delete_id: String,
 }
 
 /// Delete Mailbox Alias Response。
@@ -44,7 +43,6 @@ impl DeleteMailboxAliasRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             alias_id: alias_id.into(),
-            delete_id: String::new(),
         }
     }
 

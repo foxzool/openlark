@@ -17,7 +17,6 @@ pub struct DeleteMailContactRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     mail_contact_id: String,
-    delete_id: String,
 }
 
 /// Delete Mail Contact Response。
@@ -44,7 +43,6 @@ impl DeleteMailContactRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             mail_contact_id: mail_contact_id.into(),
-            delete_id: String::new(),
         }
     }
 

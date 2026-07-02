@@ -17,7 +17,6 @@ pub struct DeleteMailboxRuleRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     rule_id: String,
-    delete_id: String,
 }
 
 /// Delete Mailbox Rule Response。
@@ -44,7 +43,6 @@ impl DeleteMailboxRuleRequest {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             rule_id: rule_id.into(),
-            delete_id: String::new(),
         }
     }
 

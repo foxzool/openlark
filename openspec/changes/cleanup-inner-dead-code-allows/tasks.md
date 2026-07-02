@@ -19,9 +19,9 @@
 
 ## 4. openlark-hr：删废弃 endpoints 模块（D1）
 
-- [ ] 4.1 删除 `crates/openlark-hr/src/endpoints/` 整个目录。
-- [ ] 4.2 移除 `lib.rs:69` 的 `mod endpoints;` 声明，及 `lib.rs:67` 附近「端点保留（已废弃…）」注释。
-- [ ] 4.3 `cargo check -p openlark-hr` 确认无悬空引用、0 dead_code 警告。
+- [x] 4.1 删除 `crates/openlark-hr/src/endpoints/` 整个目录（仅 mod.rs）。
+- [x] 4.2 移除 `lib.rs:67-69` 的「端点保留（已废弃…）」注释 + `#[allow(deprecated)]` + `mod endpoints;`。
+- [x] 4.3 `cargo check -p openlark-hr` 绿、0 dead_code；`cargo test --lib` 1250 passed（注：`--features testing` 是无效 flag，testing 乃 core feature，hr 经 dev-dep 拉取）。
 
 ## 5. openlark-mail：删孤儿字段 + User.config 显式处理（D4）
 
