@@ -12,25 +12,25 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 批量关闭系统状态的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct BatchCloseSystemStatusRequest {
     config: Arc<Config>,
     status_id: String,
     body: BatchCloseSystemStatusBody,
 }
 
+/// 批量关闭系统状态请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
 pub struct BatchCloseSystemStatusBody {
-    /// 待补充文档。
+    /// 用户 ID 列表。
     pub user_ids: Vec<String>,
 }
 
+/// 批量关闭系统状态的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct BatchCloseSystemStatusResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -41,7 +41,7 @@ impl ApiResponseTrait for BatchCloseSystemStatusResponse {
 }
 
 impl BatchCloseSystemStatusRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, status_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -50,18 +50,18 @@ impl BatchCloseSystemStatusRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 设置用户 ID 列表。
     pub fn user_ids(mut self, ids: Vec<String>) -> Self {
         self.body.user_ids = ids;
         self
     }
 
-    /// 待补充文档。
+    /// 执行批量关闭系统状态请求。
     pub async fn execute(self) -> SDKResult<BatchCloseSystemStatusResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
