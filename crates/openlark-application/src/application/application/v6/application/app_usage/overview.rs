@@ -10,17 +10,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取应用使用概览的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct GetApplicationUsageOverviewRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
+/// 获取应用使用概览的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct GetApplicationUsageOverviewResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -31,7 +31,7 @@ impl ApiResponseTrait for GetApplicationUsageOverviewResponse {
 }
 
 impl GetApplicationUsageOverviewRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -39,12 +39,12 @@ impl GetApplicationUsageOverviewRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行获取应用使用概览请求。
     pub async fn execute(self) -> SDKResult<GetApplicationUsageOverviewResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
