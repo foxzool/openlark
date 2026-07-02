@@ -7,7 +7,7 @@ pub mod v5;
 /// 应用管理 v7 版本 API。
 /// 应用管理 v6 版本 API。
 pub mod v6;
-/// 待补充文档。
+/// 应用管理 v7 版本 API。
 pub mod v7;
 
 use openlark_core::config::Config;
