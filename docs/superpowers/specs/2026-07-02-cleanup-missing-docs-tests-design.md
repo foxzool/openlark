@@ -2,6 +2,8 @@
 comet_change: cleanup-missing-docs-tests
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-02-cleanup-missing-docs-tests
+status: final
 ---
 
 # Design: cleanup-missing-docs-tests
