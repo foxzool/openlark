@@ -14,8 +14,8 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+/// 删除文件或文件夹请求体
 #[derive(Debug, Clone, Serialize)]
-/// 公开项说明。
 pub struct DeleteFileRequest {
     #[serde(skip)]
     config: Config,
