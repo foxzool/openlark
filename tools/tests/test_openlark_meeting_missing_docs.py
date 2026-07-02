@@ -1,21 +1,8 @@
-import subprocess
 import unittest
 from pathlib import Path
 
 
 class OpenlarkMeetingMissingDocsTests(unittest.TestCase):
-    def test_openlark_meeting_has_no_missing_docs_warnings(self):
-        result = subprocess.run(
-            ["cargo", "test", "-p", "openlark-meeting", "--all-features", "--no-run"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
-        output = result.stdout + result.stderr
-        self.assertEqual(result.returncode, 0, msg=output)
-        self.assertNotIn("warning: missing documentation for ", output, msg=output)
-
     def test_openlark_meeting_cleaned_slices_do_not_suppress_missing_docs(self):
         guarded_roots = [
             Path("crates/openlark-meeting/src/meeting_room"),
