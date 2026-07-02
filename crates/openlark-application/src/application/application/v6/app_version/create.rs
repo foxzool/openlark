@@ -10,16 +10,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 创建应用版本的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct AppVersionCreateRequest {
     config: Arc<Config>,
 }
 
+/// 创建应用版本的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct AppVersionCreateResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -30,17 +30,17 @@ impl ApiResponseTrait for AppVersionCreateResponse {
 }
 
 impl AppVersionCreateRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
-    /// 待补充文档。
+    /// 执行创建应用版本请求。
     pub async fn execute(self) -> SDKResult<AppVersionCreateResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
