@@ -1,4 +1,4 @@
-/// 待补充文档。
+/// 应用资源接口。
 pub mod app;
 
 // app 模块显式导出
@@ -15,7 +15,7 @@ pub struct ApplicationV6 {
 }
 
 impl ApplicationV6 {
-    /// 待补充文档。
+    /// 创建新的 ApplicationV6 实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }

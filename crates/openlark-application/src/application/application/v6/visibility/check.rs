@@ -10,16 +10,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 检查可见性的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct VisibilityCheckRequest {
     config: Arc<Config>,
 }
 
+/// 检查可见性的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct VisibilityCheckResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -30,17 +30,17 @@ impl ApiResponseTrait for VisibilityCheckResponse {
 }
 
 impl VisibilityCheckRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
-    /// 待补充文档。
+    /// 执行检查可见性请求。
     pub async fn execute(self) -> SDKResult<VisibilityCheckResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
