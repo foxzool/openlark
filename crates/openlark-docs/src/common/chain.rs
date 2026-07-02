@@ -86,7 +86,7 @@ impl<T> TypedPage<T> {
 }
 
 #[cfg(feature = "ccm-core")]
-/// 公开项说明。
+/// Drive Explorer 文件夹子项的分页结果类型别名。
 pub type FolderChildrenPage = TypedPage<crate::ccm::explorer::v2::models::FileItem>;
 
 /// 电子表格范围 helper。
@@ -612,19 +612,19 @@ pub struct DocsClient {
     config: Arc<Config>,
 
     #[cfg(feature = "ccm-core")]
-    /// 公开项说明。
+    /// 云文档（CCM）客户端，提供 Drive/Sheets/Wiki 等服务入口。
     pub ccm: CcmClient,
 
     #[cfg(any(feature = "base", feature = "bitable"))]
-    /// 公开项说明。
+    /// Base（多维表格）客户端入口。
     pub base: BaseClient,
 
     #[cfg(any(feature = "baike", feature = "lingo"))]
-    /// 公开项说明。
+    /// 百科 / 词典客户端入口。
     pub baike: BaikeClient,
 
     #[cfg(feature = "minutes")]
-    /// 公开项说明。
+    /// 妙记（会议纪要）客户端入口。
     pub minutes: MinutesClient,
 }
 
