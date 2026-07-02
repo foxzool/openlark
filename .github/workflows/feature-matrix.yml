@@ -38,7 +38,6 @@ jobs:
           - "workflow"
           - "application"
           - "websocket"
-          - "otel"
           - "platform"
           - "analytics"
           - "user"
