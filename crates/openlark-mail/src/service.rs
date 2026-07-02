@@ -6,6 +6,8 @@ use std::sync::Arc;
 /// 提供对邮件 API v1 的访问能力
 #[derive(Clone)]
 pub struct MailService {
+    // config 仅在 v1 feature 开启时被各 accessor 读取；feature 关闭时受控标注为预期死代码。
+    #[cfg_attr(not(feature = "v1"), expect(dead_code))]
     config: Arc<Config>,
 }
 
