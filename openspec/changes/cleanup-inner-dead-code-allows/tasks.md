@@ -14,8 +14,8 @@
 
 ## 3. openlark-core：删 query_params / header_builder 死项（D3）
 
-- [ ] 3.1 **整文件删** `query_params.rs`（1085 行，顶层仅 QueryParams/QueryParamsBuilder 两死 struct，0 外部 use）+ `lib.rs` 的 `pub(crate) mod query_params;` 声明。
-- [ ] 3.2 **项级删** `request_builder/header_builder.rs`：仅删 `add_headers` 函数 + 文件顶 `#![allow(dead_code)]`；保留 `HeaderBuilder`/`build_headers`/`add_header`（活于 `request_builder/mod.rs:46,48`）。
+- [x] 3.1 **整文件删** `query_params.rs`（1085 行，顶层仅 QueryParams/QueryParamsBuilder 两死 struct，0 外部 use）+ `lib.rs` 的 `pub(crate) mod query_params;` 声明。
+- [x] 3.2 **项级删** `request_builder/header_builder.rs`：删 `add_headers` 函数 + 3 个 `add_headers` 测试 + 文件顶 `#![allow(dead_code)]`；保留 `HeaderBuilder`/`build_headers`/`add_header`（活于 `request_builder/mod.rs:46,48`）。
 
 ## 4. openlark-hr：删废弃 endpoints 模块（D1）
 

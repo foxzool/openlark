@@ -64,10 +64,6 @@ pub mod payroll;
 /// 绩效模块。
 pub mod performance;
 
-// 端点保留（已废弃，请使用 common::api_endpoints 中的枚举系统）
-#[allow(deprecated)]
-mod endpoints;
-
 /// 常用类型预导出模块。
 pub mod prelude {
     pub use openlark_core::{SDKResult, config::Config};
