@@ -11,18 +11,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// 待补充文档。
-/// 待补充文档。
+/// 编辑试用期请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EditProbationBody {
-    /// 待补充文档。
+    /// 员工 ID。
     pub employee_id: Option<String>,
 }
-/// 待补充文档。
-/// 待补充文档。
+/// 编辑试用的响应。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EditProbationResponse {
-    /// 待补充文档。
+    /// 试用期。
     pub probation: Option<serde_json::Value>,
 }
 impl ApiResponseTrait for EditProbationResponse {
@@ -30,33 +28,32 @@ impl ApiResponseTrait for EditProbationResponse {
         ResponseFormat::Data
     }
 }
-/// 待补充文档。
+/// 编辑试用的请求。
 #[derive(Debug, Clone)]
 pub struct EditProbationRequest {
     config: Arc<Config>,
     body: EditProbationBody,
 }
-/// 待补充文档。
-/// 待补充文档。
+/// 编辑试用期请求构建器实现。
 impl EditProbationRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
             body: EditProbationBody::default(),
         }
     }
-    /// 待补充文档。
+    /// 设置请求体。
     pub fn body(mut self, body: EditProbationBody) -> Self {
         self.body = body;
         self
     }
-    /// 待补充文档。
+    /// 执行编辑试用期请求。
     pub async fn execute(self) -> SDKResult<EditProbationResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
     }
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,
