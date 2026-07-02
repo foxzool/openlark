@@ -250,35 +250,35 @@ git commit -m "docs(mail): pilot mailgroup/manager/list recipe 验证 (11)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each of the 14 remaining files' `//!` header for API 中文名**
+- [x] **Step 1: Read each of the 14 remaining files' `//!` header for API 中文名**
 
 Example headers (read each file to confirm): `mailgroup/manager/batch_create.rs`→"批量创建邮件组管理员", `user_mailbox/message/attachment/download_url.rs`→"获取邮件附件下载地址" (named field `download_url`→下载地址, `expire_time`→过期时间), `user/query.rs`→"查询用户".
 
-- [ ] **Step 2: Apply recipe to all 93 remaining placeholders in these 14 files**
+- [x] **Step 2: Apply recipe to all 93 remaining placeholders in these 14 files**
 
 Per the 11-row recipe table. Every struct placeholder (mail has 35 struct sites total — 4 already done in Task 0, 31 remaining) gets BOTH the **3-line block position swap** (doc above `#[derive]`, full-3-line Edit on both sides) AND the recipe text. named fields in this crate: `manager_ids`→管理员 ID 列表, `managers`→管理员, `manager_id`→管理员 ID, `manager_email`→管理员邮箱, `download_url`→下载地址, `expire_time`→过期时间. builder setters: `manager_ids`→设置管理员 ID 列表. `data` fields → "响应数据。". `fn new`→`创建请求实例。`, `fn execute`→`执行<API>请求。`, `fn execute_with_options`→`带自定义请求选项执行。`.
 
-- [ ] **Step 3: Self-verify — entire mail crate has zero placeholders**
+- [x] **Step 3: Self-verify — entire mail crate has zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-mail/src/`
 Expected: no output (empty). (This re-checks Task 0's file too as a redundant gate.)
 
-- [ ] **Step 4: Self-verify — position gate across whole mail crate**
+- [x] **Step 4: Self-verify — position gate across whole mail crate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-mail/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: cargo doc — no missing_docs warning**
+- [x] **Step 5: cargo doc — no missing_docs warning**
 
 Run: `cargo doc -p openlark-mail --no-deps 2>&1 | tail -5`
 Expected: no `missing_docs` warning, no errors.
 
-- [ ] **Step 6: cargo check — signature integrity (hard gate)**
+- [x] **Step 6: cargo check — signature integrity (hard gate)**
 
 Run: `cargo check -p openlark-mail 2>&1 | tail -5`
 Expected: exit 0, no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-mail/src/
