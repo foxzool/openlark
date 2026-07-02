@@ -2,6 +2,8 @@
 comet_change: enforce-codegen-missing-docs
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-02-enforce-codegen-missing-docs
+status: final
 ---
 
 # Design: enforce-codegen-missing-docs
