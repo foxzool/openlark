@@ -483,38 +483,38 @@ git commit -m "docs(user): user 占位→有义 doc (47)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header**
+- [x] **Step 1: Read each file's `//!` header**
 
 Example headers: `probation/edit.rs`→"编辑试用期", `company/query_multi_timeline.rs`→"查询公司多时间线", `location/query_multi_timeline.rs`→"查询地点多时间线". For `edit.rs`, confirm the struct placeholders are already `///` above `#[derive]` (reference shape) — those need text-only replacement, NO position swap.
 
-- [ ] **Step 2: Apply recipe to all 41 placeholders**
+- [x] **Step 2: Apply recipe to all 41 placeholders**
 
   - **struct (15 sites)**: For the 11 already-correct (edit.rs) → text-only replacement (`<API>的请求。` / `<API>的响应。` / `<结构中文名>。`). For the 4 position-wrong (in company/query_multi_timeline.rs or location/query_multi_timeline.rs — confirm by reading) → 3-line block position swap + recipe text.
   - **impl block (6 sites — recipe row: `<API 中文名>请求构建器实现。`)**: trigger is `impl XxxRequest {`. e.g. in `edit.rs`, `impl EditProbationRequest {` → doc above it becomes `编辑试用期请求构建器实现。`. This is the new recipe row vs application — apply verbatim.
   - **field (8 sites)**: `employee_id`→员工 ID, `probation`→试用期, `from_date`→开始日期, `to_date`→结束日期, `items`→列表项 (cross-crate consistent with workflow).
   - **fn (9 sites)**: `fn new`→`创建请求实例。`, `fn execute`→`执行<API>请求。`, `fn execute_with_options`→`带自定义请求选项执行。`. setters: `employee_id`→设置员工 ID, `body`→设置请求体, etc.
 
-- [ ] **Step 3: Self-verify — entire hr crate has zero placeholders**
+- [x] **Step 3: Self-verify — entire hr crate has zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-hr/src/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-hr/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: cargo doc**
+- [x] **Step 5: cargo doc**
 
 Run: `cargo doc -p openlark-hr --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: cargo check — signature integrity (hard gate)**
+- [x] **Step 6: cargo check — signature integrity (hard gate)**
 
 Run: `cargo check -p openlark-hr 2>&1 | tail -5`
 Expected: exit 0, no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-hr/src/
