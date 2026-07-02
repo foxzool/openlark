@@ -11,17 +11,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 批量获取邮件组管理员的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct ListMailGroupManagerRequest {
     config: Arc<Config>,
     mailgroup_id: String,
 }
 
+/// 批量获取邮件组管理员的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct ListMailGroupManagerResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<ListMailGroupManagerData>,
 }
 
@@ -31,24 +31,24 @@ impl ApiResponseTrait for ListMailGroupManagerResponse {
     }
 }
 
+/// 批量获取邮件组管理员数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct ListMailGroupManagerData {
-    /// 待补充文档。
+    /// 管理员。
     pub managers: Vec<MailGroupManager>,
 }
 
+/// 邮件组管理员。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct MailGroupManager {
-    /// 待补充文档。
+    /// 管理员 ID。
     pub manager_id: String,
-    /// 待补充文档。
+    /// 管理员邮箱。
     pub manager_email: String,
 }
 
 impl ListMailGroupManagerRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, mailgroup_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -56,12 +56,12 @@ impl ListMailGroupManagerRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行批量获取邮件组管理员请求。
     pub async fn execute(self) -> SDKResult<ListMailGroupManagerResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
