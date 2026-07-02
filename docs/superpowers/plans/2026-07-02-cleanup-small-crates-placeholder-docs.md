@@ -176,7 +176,7 @@ The largest group (mail 104) is well under the application crate's G5=138 proven
 
 **Why pilot first:** 335-site mechanical batch is high-risk for偷懒 (lazy/generic doc) and for Edit-anchor mistakes on the struct swap. One file proves the recipe produces real per-item doc and the struct swap is clean (no signature deletion) before committing to the batch.
 
-- [ ] **Step 1: Read the pilot file and its `//!` header**
+- [x] **Step 1: Read the pilot file and its `//!` header**
 
 Run: `head -2 crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/list.rs`
 Header is `//! 批量获取邮件组管理员` → API 中文名 = "批量获取邮件组管理员".
@@ -190,7 +190,7 @@ Expected placeholders (11, all confirmed by exploration):
 
 (Exact count of struct vs field sites confirmed by reading the file in Step 1; the recipe applies per the next-non-comment-line rule.)
 
-- [ ] **Step 2: Apply the 11 edits**
+- [x] **Step 2: Apply the 11 edits**
 
 For each struct placeholder, use the **3-line block Edit** (both old and new include `#[derive(...)]` + `///` + `pub struct`):
 
@@ -203,27 +203,27 @@ pub struct ListMailGroupManagerRequest {
 
 For named fields and the 3 fns, replace text in place: `管理员`、`管理员 ID`、`管理员邮箱`、`创建请求实例。`、`执行批量获取邮件组管理员请求。`、`带自定义请求选项执行。`.
 
-- [ ] **Step 3: Self-verify — pilot file has zero placeholders**
+- [x] **Step 3: Self-verify — pilot file has zero placeholders**
 
 Run: `grep -n '/// 待补充文档。' crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/list.rs`
 Expected: no output (empty).
 
-- [ ] **Step 4: Verify position gate on the pilot file**
+- [x] **Step 4: Verify position gate on the pilot file**
 
 Run: `grep -nA1 '^#\[derive' crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/list.rs | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: Verify pilot file compiles clean under cargo doc**
+- [x] **Step 5: Verify pilot file compiles clean under cargo doc**
 
 Run: `cargo doc -p openlark-mail --no-deps 2>&1 | grep -E "(list\.rs|missing_docs|warning)" || echo "clean"`
 Expected: `clean` (no warning mentioning the pilot file or `missing_docs`).
 
-- [ ] **Step 6: Verify signature integrity with cargo check**
+- [x] **Step 6: Verify signature integrity with cargo check**
 
 Run: `cargo check -p openlark-mail 2>&1 | tail -5`
 Expected: exit 0, no errors. (This is the hard gate that catches a deleted `pub async fn execute_with_options(` line — `cargo doc` does NOT report it.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-mail/src/mail/mail/v1/mailgroup/manager/list.rs
