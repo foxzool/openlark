@@ -32,8 +32,8 @@
 
 ## 6. openlark-bot / openlark-docs：删 stale allow（D5）
 
-- [ ] 6.1 移除 `crates/openlark-bot/src/lib.rs:1` 的 `#![allow(dead_code)]`。
-- [ ] 6.2 移除 `crates/openlark-docs/src/ccm/explorer/explorer/mod.rs:1` 的 `#![allow(dead_code)]`。
+- [x] 6.1 移除 `crates/openlark-bot/src/lib.rs:1` 的 `#![allow(dead_code)]`（保留 `clippy::module_inception`）。
+- [x] 6.2 移除 `crates/openlark-docs/src/ccm/explorer/explorer/mod.rs:1` 的 `#![allow(dead_code)]`（保留其他 allow）。两 crate clippy 0 dead_code。
 
 ## 7. CI 脚本收口（D6）
 
