@@ -17,4 +17,4 @@ openlark 公开源代码 SHALL 不使用外层 `#[allow(dead_code)]` **或内层
 
 #### Scenario: 废弃模块与 0 引用脚手架被删除而非抑制
 - **WHEN** 移除全部 `#![allow(dead_code)]` 后运行 `cargo clippy --workspace --all-targets`
-- **THEN** 0 dead_code 警告，且承载原死代码的废弃模块（hr `endpoints/`）/ 0 引用脚手架（core `observability.rs` 等）已从源码删除，而非以 `#[expect]]` 保留
+- **THEN** 0 dead_code 警告；废弃模块（hr `endpoints/`）整模块删除；0 引用脚手架（core `observability.rs` 死 tracker/trace 函数/宏、`query_params.rs` 整文件、`header_builder::add_headers`）从源码删除而非 blanket 抑制；**活代码保留**（`observability::ResponseTracker` 被 `response_handler` 使用故保留）；导航/服务 struct 的条件死字段（feature 关闭时死）用 `#[expect(dead_code)]` / `cfg_attr` 显式标注
