@@ -371,37 +371,37 @@ git commit -m "docs(workflow): workflow 占位→有义 doc (78)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header**
+- [x] **Step 1: Read each file's `//!` header**
 
 Example headers: `calendar/v4/calendar/get.rs`→"获取日历", `calendar/v4/calendar/event/create.rs`→"创建日程", `meeting_room/responses.rs`→(meeting room summary — read header), `vc/v1/meeting/end.rs`→"结束会议", `vc/v1/room_level/create.rs`→"创建会议室层级".
 
-- [ ] **Step 2: Apply recipe to all 65 placeholders**
+- [x] **Step 2: Apply recipe to all 65 placeholders**
 
   - **struct (2 sites, `meeting_room/responses.rs`)**: 3-line block position swap + recipe text (struct Chinese name per the struct, e.g. 会议室摘要响应).
   - **field (13 sites, mostly in `meeting_room/responses.rs`)**: named per table — `calendar`→日历, `capacity`→容量, `capacity_max`→最大容量, `description`→描述, `device_id`→设备 ID, `device_name`→设备名称, `device_type`→设备类型, `devices`→设备列表, `room_id`→会议室 ID, `room_name`→会议室名称, `status`→状态.
   - **fn (50 sites, mostly 1-2 per file)**: `fn new`→`创建请求实例。`, `fn execute`→`执行<API>请求。`, `fn execute_with_options`→`带自定义请求选项执行。`. setters if any: per setter name + table.
 
-- [ ] **Step 3: Self-verify — entire meeting crate has zero placeholders**
+- [x] **Step 3: Self-verify — entire meeting crate has zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-meeting/src/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-meeting/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: cargo doc**
+- [x] **Step 5: cargo doc**
 
 Run: `cargo doc -p openlark-meeting --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: cargo check — signature integrity (hard gate)**
+- [x] **Step 6: cargo check — signature integrity (hard gate)**
 
 Run: `cargo check -p openlark-meeting 2>&1 | tail -5`
 Expected: exit 0, no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-meeting/src/
