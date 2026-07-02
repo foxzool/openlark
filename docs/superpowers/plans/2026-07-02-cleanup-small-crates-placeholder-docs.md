@@ -313,38 +313,38 @@ git commit -m "docs(mail): mail 占位→有义 doc (104)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header for API 中文名**
+- [x] **Step 1: Read each file's `//!` header for API 中文名**
 
 Example headers (read each to confirm): `v4/district/list.rs`→"查询地理库信息", `v4/task/query.rs`→"查询任务", `v4/approval/create.rs`→"创建审批定义", `v4/instance/create.rs`→"创建审批实例", `v4/instance/comment/create.rs`→"创建评论". For `mod.rs` files, the `pub mod` placeholders take `<子模块 API 说明>。` — read the submodule's purpose from its own `//!` header or module doc.
 
-- [ ] **Step 2: Apply recipe to all 78 placeholders**
+- [x] **Step 2: Apply recipe to all 78 placeholders**
 
   - **module (8 sites)**: `v4/mod.rs` `pub mod approval;`→`审批定义相关 API。` (etc. for external_approval/external_instance/external_task/instance/task); `approval/mod.rs` and `v4/instance/mod.rs` similarly per submodule.
   - **struct (7 sites, district/list.rs 5 + district/search.rs 2)**: 3-line block position swap + recipe text. Other structs (`DistrictBaseInfo`/`DistrictItem`/`ListDistrictsResponse`) → `<结构中文名>。` e.g. "区划基础信息。", "区划项。", "查询区划列表的响应。".
   - **field (15 sites, all district/)**: named fields per table — `id`→ID, `name`→名称, `level`→层级, `has_sub_district`→是否含下级区划, `parent_districts`→上级区划, `version`→版本, `has_more`→是否有更多, `page_token`→分页标记, `items`→列表项, `district_ids`→区划 ID 列表, `keyword`→关键词.
   - **fn (48 sites)**: most are single `fn new` or `fn execute` per file. `task/query.rs` has 6 (new + execute + execute_with_options + setters). setters: `district_ids`→设置区划 ID 列表, `keyword`→设置关键词, `page_size`→设置分页大小, `page_token`→设置分页标记, `root_district_id`→设置根区划 ID, `user_id_type`→设置用户 ID 类型, `locale`→设置语言, `list_type`→设置列表类型, `body`→设置请求体 (apply per actual setter name found).
 
-- [ ] **Step 3: Self-verify — entire workflow crate has zero placeholders**
+- [x] **Step 3: Self-verify — entire workflow crate has zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-workflow/src/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-workflow/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: cargo doc**
+- [x] **Step 5: cargo doc**
 
 Run: `cargo doc -p openlark-workflow --no-deps 2>&1 | tail -5`
 Expected: no `missing_docs` warning, no errors.
 
-- [ ] **Step 6: cargo check — signature integrity (hard gate, CRITICAL for G2)**
+- [x] **Step 6: cargo check — signature integrity (hard gate, CRITICAL for G2)**
 
 Run: `cargo check -p openlark-workflow 2>&1 | tail -5`
 Expected: exit 0, no errors. (G2 has the densest struct/field set in district/list.rs + district/search.rs — the 3-line block Edits there are the highest-risk for accidentally deleting a `pub async fn execute_with_options(` signature. cargo check is the proof.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-workflow/src/
