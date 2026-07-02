@@ -53,8 +53,8 @@ impl ApiResponseTrait for MatchEntityResp {
     }
 }
 
+/// 精准搜索词条请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 公开项说明。
 pub struct MatchEntityBody {
     /// 搜索关键词，将与词条名、别名进行精准匹配
     pub word: String,

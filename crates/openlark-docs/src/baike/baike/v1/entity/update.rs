@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::baike::baike::v1::models::{Entity, OuterInfo, RelatedMeta, Term, UserIdType};
 use crate::common::api_endpoints::BaikeApiV1;
 
+/// 更新免审词条请求体
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-/// 公开项说明。
 pub struct UpdateEntityReq {
     /// 词条名
     pub main_keys: Vec<Term>,
@@ -41,7 +41,7 @@ pub struct UpdateEntityReq {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateEntityResp {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 公开项说明。
+    /// 更新后的词条实体信息
     pub entity: Option<Entity>,
 }
 
