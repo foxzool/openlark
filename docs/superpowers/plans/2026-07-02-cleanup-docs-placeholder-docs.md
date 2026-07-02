@@ -2,6 +2,7 @@
 change: cleanup-docs-placeholder-docs
 design-doc: docs/superpowers/specs/2026-07-02-cleanup-docs-placeholder-docs-design.md
 base-ref: c1939c253c693bd82f7e7b13a1f3f7b45b9be842
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 # cleanup-docs-placeholder-docs Implementation Plan
@@ -89,6 +90,7 @@ pub struct CreateEntityReq {
 ```
 The exact derive list varies per file (`Debug, Clone, PartialEq` for the enum in match.rs etc.) — preserve the existing derive list verbatim; only the doc line moves up and gets its text replaced.
 
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 ## Task 1: Cohort A — baike (7 files, 17 placeholders, 3 derive-fixes)
@@ -179,6 +181,7 @@ cleanup-docs-placeholder-docs Cohort A (baike/lingo + baike/baike)。
 - grep 守门 + 位置守门 + cargo doc 0 警告通过"
 ```
 
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 ## Task 2: Cohort B — ccm (4 files, 48 placeholders, 1 derive-fix)
@@ -262,6 +265,7 @@ cleanup-docs-placeholder-docs Cohort B (ccm sheets/docx/docs/drive)。
 - grep + 位置守门 + cargo doc 0 警告通过"
 ```
 
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 ## Task 3: Cohort C — common + base (3 files, 79 placeholders)
@@ -322,6 +326,7 @@ cleanup-docs-placeholder-docs Cohort C (common api_endpoints + chain + base bita
 - grep + cargo doc 0 警告通过"
 ```
 
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 ## Task 4: Final workspace gates + regression (after all 3 cohorts merged)
@@ -418,6 +423,7 @@ The tasks.md text still says `<//! 标题>+<item 角色>` (legacy from open phas
 
 Expected: all 7 sub-items in tasks.md are tickable. Hand off to the change's verify phase.
 
+archived-with: 2026-07-02-cleanup-docs-placeholder-docs
 ---
 
 ## Self-Review (run after writing, before handoff)
