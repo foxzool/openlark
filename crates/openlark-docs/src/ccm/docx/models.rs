@@ -500,14 +500,14 @@ pub mod common_types {
     /// Docx Block 分页结构（data 内）
     #[derive(Debug, Clone, Serialize, Deserialize, Default)]
     pub struct DocxBlockPage {
+        /// 当前页的 Block 列表
         #[serde(default)]
-        /// 公开项说明。
         pub items: Vec<DocxBlock>,
+        /// 下一页分页标记（无更多数据时为 None）
         #[serde(skip_serializing_if = "Option::is_none")]
-        /// 公开项说明。
         pub page_token: Option<String>,
+        /// 是否还有更多数据
         #[serde(skip_serializing_if = "Option::is_none")]
-        /// 公开项说明。
         pub has_more: Option<bool>,
     }
 }

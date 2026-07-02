@@ -19,7 +19,7 @@ use crate::common::api_endpoints::LingoApiV1;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetEntityResp {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 公开项说明。
+    /// 查询到的词条实体信息
     pub entity: Option<Entity>,
 }
 

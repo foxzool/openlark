@@ -63,113 +63,113 @@ impl BaseApiV2 {
 pub enum BitableApiV1 {
     /// App管理相关
     AppCreate,
-    /// 公开项说明。
+    /// 复制多维表格应用（参数：app_token）
     AppCopy(String),
-    /// 公开项说明。
+    /// 获取多维表格应用信息（参数：app_token）
     AppGet(String),
-    /// 公开项说明。
+    /// 更新多维表格应用信息（参数：app_token）
     AppUpdate(String),
-    /// 公开项说明。
+    /// 列出多维表格仪表盘（参数：app_token）
     DashboardList(String),
-    /// 公开项说明。
+    /// 复制仪表盘（参数：app_token, block_id）
     DashboardCopy(String, String),
     /// 自动化流程
     BlockWorkflowList(String),
-    /// 公开项说明。
+    /// 列出自动化工作流（参数：app_token）
     WorkflowList(String),
-    /// 公开项说明。
+    /// 更新自动化工作流（参数：app_token, workflow_id）
     WorkflowUpdate(String, String),
 
     /// 表格管理相关
     TableCreate(String),
-    /// 公开项说明。
+    /// 批量创建数据表（参数：app_token）
     TableBatchCreate(String),
-    /// 公开项说明。
+    /// 更新数据表（参数：app_token, table_id）
     TableUpdate(String, String),
-    /// 公开项说明。
+    /// 删除数据表（参数：app_token, table_id）
     TableDelete(String, String),
-    /// 公开项说明。
+    /// 批量删除数据表（参数：app_token）
     TableBatchDelete(String),
-    /// 公开项说明。
+    /// 获取数据表信息（参数：app_token, table_id）
     TableGet(String, String),
-    /// 公开项说明。
+    /// 列出数据表（参数：app_token）
     TableList(String),
-    /// 公开项说明。
+    /// 增量更新数据表（参数：app_token, table_id）
     TablePatch(String, String),
 
     /// 字段管理相关
     FieldCreate(String, String),
-    /// 公开项说明。
+    /// 创建字段分组（参数：app_token, table_id）
     FieldGroupCreate(String, String),
-    /// 公开项说明。
+    /// 更新字段（参数：app_token, table_id, field_id）
     FieldUpdate(String, String, String),
-    /// 公开项说明。
+    /// 删除字段（参数：app_token, table_id, field_id）
     FieldDelete(String, String, String),
-    /// 公开项说明。
+    /// 列出字段（参数：app_token, table_id）
     FieldList(String, String),
 
     /// 视图管理相关
     ViewCreate(String, String),
-    /// 公开项说明。
+    /// 更新视图（参数：app_token, table_id, view_id）
     ViewUpdate(String, String, String),
-    /// 公开项说明。
+    /// 删除视图（参数：app_token, table_id, view_id）
     ViewDelete(String, String, String),
-    /// 公开项说明。
+    /// 获取视图（参数：app_token, table_id, view_id）
     ViewGet(String, String, String),
-    /// 公开项说明。
+    /// 列出视图（参数：app_token, table_id）
     ViewList(String, String),
-    /// 公开项说明。
+    /// 增量更新视图（参数：app_token, table_id, view_id）
     ViewPatch(String, String, String),
 
     /// 记录管理相关
     RecordCreate(String, String),
-    /// 公开项说明。
+    /// 批量创建记录（参数：app_token, table_id）
     RecordBatchCreate(String, String),
-    /// 公开项说明。
+    /// 获取记录（参数：app_token, table_id, record_id）
     RecordGet(String, String, String),
-    /// 公开项说明。
+    /// 批量获取记录（参数：app_token, table_id）
     RecordBatchGet(String, String),
-    /// 公开项说明。
+    /// 更新记录（参数：app_token, table_id, record_id）
     RecordUpdate(String, String, String),
-    /// 公开项说明。
+    /// 批量更新记录（参数：app_token, table_id）
     RecordBatchUpdate(String, String),
-    /// 公开项说明。
+    /// 删除记录（参数：app_token, table_id, record_id）
     RecordDelete(String, String, String),
-    /// 公开项说明。
+    /// 批量删除记录（参数：app_token, table_id）
     RecordBatchDelete(String, String),
-    /// 公开项说明。
+    /// 列出记录（参数：app_token, table_id）
     RecordList(String, String),
-    /// 公开项说明。
+    /// 查询记录（参数：app_token, table_id）
     RecordSearch(String, String),
 
     /// 表单管理相关
     FormGet(String, String, String),
-    /// 公开项说明。
+    /// 更新表单（参数：app_token, table_id, form_id）
     FormPatch(String, String, String),
-    /// 公开项说明。
+    /// 升级表单（参数：app_token, table_id, form_id）
     FormUpgrade(String, String, String),
-    /// 公开项说明。
+    /// 列出表单字段（参数：app_token, table_id, form_id）
     FormFieldList(String, String, String),
-    /// 公开项说明。
+    /// 更新表单字段（参数：app_token, table_id, form_id, field_id）
     FormFieldPatch(String, String, String, String),
 
     /// 权限管理相关
     RoleCreate(String),
-    /// 公开项说明。
+    /// 更新自定义角色（参数：app_token, role_id）
     RoleUpdate(String, String),
-    /// 公开项说明。
+    /// 删除自定义角色（参数：app_token, role_id）
     RoleDelete(String, String),
-    /// 公开项说明。
+    /// 列出自定义角色（参数：app_token）
     RoleList(String),
-    /// 公开项说明。
+    /// 新增角色成员（参数：app_token, role_id）
     RoleMemberCreate(String, String),
-    /// 公开项说明。
+    /// 批量新增角色成员（参数：app_token, role_id）
     RoleMemberBatchCreate(String, String),
-    /// 公开项说明。
+    /// 删除角色成员（参数：app_token, role_id, member_id）
     RoleMemberDelete(String, String, String),
-    /// 公开项说明。
+    /// 批量删除角色成员（参数：app_token, role_id）
     RoleMemberBatchDelete(String, String),
-    /// 公开项说明。
+    /// 列出角色成员（参数：app_token, role_id）
     RoleMemberList(String, String),
 }
 
@@ -1936,7 +1936,7 @@ impl SheetsApiV3 {
 }
 
 // Sheets API v3 端点
-/// 公开项说明。
+/// 电子表格 v3 API 基础路径。
 pub const SHEETS_API_V3: &str = "/open-apis/sheets/v3";
 
 // ============================================================================
@@ -1948,26 +1948,26 @@ pub const SHEETS_API_V3: &str = "/open-apis/sheets/v3";
 pub enum BaikeApiV1 {
     /// 草稿管理
     DraftCreate,
-    /// 公开项说明。
+    /// 更新草稿（参数：draft_id）
     DraftUpdate(String), // draft_id
 
     /// 词条管理
     EntityCreate,
-    /// 公开项说明。
+    /// 更新词条（参数：entity_id）
     EntityUpdate(String), // entity_id
-    /// 公开项说明。
+    /// 获取词条（参数：entity_id）
     EntityGet(String), // entity_id
-    /// 公开项说明。
+    /// 删除词条（参数：entity_id）
     EntityDelete(String), // entity_id
-    /// 公开项说明。
+    /// 列出词条
     EntityList,
-    /// 公开项说明。
+    /// 词条匹配
     EntityMatch,
-    /// 公开项说明。
+    /// 搜索词条
     EntitySearch,
-    /// 公开项说明。
+    /// 词条高亮
     EntityHighlight,
-    /// 公开项说明。
+    /// 词条抽取
     EntityExtract,
 
     /// 分类管理
@@ -1975,7 +1975,7 @@ pub enum BaikeApiV1 {
 
     /// 文件管理
     FileUpload,
-    /// 公开项说明。
+    /// 下载文件（参数：file_token）
     FileDownload(String), // file_token
 }
 
@@ -2012,7 +2012,7 @@ impl BaikeApiV1 {
 }
 
 // Baike API v1 端点
-/// 公开项说明。
+/// 飞书百科 v1 API 基础路径。
 pub const BAIKE_API_V1: &str = "/open-apis/baike/v1";
 
 // ============================================================================
@@ -2024,34 +2024,34 @@ pub const BAIKE_API_V1: &str = "/open-apis/baike/v1";
 pub enum LingoApiV1 {
     /// 草稿管理
     DraftCreate,
-    /// 公开项说明。
+    /// 更新草稿（参数：draft_id）
     DraftUpdate(String), // draft_id
 
     /// 词条管理
     EntityCreate,
-    /// 公开项说明。
+    /// 更新词条（参数：entity_id）
     EntityUpdate(String), // entity_id
-    /// 公开项说明。
+    /// 删除词条（参数：entity_id）
     EntityDelete(String), // entity_id
-    /// 公开项说明。
+    /// 获取词条（参数：entity_id）
     EntityGet(String), // entity_id
-    /// 公开项说明。
+    /// 列出词条
     EntityList,
-    /// 公开项说明。
+    /// 词条匹配
     EntityMatch,
-    /// 公开项说明。
+    /// 搜索词条
     EntitySearch,
-    /// 公开项说明。
+    /// 词条高亮
     EntityHighlight,
-    /// 公开项说明。
+    /// 批量获取词条
     EntityBatchGet,
-    /// 公开项说明。
+    /// 批量更新词条
     EntityBatchUpdate,
-    /// 公开项说明。
+    /// 词条搜索推荐
     EntitySearchRecommend,
-    /// 公开项说明。
+    /// 获取词条历史（参数：entity_id）
     EntityHistoryGet(String), // entity_id
-    /// 公开项说明。
+    /// 列出词条历史
     EntityHistoryList,
 
     /// 分类管理
@@ -2062,14 +2062,14 @@ pub enum LingoApiV1 {
 
     /// 文件管理
     FileUpload,
-    /// 公开项说明。
+    /// 下载文件（参数：file_token）
     FileDownload(String), // file_token
 
     /// 智能处理
     GenerateSummary,
-    /// 公开项说明。
+    /// 提取关键词
     ExtractKeywords,
-    /// 公开项说明。
+    /// 翻译文本
     TranslateText,
 }
 
@@ -2118,7 +2118,7 @@ impl LingoApiV1 {
 }
 
 // Lingo API v1 端点
-/// 公开项说明。
+/// 飞书词典 v1 API 基础路径。
 pub const LINGO_API_V1: &str = "/open-apis/lingo/v1";
 
 #[cfg(test)]

@@ -65,7 +65,7 @@ impl GetDocsContentRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct GetDocsContentResponse {
-    /// 公开项说明。
+    /// 导出的云文档内容（按请求的 content_type 返回，如 markdown / html）
     pub content: String,
 }
 

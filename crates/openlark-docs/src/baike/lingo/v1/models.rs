@@ -11,11 +11,11 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum UserIdType {
-    /// 公开项说明。
+    /// 开放平台用户 ID
     OpenId,
-    /// 公开项说明。
+    /// 飞书统一用户 ID（跨应用同一用户）
     UnionId,
-    /// 公开项说明。
+    /// 用户 ID（应用内用户标识）
     UserId,
 }
 
@@ -34,11 +34,11 @@ impl UserIdType {
 #[derive(Debug, Clone, Copy, Serialize_repr, Deserialize_repr, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Language {
-    /// 公开项说明。
+    /// 简体中文（zh_cn）
     ZhCn = 1,
-    /// 公开项说明。
+    /// 美式英语（en_us）
     EnUs = 2,
-    /// 公开项说明。
+    /// 日语（ja_jp）
     JaJp = 3,
 }
 
@@ -300,9 +300,9 @@ pub struct Draft {
 /// 分类国际化名称（i18n_cls_name）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct I18nClsName {
-    /// 公开项说明。
+    /// 语言类型
     pub language: Language,
-    /// 公开项说明。
+    /// 对应语言的分类名称
     pub name: String,
 }
 
@@ -330,7 +330,7 @@ pub struct Repo {
 
 /// 兼容导出：保留历史类型名（不建议在新代码中使用）
 pub type LingoEntity = Entity;
-/// 公开项说明。
+/// 兼容导出：保留历史类型名（不建议在新代码中使用）
 pub type LingoDraft = Draft;
 
 #[cfg(test)]
