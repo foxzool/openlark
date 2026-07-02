@@ -2,6 +2,7 @@
 change: cleanup-small-crates-placeholder-docs
 design-doc: docs/superpowers/specs/2026-07-02-cleanup-small-crates-placeholder-docs-design.md
 base-ref: 1e6a23807aab7cb819c4e682e164f840dcd02009
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 # cleanup-small-crates-placeholder-docs Implementation Plan
@@ -148,6 +149,7 @@ For fn / field / module / impl placeholders (272 sites), position is already cor
 
 Verified: 0 multi-attr boundaries (all 63 struct placeholders have exactly one `#[derive(...)]` directly above; no `#[serde]` stacking). The transform is 100% mechanical. hr `edit.rs` struct placeholders are ALREADY in the correct position (`///` above `#[derive]`) — those serve as a reference for the target shape and need text-only replacement.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## File Structure & Grouping
@@ -167,6 +169,7 @@ Sum = 104 + 78 + 65 + 47 + 41 = 335. ✓ (matches Design Doc exploration table).
 
 The largest group (mail 104) is well under the application crate's G5=138 proven-feasible ceiling; no group needs splitting.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 0: Pilot — validate recipe + position transform on 1 mail file
@@ -234,6 +237,7 @@ git commit -m "docs(mail): pilot mailgroup/manager/list recipe 验证 (11)"
 - spec compliance: the 11 doc texts match the recipe table exactly; struct doc is above `#[derive]`; named fields match the translation table (`managers`/`manager_id`/`manager_email`).
 - quality: doc reads as natural Chinese, references the real API name "批量获取邮件组管理员"; no signature lines deleted (cargo check passed).
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 1 (G1): mail — full crate (104 placeholders, 15 files)
@@ -291,6 +295,7 @@ git commit -m "docs(mail): mail 占位→有义 doc (104)"
 - spec compliance: all 93 remaining sites match recipe; struct doc above derive (3-line block edits used); named fields translated per table; cross-file `managers`/`manager_id`/`manager_email` consistent.
 - quality: API names traceable to `//!` headers; spot-check 2 files end-to-end (one manager, one user_mailbox); confirm no `pub async fn execute_with_options(` line deleted (cargo check passed).
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 2 (G2): workflow — full crate (78 placeholders, 34 files)
@@ -355,6 +360,7 @@ git commit -m "docs(workflow): workflow 占位→有义 doc (78)"
 - spec compliance: all 78 sites match recipe; 7 struct docs above derive (3-line block edits); 8 module placeholders have submodule-specific text (not generic); named fields in district/ match table.
 - quality: spot-check `district/list.rs` (24 sites, densest) and `district/search.rs` (12) end-to-end; confirm no signature lines deleted (cargo check passed); confirm cross-crate `items`/`page_token` use the same Chinese as the table.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 3 (G3): meeting — full crate (65 placeholders, 41 files)
@@ -412,6 +418,7 @@ git commit -m "docs(meeting): meeting 占位→有义 doc (65)"
 - spec compliance: all 65 sites match recipe; 2 struct docs in `responses.rs` above derive (3-line block); named device/room fields match table.
 - quality: spot-check `meeting_room/responses.rs` (11 sites, struct+field dense) end-to-end; confirm no signature deleted.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 4 (G4): user — full crate (47 placeholders, 7 files)
@@ -470,6 +477,7 @@ git commit -m "docs(user): user 占位→有义 doc (47)"
 - spec compliance: all 47 sites match recipe; 15 struct docs above derive (3-line block); `user_ids` uses "用户 ID 列表" consistent with the cross-crate table.
 - quality: API names traceable to `//!` headers; spot-check 2 of the 7 files end-to-end.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 5 (G5): hr — full crate (41 placeholders, 3 files)
@@ -525,6 +533,7 @@ git commit -m "docs(hr): hr 占位→有义 doc (41)"
 - spec compliance: all 41 sites match recipe; **6 impl-block sites use the new `<API>请求构建器实现。` row** (not a generic fn doc); 4 position-wrong structs swapped via 3-line block; 11 already-correct structs get text-only; named fields (`employee_id`/`probation`/`from_date`/`to_date`/`items`) match table.
 - quality: spot-check `edit.rs` (13 sites, includes impl blocks) end-to-end; confirm impl-block doc reads as "构建器实现" not as a fn doc; confirm cross-crate `items` = "列表项" same as workflow.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Task 6: Global gate + full verification
@@ -577,6 +586,7 @@ Run these and confirm same Chinese across crates:
 
 Expected: no field uses a divergent Chinese for the same name.
 
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
 ---
 
 ## Self-Review (post-write check against Design Doc + tasks.md)

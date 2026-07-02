@@ -2,6 +2,8 @@
 comet_change: cleanup-small-crates-placeholder-docs
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-02-cleanup-small-crates-placeholder-docs
+status: final
 ---
 
 # Design: cleanup-small-crates-placeholder-docs

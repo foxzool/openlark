@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-07-02-cleanup-small-crates-pl
 branch_status: handled
 created_at: 2026-07-02
 verified_at: 2026-07-02
-archived: false
+archived: true
 handoff_context: openspec/changes/cleanup-small-crates-placeholder-docs/.comet/handoff/design-context.json
 handoff_hash: 8f3dce305ad6118e227cf2e19be08298ec940297d65e90aa976895b4cfe0f781
