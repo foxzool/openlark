@@ -17,7 +17,7 @@ impl App {
         Self { config }
     }
 
-    /// 获取应用详情。
+    /// 返回获取应用请求构建器。
     pub fn get(&self) -> get::GetAppRequest {
         get::GetAppRequest::new(self.config.clone())
     }

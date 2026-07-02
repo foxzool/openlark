@@ -10,17 +10,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 启停用应用的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct UpdateApplicationManagementRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
+/// 启停用应用的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct UpdateApplicationManagementResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -31,7 +31,7 @@ impl ApiResponseTrait for UpdateApplicationManagementResponse {
 }
 
 impl UpdateApplicationManagementRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -39,12 +39,12 @@ impl UpdateApplicationManagementRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行启停用应用请求。
     pub async fn execute(self) -> SDKResult<UpdateApplicationManagementResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

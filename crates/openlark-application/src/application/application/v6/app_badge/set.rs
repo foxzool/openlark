@@ -11,26 +11,26 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 更新应用红点的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct SetAppBadgeRequest {
     config: Arc<Config>,
     body: SetAppBadgeBody,
 }
 
+/// 更新应用红点的请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
 pub struct SetAppBadgeBody {
-    /// 待补充文档。
+    /// 应用 ID。
     pub app_id: String,
-    /// 待补充文档。
+    /// 徽标。
     pub badge: i32,
 }
 
+/// 更新应用红点的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct SetAppBadgeResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -41,7 +41,7 @@ impl ApiResponseTrait for SetAppBadgeResponse {
 }
 
 impl SetAppBadgeRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -49,24 +49,24 @@ impl SetAppBadgeRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 设置应用 ID。
     pub fn app_id(mut self, id: impl Into<String>) -> Self {
         self.body.app_id = id.into();
         self
     }
 
-    /// 待补充文档。
+    /// 设置徽标。
     pub fn badge(mut self, badge: i32) -> Self {
         self.body.badge = badge;
         self
     }
 
-    /// 待补充文档。
+    /// 执行更新应用红点请求。
     pub async fn execute(self) -> SDKResult<SetAppBadgeResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

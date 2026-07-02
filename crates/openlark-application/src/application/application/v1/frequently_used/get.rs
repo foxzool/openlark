@@ -10,16 +10,16 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取用户自定义常用的应用的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct GetFrequentlyUsedAppsRequest {
     config: Arc<Config>,
 }
 
+/// 获取用户自定义常用的应用的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct GetFrequentlyUsedAppsResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<FrequentlyUsedAppsData>,
 }
 
@@ -29,34 +29,34 @@ impl ApiResponseTrait for GetFrequentlyUsedAppsResponse {
     }
 }
 
+/// 获取用户自定义常用的应用的响应数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct FrequentlyUsedAppsData {
-    /// 待补充文档。
+    /// 应用列表。
     pub apps: Vec<FrequentlyUsedApp>,
 }
 
+/// 常用应用。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct FrequentlyUsedApp {
-    /// 待补充文档。
+    /// 应用 ID。
     pub app_id: String,
-    /// 待补充文档。
+    /// 应用名称。
     pub app_name: String,
 }
 
 impl GetFrequentlyUsedAppsRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
 
-    /// 待补充文档。
+    /// 执行获取用户自定义常用的应用请求。
     pub async fn execute(self) -> SDKResult<GetFrequentlyUsedAppsResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

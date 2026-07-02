@@ -11,26 +11,26 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 向管理员申请授权的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct ApplyScopeRequest {
     config: Arc<Config>,
     body: ApplyScopeBody,
 }
 
+/// 向管理员申请授权的请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
 pub struct ApplyScopeBody {
-    /// 待补充文档。
+    /// 权限范围类型。
     pub scope_type: String,
-    /// 待补充文档。
+    /// 原因说明。
     pub reason: String,
 }
 
+/// 向管理员申请授权的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct ApplyScopeResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -41,7 +41,7 @@ impl ApiResponseTrait for ApplyScopeResponse {
 }
 
 impl ApplyScopeRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -49,12 +49,12 @@ impl ApplyScopeRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行向管理员申请授权请求。
     pub async fn execute(self) -> SDKResult<ApplyScopeResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

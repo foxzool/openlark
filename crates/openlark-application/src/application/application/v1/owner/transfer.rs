@@ -10,25 +10,25 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 转移应用所有者的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct TransferAppOwnerRequest {
     config: Arc<Config>,
     app_id: String,
     body: TransferAppOwnerBody,
 }
 
+/// 转移应用所有者的请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
 pub struct TransferAppOwnerBody {
-    /// 待补充文档。
+    /// 新所有者 ID。
     pub new_owner_id: String,
 }
 
+/// 转移应用所有者的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct TransferAppOwnerResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -39,7 +39,7 @@ impl ApiResponseTrait for TransferAppOwnerResponse {
 }
 
 impl TransferAppOwnerRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -48,18 +48,18 @@ impl TransferAppOwnerRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 设置新所有者 ID。
     pub fn new_owner_id(mut self, id: impl Into<String>) -> Self {
         self.body.new_owner_id = id.into();
         self
     }
 
-    /// 待补充文档。
+    /// 执行转移应用所有者请求。
     pub async fn execute(self) -> SDKResult<TransferAppOwnerResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
