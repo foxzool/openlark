@@ -1,15 +1,15 @@
-/// 待补充文档。
+/// 审批定义相关 API。
 pub mod approval;
 pub mod district;
-/// 待补充文档。
+/// 外部审批定义相关 API。
 pub mod external_approval;
-/// 待补充文档。
+/// 外部审批实例相关 API。
 pub mod external_instance;
-/// 待补充文档。
+/// 外部审批任务相关 API。
 pub mod external_task;
-/// 待补充文档。
+/// 审批实例相关 API。
 pub mod instance;
-/// 待补充文档。
+/// 审批任务相关 API。
 pub mod task;
 
 // approval 模块显式导出

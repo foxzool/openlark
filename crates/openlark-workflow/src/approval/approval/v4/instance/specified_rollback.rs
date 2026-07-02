@@ -38,7 +38,7 @@ pub struct SpecifiedRollbackRequestV4 {
 }
 
 impl SpecifiedRollbackRequestV4 {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,

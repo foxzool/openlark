@@ -11,22 +11,22 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 搜索区划的请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
-/// 待补充文档。
 pub struct SearchDistrictsBody {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 待补充文档。
+    /// 区划 ID 列表。
     pub district_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 待补充文档。
+    /// 关键词。
     pub keyword: Option<String>,
 }
 
+/// 搜索区划的响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-/// 待补充文档。
 pub struct SearchDistrictsResponse {
     #[serde(default)]
-    /// 待补充文档。
+    /// 列表项。
     pub items: Vec<super::list::DistrictItem>,
 }
 
@@ -36,8 +36,8 @@ impl ApiResponseTrait for SearchDistrictsResponse {
     }
 }
 
+/// 搜索区划的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct SearchDistrictsRequest {
     config: Arc<Config>,
     locale: Option<String>,
@@ -45,7 +45,7 @@ pub struct SearchDistrictsRequest {
 }
 
 impl SearchDistrictsRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -53,27 +53,27 @@ impl SearchDistrictsRequest {
             body: SearchDistrictsBody::default(),
         }
     }
-    /// 待补充文档。
+    /// 设置语言。
     pub fn locale(mut self, locale: impl Into<String>) -> Self {
         self.locale = Some(locale.into());
         self
     }
-    /// 待补充文档。
+    /// 设置区划 ID 列表。
     pub fn district_ids(mut self, district_ids: Vec<String>) -> Self {
         self.body.district_ids = Some(district_ids);
         self
     }
-    /// 待补充文档。
+    /// 设置关键词。
     pub fn keyword(mut self, keyword: impl Into<String>) -> Self {
         self.body.keyword = Some(keyword.into());
         self
     }
-    /// 待补充文档。
+    /// 执行搜索区划请求。
     pub async fn execute(self) -> SDKResult<SearchDistrictsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
     }
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,

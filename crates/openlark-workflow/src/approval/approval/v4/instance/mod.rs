@@ -2,7 +2,7 @@ pub mod add_cc;
 pub mod add_sign;
 pub mod cancel;
 pub mod cc;
-/// 待补充文档。
+/// 审批实例评论相关 API。
 pub mod comment;
 pub mod create;
 pub mod detail;
