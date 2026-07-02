@@ -7,13 +7,13 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: full
+verify_mode: light
 auto_transition: true
 base_ref: d29c87fafe2131d6805aaed0ff353bec8cf0eb7f
 design_doc: docs/superpowers/specs/2026-07-02-cleanup-missing-docs-tests-design.md
 plan: docs/superpowers/plans/2026-07-02-cleanup-missing-docs-tests.md
 verify_result: pending
-verification_report: null
+verification_report: docs/superpowers/reports/2026-07-02-cleanup-missing-docs-tests-verify.md
 branch_status: pending
 created_at: 2026-07-02
 verified_at: null
