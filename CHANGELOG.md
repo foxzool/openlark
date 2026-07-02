@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   与 `tracing-subscriber` 直接引用（根 `[workspace.dependencies]` 同步；`tracing-subscriber` 仍可能作为
   `tracing-test` 的传递依赖出现）。`testing` feature **保留**并解耦为 `testing = []`（不再拉 `tracing-init`，
   因 `pub mod testing` 被 hr/docs 测试大量使用）。`observability` 模块现仅保留被 `response_handler` 使用
-  的 `ResponseTracker`。
+  的 `ResponseTracker`。根 crate `openlark` 的 `otel = ["openlark-core/otel"]` 转发 feature 同步移除。
   **迁移**：若启用过 `tracing-init`/`otel` feature，直接从 `Cargo.toml` 移除即可，无行为变化
   （原 feature 只编译死代码）。`tracing` 本体与其他 feature 不受影响。
 
