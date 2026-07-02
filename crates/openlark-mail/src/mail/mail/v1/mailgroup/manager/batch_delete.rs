@@ -12,25 +12,25 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 批量删除邮件组管理员的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct BatchDeleteMailGroupManagerRequest {
     config: Arc<Config>,
     mailgroup_id: String,
     body: BatchDeleteMailGroupManagerBody,
 }
 
+/// 批量删除邮件组管理员请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// 待补充文档。
 pub struct BatchDeleteMailGroupManagerBody {
-    /// 待补充文档。
+    /// 管理员 ID 列表。
     pub manager_ids: Vec<String>,
 }
 
+/// 批量删除邮件组管理员的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct BatchDeleteMailGroupManagerResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -41,7 +41,7 @@ impl ApiResponseTrait for BatchDeleteMailGroupManagerResponse {
 }
 
 impl BatchDeleteMailGroupManagerRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, mailgroup_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -50,18 +50,18 @@ impl BatchDeleteMailGroupManagerRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 设置管理员 ID 列表。
     pub fn manager_ids(mut self, ids: Vec<String>) -> Self {
         self.body.manager_ids = ids;
         self
     }
 
-    /// 待补充文档。
+    /// 执行批量删除邮件组管理员请求。
     pub async fn execute(self) -> SDKResult<BatchDeleteMailGroupManagerResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

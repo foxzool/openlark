@@ -11,17 +11,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 将公共邮箱移至回收站的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct RemovePublicMailboxToRecycleBinRequest {
     config: Arc<Config>,
     public_mailbox_id: String,
 }
 
+/// 将公共邮箱移至回收站的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct RemovePublicMailboxToRecycleBinResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -32,7 +32,7 @@ impl ApiResponseTrait for RemovePublicMailboxToRecycleBinResponse {
 }
 
 impl RemovePublicMailboxToRecycleBinRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, public_mailbox_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -40,12 +40,12 @@ impl RemovePublicMailboxToRecycleBinRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行将公共邮箱移至回收站请求。
     pub async fn execute(self) -> SDKResult<RemovePublicMailboxToRecycleBinResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,

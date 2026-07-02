@@ -11,17 +11,17 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 从回收站删除用户邮箱地址的请求。
 #[derive(Debug, Clone)]
-/// 待补充文档。
 pub struct DeleteUserMailboxRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
 }
 
+/// 从回收站删除用户邮箱地址的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 待补充文档。
 pub struct DeleteUserMailboxResponse {
-    /// 待补充文档。
+    /// 响应数据。
     pub data: Option<serde_json::Value>,
 }
 
@@ -32,7 +32,7 @@ impl ApiResponseTrait for DeleteUserMailboxResponse {
 }
 
 impl DeleteUserMailboxRequest {
-    /// 待补充文档。
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, user_mailbox_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -40,12 +40,12 @@ impl DeleteUserMailboxRequest {
         }
     }
 
-    /// 待补充文档。
+    /// 执行从回收站删除用户邮箱地址请求。
     pub async fn execute(self) -> SDKResult<DeleteUserMailboxResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 待补充文档。
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
