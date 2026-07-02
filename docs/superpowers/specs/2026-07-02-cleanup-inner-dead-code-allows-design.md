@@ -14,7 +14,9 @@ canonical_spec: openspec
 
 **目标**：dead_code lint 信号彻底恢复；CI 无人为开口；废弃模块/脚手架直接删除。**非目标**：不接线 hr endpoint（废弃旧物）、不接线 mail `User` accessor、不升 deny、不改 public API 行为。
 
-## 2. 探查修正（推翻 open 阶段两处表述）
+## 2. 探查修正（推翻 open 阶段表述）
+
+> **build Task 2 实测再修正（最重要）**：`observability.rs` **非全文件死**——`response_handler.rs` import 并使用 `observability::ResponseTracker`（3 处 `ResponseTracker::start`）。故 D2 改为**重写 `observability.rs` 仅保留 `ResponseTracker` + 其 4 测试**，删死 tracker（`OperationTracker`/`HttpTracker`/`AuthTracker`）/`trace_*` 函数/5 个 `trace_*` 宏/`tracing-init`+`otel` 门控 init 块 + 文件顶 `#![allow(dead_code)]`，**保留 `pub(crate) mod observability;`**。死代码扫描本就未标记 `ResponseTracker`（仅标记三个死 tracker + trace 函数）。另：根 `Cargo.toml` 有 `otel = ["openlark-core/otel"]` 转发 feature（Task 1 的 `crates/`-only grep 漏检根 crate），一并删。
 
 ### 2.1 D2 修正：`testing` feature 保留并解耦（非移除）
 

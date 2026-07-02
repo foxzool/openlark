@@ -5,12 +5,12 @@
 
 ## 2. openlark-core：删 observability + 移除 feature/依赖（D2）
 
-- [ ] 2.1 删除 `crates/openlark-core/src/observability.rs` 全文 + `lib.rs` 的 `pub(crate) mod observability;` 声明。
-- [ ] 2.2 从 `crates/openlark-core/Cargo.toml` 移除 `tracing-init`/`otel` feature（含注释）；**`testing` 解耦为 `testing = []`（保留，去掉 `["tracing-init"]`）**。
-- [ ] 2.3 从 `[dependencies]` 移除 4 个 optional 依赖及其 `[dependencies.X]` 表：`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`；从 `[dev-dependencies]` 移除 `tracing-subscriber`；逐个 `grep` 核实无他处引用（保留 `tracing` 本体）。根 `Cargo.toml` `[workspace.dependencies]` 同步删这 5 项。
-- [ ] 2.4 确认 `pub mod testing` 完整保留、hr/docs 的 `features = ["testing"]` 仍工作（解耦后 testing 不再拉 tracing-init）。
-- [ ] 2.5 同步更新 `.github/msrv/Cargo.lock`（删依赖的 change 必须同步，否则 CI msrv `--locked` 失败）。
-- [ ] 2.6 `cargo check -p openlark-core`（default / `--all-features` / `--no-default-features`）三组均编译通过。
+- [x] 2.1 **重写** `crates/openlark-core/src/observability.rs`：仅保留 `ResponseTracker`（+ 4 测试），删死 tracker/trace 函数/5 宏/tracing-init/otel 门控块 + 文件顶 `#![allow(dead_code)]`（build 实测修正：`response_handler` 用 `ResponseTracker`，非全文件死）。**保留 `lib.rs` 的 `pub(crate) mod observability;`**。
+- [x] 2.2 从 `crates/openlark-core/Cargo.toml` 移除 `tracing-init`/`otel` feature（含注释）；**`testing` 解耦为 `testing = []`（保留，去掉 `["tracing-init"]`）**。另：删根 `Cargo.toml` 的 `otel = ["openlark-core/otel"]` 转发 feature（build 实测发现，Task 1 crates/-only grep 漏检）。
+- [x] 2.3 从 `[dependencies]` 移除 4 个 optional 依赖及其 `[dependencies.X]` 表：`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`；从 `[dependencies]` + `[dev-dependencies]` 移除 `tracing-subscriber`（两处）；根 `Cargo.toml` `[workspace.dependencies]` 同步删这 5 项（保留 `tracing` 本体）。
+- [x] 2.4 确认 `pub mod testing` 完整保留、hr/docs 的 `features = ["testing"]` 仍工作（解耦后 testing 不再拉 tracing-init）。
+- [ ] 2.5 同步更新 `.github/msrv/Cargo.lock`（删依赖必须）—— **移到 Task 8 Step 5 与全量验证一起做**。
+- [x] 2.6 `cargo check -p openlark-core`（default / `--all-features` / `--no-default-features`）三组均编译通过 ✓。
 
 ## 3. openlark-core：删 query_params / header_builder 死项（D3）
 

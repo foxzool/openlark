@@ -27,9 +27,9 @@
 **备选（否决）**：逐常量 `#[expect(dead_code)]` —— 保留废弃模块无价值，反而误导后续维护者以为常量在用。
 
 ### D2. CORE `observability.rs`：删码 + 移除 tracing-init/otel + 解耦 testing（用户确认 Option A，design 探查修正）
-**选择**：删除 `observability.rs` 全文 + `pub(crate) mod observability;`；移除 `openlark-core/Cargo.toml` 的 `tracing-init` / `otel` 两个 feature；**`testing` feature 保留并解耦**为 `testing = []`（去掉 `["tracing-init"]`）；移除 5 个仅服务这些 feature 的依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`、`tracing-subscriber`）+ 根 `[workspace.dependencies]` 同步删。
-**理由（实证 + 探查修正）**：5 依赖在 `openlark-core/src/` 排除 `observability.rs` 后 0 引用，workspace 其他 crate 也 0 引用；`tracing-init`/`otel` 仅门控 `observability.rs`。**但 `testing` feature 探查发现门控 `pub mod testing`（TestConfigBuilder 等自包含测试助手），被 hr/docs 测试大量使用、不依赖 observability**——故保留并解耦，非移除。
-**保留**：`tracing` 本体（`tracing::Span`/`span!` 等在他处用，非 5 个删除依赖之一）；`pub mod testing` 全保留。
+**选择**：**重写 `observability.rs` 仅保留 `ResponseTracker`**（被 `response_handler` 实际使用的活代码）+ 其 4 个测试；删除死代码：`OperationTracker`/`HttpTracker`/`AuthTracker`（struct+impl）、`trace_health_check`/`trace_async_health_check`、5 个 `trace_*` 宏（`trace_performance`/`trace_async_performance`/`trace_auth_operation`/`trace_http_request`/`trace_response_processing`，均非 `macro_export` 且 0 外部引用）、`tracing-init`/`otel` 门控的 `init_tracing*`/`OtelConfig`/`init_otel_tracing`/`shutdown_otel` 块 + 门控 import + 文件顶 `#![allow(dead_code)]`；**保留 `pub(crate) mod observability;`**。移除 `openlark-core/Cargo.toml` 的 `tracing-init`/`otel` feature；**`testing` 保留并解耦**为 `testing = []`；移除 5 个仅服务这些 feature 的依赖 + 根 `[workspace.dependencies]` 同步删。
+**理由（实证 + 探查 + build 实测三重修正）**：原 design 误判「observability.rs 全文件死」——**build Task 2 实测**发现 `response_handler.rs` import 并使用 `observability::ResponseTracker`（3 处 `ResponseTracker::start`），故 `ResponseTracker` 是活代码必须保留；死代码扫描本就未标记 `ResponseTracker`（仅标记 `OperationTracker`/`HttpTracker`/`AuthTracker`/`trace_*`）。5 个 `trace_*` 宏非 `macro_export`、0 外部引用，随死 tracker 一起删。`tracing-init`/`otel` 门控的 init 函数 0 外部引用，随 feature 删除。`testing` 门控 `pub mod testing`（hr/docs 测试大量用），保留解耦。
+**保留**：`tracing` 本体；`pub mod testing`；**`ResponseTracker` + `pub(crate) mod observability;`**。
 **BREAKING（收窄）**：仅 `tracing-init`/`otel` 移除是 manifest breaking；无 workspace crate 直接启用这俩（仅 hr/docs 启用 `testing`，保留），workspace 零破坏；crates.io 公众理论 breaking 但原 feature 无行为。
 
 ### D3. CORE `query_params.rs`（整文件删）/ `header_builder.rs`（项级删）——探查已定粒度
