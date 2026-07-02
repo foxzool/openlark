@@ -1,15 +1,15 @@
 use serde::Deserialize;
 
+/// 获取应用的响应。
 #[derive(Debug, Clone, Deserialize)]
-/// 待补充文档。
 pub struct GetAppResponse {
-    /// 待补充文档。
+    /// 应用 ID。
     pub app_id: String,
-    /// 待补充文档。
+    /// 应用名称。
     pub app_name: String,
-    /// 待补充文档。
+    /// 应用类型。
     pub app_type: String,
-    /// 待补充文档。
+    /// 描述。
     pub description: Option<String>,
 }
 
