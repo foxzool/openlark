@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -7,7 +7,7 @@ subagent_dispatch: confirmed
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: bee2751b05811d53392355e6aa86c473c73a3423
 design_doc: docs/superpowers/specs/2026-07-02-cleanup-docs-placeholder-docs-design.md
