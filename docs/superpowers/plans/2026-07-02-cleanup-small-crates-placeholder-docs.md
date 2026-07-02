@@ -429,37 +429,37 @@ git commit -m "docs(meeting): meeting 占位→有义 doc (65)"
 
 **Interfaces:** none (doc-only).
 
-- [ ] **Step 1: Read each file's `//!` header**
+- [x] **Step 1: Read each file's `//!` header**
 
 Example headers: `system_status/create.rs`→"创建系统状态", `system_status/batch_open.rs`→"批量开启系统状态", `system_status/list.rs`→"获取系统状态列表", `system_status/patch.rs`→"更新系统状态".
 
-- [ ] **Step 2: Apply recipe to all 47 placeholders**
+- [x] **Step 2: Apply recipe to all 47 placeholders**
 
   - **struct (15 sites, all position-wrong)**: 3-line block position swap + recipe text. Request→`<API>的请求。`, Response→`<API>的响应。`, other structs (Body etc.)→`<结构中文名>。`.
   - **field (8 sites)**: `user_ids`→用户 ID 列表 (cross-crate consistent with the table). Other status-specific fields: read name, translate per Feishu sense.
   - **fn (21 sites)**: `fn new`→`创建请求实例。`, `fn execute`→`执行<API>请求。`, `fn execute_with_options`→`带自定义请求选项执行。`. setter `user_ids`→设置用户 ID 列表.
 
-- [ ] **Step 3: Self-verify — entire user crate has zero placeholders**
+- [x] **Step 3: Self-verify — entire user crate has zero placeholders**
 
 Run: `grep -rn '/// 待补充文档。' crates/openlark-user/src/`
 Expected: no output (empty).
 
-- [ ] **Step 4: Self-verify — position gate**
+- [x] **Step 4: Self-verify — position gate**
 
 Run: `grep -rnA1 '^#\[derive' crates/openlark-user/src/ | grep '/// 待补充文档'`
 Expected: no output (empty).
 
-- [ ] **Step 5: cargo doc**
+- [x] **Step 5: cargo doc**
 
 Run: `cargo doc -p openlark-user --no-deps 2>&1 | tail -5`
 Expected: clean.
 
-- [ ] **Step 6: cargo check — signature integrity (hard gate)**
+- [x] **Step 6: cargo check — signature integrity (hard gate)**
 
 Run: `cargo check -p openlark-user 2>&1 | tail -5`
 Expected: exit 0, no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/openlark-user/src/
