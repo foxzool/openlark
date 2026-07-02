@@ -25,10 +25,10 @@
 
 ## 5. openlark-mail：删孤儿字段 + User.config 显式处理（D4）
 
-- [ ] 5.1 删除 6 处孤儿字段 `delete_id` / `patch_id`（alias、folder、mail_contact、rule 的 delete+patch）+ 各 `new()` 中的对应初始化。
-- [ ] 5.2 `mail/v1/user/mod.rs` 的 `User.config` 字段加 `#[expect(dead_code)]` + 注释「导航 struct，accessor 待补（见 #274/#275 范式），本 change 不接线」。
-- [ ] 5.3 移除 `crates/openlark-mail/src/lib.rs:1` 的 `#![allow(dead_code)]`。
-- [ ] 5.4 `cargo check -p openlark-mail` 确认 0 dead_code 警告。
+- [x] 5.1 删除 6 处孤儿字段 `delete_id` / `patch_id`（alias、folder、mail_contact、rule 的 delete+patch）+ 各 `new()` 初始化（sed 按行删，已复核 6 文件 0 残留）。
+- [x] 5.2 `mail/v1/user/mod.rs` 的 `User.config` 字段加 `#[expect(dead_code)]` + 注释「导航 struct，accessor 待补（#274/#275 范式），本 change 不接线」。
+- [x] 5.3 移除 `crates/openlark-mail/src/lib.rs:1` 的 `#![allow(dead_code)]`（保留 `clippy::module_inception`）。
+- [x] 5.4 `cargo check -p openlark-mail` 绿、`clippy --all-targets` 0 dead_code ✓。
 
 ## 6. openlark-bot / openlark-docs：删 stale allow（D5）
 
