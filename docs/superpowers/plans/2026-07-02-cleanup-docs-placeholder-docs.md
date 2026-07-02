@@ -106,7 +106,7 @@ The exact derive list varies per file (`Debug, Clone, PartialEq` for the enum in
 - Consumes: nothing (first task, pure doc edits).
 - Produces: baike domain files with zero placeholders and 3 derive-fixes applied. Later cohorts are independent; no cross-cohort type contract.
 
-- [ ] **Step 1: Read each of the 7 files to map every placeholder to its item**
+- [x] **Step 1: Read each of the 7 files to map every placeholder to its item**
 
 Run for each file (example for the largest):
 ```bash
@@ -116,7 +116,7 @@ Then for each line number, read ~6 lines of context above to identify the item (
 
 Expected: a per-item mental map of all 17 placeholders in the cohort.
 
-- [ ] **Step 2: Replace placeholders with per-item semantic Chinese doc**
+- [x] **Step 2: Replace placeholders with per-item semantic Chinese doc**
 
 For each placeholder, apply the doc-derivation method (table in File Structure):
 - enum variant → `/// <变体代表的 Feishu 实体>`
@@ -138,7 +138,7 @@ pub struct CreateEntityReq {
 ```
 (The 2nd placeholder in the same file, and the items in update.rs/match.rs, follow the same pattern — read each item's name to pick the right semantic text.)
 
-- [ ] **Step 3: Verify cohort grep gate is empty**
+- [x] **Step 3: Verify cohort grep gate is empty**
 
 Run:
 ```bash
@@ -146,7 +146,7 @@ grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-docs/src/ba
 ```
 Expected: **empty output** (no matches).
 
-- [ ] **Step 4: Verify derive-position gate holds for cohort**
+- [x] **Step 4: Verify derive-position gate holds for cohort**
 
 Run:
 ```bash
@@ -159,7 +159,7 @@ done
 ```
 Expected: **empty output** (no derive-then-doc sites remaining).
 
-- [ ] **Step 5: Verify cargo doc passes for the crate**
+- [x] **Step 5: Verify cargo doc passes for the crate**
 
 Run:
 ```bash
@@ -167,7 +167,7 @@ cargo doc -p openlark-docs --all-features --no-deps 2>&1 | grep -E 'warning|erro
 ```
 Expected: `OK: no warnings` (or only pre-existing unrelated warnings — no new `missing_docs`).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-docs/src/baike/
@@ -195,7 +195,7 @@ cleanup-docs-placeholder-docs Cohort A (baike/lingo + baike/baike)。
 
 **Note on the 43-item `sheets/v3/spreadsheet/models.rs`:** This file is the bulk of the cohort (43 of 48). It has no `//!` header — every doc derives from the enclosing struct/enum. Read struct-by-struct; most items are spreadsheet model fields (sheet_id, row, column, cell, range, etc. — Feishu Sheets domain). Do NOT rush — each of the 43 needs a per-item semantic line.
 
-- [ ] **Step 1: Map all 48 placeholders to their items**
+- [x] **Step 1: Map all 48 placeholders to their items**
 
 Run for each file:
 ```bash
@@ -206,7 +206,7 @@ grep -n '公开项说明' crates/openlark-docs/src/ccm/drive/v1/file/delete.rs
 ```
 For each line number, read ~6 lines above to identify the item. The 43 in sheets/models.rs are mostly struct fields within spreadsheet model structs — read each enclosing struct's name + the field's type to derive the doc.
 
-- [ ] **Step 2: Replace placeholders with per-item semantic Chinese doc**
+- [x] **Step 2: Replace placeholders with per-item semantic Chinese doc**
 
 Apply the doc-derivation method. For the no-`//!` files, the doc text is purely item-context-derived — do NOT add a `//!` header.
 
@@ -223,7 +223,7 @@ pub struct DeleteFileReq {
 ```
 (Preserve the existing derive list verbatim; only the doc line moves up + text replaces.)
 
-- [ ] **Step 3: Verify cohort grep gate is empty**
+- [x] **Step 3: Verify cohort grep gate is empty**
 
 Run:
 ```bash
@@ -231,7 +231,7 @@ grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-docs/src/cc
 ```
 Expected: **empty output**.
 
-- [ ] **Step 4: Verify derive-position gate holds for cohort**
+- [x] **Step 4: Verify derive-position gate holds for cohort**
 
 Run:
 ```bash
@@ -240,7 +240,7 @@ awk '/^#\[derive\(/ { d=NR; next } /\/\/\// && d==NR-1 { print FILENAME": derive
 ```
 Expected: **empty output**.
 
-- [ ] **Step 5: Verify cargo doc passes for the crate**
+- [x] **Step 5: Verify cargo doc passes for the crate**
 
 Run:
 ```bash
@@ -248,7 +248,7 @@ cargo doc -p openlark-docs --all-features --no-deps 2>&1 | grep -E 'warning|erro
 ```
 Expected: `OK: no warnings`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/openlark-docs/src/ccm/
@@ -277,7 +277,7 @@ cleanup-docs-placeholder-docs Cohort B (ccm sheets/docx/docs/drive)。
 
 **Note on `common/api_endpoints.rs` (73 items):** This file is a typed enum endpoint registry with rich `//!` and many already-documented sibling variants. The 73 placeholders are the *undocumented* variants scattered across many enums. Each one needs a short semantic doc derived from the variant name + the enum's existing doc + the URL pattern the variant represents. Lean on already-documented siblings in the same enum for style — e.g. if `RoleCreate` is `/// 新增自定义角色`, then `RoleDelete(String)` → `/// 删除自定义角色`. **Do NOT bulk-replace with a uniform phrase** — read each variant.
 
-- [ ] **Step 1: Map all 79 placeholders to their items**
+- [x] **Step 1: Map all 79 placeholders to their items**
 
 Run:
 ```bash
@@ -287,13 +287,13 @@ grep -n '公开项说明' crates/openlark-docs/src/base/bitable/v1/field_types.r
 ```
 For each `api_endpoints.rs` line, read the enclosing `enum` declaration and the variant name + any already-documented siblings. This is the bulk of the work; allocate the most context budget here.
 
-- [ ] **Step 2: Replace placeholders with per-item semantic Chinese doc**
+- [x] **Step 2: Replace placeholders with per-item semantic Chinese doc**
 
 Apply the doc-derivation method. For `api_endpoints.rs`, mirror the style of existing sibling variant docs in the same enum (single line `/// <动词>+<资源>` like `/// 新增自定义角色`).
 
 For `base/bitable/v1/field_types.rs` (1 item, no `//!`): derive purely from the item (likely a Bitable field-type variant or constant — read it).
 
-- [ ] **Step 3: Verify cohort grep gate is empty**
+- [x] **Step 3: Verify cohort grep gate is empty**
 
 Run:
 ```bash
@@ -301,7 +301,7 @@ grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-docs/src/co
 ```
 Expected: **empty output**.
 
-- [ ] **Step 4: Verify cargo doc passes for the crate**
+- [x] **Step 4: Verify cargo doc passes for the crate**
 
 Run:
 ```bash
@@ -309,7 +309,7 @@ cargo doc -p openlark-docs --all-features --no-deps 2>&1 | grep -E 'warning|erro
 ```
 Expected: `OK: no warnings`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/openlark-docs/src/common/ crates/openlark-docs/src/base/
@@ -333,7 +333,7 @@ cleanup-docs-placeholder-docs Cohort C (common api_endpoints + chain + base bita
 - Consumes: Tasks 1–3 all complete and committed (144 placeholders replaced, 4 derive-fixes applied).
 - Produces: verified-clean docs crate, ready for the change's verify phase.
 
-- [ ] **Step 1: Whole-crate grep gate is empty**
+- [x] **Step 1: Whole-crate grep gate is empty**
 
 Run:
 ```bash
@@ -341,7 +341,7 @@ grep -rnE '/// (待补充文档|公开项说明)。' crates/openlark-docs/src/
 ```
 Expected: **empty output** (all 144 replaced). This is the primary completion signal.
 
-- [ ] **Step 2: Whole-crate derive-position gate**
+- [x] **Step 2: Whole-crate derive-position gate**
 
 Run (sweeps all docs crate, not just the 4 known sites):
 ```bash
@@ -355,7 +355,7 @@ echo "---done---"
 ```
 Expected: only `---done---` (no derive-then-doc lines anywhere). The 4 known sites were fixed in Tasks 1–2; this confirms no others regressed.
 
-- [ ] **Step 3: Workspace cargo doc — 0 missing_docs warnings**
+- [x] **Step 3: Workspace cargo doc — 0 missing_docs warnings**
 
 Run:
 ```bash
@@ -371,7 +371,7 @@ grep -c 'warning: missing_docs\|warning: unresolved' /tmp/workspace-doc.log
 ```
 Expected: `0` for missing_docs in docs-crate items (unrelated pre-existing warnings elsewhere are out of scope — note them but don't try to fix).
 
-- [ ] **Step 4: Regression — fmt + lint + docs tests**
+- [x] **Step 4: Regression — fmt + lint + docs tests**
 
 Run:
 ```bash
@@ -383,7 +383,7 @@ Expected: all pass. (`cargo fmt --check` is mandatory — CI lint job runs it fi
 
 If `just lint` reports pre-existing failures unrelated to this change, note them and continue — do NOT fix unrelated clippy lints (scope creep).
 
-- [ ] **Step 5: Semantic quality spot-check (review, not mechanical)**
+- [x] **Step 5: Semantic quality spot-check (review, not mechanical)**
 
 This step is for the reviewer (human or code-review subagent), not the implementer. Sample 5–10 items per cohort and confirm the doc is meaningful Chinese (not the placeholder, not a bare name-pile):
 ```bash
@@ -394,7 +394,7 @@ sed -n '<sample-range>p' crates/openlark-docs/src/baike/lingo/v1/models.rs
 ```
 Expected: every sampled doc reads as a meaningful Feishu-domain description. If any reads as a name-pile (e.g. `/// AppId`), rewrite it.
 
-- [ ] **Step 6: Final commit (only if Step 5 required rewrites)**
+- [x] **Step 6: Final commit (only if Step 5 required rewrites)**
 
 If the spot-check found name-pile docs that were rewritten, commit the fixes:
 ```bash
@@ -405,7 +405,7 @@ cleanup-docs-placeholder-docs Task 4 Step 5 抽查发现的名称堆砌修正。
 ```
 If no rewrites were needed, skip this step (no empty commits).
 
-- [ ] **Step 7: Confirm tasks.md checkboxes can be ticked**
+- [x] **Step 7: Confirm tasks.md checkboxes can be ticked**
 
 Verify against `openspec/changes/cleanup-docs-placeholder-docs/tasks.md`:
 - §1.1–1.3 done by Tasks 1–3 ✓
