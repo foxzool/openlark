@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-07-02-cleanup-application-pla
 branch_status: handled
 created_at: 2026-07-02
 verified_at: 2026-07-02
-archived: false
+archived: true
 handoff_context: openspec/changes/cleanup-application-placeholder-docs/.comet/handoff/design-context.json
 handoff_hash: 43268aa1f6e9fb928808ac383aee7f95e017fdc842f008449d9584c911f60e04

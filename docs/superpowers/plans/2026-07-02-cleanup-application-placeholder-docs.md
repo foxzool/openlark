@@ -2,6 +2,7 @@
 change: cleanup-application-placeholder-docs
 design-doc: docs/superpowers/specs/2026-07-02-cleanup-application-placeholder-docs-design.md
 base-ref: c1313b2a129f0fa74df1a10b1bd02f417204fc06
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 # cleanup-application-placeholder-docs Implementation Plan
@@ -85,6 +86,7 @@ pub struct CreateAppRequest {
 
 For fn / field / module placeholders (388 sites), position is already correct — only swap the text in place.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## File Structure & Grouping
@@ -95,6 +97,7 @@ All 91 files live under `crates/openlark-application/src/application/application
 
 The base path prefix for every file below is `crates/openlark-application/src/application/application/`.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 0 (G0): Pilot — validate recipe + position transform on 1 file ✅ DONE (commit ee42e03e0)
@@ -159,6 +162,7 @@ git commit -m "docs(application): pilot v6/app/create recipe 验证 (6)"
 - spec compliance: the 6 doc texts match the recipe table exactly; struct doc is above `#[derive]`.
 - quality: doc reads as natural Chinese, references the real API name "创建应用".
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 1 (G1): v1 — app / app_version / app_badge
@@ -206,6 +210,7 @@ git commit -m "docs(application): G1 v1 app/app_version/app_badge 占位→有�
 - spec compliance: all 65 sites match recipe; struct doc above derive; named fields translated per table.
 - quality: API names traceable to `//!` headers; spot-check 2 files end-to-end.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 2 (G2): v1 — collaborator / owner / app_recommend_rule / app_usage / frequently_used
@@ -251,6 +256,7 @@ git commit -m "docs(application): G2 v1 collaborator/owner/recommend/usage/freq 
 
 **Reviewer gates (G2):** same shape as G1.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 3 (G3): v1 — feedback / app_visibility / management / contacts_range / application / usage / visibility
@@ -300,6 +306,7 @@ git commit -m "docs(application): G3 v1 feedback/visibility/management/cr/app/us
 
 **Reviewer gates (G3):** same shape.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 4 (G4): v5 + root mod.rs
@@ -345,6 +352,7 @@ git commit -m "docs(application): G4 v5 + root mod 占位→有义 doc (13)"
 
 **Reviewer gates (G4):** same shape.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 5 (G5): v6/application/** (cohesive sub-domain; 138 placeholders, 23 files)
@@ -398,6 +406,7 @@ git commit -m "docs(application): G5 v6/application 全子域 占位→有义 do
 - spec compliance: 138 sites match recipe; struct doc above derive; named fields translated.
 - quality: because this group is large, reviewer spot-checks 3 files end-to-end (one standalone, one app_version/, one collaborators/) for recipe fidelity and that no doc reads as generic.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 6 (G6): v6 — app / app_badge / app_recommend_rule / app_usage / frequently_used / management
@@ -445,6 +454,7 @@ git commit -m "docs(application): G6 v6 app/badge/recommend/usage/freq/mgmt 占�
 
 **Reviewer gates (G6):** same shape; spot-check `app/models.rs` (named fields dense).
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 7 (G7): v6 — app_version / collaborator / contacts_range / owner / scope
@@ -492,6 +502,7 @@ git commit -m "docs(application): G7 v6 app_version/collaborator/cr/owner/scope 
 
 **Reviewer gates (G7):** same shape.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 8 (G8): v6 — feedback / app_visibility / visibility / usage + v6/mod.rs
@@ -539,6 +550,7 @@ git commit -m "docs(application): G8 v6 feedback/app_vis/visibility/usage + mod 
 
 **Reviewer gates (G8):** same shape.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Task 9: Global gate + full verification
@@ -582,6 +594,7 @@ Expected: all tests pass (same pass/fail count as before this change — this ch
 Run: `grep -rc '/// 待补充文档。' crates/openlark-application/src/ | grep -v ':0$' | wc -l`
 Expected: `0`.
 
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
 ---
 
 ## Self-Review (post-write check against Design Doc + tasks.md)

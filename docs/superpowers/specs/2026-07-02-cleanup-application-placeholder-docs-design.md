@@ -2,6 +2,8 @@
 comet_change: cleanup-application-placeholder-docs
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-02-cleanup-application-placeholder-docs
+status: final
 ---
 
 # Design: cleanup-application-placeholder-docs
