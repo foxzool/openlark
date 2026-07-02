@@ -37,13 +37,13 @@
 
 ## 7. CI 脚本收口（D6）
 
-- [ ] 7.1 编辑 `tools/check_no_dead_code_allows.sh`：清空 `KNOWN_INNER_DEBT` heredoc 内容并更新脚本尾部文案（inner-attribute 不再享受豁免）。
-- [ ] 7.2 运行 `bash tools/check_no_dead_code_allows.sh` 确认 PASS。
+- [x] 7.1 `tools/check_no_dead_code_allows.sh`：删 `KNOWN_INNER_DEBT` heredoc（7 文件）+ `grep -vFf` 例外排除行 + 头/尾文案更新（#277 收尾）。
+- [x] 7.2 `bash tools/check_no_dead_code_allows.sh` → exit 0；workspace grep 复核 0 `#![allow(dead_code)]]` 残留。
 
 ## 8. 全量验证（spec 验收场景）
 
-- [ ] 8.1 `cargo fmt --check`（CI lint 第一步，避免重蹈 #270/#280 漏 fmt 致 lint fail）。
-- [ ] 8.2 `cargo clippy --workspace --all-targets` 三组——default / `--all-features` / `--no-default-features`——均 0 dead_code 警告、0 `#![allow(dead_code)]` 残留（对应 spec「全 workspace 内外层均无 cruft 残留」+「废弃模块被删除而非抑制」scenario）。
-- [ ] 8.3 `cargo test --workspace` 全绿（删除项均 0 引用，无行为回归）。
-- [ ] 8.4 `cargo build --workspace --all-features` 与 `--no-default-features` 均通过（feature 移除后矩阵仍绿）。
-- [ ] 8.5 更新 CHANGELOG v0.18 breaking 区：记录移除的 3 feature + 5 依赖，附迁移指引「若启用过这些 feature，直接移除，无行为变化」。
+- [x] 8.1 `cargo fmt --all --check` 通过（CI lint 第一步）✓。
+- [x] 8.2 `cargo clippy --workspace --all-targets` 三组（default / `--all-features` / `--no-default-features`）均 0 dead_code、0 warning（spec「全 workspace 内外层均无 cruft 残留」+「废弃模块被删除而非抑制」scenario）✓。nodef 组另暴露 mail/bot `service.rs::config` 条件死代码，已用 `cfg_attr(not(feature), expect(dead_code))` 标注。
+- [x] 8.3 `cargo test --workspace` 全绿：6241 passed / 0 failed ✓。
+- [x] 8.4 `cargo build --workspace --all-features` 与 `--no-default-features` 均通过 ✓。
+- [x] 8.5 CHANGELOG v0.18 breaking 区：记录移除 tracing-init/otel feature + 直接依赖 + 迁移指引（testing 保留解耦）。另：同步 `.github/msrv/Cargo.lock` + `cargo check --locked` 通过。
