@@ -25,7 +25,7 @@ class WorkspaceMissingDocsTests(unittest.TestCase):
                 msg=f"{path} should not suppress missing_docs warnings in workspace crates",
             )
 
-    def test_workspace_item_level_missing_docs_exception_is_protocol_generated_module_only(self):
+    def test_workspace_item_level_missing_docs_exception_is_empty(self):
         allow_hits = []
         for path in Path("crates").rglob("*.rs"):
             content = path.read_text(encoding="utf-8")
@@ -34,7 +34,7 @@ class WorkspaceMissingDocsTests(unittest.TestCase):
 
         self.assertEqual(
             allow_hits,
-            ["crates/openlark-protocol/src/lib.rs"],
+            [],
             msg=f"unexpected item-level missing_docs exceptions: {allow_hits}",
         )
 

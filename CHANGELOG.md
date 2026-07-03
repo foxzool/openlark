@@ -34,6 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **删除 `openlark-protocol` 幻影 crate**（#325）：仓内 protocol 是已发布 crates.io
+  `lark-websocket-protobuf`（同作者 ZoOL）的死壳复制品——零 import（除自测），现网 WS 栈全用
+  外部 `lark_websocket_protobuf`。删除整 crate（workspace members + workspace dep + core optional
+  dep / `websocket` feature / cargo-machete ignore + CI `test_openlark_protocol_missing_docs` 脚本 +
+  release publish 步骤 + `.github/msrv/Cargo.lock` 同步）。**迁移**：WebSocket 用户无感知（已用
+  `lark-websocket-protobuf`，deletion test 全绿）。crates.io `openlark-protocol` 0.17.0 由 owner
+  后续 `cargo yank` + 文档 deprecate（第 2 步，owner 决策）。
+
 - **webhook 统一发送管道 + `WebhookClient` 改薄 wrapper**（#310）：提取共享 `post_payload`
   helper（validate / sign / POST / deserialize），消除 `SendWebhookMessageRequest::execute` 与
   `WebhookClient::send` 的 ~40 行逐字重复。`SendWebhookMessageRequest` 增 `.raw(Value)` +

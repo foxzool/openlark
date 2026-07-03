@@ -35,7 +35,6 @@ futures-util = { workspace = true }
 regex = { workspace = true }
 tokio-tungstenite = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
-openlark-protocol = { workspace = true, optional = true }
 lark-websocket-protobuf = { version = "0.1", optional = true }
 http = { workspace = true }
 num_cpus = { workspace = true }
@@ -48,7 +47,7 @@ serde_with = { workspace = true }
 default = []
 
 # WebSocket support
-websocket = ["tokio-tungstenite", "prost", "openlark-protocol", "lark-websocket-protobuf"]
+websocket = ["tokio-tungstenite", "prost", "lark-websocket-protobuf"]
 
 # Testing utilities (for other crates to use in tests)
 testing = []
@@ -59,4 +58,4 @@ tracing-test = { workspace = true }
 wiremock = { workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["base64", "futures-util", "hmac", "lark-websocket-protobuf", "num_cpus", "openlark-protocol", "prost", "quick_cache", "rand", "regex", "sha2", "tokio-tungstenite"]
+ignored = ["base64", "futures-util", "hmac", "lark-websocket-protobuf", "num_cpus", "prost", "quick_cache", "rand", "regex", "sha2", "tokio-tungstenite"]

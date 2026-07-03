@@ -177,12 +177,7 @@ jobs:
 
       - name: Publish workspace crates in order
         run: |
-          # Layer 1: Protocol
-          echo "📦 Publishing openlark-protocol..."
-          cargo publish -p openlark-protocol || echo "⚠️ openlark-protocol may already exist"
-          sleep 30
-          
-          # Layer 2: Core
+          # Layer 1: Core
           echo "📦 Publishing openlark-core..."
           cargo publish -p openlark-core || echo "⚠️ openlark-core may already exist"
           sleep 30
