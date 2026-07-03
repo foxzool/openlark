@@ -257,7 +257,10 @@ async fn test_client_send_with_signature_headers() {
     let client = WebhookClient::new().with_secret("test-secret".to_string());
 
     let resp = client
-        .send_text(&webhook_url(&server), "client signed message".to_string())
+        .send(
+            &webhook_url(&server),
+            json!({"msg_type": "text", "content": {"text": "client signed message"}}),
+        )
         .await
         .expect("client signed message should be sent successfully");
 

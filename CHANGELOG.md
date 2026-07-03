@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **webhook 统一发送管道 + `WebhookClient` 改薄 wrapper**（#310）：提取共享 `post_payload`
+  helper（validate / sign / POST / deserialize），消除 `SendWebhookMessageRequest::execute` 与
+  `WebhookClient::send` 的 ~40 行逐字重复。`SendWebhookMessageRequest` 增 `.raw(Value)` +
+  `.with_client(reqwest::Client)`（解除 shared_client 限制）。`WebhookClient` 改为 Request 的薄
+  wrapper（`send` 委托 `Request::raw + with_client + execute`）。**breaking**：移除 `WebhookClient`
+  的 5 个 inline-json 构造器（`send_text` / `send_post` / `send_image` / `send_file` / `send_card`）。
+  **迁移**：`client.send_text(url, text)` → `SendWebhookMessageRequest::new(url).text(text).execute()`
+  或 `client.send(url, json!({"msg_type":"text","content":{"text":text}}))`。
+
 - **移除 `trait_system` 死 seam 及三处复制宏**（#301 死码清理，归 #277/#299 系列）：
   `openlark-core::trait_system`（`Service` + `ExecutableBuilder` trait）及 `impl_executable_builder!` /
   `impl_executable_builder_owned!` / `impl_full_service!` 等 `#[macro_export]` 宏，全仓**零调用零实现**

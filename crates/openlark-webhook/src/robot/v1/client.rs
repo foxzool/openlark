@@ -1,10 +1,5 @@
-use crate::common::error::{Result, WebhookError};
-use crate::common::validation;
-use crate::robot::v1::send::SendWebhookMessageResponse;
-use serde_json::json;
-
-#[cfg(feature = "signature")]
-use crate::common::signature;
+use crate::common::error::Result;
+use crate::robot::v1::send::{SendWebhookMessageRequest, SendWebhookMessageResponse};
 
 /// Webhook 客户端。
 ///
@@ -13,6 +8,9 @@ use crate::common::signature;
 ///
 /// 这是 `Transport` 边界的 **by-design 例外**（白名单见 `ARCHITECTURE.md`
 /// 「Transport HTTP 边界」小节，#270）。
+///
+/// `WebhookClient` 是 `SendWebhookMessageRequest` 的薄 wrapper：`send` 委托
+/// `Request::raw + with_client + execute`，复用共享发送管道（#310）。
 #[derive(Debug, Clone)]
 pub struct WebhookClient {
     client: reqwest::Client,
@@ -61,126 +59,24 @@ impl WebhookClient {
 
     /// 发送原始 JSON 负载到指定 webhook。
     ///
-    /// `payload` 需要符合飞书自定义机器人消息协议。
+    /// `payload` 需要符合飞书自定义机器人消息协议。委托 `SendWebhookMessageRequest::raw`
+    /// + `with_client` + `execute`（共享发送管道，#310）。
+    ///
+    /// 如需 typed 消息（text/post/image/file/card），用 `SendWebhookMessageRequest` 的
+    /// `.text()` / `.post()` / `.image()` / `.file()` / `.card()` 构造器。
     pub async fn send(
         &self,
         webhook_url: &str,
         payload: serde_json::Value,
     ) -> Result<SendWebhookMessageResponse> {
-        validation::validate_webhook_url(webhook_url)
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
+        let mut req = SendWebhookMessageRequest::new(webhook_url.to_string())
+            .raw(payload)
+            .with_client(self.client.clone());
         #[cfg(feature = "signature")]
-        let request_builder = {
-            let mut rb = self.client.post(webhook_url).json(&payload);
-            if let Some(secret) = &self.secret {
-                let timestamp = signature::current_timestamp();
-                let sign = signature::sign(timestamp, secret);
-                rb = rb
-                    .header("X-Lark-Signature", sign)
-                    .header("X-Lark-Timestamp", timestamp.to_string());
-            }
-            rb
-        };
-
-        #[cfg(not(feature = "signature"))]
-        let request_builder = self.client.post(webhook_url).json(&payload);
-
-        let response = request_builder
-            .send()
-            .await
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            return Err(WebhookError::Http(format!("HTTP error: {status}")));
+        if let Some(secret) = &self.secret {
+            req = req.with_secret(secret.clone());
         }
-
-        let body = response
-            .text()
-            .await
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
-        let result: SendWebhookMessageResponse = serde_json::from_str(&body)?;
-        Ok(result)
-    }
-
-    /// 发送文本消息。
-    pub async fn send_text(
-        &self,
-        webhook_url: &str,
-        text: String,
-    ) -> Result<SendWebhookMessageResponse> {
-        let payload = json!({
-            "msg_type": "text",
-            "content": {
-                "text": text
-            }
-        });
-        self.send(webhook_url, payload).await
-    }
-
-    /// 发送富文本消息。
-    pub async fn send_post(
-        &self,
-        webhook_url: &str,
-        post: String,
-    ) -> Result<SendWebhookMessageResponse> {
-        let payload = json!({
-            "msg_type": "post",
-            "content": {
-                "post": post
-            }
-        });
-        self.send(webhook_url, payload).await
-    }
-
-    /// 发送图片消息。
-    pub async fn send_image(
-        &self,
-        webhook_url: &str,
-        image_key: String,
-    ) -> Result<SendWebhookMessageResponse> {
-        let payload = json!({
-            "msg_type": "image",
-            "content": {
-                "image_key": image_key
-            }
-        });
-        self.send(webhook_url, payload).await
-    }
-
-    /// 发送文件消息。
-    pub async fn send_file(
-        &self,
-        webhook_url: &str,
-        file_key: String,
-    ) -> Result<SendWebhookMessageResponse> {
-        let payload = json!({
-            "msg_type": "file",
-            "content": {
-                "file_key": file_key
-            }
-        });
-        self.send(webhook_url, payload).await
-    }
-
-    /// 发送交互式卡片消息。
-    ///
-    /// 需要启用 `card` feature。
-    #[cfg(feature = "card")]
-    pub async fn send_card(
-        &self,
-        webhook_url: &str,
-        card: serde_json::Value,
-    ) -> Result<SendWebhookMessageResponse> {
-        let payload = json!({
-            "msg_type": "interactive",
-            "content": {
-                "card": card
-            }
-        });
-        self.send(webhook_url, payload).await
+        req.execute().await
     }
 }
 
@@ -202,10 +98,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_send_text_message_construction() {
+    async fn test_webhook_client_send_construction() {
+        // 验证 send 方法存在且可调用（实际 HTTP 需 mock）
         let client = WebhookClient::new();
-        // Test that the method exists and can be called
-        // (actual HTTP call would require mocking)
         let _client_ref = &client;
     }
 
