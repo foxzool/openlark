@@ -43,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `{data, success, ...}` 无法解析真实飞书 `{code, msg, data}` 响应。删除整个 `types/` 模块。
   **迁移**：无需迁移——零消费方，删除 strictly safe。pre-1.0、minor bump。
 
+- **移除 webhook `robot/v1/models.rs` 死模型集**（#305 死码清理）：
+  `TextMessage` / `CardMessage` / `MessageContent` 三类型无 send path（send 管道
+  自包含于 `crate::models`），从 prelude 与 robot/v1/mod 移除。**迁移**：无需迁移——
+  这些类型本就无法发送，零消费方。prelude 移除 3 类型，minor breaking。
+
 - **openlark-core 移除 `tracing-init` / `otel` feature 及直接依赖**（#277 inner-attribute 收尾）：
   `openlark-core` 的 `tracing-init` 与 `otel` feature 仅门控已删的 `observability.rs` 死代码（0 引用），移除。
   连带删 4 个直接依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`）
