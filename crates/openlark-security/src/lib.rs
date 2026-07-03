@@ -8,7 +8,7 @@
 //!
 //! ```text
 //! openlark-security/src/
-//! ├── models/           # 共享数据模型
+//! ├── config.rs         # 安全服务配置（SecurityConfig）
 //! ├── acs/              # 访问控制系统 (Project)
 //! │   └── v1/          # API版本v1 (Version)
 //! └── security_and_compliance/  # 安全合规管理 (Project)
@@ -92,8 +92,8 @@
 // 错误处理模块
 pub mod error;
 
-// 共享数据模型
-pub mod models;
+// 安全服务配置
+pub mod config;
 
 // Project: acs - 访问控制系统
 pub mod acs;
@@ -112,7 +112,7 @@ pub use crate::error::SecurityError;
 #[derive(Debug)]
 pub struct SecurityServices {
     /// 安全配置
-    pub config: std::sync::Arc<crate::models::SecurityConfig>,
+    pub config: std::sync::Arc<crate::config::SecurityConfig>,
     /// ACS门禁控制项目
     pub acs: AcsProject,
     /// 安全合规项目
@@ -124,7 +124,7 @@ impl SecurityServices {
     ///
     /// 内部把 `SecurityConfig` 转换为一份 `openlark_core::Config`，acs 与
     /// security_and_compliance 都用它走 SDK 标准的 Transport 路径。
-    pub fn new(config: crate::models::SecurityConfig) -> Self {
+    pub fn new(config: crate::config::SecurityConfig) -> Self {
         let config = std::sync::Arc::new(config);
 
         // SecurityConfig → openlark_core::Config（owned）
@@ -142,7 +142,7 @@ impl SecurityServices {
     }
 
     /// 获取配置信息
-    pub fn config(&self) -> &crate::models::SecurityConfig {
+    pub fn config(&self) -> &crate::config::SecurityConfig {
         &self.config
     }
 }
@@ -157,7 +157,7 @@ pub struct SecurityClient {
 
 impl SecurityClient {
     /// 从安全配置创建客户端实例。
-    pub fn new(config: crate::models::SecurityConfig) -> Self {
+    pub fn new(config: crate::config::SecurityConfig) -> Self {
         Self {
             inner: std::sync::Arc::new(SecurityServices::new(config)),
         }
@@ -174,7 +174,7 @@ impl std::ops::Deref for SecurityClient {
 
 impl Default for SecurityServices {
     fn default() -> Self {
-        Self::new(crate::models::SecurityConfig::default())
+        Self::new(crate::config::SecurityConfig::default())
     }
 }
 
@@ -189,7 +189,7 @@ pub mod prelude {
 
     // 避免v1命名空间冲突，明确导出需要的类型
     pub use super::acs::acs::{AcsProject as Acs, AcsV1Service};
-    pub use super::models::*;
+    pub use super::config::SecurityConfig;
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };
