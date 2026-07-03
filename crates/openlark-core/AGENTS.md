@@ -44,10 +44,6 @@ src/
 ├── req_option.rs            # 请求选项
 ├── req_translator.rs        # 请求转换器
 ├── response_handler.rs      # 响应处理器
-├── trait_system/            # 核心 trait 系统
-│   ├── mod.rs               # 模块入口
-│   ├── executable_builder.rs # 可执行构建器
-│   └── service.rs           # 服务 trait
 ├── validation/              # 参数验证
 │   ├── mod.rs               # 模块入口
 │   ├── core.rs              # 核心验证函数 + ValidateBuilder

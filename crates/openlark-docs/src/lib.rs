@@ -81,10 +81,6 @@
 //! - ✅ **构建器模式** - 流畅的 API 调用体验
 //! - ✅ **标准架构** - 严格按照 bizTag/project/version/resource/name.rs 模式组织
 
-// Include macros first - 对所有功能都启用宏
-#[macro_use]
-mod macros;
-
 // Core modules
 /// 通用文档数据模型。
 pub mod models;

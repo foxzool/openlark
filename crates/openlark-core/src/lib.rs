@@ -22,7 +22,6 @@ pub(crate) mod request_builder;
 pub mod security;
 #[cfg(feature = "testing")]
 pub mod testing;
-pub mod trait_system;
 pub mod validation;
 
 // crate 内部实现细节：不对外暴露（避免把 core 变成"全家桶"）

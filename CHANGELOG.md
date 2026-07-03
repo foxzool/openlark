@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **移除 `trait_system` 死 seam 及三处复制宏**（#301 死码清理，归 #277/#299 系列）：
+  `openlark-core::trait_system`（`Service` + `ExecutableBuilder` trait）及 `impl_executable_builder!` /
+  `impl_executable_builder_owned!` / `impl_full_service!` 等 `#[macro_export]` 宏，全仓**零调用零实现**
+  （唯一实现是 core 的 `#[cfg(test)]` mock）。`openlark-docs` / `openlark-meeting` / `openlark-hr` 各自
+  复制的 `macros.rs` 同样零调用。所有业务请求 builder 一律用 inherent `execute`，从不走 trait 分发。
+  **迁移**：无需迁移——这些 trait/宏从未被内部或外部调用（全仓 grep 零命中），删除是 strictly safe
+  的清理。pre-1.0、minor bump 足矣。
+
 - **openlark-core 移除 `tracing-init` / `otel` feature 及直接依赖**（#277 inner-attribute 收尾）：
   `openlark-core` 的 `tracing-init` 与 `otel` feature 仅门控已删的 `observability.rs` 死代码（0 引用），移除。
   连带删 4 个直接依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`）
