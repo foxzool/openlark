@@ -242,7 +242,6 @@ pub mod error;
 pub mod features;
 pub mod registry;
 pub mod traits;
-pub mod types;
 
 /// 延迟初始化工具模块
 ///

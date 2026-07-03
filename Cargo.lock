@@ -1650,7 +1650,6 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "url",
- "uuid",
  "wiremock",
 ]
 

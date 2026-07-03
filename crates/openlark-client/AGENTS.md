@@ -23,7 +23,6 @@ src/
 │   ├── mod.rs
 │   ├── client.rs            # LarkClient
 │   └── service.rs           # ServiceTrait + ServiceLifecycle
-├── types/                    # 类型定义/别名
 ├── utils.rs                  # env/feature 诊断工具
 └── ws_client/                # WebSocket 客户端（可选 feature）
 ```
