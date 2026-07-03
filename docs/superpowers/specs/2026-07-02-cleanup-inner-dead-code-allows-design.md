@@ -2,6 +2,8 @@
 comet_change: cleanup-inner-dead-code-allows
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-03-cleanup-inner-dead-code-allows
+status: final
 ---
 
 # Design Doc: cleanup-inner-dead-code-allows
