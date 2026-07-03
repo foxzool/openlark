@@ -11,12 +11,8 @@ pub mod freebusy;
 pub mod instance;
 /// room 模块。
 pub mod room;
-/// service 模块。
-pub mod service;
 /// summary 模块。
 pub mod summary;
-
-pub use service::MeetingRoomService;
 
 /// responses 模块。
 pub mod responses;
