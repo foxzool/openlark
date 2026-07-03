@@ -38,14 +38,6 @@ tracing = { workspace = true }
 # UUID
 uuid = { workspace = true, features = ["v4", "serde"] }
 
-# 加密和安全 (可选)
-ring = { version = "0.17", optional = true }
-sha2 = { version = "0.10", optional = true }
-hmac = { version = "0.12", optional = true }
-pbkdf2 = { version = "0.12", optional = true }
-
-url = { workspace = true, optional = true }
-
 # 验证工具
 regex = "1.10"
 base64 = "0.22"
@@ -59,24 +51,5 @@ mockall = "0.12"
 rstest = { workspace = true }
 wiremock = "0.6"
 
-# 性能基准测试的依赖（可选）
-[dependencies.criterion]
-version = "0.5"
-features = ["html_reports"]
-optional = true
-
-[features]
-default = ["token-management", "cache", "oauth"]
-
-# 核心功能模块
-token-management = []
-cache = ["token-management"]
-oauth = ["url"]
-encryption = ["ring", "sha2", "hmac", "pbkdf2"]
-
-# 高级功能
-advanced-cache = ["cache", "encryption"]
-monitoring = []
-
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "base64", "criterion", "hex", "hmac", "pbkdf2", "rand", "regex", "ring", "sha2", "thiserror", "tracing", "url"]
+ignored = ["anyhow", "base64", "hex", "rand", "regex", "thiserror", "tracing"]

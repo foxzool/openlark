@@ -48,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   自包含于 `crate::models`），从 prelude 与 robot/v1/mod 移除。**迁移**：无需迁移——
   这些类型本就无法发送，零消费方。prelude 移除 3 类型，minor breaking。
 
+- **移除 `openlark-auth` 死 feature + 死依赖**（#306 死码清理）：
+  `[features]` 段 6 feature（cache / encryption / monitoring / oauth / token-management /
+  advanced-cache）门控 0 行代码（auth src 零 `cfg(feature)`），却拉入 ring / sha2 / hmac /
+  pbkdf2 / url / criterion 死依赖。删 `[features]` + 死依赖 + cargo-machete ignored 对应 6 项。
+  cache token_provider 实现保留（不用 `cfg(feature)`）。**迁移**：无需迁移——feature 从未
+  被代码门控，删除 strictly safe。
+
 - **openlark-core 移除 `tracing-init` / `otel` feature 及直接依赖**（#277 inner-attribute 收尾）：
   `openlark-core` 的 `tracing-init` 与 `otel` feature 仅门控已删的 `observability.rs` 死代码（0 引用），移除。
   连带删 4 个直接依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`）
