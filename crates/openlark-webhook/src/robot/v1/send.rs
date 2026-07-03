@@ -29,12 +29,63 @@ pub(super) fn shared_client() -> &'static reqwest::Client {
     CLIENT.get_or_init(reqwest::Client::new)
 }
 
+/// 共享的 validate / sign / POST / deserialize 管道。
+///
+/// `SendWebhookMessageRequest::execute` 与 `WebhookClient::send` 复用此 helper，
+/// 消除两份逐字重复的发送管道（#310）。
+pub(super) async fn post_payload(
+    client: &reqwest::Client,
+    webhook_url: &str,
+    payload: serde_json::Value,
+    #[cfg(feature = "signature")] secret: Option<&str>,
+) -> Result<SendWebhookMessageResponse> {
+    validation::validate_webhook_url(webhook_url).map_err(|e| WebhookError::Http(e.to_string()))?;
+
+    #[cfg(feature = "signature")]
+    let request_builder = {
+        let mut rb = client.post(webhook_url).json(&payload);
+        if let Some(secret) = secret {
+            let timestamp = signature::current_timestamp();
+            let sign = signature::sign(timestamp, secret);
+            rb = rb
+                .header("X-Lark-Signature", sign)
+                .header("X-Lark-Timestamp", timestamp.to_string());
+        }
+        rb
+    };
+
+    #[cfg(not(feature = "signature"))]
+    let request_builder = client.post(webhook_url).json(&payload);
+
+    let response = request_builder
+        .send()
+        .await
+        .map_err(|e| WebhookError::Http(e.to_string()))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(WebhookError::Http(format!("HTTP error: {status}")));
+    }
+
+    let body = response
+        .text()
+        .await
+        .map_err(|e| WebhookError::Http(e.to_string()))?;
+
+    let result: SendWebhookMessageResponse = serde_json::from_str(&body)?;
+    Ok(result)
+}
+
 /// 发送 Webhook 消息请求构建器。
 #[derive(Debug, Clone)]
 pub struct SendWebhookMessageRequest {
     webhook_url: String,
     msg_type: String,
     content: serde_json::Value,
+    /// raw 模式：直接作为完整 payload 发送（跳过 `{msg_type, content}` 包装）。
+    raw_payload: Option<serde_json::Value>,
+    /// 注入的 HTTP client（None = 用 `shared_client()`）。
+    client: Option<reqwest::Client>,
     #[cfg(feature = "signature")]
     secret: Option<String>,
 }
@@ -46,6 +97,8 @@ impl SendWebhookMessageRequest {
             webhook_url,
             msg_type: "text".to_string(),
             content: json!({}),
+            raw_payload: None,
+            client: None,
             #[cfg(feature = "signature")]
             secret: None,
         }
@@ -55,6 +108,22 @@ impl SendWebhookMessageRequest {
     #[cfg(feature = "signature")]
     pub fn with_secret(mut self, secret: String) -> Self {
         self.secret = Some(secret);
+        self
+    }
+
+    /// 设置原始 payload（跳过 `{msg_type, content}` 包装，直接发送完整 payload）。
+    ///
+    /// 用于 `WebhookClient::send` 等需要完全自定义 payload 的场景。
+    pub fn raw(mut self, payload: serde_json::Value) -> Self {
+        self.raw_payload = Some(payload);
+        self
+    }
+
+    /// 注入自定义 HTTP client（覆盖进程级 `shared_client`）。
+    ///
+    /// 允许配置连接池、超时等。不设置则用 `shared_client()`。
+    pub fn with_client(mut self, client: reqwest::Client) -> Self {
+        self.client = Some(client);
         self
     }
 
@@ -101,48 +170,23 @@ impl SendWebhookMessageRequest {
 
     /// 执行发送请求并返回飞书响应。
     pub async fn execute(self) -> Result<SendWebhookMessageResponse> {
-        validation::validate_webhook_url(&self.webhook_url)
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
-        let payload = json!(
-        {
-            "msg_type": self.msg_type,
-            "content": self.content,
-        });
-
-        #[cfg(feature = "signature")]
-        let request_builder = {
-            let mut rb = shared_client().post(&self.webhook_url).json(&payload);
-            if let Some(secret) = &self.secret {
-                let timestamp = signature::current_timestamp();
-                let sign = signature::sign(timestamp, secret);
-                rb = rb
-                    .header("X-Lark-Signature", sign)
-                    .header("X-Lark-Timestamp", timestamp.to_string());
-            }
-            rb
+        let payload = if let Some(raw) = self.raw_payload {
+            raw
+        } else {
+            json!({
+                "msg_type": self.msg_type,
+                "content": self.content,
+            })
         };
-
-        #[cfg(not(feature = "signature"))]
-        let request_builder = shared_client().post(&self.webhook_url).json(&payload);
-
-        let response = request_builder
-            .send()
-            .await
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            return Err(WebhookError::Http(format!("HTTP error: {status}")));
+        let client: &reqwest::Client = self.client.as_ref().unwrap_or_else(|| shared_client());
+        #[cfg(feature = "signature")]
+        {
+            post_payload(client, &self.webhook_url, payload, self.secret.as_deref()).await
         }
-
-        let body = response
-            .text()
-            .await
-            .map_err(|e| WebhookError::Http(e.to_string()))?;
-
-        let result: SendWebhookMessageResponse = serde_json::from_str(&body)?;
-        Ok(result)
+        #[cfg(not(feature = "signature"))]
+        {
+            post_payload(client, &self.webhook_url, payload).await
+        }
     }
 }
 
