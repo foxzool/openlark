@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **迁移**：无需迁移——这些 trait/宏从未被内部或外部调用（全仓 grep 零命中），删除是 strictly safe
   的清理。pre-1.0、minor bump 足矣。
 
+- **移除 `openlark-client::types` 孤儿类型层**（#302 死码清理）：
+  `openlark-client/src/types/`（`ApiResponse` trait + `ApiResponseData` / `PaginatedResponse` /
+  `RequestOptions` + auth 的 `AccessToken` / `TokenInfo` 等 9 个 pub 项）是与 `core::http::Transport`
+  和 `openlark-auth` 真实类型平行竞争的孤儿层——全仓（含 client 自身）**零引用**，且其信封形状
+  `{data, success, ...}` 无法解析真实飞书 `{code, msg, data}` 响应。删除整个 `types/` 模块。
+  **迁移**：无需迁移——零消费方，删除 strictly safe。pre-1.0、minor bump。
+
 - **openlark-core 移除 `tracing-init` / `otel` feature 及直接依赖**（#277 inner-attribute 收尾）：
   `openlark-core` 的 `tracing-init` 与 `otel` feature 仅门控已删的 `observability.rs` 死代码（0 引用），移除。
   连带删 4 个直接依赖（`opentelemetry`、`opentelemetry_sdk`、`opentelemetry-otlp`、`tracing-opentelemetry`）
