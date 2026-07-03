@@ -2,8 +2,6 @@
 
 /// Webhook 机器人客户端。
 pub mod client;
-/// Webhook 消息模型。
-pub mod models;
 /// Webhook 消息发送请求。
 pub mod send;
 
