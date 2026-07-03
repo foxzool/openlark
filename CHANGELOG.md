@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **删除 ai 4 个死外导航 struct**（#329）：`DocumentAi` / `OpticalCharRecognition` /
+  `SpeechToText` / `Translation` 被 service.rs 的 `*Client` 穿透绕过（pub 声明承诺导航实则无接收者），
+  各自带自构造测试（Potemkin）。删除 struct + impl + 自测，保留 `pub mod v1`（真实 API，service.rs
+  经 `*Client.v1()` 访问）。**迁移**：零消费方（service.rs 用 `*Client`，不引用导航 struct），删除
+  strictly safe。区别于 #275（v1 内层孤儿），同属 ai-crate untangle。
+
 - **删除 `openlark-security::models` Potemkin 层**（#326）：models/（~1085 行：acs.rs /
   security_and_compliance.rs / common.rs + PageRequest / Status 等死类型）零消费——src/acs/ 与
   src/security/（真实实现）从不 import models::*，74 处 execute() 返 Value，4 处 typed 返回用
