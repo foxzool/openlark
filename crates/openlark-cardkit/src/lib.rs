@@ -9,14 +9,12 @@
 
 pub mod common;
 pub mod endpoints;
-pub mod service;
 
 // 业务模块（按 bizTag 组织）
 pub mod cardkit;
 
 pub use common::chain::CardkitClient;
 pub use endpoints::*;
-pub use service::CardkitService;
 
 /// Re-exports from openlark-core for convenience.
 pub mod prelude {
@@ -47,21 +45,6 @@ mod tests {
         let config = create_test_config();
         let client = CardkitClient::new(config);
         let cloned = client.clone();
-        assert!(cloned.config().app_id() == "test_app");
-    }
-
-    #[test]
-    fn test_cardkit_service_creation() {
-        let config = create_test_config();
-        let service = CardkitService::new(config);
-        assert!(service.config().app_id() == "test_app");
-    }
-
-    #[test]
-    fn test_cardkit_service_clone() {
-        let config = create_test_config();
-        let service = CardkitService::new(config);
-        let cloned = service.clone();
         assert!(cloned.config().app_id() == "test_app");
     }
 
