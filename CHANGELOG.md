@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tools/check_reqwest_boundary.sh` 守卫并接入 just 与 CI lint job 防回归。
   **非 breaking**：不改公开 API（业务 crate 无 re-export reqwest）。
 
+- **analytics Search / SearchV2 / search() 标 `#[deprecated]`**（#308）：三层 `Arc<Config>`
+  导航死胡同（Search → SearchV2 无真实 API 落地）标记 deprecated，note 指明替代路径
+  （v2 子模块的 `XxxRequest::new`，如 `query::SearchRequest` / `user::SearchUserRequest`）。
+  配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除。**非 breaking**：仅 deprecation
+  warning，旧调用仍可编译。
+
 ### Breaking Changes
 
 - **移除 `trait_system` 死 seam 及三处复制宏**（#301 死码清理，归 #277/#299 系列）：

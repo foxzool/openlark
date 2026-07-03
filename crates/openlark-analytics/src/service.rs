@@ -39,7 +39,11 @@ impl AnalyticsService {
     /// 搜索服务
     ///
     /// 提供全文搜索、智能搜索等功能。
+    #[deprecated(
+        note = "search() 导航死胡同；直接用 crate::search::search::v2 子模块的 XxxRequest::new(config)，如 v2::query::SearchRequest / v2::user::SearchUserRequest"
+    )]
     #[cfg(feature = "search")]
+    #[allow(deprecated)]
     pub fn search(&self) -> crate::search::search::Search {
         crate::search::search::Search::new(self.config.clone())
     }
