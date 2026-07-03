@@ -6,12 +6,16 @@ use crate::AnalyticsConfig;
 use std::sync::Arc;
 
 /// 搜索服务 V2 API
+#[deprecated(
+    note = "SearchV2 导航壳；直接用其子模块的 XxxRequest::new(Arc<Config>)，如 query::SearchRequest / user::SearchUserRequest / data_source::* / app::* / doc_wiki / schema / message"
+)]
 #[derive(Debug, Clone)]
 pub struct SearchV2 {
     // reserved：query()/user() deprecated 存根移除后无读取者（analytics search 导航缺口，后续补访问器）
     _config: Arc<AnalyticsConfig>,
 }
 
+#[allow(deprecated)]
 impl SearchV2 {
     /// 创建新的搜索服务 V2 实例
     pub fn new(config: Arc<AnalyticsConfig>) -> Self {
