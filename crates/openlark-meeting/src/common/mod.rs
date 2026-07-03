@@ -5,5 +5,4 @@
 pub mod api_endpoints;
 pub mod api_utils;
 pub mod chain;
-pub mod macros;
 pub mod models;
