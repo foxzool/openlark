@@ -20,6 +20,8 @@ pub mod faq;
 pub mod notification;
 /// 工单接口。
 pub mod ticket;
+/// 工单自定义字段接口。
+pub mod ticket_customized_field;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -39,6 +41,11 @@ impl HelpdeskV1 {
     /// 访问工单 API。
     pub fn ticket(&self) -> ticket::Ticket {
         ticket::Ticket::new(self.config.clone())
+    }
+
+    /// 访问工单自定义字段 API。
+    pub fn ticket_customized_field(&self) -> ticket_customized_field::TicketCustomizedField {
+        ticket_customized_field::TicketCustomizedField::new(self.config.clone())
     }
 
     /// agent。
@@ -106,5 +113,3 @@ mod tests {
         assert_eq!(value["field"], "data");
     }
 }
-
-pub mod ticket_customized_field;
