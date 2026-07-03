@@ -3,7 +3,6 @@ resolver = "2"
 members = [
     # === 核心基础设施 (Core Infrastructure) ===
     "crates/openlark-core",           # 核心 HTTP 客户端和错误处理
-    "crates/openlark-protocol",       # WebSocket 协议定义
     "crates/openlark-client",         # 高级客户端接口
 
     # === 生产就绪模块 (Production Ready) ===
@@ -122,7 +121,6 @@ serde_with = { version = "3", default-features = false, features = ["macros"] }
 # === 工作空间内部依赖 (Internal Workspace Dependencies) ===
 # 核心基础设施模块
 openlark-core = { path = "crates/openlark-core", version = "0.17.0" }
-openlark-protocol = { path = "crates/openlark-protocol", version = "0.17.0", default-features = false }
 openlark-client = { path = "crates/openlark-client", version = "0.17.0", default-features = false }
 
 # 生产就绪服务模块

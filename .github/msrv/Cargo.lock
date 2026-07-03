@@ -1670,7 +1670,6 @@ dependencies = [
  "http",
  "lark-websocket-protobuf",
  "num_cpus",
- "openlark-protocol",
  "prost 0.13.5",
  "rand 0.8.6",
  "regex",
@@ -1805,15 +1804,6 @@ dependencies = [
  "urlencoding",
  "uuid",
  "wiremock",
-]
-
-[[package]]
-name = "openlark-protocol"
-version = "0.17.0"
-dependencies = [
- "bytes",
- "prost 0.13.5",
- "prost-build",
 ]
 
 [[package]]

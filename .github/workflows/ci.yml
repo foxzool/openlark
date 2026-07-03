@@ -120,7 +120,6 @@ jobs:
             tools.tests.test_openlark_mail_missing_docs \
             tools.tests.test_openlark_meeting_missing_docs \
             tools.tests.test_openlark_platform_missing_docs \
-            tools.tests.test_openlark_protocol_missing_docs \
             tools.tests.test_openlark_workflow_missing_docs \
             tools.tests.test_openlark_workflow_narrow_missing_docs
           python3 tools/check_mod_reachability.py
