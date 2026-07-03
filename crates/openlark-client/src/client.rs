@@ -177,7 +177,7 @@ declare_client! {
         ty: crate::SecurityClient,
         doc: "Security meta 调用链入口：client.security.acs... ...",
         init: |_core_config, _base_core_config| {
-            let security_config = openlark_security::models::SecurityConfig::new(
+            let security_config = openlark_security::config::SecurityConfig::new(
                 _core_config.app_id().to_string(),
                 _core_config.app_secret().to_string(),
             )

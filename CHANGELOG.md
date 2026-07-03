@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **删除 `openlark-security::models` Potemkin 层**（#326）：models/（~1085 行：acs.rs /
+  security_and_compliance.rs / common.rs + PageRequest / Status 等死类型）零消费——src/acs/ 与
+  src/security/（真实实现）从不 import models::*，74 处 execute() 返 Value，4 处 typed 返回用
+  API 文件本地类型。唯一 live 类型 `SecurityConfig` carve-out 到 `src/config.rs`。删 794 行契约测试
+  （serde 自洽，无 HTTP mock，给死类型盖"CI 绿=活着"戳）。prelude glob → 显式 `SecurityConfig`。
+  **迁移**：零消费方，删除 strictly safe。
+
 - **删除 `openlark-protocol` 幻影 crate**（#325）：仓内 protocol 是已发布 crates.io
   `lark-websocket-protobuf`（同作者 ZoOL）的死壳复制品——零 import（除自测），现网 WS 栈全用
   外部 `lark_websocket_protobuf`。删除整 crate（workspace members + workspace dep + core optional
