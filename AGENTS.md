@@ -132,3 +132,19 @@ just release VERSION  # 发布新版本
 - **文档**: 使用 `cargo doc --workspace --all-features` 生成完整文档
 - **架构审核**: 详见 `openspec/changes/architecture-audit-review/` 中的完整审核报告和改进计划
 - **Config 迁移**: `openlark_client::Config` 已在 merge-deprecated-config 移除（v0.18 breaking），统一到 `openlark_core::config::Config`；根 crate `openlark::Config` 直接 re-export core（见 CHANGELOG 迁移表）
+
+## Agent skills
+
+本节为 Matt Pocock 工程技能（`to-issues` / `triage` / `to-prd` / `qa` / `improve-codebase-architecture` / `diagnosing-bugs` / `tdd` 等）提供本仓库配置。三份配置文件位于 `docs/agents/`。
+
+### Issue tracker
+
+Issues 在 GitHub Issues（`foxzool/openlark`）跟踪，统一用 `gh` CLI；外部 PR **不**作为 triage 入口。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+五个 triage 角色采用默认标签字符串（`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`），与现有 `area:` / `type:` / `priority:` / `scope:` 分类体系正交。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+单上下文布局：仓库根一个 `CONTEXT.md` + `docs/adr/`（由 `/domain-modeling` 懒创建）。详见 `docs/agents/domain.md`。
