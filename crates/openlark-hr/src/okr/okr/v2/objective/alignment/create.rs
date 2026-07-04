@@ -3,9 +3,14 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective.alignment/create>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    config::Config,
+    http::Transport,
+    req_option::RequestOption,
     validate_required,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 创建目标对齐关系请求。
@@ -31,7 +36,10 @@ impl Request {
     }
 
     /// 执行请求。
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    pub async fn execute(
+        self,
+        body: serde_json::Value,
+    ) -> SDKResult<CreateObjectiveAlignmentResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
@@ -41,7 +49,7 @@ impl Request {
         self,
         body: serde_json::Value,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<CreateObjectiveAlignmentResponse> {
         validate_required!(self.objective_id, "objective_id 不能为空");
         if body.is_null() {
             return Err(openlark_core::error::validation_error(
@@ -56,11 +64,26 @@ impl Request {
         let body_val = serde_json::to_value(&body).map_err(|e| {
             openlark_core::error::validation_error("请求体序列化失败", format!("无法序列化: {e}"))
         })?;
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body_val);
+        let req: ApiRequest<CreateObjectiveAlignmentResponse> =
+            ApiRequest::post(path).body(body_val);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
             openlark_core::error::validation_error("创建目标对齐关系", "响应数据为空")
         })
+    }
+}
+
+/// 创建目标对齐关系响应。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateObjectiveAlignmentResponse {
+    /// 对齐 ID。
+    #[serde(default)]
+    pub alignment_id: Option<String>,
+}
+
+impl ApiResponseTrait for CreateObjectiveAlignmentResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
     }
 }
 
@@ -71,5 +94,15 @@ mod tests {
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _req = Request::new(config);
+    }
+
+    #[test]
+    fn test_create_objective_alignment_response_deserialize() {
+        let json = serde_json::json!({
+            "alignment_id": "A-123"
+        });
+        let resp: CreateObjectiveAlignmentResponse =
+            serde_json::from_value(json).expect("反序列化失败");
+        assert_eq!(resp.alignment_id, Some("A-123".to_string()));
     }
 }
