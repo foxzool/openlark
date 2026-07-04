@@ -128,7 +128,7 @@ pub struct Cycle {
     /// 用户周期状态。
     #[serde(default)]
     pub cycle_status: Option<i32>,
-    /// 用户周期的分数：[0,1]，支持一位小数。
+    /// 用户周期的分数：\[0,1\]，支持一位小数。
     #[serde(default)]
     pub score: Option<f64>,
 }

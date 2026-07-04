@@ -106,14 +106,14 @@ pub struct Objective {
     // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
     #[serde(default)]
     pub content: Option<serde_json::Value>,
-    /// 目标的分数：[0,1]，支持一位小数。
+    /// 目标的分数：\[0,1\]，支持一位小数。
     #[serde(default)]
     pub score: Option<f64>,
     /// 目标的备注。
     // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
     #[serde(default)]
     pub notes: Option<serde_json::Value>,
-    /// 目标的权重：[0,1]，支持三位小数。
+    /// 目标的权重：\[0,1\]，支持三位小数。
     #[serde(default)]
     pub weight: Option<f64>,
     /// 目标的截止时间，毫秒级时间戳。
