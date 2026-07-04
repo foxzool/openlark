@@ -20,6 +20,7 @@
 //! // 真实资源直达：Config-direct Request 自带 builder + execute()
 //! let _request = CreateGroupRequest::new(client.config().clone())
 //!     .group_name("技术部".to_string());
+//! // .execute().await?  // 发送请求（需 async runtime，示例省略）
 //! ```
 //!
 //! ## API 端点
