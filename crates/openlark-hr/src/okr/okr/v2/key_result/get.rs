@@ -13,6 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
 use crate::okr::okr::v2::common::models::KeyResult;
 
 /// 获取关键结果请求。
@@ -48,7 +49,7 @@ impl Request {
         option: RequestOption,
     ) -> SDKResult<GetKeyResultResponse> {
         validate_required!(self.key_result_id, "key_result_id 不能为空");
-        let path = format!("/open-apis/okr/v2/key_results/{}", self.key_result_id);
+        let path = OkrApiV2::KeyResultGet(self.key_result_id).to_url();
         let req: ApiRequest<GetKeyResultResponse> = ApiRequest::get(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data

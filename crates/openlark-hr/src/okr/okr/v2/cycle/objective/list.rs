@@ -13,6 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
 use crate::okr::okr::v2::common::models::Objective;
 
 /// 获取用户 OKR 周期内的目标请求。
@@ -48,7 +49,7 @@ impl Request {
         option: RequestOption,
     ) -> SDKResult<ListCycleObjectiveResponse> {
         validate_required!(self.cycle_id, "cycle_id 不能为空");
-        let path = format!("/open-apis/okr/v2/cycles/{}/objectives", self.cycle_id);
+        let path = OkrApiV2::CycleObjectiveList(self.cycle_id).to_url();
         let req: ApiRequest<ListCycleObjectiveResponse> = ApiRequest::get(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {

@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
+
 /// 删除 OKR 目标请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -46,7 +48,7 @@ impl Request {
         option: RequestOption,
     ) -> SDKResult<DeleteObjectiveResponse> {
         validate_required!(self.objective_id, "objective_id 不能为空");
-        let path = format!("/open-apis/okr/v2/objectives/{}", self.objective_id);
+        let path = OkrApiV2::ObjectiveDelete(self.objective_id).to_url();
         let req: ApiRequest<DeleteObjectiveResponse> = ApiRequest::delete(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data

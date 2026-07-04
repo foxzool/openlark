@@ -13,6 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
 use crate::okr::okr::v2::common::models::Objective;
 
 /// 获取目标详细信息请求。
@@ -48,7 +49,7 @@ impl Request {
         option: RequestOption,
     ) -> SDKResult<GetObjectiveResponse> {
         validate_required!(self.objective_id, "objective_id 不能为空");
-        let path = format!("/open-apis/okr/v2/objectives/{}", self.objective_id);
+        let path = OkrApiV2::ObjectiveGet(self.objective_id).to_url();
         let req: ApiRequest<GetObjectiveResponse> = ApiRequest::get(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
