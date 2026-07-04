@@ -10,7 +10,7 @@
 
 - [x] 2.1 **alignment**（2 叶：`alignment/get`、`alignment/delete`）
 - [x] 2.2 **category**（1 叶：`category/list`）
-- [ ] 2.3 **cycle**（5 叶：`cycle/list`、`cycle/objective/create`、`cycle/objective/list`、`cycle/objectives_position`、`cycle/objectives_weight`）
+- [x] 2.3 **cycle**（5 叶：`cycle/list`、`cycle/objective/create`、`cycle/objective/list`、`cycle/objectives_position`、`cycle/objectives_weight`）
 - [ ] 2.4 **indicator**（1 叶：`indicator/patch`，写操作含 body）
 - [ ] 2.5 **key_result**（5 叶：`key_result/get`、`key_result/delete`、`key_result/patch`、`key_result/indicator/list`、`key_result/progress/list`）
 - [ ] 2.6 **objective 剩余 10 叶**（`objective/delete`、`objective/patch`、`objective/alignment/create`、`objective/alignment/list`、`objective/indicator/list`、`objective/key_result/create`、`objective/key_result/list`、`objective/key_results_position`、`objective/key_results_weight`、`objective/progress/list`）
