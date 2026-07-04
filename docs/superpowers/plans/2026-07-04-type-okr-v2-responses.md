@@ -690,7 +690,7 @@ Refs: change type-okr-v2-responses Task 4"
 - Consumes: Task 0 dump `## okr/okr/v2/okr/indicator/patch.rs` 段落
 - Produces: `PatchIndicatorResponse`
 
-- [ ] **Step 1: 派生 + 改 indicator/patch.rs**
+- [x] **Step 1: 派生 + 改 indicator/patch.rs**
 
 Open dump `## okr/okr/v2/okr/indicator/patch.rs`。派生 `PatchIndicatorResponse`（PATCH 响应通常为空 data 或回显 indicator；按 dump 实际 shape）。
 
@@ -702,7 +702,7 @@ Open dump `## okr/okr/v2/okr/indicator/patch.rs`。派生 `PatchIndicatorRespons
 - 加 `impl ApiResponseTrait for PatchIndicatorResponse` + 反序列化测试
 - path 构造 `format!("/open-apis/okr/v2/indicators/{}", self.indicator_id)` 不动
 
-- [ ] **Step 2: build + test + fmt + clippy**
+- [x] **Step 2: build + test + fmt + clippy**
 
 Run:
 ```bash
@@ -710,7 +710,7 @@ cd /Users/zool/workspace/openlark && cargo build -p openlark-hr --all-features 2
 ```
 Expected: 全部 PASS，无 warning。
 
-- [ ] **Step 3: commit indicator 批次**
+- [x] **Step 3: commit indicator 批次**
 
 ```bash
 cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/indicator/patch.rs && git commit -m "feat(hr/okr/v2): indicator/patch 返回 typed PatchIndicatorResponse
