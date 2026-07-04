@@ -573,7 +573,7 @@ Refs: change type-okr-v2-responses Task 2"
 - Consumes: Task 0 dump `## okr/okr/v2/okr/category/list.rs` 段落
 - Produces: `ListCategoryResponse`（字段按 dump 派生；预期含 `categories: Vec<Category>` 列表字段）
 
-- [ ] **Step 1: 派生 + 改 list.rs**
+- [x] **Step 1: 派生 + 改 list.rs**
 
 Open `reports/okr-v2-fields.md`，定位 `## okr/okr/v2/okr/category/list.rs` 段落。按通用规则派生 `ListCategoryResponse` + 嵌套 `Category` struct。
 
@@ -584,7 +584,7 @@ let req: ApiRequest<ListCategoryResponse> = ApiRequest::get("/open-apis/okr/v2/c
 
 加 `test_list_category_response_deserialize` 测试（list 响应 fixture 含数组字段）。
 
-- [ ] **Step 2: build + test + fmt + clippy**
+- [x] **Step 2: build + test + fmt + clippy**
 
 Run:
 ```bash
@@ -592,7 +592,7 @@ cd /Users/zool/workspace/openlark && cargo build -p openlark-hr --all-features 2
 ```
 Expected: 全部 PASS，无 warning。
 
-- [ ] **Step 3: commit category 批次**
+- [x] **Step 3: commit category 批次**
 
 ```bash
 cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/category/list.rs && git commit -m "feat(hr/okr/v2): category/list 返回 typed ListCategoryResponse

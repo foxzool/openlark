@@ -9,7 +9,7 @@
 每叶按模板：飞书 doc 转录字段 → inline typed Response → 改 execute 返回类型 → 反序列化。写操作 body 是否 typed 视成本（D3）。
 
 - [x] 2.1 **alignment**（2 叶：`alignment/get`、`alignment/delete`）
-- [ ] 2.2 **category**（1 叶：`category/list`）
+- [x] 2.2 **category**（1 叶：`category/list`）
 - [ ] 2.3 **cycle**（5 叶：`cycle/list`、`cycle/objective/create`、`cycle/objective/list`、`cycle/objectives_position`、`cycle/objectives_weight`）
 - [ ] 2.4 **indicator**（1 叶：`indicator/patch`，写操作含 body）
 - [ ] 2.5 **key_result**（5 叶：`key_result/get`、`key_result/delete`、`key_result/patch`、`key_result/indicator/list`、`key_result/progress/list`）
