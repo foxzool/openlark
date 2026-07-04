@@ -25,16 +25,6 @@ impl Hire {
     pub fn config(&self) -> &Config {
         &self.config
     }
-
-    /// 获取 hire 项目 v1 版本服务
-    pub fn v1(&self) -> hire::HireV1 {
-        hire::HireV1::new(self.config.clone())
-    }
-
-    /// 获取 hire 项目 v2 版本服务
-    pub fn v2(&self) -> hire::HireV2 {
-        hire::HireV2::new(self.config.clone())
-    }
 }
 
 #[cfg(test)]
