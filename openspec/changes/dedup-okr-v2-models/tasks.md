@@ -11,7 +11,7 @@
 
 - [x] 2.1 **Objective 组 4 叶**：`objective/get`、`cycle/objective/list`、`cycle/objectives_position`、`cycle/objectives_weight`（删 Objective + ObjectiveOwner，加 import）
 - [x] 2.2 **Indicator 组 3 叶**：`indicator/patch`、`objective/indicator/list`、`key_result/indicator/list`（删 Indicator + IndicatorOwner + IndicatorUnit，加 import）
-- [ ] 2.3 **KeyResult + Alignment 组 4 叶**：`key_result/get`、`key_result/patch`（删 KeyResult + KeyResultOwner）、`alignment/get`、`objective/alignment/list`（删 Alignment + AlignmentOwner），加 import
+- [x] 2.3 **KeyResult + Alignment 组 4 叶**：`key_result/get`、`key_result/patch`（删 KeyResult + KeyResultOwner）、`alignment/get`、`objective/alignment/list`（删 Alignment + AlignmentOwner），加 import
 
 ## 3. 验证（issue #336 验收）
 

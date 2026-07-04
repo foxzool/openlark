@@ -14,31 +14,18 @@ base_ref: 3a462c410caf37b4c94d8d872587b093da26c420
 
 ## Task History
 
-- **Task 1 (建共享模块 + 迁移 9 struct)** — DONE · commit a0fbbd84 · OpenSpec 1.1/1.2 ✓
-- **Task 2 (Objective 组改 import)** — DONE · commit 2c10e0d7c · OpenSpec 2.1 ✓
-  - 5 文件（4 叶 + patch.rs 跨叶 consumer）；D2 只 import Objective；+9/-189
-- **Task 3 (Indicator 组 3 叶改 import)** — DONE · commit ab500bd3e · OpenSpec 2.2 ✓
-  - 3 文件；D2 只 import Indicator（Owner/Unit 仅嵌套字段）；+6/-165
-  - import 放独立分组（外部 crate 组 + 空行 + crate 组），fmt-clean，与 Task 2 一致
-  - 证据：build Finished；test 全 binary 0 failed；fmt --check exit 0；clippy -D warnings clean
-  - 协调者复核：3 叶 inline Indicator/Owner/Unit×0 / import×1、commit 只含 3 文件、build 绿
+- **Task 1 (共享模块 + 9 struct)** — DONE · a0fbbd84 · 1.1/1.2 ✓
+- **Task 2 (Objective 组, 5 文件含 patch.rs 跨叶)** — DONE · 2c10e0d7c · 2.1 ✓
+- **Task 3 (Indicator 组 3 叶)** — DONE · ab500bd3e · 2.2 ✓
+- **Task 4 (KeyResult + Alignment, 7 文件)** — DONE · e13bf47a5 · 2.3 ✓
+  - 4 inline-delete 叶（key_result get/patch、alignment get、objective/alignment/list）+ 3 跨叶 KeyResult consumer（key_results_weight/position、objective/key_result/list 仅改路径）
+  - D2 只导主 struct（KeyResult/Alignment）；+11/-149
+  - **核心验收已过**：9 struct 各恰 1 定义（common/models.rs）、零跨叶残留、build/test 0 failed
 
 ## Current Task
 
-- Plan task: Task 4 — KeyResult + Alignment 组改 import（7 文件）
-- OpenSpec tasks: 2.3
-- Stage: implementing（implementer 待派发）
-- BASE commit: ab500bd3e（Task 3 完成后的 HEAD）
-- Review-fix round: N/A
-- 文件清单（7）+ D2 import（协调者审计核实）：
-  - **Inline-delete（4 叶，删 struct + Owner，加 import）**：
-    - `key_result/get.rs` → import `{KeyResult}`
-    - `key_result/patch.rs` → import `{KeyResult}`
-    - `alignment/get.rs` → import `{Alignment}`
-    - `objective/alignment/list.rs` → import `{Alignment}`
-  - **Cross-leaf consumer（3 叶，仅改 import 路径，无 inline 删除）**：
-    - `objective/key_results_weight.rs`：`use super::super::key_result::get::KeyResult` → `{KeyResult}`
-    - `objective/key_results_position.rs`：同上 → `{KeyResult}`
-    - `objective/key_result/list.rs`：`use super::super::super::key_result::get::KeyResult` → `{KeyResult}`
-  - D2：4 删除叶的 Owner（KeyResultOwner/AlignmentOwner）仅作主 struct 内部字段，删后无直接引用 → 不导入
-  - 无 Alignment 跨叶 consumer
+- Plan task: Task 5 — 最终验证（issue #336 / spec scenario 验收，OpenSpec 3.1-3.7）
+- Stage: verifying（协调者执行 read-only 验证；无源码改动）
+- 已由协调者核实：3.1 build ✓ / 3.2 test 0 failed ✓ / 3.4 单一定义 ✓
+- 待跑：3.3 clippy 复核 / 3.5 byte-identical 抽样 / 3.6 Response wrapper 仍 inline / 3.7 跨 crate 回归
+- 之后：final lightweight code review（standard 模式，派发 reviewer）→ build guard → verify
