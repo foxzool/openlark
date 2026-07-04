@@ -1,6 +1,6 @@
-/// hire 项目模块
-///
-/// 按照bizTag/project/version/resource/name.rs模式组织
+//! hire 项目模块
+//!
+//! 按照bizTag/project/version/resource/name.rs模式组织
 
 /// common_models 子模块。
 pub mod common_models;
