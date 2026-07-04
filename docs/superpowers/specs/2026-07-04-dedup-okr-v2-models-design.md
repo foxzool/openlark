@@ -2,6 +2,8 @@
 comet_change: dedup-okr-v2-models
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-04-dedup-okr-v2-models
+status: final
 ---
 
 # Design: dedup-okr-v2-models

@@ -2,6 +2,7 @@
 change: dedup-okr-v2-models
 design-doc: docs/superpowers/specs/2026-07-04-dedup-okr-v2-models-design.md
 base-ref: 3a462c410caf37b4c94d8d872587b093da26c420
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 # dedup-okr-v2-models 实施计划
@@ -61,6 +62,7 @@ base-ref: 3a462c410caf37b4c94d8d872587b093da26c420
 
 **不改动：** `key_result/progress/list.rs`（`KeyResultProgress*` 是不同 struct）、各 `mod.rs` 的 `*Resource` service 结构、per-leaf Response wrapper、okr/v1、其他 crate。
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Task 1: 建共享模块 + 迁移 9 struct
@@ -359,6 +361,7 @@ git add crates/openlark-hr/src/okr/okr/v2/common/ crates/openlark-hr/src/okr/okr
 git commit -m "refactor(hr): 新建 okr/v2 共享模块 common/models.rs 收纳 9 struct 单一定义 (#336)"
 ```
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Task 2: Objective 组 4 叶改 import
@@ -449,6 +452,7 @@ git add crates/openlark-hr/src/okr/okr/v2/objective/get.rs \
 git commit -m "refactor(hr): okr/v2 Objective 组 4 叶改引用 common::models（删 inline 重复定义）(#336)"
 ```
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Task 3: Indicator 组 3 叶改 import
@@ -526,6 +530,7 @@ git add crates/openlark-hr/src/okr/okr/v2/indicator/patch.rs \
 git commit -m "refactor(hr): okr/v2 Indicator 组 3 叶改引用 common::models（删 inline 重复定义）(#336)"
 ```
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Task 4: KeyResult + Alignment 组 4 叶改 import
@@ -627,6 +632,7 @@ git add crates/openlark-hr/src/okr/okr/v2/key_result/get.rs \
 git commit -m "refactor(hr): okr/v2 KeyResult + Alignment 组 4 叶改引用 common::models（删 inline 重复定义）(#336)"
 ```
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Task 5: 最终验证（issue #336 / spec scenario 验收）
@@ -743,6 +749,7 @@ git add openspec/changes/dedup-okr-v2-models/tasks.md
 git commit -m "chore: 勾选 dedup-okr-v2-models 全部 task（重构完成、verify 通过）(#336)"
 ```
 
+archived-with: 2026-07-04-dedup-okr-v2-models
 ---
 
 ## Self-Review 总结

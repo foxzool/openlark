@@ -34,10 +34,10 @@ Alignment(18)    ×2  ┘ AlignmentOwner ×2
 
 **为什么**：呼应 crate 顶层 `common/`（`crate::common::api_endpoints`）的约定； scoped 到 okr/v2 不污染 crate 全局；`common/models` 语义清晰（共享模型）。备选 `okr/okr/v2/models.rs`（无 common 子层）→ 否决（与顶层 common 约定不一致，且未来若 okr/v2 有其他共享物无统一归处）。
 
-### D2: import 用 glob `use ...common::models::*`
-11 叶用 `use crate::okr::okr::v2::common::models::*;` 引用。
+### D2: 显式具名 import（修正：非 glob）
+每叶 `use crate::okr::okr::v2::common::models::<Struct>;` 显式列出该叶**直接用到**的 struct（通常只主 struct，如 `{Objective}`；不导 Owner/Unit 子 struct——它们是主 struct 内部字段类型，叶内不直接引用，多导会触发 `unused_imports`）。
 
-**为什么**：每叶用到的 struct 1-3 个，glob 简洁且避免漏引；模块是纯数据 struct 集合无命名冲突风险。备选显式列表 `use ...{Objective, ObjectiveOwner}` → 否决（11 叶各列冗长，且新增字段时需补引）。
+**为什么非 glob**：repo `[workspace.lints.clippy]`（含 `wildcard_imports` style lint）+ CI `-D warnings` 会 deny `use ...::*`；代码库约定也是显式具名。glob 会致 clippy fail。（原 plan body 曾写过 glob，实施时核实改为显式具名——与 design doc D2 一致。）
 
 ### D3: 不做 backward-compat re-export
 9 struct 规范路径从 `<leaf>::<Struct>` 改为 `common::models::<Struct>`，**不在原叶路径留 `pub use` re-export**。
