@@ -2,6 +2,8 @@
 comet_change: delete-hr-dead-version-nodes
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
+status: final
 ---
 
 # Design: delete-hr-dead-version-nodes

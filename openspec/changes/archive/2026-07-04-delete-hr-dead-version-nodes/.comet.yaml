@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-07-04-delete-hr-dead-version-
 branch_status: handled
 created_at: 2026-07-04
 verified_at: 2026-07-04
-archived: false
+archived: true
 handoff_context: openspec/changes/delete-hr-dead-version-nodes/.comet/handoff/design-context.json
 handoff_hash: a1249ae53a88ba2373ee073266d50f31750fe61c62cd5a37cc78bb110cae0095

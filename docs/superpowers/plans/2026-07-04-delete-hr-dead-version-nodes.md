@@ -2,6 +2,7 @@
 change: delete-hr-dead-version-nodes
 design-doc: docs/superpowers/specs/2026-07-04-delete-hr-dead-version-nodes-design.md
 base-ref: f62224f33ddd91f68849410f83d8caf37fd5c868
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 # 删除 openlark-hr 死版本节点 Implementation Plan
@@ -24,6 +25,7 @@ base-ref: f62224f33ddd91f68849410f83d8caf37fd5c868
 - **删除顺序（同 commit 内）**：facade returning accessor 先删，inner struct 后删——这样 facade 不再引用即将消失的 inner 类型。
 - **工作目录基线**：`base-ref` 为 `f62224f33ddd91f68849410f83d8caf37fd5c868`（`main` HEAD）。
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 1: 删除 attendance 死版本节点
@@ -86,6 +88,7 @@ git add crates/openlark-hr/src/attendance/mod.rs crates/openlark-hr/src/attendan
 git commit -m "refactor: 删除 attendance 死版本节点 AttendanceV1 + .v1() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 2: 删除 okr 死版本节点（保留 OkrV2 别名）
@@ -160,6 +163,7 @@ git add crates/openlark-hr/src/okr/mod.rs crates/openlark-hr/src/okr/okr/mod.rs
 git commit -m "refactor: 删除 okr 死版本节点 OkrV1 + .v1() accessor（保留 OkrV2 别名与 .v2()）"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 3: 删除 ehr 死版本节点
@@ -210,6 +214,7 @@ git add crates/openlark-hr/src/ehr/mod.rs crates/openlark-hr/src/ehr/ehr/mod.rs
 git commit -m "refactor: 删除 ehr 死版本节点 EhrV1 + .v1() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 4: 删除 hire 死版本节点（V1 + V2）
@@ -266,6 +271,7 @@ git add crates/openlark-hr/src/hire/mod.rs crates/openlark-hr/src/hire/hire/mod.
 git commit -m "refactor: 删除 hire 死版本节点 HireV1/HireV2 + .v1()/.v2() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 5: 删除 corehr 死版本节点（feishu_people，V1 + V2）
@@ -325,6 +331,7 @@ git add crates/openlark-hr/src/feishu_people/mod.rs crates/openlark-hr/src/feish
 git commit -m "refactor: 删除 corehr 死版本节点 CorehrV1/CorehrV2 + .v1()/.v2() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 6: 删除 payroll 死版本节点
@@ -375,6 +382,7 @@ git add crates/openlark-hr/src/payroll/mod.rs crates/openlark-hr/src/payroll/pay
 git commit -m "refactor: 删除 payroll 死版本节点 PayrollV1 + .v1() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 7: 删除 performance 死版本节点（V1 + V2）
@@ -431,6 +439,7 @@ git add crates/openlark-hr/src/performance/mod.rs crates/openlark-hr/src/perform
 git commit -m "refactor: 删除 performance 死版本节点 PerformanceV1/PerformanceV2 + .v1()/.v2() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 8: 删除 compensation_management 死版本节点
@@ -483,6 +492,7 @@ git add crates/openlark-hr/src/compensation_management/mod.rs crates/openlark-hr
 git commit -m "refactor: 删除 compensation_management 死版本节点 CompensationV1 + .v1() accessor"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 9: 修正 `lib.rs` facade doc example（`rust,ignore` → `no_run` 真实路径）
@@ -553,6 +563,7 @@ git add crates/openlark-hr/src/lib.rs
 git commit -m "refactor: lib.rs facade doc example 改为 no_run Config-direct Request 真实路径"
 ```
 
+archived-with: 2026-07-04-delete-hr-dead-version-nodes
 ---
 
 ## Task 10: 最终验证（issue 验收四条 + 真实 API 未受影响）
