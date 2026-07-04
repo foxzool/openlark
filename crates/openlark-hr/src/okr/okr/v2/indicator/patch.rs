@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::okr::okr::v2::common::models::Indicator;
+
 /// 更新量化指标请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -77,61 +79,6 @@ impl ApiResponseTrait for PatchIndicatorResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// 量化指标。
-#[derive(Debug, Clone, Deserialize)]
-pub struct Indicator {
-    /// 指标的 ID。
-    pub id: String,
-    /// 指标的创建时间，毫秒级时间戳。
-    pub create_time: String,
-    /// 指标的更新时间，毫秒级时间戳。
-    pub update_time: String,
-    /// 所有者。
-    pub owner: IndicatorOwner,
-    /// 指标所属的实体类型。
-    pub entity_type: i32,
-    /// 指标所属的实体 ID。
-    pub entity_id: String,
-    /// 指标的状态。
-    pub indicator_status: i32,
-    /// 指标的状态的计算方式。
-    pub status_calculate_type: i32,
-    /// 指标的起始值。
-    #[serde(default)]
-    pub start_value: Option<f64>,
-    /// 指标的目标值。
-    #[serde(default)]
-    pub target_value: Option<f64>,
-    /// 指标的当前值。
-    #[serde(default)]
-    pub current_value: Option<f64>,
-    /// 指标的当前值的计算方式。
-    #[serde(default)]
-    pub current_value_calculate_type: Option<i32>,
-    /// 指标的单位。
-    #[serde(default)]
-    pub unit: Option<IndicatorUnit>,
-}
-
-/// 指标所有者。
-#[derive(Debug, Clone, Deserialize)]
-pub struct IndicatorOwner {
-    /// 所有者类型（如 "user"）。
-    pub owner_type: String,
-    /// 员工 ID。
-    #[serde(default)]
-    pub user_id: Option<String>,
-}
-
-/// 指标单位。
-#[derive(Debug, Clone, Deserialize)]
-pub struct IndicatorUnit {
-    /// 指标的单位类型。
-    pub unit_type: i32,
-    /// 指标单位的值。
-    pub unit_value: String,
 }
 
 #[cfg(test)]

@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::okr::okr::v2::common::models::KeyResult;
+
 /// 获取关键结果请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -65,46 +67,6 @@ impl ApiResponseTrait for GetKeyResultResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// 关键结果。
-#[derive(Debug, Clone, Deserialize)]
-pub struct KeyResult {
-    /// 关键结果的 ID。
-    pub id: String,
-    /// 关键结果的创建时间，毫秒级时间戳。
-    pub create_time: String,
-    /// 关键结果的修改时间，毫秒级时间戳。
-    pub update_time: String,
-    /// 所有者。
-    pub owner: KeyResultOwner,
-    /// 关键结果的目标 ID。
-    pub objective_id: String,
-    /// 关键结果的序号：从 1 开始计数。
-    pub position: i32,
-    /// 关键结果的内容。
-    // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
-    #[serde(default)]
-    pub content: Option<serde_json::Value>,
-    /// 关键结果的分数：\[0,1\]，支持一位小数。
-    #[serde(default)]
-    pub score: Option<f64>,
-    /// 目标的权重：\[0,1\]，支持三位小数。
-    #[serde(default)]
-    pub weight: Option<f64>,
-    /// 关键结果的截止时间，毫秒级时间戳。
-    #[serde(default)]
-    pub deadline: Option<String>,
-}
-
-/// 关键结果所有者。
-#[derive(Debug, Clone, Deserialize)]
-pub struct KeyResultOwner {
-    /// 所有者类型（如 "user"）。
-    pub owner_type: String,
-    /// 员工 ID。
-    #[serde(default)]
-    pub user_id: Option<String>,
 }
 
 #[cfg(test)]

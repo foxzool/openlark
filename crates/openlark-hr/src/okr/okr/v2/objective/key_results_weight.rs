@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-use super::super::key_result::get::KeyResult;
+use crate::okr::okr::v2::common::models::KeyResult;
 
 /// 修改关键结果权重请求。
 #[derive(Debug, Clone)]
