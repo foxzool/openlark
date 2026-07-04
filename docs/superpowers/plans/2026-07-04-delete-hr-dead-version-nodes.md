@@ -42,7 +42,7 @@ base-ref: f62224f33ddd91f68849410f83d8caf37fd5c868
 - facade 的 `use openlark_core::config::Config;` 仍被 `Attendance` struct 与 `new`/`config` 方法使用，**保留**
 - facade 的 `#[cfg(test)] mod tests` 块（与 facade struct 伴生，独立于版本节点）**保留**
 
-- [ ] **Step 1: 编辑 facade `attendance/mod.rs`，删除 `pub fn v1` 方法**
+- [x] **Step 1: 编辑 facade `attendance/mod.rs`，删除 `pub fn v1` 方法**
 
 删除以下 4 行（doc comment + 方法签名 + body + 闭合括号）：
 
@@ -55,7 +55,7 @@ base-ref: f62224f33ddd91f68849410f83d8caf37fd5c868
 
 删除后 `impl Attendance { ... }` 仅剩 `new` 与 `config` 两个方法。
 
-- [ ] **Step 2: 编辑 inner `attendance/attendance/mod.rs`，删除死 struct + impl + tests + 未使用 import**
+- [x] **Step 2: 编辑 inner `attendance/attendance/mod.rs`，删除死 struct + impl + tests + 未使用 import**
 
 删除以下内容：
 1. 文件顶部 `use openlark_core::config::Config;`（struct 删除后无人使用）
@@ -74,12 +74,12 @@ base-ref: f62224f33ddd91f68849410f83d8caf37fd5c868
 pub mod v1;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过，零 warning（unused import 已清）。若报 `cannot find type AttendanceV1` 说明 facade accessor 未删干净；若报 unused import 说明 inner 的 `use Config` 未删。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/attendance/mod.rs crates/openlark-hr/src/attendance/attendance/mod.rs
@@ -105,7 +105,7 @@ git commit -m "refactor: 删除 attendance 死版本节点 AttendanceV1 + .v1() 
 - inner 的 `pub type OkrV2 = v2::OkrV2;` 别名（含其上 2 行 doc comment）
 - facade 的 `pub fn v2(&self) -> okr::OkrV2 { okr::OkrV2::new(self.config.clone()) }` 方法（含 doc comment）
 
-- [ ] **Step 1: 编辑 facade `okr/mod.rs`，仅删除 `pub fn v1`，保留 `pub fn v2`**
+- [x] **Step 1: 编辑 facade `okr/mod.rs`，仅删除 `pub fn v1`，保留 `pub fn v2`**
 
 删除以下 3 行：
 
@@ -118,7 +118,7 @@ git commit -m "refactor: 删除 attendance 死版本节点 AttendanceV1 + .v1() 
 
 **保留**紧随其后的 `pub fn v2` 方法（验证：删除后 `impl Okr` 含 `new`/`config`/`v2` 三个方法）。
 
-- [ ] **Step 2: 编辑 inner `okr/okr/mod.rs`，删除 `OkrV1` struct + impl + tests，保留 `OkrV2` 别名**
+- [x] **Step 2: 编辑 inner `okr/okr/mod.rs`，删除 `OkrV1` struct + impl + tests，保留 `OkrV2` 别名**
 
 删除：
 1. `OkrV1` struct 定义（含其上 doc comment `/// okr 项目 v1 版本服务` / `/// OkrV1 服务入口。`）
@@ -148,12 +148,12 @@ pub type OkrV2 = v2::OkrV2;
 
 （是否保留顶部 `use Config` 由 Step 3 编译结果裁定。）
 
-- [ ] **Step 3: 构建验证（重点确认 okr.v2() 仍可达）**
+- [x] **Step 3: 构建验证（重点确认 okr.v2() 仍可达）**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过。重点：`pub type OkrV2` 与 `pub fn v2` 保留，facade `okr.v2()` 链路完整。若报 `cannot find type OkrV1` 说明 facade `v1` 未删；若报 `cannot find type OkrV2` 说明误删了 type 别名——立即恢复 `pub type OkrV2 = v2::OkrV2;`。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/okr/mod.rs crates/openlark-hr/src/okr/okr/mod.rs
@@ -174,7 +174,7 @@ git commit -m "refactor: 删除 okr 死版本节点 OkrV1 + .v1() accessor（保
 
 **保留：** inner 的 `pub mod v1;` 声明；facade 的 `Ehr` struct + `new`/`config` + 其 `#[cfg(test)] mod tests`。
 
-- [ ] **Step 1: 编辑 facade `ehr/mod.rs`，删除 `pub fn v1` 方法**
+- [x] **Step 1: 编辑 facade `ehr/mod.rs`，删除 `pub fn v1` 方法**
 
 删除以下 4 行：
 
@@ -185,7 +185,7 @@ git commit -m "refactor: 删除 okr 死版本节点 OkrV1 + .v1() accessor（保
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `ehr/ehr/mod.rs`，删除 struct + impl + tests + 未使用 import**
+- [x] **Step 2: 编辑 inner `ehr/ehr/mod.rs`，删除 struct + impl + tests + 未使用 import**
 
 删除：`use openlark_core::config::Config;`、`EhrV1` struct 定义（含 doc comment）、`impl EhrV1` 块、`#[cfg(test)] mod tests` 块。保留 `pub mod v1;`。删除后内容应为：
 
@@ -198,12 +198,12 @@ git commit -m "refactor: 删除 okr 死版本节点 OkrV1 + .v1() accessor（保
 pub mod v1;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/ehr/mod.rs crates/openlark-hr/src/ehr/ehr/mod.rs
@@ -224,7 +224,7 @@ git commit -m "refactor: 删除 ehr 死版本节点 EhrV1 + .v1() accessor"
 
 **保留：** inner 的 `pub mod v1;` 与 `pub mod v2;`；facade 的 `Hire` struct + `new`/`config` + 其 tests。
 
-- [ ] **Step 1: 编辑 facade `hire/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
+- [x] **Step 1: 编辑 facade `hire/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
 
 删除以下两段（各 3 行，含 doc comment）：
 
@@ -239,7 +239,7 @@ git commit -m "refactor: 删除 ehr 死版本节点 EhrV1 + .v1() accessor"
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `hire/hire/mod.rs`，删除两个死 struct + impl + tests**
+- [x] **Step 2: 编辑 inner `hire/hire/mod.rs`，删除两个死 struct + impl + tests**
 
 删除：`HireV1` struct（含 doc comment）、`HireV2` struct（含 doc comment）、`impl HireV1`、`impl HireV2`、`#[cfg(test)] mod tests` 块；若 struct 删除后 `use openlark_core::config::Config;` 无引用则一并删除。保留 `pub mod v1;` 与 `pub mod v2;`。删除后内容应为：
 
@@ -254,12 +254,12 @@ pub mod v1;
 pub mod v2;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/hire/mod.rs crates/openlark-hr/src/hire/hire/mod.rs
@@ -282,7 +282,7 @@ git commit -m "refactor: 删除 hire 死版本节点 HireV1/HireV2 + .v1()/.v2()
 
 **保留：** inner 的 `pub mod v1;` 与 `pub mod v2;`；facade 的 `Corehr` struct + `new`/`config` + 其 tests。
 
-- [ ] **Step 1: 编辑 facade `feishu_people/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
+- [x] **Step 1: 编辑 facade `feishu_people/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
 
 删除以下两段：
 
@@ -298,7 +298,7 @@ git commit -m "refactor: 删除 hire 死版本节点 HireV1/HireV2 + .v1()/.v2()
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `feishu_people/corehr/mod.rs`，删除两个死 struct + impl + tests**
+- [x] **Step 2: 编辑 inner `feishu_people/corehr/mod.rs`，删除两个死 struct + impl + tests**
 
 删除：`CorehrV1` struct（含 doc comment `/// CorehrV1 服务入口。`）、`CorehrV2` struct（含 doc comment `/// CorehrV2 服务入口。`）、`impl CorehrV1`、`impl CorehrV2`、`#[cfg(test)] mod tests` 块；若 `use Config` 无引用则一并删除。保留 `pub mod v1;` 与 `pub mod v2;`。删除后内容应为：
 
@@ -313,12 +313,12 @@ pub mod v1;
 pub mod v2;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/feishu_people/mod.rs crates/openlark-hr/src/feishu_people/corehr/mod.rs
@@ -339,7 +339,7 @@ git commit -m "refactor: 删除 corehr 死版本节点 CorehrV1/CorehrV2 + .v1()
 
 **保留：** inner 的 `pub mod v1;`；facade 的 `Payroll` struct + `new`/`config` + 其 tests。
 
-- [ ] **Step 1: 编辑 facade `payroll/mod.rs`，删除 `pub fn v1` 方法**
+- [x] **Step 1: 编辑 facade `payroll/mod.rs`，删除 `pub fn v1` 方法**
 
 删除以下 4 行：
 
@@ -350,7 +350,7 @@ git commit -m "refactor: 删除 corehr 死版本节点 CorehrV1/CorehrV2 + .v1()
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `payroll/payroll/mod.rs`，删除 struct + impl + tests**
+- [x] **Step 2: 编辑 inner `payroll/payroll/mod.rs`，删除 struct + impl + tests**
 
 删除：`PayrollV1` struct（含 doc comment）、`impl PayrollV1`、`#[cfg(test)] mod tests` 块、`use Config`（若无引用）。保留 `pub mod v1;`。删除后内容应为：
 
@@ -363,12 +363,12 @@ git commit -m "refactor: 删除 corehr 死版本节点 CorehrV1/CorehrV2 + .v1()
 pub mod v1;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/payroll/mod.rs crates/openlark-hr/src/payroll/payroll/mod.rs
@@ -389,7 +389,7 @@ git commit -m "refactor: 删除 payroll 死版本节点 PayrollV1 + .v1() access
 
 **保留：** inner 的 `pub mod v1;` 与 `pub mod v2;`；facade 的 `Performance` struct + `new`/`config` + 其 tests。
 
-- [ ] **Step 1: 编辑 facade `performance/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
+- [x] **Step 1: 编辑 facade `performance/mod.rs`，删除 `pub fn v1` 与 `pub fn v2`**
 
 删除以下两段：
 
@@ -404,7 +404,7 @@ git commit -m "refactor: 删除 payroll 死版本节点 PayrollV1 + .v1() access
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `performance/performance/mod.rs`，删除两个死 struct + impl + tests**
+- [x] **Step 2: 编辑 inner `performance/performance/mod.rs`，删除两个死 struct + impl + tests**
 
 删除：`PerformanceV1` struct、`PerformanceV2` struct、`impl PerformanceV1`、`impl PerformanceV2`、`#[cfg(test)] mod tests { use serde_json; ... }` 整块；若 `use Config` 无引用则一并删除。保留 `pub mod v1;` 与 `pub mod v2;`。删除后内容应为：
 
@@ -419,12 +419,12 @@ pub mod v1;
 pub mod v2;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/performance/mod.rs crates/openlark-hr/src/performance/performance/mod.rs
@@ -447,7 +447,7 @@ git commit -m "refactor: 删除 performance 死版本节点 PerformanceV1/Perfor
 
 **保留：** inner 的 `pub mod v1;`；facade 的 `CompensationManagement` struct + `new`/`config` + 其 tests。
 
-- [ ] **Step 1: 编辑 facade `compensation_management/mod.rs`，删除 `pub fn v1` 方法**
+- [x] **Step 1: 编辑 facade `compensation_management/mod.rs`，删除 `pub fn v1` 方法**
 
 删除以下 4 行：
 
@@ -458,7 +458,7 @@ git commit -m "refactor: 删除 performance 死版本节点 PerformanceV1/Perfor
     }
 ```
 
-- [ ] **Step 2: 编辑 inner `compensation_management/compensation/mod.rs`，删除 struct + impl + tests**
+- [x] **Step 2: 编辑 inner `compensation_management/compensation/mod.rs`，删除 struct + impl + tests**
 
 删除：`CompensationV1` struct（含 doc comment）、`impl CompensationV1`、`#[cfg(test)] mod tests` 块、`use Config`（若无引用）。保留 `pub mod v1;`。删除后内容应为：
 
@@ -471,12 +471,12 @@ git commit -m "refactor: 删除 performance 死版本节点 PerformanceV1/Perfor
 pub mod v1;
 ```
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `cargo build -p openlark-hr --all-features --all-targets`
 Expected: 编译通过零 warning。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add crates/openlark-hr/src/compensation_management/mod.rs crates/openlark-hr/src/compensation_management/compensation/mod.rs
@@ -500,7 +500,7 @@ git commit -m "refactor: 删除 compensation_management 死版本节点 Compensa
 - `.group_name(String) -> Self` builder（`create.rs:96`）✓
 - `HrClient::new(config: Config) -> Self`（`lib.rs:115`）、`HrClient::config(&self) -> &Config`（`lib.rs:139`），`Config: Clone` 故 `client.config().clone() -> Config` ✓
 
-- [ ] **Step 1: 替换 `lib.rs:15-27` 的 `rust,ignore` 代码块**
+- [x] **Step 1: 替换 `lib.rs:15-27` 的 `rust,ignore` 代码块**
 
 将以下旧内容（编译失败谎言——`AttendanceV1` 无 `.group()`）：
 
@@ -539,14 +539,14 @@ git commit -m "refactor: 删除 compensation_management 死版本节点 Compensa
 - `# let config: ... = unimplemented!();` 是 doctest 标准隐藏行，编译期 `unimplemented!()` 类型推断为 `Config`，`no_run` 不运行故不会 panic。
 - `_request` 前缀下划线避免 unused warning。
 
-- [ ] **Step 2: doctest 编译验证**
+- [x] **Step 2: doctest 编译验证**
 
 Run: `cargo doc -p openlark-hr --all-features`
 Expected: 文档构建无 doctest 编译错误。重点确认：`CreateGroupRequest` 路径可达、`.group_name(String)` 方法签名匹配。
 
 若报 `cannot find type CreateGroupRequest` → 检查 `group/mod.rs` 的 `pub use` 是否存在（已验证存在）；若报 `.group_name` not found → 核对 `create.rs:96` 签名是否为 `pub fn group_name(mut self, group_name: String) -> Self`。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add crates/openlark-hr/src/lib.rs
@@ -561,27 +561,27 @@ git commit -m "refactor: lib.rs facade doc example 改为 no_run Config-direct R
 
 **目标：** 跑完 Design Doc「Test Strategy」与 issue 验收的全部命令，确认全绿且真实 API 路径未改。
 
-- [ ] **Step 1: 全量 build**
+- [x] **Step 1: 全量 build**
 
 Run: `cargo build -p openlark-hr --all-features`
 Expected: 编译通过。
 
-- [ ] **Step 2: 全量 test**
+- [x] **Step 2: 全量 test**
 
 Run: `cargo test -p openlark-hr --all-features`
 Expected: 全部测试通过。重点：8 个 `test_hr_client_*_field` 测试（仅依赖 `client.<domain>.config().app_id()`）零破坏。
 
-- [ ] **Step 3: doctest 编译**
+- [x] **Step 3: doctest 编译**
 
 Run: `cargo doc -p openlark-hr --all-features`
 Expected: 文档构建通过，Task 9 的 `no_run` doctest 编译通过（不再 `rust,ignore`）。
 
-- [ ] **Step 4: fmt + clippy**
+- [x] **Step 4: fmt + clippy**
 
 Run: `cargo fmt --check && cargo clippy -p openlark-hr --all-features --all-targets -D warnings`
 Expected: fmt 无 diff、clippy 零 warning。
 
-- [ ] **Step 5: 真实 API 路径未受影响验证（grep 确认）**
+- [x] **Step 5: 真实 API 路径未受影响验证（grep 确认）**
 
 Run:
 ```bash
@@ -612,7 +612,7 @@ git diff f62224f33ddd91f68849410f83d8caf37fd5c868 -- \
 ```
 Expected: 空输出（`CreateGroupRequest`/`QueryRequest` 等 Request struct 与端点枚举零改动）。
 
-- [ ] **Step 6: 跨 crate 引用回归确认**
+- [x] **Step 6: 跨 crate 引用回归确认**
 
 Run:
 ```bash
