@@ -15,13 +15,13 @@ TDD mode: tdd
 | 4 | cycle 批次 | 2.3 | done |
 | 5 | indicator 批次 | 2.4 | done |
 | 6 | key_result 批次 | 2.5 | done |
-| 7 | objective 剩余 10 叶 | 2.6 | in_progress |
-| 8 | 最终验证 | 3.1-3.7 | pending |
+| 7 | objective 剩余 10 叶 | 2.6 | done |
+| 8 | 最终验证 | 3.1-3.7 | in_progress |
 
-## Task 6 Details
+## Task 7 Details
 
 - Phase: done
-- Implementer: agent-6
-- Commits: d10d4ebb9
+- Implementer: agent-7
+- Commits: e82a02656
 - Evidence: cargo build/test pass, fmt/clippy pass
-- Concerns: delete uses empty struct per plan; list field names follow schema (`indicator` object, `items` array) rather than brief guesses.
+- Concerns: none

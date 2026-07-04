@@ -803,11 +803,11 @@ Refs: change type-okr-v2-responses Task 6"
 - 4 个写操作叶（patch / alignment/create / key_result/create / key_results_position / key_results_weight —— 实际 5 个写）：`execute(body: serde_json::Value)` 签名保留（D3）
 - 端点构造全部为 inline `format!`，保持不动（D4）
 
-- [ ] **Step 1: 派生 objective/delete（DELETE）**
+- [x] **Step 1: 派生 objective/delete（DELETE）**
 
 Open dump `## okr/okr/v2/okr/objective/delete.rs`。派生 `DeleteObjectiveResponse`（DELETE 响应通常空 data，用空 struct + Default）。修改 `objective/delete.rs` 套用 Task 1 模板，path 不动。
 
-- [ ] **Step 2: 派生 objective/patch（PATCH，body 保留 Value）**
+- [x] **Step 2: 派生 objective/patch（PATCH，body 保留 Value）**
 
 Open dump `## okr/okr/v2/okr/objective/patch.rs`。派生 `PatchObjectiveResponse`（PATCH 响应通常回显 objective 或空 data）。
 
@@ -818,39 +818,39 @@ Open dump `## okr/okr/v2/okr/objective/patch.rs`。派生 `PatchObjectiveRespons
 - `ApiRequest::<serde_json::Value>::patch(path)` → `ApiRequest::<PatchObjectiveResponse>::patch(path)`
 - 加 `impl ApiResponseTrait` + 反序列化测试
 
-- [ ] **Step 3: 派生 objective/alignment/list（GET）**
+- [x] **Step 3: 派生 objective/alignment/list（GET）**
 
 Open dump，派生 `ListObjectiveAlignmentResponse`（预期含 `alignments: Vec<Alignment>`）。修改 `objective/alignment/list.rs` 套用模板。
 
-- [ ] **Step 4: 派生 objective/alignment/create（POST，body 保留 Value）**
+- [x] **Step 4: 派生 objective/alignment/create（POST，body 保留 Value）**
 
 Open dump，派生 `CreateObjectiveAlignmentResponse`。修改 `objective/alignment/create.rs`：body 签名保留，返回类型改 typed。
 
-- [ ] **Step 5: 派生 objective/indicator/list（GET）**
+- [x] **Step 5: 派生 objective/indicator/list（GET）**
 
 Open dump，派生 `ListObjectiveIndicatorResponse`（预期含 `indicators: Vec<Indicator>`）。修改 `objective/indicator/list.rs` 套用模板。
 
-- [ ] **Step 6: 派生 objective/key_result/list（GET）**
+- [x] **Step 6: 派生 objective/key_result/list（GET）**
 
 Open dump，派生 `ListObjectiveKeyResultResponse`（预期含 `key_results: Vec<KeyResult>`）。修改 `objective/key_result/list.rs` 套用模板。**注意命名避免与 key_result/get.rs 的 `KeyResult` 冲突**：本叶用模块路径区分（`super::super::key_result::get::KeyResult` 复用）或定义本模块专属 `ObjectiveKeyResult`，按 dump 字段差异决定（若字段一致优先复用，否则定义本叶专属 struct）。
 
-- [ ] **Step 7: 派生 objective/key_result/create（POST，body 保留 Value）**
+- [x] **Step 7: 派生 objective/key_result/create（POST，body 保留 Value）**
 
 Open dump，派生 `CreateObjectiveKeyResultResponse`。修改 `objective/key_result/create.rs`：body 签名保留，返回类型改 typed。
 
-- [ ] **Step 8: 派生 objective/key_results_position（PUT，body 保留 Value）**
+- [x] **Step 8: 派生 objective/key_results_position（PUT，body 保留 Value）**
 
 Open dump，派生 `UpdateObjectiveKeyResultsPositionResponse`（PUT 响应通常空 data）。修改 `objective/key_results_position.rs`：body 签名保留，返回类型改 typed。
 
-- [ ] **Step 9: 派生 objective/key_results_weight（PUT，body 保留 Value）**
+- [x] **Step 9: 派生 objective/key_results_weight（PUT，body 保留 Value）**
 
 同 Step 8 模式处理 `objective/key_results_weight.rs`，派生 `UpdateObjectiveKeyResultsWeightResponse`。
 
-- [ ] **Step 10: 派生 objective/progress/list（GET）**
+- [x] **Step 10: 派生 objective/progress/list（GET）**
 
 Open dump，派生 `ListObjectiveProgressResponse`（预期含 `progresses: Vec<...>`）。修改 `objective/progress/list.rs` 套用模板。
 
-- [ ] **Step 11: build + test objective 批次**
+- [x] **Step 11: build + test objective 批次**
 
 Run:
 ```bash
@@ -858,7 +858,7 @@ cd /Users/zool/workspace/openlark && cargo build -p openlark-hr --all-features 2
 ```
 Expected: 10 叶（含 Task 1 已做的 get）全部 build 通过、test PASS。
 
-- [ ] **Step 12: fmt + clippy**
+- [x] **Step 12: fmt + clippy**
 
 Run:
 ```bash
@@ -866,7 +866,7 @@ cd /Users/zool/workspace/openlark && cargo fmt -p openlark-hr --check && cargo c
 ```
 Expected: 无 diff、无 warning。
 
-- [ ] **Step 13: commit objective 剩余批次**
+- [x] **Step 13: commit objective 剩余批次**
 
 ```bash
 cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/objective/ && git commit -m "feat(hr/okr/v2): objective 剩余 10 叶返回 typed Response（delete/patch/alignment_*/indicator_list/key_result_*/key_results_position/key_results_weight/progress_list）
