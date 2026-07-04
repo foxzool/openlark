@@ -1,6 +1,6 @@
 //! 删除 OKR 目标
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective/get>
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective/delete>
 
 use openlark_core::{
     SDKResult,
@@ -55,7 +55,7 @@ impl Request {
 }
 
 /// 删除 OKR 目标响应。
-#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct DeleteObjectiveResponse {}
 
 impl ApiResponseTrait for DeleteObjectiveResponse {
@@ -77,6 +77,6 @@ mod tests {
     fn test_delete_objective_response_deserialize() {
         let resp: DeleteObjectiveResponse =
             serde_json::from_value(serde_json::json!({})).expect("空响应反序列化失败");
-        assert_eq!(resp, DeleteObjectiveResponse::default());
+        let _ = resp;
     }
 }

@@ -1,6 +1,6 @@
 //! 删除关键结果
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result/get>
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result/delete>
 
 use openlark_core::{
     SDKResult,
