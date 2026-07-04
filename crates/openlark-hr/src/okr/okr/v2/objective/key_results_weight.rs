@@ -13,6 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
 use crate::okr::okr::v2::common::models::KeyResult;
 
 /// 修改关键结果权重请求。
@@ -59,10 +60,7 @@ impl Request {
                 "请求体不能为空",
             ));
         }
-        let path = format!(
-            "/open-apis/okr/v2/objectives/{}/key_results_weight",
-            self.objective_id
-        );
+        let path = OkrApiV2::ObjectiveKeyResultsWeight(self.objective_id).to_url();
         let body_val = serde_json::to_value(&body).map_err(|e| {
             openlark_core::error::validation_error("请求体序列化失败", format!("无法序列化: {e}"))
         })?;

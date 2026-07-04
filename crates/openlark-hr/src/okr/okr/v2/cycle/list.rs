@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
+
 /// 获取用户 OKR 周期列表请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -68,8 +70,9 @@ impl Request {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListCycleResponse> {
         validate_required!(self.user_id, "user_id 不能为空");
 
+        let path = OkrApiV2::CycleList.to_url();
         let mut req: ApiRequest<ListCycleResponse> =
-            ApiRequest::get("/open-apis/okr/v2/cycles").query("user_id", &self.user_id);
+            ApiRequest::get(&path).query("user_id", &self.user_id);
 
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type);

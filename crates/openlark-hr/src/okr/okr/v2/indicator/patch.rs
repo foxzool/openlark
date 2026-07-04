@@ -13,6 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
 use crate::okr::okr::v2::common::models::Indicator;
 
 /// 更新量化指标请求。
@@ -56,7 +57,7 @@ impl Request {
                 "请求体不能为空",
             ));
         }
-        let path = format!("/open-apis/okr/v2/indicators/{}", self.indicator_id);
+        let path = OkrApiV2::IndicatorPatch(self.indicator_id).to_url();
         let body_val = serde_json::to_value(&body).map_err(|e| {
             openlark_core::error::validation_error("请求体序列化失败", format!("无法序列化: {e}"))
         })?;

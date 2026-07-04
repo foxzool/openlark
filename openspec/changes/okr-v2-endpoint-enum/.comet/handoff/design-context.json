@@ -1,0 +1,14 @@
+{
+  "change": "okr-v2-endpoint-enum",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "5f4474c97300f22267f0682db0ad32be06755324c955b8f2474d748a703c61d0",
+  "files": [
+    { "path": "openspec/changes/okr-v2-endpoint-enum/proposal.md", "sha256": "15da8e0c0f2d73a550f70e29d0b3387e511a37cb53fbf9cdfa03d18d995be8fd" },
+    { "path": "openspec/changes/okr-v2-endpoint-enum/design.md", "sha256": "766b2eea3ef0e92fced3eec7456f955a3bb89eee93e68460373e3bda38af44c2" },
+    { "path": "openspec/changes/okr-v2-endpoint-enum/tasks.md", "sha256": "1f198b009bba72783d8a96de015b55a6be053f0174de9d4e69b4d7ec179b66d0" },
+    { "path": "openspec/changes/okr-v2-endpoint-enum/specs/v1-sub-api-accessors/spec.md", "sha256": "25692616f0350c0788f8a27013a75f28a74252eae80b8c1a951c4d20ac6a1d96" }
+  ]
+}

@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::common::api_endpoints::OkrApiV2;
+
 /// 获取所有 OKR 分类请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -34,7 +36,8 @@ impl Request {
         self,
         option: RequestOption,
     ) -> SDKResult<ListCategoryResponse> {
-        let req: ApiRequest<ListCategoryResponse> = ApiRequest::get("/open-apis/okr/v2/categories");
+        let path = OkrApiV2::CategoryList.to_url();
+        let req: ApiRequest<ListCategoryResponse> = ApiRequest::get(&path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
             openlark_core::error::validation_error("获取所有 OKR 分类", "响应数据为空")
