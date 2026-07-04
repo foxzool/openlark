@@ -15,10 +15,10 @@
 
 ## 3. 验证（issue #336 验收）
 
-- [ ] 3.1 `cargo build -p openlark-hr --all-features` 通过
-- [ ] 3.2 `cargo test -p openlark-hr --all-features` 通过（现有 typed Response 反序列化 + test_hr_client_* 不破坏）
-- [ ] 3.3 `cargo fmt --check` + `cargo clippy -p openlark-hr --all-features --all-targets -- -D warnings` 通过
-- [ ] 3.4 grep 单一定义：9 个 struct 名在 `okr/okr/v2/` 下各只 1 处 `pub struct` 定义（`common/models.rs`），叶内零残留
-- [ ] 3.5 byte-identical 抽样：确认 `common/models.rs` 的 9 struct 字段与变更前 canonical 叶子逐字一致（纯挪位无字段改动）
-- [ ] 3.6 per-leaf Response wrapper 仍 inline（未挪动）
-- [ ] 3.7 跨 crate 回归：`cargo check --workspace --all-features` 通过（okr/v2 struct 路径变更未破坏外部消费）
+- [x] 3.1 `cargo build -p openlark-hr --all-features` 通过
+- [x] 3.2 `cargo test -p openlark-hr --all-features` 通过（现有 typed Response 反序列化 + test_hr_client_* 不破坏）
+- [x] 3.3 `cargo fmt --check` + `cargo clippy -p openlark-hr --all-features --all-targets -- -D warnings` 通过
+- [x] 3.4 grep 单一定义：9 个 struct 名在 `okr/okr/v2/` 下各只 1 处 `pub struct` 定义（`common/models.rs`），叶内零残留
+- [x] 3.5 byte-identical 抽样：确认 `common/models.rs` 的 9 struct 字段与变更前 canonical 叶子逐字一致（纯挪位无字段改动）
+- [x] 3.6 per-leaf Response wrapper 仍 inline（未挪动）
+- [x] 3.7 跨 crate 回归：`cargo check --workspace --all-features` 通过（okr/v2 struct 路径变更未破坏外部消费）
