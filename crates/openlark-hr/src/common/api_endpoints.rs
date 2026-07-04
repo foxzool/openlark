@@ -3465,6 +3465,115 @@ mod tests {
     fn test_okr_api_urls() {
         let url = OkrApiV1::PeriodList.to_url();
         assert_eq!(url, "/open-apis/okr/v1/periods");
+
+        // OkrApiV2 — alignment (2)
+        assert_eq!(
+            OkrApiV2::AlignmentDelete("123".to_string()).to_url(),
+            "/open-apis/okr/v2/alignments/123"
+        );
+        assert_eq!(
+            OkrApiV2::AlignmentGet("123".to_string()).to_url(),
+            "/open-apis/okr/v2/alignments/123"
+        );
+
+        // category (1)
+        assert_eq!(
+            OkrApiV2::CategoryList.to_url(),
+            "/open-apis/okr/v2/categories"
+        );
+
+        // cycle (5)
+        assert_eq!(OkrApiV2::CycleList.to_url(), "/open-apis/okr/v2/cycles");
+        assert_eq!(
+            OkrApiV2::CycleObjectivesPosition("123".to_string()).to_url(),
+            "/open-apis/okr/v2/cycles/123/objectives_position"
+        );
+        assert_eq!(
+            OkrApiV2::CycleObjectivesWeight("123".to_string()).to_url(),
+            "/open-apis/okr/v2/cycles/123/objectives_weight"
+        );
+        assert_eq!(
+            OkrApiV2::CycleObjectiveCreate("123".to_string()).to_url(),
+            "/open-apis/okr/v2/cycles/123/objectives"
+        );
+        assert_eq!(
+            OkrApiV2::CycleObjectiveList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/cycles/123/objectives"
+        );
+
+        // indicator (1)
+        assert_eq!(
+            OkrApiV2::IndicatorPatch("123".to_string()).to_url(),
+            "/open-apis/okr/v2/indicators/123"
+        );
+
+        // key_result (5)
+        assert_eq!(
+            OkrApiV2::KeyResultDelete("123".to_string()).to_url(),
+            "/open-apis/okr/v2/key_results/123"
+        );
+        assert_eq!(
+            OkrApiV2::KeyResultGet("123".to_string()).to_url(),
+            "/open-apis/okr/v2/key_results/123"
+        );
+        assert_eq!(
+            OkrApiV2::KeyResultPatch("123".to_string()).to_url(),
+            "/open-apis/okr/v2/key_results/123"
+        );
+        assert_eq!(
+            OkrApiV2::KeyResultIndicatorList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/key_results/123/indicators"
+        );
+        assert_eq!(
+            OkrApiV2::KeyResultProgressList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/key_results/123/progresses"
+        );
+
+        // objective (11)
+        assert_eq!(
+            OkrApiV2::ObjectiveDelete("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveGet("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectivePatch("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveKeyResultsPosition("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/key_results_position"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveKeyResultsWeight("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/key_results_weight"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveAlignmentCreate("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/alignments"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveAlignmentList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/alignments"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveIndicatorList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/indicators"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveKeyResultCreate("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/key_results"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveKeyResultList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/key_results"
+        );
+        assert_eq!(
+            OkrApiV2::ObjectiveProgressList("123".to_string()).to_url(),
+            "/open-apis/okr/v2/objectives/123/progresses"
+        );
     }
 
     #[test]
