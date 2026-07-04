@@ -34,6 +34,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **okr/v2 跨叶共享 domain struct 路径统一到 `common::models`**（#336）：`Objective`/`ObjectiveOwner`、
+  `Indicator`/`IndicatorOwner`/`IndicatorUnit`、`KeyResult`/`KeyResultOwner`、`Alignment`/`AlignmentOwner`
+  9 个 struct 跨 11 叶 byte-identical 重复（#328 typed Response 产物），各只在
+  `openlark-hr::okr::okr::v2::common::models` 定义一次；叶子改
+  `use crate::okr::okr::v2::common::models::<Struct>;` 显式具名引用（非 glob——repo clippy
+  `wildcard_imports` + CI `-D warnings` 会 deny glob）。per-leaf Response wrapper（`GetObjectiveResponse`
+  等）保持 inline。纯机械重构，反序列化零变化（4 canonical struct byte-identical 验证）。
+  **breaking**：9 struct 公开路径 `<leaf>::<Struct>` → `common::models::<Struct>`（D3 clean break，不留
+  `pub use` re-export）。**迁移**：okr/v2 仓内零外部引用（#327/#328 已确认），v0.17.x 预发布；外部若有
+  消费按新路径改 import 即可。为 #339 深字段 typed 化扫清 Shotgun Surgery（改一处而非 N 处）。
+
 - **删除 ai 4 个死外导航 struct**（#329）：`DocumentAi` / `OpticalCharRecognition` /
   `SpeechToText` / `Translation` 被 service.rs 的 `*Client` 穿透绕过（pub 声明承诺导航实则无接收者），
   各自带自构造测试（Potemkin）。删除 struct + impl + 自测，保留 `pub mod v1`（真实 API，service.rs
