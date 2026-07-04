@@ -25,11 +25,6 @@ impl Ehr {
     pub fn config(&self) -> &Config {
         &self.config
     }
-
-    /// 获取 ehr 项目 v1 版本服务
-    pub fn v1(&self) -> ehr::EhrV1 {
-        ehr::EhrV1::new(self.config.clone())
-    }
 }
 
 #[cfg(test)]
