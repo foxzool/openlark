@@ -4,6 +4,7 @@
 
 pub mod alignment;
 pub mod category;
+pub mod common;
 pub mod cycle;
 pub mod indicator;
 pub mod key_result;
