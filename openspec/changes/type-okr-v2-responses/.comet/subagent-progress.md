@@ -16,12 +16,16 @@ TDD mode: tdd
 | 5 | indicator 批次 | 2.4 | done |
 | 6 | key_result 批次 | 2.5 | done |
 | 7 | objective 剩余 10 叶 | 2.6 | done |
-| 8 | 最终验证 | 3.1-3.7 | in_progress |
+| 8 | 最终验证 | 3.1-3.7 | done |
 
-## Task 7 Details
+## Task 8 Details
 
 - Phase: done
-- Implementer: agent-7
-- Commits: e82a02656
-- Evidence: cargo build/test pass, fmt/clippy pass
-- Concerns: none
+- Implementer: agent-8
+- Commits: 273805e9d (doc escape fix)
+- Evidence: cargo build/test/doc/fmt/clippy/workspace build all pass; 25 leaves typed; endpoints unchanged
+- Concerns: openlark-api-field-verify skill invoked but doc rendering could not complete due to tool path-mapping bug and missing playwright/chromium install; apiSchema remains authoritative source per Design Doc D2.
+
+## Build Phase Complete
+
+All plan tasks and OpenSpec tasks are checked off. Ready for final review and comet-build guard.

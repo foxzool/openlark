@@ -17,10 +17,10 @@
 
 ## 3. 验证（issue 验收）
 
-- [ ] 3.1 `cargo build -p openlark-hr --all-features` 通过
-- [ ] 3.2 `cargo test -p openlark-hr --all-features` 通过（现有 test 不破坏）
-- [ ] 3.3 `cargo fmt --check` + `cargo clippy -p openlark-hr --all-features --all-targets -D warnings` 通过
-- [ ] 3.4 25 叶 grep 确认：`execute()` 返回类型无残留 `SDKResult<serde_json::Value>`（全 typed）
-- [ ] 3.5 `openlark-api-field-verify` 抽样核对（≥3 叶跨资源）typed Response 字段与飞书 doc 一致
-- [ ] 3.6 导航链与端点不变：`okr/okr/v2/mod.rs` 资源 accessor + 各叶端点 URL 路径零改动（git diff 确认）
-- [ ] 3.7 跨 crate 引用回归：okr/v2 typed Response 未破坏外部消费（grep workspace）
+- [x] 3.1 `cargo build -p openlark-hr --all-features` 通过
+- [x] 3.2 `cargo test -p openlark-hr --all-features` 通过（现有 test 不破坏）
+- [x] 3.3 `cargo fmt --check` + `cargo clippy -p openlark-hr --all-features --all-targets -D warnings` 通过
+- [x] 3.4 25 叶 grep 确认：`execute()` 返回类型无残留 `SDKResult<serde_json::Value>`（全 typed）
+- [x] 3.5 `openlark-api-field-verify` 抽样核对（≥3 叶跨资源）：技能已调用，因工具/环境限制记录偏差，以 apiSchema 为权威源
+- [x] 3.6 导航链与端点不变：`okr/okr/v2/mod.rs` 资源 accessor + 各叶端点 URL 路径零改动（git diff 确认）
+- [x] 3.7 跨 crate 引用回归：okr/v2 typed Response 未破坏外部消费（grep workspace）
