@@ -2,8 +2,8 @@
 
 ## 1. 创建共享模块 + 迁移 9 struct
 
-- [ ] 1.1 新建 `crates/openlark-hr/src/okr/okr/v2/common/mod.rs`（`pub mod models;` + 顶部 `//!` 模块说明），并在 `okr/okr/v2/mod.rs` 加 `pub mod common;` 声明
-- [ ] 1.2 新建 `crates/openlark-hr/src/okr/okr/v2/common/models.rs`，从 canonical 叶子整块迁移 9 个 struct（byte-identical 直接挪）：`Objective`/`ObjectiveOwner`（自 objective/get）、`Indicator`/`IndicatorOwner`/`IndicatorUnit`（自 indicator/patch）、`KeyResult`/`KeyResultOwner`（自 key_result/get）、`Alignment`/`AlignmentOwner`（自 alignment/get）。顶部 `//!` + `use serde::Deserialize;`
+- [x] 1.1 新建 `crates/openlark-hr/src/okr/okr/v2/common/mod.rs`（`pub mod models;` + 顶部 `//!` 模块说明），并在 `okr/okr/v2/mod.rs` 加 `pub mod common;` 声明
+- [x] 1.2 新建 `crates/openlark-hr/src/okr/okr/v2/common/models.rs`，从 canonical 叶子整块迁移 9 个 struct（byte-identical 直接挪）：`Objective`/`ObjectiveOwner`（自 objective/get）、`Indicator`/`IndicatorOwner`/`IndicatorUnit`（自 indicator/patch）、`KeyResult`/`KeyResultOwner`（自 key_result/get）、`Alignment`/`AlignmentOwner`（自 alignment/get）。顶部 `//!` + `use serde::Deserialize;`
 
 ## 2. 11 叶改 import（删 inline 定义 + 加 use 引用）
 
