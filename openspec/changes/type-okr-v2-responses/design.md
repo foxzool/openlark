@@ -67,3 +67,7 @@ issue 验收只要求"execute() 返回 typed Response"。10 个写操作现吃 `
 - **[BREAKING 返回类型]** 25 叶 `execute()` 返回 Value→typed → 缓解：okr/v2 零外部引用（#327 已确认导航链零跨 crate 引用），v0.18 breaking 窗口
 - **[范围蔓延]** body typing / enum 统一可能拖大 diff → 缓解：D3/D4 显式 out-of-scope 或视成本，主线锁定 response typed
 - **[doc 转录工作量]** 25 叶 × 字段转录是机械但量大 → 缓解：6 资源批次 + codegen.py（若可辅助）+ field-verify 自动化
+
+## Implementation Divergence
+
+在 build 阶段，通过 `tools/schema_cache/cache.py` 程序化拉取飞书 `apiSchema`（零鉴权 urllib 拉 `open.feishu.cn/document_portal/v1/document/get_detail`）并缓存到 `tools/schema_cache/.cache/`。typed Response 字段实际从该 apiSchema 派生，而非手工转录 `docPath` 指向的飞书 SPA 文档。这一变更在 Superpowers Design Doc（`docs/superpowers/specs/2026-07-04-type-okr-v2-responses-design.md` D2）中记录为关键升级：apiSchema 是结构化权威源，比 SPA 文档更可靠；`openlark-api-field-verify` 降为辅助抽样核对。本 OpenSpec design.md 的 D2 仍保留“doc 转录”原始表述，实际实现采用 apiSchema 派生。偏差原因：brainstorming 阶段发现 apiSchema 结构化数据可直接获取，且能避免 playwright 渲染 SPA 的复杂性与不稳定性。
