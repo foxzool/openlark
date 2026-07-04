@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-use super::get::Objective;
+use crate::okr::okr::v2::common::models::Objective;
 
 /// 编辑 OKR 目标请求。
 #[derive(Debug, Clone)]

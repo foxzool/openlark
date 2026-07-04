@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::okr::okr::v2::common::models::Objective;
+
 /// 修改 OKR 目标位置请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -85,53 +87,6 @@ impl ApiResponseTrait for UpdateCycleObjectivesPositionResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// OKR 目标。
-#[derive(Debug, Clone, Deserialize)]
-pub struct Objective {
-    /// 目标的 ID。
-    pub id: String,
-    /// 目标的创建时间，毫秒级时间戳。
-    pub create_time: String,
-    /// 目标的更新时间，毫秒级时间戳。
-    pub update_time: String,
-    /// 所有者。
-    pub owner: ObjectiveOwner,
-    /// 目标的用户周期 ID。
-    pub cycle_id: String,
-    /// 目标的序号：从 1 开始计数。
-    pub position: i32,
-    /// 目标的内容。
-    // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
-    #[serde(default)]
-    pub content: Option<serde_json::Value>,
-    /// 目标的分数：\[0,1\]，支持一位小数。
-    #[serde(default)]
-    pub score: Option<f64>,
-    /// 目标的备注。
-    // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
-    #[serde(default)]
-    pub notes: Option<serde_json::Value>,
-    /// 目标的权重：\[0,1\]，支持三位小数。
-    #[serde(default)]
-    pub weight: Option<f64>,
-    /// 目标的截止时间，毫秒级时间戳。
-    #[serde(default)]
-    pub deadline: Option<String>,
-    /// 目标的分类 ID。
-    #[serde(default)]
-    pub category_id: Option<String>,
-}
-
-/// 目标所有者。
-#[derive(Debug, Clone, Deserialize)]
-pub struct ObjectiveOwner {
-    /// 所有者类型（如 "user"）。
-    pub owner_type: String,
-    /// 员工 ID。
-    #[serde(default)]
-    pub user_id: Option<String>,
 }
 
 #[cfg(test)]
