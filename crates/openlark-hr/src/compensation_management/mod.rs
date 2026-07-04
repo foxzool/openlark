@@ -23,11 +23,6 @@ impl CompensationManagement {
     pub fn config(&self) -> &Config {
         &self.config
     }
-
-    /// 获取 compensation 项目 v1 版本服务
-    pub fn v1(&self) -> compensation::CompensationV1 {
-        compensation::CompensationV1::new(self.config.clone())
-    }
 }
 
 #[cfg(test)]
