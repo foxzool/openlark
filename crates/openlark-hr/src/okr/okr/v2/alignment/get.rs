@@ -13,6 +13,8 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::okr::okr::v2::common::models::Alignment;
+
 /// 获取 OKR 对齐请求。
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -65,39 +67,6 @@ impl ApiResponseTrait for GetAlignmentResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// OKR 对齐。
-#[derive(Debug, Clone, Deserialize)]
-pub struct Alignment {
-    /// 对齐的 ID。
-    pub id: String,
-    /// 对齐的创建时间，毫秒级时间戳。
-    pub create_time: String,
-    /// 对齐的更新时间，毫秒级时间戳。
-    pub update_time: String,
-    /// 发起对齐的所有者。
-    pub from_owner: AlignmentOwner,
-    /// 被对齐的所有者。
-    pub to_owner: AlignmentOwner,
-    /// 发起对齐的实体类型。
-    pub from_entity_type: i32,
-    /// 发起对齐的实体 ID。
-    pub from_entity_id: String,
-    /// 被对齐的实体类型。
-    pub to_entity_type: i32,
-    /// 被对齐的实体 ID。
-    pub to_entity_id: String,
-}
-
-/// 对齐所有者。
-#[derive(Debug, Clone, Deserialize)]
-pub struct AlignmentOwner {
-    /// 所有者类型（如 "user"）。
-    pub owner_type: String,
-    /// 员工 ID。
-    #[serde(default)]
-    pub user_id: Option<String>,
 }
 
 #[cfg(test)]
