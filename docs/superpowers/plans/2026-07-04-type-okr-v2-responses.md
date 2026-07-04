@@ -733,29 +733,29 @@ Refs: change type-okr-v2-responses Task 5"
 - Consumes: Task 0 dump 上述 5 段落；Task 1 模板
 - Produces: `GetKeyResultResponse` / `DeleteKeyResultResponse` / `PatchKeyResultResponse` / `ListKeyResultIndicatorResponse` / `ListKeyResultProgressResponse`
 
-- [ ] **Step 1: 派生 key_result/get（GET）**
+- [x] **Step 1: 派生 key_result/get（GET）**
 
 Open dump，派生 `GetKeyResultResponse` + 嵌套 `KeyResult` struct（预期字段：id / kr_id / objective_id / content / score / weight / progress 等，深度嵌套 content/notes 按 Task 1 模式留 Value + TODO）。
 
 修改 `key_result/get.rs` 套用模板，path `format!("/open-apis/okr/v2/key_results/{}", self.key_result_id)` 不动。
 
-- [ ] **Step 2: 派生 key_result/delete（DELETE）**
+- [x] **Step 2: 派生 key_result/delete（DELETE）**
 
 Open dump，派生 `DeleteKeyResultResponse`（DELETE 响应通常空 data，用空 struct + Default，参 Task 2 Step 2）。修改 `key_result/delete.rs` 套用模板。
 
-- [ ] **Step 3: 派生 key_result/patch（PATCH，body 保留 Value）**
+- [x] **Step 3: 派生 key_result/patch（PATCH，body 保留 Value）**
 
 Open dump，派生 `PatchKeyResultResponse`。修改 `key_result/patch.rs`：`execute(body: serde_json::Value)` 签名保留（D3），返回类型改 typed。
 
-- [ ] **Step 4: 派生 key_result/indicator/list（GET）**
+- [x] **Step 4: 派生 key_result/indicator/list（GET）**
 
 Open dump，派生 `ListKeyResultIndicatorResponse`（预期含 `indicators: Vec<...>`）。修改 `key_result/indicator/list.rs` 套用模板。
 
-- [ ] **Step 5: 派生 key_result/progress/list（GET）**
+- [x] **Step 5: 派生 key_result/progress/list（GET）**
 
 Open dump，派生 `ListKeyResultProgressResponse`（预期含 `progresses: Vec<...>`）。修改 `key_result/progress/list.rs` 套用模板。
 
-- [ ] **Step 6: build + test key_result 批次**
+- [x] **Step 6: build + test key_result 批次**
 
 Run:
 ```bash
@@ -763,7 +763,7 @@ cd /Users/zool/workspace/openlark && cargo build -p openlark-hr --all-features 2
 ```
 Expected: 5 叶全部 build 通过、test PASS。
 
-- [ ] **Step 7: fmt + clippy**
+- [x] **Step 7: fmt + clippy**
 
 Run:
 ```bash
@@ -771,7 +771,7 @@ cd /Users/zool/workspace/openlark && cargo fmt -p openlark-hr --check && cargo c
 ```
 Expected: 无 diff、无 warning。
 
-- [ ] **Step 8: commit key_result 批次**
+- [x] **Step 8: commit key_result 批次**
 
 ```bash
 cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/key_result/ && git commit -m "feat(hr/okr/v2): key_result 5 叶返回 typed Response（get/delete/patch/indicator_list/progress_list）
