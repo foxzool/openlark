@@ -300,7 +300,7 @@ Expected: 三行均输出（已被忽略）。`reports/` 和 `tools/schema_cache
 - `deadline` (string, optional) → `Option<String>`
 - `category_id` (string, optional) → `Option<String>`
 
-- [ ] **Step 1: 写失败测试（先加 typed Response 反序列化测试）**
+- [x] **Step 1: 写失败测试（先加 typed Response 反序列化测试）**
 
 Replace `crates/openlark-hr/src/okr/okr/v2/objective/get.rs` 的全部内容为：
 
@@ -458,7 +458,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: 运行 build 验证编译通过**
+- [x] **Step 2: 运行 build 验证编译通过**
 
 Run:
 ```bash
@@ -466,7 +466,7 @@ cd /Users/zool/workspace/openlark && cargo build -p openlark-hr --all-features 2
 ```
 Expected: 编译通过，无错误（可能有未使用 import 警告，下个 step 消除）。
 
-- [ ] **Step 3: 运行测试验证通过**
+- [x] **Step 3: 运行测试验证通过**
 
 Run:
 ```bash
@@ -474,7 +474,7 @@ cd /Users/zool/workspace/openlark && cargo test -p openlark-hr --all-features ob
 ```
 Expected: `test result: ok. 2 passed`（`builder_initializes` + `test_get_objective_response_deserialize`）。
 
-- [ ] **Step 4: 全 workspace build 确认无外部破坏**
+- [x] **Step 4: 全 workspace build 确认无外部破坏**
 
 Run:
 ```bash
@@ -482,7 +482,7 @@ cd /Users/zool/workspace/openlark && cargo build --workspace --all-features 2>&1
 ```
 Expected: 全 workspace 编译通过（okr/v2 是零外部引用，理论上无破坏）。
 
-- [ ] **Step 5: fmt + clippy**
+- [x] **Step 5: fmt + clippy**
 
 Run:
 ```bash
@@ -490,7 +490,7 @@ cd /Users/zool/workspace/openlark && cargo fmt -p openlark-hr --check && cargo c
 ```
 Expected: fmt 无 diff，clippy 无 warning。
 
-- [ ] **Step 6: commit 试点**
+- [x] **Step 6: commit 试点**
 
 ```bash
 cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/objective/get.rs && git commit -m "feat(hr/okr/v2): objective/get 返回 typed GetObjectiveResponse（试点）

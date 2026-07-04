@@ -2,7 +2,7 @@
 
 ## 1. 模板确立（1 叶试点）
 
-- [ ] 1.1 选 `objective/get`（docPath 清晰：`/server-docs/okr-v2/objective/get`）做试点：用 `openlark-api-field-verify` skill 渲染飞书 doc 核对字段 → inline 定义 `GetObjectiveResponse`（+ 子类型，可选字段 `Option<T>` + `#[serde(default)]`）→ 改 `execute()`/`execute_with_options()` 返回 typed → `ApiRequest::<GetObjectiveResponse>::get(...)` → `cargo build/test -p openlark-hr` 通过。该叶成为其余 24 叶的模板
+- [x] 1.1 选 `objective/get`（docPath 清晰：`/server-docs/okr-v2/objective/get`）做试点：用 `openlark-api-field-verify` skill 渲染飞书 doc 核对字段 → inline 定义 `GetObjectiveResponse`（+ 子类型，可选字段 `Option<T>` + `#[serde(default)]`）→ 改 `execute()`/`execute_with_options()` 返回 typed → `ApiRequest::<GetObjectiveResponse>::get(...)` → `cargo build/test -p openlark-hr` 通过。该叶成为其余 24 叶的模板
 
 ## 2. 按 5 资源批次铺开（每批一个 commit，增量 build/test）
 
