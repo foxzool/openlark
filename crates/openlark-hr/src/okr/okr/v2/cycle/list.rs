@@ -3,9 +3,14 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/cycle/list>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    config::Config,
+    http::Transport,
+    req_option::RequestOption,
     validate_required,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 获取用户 OKR 周期列表请求。
@@ -55,15 +60,15 @@ impl Request {
     }
 
     /// 执行请求。
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<ListCycleResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用指定请求选项执行请求。
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListCycleResponse> {
         validate_required!(self.user_id, "user_id 不能为空");
 
-        let mut req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<ListCycleResponse> =
             ApiRequest::get("/open-apis/okr/v2/cycles").query("user_id", &self.user_id);
 
         if let Some(user_id_type) = self.user_id_type {
@@ -81,6 +86,61 @@ impl Request {
             openlark_core::error::validation_error("获取用户 OKR 周期列表", "响应数据为空")
         })
     }
+}
+
+/// 获取用户 OKR 周期列表响应。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListCycleResponse {
+    /// 是否还有更多项。
+    #[serde(default)]
+    pub has_more: Option<bool>,
+    /// 分页标记。
+    #[serde(default)]
+    pub page_token: Option<String>,
+    /// 用户周期列表。
+    #[serde(default)]
+    pub items: Option<Vec<Cycle>>,
+}
+
+impl ApiResponseTrait for ListCycleResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
+    }
+}
+
+/// OKR 周期。
+#[derive(Debug, Clone, Deserialize)]
+pub struct Cycle {
+    /// 用户周期 ID。
+    pub id: String,
+    /// 用户周期的创建时间，毫秒级时间戳。
+    pub create_time: String,
+    /// 用户周期的更新时间，毫秒级时间戳。
+    pub update_time: String,
+    /// 租户周期 ID。
+    pub tenant_cycle_id: String,
+    /// 所有者。
+    pub owner: CycleOwner,
+    /// 周期的开始时间，毫秒级时间戳。
+    pub start_time: String,
+    /// 周期的结束时间，毫秒级时间戳。
+    pub end_time: String,
+    /// 用户周期状态。
+    #[serde(default)]
+    pub cycle_status: Option<i32>,
+    /// 用户周期的分数：[0,1]，支持一位小数。
+    #[serde(default)]
+    pub score: Option<f64>,
+}
+
+/// 周期所有者。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CycleOwner {
+    /// 所有者类型（如 "user"）。
+    pub owner_type: String,
+    /// 员工 ID。
+    #[serde(default)]
+    pub user_id: Option<String>,
 }
 
 #[cfg(test)]
@@ -116,5 +176,34 @@ mod tests {
         use crate::common::api_endpoints::OkrApiV2;
         let url = OkrApiV2::CycleList.to_url();
         assert_eq!(url, "/open-apis/okr/v2/cycles");
+    }
+
+    #[test]
+    fn test_list_cycle_response_deserialize() {
+        let json = serde_json::json!({
+            "has_more": true,
+            "page_token": "1",
+            "items": [
+                {
+                    "id": "7342342398472398471",
+                    "create_time": "1760604634563",
+                    "update_time": "1760604634563",
+                    "tenant_cycle_id": "7342342398472398472",
+                    "owner": {"owner_type": "user", "user_id": "ou_xxx"},
+                    "start_time": "1760604634563",
+                    "end_time": "1760604634563",
+                    "cycle_status": 1,
+                    "score": 0.5
+                }
+            ]
+        });
+        let resp: ListCycleResponse = serde_json::from_value(json).expect("反序列化失败");
+        assert!(resp.has_more.unwrap());
+        assert_eq!(resp.items.as_ref().unwrap().len(), 1);
+        let cycle = &resp.items.unwrap()[0];
+        assert_eq!(cycle.id, "7342342398472398471");
+        assert_eq!(cycle.owner.owner_type, "user");
+        assert_eq!(cycle.cycle_status, Some(1));
+        assert_eq!(cycle.score, Some(0.5));
     }
 }
