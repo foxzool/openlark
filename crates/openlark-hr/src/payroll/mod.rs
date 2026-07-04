@@ -25,11 +25,6 @@ impl Payroll {
     pub fn config(&self) -> &Config {
         &self.config
     }
-
-    /// 获取 payroll 项目 v1 版本服务
-    pub fn v1(&self) -> payroll::PayrollV1 {
-        payroll::PayrollV1::new(self.config.clone())
-    }
 }
 
 #[cfg(test)]

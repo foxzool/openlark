@@ -12,18 +12,15 @@
 //!
 //! ## 使用示例
 //!
-//! ```rust,ignore
-//! use openlark_hr::prelude::*;
+//! ```no_run
 //! use openlark_hr::HrClient;
-//!
+//! use openlark_hr::attendance::attendance::v1::group::CreateGroupRequest;
+//! # let config: openlark_core::config::Config = unimplemented!();
 //! let client = HrClient::new(config);
-//! // 推荐：字段式 meta 入口
-//! client.attendance.v1().group().create()
-//!     .group_name("技术部".to_string())
-//!     .execute()
-//!     .await?;
-//!
-//! // 字段访问是当前推荐方式；旧方法式入口只保留兼容职责。
+//! // 真实资源直达：Config-direct Request 自带 builder + execute()
+//! let _request = CreateGroupRequest::new(client.config().clone())
+//!     .group_name("技术部".to_string());
+//! // .execute().await?  // 发送请求（需 async runtime，示例省略）
 //! ```
 //!
 //! ## API 端点

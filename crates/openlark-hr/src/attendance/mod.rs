@@ -25,11 +25,6 @@ impl Attendance {
     pub fn config(&self) -> &Config {
         &self.config
     }
-
-    /// 获取 attendance 项目 v1 版本服务
-    pub fn v1(&self) -> attendance::AttendanceV1 {
-        attendance::AttendanceV1::new(self.config.clone())
-    }
 }
 
 #[cfg(test)]
