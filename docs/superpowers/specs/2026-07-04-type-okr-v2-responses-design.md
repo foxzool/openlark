@@ -2,6 +2,8 @@
 comet_change: type-okr-v2-responses
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-04-type-okr-v2-responses
+status: final
 ---
 
 # Design: type-okr-v2-responses

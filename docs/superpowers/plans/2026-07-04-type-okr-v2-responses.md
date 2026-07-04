@@ -2,6 +2,7 @@
 change: type-okr-v2-responses
 design-doc: docs/superpowers/specs/2026-07-04-type-okr-v2-responses-design.md
 base-ref: 9fc91e3e2cdc3bdc8227ea3b45a233d9f062eb95
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 # type-okr-v2-responses Implementation Plan
@@ -26,6 +27,7 @@ base-ref: 9fc91e3e2cdc3bdc8227ea3b45a233d9f062eb95
 - **每批一个 commit + 增量 build/test**（D5 + tasks.md）
 - **MSRV Rust 1.88+**；构建命令固定 `cargo build/test -p openlark-hr --all-features`
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## File Structure
@@ -71,6 +73,7 @@ base-ref: 9fc91e3e2cdc3bdc8227ea3b45a233d9f062eb95
 - typed 域 inline（无 models.rs，本 change 采用此模式）：`crates/openlark-hr/src/okr/okr/v1/progress_record/get.rs`
 - 现状 Value 叶子模板：`crates/openlark-hr/src/okr/okr/v2/objective/get.rs`
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## 通用转换模式（每叶共用，对照 Design Doc）
@@ -126,6 +129,7 @@ fn test_xxx_response_deserialize() {
 }
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 0: 批量预取 25 个 okr/v2 apiSchema + 生成字段清单
@@ -275,6 +279,7 @@ Expected: 三行均输出（已被忽略）。`reports/` 和 `tools/schema_cache
 
 本 task 无源码变更，不产生 commit。`reports/okr-v2-fields.md` 供 Task 1-7 参考。
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 1: 试点 objective/get（确立 inline typed 模板）
@@ -501,6 +506,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/o
 Refs: change type-okr-v2-responses Task 1"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 2: alignment 批次（2 叶：get, delete）
@@ -562,6 +568,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/a
 Refs: change type-okr-v2-responses Task 2"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 3: category 批次（1 叶：list）
@@ -600,6 +607,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/c
 Refs: change type-okr-v2-responses Task 3"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 4: cycle 批次（5 叶：list, objective/create, objective/list, objectives_position, objectives_weight）
@@ -679,6 +687,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/c
 Refs: change type-okr-v2-responses Task 4"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 5: indicator 批次（1 叶：patch，写操作含 body）
@@ -718,6 +727,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/i
 Refs: change type-okr-v2-responses Task 5"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 6: key_result 批次（5 叶：get, delete, patch, indicator/list, progress/list）
@@ -779,6 +789,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/k
 Refs: change type-okr-v2-responses Task 6"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 7: objective 剩余 10 叶
@@ -874,6 +885,7 @@ cd /Users/zool/workspace/openlark && git add crates/openlark-hr/src/okr/okr/v2/o
 Refs: change type-okr-v2-responses Task 7"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Task 8: 最终验证（issue 验收）
@@ -1000,6 +1012,7 @@ git commit -am "chore(hr/okr/v2): 清理 type-okr-v2-responses 一次性脚本
 Refs: change type-okr-v2-responses Task 8"
 ```
 
+archived-with: 2026-07-04-type-okr-v2-responses
 ---
 
 ## Self-Review 备注
