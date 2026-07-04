@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -7,7 +7,7 @@ subagent_dispatch: confirmed
 tdd_mode: direct
 review_mode: standard
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 3a462c410caf37b4c94d8d872587b093da26c420
 design_doc: docs/superpowers/specs/2026-07-04-dedup-okr-v2-models-design.md
