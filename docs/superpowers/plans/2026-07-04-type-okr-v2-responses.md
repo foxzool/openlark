@@ -139,7 +139,7 @@ fn test_xxx_response_deserialize() {
 - Consumes: `tools/schema_cache/cache.py::get_or_fetch`、`tools/api_contracts/official.py::load_api_identities`、`api_list_export.csv`、`reports/missing_shards/grp/openlark-hr__okr.*__0.json`
 - Produces: `.cache/<api_id>.json` × 25（供 Task 1-7 离线读 schema 派生字段）+ `reports/okr-v2-fields.md`（人类可读字段清单）
 
-- [ ] **Step 1: 编写 dump 脚本**
+- [x] **Step 1: 编写 dump 脚本**
 
 Create `tools/schema_cache/dump_okr_v2.py`:
 
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: 运行脚本预取 25 schema**
+- [x] **Step 2: 运行脚本预取 25 schema**
 
 Run:
 ```bash
@@ -254,7 +254,7 @@ cd /Users/zool/workspace/openlark && python3 tools/schema_cache/dump_okr_v2.py
 ```
 Expected: `完成 25/25（失败 0）`，`tools/schema_cache/.cache/` 下 25 个 `<api_id>.json`，`reports/okr-v2-fields.md` 生成。
 
-- [ ] **Step 3: 校验字段清单可读**
+- [x] **Step 3: 校验字段清单可读**
 
 Run:
 ```bash
@@ -263,7 +263,7 @@ grep -c "^## " /Users/zool/workspace/openlark/reports/okr-v2-fields.md
 ```
 Expected: 报告 ≥ 25 个 `## ` 段落（每叶一段）。
 
-- [ ] **Step 4: 确认两个产物均被 gitignore（不入库）**
+- [x] **Step 4: 确认两个产物均被 gitignore（不入库）**
 
 Run:
 ```bash
@@ -271,7 +271,7 @@ cd /Users/zool/workspace/openlark && git check-ignore tools/schema_cache/.cache/
 ```
 Expected: 三行均输出（已被忽略）。`reports/` 和 `tools/schema_cache/.cache/`、`tools/schema_cache/dump_okr_v2.py` 若未被忽略，**不要**改 `.gitignore`（脚本是一次性的，删除即可；cache 已约定 gitignore；report 不入库）。如 `dump_okr_v2.py` 未被忽略，实现末尾删除该脚本即可。
 
-- [ ] **Step 5: 不 commit（产物均 gitignore）**
+- [x] **Step 5: 不 commit（产物均 gitignore）**
 
 本 task 无源码变更，不产生 commit。`reports/okr-v2-fields.md` 供 Task 1-7 参考。
 
