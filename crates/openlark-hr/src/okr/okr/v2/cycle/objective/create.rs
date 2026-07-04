@@ -3,9 +3,14 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/cycle.objective/create>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    config::Config,
+    http::Transport,
+    req_option::RequestOption,
     validate_required,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 创建 OKR 目标请求。
@@ -31,7 +36,7 @@ impl Request {
     }
 
     /// 执行请求。
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateCycleObjectiveResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
@@ -41,7 +46,7 @@ impl Request {
         self,
         body: serde_json::Value,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<CreateCycleObjectiveResponse> {
         validate_required!(self.cycle_id, "cycle_id 不能为空");
         if body.is_null() {
             return Err(openlark_core::error::validation_error(
@@ -53,10 +58,24 @@ impl Request {
         let body_val = serde_json::to_value(&body).map_err(|e| {
             openlark_core::error::validation_error("请求体序列化失败", format!("无法序列化: {e}"))
         })?;
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body_val);
+        let req: ApiRequest<CreateCycleObjectiveResponse> = ApiRequest::post(path).body(body_val);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data
             .ok_or_else(|| openlark_core::error::validation_error("创建 OKR 目标", "响应数据为空"))
+    }
+}
+
+/// 创建 OKR 目标响应。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateCycleObjectiveResponse {
+    /// 目标 ID。
+    #[serde(default)]
+    pub objective_id: Option<String>,
+}
+
+impl ApiResponseTrait for CreateCycleObjectiveResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
     }
 }
 
@@ -78,5 +97,13 @@ mod tests {
             format!("/open-apis/okr/v2/cycles/{}/objectives", "cycle_123"),
             "/open-apis/okr/v2/cycles/cycle_123/objectives"
         );
+    }
+
+    #[test]
+    fn test_create_cycle_objective_response_deserialize() {
+        let json = serde_json::json!({"objective_id": "7342342398472398473"});
+        let resp: CreateCycleObjectiveResponse =
+            serde_json::from_value(json).expect("反序列化失败");
+        assert_eq!(resp.objective_id, Some("7342342398472398473".to_string()));
     }
 }

@@ -3,9 +3,14 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/objective.progress/get>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    config::Config,
+    http::Transport,
+    req_option::RequestOption,
     validate_required,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 获取目标下的进展记录请求。
@@ -31,23 +36,91 @@ impl Request {
     }
 
     /// 执行请求。
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<ListObjectiveProgressResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用指定请求选项执行请求。
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<ListObjectiveProgressResponse> {
         validate_required!(self.objective_id, "objective_id 不能为空");
         let path = format!(
             "/open-apis/okr/v2/objectives/{}/progresses",
             self.objective_id
         );
-        let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
+        let req: ApiRequest<ListObjectiveProgressResponse> = ApiRequest::get(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
             openlark_core::error::validation_error("获取目标下的进展记录", "响应数据为空")
         })
     }
+}
+
+/// 获取目标下的进展记录响应。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListObjectiveProgressResponse {
+    /// 是否还有更多项。
+    #[serde(default)]
+    pub has_more: Option<bool>,
+    /// 分页标记。
+    #[serde(default)]
+    pub page_token: Option<String>,
+    /// 进展列表。
+    #[serde(default)]
+    pub items: Option<Vec<Progress>>,
+}
+
+impl ApiResponseTrait for ListObjectiveProgressResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
+    }
+}
+
+/// 进展记录。
+#[derive(Debug, Clone, Deserialize)]
+pub struct Progress {
+    /// 进展的 ID。
+    pub id: String,
+    /// 进展的创建时间，毫秒级时间戳。
+    pub create_time: String,
+    /// 进展的更新时间，毫秒级时间戳。
+    pub update_time: String,
+    /// 所有者。
+    pub owner: ProgressOwner,
+    /// 进展所属的实体类型。
+    pub entity_type: i32,
+    /// 进展所属的实体 ID。
+    pub entity_id: String,
+    /// 进展的内容。
+    // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
+    #[serde(default)]
+    pub content: Option<serde_json::Value>,
+    /// 进展的进度。
+    #[serde(default)]
+    pub progress_rate: Option<ProgressRate>,
+}
+
+/// 进展所有者。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProgressOwner {
+    /// 所有者类型（如 "user"）。
+    pub owner_type: String,
+    /// 员工 ID。
+    #[serde(default)]
+    pub user_id: Option<String>,
+}
+
+/// 进展进度。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProgressRate {
+    /// 进展百分比，保留两位小数。
+    #[serde(default)]
+    pub progress_percent: Option<f64>,
+    /// 进展状态。
+    #[serde(default)]
+    pub progress_status: Option<i32>,
 }
 
 #[cfg(test)]
@@ -57,5 +130,34 @@ mod tests {
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _req = Request::new(config);
+    }
+
+    #[test]
+    fn test_list_objective_progress_response_deserialize() {
+        let json = serde_json::json!({
+            "has_more": false,
+            "page_token": "token-1",
+            "items": [
+                {
+                    "id": "P-1",
+                    "create_time": "1700000000000",
+                    "update_time": "1700000000000",
+                    "owner": {"owner_type": "user", "user_id": "ou_xxx"},
+                    "entity_type": 2,
+                    "entity_id": "O-123",
+                    "progress_rate": {"progress_percent": 0.5, "progress_status": 1}
+                }
+            ]
+        });
+        let resp: ListObjectiveProgressResponse =
+            serde_json::from_value(json).expect("反序列化失败");
+        assert_eq!(resp.has_more, Some(false));
+        let items = resp.items.unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, "P-1");
+        assert_eq!(items[0].entity_type, 2);
+        let rate = items[0].progress_rate.as_ref().unwrap();
+        assert_eq!(rate.progress_percent, Some(0.5));
+        assert_eq!(rate.progress_status, Some(1));
     }
 }

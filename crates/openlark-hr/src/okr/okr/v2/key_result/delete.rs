@@ -1,11 +1,16 @@
 //! 删除关键结果
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result/get>
+//! docPath: <https://open.feishu.cn/document/server-docs/okr-v2/key_result/delete>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    config::Config,
+    http::Transport,
+    req_option::RequestOption,
     validate_required,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 删除关键结果请求。
@@ -31,27 +36,48 @@ impl Request {
     }
 
     /// 执行请求。
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<DeleteKeyResultResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用指定请求选项执行请求。
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteKeyResultResponse> {
         validate_required!(self.key_result_id, "key_result_id 不能为空");
         let path = format!("/open-apis/okr/v2/key_results/{}", self.key_result_id);
-        let req: ApiRequest<serde_json::Value> = ApiRequest::delete(path);
+        let req: ApiRequest<DeleteKeyResultResponse> = ApiRequest::delete(path);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data
             .ok_or_else(|| openlark_core::error::validation_error("删除关键结果", "响应数据为空"))
     }
 }
 
+/// 删除关键结果响应。
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct DeleteKeyResultResponse {}
+
+impl ApiResponseTrait for DeleteKeyResultResponse {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Data
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _req = Request::new(config);
+    }
+
+    #[test]
+    fn test_delete_key_result_response_deserialize() {
+        let json = serde_json::json!({});
+        let resp: DeleteKeyResultResponse = serde_json::from_value(json).expect("反序列化失败");
+        let _ = resp;
     }
 }
