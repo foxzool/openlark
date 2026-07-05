@@ -2,7 +2,7 @@
 //!
 //! Tests cover:
 //! - `common::UserSetting` / `UserPreference` — core data models
-//! - UserService / SettingsService / PreferencesService — service access
+//! - UserService / PersonalSettingsService / SystemStatusService — service access
 //! - Version contract
 
 use openlark_user::common::{UserPreference, UserSetting};
@@ -189,37 +189,33 @@ fn user_service_config_roundtrip() {
 }
 
 // ---------------------------------------------------------------------------
-// Settings & Preferences service access (with features)
+// Personal settings service access (system_status facade accessor)
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "settings")]
 #[test]
-fn settings_service_access_contract() {
+fn personal_settings_service_access_contract() {
     use openlark_core::config::Config;
     use openlark_user::UserService;
 
     let config = Config::builder()
-        .app_id("cli_settings_test")
+        .app_id("cli_ps_test")
         .app_secret("secret")
         .build();
     let service = UserService::new(config).unwrap();
-    let settings = service.settings();
-    assert_eq!(settings.config().app_id(), "cli_settings_test");
-}
 
-#[cfg(feature = "preferences")]
-#[test]
-fn preferences_service_access_contract() {
-    use openlark_core::config::Config;
-    use openlark_user::UserService;
+    // 门面 accessor 缩短 system_status 路径
+    let ps = service.personal_settings();
+    assert_eq!(ps.config().app_id(), "cli_ps_test");
 
-    let config = Config::builder()
-        .app_id("cli_prefs_test")
-        .app_secret("secret")
-        .build();
-    let service = UserService::new(config).unwrap();
-    let prefs = service.preferences();
-    assert_eq!(prefs.config().app_id(), "cli_prefs_test");
+    // system_status 资源 7 个真实构建器可达
+    let system_status = ps.system_status();
+    let _list = system_status.list();
+    let _get = system_status.get();
+    let _create = system_status.create();
+    let _patch = system_status.patch();
+    let _delete = system_status.delete();
+    let _batch_open = system_status.batch_open("status_x");
+    let _batch_close = system_status.batch_close("status_y");
 }
 
 // ---------------------------------------------------------------------------

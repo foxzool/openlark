@@ -6,14 +6,12 @@
 
 ## 范围
 
-本轮只覆盖以下 18 个 source-level TODO API stubs：
+本轮覆盖以下 11 个仍在追踪的 source-level TODO API stubs（原 18 个中 `openlark-user` 的 7 个 settings/preferences stub 已由 #311 删除：stub 链移除 + 门面补 `personal_settings()` accessor 指向真实 system_status）：
 
 | Crate | File | Stub methods | Count |
 | --- | --- | --- | ---: |
 | `openlark-analytics` | `crates/openlark-analytics/src/search/search/v2/query.rs` | `SearchRequest::execute`, `SuggestRequest::execute` | 2 |
 | `openlark-analytics` | `crates/openlark-analytics/src/search/search/v2/user.rs` | `SearchUserRequest::execute` | 1 |
-| `openlark-user` | `crates/openlark-user/src/settings/v1.rs` | `GetSettingRequest::execute`, `UpdateSettingRequest::execute`, `ListSettingsRequest::execute` | 3 |
-| `openlark-user` | `crates/openlark-user/src/preferences/v1.rs` | `GetPreferenceRequest::execute`, `UpdatePreferenceRequest::execute`, `DeletePreferenceRequest::execute`, `ListPreferencesRequest::execute` | 4 |
 | `openlark-platform` | `crates/openlark-platform/src/admin/admin/v1/settings.rs` | `GetSettingRequest::execute`, `UpdateSettingRequest::execute`, `ListSettingsRequest::execute` | 3 |
 | `openlark-platform` | `crates/openlark-platform/src/admin/admin/v1/users.rs` | `ListAdminUsersRequest::execute`, `DisableUserRequest::execute`, `EnableUserRequest::execute` | 3 |
 | `openlark-platform` | `crates/openlark-platform/src/admin/admin/v1/audit.rs` | `QueryAuditLogsRequest::execute`, `GetAuditLogRequest::execute` | 2 |
@@ -31,16 +29,16 @@
 
 - `#108` Implement analytics search runtime TODO stubs
 
-### 2. User 设置 / 偏好 stubs
+### 2. User 设置 / 偏好 stubs（✅ 已由 #311 解决）
 
-影响：
-
-- `openlark-user` 暴露的是用户可见配置/偏好能力
-- 如果继续保留占位返回，容易误导集成方直接在生产代码中使用
+**状态**：已移除。`openlark-user` 的 settings/preferences stub 链（7 个 `*Request::execute`）连同
+`SettingsService` / `PreferencesService` 门面与 `settings` / `preferences` / `v1` 等 feature 一并删除
+（v0.18 breaking）。门面 `UserService` 改补 `personal_settings()` accessor，指向真实 system_status
+资源（7 个 live 请求构建器）。原影响（占位返回误导集成方）随之消除。
 
 跟踪 issue：
 
-- `#109` Implement user settings and preferences runtime TODO stubs
+- `#109` Implement user settings and preferences runtime TODO stubs（由 #311 关闭：stub 删除，不再待实现）
 
 ### 3. Platform admin stubs
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 /// 用户设置服务
 ///
-/// 提供个人设置、用户偏好等功能的统一入口。
+/// 提供个人设置（system_status 等）功能的统一入口。
 #[derive(Debug, Clone)]
 pub struct UserService {
     /// 客户端配置
@@ -36,20 +36,12 @@ impl UserService {
         self.config.clone()
     }
 
-    /// 个人设置
+    /// 个人设置（system_status 等真实 API 入口）。
     ///
-    /// 提供通知设置、隐私设置、界面设置等功能。
-    #[cfg(feature = "settings")]
-    pub fn settings(&self) -> crate::settings::SettingsService {
-        crate::settings::SettingsService::new(self.config.clone())
-    }
-
-    /// 用户偏好
-    ///
-    /// 提供个人偏好、自定义选项等功能。
-    #[cfg(feature = "preferences")]
-    pub fn preferences(&self) -> crate::preferences::PreferencesService {
-        crate::preferences::PreferencesService::new(self.config.clone())
+    /// 收敛 system_status 资源的真实请求构建器，避免三重嵌套模块全路径
+    /// （`personal_settings::personal_settings::v1::system_status::*`）。
+    pub fn personal_settings(&self) -> crate::personal_settings::PersonalSettingsService {
+        crate::personal_settings::PersonalSettingsService::new(self.config.clone())
     }
 }
 
