@@ -14,6 +14,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use crate::common::api_endpoints::OkrApiV2;
+use crate::okr::okr::v2::common::models::ContentBlock;
 
 /// 获取关键结果下的进展记录请求。
 #[derive(Debug, Clone)]
@@ -92,10 +93,9 @@ pub struct KeyResultProgress {
     pub entity_type: i32,
     /// 进展所属的实体 ID。
     pub entity_id: String,
-    /// 进展的内容。
-    // TODO: 飞书文档 block 深度嵌套结构暂留 Value，后续可单独抽取 typed 模型。
+    /// 进展的内容（文档 block 结构，见 [`ContentBlock`]）。
     #[serde(default)]
-    pub content: Option<serde_json::Value>,
+    pub content: Option<ContentBlock>,
     /// 进展的进度。
     #[serde(default)]
     pub progress_rate: Option<KeyResultProgressRate>,
