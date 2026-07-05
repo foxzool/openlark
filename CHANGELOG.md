@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-bot 删 `Bot`/`V4`/`BotResource` 3 纯转发壳 + `search_bot()` 直达 leaf**（#354，ADR 0001 阶段1）：
+  4 层壳包裹唯一 1 个 API（search），`service.bot().v4().bot().search()` 段名重复 4 跳 → `service.search_bot()` 1 跳。
+  删 `Bot`/`V4`/`BotResource` struct（保 `pub mod` 模块树维持 leaf 路径）；`BotService` 加 `search_bot()` 直达
+  `SearchBotRequest`（保留 `feature=v4` 门控）。**breaking**：移除 pub `Bot`/`V4`/`BotResource`。**迁移**：仓内零外部引用，
+  leaf `SearchBotRequest` API 不变（strict-path 用户零影响），v0.17.x 预发布。
+
 - **`serialize_params` / `extract_response_data` / `ensure_success` 下沉 `openlark_core::api`（canonical）+ ai common 私有化 + `api_url!` 去 macro_export**（#330）：
   通用 HTTP 管道 helper 此前在 10 个业务 crate 各有一份 `common/api_utils.rs`（locality 失守），
   现统一到 `openlark_core::api::{serialize_params, extract_response_data, ensure_success}`（rich 诊断：
