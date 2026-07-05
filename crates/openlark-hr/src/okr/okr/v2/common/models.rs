@@ -179,10 +179,14 @@ pub struct AlignmentOwner {
 
 // === OKR 文档内容块（content / notes 字段共享）===
 //
-// 源：飞书 apiSchema objectName=content_block（objective/get、key_result/get、
-// key_result/progress/list、objective/progress/list 等的 content/notes 字段共用）。
+// 源：飞书 apiSchema objectName=content_block（objective/get api_id=7644764969658567628 的
+// data.objective.content / .notes；key_result/get、key_result/progress/list、
+// objective/progress/list 等的同名字段共用同一 objectName）。
+// 复现：`python3 tools/schema_cache/cache.py` 或 dump_samples.py 取该 api_id 的
+// responses.200.content.application/json.schema.properties.data.objective.content。
 // 判别联合：block_element_type（paragraph|gallery）+ paragraph_element_type（textRun|docsLink|mention）。
-// tag 用 String（非 enum）以容忍飞书未来新增 block/element 类型，未知类型反序列化不报错。
+// tag 用 String（非 enum）以容忍飞书未来新增 block/element 类型，未知类型反序列化不报错
+// （见测试 content_block_tolerance_unknown_type_and_empty）。
 
 /// OKR 文档内容块（objective/key_result 的 content/notes、progress 的 content）。
 #[derive(Debug, Clone, Deserialize)]
