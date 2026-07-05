@@ -2,7 +2,7 @@
 //!
 //! Tests cover:
 //! - `common::UserSetting` / `UserPreference` — core data models
-//! - UserService / PersonalSettingsResource / SystemStatusResource — service access
+//! - UserService / SystemStatusResource — service access
 //! - Version contract
 
 use openlark_user::common::{UserPreference, UserSetting};
@@ -169,8 +169,7 @@ fn user_service_creation_contract() {
         .app_secret("test_secret")
         .build();
 
-    let service = UserService::new(config);
-    assert!(service.is_ok());
+    let _service = UserService::new(config);
 }
 
 #[test]
@@ -183,17 +182,17 @@ fn user_service_config_roundtrip() {
         .app_secret("secret_value")
         .build();
 
-    let service = UserService::new(config).unwrap();
+    let service = UserService::new(config);
     let config_arc = service.config();
     assert_eq!(config_arc.app_id(), "cli_config_test");
 }
 
 // ---------------------------------------------------------------------------
-// Personal settings service access (system_status facade accessor)
+// system_status service access (direct accessor)
 // ---------------------------------------------------------------------------
 
 #[test]
-fn personal_settings_service_access_contract() {
+fn system_status_service_access_contract() {
     use openlark_core::config::Config;
     use openlark_user::UserService;
 
@@ -201,14 +200,13 @@ fn personal_settings_service_access_contract() {
         .app_id("cli_ps_test")
         .app_secret("secret")
         .build();
-    let service = UserService::new(config).unwrap();
+    let service = UserService::new(config);
 
-    // 门面 accessor 缩短 system_status 路径
-    let ps = service.personal_settings();
-    assert_eq!(ps.config().app_id(), "cli_ps_test");
+    // service config 可达
+    assert_eq!(service.config().app_id(), "cli_ps_test");
 
-    // system_status 资源 7 个真实构建器可达
-    let system_status = ps.system_status();
+    // system_status() 直达（7 个真实构建器）
+    let system_status = service.system_status();
     let _list = system_status.list();
     let _get = system_status.get();
     let _create = system_status.create();

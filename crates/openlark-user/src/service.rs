@@ -3,12 +3,12 @@
 //! 提供用户设置相关的服务入口
 
 use crate::UserConfig;
-use openlark_core::SDKResult;
 use std::sync::Arc;
 
 /// 用户设置服务
 ///
-/// 提供个人设置（system_status 等）功能的统一入口。
+/// 提供个人设置（system_status）功能的统一入口（ADR 0001：砍 `PersonalSettingsResource`
+/// 单转发中间层，`system_status()` 直达 7 个真实构建器）。
 #[derive(Debug, Clone)]
 pub struct UserService {
     /// 客户端配置
@@ -21,14 +21,10 @@ impl UserService {
     /// # 参数
     ///
     /// * `config` - 用户设置服务配置
-    ///
-    /// # 返回
-    ///
-    /// 返回用户设置服务实例或错误
-    pub fn new(config: UserConfig) -> SDKResult<Self> {
-        Ok(Self {
+    pub fn new(config: UserConfig) -> Self {
+        Self {
             config: Arc::new(config),
-        })
+        }
     }
 
     /// 获取客户端配置。
@@ -36,12 +32,13 @@ impl UserService {
         self.config.clone()
     }
 
-    /// 个人设置（system_status 等真实 API 入口）。
+    /// system_status 资源入口（7 个真实请求构建器）。
     ///
-    /// 收敛 system_status 资源的真实请求构建器，避免三重嵌套模块全路径
-    /// （`personal_settings::personal_settings::v1::system_status::*`）。
-    pub fn personal_settings(&self) -> crate::personal_settings::PersonalSettingsResource {
-        crate::personal_settings::PersonalSettingsResource::new(self.config.clone())
+    /// 直达 `SystemStatusResource`（list / get / create / patch / delete / batch_open /
+    /// batch_close），消除原 `service.personal_settings().system_status()` 中
+    /// `PersonalSettingsResource` 单转发中间层。
+    pub fn system_status(&self) -> crate::personal_settings::SystemStatusResource {
+        crate::personal_settings::SystemStatusResource::new(self.config.clone())
     }
 }
 
@@ -57,7 +54,6 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
 
-        let service = UserService::new(config);
-        assert!(service.is_ok());
+        let _service = UserService::new(config);
     }
 }

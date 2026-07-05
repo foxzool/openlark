@@ -9,7 +9,7 @@
 //! ## 模块组织
 //!
 //! 本模块按功能域组织：
-//! - `personal_settings` - 个人设置 system_status API（门面 `UserService::personal_settings()` 收敛）
+//! - `personal_settings` - 个人设置 system_status API（`UserService::system_status()` 直达）
 //!
 //! ## 使用示例
 //!
@@ -22,10 +22,10 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let user_service = UserService::new(config).unwrap();
+//! let user_service = UserService::new(config);
 //!
-//! // 经门面 accessor 获取个人设置服务（system_status 7 个真实构建器）
-//! let system_status = user_service.personal_settings().system_status();
+//! // 经 system_status() 直达（7 个真实构建器）
+//! let system_status = user_service.system_status();
 //! let _list_req = system_status.list();
 //! ```
 
