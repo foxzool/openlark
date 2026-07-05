@@ -16,16 +16,14 @@ impl HelpdeskService {
         }
     }
 
-    /// 访问帮助台 API。
+    /// 访问 v1 帮助台 API（ticket / agent / category / faq 等 11 资源扇出）。
+    ///
+    /// ADR 0001：消除 `Helpdesk` 域层转发壳 + 单独 `ticket()` 快捷（11 资源中仅 1 个有快捷，
+    /// 深度不一致），统一经 `v1()` 到 `HelpdeskV1` 扇出层。
+    /// 原 `service.helpdesk().v1().ticket()` / `service.ticket()` → `service.v1().ticket()`。
     #[cfg(feature = "v1")]
-    pub fn helpdesk(&self) -> crate::helpdesk::helpdesk::Helpdesk {
-        crate::helpdesk::helpdesk::Helpdesk::new(self._config.clone())
-    }
-
-    /// 访问工单 API。
-    #[cfg(feature = "v1")]
-    pub fn ticket(&self) -> crate::helpdesk::helpdesk::v1::ticket::Ticket {
-        crate::helpdesk::helpdesk::v1::ticket::Ticket::new(self._config.clone())
+    pub fn v1(&self) -> crate::helpdesk::helpdesk::v1::HelpdeskV1 {
+        crate::helpdesk::helpdesk::v1::HelpdeskV1::new(self._config.clone())
     }
 }
 

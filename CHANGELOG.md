@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-helpdesk 砍 `Helpdesk` 域层转发壳 + 统一 v1() accessor（ADR 0001 阶段2）**：
+  `Helpdesk`（helpdesk/helpdesk/mod.rs）纯转发壳（仅 `v1()`，全仓零调用者）砍除。`HelpdeskService` 移除
+  `helpdesk()`（→Helpdesk 壳）+ `ticket()` 单独快捷（11 资源中仅 1 个有快捷，访问深度不一致），统一为
+  `v1()` → `HelpdeskV1`（ticket/agent/category/faq 等 11 资源扇出）。原 `service.helpdesk().v1().ticket()` /
+  `service.ticket()` → `service.v1().ticket()`。**breaking**：移除 pub `Helpdesk` + `helpdesk()`/`ticket()`
+  accessor。**迁移**：仓内零外部引用；`HelpdeskV1` + leaf builder API 不变。
+
 - **openlark-mail 砍 `Mail` 域层转发壳 + 统一 v1() accessor（ADR 0001 阶段2）**：
   `Mail`（mail/mail/mod.rs）纯转发壳（仅 `v1()`，全仓零调用者）砍除。`MailService` 移除 `mail()`（→Mail 壳）
   + `mailgroup()` 单独快捷（5 资源中仅 1 个有快捷，访问深度不一致），统一为 `v1()` → `MailV1`（mailgroup/
