@@ -1,27 +1,6 @@
-use openlark_core::{SDKResult, error};
+//! API 工具函数（re-export core canonical）。
+//!
+//! serialize_params / extract_response_data / ensure_success 已下沉到
+//! `openlark_core::api`（#330），本模块仅 re-export canonical copy，避免各 crate 各派生一份。
 
-/// extract response data。
-pub fn extract_response_data<T>(
-    response: openlark_core::api::Response<T>,
-    context: &str,
-) -> SDKResult<T> {
-    response.data.ok_or_else(|| {
-        error::validation_error(
-            format!("{context}响应数据为空").as_str(),
-            "服务器没有返回有效的数据",
-        )
-    })
-}
-
-/// serialize params。
-pub fn serialize_params<T: serde::Serialize>(
-    params: &T,
-    context: &str,
-) -> SDKResult<serde_json::Value> {
-    serde_json::to_value(params).map_err(|e| {
-        error::validation_error(
-            format!("{context}参数序列化失败").as_str(),
-            format!("无法序列化请求参数: {e}").as_str(),
-        )
-    })
-}
+pub use openlark_core::api::{ensure_success, extract_response_data, serialize_params};
