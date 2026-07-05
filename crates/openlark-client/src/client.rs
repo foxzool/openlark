@@ -166,9 +166,9 @@ declare_client! {
         feature: "user",
         field: user,
         ty: crate::UserClient,
-        doc: "User meta 调用链入口：client.user.setting... ...",
+        doc: "User meta 调用链入口：client.user.system_status... ...",
         init: |_core_config, _base_core_config| {
-            crate::UserClient::new(_core_config.clone())?
+            crate::UserClient::new(_core_config.clone())
         },
     },
     {

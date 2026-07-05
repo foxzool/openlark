@@ -42,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-user 砍 `PersonalSettingsResource` 中间层 + 修 `UserService::new` 误导签名（ADR 0001 阶段2）**：
+  `PersonalSettingsResource`（personal_settings/mod.rs）是 1:1 单转发壳（仅 `system_status()` 一子资源，
+  全仓零调用者）砍除；`UserService` 新增 `system_status()` 直达 `SystemStatusResource`（7 个真实构建器）。
+  原 `service.personal_settings().system_status().list()` → `service.system_status().list()`。
+  同时修 `UserService::new` 误导签名：签名 `SDKResult<Self>` 但函数体永远 `Ok(...)`（#350 P9 接口撒谎）→
+  改为 `Self`（非 Result）。**breaking**：移除 pub `PersonalSettingsResource` + `personal_settings()` accessor；
+  `UserService::new` 返回类型 `SDKResult<Self>` → `Self`。**迁移**：仓内仅 `openlark-client` facade
+  （`UserClient::new(...)?` → 去 `?`）+ 本 crate doctest/test 受影响；`SystemStatusResource` + 7 leaf builder 不变。
+
 - **openlark-analytics 删 deprecated `Search`/`SearchV2`/`search()` 死链（ADR 0001 阶段2 扁平收口）**：
   `AnalyticsService::search()` → `Search` → `SearchV2` 三层 `Arc<Config>` 纯转发死胡同（`SearchV2` 仅持 `_config`
   无任何 accessor；真实 search API 经直路径 `crate::search::search::v2::<resource>::XxxRequest::new(Arc<Config>)`
