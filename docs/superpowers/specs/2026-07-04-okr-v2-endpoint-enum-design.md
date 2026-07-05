@@ -2,6 +2,8 @@
 comet_change: okr-v2-endpoint-enum
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-05-okr-v2-endpoint-enum
+status: final
 ---
 
 # Technical Design — okr-v2-endpoint-enum

@@ -2,6 +2,7 @@
 change: okr-v2-endpoint-enum
 design-doc: docs/superpowers/specs/2026-07-04-okr-v2-endpoint-enum-design.md
 base-ref: c1c32a5dc
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 # okr-v2-endpoint-enum 实施计划
@@ -59,6 +60,7 @@ base-ref: c1c32a5dc
       ApiRequest::get("/open-apis/okr/v2/cycles").query("user_id", &self.user_id);
   ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 0: 补 OkrApiV2 enum 25 variant to_url() 测试（迁移安全网 / D5）
@@ -209,6 +211,7 @@ git add crates/openlark-hr/src/common/api_endpoints.rs
 git commit -m "test(hr/okr): 补 OkrApiV2 25 variant to_url() 断言（okr-v2-endpoint-enum 迁移安全网 / D5）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 1: 批次 A — alignment(2) + category/list + cycle/list（验证全部迁移形态）
@@ -301,6 +304,7 @@ git add crates/openlark-hr/src/okr/okr/v2/alignment/get.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次A alignment+category/list+cycle/list 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 2: 批次 B — cycle/objective(create+list) + cycle/objectives_position + cycle/objectives_weight（4 叶，多行 format!）
@@ -382,6 +386,7 @@ git add crates/openlark-hr/src/okr/okr/v2/cycle/objective/create.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次B cycle/objective + cycle/objectives_position|weight 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 3: 批次 C — indicator/patch + key_result(delete+get+patch)（4 叶）
@@ -455,6 +460,7 @@ git add crates/openlark-hr/src/okr/okr/v2/indicator/patch.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次C indicator/patch + key_result delete/get/patch 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 4: 批次 D — key_result/indicator/list + key_result/progress/list（2 叶，多行 format!）
@@ -506,6 +512,7 @@ git add crates/openlark-hr/src/okr/okr/v2/key_result/indicator/list.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次D key_result/indicator/list + key_result/progress/list 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 5: 批次 E — objective(delete+get+patch) + objective/key_results_position + objective/key_results_weight（5 叶）
@@ -599,6 +606,7 @@ git add crates/openlark-hr/src/okr/okr/v2/objective/delete.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次E objective delete/get/patch + key_results_position/weight 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 6: 批次 F — objective/alignment(create+list) + objective/indicator/list + objective/key_result(create+list) + objective/progress/list（6 叶）
@@ -718,6 +726,7 @@ git add crates/openlark-hr/src/okr/okr/v2/objective/alignment/create.rs \
 git commit -m "refactor(hr/okr): okr/v2 批次F objective 子树 alignment/indicator/key_result/progress 迁移到 OkrApiV2 enum（okr-v2-endpoint-enum）"
 ```
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Task 7: 全量验收
@@ -752,6 +761,7 @@ Expected: BUILD SUCCESS + 全部测试 PASS（含 Task 0 的 25 variant `to_url(
 Run: `cargo build --workspace --all-features && cargo test --workspace --all-features`
 Expected: 全部 PASS（确认无跨 crate 回归）。
 
+archived-with: 2026-07-05-okr-v2-endpoint-enum
 ---
 
 ## Self-Review 备注
