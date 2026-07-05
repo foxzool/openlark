@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **platform `mdm`/`tenant`/`trust_party` 宣布 flat-by-design（ADR 0001 阶段2 facade 缺口收口）**：
+  这 3 个域叶子 `new(Config)` 无路径参数（对照 spark `SparkAppService.patch(app_id)` 路径参数绑定，ADR
+  判定 #3），加 Service 层会是纯转发 shell（反 ADR）。照 analytics 裁决宣布 flat：直路径访问
+  （`crate::mdm::v1::*` 等），`PlatformService` 故意不暴露 accessor。lib.rs 模块文档补齐 7 域清单
+  （原仅列 4 域）+ 3 域 mod.rs 加 flat-by-design 说明。**非 breaking**：纯文档，无 API 变更。
+
 - **auth `AuthTokenProvider` 手搓 HTTP 改委托 Transport-based RequestBuilder**（#309）：
   `fetch_token_via_http`（绕过 `Transport` 直接 `config.http_client().post()` 手搓 reqwest + 手解析
   code/msg/token）改为委托 4 个既有 RequestBuilder（AppAccessTokenInternal/AppAccessToken/

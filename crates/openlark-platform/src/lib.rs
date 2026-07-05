@@ -10,11 +10,11 @@
 //!
 //! ## 模块组织
 //!
-//! 本模块按业务域（bizTag）组织：
-//! - `app_engine` - 应用引擎相关 API (37 APIs)
-//! - `directory` - 目录服务相关 API (21 APIs)
-//! - `admin` - 系统管理相关 API (14 APIs)
-//! - `spark` - 妙搭平台相关 API (1 API)
+//! 本模块按业务域（bizTag）组织，分两类入口（ADR 0001）：
+//! - **Service accessor 入口**（含路径参数绑定层，经 `PlatformService::xxx()`）：
+//!   `app_engine`（37 APIs）、`directory`（21 APIs）、`admin`（14 APIs）、`spark`（1 API）
+//! - **flat-by-design 直路径**（叶子 `new(Config)` 无路径参数，无 Service 壳，同 analytics 裁决）：
+//!   `mdm`、`tenant`、`trust_party`
 //!
 //! ## 使用示例
 //!
@@ -53,6 +53,7 @@ pub mod directory;
 #[cfg(feature = "admin")]
 pub mod admin;
 
+// flat-by-design 域（无 Service 壳，直路径访问，ADR 0001）
 #[cfg(feature = "mdm")]
 pub mod mdm;
 
