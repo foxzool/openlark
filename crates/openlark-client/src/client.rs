@@ -94,7 +94,7 @@ declare_client! {
         feature: "meeting",
         field: meeting,
         ty: openlark_meeting::MeetingClient,
-        doc: "Meeting meta 调用链入口：client.meeting.vc.v1.room.create() ...",
+        doc: "Meeting meta 调用链入口：client.meeting.vc.v1.note.get(...) 等（ADR 0001：room/meeting/reserve 空壳已砍，真实 builder 经 strict 路径）",
         init: |_core_config, _base_core_config| {
             openlark_meeting::MeetingClient::new(_core_config.clone())
         },
