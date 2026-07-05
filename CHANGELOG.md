@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-analytics 删 deprecated `Search`/`SearchV2`/`search()` 死链（ADR 0001 阶段2 扁平收口）**：
+  `AnalyticsService::search()` → `Search` → `SearchV2` 三层 `Arc<Config>` 纯转发死胡同（`SearchV2` 仅持 `_config`
+  无任何 accessor；真实 search API 经直路径 `crate::search::search::v2::<resource>::XxxRequest::new(Arc<Config>)`
+  访问）。收口为方案 B 扁平：删 pub `Search`/`SearchV2` struct + `AnalyticsService::search()` accessor（#308 已铺
+  `#[deprecated]`，本次落地删除）。**breaking**：移除 pub `Search`/`SearchV2` + `search()`。**迁移**：仓内零外部引用
+  （client/tests.rs 的 `.search()` 属 workflow tasklist，非本 crate）；`v2::*` leaf builder API 与模块树不变。
+
 - **openlark-helpdesk 砍 `Helpdesk` 域层转发壳 + 统一 v1() accessor（ADR 0001 阶段2）**：
   `Helpdesk`（helpdesk/helpdesk/mod.rs）纯转发壳（仅 `v1()`，全仓零调用者）砍除。`HelpdeskService` 移除
   `helpdesk()`（→Helpdesk 壳）+ `ticket()` 单独快捷（11 资源中仅 1 个有快捷，访问深度不一致），统一为
