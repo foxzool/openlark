@@ -41,7 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   一致收敛到「可导航 + typed」。**breaking**：公开 API 源码级返回类型变更，消费方需改接收类型
   （`Value` → `GetObjectiveResponse` 等）。**迁移**：okr/v2 为零外部引用的导航终点（#327/#328
   已确认），v0.17.x 预发布，影响可控；外部若有消费按新 typed Response 改类型即可。深嵌套字段
-  （富文本/备注）仍暂留 `Option<Value>` + TODO，#339 另行收尾。
+  （富文本/备注）的 typed 化见下条 #339。
+
+- **okr/v2 `content` / `notes` 深嵌套字段 `Value` → typed `ContentBlock`**（#339）：`Objective.content` /
+  `Objective.notes` / `KeyResult.content` / `KeyResultProgress.content` / `Progress.content` 共 5 个
+  `Option<serde_json::Value>` + TODO 字段改为 `Option<ContentBlock>`。`ContentBlock`（14 struct 树：
+  blocks → paragraph|gallery → textRun|docsLink|mention → style/color/link/...）从飞书 apiSchema
+  `objectName=content_block` 派生，定义在 `common/models.rs` 被 5 字段共享（#336 消重所赐，改一处）。
+  判别联合 tag 用 `String`（非 enum）容忍飞书未来新增 block 类型。**breaking**：公开 Response 字段
+  类型变更（`Option<Value>` → `Option<ContentBlock>`），消费方读这些字段需改类型。**迁移**：okr/v2
+  仓内零外部引用，v0.17.x 预发布，影响可控。至此 okr/v2 grep `Option<serde_json::Value>` 残留为 0。
 
 - **okr/v2 跨叶共享 domain struct 路径统一到 `common::models`**（#336）：`Objective`/`ObjectiveOwner`、
   `Indicator`/`IndicatorOwner`/`IndicatorUnit`、`KeyResult`/`KeyResultOwner`、`Alignment`/`AlignmentOwner`
