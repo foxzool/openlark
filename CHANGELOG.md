@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `*Request::execute` business_error stub（始终未接真实端点），同步删除 `settings` / `preferences`
   / `settings-core` / `preferences-core` / `v1` feature 及 `default` / `full` / `user` / `all-user`
   组合别名（无 CI matrix / 下游引用，零 ripple）。门面 `UserService` 改补 `personal_settings()`
-  accessor → `PersonalSettingsService` → `system_status()` 收敛 7 个真实 system_status 请求构建器
+  accessor → `PersonalSettingsResource` → `system_status()` 收敛 7 个真实 system_status 请求构建器
   （此前须写 `personal_settings::personal_settings::v1::system_status::*` 三重嵌套全路径）。
   README `openlark-user` 行由「✅ 完成 9 API 用户设置」校正为「7 API 个人设置 system_status」。
   **breaking**：移除 pub stub 类型 + feature。**迁移**：仓内零外部引用，v0.17.x 预发布；外部若有

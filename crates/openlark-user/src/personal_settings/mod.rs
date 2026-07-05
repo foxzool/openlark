@@ -1,6 +1,6 @@
 //! Personal Settings 模块
 //!
-//! 门面 [`PersonalSettingsService`] 是 `UserService::personal_settings()` 返回的薄 service，
+//! 门面 [`PersonalSettingsResource`] 是 `UserService::personal_settings()` 返回的薄 resource，
 //! 收敛 system_status 等真实请求构建器，缩短调用路径（避免写
 //! `personal_settings::personal_settings::v1::system_status::*` 三重嵌套模块全路径）。
 
@@ -15,17 +15,17 @@ use crate::personal_settings::personal_settings::v1::system_status::{
     get::SystemStatusGetRequest, list::SystemStatusListRequest, patch::SystemStatusPatchRequest,
 };
 
-/// 个人设置服务（门面 accessor 返回的薄 service）。
+/// 个人设置资源（门面 accessor 返回的薄 resource）。
 ///
 /// 经 `UserService::personal_settings()` 获得，提供 system_status 资源入口。
 #[derive(Debug, Clone)]
-pub struct PersonalSettingsService {
+pub struct PersonalSettingsResource {
     /// 客户端配置
     config: Arc<Config>,
 }
 
-impl PersonalSettingsService {
-    /// 创建新的个人设置服务实例。
+impl PersonalSettingsResource {
+    /// 创建新的个人设置资源实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
@@ -36,19 +36,19 @@ impl PersonalSettingsService {
     }
 
     /// system_status 资源入口（7 个真实请求构建器）。
-    pub fn system_status(&self) -> SystemStatusService {
-        SystemStatusService::new(self.config.clone())
+    pub fn system_status(&self) -> SystemStatusResource {
+        SystemStatusResource::new(self.config.clone())
     }
 }
 
-/// system_status 资源服务（7 个真实请求构建器）。
+/// system_status 资源（7 个真实请求构建器）。
 #[derive(Debug, Clone)]
-pub struct SystemStatusService {
+pub struct SystemStatusResource {
     config: Arc<Config>,
 }
 
-impl SystemStatusService {
-    /// 创建新的 system_status 资源服务实例。
+impl SystemStatusResource {
+    /// 创建新的 system_status 资源实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }

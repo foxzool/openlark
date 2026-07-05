@@ -2,7 +2,7 @@
 //!
 //! Tests cover:
 //! - `common::UserSetting` / `UserPreference` — core data models
-//! - UserService / PersonalSettingsService / SystemStatusService — service access
+//! - UserService / PersonalSettingsResource / SystemStatusResource — service access
 //! - Version contract
 
 use openlark_user::common::{UserPreference, UserSetting};

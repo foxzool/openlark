@@ -40,8 +40,8 @@ impl UserService {
     ///
     /// 收敛 system_status 资源的真实请求构建器，避免三重嵌套模块全路径
     /// （`personal_settings::personal_settings::v1::system_status::*`）。
-    pub fn personal_settings(&self) -> crate::personal_settings::PersonalSettingsService {
-        crate::personal_settings::PersonalSettingsService::new(self.config.clone())
+    pub fn personal_settings(&self) -> crate::personal_settings::PersonalSettingsResource {
+        crate::personal_settings::PersonalSettingsResource::new(self.config.clone())
     }
 }
 

@@ -119,7 +119,7 @@ compiled_services! {
         name: "user",
         description: "飞书用户服务，提供用户设置相关功能",
         dependencies: ["auth"],
-        provides: ["settings"],
+        provides: ["system_status"],
         priority: 4,
     },
 }
