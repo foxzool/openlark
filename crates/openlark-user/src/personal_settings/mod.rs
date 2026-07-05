@@ -1,6 +1,6 @@
 //! Personal Settings 模块
 //!
-//! 门面 [`PersonalSettingsResource`] 是 `UserService::personal_settings()` 返回的薄 resource，
+//! 门面 `PersonalSettingsResource` 是 `UserService::personal_settings()` 返回的薄 resource，
 //! 收敛 system_status 等真实请求构建器，缩短调用路径（避免写
 //! `personal_settings::personal_settings::v1::system_status::*` 三重嵌套模块全路径）。
 
