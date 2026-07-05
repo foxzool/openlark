@@ -37,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **openlark-application 删 dead `Application` wrapper + 补 v5/v6/v7/workplace accessor + 独立 feature 门控**（#312）：
   删除死 pass-through `Application` wrapper（service.rs 已直接构造 `ApplicationV1`，wrapper 零引用）。
   `ApplicationService` 补 `v5()/v6()/v7()/workplace()` accessor（对齐 `v1()` 模式，使「统一入口」名副其实），
-  新增 entry struct `ApplicationV5`/`ApplicationV7`/`WorkplaceService`/`WorkplaceV1`（+ resource 层）收敛真实请求构建器。
+  新增 entry struct `ApplicationV5`/`ApplicationV7`/`WorkplaceV1`（+ resource 层）收敛真实请求构建器
+  （workplace 仅 v1，`workplace()` 直返 `WorkplaceV1`，不引入单版本中间层）。
   v5/v6/v7 在 Cargo.toml 各自独立 feature 门控（不再搭 `v1` feature 车编译/消失——修 pre-existing bug），
   新增 `workplace` feature；版本入口形状统一为 entry struct。**breaking**：移除 pub `Application` wrapper；
   v5/v6/v7 模块不再随 `v1` 自动启用，需显式 `features=["v5"]` 等。**迁移**：仓内零外部引用，v0.17.x 预发布。

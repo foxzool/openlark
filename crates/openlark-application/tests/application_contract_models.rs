@@ -4,10 +4,14 @@
 
 #![cfg(any(feature = "v1", feature = "workplace"))]
 
+#[cfg(feature = "workplace")]
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::{Value, from_value, to_value};
+#[cfg(feature = "workplace")]
+use serde_json::to_value;
+use serde_json::{Value, from_value};
 
+#[cfg(feature = "workplace")]
 fn assert_json_contract<T>(value: &T, expected: Value)
 where
     T: Serialize,
@@ -24,7 +28,7 @@ where
 
 #[cfg(feature = "v1")]
 mod v1_tests {
-    use super::{assert_json_contract, parse_contract};
+    use super::parse_contract;
     use openlark_application::application::application::v1::app::GetAppResponse;
     use serde_json::json;
 
