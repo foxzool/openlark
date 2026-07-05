@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 /// 数据分析服务
 ///
-/// 提供搜索、数据分析等功能的统一入口。
+/// 数据分析服务的统一入口（search API 经 `crate::search::search::v2::*` 直路径访问，ADR 0001 扁平收口）。
 #[derive(Debug, Clone)]
 pub struct AnalyticsService {
     /// 客户端配置
@@ -34,18 +34,6 @@ impl AnalyticsService {
     /// 获取客户端配置
     pub fn config(&self) -> Arc<AnalyticsConfig> {
         self.config.clone()
-    }
-
-    /// 搜索服务
-    ///
-    /// 提供全文搜索、智能搜索等功能。
-    #[deprecated(
-        note = "search() 导航死胡同；直接用 crate::search::search::v2 子模块的 XxxRequest::new(config)，如 v2::query::SearchRequest / v2::user::SearchUserRequest"
-    )]
-    #[cfg(feature = "search")]
-    #[allow(deprecated)]
-    pub fn search(&self) -> crate::search::search::Search {
-        crate::search::search::Search::new(self.config.clone())
     }
 }
 
