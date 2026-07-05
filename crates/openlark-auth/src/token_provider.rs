@@ -3,14 +3,17 @@
 //! `openlark-core` 通过 `TokenProvider` 抽象获取 token，而不关心具体获取/刷新/缓存策略。
 //! 这里提供一个带缓存的实现：缓存 token 并在过期前复用。
 
+use crate::auth::auth::v3::auth::{
+    AppAccessTokenInternalRequestBuilder, AppAccessTokenRequestBuilder,
+    TenantAccessTokenInternalRequestBuilder, TenantAccessTokenRequestBuilder,
+};
 use openlark_core::{
     SDKResult,
     auth::{TokenProvider, TokenRequest},
     config::Config,
     constants::{AccessTokenType, AppType},
-    error::{api_error, configuration_error},
+    error::configuration_error,
 };
-use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::future::Future;
@@ -143,58 +146,6 @@ impl AuthTokenProvider {
             .await;
         Ok(token)
     }
-
-    async fn fetch_token_via_http(
-        &self,
-        endpoint: &str,
-        payload: Value,
-        token_field: &str,
-    ) -> SDKResult<(String, i64)> {
-        let url = format!(
-            "{}/{}",
-            self.config.base_url().trim_end_matches('/'),
-            endpoint.trim_start_matches('/')
-        );
-
-        let response = self
-            .config
-            .http_client()
-            .post(&url)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| api_error(500, endpoint, format!("请求飞书认证接口失败: {e}"), None))?;
-
-        let status = response.status().as_u16();
-        let body: Value = response
-            .json()
-            .await
-            .map_err(|e| api_error(status, endpoint, format!("解析飞书认证响应失败: {e}"), None))?;
-
-        let code = body.get("code").and_then(Value::as_i64).unwrap_or(-1);
-        if code != 0 {
-            let msg = body
-                .get("msg")
-                .and_then(Value::as_str)
-                .unwrap_or("未知错误");
-            return Err(api_error(
-                status,
-                endpoint,
-                format!("飞书认证接口返回错误: code={code}, msg={msg}"),
-                None,
-            ));
-        }
-
-        let token = body
-            .get(token_field)
-            .and_then(Value::as_str)
-            .ok_or_else(|| configuration_error(format!("飞书认证响应缺少字段: {token_field}")))?
-            .to_string();
-
-        let expires_in = body.get("expire").and_then(Value::as_i64).unwrap_or(7200);
-
-        Ok((token, expires_in))
-    }
 }
 
 impl TokenProvider for AuthTokenProvider {
@@ -210,15 +161,14 @@ impl TokenProvider for AuthTokenProvider {
                     self.get_or_fetch(cache_key, || async {
                         let (token, expires_in) = match self.config.app_type() {
                             AppType::SelfBuild => {
-                                self.fetch_token_via_http(
-                                    "/open-apis/auth/v3/app_access_token/internal",
-                                    json!({
-                                        "app_id": self.config.app_id(),
-                                        "app_secret": self.config.app_secret(),
-                                    }),
-                                    "app_access_token",
+                                let resp = AppAccessTokenInternalRequestBuilder::new(
+                                    self.config.clone(),
                                 )
-                                .await?
+                                .app_id(self.config.app_id())
+                                .app_secret(self.config.app_secret())
+                                .execute()
+                                .await?;
+                                (resp.data.app_access_token, resp.data.expires_in as i64)
                             }
                             AppType::Marketplace => {
                                 let app_ticket = request.app_ticket.clone().ok_or_else(|| {
@@ -226,17 +176,14 @@ impl TokenProvider for AuthTokenProvider {
                                         "token_provider: marketplace app requires app_ticket to fetch app_access_token",
                                     )
                                 })?;
-
-                                self.fetch_token_via_http(
-                                    "/open-apis/auth/v3/app_access_token",
-                                    json!({
-                                        "app_id": self.config.app_id(),
-                                        "app_secret": self.config.app_secret(),
-                                        "app_ticket": app_ticket,
-                                    }),
-                                    "app_access_token",
-                                )
-                                .await?
+                                let resp =
+                                    AppAccessTokenRequestBuilder::new(self.config.clone())
+                                        .app_id(self.config.app_id())
+                                        .app_secret(self.config.app_secret())
+                                        .app_ticket(app_ticket)
+                                        .execute()
+                                        .await?;
+                                (resp.data.app_access_token, resp.data.expires_in as i64)
                             }
                         };
                         Ok((token, expires_in))
@@ -252,15 +199,14 @@ impl TokenProvider for AuthTokenProvider {
                     self.get_or_fetch(cache_key, || async {
                         let (token, expires_in) = match self.config.app_type() {
                             AppType::SelfBuild => {
-                                self.fetch_token_via_http(
-                                    "/open-apis/auth/v3/tenant_access_token/internal",
-                                    json!({
-                                        "app_id": self.config.app_id(),
-                                        "app_secret": self.config.app_secret(),
-                                    }),
-                                    "tenant_access_token",
+                                let resp = TenantAccessTokenInternalRequestBuilder::new(
+                                    self.config.clone(),
                                 )
-                                .await?
+                                .app_id(self.config.app_id())
+                                .app_secret(self.config.app_secret())
+                                .execute()
+                                .await?;
+                                (resp.data.tenant_access_token, resp.data.expires_in as i64)
                             }
                             AppType::Marketplace => {
                                 let tenant_key = request.tenant_key.clone().ok_or_else(|| {
@@ -277,15 +223,13 @@ impl TokenProvider for AuthTokenProvider {
                                     self.get_token(TokenRequest::app().app_ticket(app_ticket))
                                         .await?;
 
-                                self.fetch_token_via_http(
-                                    "/open-apis/auth/v3/tenant_access_token",
-                                    json!({
-                                        "app_access_token": app_access_token,
-                                        "tenant_key": tenant_key,
-                                    }),
-                                    "tenant_access_token",
-                                )
-                                .await?
+                                let resp =
+                                    TenantAccessTokenRequestBuilder::new(self.config.clone())
+                                        .app_access_token(app_access_token)
+                                        .tenant_key(tenant_key)
+                                        .execute()
+                                        .await?;
+                                (resp.data.tenant_access_token, resp.data.expires_in as i64)
                             }
                         };
                         Ok((token, expires_in))
