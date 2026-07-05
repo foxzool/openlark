@@ -95,9 +95,9 @@ use serde_json::json;
 async fn main() -> Result<()> {
     let client = Client::from_env()?;
 
-    // 会议：字段链式入口（Room 资源提供 Builder）
-    let req = client.meeting.vc.v1.room.create().build();
-    let _resp = req.execute(json!({"name": "demo"})).await?;
+    // 会议：字段链式入口（note 资源已接线；room/meeting/reserve 经 strict 路径访问）
+    let req = client.meeting.vc.v1.note.get("note_id");
+    let _resp = req.execute().await?;
 
     Ok(())
 }

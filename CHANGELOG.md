@@ -42,6 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-meeting 砍 chain.rs 7 空壳 + 修文档谎言（ADR 0001 阶段1 重灾区）**（#353）：
+  `common/chain.rs` 的 `CalendarClient`/`CalendarV4Client`/`CalendarResourceClient`/`MeetingRoomClient`
+  + `VcRoomResourceClient`/`VcMeetingResourceClient`/`VcReserveResourceClient` 7 个纯转发空壳
+  （承诺资源却零方法——字段暗示 room/meeting/reserve/calendar API 却未接线，真实 builder 经 strict 路径
+  `crate::vc::vc::v1::<resource>::*` / `crate::calendar::*` 访问）全砍。`MeetingClient.calendar`/`.meeting_room`
+  + `VcV1Client.room`/`.meeting`/`.reserve` 字段移除。保留唯一接线的 `VcNoteResourceClient`（get/subscribe/unsubscribe）。
+  修文档谎言：`client.meeting.vc.v1.room.create()`（`VcRoomResourceClient` 空壳无 create）→ 实际可达的 `note.get()`。
+  Config 内部 Arc-wrapped（clone O(1)，非深拷贝），无需改 Arc。**breaking**：移除 pub 字段 + 7 空壳 struct。
+  **迁移**：仓内零外部引用（仅 client/tests.rs 测 note.*，照过）；leaf builder + VcNote API 不变。
+
 - **openlark-bot 删 `Bot`/`V4`/`BotResource` 3 纯转发壳 + `search_bot()` 直达 leaf**（#354，ADR 0001 阶段1）：
   4 层壳包裹唯一 1 个 API（search），`service.bot().v4().bot().search()` 段名重复 4 跳 → `service.search_bot()` 1 跳。
   删 `Bot`/`V4`/`BotResource` struct（保 `pub mod` 模块树维持 leaf 路径）；`BotService` 加 `search_bot()` 直达
