@@ -1856,7 +1856,6 @@ dependencies = [
  "serde_repr",
  "tempfile",
  "thiserror",
- "tokio",
  "tokio-test",
  "url",
  "uuid",

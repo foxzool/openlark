@@ -192,7 +192,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | openlark-analytics | ✅ 完成 | 20 | 数据分析 |
 | openlark-cardkit | ✅ 完成 | 10 | 卡片组件 |
 | openlark-webhook | ✅ 完成 | 8 | 自定义机器人、Webhook |
-| openlark-user | ✅ 完成 | 9 | 用户设置 |
+| openlark-user | ✅ 完成 | 7 | 个人设置 system_status |
 
 ### 新架构特点
 

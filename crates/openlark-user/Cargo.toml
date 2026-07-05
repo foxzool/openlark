@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
-description = "飞书开放平台用户设置模块 - 个人设置、用户偏好 API (21 APIs)"
+description = "飞书开放平台用户设置模块 - 个人设置 system_status API"
 keywords = ["feishu", "lark", "user", "api", "sdk"]
 categories = ["api-bindings", "web-programming"]
 
@@ -16,30 +16,8 @@ categories = ["api-bindings", "web-programming"]
 workspace = true
 
 [features]
-default = ["settings", "preferences"]
-
-# === 核心功能模块 ===
-core = []
-
-# === 业务域功能 ===
-# 个人设置 (21 APIs)
-settings-core = []
-settings = ["settings-core", "core"]
-
-# 用户偏好
-preferences-core = []
-preferences = ["preferences-core", "core"]
-
-# === API版本支持（v1 门控 live preferences/settings，保留） ===
-v1 = ["core"]
-
-# === 功能组合 ===
-# 完整用户设置功能
-full = ["settings", "preferences"]
-
-# 向后兼容别名
-user = ["settings", "preferences"]
-all-user = ["full"]
+# openlark-user 无 optional feature：personal_settings（system_status）默认全编译。
+# 历史 settings/preferences stub 链 + v1/full/user/all-user 别名已于 #311 删除（v0.18 breaking）。
 
 [dependencies]
 # 核心依赖
@@ -47,7 +25,6 @@ openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
-tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
