@@ -1,42 +1,12 @@
-//! API 通用工具函数
+//! API 工具函数（re-export core canonical + validate_required_field）。
 //!
-//! 提供 API 实现的通用工具和辅助函数，减少重复代码，提高一致性。
-
+//! serialize_params / extract_response_data / ensure_success 已下沉到
+//! `openlark_core::api`（#330）；保留 meeting 域的 validate_required_field（会议叶子复用）。
 use openlark_core::{SDKResult, error};
 
-/// 标准化 API 响应数据提取
-pub fn extract_response_data<T>(
-    response: openlark_core::api::ApiResponse<T>,
-    context: &str,
-) -> SDKResult<T> {
-    response.data.ok_or_else(|| {
-        error::validation_error(format!("{context}响应数据为空"), "服务器没有返回有效的数据")
-    })
-}
+pub use openlark_core::api::{ensure_success, extract_response_data, serialize_params};
 
-/// 标准化参数序列化错误处理
-pub fn serialize_params<T: serde::Serialize>(
-    params: &T,
-    context: &str,
-) -> SDKResult<serde_json::Value> {
-    serde_json::to_value(params).map_err(|e| {
-        error::validation_error(
-            format!("{context}参数序列化失败"),
-            format!("无法序列化请求参数: {e}"),
-        )
-    })
-}
-
-/// 标准化参数验证错误处理
-///
-/// # 参数
-/// - `field_name`: 字段名称
-/// - `field_value`: 字段值
-/// - `error_message`: 错误消息
-///
-/// # 返回
-/// - `Ok(())`: 验证通过
-/// - `Err(SDKError)`: 验证失败错误
+/// 标准化必填字段校验。
 pub fn validate_required_field<T: AsRef<str>>(
     field_name: &str,
     field_value: Option<T>,

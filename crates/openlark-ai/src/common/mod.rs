@@ -1,8 +1,5 @@
-//! 通用工具模块
+//! 通用工具模块（私有，#330：HTTP 管道 helper 已下沉 core::api）。
 //!
-//! 提供 API 相关的通用工具函数，包括响应数据提取、参数序列化等。
+//! 叶子直接经 `crate::common::api_utils::<fn>` 访问（api_utils re-export core canonical）。
 
 pub mod api_utils;
-
-// 重导出 API 工具函数，方便外部使用
-pub use api_utils::{ensure_success, extract_response_data, serialize_params};

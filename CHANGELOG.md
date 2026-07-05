@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **`serialize_params` / `extract_response_data` / `ensure_success` 下沉 `openlark_core::api`（canonical）+ ai common 私有化 + `api_url!` 去 macro_export**（#330）：
+  通用 HTTP 管道 helper 此前在 10 个业务 crate 各有一份 `common/api_utils.rs`（locality 失守），
+  现统一到 `openlark_core::api::{serialize_params, extract_response_data, ensure_success}`（rich 诊断：
+  operation/resource/request_id）。10 crate 的 `common::api_utils` 改 re-export core canonical（签名不变，
+  调用点零改动）；workflow/docs 保留各自域专用的 `missing_response_data_error`/`request_serialization_error`，
+  meeting 保留 `validate_required_field`。`openlark-ai` 的 `pub mod common` 改私有（HTTP helper 不再公开泄漏）；
+  各 crate `api_url!` 宏移除 `#[macro_export]`（零生产调用，语义等同 `format!`）。**breaking**：
+  `openlark_ai::common::*` 不再公开；`api_url!` 宏不再 export。**迁移**：仓内零外部引用，v0.17.x 预发布。
+
 - **openlark-application 删 dead `Application` wrapper + 补 v5/v6/v7/workplace accessor + 独立 feature 门控**（#312）：
   删除死 pass-through `Application` wrapper（service.rs 已直接构造 `ApplicationV1`，wrapper 零引用）。
   `ApplicationService` 补 `v5()/v6()/v7()/workplace()` accessor（对齐 `v1()` 模式，使「统一入口」名副其实），

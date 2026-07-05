@@ -38,9 +38,9 @@
 //! - `speech_to_text`: 语音转文字API端点
 //! - `translation`: 翻译服务API端点
 
-// 导入通用工具模块
+// 通用工具模块（私有：HTTP 管道 helper 已下沉 core::api，#330；不再公开泄漏）
 /// common 模块。
-pub mod common;
+mod common;
 
 // 导入服务端点模块
 /// endpoints 模块。
