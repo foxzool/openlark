@@ -25,6 +25,7 @@
 //!
 //! // 创建邮件组
 //! let result = mail_service
+//!     .v1()
 //!     .mailgroup()
 //!     .create()
 //!     .mail_group_id("team@example.com")

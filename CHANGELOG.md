@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-mail 砍 `Mail` 域层转发壳 + 统一 v1() accessor（ADR 0001 阶段2）**：
+  `Mail`（mail/mail/mod.rs）纯转发壳（仅 `v1()`，全仓零调用者）砍除。`MailService` 移除 `mail()`（→Mail 壳）
+  + `mailgroup()` 单独快捷（5 资源中仅 1 个有快捷，访问深度不一致），统一为 `v1()` → `MailV1`（mailgroup/
+  public_mailbox/user/user_mailbox/multi_entity 扇出 5）。原 `service.mail().v1().mailgroup()` /
+  `service.mailgroup()` → `service.v1().mailgroup()`。**breaking**：移除 pub `Mail` + `mail()`/`mailgroup()`
+  accessor。**迁移**：仓内零外部引用；`MailV1` + leaf builder API 不变。
+
 - **openlark-meeting 砍 chain.rs 7 空壳 + 修文档谎言（ADR 0001 阶段1 重灾区）**（#353）：
   `common/chain.rs` 的 `CalendarClient`/`CalendarV4Client`/`CalendarResourceClient`/`MeetingRoomClient`
   + `VcRoomResourceClient`/`VcMeetingResourceClient`/`VcReserveResourceClient` 7 个纯转发空壳

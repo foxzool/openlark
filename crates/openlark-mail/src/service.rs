@@ -19,16 +19,14 @@ impl MailService {
         }
     }
 
+    /// 访问 v1 邮件 API（mailgroup / public_mailbox / user / user_mailbox / multi_entity）。
+    ///
+    /// ADR 0001：消除 `Mail` 域层转发壳 + 单独 `mailgroup()` 快捷（深度不一致），
+    /// 统一经 `v1()` 到 `MailV1` 扇出层。原 `service.mail().v1().mailgroup()` /
+    /// `service.mailgroup()` → `service.v1().mailgroup()`。
     #[cfg(feature = "v1")]
-    /// 访问邮件 API。
-    pub fn mail(&self) -> crate::mail::mail::Mail {
-        crate::mail::mail::Mail::new(self.config.clone())
-    }
-
-    #[cfg(feature = "v1")]
-    /// 访问邮件组 API。
-    pub fn mailgroup(&self) -> crate::mail::mail::v1::mailgroup::MailGroup {
-        crate::mail::mail::v1::mailgroup::MailGroup::new(self.config.clone())
+    pub fn v1(&self) -> crate::mail::mail::v1::MailV1 {
+        crate::mail::mail::v1::MailV1::new(self.config.clone())
     }
 }
 
