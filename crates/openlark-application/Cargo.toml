@@ -26,11 +26,16 @@ tokio = { workspace = true, features = ["full"] }
 default = ["v1", "async"]
 async = ["tokio"]
 
-# 应用 API 版本
+# 应用 API 版本（各自独立门控，v5/v6/v7 不再搭 v1 feature 车）
 v1 = []
+v5 = []
+v6 = []
+v7 = []
+# 工作台 API
+workplace = []
 
 # 完整功能集
-full = ["v1", "async"]
+full = ["v1", "v5", "v6", "v7", "workplace", "async"]
 
 [package.metadata.cargo-machete]
 ignored = ["tokio", "tracing"]
