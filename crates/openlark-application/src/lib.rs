@@ -9,11 +9,12 @@ mod service;
 /// 应用管理模块的通用工具与端点定义。
 pub mod common;
 
-#[cfg(feature = "v1")]
-/// 飞书应用 API。
+/// 飞书应用 API（v1/v5/v6/v7 各自独立 feature 门控）。
+#[cfg(any(feature = "v1", feature = "v5", feature = "v6", feature = "v7"))]
 pub mod application;
 
 /// Workplace 场景相关 API。
+#[cfg(feature = "workplace")]
 pub mod workplace;
 
 /// 应用管理模块常用预导出。
