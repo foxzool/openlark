@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **okr/v2 25 叶 `execute()` 返回类型 `Value` → typed Response**（#328）：`objective::get` /
+  `cycle::list` / `key_result::patch` 等 25 个叶子的 `execute()` / `execute_with_options()` 返回
+  从 `SDKResult<serde_json::Value>` 改为 typed Response（如 `SDKResult<GetObjectiveResponse>`），
+  字段对齐飞书 OKR v2 官方文档（每叶 `docPath`）。填补 okr/v2「可导航但全无类型」缺口，与另 7 域
+  一致收敛到「可导航 + typed」。**breaking**：公开 API 源码级返回类型变更，消费方需改接收类型
+  （`Value` → `GetObjectiveResponse` 等）。**迁移**：okr/v2 为零外部引用的导航终点（#327/#328
+  已确认），v0.17.x 预发布，影响可控；外部若有消费按新 typed Response 改类型即可。深嵌套字段
+  （富文本/备注）仍暂留 `Option<Value>` + TODO，#339 另行收尾。
+
 - **okr/v2 跨叶共享 domain struct 路径统一到 `common::models`**（#336）：`Objective`/`ObjectiveOwner`、
   `Indicator`/`IndicatorOwner`/`IndicatorUnit`、`KeyResult`/`KeyResultOwner`、`Alignment`/`AlignmentOwner`
   9 个 struct 跨 11 叶 byte-identical 重复（#328 typed Response 产物），各只在
