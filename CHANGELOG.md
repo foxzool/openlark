@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **auth `AuthTokenProvider` 手搓 HTTP 改委托 Transport-based RequestBuilder**（#309）：
+  `fetch_token_via_http`（绕过 `Transport` 直接 `config.http_client().post()` 手搓 reqwest + 手解析
+  code/msg/token）改为委托 4 个既有 RequestBuilder（AppAccessTokenInternal/AppAccessToken/
+  TenantAccessTokenInternal/TenantAccessToken，均经 `Transport::request`）。删除 ~50 行手搓逻辑 +
+  4 个硬编码 path 字面量（改用 `AuthApiV3` enum）。恢复 `log_id`/request_id、feishu_code→ErrorCode
+  映射、ResponseTracker 可观测性、`ERR_CODE_APP_TICKET_INVALID` 的 app-ticket 自动刷新。
+  **非 breaking**：`fetch_token_via_http` 是私有方法，token 获取行为不变（同端点同 token），wiremock 测试全过。
+
 - **Lint 清理**：移除全 workspace 392 处 `#[allow(dead_code)]`（376 处 cruft 删除 + 16 个
   不完整脚手架的死 `config` 字段改名为 `_config` + reserved 注释；跨 platform/ai/analytics/
   user/helpdesk/docs/application）。dead_code lint 信号重新生效。`_config` 均为私有字段，
