@@ -23,12 +23,12 @@ impl SparkService {
     }
 
     /// V1 版本 API
-    pub fn v1(&self) -> crate::spark::spark::v1::SparkV1 {
-        crate::spark::spark::v1::SparkV1::new(self.config.clone())
+    pub fn v1(&self) -> crate::spark::v1::SparkV1 {
+        crate::spark::v1::SparkV1::new(self.config.clone())
     }
 }
 
-pub mod spark;
+pub mod v1;
 
 #[cfg(test)]
 mod tests {

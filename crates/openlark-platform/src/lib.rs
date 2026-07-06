@@ -36,8 +36,6 @@
 //! # }
 //! ```
 
-#![allow(clippy::module_inception)]
-
 mod service;
 
 // 通用模块
