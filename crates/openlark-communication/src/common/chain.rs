@@ -780,6 +780,11 @@ impl AgentResource {
         AgentChatResource::new(self.config.clone())
     }
 
+    /// 访问 agent_chat_session 资源。
+    pub fn agent_chat_session(&self) -> AgentChatSessionResource {
+        AgentChatSessionResource::new(self.config.clone())
+    }
+
     /// 访问 agent_visibility 资源。
     pub fn agent_visibility(&self) -> AgentVisibilityResource {
         AgentVisibilityResource::new(self.config.clone())
@@ -871,6 +876,70 @@ impl AgentChatResource {
         crate::aily::aily::v1::agent::agent_chat::get::GetAgentChatRequest::new(self.config.clone())
             .agent_id(agent_id)
             .agent_chat_id(agent_chat_id)
+    }
+}
+
+/// AILY 智能体会话（Session）资源。
+#[cfg(feature = "aily")]
+#[derive(Debug, Clone)]
+pub struct AgentChatSessionResource {
+    config: Arc<Config>,
+}
+
+#[cfg(feature = "aily")]
+impl AgentChatSessionResource {
+    fn new(config: Arc<Config>) -> Self {
+        Self { config }
+    }
+
+    /// 创建会话请求。
+    pub fn create(
+        &self,
+        agent_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat_session::create::CreateAgentChatSessionRequest
+    {
+        crate::aily::aily::v1::agent::agent_chat_session::create::CreateAgentChatSessionRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+    }
+
+    /// 删除会话请求。
+    pub fn delete(
+        &self,
+        agent_id: impl Into<String>,
+        agent_chat_session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat_session::delete::DeleteAgentChatSessionRequest
+    {
+        crate::aily::aily::v1::agent::agent_chat_session::delete::DeleteAgentChatSessionRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+        .agent_chat_session_id(agent_chat_session_id)
+    }
+
+    /// 获取指定会话信息请求。
+    pub fn get(
+        &self,
+        agent_id: impl Into<String>,
+        agent_chat_session_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat_session::get::GetAgentChatSessionRequest {
+        crate::aily::aily::v1::agent::agent_chat_session::get::GetAgentChatSessionRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
+        .agent_chat_session_id(agent_chat_session_id)
+    }
+
+    /// 查询会话列表请求。
+    pub fn list(
+        &self,
+        agent_id: impl Into<String>,
+    ) -> crate::aily::aily::v1::agent::agent_chat_session::list::ListAgentChatSessionRequest {
+        crate::aily::aily::v1::agent::agent_chat_session::list::ListAgentChatSessionRequest::new(
+            self.config.clone(),
+        )
+        .agent_id(agent_id)
     }
 }
 

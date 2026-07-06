@@ -468,6 +468,15 @@ pub enum VcApiV1 {
     /// POST /open-apis/vc/v1/notes/unsubscription
     NoteUnsubscription,
 
+    // ========== Bot 会议机器人 ==========
+    /// 获取会议事件
+    /// GET /open-apis/vc/v1/bots/events
+    BotEvents,
+
+    /// 获取用户活跃会议
+    /// GET /open-apis/vc/v1/bots/user_active_meeting
+    BotUserActiveMeeting,
+
     // ========== Alert 告警 ==========
     /// 获取告警列表
     /// GET /open-apis/vc/v1/alerts
@@ -649,6 +658,12 @@ impl VcApiV1 {
             // Note
             VcApiV1::NoteSubscription => "/open-apis/vc/v1/notes/subscription".to_string(),
             VcApiV1::NoteUnsubscription => "/open-apis/vc/v1/notes/unsubscription".to_string(),
+
+            // Bot
+            VcApiV1::BotEvents => "/open-apis/vc/v1/bots/events".to_string(),
+            VcApiV1::BotUserActiveMeeting => {
+                "/open-apis/vc/v1/bots/user_active_meeting".to_string()
+            }
 
             // Alert
             VcApiV1::AlertList => "/open-apis/vc/v1/alerts".to_string(),

@@ -186,6 +186,11 @@ fn test_communication_aily_chain_exists() {
     let _ = aily.agent().agent_attachment().create("agent_123");
     let _ = aily.agent().agent_chat().create("agent_123");
     let _ = aily.agent().agent_chat().get("agent_123", "chat_123");
+    let _ = aily.agent().agent_chat_session().create("agent_123");
+    let _ = aily
+        .agent()
+        .agent_chat_session()
+        .get("agent_123", "session_123");
     let _ = aily.agent().agent_visibility().check("agent_123");
 
     let _ = aily.tenant().app_stat().list();

@@ -17,6 +17,8 @@ pub mod approval_task;
 pub mod seat_activity;
 /// 席位分配查询接口。
 pub mod seat_assignment;
+/// 租户应用运营数据接口。
+pub mod tenant_app_metrics;
 /// 用户任务处理接口。
 pub mod user_task;
 /// 工作空间数据与元数据接口。
@@ -64,6 +66,11 @@ impl ApaasV1 {
         seat_assignment::SeatAssignmentService::new(self.config.as_ref().clone())
     }
 
+    /// tenant_app_metrics 资源
+    pub fn tenant_app_metrics(&self) -> tenant_app_metrics::TenantAppMetricsService {
+        tenant_app_metrics::TenantAppMetricsService::new(self.config.as_ref().clone())
+    }
+
     /// application 资源（中间级，持 namespace 路径参数）
     pub fn application(&self, namespace: impl Into<String>) -> application::ApplicationService {
         application::ApplicationService::new(self.config.clone(), namespace)
@@ -107,6 +114,7 @@ mod tests {
         let _ = api.user_task().cc("task_1");
         let _ = api.seat_activity().list();
         let _ = api.seat_assignment().list();
+        let _ = api.tenant_app_metrics().query();
         // application/workspace 中间级可达（深链在 Task 4/5 补）
         let _ = api.application("ns_x");
         let _ = api.workspace("ws_x");
