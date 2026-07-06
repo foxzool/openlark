@@ -29,7 +29,7 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let platform_service = PlatformService::new(config)?;
+//! let platform_service = PlatformService::new(config);
 //!
 //! // 具体功能请参考各个子模块的文档
 //! # Ok(())
@@ -112,14 +112,14 @@ mod service_tests {
     #[test]
     fn test_platform_service_creation() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         assert!(service.config().app_id() == "test_app");
     }
 
     #[test]
     fn test_platform_service_clone() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let cloned = service.clone();
         assert!(cloned.config().app_id() == "test_app");
     }
@@ -137,7 +137,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_app_engine() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _app_engine = service.app_engine();
     }
 
@@ -145,7 +145,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_directory() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _directory = service.directory();
     }
 
@@ -153,7 +153,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_admin() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _admin = service.admin();
     }
 
@@ -161,7 +161,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_spark() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _request = service.spark().v1().directory().user().id_convert();
     }
 }

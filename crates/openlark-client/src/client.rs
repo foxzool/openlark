@@ -123,7 +123,7 @@ declare_client! {
         ty: crate::PlatformClient,
         doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
         init: |_core_config, _base_core_config| {
-            crate::PlatformClient::new(_core_config.clone())?
+            crate::PlatformClient::new(_core_config.clone())
         },
     },
     {

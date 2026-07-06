@@ -3,7 +3,6 @@
 //! 提供平台管理相关的服务入口
 
 use crate::PlatformConfig;
-use openlark_core::SDKResult;
 use std::sync::Arc;
 
 /// 平台服务
@@ -21,14 +20,10 @@ impl PlatformService {
     /// # 参数
     ///
     /// * `config` - 平台服务配置
-    ///
-    /// # 返回
-    ///
-    /// 返回平台服务实例或错误
-    pub fn new(config: PlatformConfig) -> SDKResult<Self> {
-        Ok(Self {
+    pub fn new(config: PlatformConfig) -> Self {
+        Self {
             config: Arc::new(config),
-        })
+        }
     }
 
     /// 获取客户端配置
@@ -79,7 +74,6 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let service = PlatformService::new(config);
-        assert!(service.is_ok());
+        let _service = PlatformService::new(config);
     }
 }
