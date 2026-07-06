@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ADR 0001 导航壳重设计执行完成**（10 crate / 12 PR：#353-#366）：bot/meeting/mail/helpdesk/analytics/
+  user/platform-facade/docs/cardkit/application/workflow 全部按 5 项判定落地（细节见各 PR 及
+  `docs/adr/0001-navigation-shell-redesign.md` 执行记录）。platform inception 折叠按 ADR 硬约束 line 105
+  （「不改模块树…module 重组作为后续独立议题」）另案 #367。**本条为 ADR 状态/执行记录文档更新，非 breaking**。
+
 - **application v1/app 补齐 4 个声明却未接线的端点（ADR 0001 阶段4）**：
   `application/application/v1/app/mod.rs` 声明了 `create`/`delete`/`list`/`patch` 4 个 `pub mod`
   （leaf builder 已存在）但 `App` struct 只暴露 `get()`。补 `App::create()`/`delete()`/`list()`/`patch()`

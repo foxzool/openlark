@@ -1,9 +1,9 @@
 # ADR: 导航壳重设计（per-layer 5 项职责判定 + per-crate 差异化产出）
 
-- **状态**: Proposed
-- **日期**: 2026-07-05
+- **状态**: Accepted（2026-07-06 执行完成，见文末「执行记录」；platform inception 按 line 105 硬约束另案 #367）
+- **日期**: 2026-07-05（决策）/ 2026-07-06（执行完成）
 - **决策者**: 首席架构师裁决（深导航 / 砍导航 / 混合 三选一）
-- **相关 issue**: #347（多层 Arc<Config>-only 纯转发壳）
+- **相关 issue**: #347（多层 Arc<Config>-only 纯转发壳）；执行跟踪见文末「执行记录」
 - **breaking 窗口**: v0.18（项目已有 7 个 v0.18 deprecated 归档先例，CHANGELOG 迁移表流程成熟）
 
 ## 背景
@@ -143,3 +143,30 @@ issue #347 的指控非均匀——bot/meeting/mail/helpdesk 完全属实、work
 - **`docs/CLIENT_NAMING_CONVENTION.md`**：5 项判定规则落此文档，作为全仓权威解释。
 - **MSRV 1.88+ / CI msrv pinned lockfile**：删/改依赖的 change 须同步 `.github/msrv/Cargo.lock`。
 - **CI lint 门控**：每 PR 显式跑 `cargo fmt --check` + `cargo clippy --workspace --all-targets --no-default-features`。
+
+## 执行记录（2026-07-06 完成）
+
+ADR 按阶段灰度落地，每 crate 独立 PR，全部 CI 绿（fmt/clippy×2/test/doc/machete/msrv）。
+
+| 阶段 | crate | PR | 产出 |
+|------|-------|-----|------|
+| 1 | bot | #354 | 删 `Bot`/`V4`/`BotResource` 3 壳 + `search_bot()` 直达 leaf |
+| 1 | meeting | #353 | 砍 chain.rs 7 空壳 + 修文档谎言（`note.get()`） |
+| 2 | mail | #357 | 砍 `Mail` 域层壳 + 统一 `v1()` accessor（5 资源扇出） |
+| 2 | helpdesk | #358 | 砍 `Helpdesk` 域层壳 + 统一 `v1()` accessor（11 资源扇出） |
+| 2 | analytics | #359 | 删 deprecated `Search`/`SearchV2`/`search()` 死链，扁平收口 |
+| 2 | user | #360 | 砍 `PersonalSettingsResource` 中间层 + 修 `UserService::new` 误导签名（#350 P9） |
+| 2 | platform facade | #361 | `mdm`/`tenant`/`trust_party` 宣布 flat-by-design（不加 shell） |
+| 3 | docs | #365 | 砍 5 个 config-holder 子客户端，`DocsClient` ~15 真 helper 全保留 |
+| 3 | cardkit | #366 | 合并双导航树（砍死 strict 树）+ 解决 `CardElementResource` 命名碰撞（6-agent 勘察 workflow） |
+| 4 | application | #362 | v1/app 补齐 4 个声明却未接线的端点（create/delete/list/patch） |
+| 4 | workflow | #364 | 删 `service.task()`/`tasklist()` 冗余双入口 |
+
+### 未做（按硬约束 line 105 另案）
+
+- **platform inception 折叠**（line 120「删 4 个 module_inception 空跳」）—— 与硬约束 line 105「不改模块树…module 重组作为后续独立议题」字面冲突。2026-07-06 执行期裁决：**守硬约束**，inception 折叠（模块树重组）正式定为「后续独立议题」，跟踪于 #367。4 个 inception 是无害的 3 行 `pub mod v1;` hop（被 `#![allow(clippy::module_inception)]` 抑制），实质性浅壳反模式已全部清除。
+
+### 阶段 5（统一收口）
+
+- `docs/CLIENT_NAMING_CONVENTION.md` 落 5 项判定规则、`openlark-client` facade 转发层对齐、CHANGELOG 迁移表——随各 PR 同步落地（facade 转发层在每 PR 连带改）。全仓 `just check-all` 等价验证（每 PR 跑 CI 三元组 + workspace doc）。
+
