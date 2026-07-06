@@ -19,6 +19,9 @@
 /// 基础消息发送和管理
 pub const IM_V1_MESSAGES: &str = "/open-apis/im/v1/messages";
 
+/// IM消息搜索 v1
+pub const IM_V1_MESSAGES_SEARCH: &str = "/open-apis/im/v1/messages/search";
+
 /// IM聊天管理 v1
 /// 聊天会话的创建和管理
 pub const IM_V1_CHATS: &str = "/open-apis/im/v1/chats";

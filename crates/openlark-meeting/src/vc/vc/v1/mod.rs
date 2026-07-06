@@ -4,6 +4,8 @@
 
 /// alert 模块。
 pub mod alert;
+/// bot 模块。
+pub mod bot;
 /// export 模块。
 pub mod export;
 /// meeting 模块。
