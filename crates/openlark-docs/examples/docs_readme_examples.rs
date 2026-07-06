@@ -19,19 +19,18 @@ async fn main() -> SDKResult<()> {
     let docs_request = GetDocsContentRequest::new("doc_token", "docx", "markdown");
     let _docs_content_future = openlark_docs::ccm::docs::v1::content::get::get_docs_content(
         docs_request,
-        docs.ccm.config(),
+        docs.config(),
         None,
     );
 
     // README: 多维表格使用
-    let _bitable_request =
-        GetAppRequest::new(docs.base.bitable().config().clone()).app_token("app_token");
+    let _bitable_request = GetAppRequest::new(docs.config().clone()).app_token("app_token");
 
     // README: 云文档协同使用
-    let _download_request = DownloadFileRequest::new(docs.ccm.config().clone(), "file_token");
+    let _download_request = DownloadFileRequest::new(docs.config().clone(), "file_token");
 
     // README: 知识库使用
-    let _entity_request = GetEntityRequest::new(docs.baike.config().clone(), "entity_id");
+    let _entity_request = GetEntityRequest::new(docs.config().clone(), "entity_id");
 
     Ok(())
 }

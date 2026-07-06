@@ -53,6 +53,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-docs 砍 5 个 config-holder 子客户端（ADR 0001 阶段3 扁平收口）**：
+  `CcmClient`/`BaseClient`/`BitableClient`/`BaikeClient`/`MinutesClient`（common/chain.rs）是纯 config-holder
+  （仅 `config()`，BaseClient 多一个 `bitable()` 路由），与 `DocsClient::config()` 等价冗余。砍 5 struct +
+  `DocsClient` 的 `ccm`/`base`/`baike`/`minutes` 4 个 pub 字段，统一 `docs.config()` 直路径。原
+  `docs.ccm.config()` / `docs.base.bitable().config()` → `docs.config()`。`DocsClient` ~15 个真 async helper
+  （`search_bitable_records_all`/`find_wiki_node_by_path`/`folder_children_pager`/...）100% 保留。
+  **breaking**：移除 5 pub struct + 4 pub 字段 + `BaseClient::bitable()`。**迁移**：`docs.ccm.config()` /
+  `docs.base.bitable().config()` / `docs.baike.config()` → `docs.config()`；docs doctest/example、openlark-client
+  facade doc + `docs_feature_contract` test 已改。
+
 - **openlark-workflow 删 `service.task()`/`service.tasklist()` 冗余双入口（ADR 0001 阶段4）**：
   `WorkflowService::task()`/`tasklist()` 与 `service.v2().task()`/`service.v2().tasklist()` 等价（同
   `v2::task::Task` / `v2::tasklist::Tasklist` 类型），是绕过版本层的冗余捷径。ADR「双入口二选一，留版本化
