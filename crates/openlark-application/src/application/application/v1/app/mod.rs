@@ -21,6 +21,26 @@ impl App {
     pub fn get(&self) -> get::GetAppRequest {
         get::GetAppRequest::new(self.config.clone())
     }
+
+    /// 返回创建应用请求构建器。
+    pub fn create(&self) -> create::CreateAppRequest {
+        create::CreateAppRequest::new(self.config.clone())
+    }
+
+    /// 返回删除应用请求构建器。
+    pub fn delete(&self) -> delete::DeleteAppRequest {
+        delete::DeleteAppRequest::new(self.config.clone())
+    }
+
+    /// 返回查询应用列表请求构建器。
+    pub fn list(&self) -> list::ListAppRequest {
+        list::ListAppRequest::new(self.config.clone())
+    }
+
+    /// 返回更新应用请求构建器。
+    pub fn patch(&self) -> patch::PatchAppRequest {
+        patch::PatchAppRequest::new(self.config.clone())
+    }
 }
 
 pub use get::GetAppRequest;
