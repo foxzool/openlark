@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **application v1/app 补齐 4 个声明却未接线的端点（ADR 0001 阶段4）**：
+  `application/application/v1/app/mod.rs` 声明了 `create`/`delete`/`list`/`patch` 4 个 `pub mod`
+  （leaf builder 已存在）但 `App` struct 只暴露 `get()`。补 `App::create()`/`delete()`/`list()`/`patch()`
+  accessor，对齐 `get()` 形态（`new(Arc<Config>)`）。**非 breaking**：纯 additive accessor，leaf 不变。
+
 - **platform `mdm`/`tenant`/`trust_party` 宣布 flat-by-design（ADR 0001 阶段2 facade 缺口收口）**：
   这 3 个域叶子 `new(Config)` 无路径参数（对照 spark `SparkAppService.patch(app_id)` 路径参数绑定，ADR
   判定 #3），加 Service 层会是纯转发 shell（反 ADR）。照 analytics 裁决宣布 flat：直路径访问
