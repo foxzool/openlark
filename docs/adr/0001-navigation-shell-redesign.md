@@ -1,6 +1,6 @@
 # ADR: 导航壳重设计（per-layer 5 项职责判定 + per-crate 差异化产出）
 
-- **状态**: Accepted（2026-07-06 执行完成，见文末「执行记录」；platform inception 按 line 105 硬约束另案 #367）
+- **状态**: Accepted（2026-07-06 全部落地，含 platform inception #371；见文末「执行记录」）
 - **日期**: 2026-07-05（决策）/ 2026-07-06（执行完成）
 - **决策者**: 首席架构师裁决（深导航 / 砍导航 / 混合 三选一）
 - **相关 issue**: #347（多层 Arc<Config>-only 纯转发壳）；执行跟踪见文末「执行记录」
@@ -161,10 +161,11 @@ ADR 按阶段灰度落地，每 crate 独立 PR，全部 CI 绿（fmt/clippy×2/
 | 3 | cardkit | #366 | 合并双导航树（砍死 strict 树）+ 解决 `CardElementResource` 命名碰撞（6-agent 勘察 workflow） |
 | 4 | application | #362 | v1/app 补齐 4 个声明却未接线的端点（create/delete/list/patch） |
 | 4 | workflow | #364 | 删 `service.task()`/`tasklist()` 冗余双入口 |
+| 后续 | platform inception | #371 | 折叠 spark/admin/directory 3 个同名 inception + 删 `#![allow(clippy::module_inception)]`（8-agent 勘察 workflow；app_engine/apaas 异名排除） |
 
-### 未做（按硬约束 line 105 另案）
+### 决策痕迹：platform inception（先延后做）
 
-- **platform inception 折叠**（line 120「删 4 个 module_inception 空跳」）—— 与硬约束 line 105「不改模块树…module 重组作为后续独立议题」字面冲突。2026-07-06 执行期裁决：**守硬约束**，inception 折叠（模块树重组）正式定为「后续独立议题」，跟踪于 #367。4 个 inception 是无害的 3 行 `pub mod v1;` hop（被 `#![allow(clippy::module_inception)]` 抑制），实质性浅壳反模式已全部清除。
+- **platform inception 折叠**（line 120「删 module_inception 空跳」）原与硬约束 line 105「不改模块树…module 重组作为后续独立议题」字面冲突。**2026-07-06 #368 执行期初裁：守硬约束，延后到 #367**；**2026-07-06 #371 落地完成**——折叠 spark/admin/directory 3 个同名 inception（实测 app_engine/apaas 异名非 inception，排除）+ 删 `#![allow(clippy::module_inception)]`。至此 line 120 全部兑现，硬约束 line 105 的「后续独立议题」收口。
 
 ### 阶段 5（统一收口）
 
