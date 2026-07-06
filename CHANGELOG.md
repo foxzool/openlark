@@ -53,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-workflow 删 `service.task()`/`service.tasklist()` 冗余双入口（ADR 0001 阶段4）**：
+  `WorkflowService::task()`/`tasklist()` 与 `service.v2().task()`/`service.v2().tasklist()` 等价（同
+  `v2::task::Task` / `v2::tasklist::Tasklist` 类型），是绕过版本层的冗余捷径。ADR「双入口二选一，留版本化
+  路径」：删捷径 accessor，统一经 `service.v2()` 版本路由层。原 `service.task().create()` /
+  `service.tasklist().search()` → `service.v2().task().create()` / `service.v2().tasklist().search()`。
+  **breaking**：移除 pub `WorkflowService::task()`/`tasklist()`。**迁移**：仅 `openlark-client` facade
+  test + 本 crate 2 个捷径 test 用到，已改（test 改走 `.v2()` / 捷径 test 删除）；TaskV2 + leaf builder 不变。
+
 - **openlark-user 砍 `PersonalSettingsResource` 中间层 + 修 `UserService::new` 误导签名（ADR 0001 阶段2）**：
   `PersonalSettingsResource`（personal_settings/mod.rs）是 1:1 单转发壳（仅 `system_status()` 一子资源，
   全仓零调用者）砍除；`UserService` 新增 `system_status()` 直达 `SystemStatusResource`（7 个真实构建器）。

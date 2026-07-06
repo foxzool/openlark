@@ -317,18 +317,6 @@ impl WorkflowService {
         crate::v2::TaskV2::new(self.config.clone())
     }
 
-    #[cfg(feature = "v2")]
-    /// 返回 v2 任务资源入口。
-    pub fn task(&self) -> crate::v2::task::Task {
-        crate::v2::task::Task::new(self.config.clone())
-    }
-
-    #[cfg(feature = "v2")]
-    /// 返回 v2 任务清单资源入口。
-    pub fn tasklist(&self) -> crate::v2::tasklist::Tasklist {
-        crate::v2::tasklist::Tasklist::new(self.config.clone())
-    }
-
     /// 列取任务并自动处理分页。
     #[cfg(feature = "v2")]
     pub async fn list_tasks_all(

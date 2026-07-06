@@ -112,7 +112,7 @@ declare_client! {
         feature: "workflow",
         field: workflow,
         ty: crate::WorkflowClient,
-        doc: "Workflow meta 调用链入口：client.workflow.task.create() ...",
+        doc: "Workflow meta 调用链入口：client.workflow.v2().task().create() ...",
         init: |_core_config, _base_core_config| {
             crate::WorkflowClient::new(_core_config.clone())
         },
