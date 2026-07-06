@@ -92,9 +92,9 @@ fn common_models_roundtrip() {
 
 #[test]
 fn admin_badge_contracts() {
-    use openlark_platform::admin::admin::v1::badge::get::GetBadgeResponse;
-    use openlark_platform::admin::admin::v1::badge::list::ListBadgeResponse;
-    use openlark_platform::admin::admin::v1::badge_image::create::CreateBadgeImageResponse;
+    use openlark_platform::admin::v1::badge::get::GetBadgeResponse;
+    use openlark_platform::admin::v1::badge::list::ListBadgeResponse;
+    use openlark_platform::admin::v1::badge_image::create::CreateBadgeImageResponse;
 
     let badge: GetBadgeResponse = parse_contract(json!({
         "badge_id": "b_001",
@@ -143,7 +143,7 @@ fn admin_badge_contracts() {
 
 #[test]
 fn admin_badge_grant_contracts() {
-    use openlark_platform::admin::admin::v1::badge::grant::list::ListBadgeGrantResponse;
+    use openlark_platform::admin::v1::badge::grant::list::ListBadgeGrantResponse;
 
     let resp: ListBadgeGrantResponse = parse_contract(json!({
         "items": [
@@ -166,7 +166,7 @@ fn admin_badge_grant_contracts() {
 
 #[test]
 fn directory_department_contracts() {
-    use openlark_platform::directory::directory::v1::department::search::DepartmentSearchResponse;
+    use openlark_platform::directory::v1::department::search::DepartmentSearchResponse;
 
     let payload = json!({
         "items": [
@@ -182,7 +182,7 @@ fn directory_department_contracts() {
 
 #[test]
 fn directory_employee_contracts() {
-    use openlark_platform::directory::directory::v1::employee::search::EmployeeSearchResponse;
+    use openlark_platform::directory::v1::employee::search::EmployeeSearchResponse;
 
     let payload = json!({
         "items": [
@@ -378,7 +378,7 @@ fn mdm_country_region_contracts() {
 
 #[test]
 fn spark_id_convert_contracts() {
-    use openlark_platform::spark::spark::v1::directory::user::id_convert::DirectoryUserIdConvertResponse;
+    use openlark_platform::spark::v1::directory::user::id_convert::DirectoryUserIdConvertResponse;
 
     let resp: DirectoryUserIdConvertResponse = parse_contract(json!({
         "items": [

@@ -58,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-platform 折叠 3 个 module_inception（spark/admin/directory，ADR 0001 #367）**：
+  `spark::spark`/`admin::admin`/`directory::directory` 三个同名 inception hop（各 3 行 `pub mod v1;`）折叠：
+  `x/x/v1/` 上移到 `x/v1/`，删 inception hop + 空目录。路径 `crate::spark::spark::v1::*` → `crate::spark::v1::*`
+ （admin/directory 同），13 处引用重连（src/ 6 + 本 crate 契约测试 7）。删 `lib.rs #![allow(clippy::module_inception)]`
+ （3 个 inception 全清，allow 不再需要，是本次折叠的收口证据）。**breaking**：pub 模块路径命名空间移动——经
+  `openlark::platform` re-alias，`openlark::platform::{spark::spark,admin::admin,directory::directory}::v1::*` 曾可达
+ （v0.18 窗口，对照 #336/#340 okr/v2 迁移）；全仓零外部 FQN 消费者（8-agent 勘察 workflow 验证 SOUND）。
+  leaf builder + 路径参数绑定层（`ApaasV1.application(ns).workspace(ws).table(id)`，app_engine/apaas 非同名 inception，未动）100% 保留。
+
 - **openlark-cardkit 合并双导航树：砍死 strict 树 + 解决 CardElementResource 命名碰撞（ADR 0001 阶段3）**：
   cardkit 有两套并行导航树——门面链（common/chain.rs：`CardkitClient → CardkitV1Client → CardResource →
   CardElementResource`，`Arc<Config>` + async helpers）和 strict 死树（cardkit/cardkit/v1：`CardkitV1Service →
