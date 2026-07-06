@@ -53,6 +53,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-cardkit 合并双导航树：砍死 strict 树 + 解决 CardElementResource 命名碰撞（ADR 0001 阶段3）**：
+  cardkit 有两套并行导航树——门面链（common/chain.rs：`CardkitClient → CardkitV1Client → CardResource →
+  CardElementResource`，`Arc<Config>` + async helpers）和 strict 死树（cardkit/cardkit/v1：`CardkitV1Service →
+  CardService → strict CardElementResource`，`Config` by-value）。strict 树根 `CardkitV1Service::new()` 全仓零调用，
+  门面直接调 leaf Request，strict 树是自封闭死循环。砍 strict 树 3 壳（`CardkitV1Service`/`CardService`/
+  strict `CardElementResource`）+ `CardElementService` 别名；保门面 twin（disjoint 模块路径，rustc 层面从未碰撞，
+  无需 rename）。门面目标链 `client.cardkit.v1.card.create(body)` 100% 保留。**breaking**：移除 pub
+  `CardkitV1Service`/`CardService`/strict `CardElementResource`/`CardElementService` alias——全仓零外部引用
+ （多 agent 勘察 + 双对抗 reviewer 共识 SOUND）；leaf builder（`*Request*`）+ 模块树不变。
+
 - **openlark-docs 砍 5 个 config-holder 子客户端（ADR 0001 阶段3 扁平收口）**：
   `CcmClient`/`BaseClient`/`BitableClient`/`BaikeClient`/`MinutesClient`（common/chain.rs）是纯 config-holder
   （仅 `config()`，BaseClient 多一个 `bitable()` 路由），与 `DocsClient::config()` 等价冗余。砍 5 struct +

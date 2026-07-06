@@ -35,54 +35,6 @@ pub use update::{
     UpdateCardElementBody, UpdateCardElementRequest, UpdateCardElementRequestBuilder,
 };
 
-use openlark_core::config::Config;
-
-/// card.element 资源服务
-#[derive(Debug, Clone)]
-pub struct CardElementResource {
-    config: Config,
-}
-
-/// 兼容历史命名：card.element 服务
-pub type CardElementService = CardElementResource;
-
-impl CardElementResource {
-    /// 创建新的实例。
-    pub fn new(config: Config) -> Self {
-        Self { config }
-    }
-
-    /// 返回配置引用。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    /// 创建卡片组件
-    pub fn create(&self) -> create::CreateCardElementRequestBuilder {
-        create::CreateCardElementRequestBuilder::new(self.config.clone())
-    }
-
-    /// 更新组件
-    pub fn update(&self) -> update::UpdateCardElementRequestBuilder {
-        update::UpdateCardElementRequestBuilder::new(self.config.clone())
-    }
-
-    /// 补丁组件
-    pub fn patch(&self) -> patch::PatchCardElementRequestBuilder {
-        patch::PatchCardElementRequestBuilder::new(self.config.clone())
-    }
-
-    /// 流式更新文本
-    pub fn content(&self) -> content::UpdateCardElementContentRequestBuilder {
-        content::UpdateCardElementContentRequestBuilder::new(self.config.clone())
-    }
-
-    /// 删除组件
-    pub fn delete(&self) -> delete::DeleteCardElementRequestBuilder {
-        delete::DeleteCardElementRequestBuilder::new(self.config.clone())
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
