@@ -67,7 +67,7 @@ declare_client! {
         feature: "docs",
         field: docs,
         ty: openlark_docs::DocsClient,
-        doc: "Docs meta 调用链入口：client.docs.config() / client.docs.<helper>() ...",
+        doc: "Docs meta 调用链入口：client.docs.config() / 各 async helper（如 search_bitable_records_all）...",
         init: |_core_config, _base_core_config| {
             openlark_docs::DocsClient::new(_core_config.clone())
         },
