@@ -176,20 +176,4 @@ mod service_tests {
         let service = WorkflowService::new(config);
         let _v2 = service.v2();
     }
-
-    #[cfg(feature = "v2")]
-    #[test]
-    fn test_workflow_service_task() {
-        let config = create_test_config();
-        let service = WorkflowService::new(config);
-        let _task = service.task();
-    }
-
-    #[cfg(feature = "v2")]
-    #[test]
-    fn test_workflow_service_tasklist() {
-        let config = create_test_config();
-        let service = WorkflowService::new(config);
-        let _tasklist = service.tasklist();
-    }
 }

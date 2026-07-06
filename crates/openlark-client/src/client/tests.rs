@@ -260,7 +260,7 @@ fn test_workflow_task_v2_chain_exists() {
         .build()
         .unwrap();
 
-    let task = client.workflow.task();
+    let task = client.workflow.v2().task();
 
     let _ = task.create();
     let _ = task.update("task_123");
@@ -288,6 +288,7 @@ fn test_workflow_task_v2_chain_exists() {
 
     let _ = client
         .workflow
+        .v2()
         .tasklist()
         .search()
         .page_size(20)
