@@ -60,3 +60,54 @@ impl ListAccessRecordsRequest {
             .ok_or_else(|| validation_error("获取门禁记录列表", "响应数据为空"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET .../access_records + query 拼装 + 响应解析。
+    #[tokio::test]
+    async fn test_list_access_records_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/access_records"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [{ "access_record_id": "rec_001" }],
+                    "page_token": "next_page",
+                    "has_more": false
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ListAccessRecordsRequest::new(config)
+            .page_size(50)
+            .page_token("curr_page")
+            .execute()
+            .await
+            .expect("获取门禁记录列表应成功");
+
+        assert_eq!(data["items"].as_array().unwrap().len(), 1);
+        assert_eq!(data["has_more"], false);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=50"));
+        assert!(query.contains("page_token=curr_page"));
+    }
+}

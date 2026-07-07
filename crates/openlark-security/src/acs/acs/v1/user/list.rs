@@ -90,3 +90,55 @@ impl ListUsersRequest {
         }))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET .../users + query 拼装 → 强类型 ListUsersResponse 反序列化。
+    #[tokio::test]
+    async fn test_list_users_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "has_more": true,
+                    "page_token": "next_page",
+                    "items": [{ "user_id": "u_001" }, { "user_id": "u_002" }]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ListUsersRequest::new(config)
+            .page_size(20)
+            .department_id("dept_001")
+            .execute()
+            .await
+            .expect("获取用户列表应成功");
+
+        assert!(resp.has_more);
+        assert_eq!(resp.page_token.as_deref(), Some("next_page"));
+        assert_eq!(resp.items.as_ref().unwrap().len(), 2);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=20"));
+        assert!(query.contains("department_id=dept_001"));
+    }
+}

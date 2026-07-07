@@ -62,4 +62,42 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("face_id"));
     }
+
+    /// 端到端：GET .../faces/{id} + 响应解析。
+    #[tokio::test]
+    async fn test_face_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/faces/face_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "face_id": "face_001", "status": "active" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = FaceGetRequest::new(config, "face_001")
+            .execute()
+            .await
+            .expect("获取人脸信息应成功");
+        assert_eq!(data["face_id"], "face_001");
+        assert_eq!(data["status"], "active");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/faces/face_001");
+    }
 }

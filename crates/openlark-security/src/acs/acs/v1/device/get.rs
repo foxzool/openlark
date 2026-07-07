@@ -62,4 +62,46 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("device_id"));
     }
+
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_get_device_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/devices/dev_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "device_id": "dev_001",
+                    "device_name": "前台门禁机"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetDeviceRequest::new(config, "dev_001")
+            .execute()
+            .await
+            .expect("获取设备信息应成功");
+
+        assert_eq!(data["device_id"], "dev_001");
+        assert_eq!(data["device_name"], "前台门禁机");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/devices/dev_001");
+    }
 }

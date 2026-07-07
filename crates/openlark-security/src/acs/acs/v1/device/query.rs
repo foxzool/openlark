@@ -62,4 +62,45 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("device_id"));
     }
+
+    /// 端到端：GET .../devices/{id}/query + 响应解析。
+    #[tokio::test]
+    async fn test_query_device_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/devices/dev_001/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "device_id": "dev_001", "status": "online" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = QueryDeviceRequest::new(config, "dev_001")
+            .execute()
+            .await
+            .expect("查询设备信息应成功");
+        assert_eq!(data["device_id"], "dev_001");
+        assert_eq!(data["status"], "online");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/acs/v1/devices/dev_001/query"
+        );
+    }
 }

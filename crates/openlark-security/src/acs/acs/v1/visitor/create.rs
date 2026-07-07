@@ -70,4 +70,43 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("body"));
     }
+
+    /// 端到端：POST .../visitors + body 透传 + 响应解析。
+    #[tokio::test]
+    async fn test_create_visitor_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/acs/v1/visitors"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "visitor_id": "visitor_new_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = CreateVisitorRequest::new(config)
+            .body(json!({ "name": "访客甲", "phone": "13800000000" }))
+            .execute()
+            .await
+            .expect("添加访客应成功");
+        assert_eq!(data["visitor_id"], "visitor_new_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["name"], "访客甲");
+    }
 }

@@ -77,4 +77,44 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("user_id"));
     }
+
+    /// 端到端：PATCH .../users/{id} + body 透传 + 响应解析。
+    #[tokio::test]
+    async fn test_patch_user_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/acs/v1/users/u_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "user_id": "u_001", "name": "李四" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = PatchUserRequest::new(config, "u_001")
+            .body(json!({ "name": "李四" }))
+            .execute()
+            .await
+            .expect("修改用户信息应成功");
+        assert_eq!(data["name"], "李四");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/users/u_001");
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["name"], "李四");
+    }
 }

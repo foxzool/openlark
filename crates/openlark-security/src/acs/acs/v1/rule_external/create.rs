@@ -103,4 +103,47 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("rule"));
     }
+
+    /// 端到端：POST .../rule_external?rule_id= + {"rule": {...}} 包装 + query 拼装。
+    #[tokio::test]
+    async fn test_create_rule_external_returns_data_on_success() {
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/acs/v1/rule_external"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "rule_id": "rule_123" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = CreateRuleExternalRequest::new(config, "rule_123")
+            .user_id_type("open_id")
+            .rule(serde_json::json!({ "name": "前台权限组", "devices": ["dev_001"] }))
+            .execute()
+            .await
+            .expect("创建或更新权限组应成功");
+        assert_eq!(data["rule_id"], "rule_123");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("rule_id=rule_123"));
+        assert!(query.contains("user_id_type=open_id"));
+        // body 应被包装为 {"rule": {...}}
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["rule"]["name"], "前台权限组");
+    }
 }

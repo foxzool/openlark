@@ -69,3 +69,55 @@ impl ListDevicesRequest {
             .ok_or_else(|| validation_error("获取设备列表", "响应数据为空"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET + query 参数拼装 + 响应解析。
+    #[tokio::test]
+    async fn test_list_devices_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/devices"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [{ "device_id": "dev_001" }, { "device_id": "dev_002" }],
+                    "page_token": "next_page",
+                    "has_more": true
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ListDevicesRequest::new(config)
+            .page_size(10)
+            .device_type("gate")
+            .execute()
+            .await
+            .expect("获取设备列表应成功");
+
+        assert_eq!(data["items"].as_array().unwrap().len(), 2);
+        assert_eq!(data["page_token"], "next_page");
+        assert_eq!(data["has_more"], true);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=10"));
+        assert!(query.contains("device_type=gate"));
+    }
+}

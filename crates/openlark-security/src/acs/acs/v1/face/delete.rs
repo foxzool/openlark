@@ -62,4 +62,41 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("face_id"));
     }
+
+    /// 端到端：DELETE .../faces/{id} + 响应解析。
+    #[tokio::test]
+    async fn test_face_delete_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/acs/v1/faces/face_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "face_id": "face_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = FaceDeleteRequest::new(config, "face_001")
+            .execute()
+            .await
+            .expect("删除人脸应成功");
+        assert_eq!(data["face_id"], "face_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/faces/face_001");
+    }
 }
