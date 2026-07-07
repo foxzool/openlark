@@ -40,6 +40,7 @@ impl AppAvatarUploadCreateRequest {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use super::*;
 
@@ -47,5 +48,47 @@ mod tests {
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _request = AppAvatarUploadCreateRequest::new(config);
+    }
+
+    /// 端到端：POST .../app_avatar/upload → 原始 serde_json::Value 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_create_app_avatar_upload_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/application/v7/app_avatar/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "icon": "avatar_data" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = AppAvatarUploadCreateRequest::new(config)
+            .execute(json!({ "image_type": "icon" }))
+            .await
+            .expect("上传应用图标应成功");
+        assert_eq!(resp["icon"], "avatar_data");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/application/v7/app_avatar/upload"
+        );
     }
 }

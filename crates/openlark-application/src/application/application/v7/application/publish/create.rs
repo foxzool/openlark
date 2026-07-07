@@ -56,6 +56,7 @@ impl ApplicationPublishCreateRequest {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use super::*;
 
@@ -63,5 +64,50 @@ mod tests {
     fn builder_initializes() {
         let config = Arc::new(Config::default());
         let _request = ApplicationPublishCreateRequest::new(config);
+    }
+
+    /// 端到端：POST .../applications/{app_id}/publish → 原始 serde_json::Value 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_create_application_publish_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/application/v7/applications/cli_test_app/publish",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "publish_id": "pub_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ApplicationPublishCreateRequest::new(config)
+            .app_id("cli_test_app")
+            .execute(json!({ "version": "1.0.0" }))
+            .await
+            .expect("提交发布自建应用应成功");
+        assert_eq!(resp["publish_id"], "pub_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/application/v7/applications/cli_test_app/publish"
+        );
     }
 }

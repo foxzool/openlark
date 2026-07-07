@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **application 36 真实端点占位测试 → wiremock e2e + 修 27 个丢弃响应 bug**（#351 第 6 批，P3
+  application）：`v6/application`（23）/ `v5`（2）/ `v6` 非 app（2）的 `execute_with_options` 用
+  `let _resp = Transport::request(...).await?; Ok(XxxResponse { data: None })` 丢弃响应（永远返回空
+  data），修成 `resp.data.ok_or_else(|| validation_error(...))`。36 个经 catalog 核对为真实端点的
+  API 文件：占位 `serde_json` roundtrip 测试 → wiremock 端到端（Builder → execute → Transport →
+  mock → 断言 data + path）。`v1/` + `v6` 非 application 子域 ~60 残破 stub（双 `application/` path
+  + create/delete 用 GET）归 #382（v0.18 清理）。**非 breaking**：丢弃响应修复使行为变正确（旧返回
+  空 data，无可依赖）；e2e 测试纯新增。
+
 - **ADR 0001 导航壳重设计执行完成**（10 crate / 12 PR：#353-#366）：bot/meeting/mail/helpdesk/analytics/
   user/platform-facade/docs/cardkit/application/workflow 全部按 5 项判定落地（细节见各 PR 及
   `docs/adr/0001-navigation-shell-redesign.md` 执行记录）。platform inception 折叠按 ADR 硬约束 line 105

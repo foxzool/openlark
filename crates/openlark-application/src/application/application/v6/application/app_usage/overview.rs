@@ -55,9 +55,10 @@ impl GetApplicationUsageOverviewRequest {
         );
         let req: ApiRequest<GetApplicationUsageOverviewResponse> = ApiRequest::post(&path);
 
-        let _resp: openlark_core::api::Response<GetApplicationUsageOverviewResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(GetApplicationUsageOverviewResponse { data: None })
+        let resp = Transport::request(req, &self.config, Some(option)).await?;
+        resp.data.ok_or_else(|| {
+            openlark_core::error::validation_error("获取应用使用概览", "响应数据为空")
+        })
     }
 }
 
@@ -66,18 +67,49 @@ impl GetApplicationUsageOverviewRequest {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../applications/{app_id}/app_usage/overview → 强类型 GetApplicationUsageOverviewResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_application_usage_overview_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/application/v6/applications/cli_test_app/app_usage/overview",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "active_users": 256, "total_users": 1024 } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetApplicationUsageOverviewRequest::new(config, "cli_test_app")
+            .execute()
+            .await
+            .expect("获取应用使用概览应成功");
+        let data = resp.data.expect("响应数据不应为空");
+        assert_eq!(data["active_users"], 256);
+        assert_eq!(data["total_users"], 1024);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/application/v6/applications/cli_test_app/app_usage/overview"
+        );
     }
 }

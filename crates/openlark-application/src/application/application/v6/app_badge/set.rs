@@ -84,18 +84,47 @@ impl SetAppBadgeRequest {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../app_badge/set → 强类型 SetAppBadgeResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_set_app_badge_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/application/v6/app_badge/set"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "app_id": "cli_test_app", "badge": 5 } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = SetAppBadgeRequest::new(config)
+            .app_id("cli_test_app")
+            .badge(5)
+            .execute()
+            .await
+            .expect("更新应用红点应成功");
+        assert_eq!(resp.data.unwrap()["app_id"], "cli_test_app");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/application/v6/app_badge/set"
+        );
     }
 }
