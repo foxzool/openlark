@@ -65,6 +65,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-analytics 修 7 个 search/v2 + report 残缺 stub（#351 第 4 批）**：
+  `data_source` delete/patch、`data_source.item` create/delete、`schema` delete/patch、`report.rule.view`
+  remove 共 7 个 stub 原本残缺——`new(config)` 不收 id 且 URL 为字面 `{}`（无插值），对真实飞书必然 404、
+  不可用。补 id 参数 + `format!` 路径插值，并加 wiremock 端到端覆盖（同 #374/#375/#376 食谱）。**breaking**：
+  7 个 `XxxRequest::new(config)` → `new(config, id)`（`DeleteDataSourceItemRequest` 加 2 个 id）。**迁移**：
+  调用方补传对应 id。全仓零外部消费者（workspace `cargo check --all-targets` 验证无跨 crate 引用；这些
+  stub 此前不可用、无人调用）。
+
 - **openlark-platform 修 `PlatformService::new` 误导签名（#350 P9 platform 子项）**：
   签名 `SDKResult<Self>` 但函数体永远 `Ok(...)`（接口撒谎——调用方据 `Result` 写的错误分支永不达）→ 改为 `Self`
  （非 `Result`，同 user #360 `UserService::new` 修正方向）。**breaking**：`PlatformService::new` 返回类型
