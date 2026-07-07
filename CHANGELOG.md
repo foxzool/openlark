@@ -58,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **openlark-platform 修 `PlatformService::new` 误导签名（#350 P9 platform 子项）**：
+  签名 `SDKResult<Self>` 但函数体永远 `Ok(...)`（接口撒谎——调用方据 `Result` 写的错误分支永不达）→ 改为 `Self`
+ （非 `Result`，同 user #360 `UserService::new` 修正方向）。**breaking**：`PlatformService::new` 返回类型
+ `SDKResult<Self>` → `Self`。**迁移**：`openlark-client` facade（`PlatformClient::new(...)?` → 去 `?`）+ 本 crate
+ doctest / 6 个 unit test（`.unwrap()` → 去）已改；仓内零外部残留。
+
 - **openlark-platform 折叠 3 个 module_inception（spark/admin/directory，ADR 0001 #367）**：
   `spark::spark`/`admin::admin`/`directory::directory` 三个同名 inception hop（各 3 行 `pub mod v1;`）折叠：
   `x/x/v1/` 上移到 `x/v1/`，删 inception hop + 空目录。路径 `crate::spark::spark::v1::*` → `crate::spark::v1::*`
