@@ -169,21 +169,48 @@ impl UpdateCardRequestBuilder {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：PUT .../cards/{card_id} + body 序列化 → UpdateCardResponse。
+    #[tokio::test]
+    async fn test_update_card_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path("/open-apis/cardkit/v1/cards/card_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "card_id": "card_001", "app_id": "app_001" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let body = UpdateCardBody {
+            card_id: "card_001".into(),
+            card_content: json!({ "schema": "2.0" }),
+            card_type: None,
+            update_mask: None,
+        };
+        let resp = UpdateCardRequest::new(config)
+            .execute(body)
+            .await
+            .expect("全量更新卡片实体应成功");
+        assert_eq!(resp.card_id.as_deref(), Some("card_001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["card_content"]["schema"], "2.0");
     }
 }
