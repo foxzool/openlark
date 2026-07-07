@@ -217,4 +217,51 @@ mod tests {
 
         assert!(builder.name.is_none());
     }
+
+    /// 端到端：POST .../agent_skills → 强类型 CreateAgentSkillResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_create_agent_skill_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/agent_skills"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "id": "skl_001", "name": "技术支持" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = CreateAgentSkillBody {
+            name: "技术支持".to_string(),
+            description: Some("提供技术支持服务".to_string()),
+            enable: Some(true),
+        };
+        let resp = CreateAgentSkillRequest::new(config)
+            .execute(body)
+            .await
+            .expect("创建客服技能应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_skills"
+        );
+    }
 }

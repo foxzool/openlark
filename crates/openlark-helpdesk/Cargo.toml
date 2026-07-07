@@ -21,6 +21,8 @@ tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
+wiremock = { workspace = true }
+serde_json = { workspace = true }
 
 [features]
 default = ["v1", "async"]

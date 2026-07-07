@@ -272,4 +272,53 @@ mod tests {
 
         assert!(builder.agent_id.is_none());
     }
+
+    /// 端到端：POST .../agent_schedules → 强类型 CreateAgentScheduleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_create_agent_schedule_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/agent_schedules"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "agent_id": "ag_001", "work_date": "2024-01-15" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = CreateAgentScheduleBody {
+            agent_id: "ag_001".to_string(),
+            work_date: "2024-01-15".to_string(),
+            start_time: "09:00:00".to_string(),
+            end_time: "18:00:00".to_string(),
+            day_of_week: Some(1),
+        };
+        let resp = CreateAgentScheduleRequest::new(config)
+            .execute(body)
+            .await
+            .expect("创建客服工作日程应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_schedules"
+        );
+    }
 }

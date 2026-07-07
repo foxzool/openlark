@@ -228,4 +228,48 @@ mod tests {
 
         assert!(builder.title.is_none());
     }
+
+    /// 端到端：POST .../faqs → 强类型 CreateFaqResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_create_faq_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/faqs"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "id": "faq_001", "title": "如何重置密码？" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = CreateFaqBody {
+            title: "如何重置密码？".to_string(),
+            content: "请按照以下步骤重置密码...".to_string(),
+            category_id: None,
+        };
+        let resp = CreateFaqRequest::new(config)
+            .execute(body)
+            .await
+            .expect("创建知识库应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/faqs");
+    }
 }

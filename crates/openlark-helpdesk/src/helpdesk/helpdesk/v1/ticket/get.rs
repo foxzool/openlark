@@ -55,19 +55,53 @@ impl ApiResponseTrait for GetTicketResponse {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：GET .../tickets/{id} → 强类型 GetTicketResponse 解析（扁平响应，单层 data 信封）。
+    #[tokio::test]
+    async fn test_get_ticket_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/tickets/tk_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "ticket_id": "tk_001",
+                    "title": "无法登录",
+                    "status": "open",
+                    "created_at": "2024-01-01T00:00:00Z"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetTicketRequest::new(config, "tk_001".to_string())
+            .execute()
+            .await
+            .expect("获取工单详情应成功");
+        assert_eq!(resp.ticket_id, "tk_001");
+        assert_eq!(resp.status, "open");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/tickets/tk_001"
+        );
     }
 }

@@ -130,4 +130,48 @@ mod tests {
 
         assert_eq!(builder.id, "field_123");
     }
+
+    /// 端到端：GET .../ticket_customized_fields/{id} → 强类型 GetTicketCustomizedFieldResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/ticket_customized_fields/tcf_001"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": { "data": { "id": "tcf_001", "name": "工单编号", "field_type": "text", "required": true } }
+                })),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetTicketCustomizedFieldRequest::new(config, "tcf_001".to_string())
+            .execute()
+            .await
+            .expect("获取指定工单自定义字段应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/ticket_customized_fields/tcf_001"
+        );
+    }
 }

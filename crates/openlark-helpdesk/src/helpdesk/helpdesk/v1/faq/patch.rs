@@ -248,4 +248,51 @@ mod tests {
         assert_eq!(builder.id, "faq_123");
         assert!(builder.title.is_none());
     }
+
+    /// 端到端：PATCH .../faqs/{id} → 强类型 PatchFaqResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_patch_faq_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/helpdesk/v1/faqs/faq_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "id": "faq_001", "title": "新标题" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = PatchFaqBody {
+            title: Some("新标题".to_string()),
+            content: None,
+            category_id: None,
+        };
+        let resp = PatchFaqRequest::new(config, "faq_001".to_string())
+            .execute(body)
+            .await
+            .expect("更新知识库应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/faqs/faq_001"
+        );
+    }
 }

@@ -97,4 +97,50 @@ mod tests {
             .page_token("test".to_string());
         let _ = request;
     }
+
+    /// 端到端：GET .../tickets → 强类型 TicketListResponse 解析（扁平响应，单层 data 信封）。
+    #[tokio::test]
+    async fn test_list_tickets_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/tickets"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "tickets": [
+                        { "ticket_id": "tk_001", "title": "无法登录", "status": "open" }
+                    ],
+                    "page_token": "next_page"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = TicketListRequest::new(config)
+            .execute()
+            .await
+            .expect("获取工单列表应成功");
+        assert_eq!(resp.tickets.len(), 1);
+        assert_eq!(resp.tickets[0].ticket_id, "tk_001");
+        assert_eq!(resp.page_token.as_deref(), Some("next_page"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/tickets");
+    }
 }

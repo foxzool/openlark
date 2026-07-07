@@ -124,4 +124,50 @@ mod tests {
 
         // Builder created successfully
     }
+
+    /// 端到端：GET .../agent_skills → 强类型 ListAgentSkillResponse 解析（单层 data 信封，items 直挂）。
+    #[tokio::test]
+    async fn test_list_agent_skill_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/agent_skills"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        { "id": "skl_001", "name": "技术支持", "enable": true }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ListAgentSkillRequest::new(config)
+            .execute()
+            .await
+            .expect("获取客服技能列表应成功");
+        assert!(resp.items.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_skills"
+        );
+    }
 }

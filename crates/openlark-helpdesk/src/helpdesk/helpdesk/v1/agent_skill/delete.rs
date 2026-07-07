@@ -137,4 +137,46 @@ mod tests {
 
         assert_eq!(builder.agent_skill_id, "skill_123");
     }
+
+    /// 端到端：DELETE .../agent_skills/{agent_skill_id} → 强类型 DeleteAgentSkillResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_delete_agent_skill_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/helpdesk/v1/agent_skills/skl_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "success": true } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = DeleteAgentSkillRequest::new(config, "skl_001".to_string())
+            .execute()
+            .await
+            .expect("删除客服技能应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_skills/skl_001"
+        );
+    }
 }

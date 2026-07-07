@@ -224,4 +224,48 @@ mod tests {
 
         assert!(builder.receive_id.is_none());
     }
+
+    /// 端到端：POST .../message → 强类型 CreateBotMessageResponse 解析（data 内层为 message_id）。
+    #[tokio::test]
+    async fn test_create_bot_message_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/message"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "message_id": "msg_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = CreateBotMessageBody {
+            receive_id: Some("ou_test_user".to_string()),
+            msg_type: Some("text".to_string()),
+            content: Some(r#"{"text":"hello"}"#.to_string()),
+        };
+        let resp = CreateBotMessageRequest::new(config)
+            .execute(body)
+            .await
+            .expect("机器人发送消息应成功");
+        assert_eq!(resp.message_id.as_deref(), Some("msg_001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/message");
+    }
 }
