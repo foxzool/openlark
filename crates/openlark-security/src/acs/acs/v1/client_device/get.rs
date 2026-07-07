@@ -62,4 +62,45 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("device_id"));
     }
+
+    /// 端到端：GET .../client_devices/{id} + 响应解析。
+    #[tokio::test]
+    async fn test_get_client_device_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/client_devices/dev_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "device_id": "dev_001", "cert": "client_cert_token" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetClientDeviceRequest::new(config, "dev_001")
+            .execute()
+            .await
+            .expect("获取客户端设备认证信息应成功");
+        assert_eq!(data["device_id"], "dev_001");
+        assert_eq!(data["cert"], "client_cert_token");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/acs/v1/client_devices/dev_001"
+        );
+    }
 }

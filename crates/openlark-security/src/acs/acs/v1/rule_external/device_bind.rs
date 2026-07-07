@@ -110,4 +110,45 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("rule_ids"));
     }
+
+    /// 端到端：POST .../rule_external/device_bind + flat body 序列化 + 响应解析。
+    #[tokio::test]
+    async fn test_bind_device_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/acs/v1/rule_external/device_bind"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "device_id": "dev_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = BindDeviceToRuleRequest::new(config)
+            .device_id("dev_001")
+            .rule_ids(vec!["rule_123".into(), "rule_456".into()])
+            .execute()
+            .await
+            .expect("设备绑定权限组应成功");
+        assert_eq!(data["device_id"], "dev_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["device_id"], "dev_001");
+        assert_eq!(sent["rule_ids"].as_array().unwrap().len(), 2);
+    }
 }

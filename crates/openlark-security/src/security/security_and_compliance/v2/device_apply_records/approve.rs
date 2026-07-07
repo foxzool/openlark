@@ -127,4 +127,52 @@ mod tests {
                 .contains("device_apply_record_id")
         );
     }
+
+    /// 端到端：PUT .../device_apply_records/{id} + body {approved, comment, remark} 序列化。
+    #[tokio::test]
+    async fn test_approve_device_apply_record_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path(
+                "/open-apis/security_and_compliance/v2/device_apply_records/rec_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "device_apply_record_id": "rec_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ApproveDeviceApplyRecordRequest::new(config, "rec_001")
+            .approve()
+            .comment("同意")
+            .remark("IT 设备")
+            .execute()
+            .await
+            .expect("审批设备申报应成功");
+        assert_eq!(data["device_apply_record_id"], "rec_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/security_and_compliance/v2/device_apply_records/rec_001"
+        );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["approved"], true);
+        assert_eq!(sent["comment"], "同意");
+    }
 }

@@ -70,3 +70,53 @@ impl GetMyDeviceRecordsRequest {
             .ok_or_else(|| validation_error("获取我的设备认证信息", "响应数据为空"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET .../device_records/mine + query 拼装 + 响应解析。
+    #[tokio::test]
+    async fn test_get_my_device_records_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/security_and_compliance/v2/device_records/mine",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [{ "device_record_id": "dr_001" }],
+                    "has_more": false
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetMyDeviceRecordsRequest::new(config)
+            .page_size(10)
+            .status("approved")
+            .execute()
+            .await
+            .expect("获取我的设备认证信息应成功");
+        assert_eq!(data["items"].as_array().unwrap().len(), 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=10"));
+        assert!(query.contains("status=approved"));
+    }
+}

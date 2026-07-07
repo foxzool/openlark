@@ -65,4 +65,46 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("access_record_id"));
     }
+
+    /// 端到端：GET .../access_records/{id}/access_photo + 响应解析。
+    #[tokio::test]
+    async fn test_get_access_photo_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/access_records/rec_001/access_photo"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": { "access_record_id": "rec_001", "photo_url": "https://cdn.example.com/p.jpg" }
+                })),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetAccessPhotoRequest::new(config, "rec_001")
+            .execute()
+            .await
+            .expect("下载开门人脸识别图片应成功");
+        assert_eq!(data["photo_url"], "https://cdn.example.com/p.jpg");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/acs/v1/access_records/rec_001/access_photo"
+        );
+    }
 }

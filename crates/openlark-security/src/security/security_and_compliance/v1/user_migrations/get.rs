@@ -43,3 +43,50 @@ impl GetUserMigrationRequest {
             .ok_or_else(|| validation_error("获取单个用户迁移状态", "响应数据为空"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET .../user_migrations/{id} + 响应解析。
+    #[tokio::test]
+    async fn test_get_user_migration_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/security_and_compliance/v1/user_migrations/mig_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "migration_id": "mig_001", "status": "processing" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetUserMigrationRequest::new(config, "mig_001")
+            .execute()
+            .await
+            .expect("获取用户迁移状态应成功");
+        assert_eq!(data["migration_id"], "mig_001");
+        assert_eq!(data["status"], "processing");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/security_and_compliance/v1/user_migrations/mig_001"
+        );
+    }
+}

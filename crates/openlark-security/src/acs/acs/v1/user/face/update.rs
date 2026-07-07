@@ -78,4 +78,44 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("user_id"));
     }
+
+    /// 端到端：PUT .../users/{id}/face + body 透传 + 响应解析。
+    #[tokio::test]
+    async fn test_update_user_face_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path("/open-apis/acs/v1/users/u_001/face"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "face_url": "https://cdn.example.com/face/u_001.jpg" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = UpdateUserFaceRequest::new(config, "u_001")
+            .body(json!({ "image_base64": "BASE64_DATA" }))
+            .execute()
+            .await
+            .expect("上传用户人脸图片应成功");
+        assert_eq!(data["face_url"], "https://cdn.example.com/face/u_001.jpg");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/users/u_001/face");
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert!(sent["image_base64"].as_str().unwrap().contains("BASE64"));
+    }
 }

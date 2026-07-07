@@ -113,3 +113,55 @@ impl ListDeviceRecordsRequest {
             .ok_or_else(|| validation_error("查询设备信息列表", "响应数据为空"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    /// 端到端：GET .../device_records + 多个 query 拼装 + 响应解析。
+    #[tokio::test]
+    async fn test_list_device_records_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/security_and_compliance/v2/device_records"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [{ "device_record_id": "dr_001" }],
+                    "page_token": "next",
+                    "has_more": true
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ListDeviceRecordsRequest::new(config)
+            .page_size(20)
+            .user_id("u_001")
+            .status("approved")
+            .execute()
+            .await
+            .expect("查询设备信息列表应成功");
+        assert_eq!(data["items"].as_array().unwrap().len(), 1);
+        assert_eq!(data["has_more"], true);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=20"));
+        assert!(query.contains("user_id=u_001"));
+        assert!(query.contains("status=approved"));
+    }
+}
