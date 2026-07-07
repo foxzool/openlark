@@ -226,4 +226,51 @@ mod tests {
         let result = query.validate();
         assert!(result.is_err());
     }
+
+    /// 端到端：GET .../agent_schedules → 强类型 ListAgentScheduleResponse 解析（单层 data 信封，items 直挂）。
+    #[tokio::test]
+    async fn test_list_agent_schedule_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/agent_schedules"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        { "agent_id": "ag_001", "work_date": "2024-01-15" }
+                    ],
+                    "has_more": false
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ListAgentScheduleRequest::new(config)
+            .execute()
+            .await
+            .expect("获取客服工作日程列表应成功");
+        assert!(resp.items.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_schedules"
+        );
+    }
 }

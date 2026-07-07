@@ -263,4 +263,54 @@ mod tests {
         assert_eq!(builder.agent_id, "agent_123");
         assert!(builder.work_date.is_none());
     }
+
+    /// 端到端：PATCH .../agents/{agent_id}/schedules → 强类型 PatchAgentScheduleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_patch_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/helpdesk/v1/agents/ag_001/schedules"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": { "data": { "agent_id": "ag_001", "work_date": "2026-07-07", "start_time": "09:00:00", "end_time": "18:00:00", "day_of_week": 1 } }
+                })),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = PatchAgentScheduleBody {
+            work_date: Some("2026-07-07".to_string()),
+            start_time: Some("09:00:00".to_string()),
+            end_time: Some("18:00:00".to_string()),
+            day_of_week: Some(1),
+        };
+        let resp = PatchAgentScheduleRequest::new(config, "ag_001".to_string())
+            .execute(body)
+            .await
+            .expect("更新客服工作日程应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agents/ag_001/schedules"
+        );
+    }
 }

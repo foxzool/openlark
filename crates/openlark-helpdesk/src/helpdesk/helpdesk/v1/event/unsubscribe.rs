@@ -103,4 +103,45 @@ mod tests {
 
         assert!(builder.config.app_id() == "test_app_id");
     }
+
+    /// 端到端：POST .../events/unsubscribe → 空 body 响应经 extract_response_data 成功返回。
+    #[tokio::test]
+    async fn test_unsubscribe_event_returns_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/events/unsubscribe"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        EventUnsubscribeRequest::new(config)
+            .execute()
+            .await
+            .expect("取消订阅服务台事件应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/events/unsubscribe"
+        );
+    }
 }

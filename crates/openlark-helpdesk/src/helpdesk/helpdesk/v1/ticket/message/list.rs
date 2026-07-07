@@ -133,4 +133,51 @@ mod tests {
 
         assert_eq!(builder.ticket_id, "ticket_123");
     }
+
+    /// 端到端：GET .../tickets/{id}/messages → 强类型 ListTicketMessageResponse 解析（扁平响应，单层 data 信封）。
+    #[tokio::test]
+    async fn test_list_ticket_messages_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/tickets/tk_001/messages"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        { "id": "msg_001", "content": "您好", "msg_type": "text" }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ListTicketMessageRequest::new(config, "tk_001".to_string())
+            .execute()
+            .await
+            .expect("获取工单消息列表应成功");
+        assert!(resp.items.is_some());
+        assert_eq!(resp.items.unwrap().len(), 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/tickets/tk_001/messages"
+        );
+    }
 }

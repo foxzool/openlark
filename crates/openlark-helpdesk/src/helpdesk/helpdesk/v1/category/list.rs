@@ -125,4 +125,44 @@ mod tests {
             .build();
         let _builder = ListCategoryRequestBuilder::new(Arc::new(config));
     }
+
+    /// 端到端：GET .../categories → 强类型 ListCategoryResponse 解析（data 内层为 items 数组）。
+    #[tokio::test]
+    async fn test_list_category_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/categories"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "items": [ { "id": "cat_001", "name": "公告分类" } ] }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ListCategoryRequest::new(config)
+            .execute()
+            .await
+            .expect("获取分类列表应成功");
+        assert!(resp.items.is_some());
+        assert_eq!(resp.items.unwrap().len(), 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/categories");
+    }
 }

@@ -226,4 +226,54 @@ mod tests {
         assert_eq!(builder.agent_id, "agent_123");
         assert!(builder.page_size.is_none());
     }
+
+    /// 端到端：GET .../agents/{agent_id}/schedules → 强类型 GetAgentScheduleResponse 解析（外层 data 信封 + items）。
+    #[tokio::test]
+    async fn test_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/agents/ag_001/schedules"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": {
+                        "page_token": "next_page",
+                        "has_more": false,
+                        "items": [
+                            { "agent_id": "ag_001", "work_date": "2026-07-07", "start_time": "09:00:00", "end_time": "18:00:00", "day_of_week": 1 }
+                        ]
+                    }
+                })),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetAgentScheduleRequest::new(config, "ag_001".to_string())
+            .execute()
+            .await
+            .expect("获取指定客服工作日程应成功");
+        assert!(resp.items.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agents/ag_001/schedules"
+        );
+    }
 }

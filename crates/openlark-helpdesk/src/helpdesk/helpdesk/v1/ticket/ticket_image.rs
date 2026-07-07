@@ -79,19 +79,53 @@ impl GetTicketImageRequest {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：GET .../ticket_images（带 ticket_id/image_key 查询参数）→ 强类型 GetTicketImageResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_ticket_image_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/ticket_images"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "image_url": "https://example.com/img_001.png" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetTicketImageRequest::new(config, "tk_001", "img_key_001")
+            .execute()
+            .await
+            .expect("获取工单内图像应成功");
+        assert!(resp.data.is_some());
+        assert_eq!(
+            resp.data.unwrap().image_url,
+            "https://example.com/img_001.png"
+        );
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/ticket_images"
+        );
+        // 验证查询参数正确传递
+        assert_eq!(received[0].url.query_pairs().count(), 2);
     }
 }

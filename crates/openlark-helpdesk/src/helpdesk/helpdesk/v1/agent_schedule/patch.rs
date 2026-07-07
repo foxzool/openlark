@@ -263,4 +263,52 @@ mod tests {
         assert_eq!(builder.agent_id, "agent_123");
         assert!(builder.work_date.is_none());
     }
+
+    /// 端到端：PATCH .../agents/{agent_id}/schedules → 强类型 PatchAgentScheduleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_patch_agent_schedule_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/helpdesk/v1/agents/ag_001/schedules"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "agent_id": "ag_001", "work_date": "2024-01-16" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = PatchAgentScheduleBody {
+            work_date: Some("2024-01-16".to_string()),
+            start_time: Some("09:00:00".to_string()),
+            end_time: Some("18:00:00".to_string()),
+            day_of_week: Some(2),
+        };
+        let resp = PatchAgentScheduleRequest::new(config, "ag_001".to_string())
+            .execute(body)
+            .await
+            .expect("更新客服工作日程应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agents/ag_001/schedules"
+        );
+    }
 }
