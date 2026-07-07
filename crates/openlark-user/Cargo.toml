@@ -41,6 +41,7 @@ log = { workspace = true }
 
 
 [dev-dependencies]
+tokio = { workspace = true }
 tokio-test = "0.4"
 wiremock = { workspace = true }
 rstest = { workspace = true }

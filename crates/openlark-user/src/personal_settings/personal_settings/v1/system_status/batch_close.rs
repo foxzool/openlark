@@ -90,19 +90,50 @@ impl BatchCloseSystemStatusRequest {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../system_statuses/{status_id}/batch_close + body{user_ids} → 响应解析。
+    #[tokio::test]
+    async fn test_batch_close_system_status_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/personal_settings/v1/system_statuses/ss_001/batch_close",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "system_status_id": "ss_001" } }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = std::sync::Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = BatchCloseSystemStatusRequest::new(config, "ss_001")
+            .user_ids(vec!["u_001".into(), "u_002".into()])
+            .execute()
+            .await
+            .expect("批量关闭系统状态应成功");
+        assert_eq!(resp.data.unwrap()["system_status_id"], "ss_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/personal_settings/v1/system_statuses/ss_001/batch_close"
+        );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["user_ids"].as_array().unwrap().len(), 2);
     }
 }
