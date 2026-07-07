@@ -56,6 +56,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除。**非 breaking**：仅 deprecation
   warning，旧调用仍可编译。
 
+- **user `SystemStatusResource::get()` 标 `#[deprecated]`**（#377）：`personal_settings/v1/
+  system_status::get` 是幻影 API——飞书该目录无 `get` 接口（"获取系统状态"对应 `list`），URL
+  畸形且被暴露为 `service.get()` 公共方法（调用即打不存在的端点）。标记 deprecated，note 指明
+  替代（`SystemStatusResource::list` / `SystemStatusListRequest`）。配合 v0.18 deprecated 清理
+  节奏，下个 breaking 窗口连同 `get.rs` / `SystemStatusGetRequest` 一并删除。**非 breaking**：
+  仅 deprecation warning，旧调用仍可编译。
+
 ### Breaking Changes
 
 - **openlark-platform 修 `PlatformService::new` 误导签名（#350 P9 platform 子项）**：
