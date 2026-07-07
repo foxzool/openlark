@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **mail 34 真实端点占位测试 → wiremock e2e + 修 7 个丢弃响应 bug**（#351 第 7 批，P3 mail）：
+  mailgroup 的 `patch` / `alias-delete` / `member-delete` / `manager-batch_create` / `manager-batch_delete` /
+  `permission_member-delete` / `permission_member-batch_delete`（7 个）execute 用
+  `let _resp = ...; Ok(XxxResponse { data: None })` 丢弃响应，修成 `extract_response_data(response, ...)`。
+  34 个 API 文件（user_mailbox / mailgroup / public_mailbox / user 全子域）占位 `serde_json` roundtrip →
+  wiremock 端到端。mail crate 健康（catalog 107 端点 vs 代码 116 文件，幻影少；无衍生清理 issue）。
+  **非 breaking**：丢弃响应修复使行为变正确；e2e 测试纯新增。
+
 - **application 36 真实端点占位测试 → wiremock e2e + 修 27 个丢弃响应 bug**（#351 第 6 批，P3
   application）：`v6/application`（23）/ `v5`（2）/ `v6` 非 app（2）的 `execute_with_options` 用
   `let _resp = Transport::request(...).await?; Ok(XxxResponse { data: None })` 丢弃响应（永远返回空

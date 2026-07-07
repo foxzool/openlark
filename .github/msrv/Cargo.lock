@@ -1795,6 +1795,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "wiremock",
 ]
 
 [[package]]

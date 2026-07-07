@@ -71,19 +71,49 @@ impl DeleteMailboxRuleRequest {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：DELETE .../user_mailboxes/{umb}/rules/{rule} → 强类型 DeleteMailboxRuleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_delete_mailbox_rule_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/mail/v1/user_mailboxes/umb_001/rules/r_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "rule_id": "r_001" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = DeleteMailboxRuleRequest::new(config, "umb_001", "r_001")
+            .execute()
+            .await
+            .expect("删除收信规则应成功");
+        assert_eq!(resp.data.unwrap()["rule_id"], "r_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/mail/v1/user_mailboxes/umb_001/rules/r_001"
+        );
     }
 }

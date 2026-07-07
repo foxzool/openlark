@@ -1,6 +1,6 @@
 //! 批量删除邮件组权限成员
 
-use crate::common::api_utils::serialize_params;
+use crate::common::api_utils::{extract_response_data, serialize_params};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -80,28 +80,58 @@ impl BatchDeleteMailGroupPermissionMemberRequest {
         let req: ApiRequest<BatchDeleteMailGroupPermissionMemberResponse> =
             ApiRequest::delete(&path).body(serialize_params(&self.body, "批量删除邮件组权限成员")?);
 
-        let _resp: openlark_core::api::Response<BatchDeleteMailGroupPermissionMemberResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(BatchDeleteMailGroupPermissionMemberResponse { data: None })
+        let response = Transport::request(req, &self.config, Some(option)).await?;
+        extract_response_data(response, "批量删除邮件组权限成员")
     }
 }
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：DELETE .../mailgroups/{}/permission_members/batch_delete → BatchDeleteMailGroupPermissionMemberResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_batch_delete_mail_group_permission_member_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/mail/v1/mailgroups/group_001/permission_members/batch_delete",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": {} }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = BatchDeleteMailGroupPermissionMemberRequest::new(config, "group_001")
+            .permission_member_ids(vec!["pm1".to_string()])
+            .execute()
+            .await
+            .expect("批量删除邮件组权限成员应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/mail/v1/mailgroups/group_001/permission_members/batch_delete"
+        );
     }
 }

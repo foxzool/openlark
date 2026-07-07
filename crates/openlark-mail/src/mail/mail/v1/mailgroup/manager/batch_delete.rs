@@ -1,6 +1,6 @@
 //! 批量删除邮件组管理员
 
-use crate::common::api_utils::serialize_params;
+use crate::common::api_utils::{extract_response_data, serialize_params};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -80,9 +80,8 @@ impl BatchDeleteMailGroupManagerRequest {
         let req: ApiRequest<BatchDeleteMailGroupManagerResponse> =
             ApiRequest::post(&path).body(serialize_params(&self.body, "批量删除邮件组管理员")?);
 
-        let _resp: openlark_core::api::Response<BatchDeleteMailGroupManagerResponse> =
-            Transport::request(req, &self.config, Some(option)).await?;
-        Ok(BatchDeleteMailGroupManagerResponse { data: None })
+        let response = Transport::request(req, &self.config, Some(option)).await?;
+        extract_response_data(response, "批量删除邮件组管理员")
     }
 }
 
@@ -91,18 +90,48 @@ impl BatchDeleteMailGroupManagerRequest {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../mailgroups/{}/managers/batch_delete → BatchDeleteMailGroupManagerResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_batch_delete_mail_group_manager_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/mail/v1/mailgroups/group_001/managers/batch_delete",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": {} }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = BatchDeleteMailGroupManagerRequest::new(config, "group_001")
+            .manager_ids(vec!["m1".to_string()])
+            .execute()
+            .await
+            .expect("批量删除邮件组管理员应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/mail/v1/mailgroups/group_001/managers/batch_delete"
+        );
     }
 }
