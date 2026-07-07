@@ -38,6 +38,13 @@ impl SystemStatusResource {
     }
 
     /// 获取系统状态详情。
+    ///
+    /// ⚠️ **幻影 API**：飞书 `personal_settings/v1/system_status` 无 `get` 接口（目录里
+    /// "获取系统状态"对应的是 [`list`](SystemStatusResource::list)），此方法请求的是一个不
+    /// 存在的端点。将在 v0.18.0 移除（#377）；请改用 [`list`](SystemStatusResource::list)。
+    #[deprecated(
+        note = "幻影 API：飞书无 system_status get 接口，将在 v0.18.0 移除；请改用 list（SystemStatusListRequest）（#377）"
+    )]
     pub fn get(&self) -> SystemStatusGetRequest {
         SystemStatusGetRequest::new(self.config.clone())
     }

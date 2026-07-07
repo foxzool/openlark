@@ -192,6 +192,7 @@ fn user_service_config_roundtrip() {
 // ---------------------------------------------------------------------------
 
 #[test]
+#[allow(deprecated)] // get() 是幻影 API（#377），v0.18 移除前仍验证其可达
 fn system_status_service_access_contract() {
     use openlark_core::config::Config;
     use openlark_user::UserService;
