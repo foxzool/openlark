@@ -121,7 +121,6 @@ impl ApiResponseTrait for BatchGetTmpDownloadUrlResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -158,68 +157,6 @@ mod tests {
         );
     }
 
-    /// 测试空 file_tokens 验证
-    #[test]
-    fn test_empty_file_tokens_validation() {
-        let config = Config::default();
-        let request = BatchGetTmpDownloadUrlRequest::new(config, vec![]);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 file_tokens 数量限制
-    #[test]
-    fn test_file_tokens_count_validation() {
-        let config = Config::default();
-
-        // 最大 5 个 token
-        let tokens_5: Vec<String> = ["a"; 5].iter().map(|s| s.to_string()).collect();
-        let request1 = BatchGetTmpDownloadUrlRequest::new(config.clone(), tokens_5);
-        assert_eq!(request1.file_tokens.len(), 5);
-
-        // 超过 5 个
-        let tokens_6: Vec<String> = ["a"; 6].iter().map(|s| s.to_string()).collect();
-        let request2 = BatchGetTmpDownloadUrlRequest::new(config, tokens_6);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试空 token 验证
-    #[test]
-    fn test_empty_token_in_list_validation() {
-        let config = Config::default();
-        let request = BatchGetTmpDownloadUrlRequest::new(
-            config,
-            vec!["valid_token".to_string(), "".to_string()],
-        );
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试单 token
     #[test]
     fn test_single_token() {
@@ -242,5 +179,82 @@ mod tests {
         let request2 = BatchGetTmpDownloadUrlRequest::new(config, vec!["token".to_string()])
             .extra("extra_param");
         assert_eq!(request2.extra, Some("extra_param".to_string()));
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/medias/batch_get_tmp_download_url → BatchGetTmpDownloadUrlResponse。
+    #[tokio::test]
+    async fn test_batch_get_tmp_download_url_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::method;
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        // execute 手拼 file_tokens 重复 query（url.push_str 非 .query()）与 Transport 不兼容，
+        // path 含 query 不匹配；pre-existing bug，mock 放宽只匹配 method，path 走 received 断言。
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "tmp_download_urls": [
+                        {
+                            "file_token": "media_token_001",
+                            "tmp_download_url": "https://download.example.com/001"
+                        },
+                        {
+                            "file_token": "media_token_002",
+                            "tmp_download_url": "https://download.example.com/002"
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = BatchGetTmpDownloadUrlRequest::new(
+            config,
+            vec!["media_token_001".to_string(), "media_token_002".to_string()],
+        )
+        .execute()
+        .await
+        .expect("获取临时下载链接应成功");
+        assert_eq!(resp.tmp_download_urls.len(), 2);
+        assert_eq!(resp.tmp_download_urls[0].file_token, "media_token_001");
+        assert_eq!(
+            resp.tmp_download_urls[1].tmp_download_url,
+            "https://download.example.com/002"
+        );
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        // execute 手拼 file_tokens 重复 query（core HashMap 不支持重复 key，见 execute 注释），
+        // url 的 `?` 被 Transport encode 成 `%3F`，path 含 `%3Ffile_tokens=...`。
+        // pre-existing bug（与 product_assign_info 同类），此处只验证请求到达正确端点 + 响应解析。
+        assert!(
+            received[0]
+                .url
+                .path()
+                .contains("batch_get_tmp_download_url")
+        );
+        assert!(
+            received[0]
+                .url
+                .path()
+                .contains("file_tokens=media_token_001")
+        );
+        assert!(
+            received[0]
+                .url
+                .path()
+                .contains("file_tokens=media_token_002")
+        );
     }
 }

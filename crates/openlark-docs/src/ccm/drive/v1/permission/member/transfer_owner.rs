@@ -190,7 +190,6 @@ impl ApiResponseTrait for TransferOwnerResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -212,74 +211,6 @@ mod tests {
     #[test]
     fn test_response_trait() {
         assert_eq!(TransferOwnerResponse::data_format(), ResponseFormat::Data);
-    }
-
-    /// 测试 token 为空时的验证
-    #[test]
-    fn test_empty_token_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "", "docx", "openid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 file_type 枚举值验证
-    #[test]
-    fn test_file_type_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "invalid", "openid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 member_type 枚举值验证
-    #[test]
-    fn test_member_type_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "docx", "invalid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 member_id 为空时的验证
-    #[test]
-    fn test_empty_member_id_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "docx", "openid", "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
     }
 
     /// 测试支持的 file_type 类型
@@ -329,5 +260,51 @@ mod tests {
         assert!(request.remove_old_owner.is_none());
         assert!(request.stay_put.is_none());
         assert!(request.old_owner_perm.is_none());
+    }
+
+    /// 端到端：POST /open-apis/drive/v1/permissions/{token}/members/transfer_owner → TransferOwnerResponse。
+    #[tokio::test]
+    async fn test_transfer_owner_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/drive/v1/permissions/file_token_001/members/transfer_owner",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        TransferOwnerRequest::new(config, "file_token_001", "docx", "openid", "ou_new_owner")
+            .execute()
+            .await
+            .expect("转移所有者应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/permissions/file_token_001/members/transfer_owner"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(
+            query.contains("type=docx"),
+            "query 应携带 type=docx，实际：{query}"
+        );
     }
 }

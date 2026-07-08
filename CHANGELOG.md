@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **docs 清除 38 个 Potemkin 丢弃式测试 + 15 wiremock e2e**（#351 第 11 批，P3 docs PR A）：
+  baike（entity extract/match 2）+ ccm/drive（export_task/file version/import_task/media/permission/member 13）
+  共 15 文件，每文件含 `let _ = request.execute().await` + `assert!(result.is_ok())` 的 Potemkin 丢弃式——调 execute
+  但丢弃返回值，只断言"线程没 panic"（Config 指向真实飞书无凭证，execute 实际返 Err 被丢弃 → 假绿）。
+  删除这些假绿测试，保留真实 builder/validation 测试，加 wiremock e2e（Config 非 Arc + enum + extract_response_data）。
+  这是 #351 issue 标题「→ test_runtime 端到端」点名的核心反模式（test_runtime 是 Potemkin 封装）。
+  e2e 暴露 latent bug（按代码实际行为处理）：`batch_get_tmp_download_url` execute 手拼重复 query
+  （core HashMap 不支持重复 key），url `?` 被 Transport encode 成 `%3F`。docs 的 ~107 roundtrip 占位留后续 PR。
+  **非 breaking**：纯测试替换。
+
 - **workflow 清除 8 个占位 serde_json roundtrip 测试**（#351 第 10 批，P3 workflow）：
   7 个 `v2/*/models.rs`（纯聚合 struct，0 execute）删除整个 `mod tests` 块；`service.rs` 删除 2 个
   roundtrip 占位保留 4 个真实 builder/action 测试。workflow crate 特殊现状：endpoint 普遍已有

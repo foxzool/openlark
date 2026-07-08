@@ -143,7 +143,6 @@ impl ApiResponseTrait for CreateImportTaskResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -182,77 +181,6 @@ mod tests {
         );
     }
 
-    /// 测试 file_extension 为空时的验证
-    #[test]
-    fn test_empty_file_extension_validation() {
-        let config = Config::default();
-        let point = Point::new("mount_key");
-        let request = CreateImportTaskRequest::new(config, "", "file_token", "sheet", point);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 file_token 长度验证
-    #[test]
-    fn test_file_token_length_validation() {
-        let config = Config::default();
-        let point = Point::new("mount_key");
-
-        // 空字符串
-        let request1 =
-            CreateImportTaskRequest::new(config.clone(), "pdf", "", "sheet", point.clone());
-
-        let result1 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request1.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result1.is_ok());
-
-        // 超过 27 字节
-        let long_token = "a".repeat(28);
-        let request2 = CreateImportTaskRequest::new(config, "pdf", long_token, "sheet", point);
-
-        let result2 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result2.is_ok());
-    }
-
-    /// 测试 type 枚举值验证
-    #[test]
-    fn test_type_validation() {
-        let config = Config::default();
-        let point = Point::new("mount_key");
-        let request = CreateImportTaskRequest::new(config, "pdf", "file_token", "invalid", point);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试支持的 type 类型
     #[test]
     fn test_supported_types() {
@@ -289,5 +217,50 @@ mod tests {
         let request2 = CreateImportTaskRequest::new(config, "pdf", "file_token", "sheet", point)
             .file_name("custom_name");
         assert_eq!(request2.file_name, Some("custom_name".to_string()));
+    }
+
+    /// 端到端：POST /open-apis/drive/v1/import_tasks → CreateImportTaskResponse（ticket）。
+    #[tokio::test]
+    async fn test_create_import_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/drive/v1/import_tasks"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "ticket": "import_ticket_001"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CreateImportTaskRequest::new(
+            config,
+            "pdf",
+            "fileTokenAbc",
+            "docx",
+            Point::new("AbqrfuRTjlJEIJduwDwcnIabcef"),
+        )
+        .execute()
+        .await
+        .expect("创建导入任务应成功");
+        assert_eq!(resp.ticket, "import_ticket_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/drive/v1/import_tasks");
     }
 }
