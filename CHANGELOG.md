@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **platform app_engine/apaas 44 真实端点占位测试 → wiremock e2e**（#351 第 9 批，P3 platform PR A）：
+  app_engine/apaas/v1 全子域（application/audit_log/environment_variable/flow/function/object/record/
+  record_permission/role + approval_instance/approval_task/user_task + workspace）占位 `serde_json`
+  roundtrip → wiremock 端到端。模式：Config 非 Arc + url 字符串 + `response.data.ok_or_else`。
+  e2e 覆盖 query 拼装（手工 `params.push`）、POST body 透传、强类型 Response 嵌套 struct 断言。
+  directory/admin/mdm/tenant/trust_party 留 PR B。**非 breaking**：纯测试新增。
+
 - **meeting calendar/v4 + meeting_room 40 真实端点占位测试 → wiremock e2e**（#351 第 8 批，P3 meeting PR B）：
   calendar/v4 全子域（calendar / event / exchange_binding / freebusy / setting / timeoff_event）+
   meeting_room 全子域（building / freebusy / instance / room / summary）占位 `serde_json` roundtrip →

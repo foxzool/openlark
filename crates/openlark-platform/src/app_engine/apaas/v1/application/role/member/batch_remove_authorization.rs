@@ -111,20 +111,50 @@ pub type RoleMemberBatchRemoveAuthBuilder = RoleMemberBatchRemoveAuthRequestBuil
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../roles/{role_api_name}/member/batch_remove_authorization。
+    #[tokio::test]
+    async fn test_batch_remove_role_member_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/apaas/v1/applications/ns_test/roles/role_001/member/batch_remove_authorization"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "removed_count": 2,
+                    "message": "取消授权成功"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = RoleMemberBatchRemoveAuthRequestBuilder::new(config, "ns_test", "role_001")
+            .user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .execute()
+            .await
+            .expect("批量删除角色成员授权应成功");
+        assert_eq!(resp.removed_count, 2);
+        assert_eq!(resp.message, "取消授权成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/roles/role_001/member/batch_remove_authorization"
+        );
     }
 }

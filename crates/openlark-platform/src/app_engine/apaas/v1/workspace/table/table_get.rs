@@ -104,21 +104,59 @@ pub type TableGetBuilder = TableGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../apaas/v1/workspaces/{ws}/tables/{table_name} → 强类型 TableGetResponse。
+    #[tokio::test]
+    async fn test_get_table_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/apaas/v1/workspaces/ws_001/tables/user"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "table_name": "user",
+                    "description": "用户表",
+                    "fields": [
+                        {"field_name": "id", "field_type": "int", "is_primary_key": true, "description": "主键"},
+                        {"field_name": "name", "field_type": "string", "is_primary_key": false}
+                    ],
+                    "created_time": 1700000000,
+                    "updated_time": 1700000100
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = TableGetRequestBuilder::new(config, "ws_001", "user")
+            .execute()
+            .await
+            .expect("获取数据表详情应成功");
+        assert_eq!(resp.table_name, "user");
+        assert_eq!(resp.description.as_deref(), Some("用户表"));
+        assert_eq!(resp.fields.len(), 2);
+        assert!(resp.fields[0].is_primary_key);
+        assert_eq!(resp.created_time, 1700000000);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/tables/user"
+        );
+        assert_eq!(received[0].method, "GET");
     }
 }

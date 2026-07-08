@@ -123,21 +123,58 @@ pub type TableRecordsPostBuilder = TableRecordsPostRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../tables/{table}/records → 强类型 TableRecordsPostResponse。
+    #[tokio::test]
+    async fn test_post_records_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {"id": "r1", "success": true},
+                        {"id": "r2", "success": false, "error": "冲突"}
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = TableRecordsPostRequestBuilder::new(config, "ws_001", "user")
+            .record(json!({"id": "r1", "name": "alice"}))
+            .record(json!({"id": "r2", "name": "bob"}))
+            .execute()
+            .await
+            .expect("添加或更新记录应成功");
+        assert_eq!(resp.items.len(), 2);
+        assert!(resp.items[0].success);
+        assert!(!resp.items[1].success);
+        assert_eq!(resp.items[1].error.as_deref(), Some("冲突"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records"
+        );
+        assert_eq!(received[0].method, "POST");
     }
 }
