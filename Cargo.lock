@@ -1779,6 +1779,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "uuid",
+ "wiremock",
 ]
 
 [[package]]

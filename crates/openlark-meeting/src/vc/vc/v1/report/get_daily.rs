@@ -73,21 +73,50 @@ impl GetDailyReportRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../reports/get_daily → 强类型 GetDailyReportResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_daily_report_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/vc/v1/reports/get_daily"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "meeting_count": 12, "participant_count": 36 } }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetDailyReportRequest::new(config)
+            .query_param("start_time", "1719888000")
+            .query_param("end_time", "1719974400")
+            .execute()
+            .await
+            .expect("获取会议报告应成功");
+        assert_eq!(resp.data["meeting_count"], json!(12));
+        assert_eq!(resp.data["participant_count"], json!(36));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/vc/v1/reports/get_daily");
+        assert_eq!(
+            received[0].url.query_pairs().count(),
+            2,
+            "应携带两个查询参数"
+        );
     }
 }
