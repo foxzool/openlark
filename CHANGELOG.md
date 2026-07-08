@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **meeting calendar/v4 + meeting_room 40 真实端点占位测试 → wiremock e2e**（#351 第 8 批，P3 meeting PR B）：
+  calendar/v4 全子域（calendar / event / exchange_binding / freebusy / setting / timeoff_event）+
+  meeting_room 全子域（building / freebusy / instance / room / summary）占位 `serde_json` roundtrip →
+  wiremock 端到端。calendar 用 `CalendarApiV4` enum + `to_url()`；meeting_room 用常量 path。
+  4 个聚合文件（calendar responses.rs/responses_new.rs、common/chain.rs、meeting_room responses.rs）
+  纯 struct 占位测试删除。至此 **meeting crate 占位测试 0 残留**（PR A+B 合计 90 endpoint e2e）。
+  e2e 暴露 latent bug（按代码实际行为 mock，不修）：calendar `primary.rs` enum 注 GET 但 execute POST、
+  meeting_room 多处 path 单复数不一致 + update 用 POST 非 PATCH。**非 breaking**：纯测试新增。
+
 - **meeting vc/v1 视频会议 50 真实端点占位测试 → wiremock e2e**（#351 第 8 批，P3 meeting PR A）：
   vc/v1 全子域（export/meeting/participant/report/reserve/reserve_config/room/room_level/
   room_config/scope_config/resource_reservation_list）占位 `serde_json` roundtrip → wiremock 端到端。
