@@ -82,19 +82,52 @@ impl GetMailboxMessageRequest {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：GET .../user_mailboxes/{umb}/messages/{msg} → 强类型 GetMailboxMessageResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_mailbox_message_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/mail/v1/user_mailboxes/umb_001/messages/msg_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "message_id": "msg_001", "subject": "测试主题", "body": "测试正文" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetMailboxMessageRequest::new(config, "umb_001", "msg_001")
+            .execute()
+            .await
+            .expect("获取邮件详情应成功");
+        let data = resp.data.expect("响应 data 应非空");
+        assert_eq!(data.message_id, "msg_001");
+        assert_eq!(data.subject, "测试主题");
+        assert_eq!(data.body, "测试正文");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/mail/v1/user_mailboxes/umb_001/messages/msg_001"
+        );
     }
 }
