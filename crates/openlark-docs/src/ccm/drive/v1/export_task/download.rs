@@ -76,7 +76,6 @@ impl DownloadExportRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -84,23 +83,6 @@ mod tests {
         let config = Config::default();
         let request = DownloadExportRequest::new(config, "file_token");
         assert_eq!(request.file_token, "file_token");
-    }
-
-    /// 测试 file_token 为空时的验证
-    #[test]
-    fn test_empty_file_token_validation() {
-        let config = Config::default();
-        let request = DownloadExportRequest::new(config, "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
     }
 
     /// 测试 file_token 边界值
@@ -130,5 +112,44 @@ mod tests {
         let config = Config::default();
         let request = DownloadExportRequest::new(config, "file_token").max_size(2048);
         assert_eq!(request.max_size, 2048);
+    }
+
+    /// 端到端：GET .../export_tasks/file/{file_token}/download → Response<Vec<u8>> 二进制载荷。
+    #[tokio::test]
+    async fn test_download_export_returns_data_on_success() {
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let body = b"PK\x03\x04 fake export file bytes";
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/drive/v1/export_tasks/file/ftk001/download",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body.to_vec()))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DownloadExportRequest::new(config, "ftk001")
+            .execute()
+            .await
+            .expect("下载导出文件应成功");
+        let bytes = resp.data.expect("响应 data 应非空");
+        assert_eq!(bytes, body.to_vec());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/export_tasks/file/ftk001/download"
+        );
     }
 }

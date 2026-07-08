@@ -107,7 +107,6 @@ pub type ListFileVersionsResponse = ListFileVersionsData;
 mod tests {
     use super::*;
     use openlark_core::api::ApiResponseTrait;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -133,84 +132,6 @@ mod tests {
         );
     }
 
-    /// 测试 file_token 为空时的验证
-    #[test]
-    fn test_empty_file_token_validation() {
-        let config = Config::default();
-        let request = ListFileVersionsRequest::new(config, "", 20, "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 page_size 边界值
-    #[test]
-    fn test_page_size_boundaries() {
-        let config = Config::default();
-
-        // 测试最小值
-        let request1 = ListFileVersionsRequest::new(config.clone(), "token", 1, "docx");
-        assert_eq!(request1.page_size, 1);
-
-        // 测试最大值
-        let request2 = ListFileVersionsRequest::new(config.clone(), "token", 100, "docx");
-        assert_eq!(request2.page_size, 100);
-
-        // 测试超出范围
-        let request3 = ListFileVersionsRequest::new(config, "token", 101, "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request3.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 page_size 为 0 时的验证
-    #[test]
-    fn test_zero_page_size_validation() {
-        let config = Config::default();
-        let request = ListFileVersionsRequest::new(config, "token", 0, "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 obj_type 枚举值验证
-    #[test]
-    fn test_obj_type_validation() {
-        let config = Config::default();
-        let request = ListFileVersionsRequest::new(config, "token", 20, "invalid");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试支持的 obj_type 类型
     #[test]
     fn test_supported_obj_types() {
@@ -231,5 +152,69 @@ mod tests {
             ListFileVersionsRequest::new(config, "token", 20, "docx").page_token("next_page_token");
 
         assert_eq!(request.page_token, Some("next_page_token".to_string()));
+    }
+
+    /// 端到端：GET .../files/{file_token}/versions?page_size&obj_type → 强类型 ListFileVersionsData（单层 data 信封）。
+    #[tokio::test]
+    async fn test_list_file_versions_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/v1/files/ftk001/versions"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        { "name": "项目文档 第 1 版", "version": "fnJfyX", "obj_type": "docx" },
+                        { "name": "项目文档 第 2 版", "version": "fnJfyY", "obj_type": "docx" }
+                    ],
+                    "page_token": "next_page_token",
+                    "has_more": true
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ListFileVersionsRequest::new(config, "ftk001", 20, "docx")
+            .execute()
+            .await
+            .expect("获取文档版本列表应成功");
+        assert_eq!(resp.items.len(), 2);
+        assert_eq!(resp.items[0].version.as_deref(), Some("fnJfyX"));
+        assert!(resp.has_more);
+        assert_eq!(resp.page_token.as_deref(), Some("next_page_token"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/files/ftk001/versions"
+        );
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or("")
+                .contains("page_size=20")
+        );
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or("")
+                .contains("obj_type=docx")
+        );
     }
 }

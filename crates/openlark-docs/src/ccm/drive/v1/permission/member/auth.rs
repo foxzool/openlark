@@ -106,7 +106,6 @@ impl ApiResponseTrait for AuthPermissionMemberResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -126,40 +125,6 @@ mod tests {
             AuthPermissionMemberResponse::data_format(),
             ResponseFormat::Data
         );
-    }
-
-    /// 测试 token 为空时的验证
-    #[test]
-    fn test_empty_token_validation() {
-        let config = Config::default();
-        let request = AuthPermissionMemberRequest::new(config, "", "docx", "view");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 action 枚举值验证
-    #[test]
-    fn test_action_validation() {
-        let config = Config::default();
-        let request = AuthPermissionMemberRequest::new(config, "token", "docx", "invalid");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
     }
 
     /// 测试支持的 action 类型
@@ -195,5 +160,58 @@ mod tests {
 
         let response2 = AuthPermissionMemberResponse { auth_result: false };
         assert!(!response2.auth_result);
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/permissions/{token}/members/auth → AuthPermissionMemberResponse。
+    #[tokio::test]
+    async fn test_auth_permission_member_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/drive/v1/permissions/file_token_001/members/auth",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "auth_result": true
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = AuthPermissionMemberRequest::new(config, "file_token_001", "docx", "view")
+            .execute()
+            .await
+            .expect("权限判断应成功");
+        assert!(resp.auth_result);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/permissions/file_token_001/members/auth"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(
+            query.contains("type=docx"),
+            "query 应携带 type=docx，实际：{query}"
+        );
+        assert!(
+            query.contains("action=view"),
+            "query 应携带 action=view，实际：{query}"
+        );
     }
 }

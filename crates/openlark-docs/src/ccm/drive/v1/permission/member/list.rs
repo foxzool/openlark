@@ -133,7 +133,6 @@ impl ApiResponseTrait for ListPermissionMembersResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -178,58 +177,6 @@ mod tests {
         );
     }
 
-    /// 测试 token 为空时的验证
-    #[test]
-    fn test_empty_token_validation() {
-        let config = Config::default();
-        let request = ListPermissionMembersRequest::new(config, "", "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 file_type 枚举值验证
-    #[test]
-    fn test_file_type_validation() {
-        let config = Config::default();
-        let request = ListPermissionMembersRequest::new(config, "token", "invalid");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 perm_type 枚举值验证
-    #[test]
-    fn test_perm_type_validation() {
-        let config = Config::default();
-        let request =
-            ListPermissionMembersRequest::new(config, "token", "docx").perm_type("invalid");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试支持的 file_type 类型
     #[test]
     fn test_supported_file_types() {
@@ -260,5 +207,69 @@ mod tests {
 
         assert_eq!(request2.fields, Some("*".to_string()));
         assert_eq!(request2.perm_type, Some("container".to_string()));
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/permissions/{token}/members → ListPermissionMembersResponse。
+    #[tokio::test]
+    async fn test_list_permission_members_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/drive/v1/permissions/file_token_001/members",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "member_type": "openid",
+                            "member_id": "ou_member_001",
+                            "perm": "view",
+                            "name": "张三"
+                        },
+                        {
+                            "member_type": "email",
+                            "member_id": "user@example.com",
+                            "perm": "edit"
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ListPermissionMembersRequest::new(config, "file_token_001", "docx")
+            .execute()
+            .await
+            .expect("获取协作者列表应成功");
+        assert_eq!(resp.items.len(), 2);
+        assert_eq!(resp.items[0].member_id, "ou_member_001");
+        assert_eq!(resp.items[0].perm, "view");
+        assert_eq!(resp.items[1].member_type, "email");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/permissions/file_token_001/members"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(
+            query.contains("type=docx"),
+            "query 应携带 type=docx，实际：{query}"
+        );
     }
 }

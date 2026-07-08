@@ -109,7 +109,6 @@ impl DownloadMediaRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -122,55 +121,6 @@ mod tests {
         assert_eq!(request.file_token, "media_token");
         assert_eq!(request.extra, Some("extra".to_string()));
         assert_eq!(request.range, Some("bytes=0-100".to_string()));
-    }
-
-    /// 测试 file_token 为空时的验证
-    #[test]
-    fn test_empty_file_token_validation() {
-        let config = Config::default();
-        let request = DownloadMediaRequest::new(config, "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 range 格式验证
-    #[test]
-    fn test_range_format_validation() {
-        let config = Config::default();
-
-        // 缺少 bytes= 前缀
-        let request1 = DownloadMediaRequest::new(config.clone(), "token").range("0-100");
-
-        let result1 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request1.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result1.is_ok());
-
-        // 缺少连字符
-        let request2 = DownloadMediaRequest::new(config.clone(), "token").range("bytes=0100");
-
-        let result2 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result2.is_ok());
     }
 
     /// 测试有效的 range 格式
@@ -222,5 +172,42 @@ mod tests {
         let config = Config::default();
         let request = DownloadMediaRequest::new(config, "media_token").max_size(512);
         assert_eq!(request.max_size, 512);
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/medias/{file_token}/download → 二进制 Response<Vec<u8>>。
+    #[tokio::test]
+    async fn test_download_media_returns_data_on_success() {
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let body = b"hello download binary payload".to_vec();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/v1/medias/media_token_001/download"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body.clone()))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DownloadMediaRequest::new(config, "media_token_001")
+            .execute()
+            .await
+            .expect("下载素材应成功");
+        let data = resp.data.expect("响应应包含二进制数据");
+        assert_eq!(data, body);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/medias/media_token_001/download"
+        );
     }
 }

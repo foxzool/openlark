@@ -94,7 +94,6 @@ impl ExtractEntityRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -102,36 +101,6 @@ mod tests {
         let config = Config::default();
         let request = ExtractEntityRequest::new(config, "测试文本");
         assert_eq!(request.req.text, "测试文本");
-    }
-
-    /// 测试 text 长度验证
-    #[test]
-    fn test_text_length_validation() {
-        let config = Config::default();
-
-        // 最大长度 128
-        let text_128 = "a".repeat(128);
-        let request1 = ExtractEntityRequest::new(config.clone(), text_128);
-        assert_eq!(request1.req.text.chars().count(), 128);
-
-        // 超过 128
-        let text_129 = "a".repeat(129);
-        let request2 = ExtractEntityRequest::new(config.clone(), text_129);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-
-        // 测试边界情况
-        let text_127 = "a".repeat(127);
-        let request3 = ExtractEntityRequest::new(config, text_127);
-        assert_eq!(request3.req.text.chars().count(), 127);
     }
 
     /// 测试空文本
@@ -198,5 +167,53 @@ mod tests {
         };
 
         assert!(word.aliases.is_none());
+    }
+
+    /// 端到端：POST .../baike/v1/entities/extract → 强类型 ExtractEntityResponse（单层 data 信封）。
+    #[tokio::test]
+    async fn test_extract_entity_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/baike/v1/entities/extract"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "entity_word": [
+                        { "name": "词条1", "aliases": ["别名1"] },
+                        { "name": "词条2" }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ExtractEntityRequest::new(config, "提取这段文本的词条")
+            .execute()
+            .await
+            .expect("提取词条应成功");
+        assert_eq!(resp.entity_word.len(), 2);
+        assert_eq!(resp.entity_word[0].name, "词条1");
+        assert_eq!(resp.entity_word[0].aliases.as_ref().unwrap().len(), 1);
+        assert_eq!(resp.entity_word[1].aliases, None);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/baike/v1/entities/extract"
+        );
     }
 }

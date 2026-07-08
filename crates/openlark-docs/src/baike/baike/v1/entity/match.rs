@@ -95,7 +95,6 @@ impl MatchEntityRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -105,52 +104,6 @@ mod tests {
         assert_eq!(request.req.word, "搜索词");
     }
 
-    /// 测试 word 为空时的验证
-    #[test]
-    fn test_empty_word_validation() {
-        let config = Config::default();
-        let request = MatchEntityRequest::new(config, "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 word 长度边界值
-    #[test]
-    fn test_word_length_boundaries() {
-        let config = Config::default();
-
-        // 最小长度 1
-        let request1 = MatchEntityRequest::new(config.clone(), "a");
-        assert_eq!(request1.req.word, "a");
-
-        // 最大长度 100
-        let word_100 = "a".repeat(100);
-        let request2 = MatchEntityRequest::new(config.clone(), word_100);
-        assert_eq!(request2.req.word.chars().count(), 100);
-
-        // 超过 100
-        let word_101 = "a".repeat(101);
-        let request3 = MatchEntityRequest::new(config, word_101);
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request3.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试 Unicode 字符计数
     #[test]
     fn test_unicode_character_count() {
@@ -158,5 +111,48 @@ mod tests {
         let word = "🎉🎊🎈"; // 3 个 Unicode 码点
         let request = MatchEntityRequest::new(config, word);
         assert_eq!(request.req.word.chars().count(), 3);
+    }
+
+    /// 端到端：POST .../baike/v1/entities/match → 强类型 MatchEntityResp（单层 data 信封）。
+    #[tokio::test]
+    async fn test_match_entity_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/baike/v1/entities/match"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "results": [
+                        { "entity_id": "en001", "type": 0 }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = MatchEntityRequest::new(config, "飞书")
+            .execute()
+            .await
+            .expect("精准搜索词条应成功");
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0].entity_id, Some("en001".to_string()));
+        assert_eq!(resp.results[0].type_, Some(0));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/baike/v1/entities/match");
     }
 }
