@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **workflow 清除 8 个占位 serde_json roundtrip 测试**（#351 第 10 批，P3 workflow）：
+  7 个 `v2/*/models.rs`（纯聚合 struct，0 execute）删除整个 `mod tests` 块；`service.rs` 删除 2 个
+  roundtrip 占位保留 4 个真实 builder/action 测试。workflow crate 特殊现状：endpoint 普遍已有
+  `test_*_url`（`to_url()` 断言）+ builder 测试（334 测试，部分覆盖 URL 拼装与 builder），**非 roundtrip 占位**，
+  故本批只清 roundtrip；endpoint 的完整 wiremock e2e（execute → Transport → 响应解析）作为后续议题。
+  **非 breaking**：纯测试删除。
+
 - **platform directory/admin/mdm/tenant/trust_party 32 真实端点占位测试 → wiremock e2e**（#351 第 9 批，P3 platform PR B）：
   directory/v1（department/employee/collaboration_rule 15）+ admin/v1/badge·password（6）+ mdm（3）+ tenant/v2（2）+
   trust_party/v1（4）占位 → wiremock 端到端。admin/v1 audit·users 是显式 stub（PlatformConfig + business_error
