@@ -100,21 +100,43 @@ impl ApiResponseTrait for CopyDashboardResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../dashboards/{block_id}/copy → CopyDashboardResponse。
+    #[tokio::test]
+    async fn test_copy_dashboard_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/bitable/v1/apps/app001/dashboards/blk001/copy",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "block_id": "blk001", "name": "仪表盘" }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        CopyDashboardRequest::new(config)
+            .app_token("app001")
+            .block_id("blk001")
+            .name("副本")
+            .execute()
+            .await
+            .expect("复制仪表盘应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app001/dashboards/blk001/copy"
+        );
     }
 }
