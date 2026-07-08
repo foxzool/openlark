@@ -147,21 +147,42 @@ impl ApiResponseTrait for UpdateResp {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：PUT .../roles/{role_id} → UpdateResp。
+    #[tokio::test]
+    async fn test_update_role_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path("/open-apis/base/v2/apps/app001/roles/role001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = Update::new(config)
+            .app_token("app001")
+            .role_id("role001")
+            .role_name("新角色名")
+            .execute()
+            .await
+            .expect("更新角色应成功");
+        assert!(resp.role.is_none());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/base/v2/apps/app001/roles/role001"
+        );
     }
 }
