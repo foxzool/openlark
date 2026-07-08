@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **meeting vc/v1 视频会议 50 真实端点占位测试 → wiremock e2e**（#351 第 8 批，P3 meeting PR A）：
+  vc/v1 全子域（export/meeting/participant/report/reserve/reserve_config/room/room_level/
+  room_config/scope_config/resource_reservation_list）占位 `serde_json` roundtrip → wiremock 端到端。
+  vc 统一模式：`VcApiV1` enum + `to_url()` + `extract_response_data` + Config 非 Arc + query 断言。
+  信封按 Response struct（裸 Value/强类型单层、`GetDailyReportResponse` 内含 `data` 双层）。
+  e2e 暴露 2 个 latent bug（本次按代码实际行为 mock，不修）：`export/download` 硬编码 path 缺 task_id 参数
+  （飞书真实 `:task_id/download`）、`get_active_meeting` path 与 enum 不一致（`get_active_meeting` vs `active_meeting`）。
+  calendar/v4 + meeting_room 留 PR B。**非 breaking**：纯测试新增 + execute 未动。
+
 - **mail 34 真实端点占位测试 → wiremock e2e + 修 7 个丢弃响应 bug**（#351 第 7 批，P3 mail）：
   mailgroup 的 `patch` / `alias-delete` / `member-delete` / `manager-batch_create` / `manager-batch_delete` /
   `permission_member-delete` / `permission_member-batch_delete`（7 个）execute 用
