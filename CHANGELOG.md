@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **platform directory/admin/mdm/tenant/trust_party 32 真实端点占位测试 → wiremock e2e**（#351 第 9 批，P3 platform PR B）：
+  directory/v1（department/employee/collaboration_rule 15）+ admin/v1/badge·password（6）+ mdm（3）+ tenant/v2（2）+
+  trust_party/v1（4）占位 → wiremock 端到端。admin/v1 audit·users 是显式 stub（PlatformConfig + business_error
+  "尚未接入"），删占位保留 stub 测试。common/mod.rs 聚合占位删除。至此 **platform crate 占位测试 0 残留**
+  （PR A+B 合计 76 endpoint e2e）。e2e 暴露 latent bug：`tenant/product_assign_info/query.rs` execute 手工
+  `url.push('?')` 拼 query 与 Transport 不兼容（应用 `.query()` 方法），测试简化不设 query 参数，bug 留后续。
+  **非 breaking**：纯测试新增 + stub 占位删除。
+
 - **platform app_engine/apaas 44 真实端点占位测试 → wiremock e2e**（#351 第 9 批，P3 platform PR A）：
   app_engine/apaas/v1 全子域（application/audit_log/environment_variable/flow/function/object/record/
   record_permission/role + approval_instance/approval_task/user_task + workspace）占位 `serde_json`

@@ -120,21 +120,69 @@ pub type EmployeeMgetBuilder = EmployeeMgetRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../employees/mget → 强类型 EmployeeMgetResponse。
+    #[tokio::test]
+    async fn test_mget_employees_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/directory/v1/employees/mget"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "employee_id": "emp_001",
+                            "name": "alice",
+                            "mobile": "13800000001",
+                            "email": "alice@example.com",
+                            "department_ids": ["dept_001"],
+                            "status": "active"
+                        },
+                        {
+                            "employee_id": "emp_002",
+                            "name": "bob",
+                            "mobile": "13800000002",
+                            "department_ids": ["dept_002"],
+                            "status": "active"
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = EmployeeMgetRequestBuilder::new(config)
+            .employee_ids(["emp_001", "emp_002"])
+            .execute()
+            .await
+            .expect("批量获取员工信息应成功");
+        assert_eq!(resp.items.len(), 2);
+        assert_eq!(resp.items[0].employee_id, "emp_001");
+        assert_eq!(resp.items[0].name, "alice");
+        assert_eq!(resp.items[1].employee_id, "emp_002");
+        assert_eq!(resp.items[1].email, None);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/directory/v1/employees/mget"
+        );
+        assert_eq!(received[0].method, "POST");
     }
 }

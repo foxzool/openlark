@@ -93,21 +93,58 @@ pub type VisibleOrganizationBuilder = VisibleOrganizationRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../collaboration_tenants/{key}/visible_organization → 强类型 VisibleOrganizationResponse。
+    #[tokio::test]
+    async fn test_get_visible_organization_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/trust_party/v1/collaboration_tenants/tk_001/visible_organization",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "departments": [
+                        {"department_id": "d_001", "name": "工程部"}
+                    ],
+                    "users": [
+                        {"user_id": "u_001", "name": "alice"}
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = VisibleOrganizationRequestBuilder::new(config)
+            .target_tenant_key("tk_001")
+            .execute()
+            .await
+            .expect("获取关联组织可见部门成员应成功");
+        assert_eq!(resp.departments.len(), 1);
+        assert_eq!(resp.departments[0].department_id, "d_001");
+        assert_eq!(resp.users.len(), 1);
+        assert_eq!(resp.users[0].user_id, "u_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/trust_party/v1/collaboration_tenants/tk_001/visible_organization"
+        );
     }
 }
