@@ -110,20 +110,58 @@ pub type CountryRegionBatchGetBuilder = CountryRegionBatchGetRequestBuilder;
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：GET .../mdm/v3/batch_country_region → 强类型 CountryRegionBatchGetResponse。
+    #[tokio::test]
+    async fn test_batch_get_country_region_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/mdm/v3/batch_country_region"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "mdm_code": "CN",
+                            "name": "中国",
+                            "i18n_name": { "zh_cn": "中国", "en_us": "China" },
+                            "phone_code": "86"
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CountryRegionBatchGetRequestBuilder::new(config)
+            .mdm_code("CN")
+            .execute()
+            .await
+            .expect("批量查询国家/地区应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].mdm_code, "CN");
+        assert_eq!(resp.items[0].name, "中国");
+        assert_eq!(resp.items[0].phone_code.as_deref(), Some("86"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/mdm/v3/batch_country_region"
+        );
     }
 }

@@ -114,21 +114,55 @@ pub type EmployeeToBeResignedBuilder = EmployeeToBeResignedRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：PATCH .../employees/{id}/to_be_resigned → 强类型 EmployeeToBeResignedResponse。
+    #[tokio::test]
+    async fn test_to_be_resigned_employee_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path(
+                "/open-apis/directory/v1/employees/emp_001/to_be_resigned",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "employee_id": "emp_001",
+                    "status": "to_be_resigned",
+                    "message": "updated to to_be_resigned"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = EmployeeToBeResignedRequestBuilder::new(config, "emp_001")
+            .reason("contract ended")
+            .execute()
+            .await
+            .expect("更新在职员工为待离职应成功");
+        assert_eq!(resp.employee_id, "emp_001");
+        assert_eq!(resp.status, "to_be_resigned");
+        assert_eq!(resp.message, "updated to to_be_resigned");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/directory/v1/employees/emp_001/to_be_resigned"
+        );
+        assert_eq!(received[0].method, "PATCH");
     }
 }

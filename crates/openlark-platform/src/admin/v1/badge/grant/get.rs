@@ -87,21 +87,56 @@ pub type GetBadgeGrantBuilder = GetBadgeGrantRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../badges/{badge_id}/grants/{grant_id} → 强类型 GetBadgeGrantResponse。
+    #[tokio::test]
+    async fn test_get_badge_grant_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/admin/v1/badges/badge_001/grants/grant_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "grant_id": "grant_001",
+                    "badge_id": "badge_001",
+                    "user_id": "u_001",
+                    "create_time": "1717000000"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetBadgeGrantRequestBuilder::new(config)
+            .badge_id("badge_001")
+            .grant_id("grant_001")
+            .execute()
+            .await
+            .expect("获取勋章授予名单详情应成功");
+        assert_eq!(resp.grant_id, "grant_001");
+        assert_eq!(resp.badge_id, "badge_001");
+        assert_eq!(resp.user_id, "u_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/admin/v1/badges/badge_001/grants/grant_001"
+        );
     }
 }
