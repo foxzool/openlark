@@ -76,21 +76,63 @@ pub async fn create_filter_view_with_options(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：POST .../sheets/{sheet_id}/filter_views → CreateFilterViewResponse（filter_view）。
+    #[tokio::test]
+    async fn test_create_filter_view_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "filter_view": {
+                        "filter_view_id": "fv001",
+                        "name": "筛选视图1",
+                        "range": "A1:A10"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = create_filter_view(
+            &config,
+            "tokenAbc",
+            "sheetId001",
+            CreateFilterViewRequest {
+                filter_view_id: None,
+                filter_view_name: Some("筛选视图1".into()),
+                range: "A1:A10".into(),
+            },
+        )
+        .await
+        .expect("创建筛选视图应成功");
+        assert_eq!(resp.filter_view.filter_view_id, "fv001");
+        assert_eq!(resp.filter_view.name, "筛选视图1");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views"
+        );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["range"], "A1:A10");
     }
 }

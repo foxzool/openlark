@@ -106,21 +106,54 @@ impl BatchUpdateChatAnnouncementBlocksRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    use crate::ccm::docx::models::block_update::BlockUpdateOperation;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：PATCH .../announcement/blocks/batch_update → BatchUpdateChatAnnouncementBlocksResponse（blocks）。
+    #[tokio::test]
+    async fn test_batch_update_chat_announcement_blocks_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path(
+                "/open-apis/docx/v1/chats/chat001/announcement/blocks/batch_update",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "blocks": [], "revision_id": 2 }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = BatchUpdateChatAnnouncementBlocksRequest::new(config)
+            .execute(BatchUpdateChatAnnouncementBlocksParams {
+                chat_id: "chat001".into(),
+                requests: vec![BatchUpdateRequest {
+                    block_id: "blk1".into(),
+                    operation: BlockUpdateOperation::Raw(json!({})),
+                }],
+            })
+            .await
+            .expect("批量更新群公告块应成功");
+        assert!(resp.blocks.is_empty());
+        assert_eq!(resp.revision_id, Some(2));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/chats/chat001/announcement/blocks/batch_update"
+        );
     }
 }

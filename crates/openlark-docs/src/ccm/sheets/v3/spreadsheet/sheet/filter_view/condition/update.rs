@@ -87,21 +87,58 @@ pub async fn update_filter_condition_with_options(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：PUT .../conditions/{condition_id} → UpdateFilterConditionResponse（condition）。
+    #[tokio::test]
+    async fn test_update_filter_condition_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path("/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views/fv001/conditions/E"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "condition": { "filter_view_id": "fv001", "column_id": "E", "operator": "contains" }
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = update_filter_condition(
+            &config,
+            "tokenAbc",
+            "sheetId001",
+            "fv001",
+            "E",
+            UpdateFilterConditionRequest {
+                filter_type: Some("noCheck".into()),
+                compare_type: None,
+                expected: Some(vec!["v1".into()]),
+            },
+        )
+        .await
+        .expect("更新筛选条件应成功");
+        assert_eq!(resp.condition.operator, "contains");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views/fv001/conditions/E"
+        );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["filter_type"], "noCheck");
     }
 }
