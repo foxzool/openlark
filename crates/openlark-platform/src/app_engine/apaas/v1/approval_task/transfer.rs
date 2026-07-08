@@ -112,20 +112,52 @@ pub type TransferApprovalTaskBuilder = TransferApprovalTaskRequestBuilder;
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../approval_tasks/{id}/transfer → 强类型 TransferApprovalTaskResponse。
+    #[tokio::test]
+    async fn test_transfer_approval_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/apaas/v1/approval_tasks/task_001/transfer"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "task_id": "task_001",
+                    "result": true,
+                    "message": "转交成功"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = TransferApprovalTaskRequestBuilder::new(config, "task_001", "u_002")
+            .reason("出差转交")
+            .execute()
+            .await
+            .expect("转交人工任务应成功");
+        assert_eq!(resp.task_id, "task_001");
+        assert!(resp.result);
+        assert_eq!(resp.message, "转交成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/approval_tasks/task_001/transfer"
+        );
     }
 }

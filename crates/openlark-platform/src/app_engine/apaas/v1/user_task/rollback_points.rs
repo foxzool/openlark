@@ -91,21 +91,64 @@ pub type RollbackPointsBuilder = RollbackPointsRequestBuilder;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../user_tasks/{id}/rollback_points → 强类型 RollbackPointsResponse。
+    #[tokio::test]
+    async fn test_rollback_points_user_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/apaas/v1/user_tasks/task_001/rollback_points",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "task_id": "task_001",
+                    "rollback_points": [
+                        {
+                            "node_id": "node_1",
+                            "node_name": "部门审批",
+                            "node_type": "APPROVAL",
+                            "can_rollback": true
+                        },
+                        {
+                            "node_id": "node_2",
+                            "node_name": "发起人",
+                            "node_type": "START",
+                            "can_rollback": false
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = RollbackPointsRequestBuilder::new(config, "task_001")
+            .execute()
+            .await
+            .expect("查询可退回位置应成功");
+        assert_eq!(resp.task_id, "task_001");
+        assert_eq!(resp.rollback_points.len(), 2);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/user_tasks/task_001/rollback_points"
+        );
     }
 }
