@@ -105,21 +105,60 @@ impl PatchCalendarRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：PATCH .../calendars/{calendar_id} → PatchCalendarResponse（强类型无 inner data，单层 resp.calendar）。
+    #[tokio::test]
+    async fn test_patch_calendar_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/calendar/v4/calendars/cal_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "calendar": {
+                        "calendar_id": "cal_001",
+                        "summary": "更新后的日历",
+                        "description": "新描述",
+                        "color": "-1",
+                        "permissions": { "is_readable": true, "is_writable": true },
+                        "primary": false,
+                        "calendar_type": "primary"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = PatchCalendarRequest::new(config)
+            .calendar_id("cal_001")
+            .execute(json!({ "summary": "更新后的日历" }))
+            .await
+            .expect("更新日历信息应成功");
+        assert_eq!(resp.calendar.calendar_id, "cal_001");
+        assert_eq!(resp.calendar.summary, "更新后的日历");
+        assert_eq!(resp.calendar.description.as_deref(), Some("新描述"));
+        assert_eq!(resp.calendar.primary, Some(false));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/calendars/cal_001"
+        );
+        assert_eq!(received[0].method, "PATCH");
     }
 }

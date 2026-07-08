@@ -120,12 +120,3 @@ impl VcNoteResourceClient {
         crate::vc::vc::v1::note::unsubscription::UnsubscribeNoteRequest::new(self.config.clone())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_serialization_roundtrip() {
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-}

@@ -53,21 +53,51 @@ impl BatchGetFreebusyRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../meeting_room/freebusy/batch_get → 裸 Value（单层 resp["field"]）。
+    #[tokio::test]
+    async fn test_batch_get_freebusy_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/meeting_room/freebusy/batch_get"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "freebusy_list": [
+                        { "room_id": "room_001", "status": "busy" }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = BatchGetFreebusyRequest::new(config)
+            .query_param("time_scope", "day")
+            .execute()
+            .await
+            .expect("查询会议室忙闲应成功");
+        assert_eq!(resp["freebusy_list"][0]["room_id"], json!("room_001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/meeting_room/freebusy/batch_get"
+        );
+        assert_eq!(received[0].url.query(), Some("time_scope=day"));
     }
 }

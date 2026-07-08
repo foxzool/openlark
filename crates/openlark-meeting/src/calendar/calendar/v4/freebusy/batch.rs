@@ -49,19 +49,65 @@ impl BatchFreebusyRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../calendar/v4/freebusy/batch → BatchFreebusyResponse（data.freebusy_list）。
+    #[tokio::test]
+    async fn test_batch_freebusy_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/calendar/v4/freebusy/batch"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "freebusy_list": [
+                        {
+                            "user_id": "user_001",
+                            "freebusy_list": [
+                                { "start_time": 1000, "end_time": 2000, "status": 1 }
+                            ]
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let body = BatchFreebusyRequestBody {
+            user_ids: vec!["user_001".to_string()],
+            start_time: 1000,
+            end_time: 2000,
+            calendar_ids: None,
+            time_zone: None,
+        };
+
+        let resp = BatchFreebusyRequest::new(config)
+            .execute(body)
+            .await
+            .expect("批量查询忙闲应成功");
+        assert_eq!(resp.freebusy_list.len(), 1);
+        assert_eq!(resp.freebusy_list[0].user_id, "user_001");
+        assert_eq!(resp.freebusy_list[0].freebusy_list[0].status, 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/freebusy/batch"
+        );
+        assert_eq!(received[0].method, "POST");
     }
 }
