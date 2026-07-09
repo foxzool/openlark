@@ -194,21 +194,29 @@ impl OAuthServiceOld {
 pub type AuthorizationBuilder = AuthorizationRequestBuilder;
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// OAuth 授权是重定向流程（无 HTTP 调用），验证构建的授权 URL 含必填参数。
+    #[tokio::test]
+    async fn test_authorization_url_contains_required_params() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = AuthorizationRequestBuilder::new(config)
+            .app_id("test_app")
+            .redirect_uri("http://localhost/cb")
+            .execute()
+            .await
+            .expect("构建授权 URL 应成功");
+
+        let url = resp.data.authorization_url;
+        assert!(url.contains("app_id="), "URL 应含 app_id: {url}");
+        assert!(
+            url.contains("redirect_uri="),
+            "URL 应含 redirect_uri: {url}"
+        );
     }
 }
