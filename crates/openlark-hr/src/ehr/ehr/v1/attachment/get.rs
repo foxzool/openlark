@@ -156,4 +156,53 @@ mod tests {
             GetRequest::new(create_test_config(), "att_1".to_string(), "u_1".to_string());
         assert!(valid_request.validate().is_ok());
     }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_get_attachment_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"name": "resume.pdf", "file_type": "pdf", "size": 1024, "download_url": "https://example.com/r.pdf", "token": "tok_1"}"#).unwrap();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/ehr/v1/attachments/att_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetRequest::new(config, "att_001".to_string(), "u_001".to_string())
+            .execute()
+            .await
+            .expect("下载人员附件应成功");
+
+        assert_eq!(data.name, "resume.pdf");
+        assert_eq!(data.size, 1024);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/ehr/v1/attachments/att_001"
+        );
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or("")
+                .contains("user_id=u_001")
+        );
+    }
 }
