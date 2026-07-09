@@ -1,8 +1,7 @@
-/// 应用资源接口。
-pub mod app;
-
-// app 模块显式导出
-pub use app::{GetAppRequest, GetAppResponse};
+//! 应用 API v1 访问入口。
+//!
+//! 历史上 v1 下有大量双 `application` path 残破 stub（#382 已移除）。
+//! 现仅保留仍可调用的端点（路径与 catalog 对齐的实现）。
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -10,31 +9,16 @@ use std::sync::Arc;
 /// ApplicationV1：应用 API v1 访问入口
 #[derive(Clone)]
 pub struct ApplicationV1 {
-    config: Arc<Config>,
+    // 保留 config 供后续子资源 accessor 使用；当前保留模块经路径类型直接构造
+    _config: Arc<Config>,
 }
 
 impl ApplicationV1 {
     /// 创建新的 ApplicationV1 实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 访问应用资源
-    pub fn app(&self) -> app::App {
-        app::App::new(self.config.clone())
+        Self { _config: config }
     }
 }
+
 pub mod app_badge;
-pub mod app_recommend_rule;
-pub mod app_usage;
-pub mod app_version;
-pub mod app_visibility;
 pub mod application;
-pub mod collaborator;
-pub mod contacts_range;
-pub mod feedback;
-pub mod frequently_used;
-pub mod management;
-pub mod owner;
-pub mod usage;
-pub mod visibility;

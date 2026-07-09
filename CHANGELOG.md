@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- **删除 `openlark-application` 幻影/残破 stub（#382）**：#351 e2e 化对照
+  `api_list_export.csv` 发现约 56 个从未可用的 stub——path 多一层
+  （`/open-apis/application/application/...`）、create/delete/patch 滥用 GET、
+  或指向 catalog 不存在的端点（`applications/recommended`、`frequently_used`、
+  `owner/transfer`、`app_versions/.../contacts_range`、
+  `applications/{}/recommend_rules` 等），以及 3 个 method 错误的重复壳
+  （`message_push_overview` GET 壳、两处 `contacts_range` GET 壳）。
+  批量移除 v1/v6 下对应目录与 `AppApiV1` 幻影 endpoint 枚举；正确实现保留在
+  `v6/application/` 资源树及 `app_badge` / `app_recommend_rule` / `scope`。
+  **无迁移路径**：旧 path/method 对真实飞书本就 404 或语义错误，调用方应改用
+  catalog 对齐的 v6 类型。
+
 ### Changed
 
 - **hr attendance 39 真实端点占位测试 → wiremock e2e**（#351 第 15 批，P4 hr attendance）：

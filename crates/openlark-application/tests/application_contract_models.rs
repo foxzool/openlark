@@ -29,43 +29,17 @@ where
 #[cfg(feature = "v1")]
 mod v1_tests {
     use super::parse_contract;
-    use openlark_application::application::application::v1::app::GetAppResponse;
+    use openlark_application::application::application::v1::app_badge::set::SetAppBadgeBody;
     use serde_json::json;
 
     #[test]
-    fn get_app_response_contract() {
-        let response: GetAppResponse = parse_contract(json!({
+    fn set_app_badge_body_contract() {
+        let body: SetAppBadgeBody = parse_contract(json!({
             "app_id": "cli_a5xxxxxxxx",
-            "app_name": "测试应用",
-            "app_type": "market",
-            "description": "用于集成测试的应用"
+            "badge": 3
         }));
-        assert_eq!(response.app_id, "cli_a5xxxxxxxx");
-        assert_eq!(response.app_name, "测试应用");
-        assert_eq!(response.app_type, "market");
-        assert_eq!(response.description.as_deref(), Some("用于集成测试的应用"));
-
-        let response_no_desc: GetAppResponse = parse_contract(json!({
-            "app_id": "cli_b3xxxxxxxx",
-            "app_name": "简单应用",
-            "app_type": "custom"
-        }));
-        assert_eq!(response_no_desc.description, None);
-    }
-
-    #[test]
-    fn get_app_response_roundtrip() {
-        let original = json!({
-            "app_id": "cli_a5xxxxxxxx",
-            "app_name": "测试应用",
-            "app_type": "market",
-            "description": "用于集成测试的应用"
-        });
-        let response: GetAppResponse = parse_contract(original);
-        assert_eq!(response.app_id, "cli_a5xxxxxxxx");
-        assert_eq!(response.app_name, "测试应用");
-        assert_eq!(response.app_type, "market");
-        assert_eq!(response.description.as_deref(), Some("用于集成测试的应用"));
+        assert_eq!(body.app_id, "cli_a5xxxxxxxx");
+        assert_eq!(body.badge, 3);
     }
 }
 
