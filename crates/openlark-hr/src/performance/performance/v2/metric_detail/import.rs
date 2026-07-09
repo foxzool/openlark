@@ -180,4 +180,47 @@ mod tests {
         })();
         assert!(result.is_err());
     }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_performance_v2_metric_detail_import_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"success_count": 0, "failed_count": 0}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/performance/v2/metric_details/import"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ImportRequest::new(config, "cycle_001".to_string())
+            .execute()
+            .await
+            .expect("performance_v2_metric_detail_import 应成功");
+
+        let _ = data.success_count;
+        let _ = data.failed_count;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/performance/v2/metric_details/import"
+        );
+    }
 }
