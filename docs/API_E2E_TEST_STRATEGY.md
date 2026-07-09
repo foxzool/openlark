@@ -122,20 +122,20 @@ assert!(query.contains("device_type=gate"));
 
 | Crate | API 文件数 | 含 mod tests 文件 | 现状 | 优先级 |
 |-------|-----------|------------------|------|--------|
-| `openlark-security` | 39 | 32 | ✅ **本 PR pilot（全量改造）** | P0 |
-| `openlark-cardkit` | 10 | 18 | 小，适合第 2 批 | P1 |
-| `openlark-user` | 7 | 10 | 小，适合第 2 批 | P1 |
+| `openlark-security` | 39 | 32 | ✅ pilot 全量 wiremock e2e | P0 |
+| `openlark-cardkit` | 10 | 18 | ✅ 全量 wiremock e2e | P1 |
+| `openlark-user` | 7 | 10 | ✅ wiremock e2e（幻影 get 见 #377） | P1 |
 | `openlark-auth` | 15 | 26 | ✅ 已是 wiremock e2e（范本） | — |
-| `openlark-analytics` | 20 | 25 | 中 | P2 |
-| `openlark-helpdesk` | 57 | 75 | 中（需补 wiremock dev-dep） | P2 |
-| `openlark-application` | 96 | 104 | 大，宜拆子 issue | P3 |
-| `openlark-mail` | 108 | 130 | 大，宜拆子 issue | P3 |
-| `openlark-platform` | 125 | 131 | 大，宜拆子 issue | P3 |
-| `openlark-meeting` | 125 | 134 | 大，宜拆子 issue | P3 |
-| `openlark-workflow` | 132 | 154 | 大，宜拆子 issue | P3 |
-| `openlark-docs` | 172 | 263 | 大 + 既有 Potemkin 需先清理 | P3 |
-| `openlark-communication` | 190 | 227 | 大，宜拆子 issue | P3 |
-| `openlark-hr` | 599 | 625 | 最大，按子域多次拆分 | P4 |
+| `openlark-analytics` | 20 | 25 | ✅ 全量 wiremock e2e | P2 |
+| `openlark-helpdesk` | 57 | 75 | ✅ 全量 wiremock e2e | P2 |
+| `openlark-application` | 96 | 104 | ✅ 真实端点 36 e2e；幻影 stub 见 #382 | P3 |
+| `openlark-mail` | 108 | 130 | ✅ 34 真实端点 wiremock e2e | P3 |
+| `openlark-platform` | 125 | 131 | ✅ 76 endpoint e2e，占位 0 残留 | P3 |
+| `openlark-meeting` | 125 | 134 | ✅ 90 endpoint e2e，占位 0 残留 | P3 |
+| `openlark-workflow` | 132 | 154 | ✅ 清 roundtrip 占位；endpoint 已有 to_url/builder 测试，完整 e2e 可后续 | P3 |
+| `openlark-docs` | 172 | 263 | ✅ Potemkin 清理 + sheets/docx/wiki/drive/base 等 e2e | P3 |
+| `openlark-communication` | 190 | 227 | ✅ 28+35 body 类 wiremock e2e | P3 |
+| `openlark-hr` | 599 | 625 | 🚧 **进行中**：PR A ehr+payroll+compensation 35 e2e；余 performance/okr/attendance/hire/feishu_people | P4 |
 
 **选型原则**：
 - pilot 选小而全（覆盖 GET/POST/LIST/DELETE/PATCH 等所有形状）的 crate，建立可复制范本 → `openlark-security`。
@@ -147,7 +147,8 @@ assert!(query.contains("device_type=gate"));
 - [x] 测试策略文档（本文件）
 - [x] pilot crate（`openlark-security`）全量替换为 wiremock 端到端（含移除 `src/lib.rs` 中的占位 roundtrip 测试）
 - [x] `cargo test -p openlark-security --all-features` 通过（79 项，含 39 个新增 e2e）
-- [ ] 后续 crate：按上表分批建子 issue
+- [x] P1–P3 业务 crate 按批完成（cardkit/user/analytics/helpdesk/application/mail/platform/meeting/workflow/docs/communication）
+- [ ] P4 `openlark-hr`：按子域分批（PR A: ehr+payroll+compensation ✅；后续 performance/okr/attendance/hire/feishu_people）
 
 ## 6. 相关文档
 

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **hr ehr/payroll/compensation 35 真实端点占位测试 → wiremock e2e**（#351 第 12 批，P4 hr PR A）：
+  ehr/v1（employee list + attachment get 2）+ payroll/v1 全子域（acct_item/cost_allocation_*/
+  datasource/datasource_record/paygroup/payment_activity*/payment_detail 12）+
+  compensation/v1 全子域（archive/change_reason/indicator/item*/lump_sum_payment/plan/
+  recurring_payment/social_* 21）占位 `serde_json` roundtrip → wiremock 端到端。
+  模式：Config 非 Arc + `XxxApiV1` enum `to_url()` + `response.data.ok_or_else` +
+  `.enable_token_cache(false)`。已有真实 builder/validation 测试的文件（attachment get、
+  social_plan query、datasource_record save）保留并追加 e2e；三域 `mod.rs` 聚合占位测试删除。
+  performance/okr/attendance/hire/feishu_people 留后续 PR。**非 breaking**：纯测试替换/新增。
+
 - **docs 清除 38 个 Potemkin 丢弃式测试 + 15 wiremock e2e**（#351 第 11 批，P3 docs PR A）：
   baike（entity extract/match 2）+ ccm/drive（export_task/file version/import_task/media/permission/member 13）
   共 15 文件，每文件含 `let _ = request.execute().await` + `assert!(result.is_ok())` 的 Potemkin 丢弃式——调 execute

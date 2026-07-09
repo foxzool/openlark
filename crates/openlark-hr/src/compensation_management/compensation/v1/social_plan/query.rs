@@ -195,4 +195,45 @@ mod tests {
         );
         assert!(valid_request.validate().is_ok());
     }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_query_social_plans_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/compensation/v1/social_plans/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = QueryRequest::new(config, vec!["plan_001".to_string()], 1_700_000_000)
+            .execute()
+            .await
+            .expect("批量查询参保方案应成功");
+
+        assert!(data.items.is_empty());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/compensation/v1/social_plans/query"
+        );
+    }
 }
