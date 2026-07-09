@@ -110,6 +110,7 @@ impl ApiResponseTrait for BatchCreateUserFlowResponse {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
     use openlark_core::testing::prelude::TestConfigBuilder;
 
     #[test]
@@ -124,5 +125,64 @@ mod tests {
         let rt = tokio::runtime::Runtime::new().expect("创建 tokio runtime 失败");
         let result = rt.block_on(request.execute());
         assert!(result.is_err());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_attendance_v1_user_flow_batch_create_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"results": []}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/attendance/v1/user_flows/batch_create"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = BatchCreateUserFlowRequest::new(config)
+            .add_flow_record(UserFlowRecord {
+                user_id: "user_id_1".to_string(),
+                punch_time: "2024-01-01 09:00:00".to_string(),
+                punch_type: 1,
+                punch_method: 1,
+                punch_place_name: None,
+                punch_place_id: None,
+                longitude: None,
+                latitude: None,
+                wifi_name: None,
+                wifi_mac: None,
+                device_id: None,
+                device_name: None,
+                remark: None,
+                photo_list: None,
+                out_address: None,
+                out_remark: None,
+            })
+            .execute()
+            .await
+            .expect("attendance_v1_user_flow_batch_create 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/attendance/v1/user_flows/batch_create"
+        );
     }
 }

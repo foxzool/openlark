@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **hr attendance 39 真实端点占位测试 → wiremock e2e**（#351 第 15 批，P4 hr attendance）：
+  attendance/v1 全子域（group/shift/user_flow/user_task/user_approval/user_daily_shift/
+  user_setting/user_stats_*/file/archive_rule/leave_*/approval_info 39）占位 roundtrip →
+  wiremock 端到端。覆盖 path 参数 builder、必填 list/date 校验、以及 enum path 中字面 `{}`
+  的 `.replace` 行为。域级 mod.rs 聚合占位删除。hire/feishu_people 按子域后续 PR。
+  **非 breaking**：纯测试替换/新增。
+
 - **hr okr 37 真实端点占位测试 → wiremock e2e**（#351 第 14 批，P4 hr okr）：
   okr/v1（progress_record/period/period_rule/image/okr/review/user 12）+ okr/v2 全子域
   （category/cycle/objective/key_result/alignment/indicator 25）占位 roundtrip → wiremock 端到端。
