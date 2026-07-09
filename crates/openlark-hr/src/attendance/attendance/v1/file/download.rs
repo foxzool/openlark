@@ -83,11 +83,54 @@ impl ApiResponseTrait for DownloadResponse {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
     use openlark_core::testing::prelude::TestConfigBuilder;
 
     #[test]
     fn test_download_request_builder_new() {
         let request = DownloadRequest::new(TestConfigBuilder::new().build(), "test".to_string());
         let _ = request;
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_attendance_v1_file_download_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"photo_id": "test", "user_id": "test", "photo_data": "test", "content_type": "test"}"#).unwrap();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/attendance/v1/files/photo_001/download"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = DownloadRequest::new(config, "photo_001".to_string())
+            .execute()
+            .await
+            .expect("attendance_v1_file_download 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/attendance/v1/files/photo_001/download"
+        );
     }
 }
