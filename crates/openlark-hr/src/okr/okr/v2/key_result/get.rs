@@ -73,6 +73,7 @@ impl ApiResponseTrait for GetKeyResultResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
 
     #[test]
     fn builder_initializes() {
@@ -105,5 +106,59 @@ mod tests {
         assert_eq!(resp.key_result.weight, Some(0.5));
         assert_eq!(resp.key_result.deadline, Some("1700000000000".to_string()));
         assert!(resp.key_result.content.is_none());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_okr_v2_key_result_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body = json!({
+            "key_result": {
+                "id": "KR-123",
+                "create_time": "1700000000000",
+                "update_time": "1700000000000",
+                "owner": {"owner_type": "user", "user_id": "ou_xxx"},
+                "objective_id": "O-123",
+                "position": 1,
+                "score": 0.8,
+                "weight": 0.5,
+                "deadline": "1700000000000"
+            }
+        });
+        Mock::given(method("GET"))
+            .and(path("/open-apis/okr/v2/key_results/key_result_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = Request::new(std::sync::Arc::new(config))
+            .key_result_id("key_result_001")
+            .execute()
+            .await
+            .expect("okr_v2_key_result_get 应成功");
+
+        let _ = &data.key_result;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/okr/v2/key_results/key_result_001"
+        );
     }
 }

@@ -225,4 +225,53 @@ mod tests {
         })();
         assert!(result.is_err());
     }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_okr_v1_period_create_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"period_id": "test", "name": "test", "start_time": 0, "end_time": 0, "status": 0, "created_at": 0}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/okr/v1/periods"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = CreateRequest::new(
+            config,
+            "sample_name".to_string(),
+            1_700_000_000,
+            1_700_000_000,
+        )
+        .execute()
+        .await
+        .expect("okr_v1_period_create 应成功");
+
+        assert_eq!(data.period_id, "test");
+        assert_eq!(data.name, "test");
+        let _ = data.start_time;
+        let _ = data.end_time;
+        let _ = data.status;
+        let _ = data.created_at;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/okr/v1/periods");
+    }
 }

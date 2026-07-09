@@ -135,7 +135,7 @@ assert!(query.contains("device_type=gate"));
 | `openlark-workflow` | 132 | 154 | ✅ 清 roundtrip 占位；endpoint 已有 to_url/builder 测试，完整 e2e 可后续 | P3 |
 | `openlark-docs` | 172 | 263 | ✅ Potemkin 清理 + sheets/docx/wiki/drive/base 等 e2e | P3 |
 | `openlark-communication` | 190 | 227 | ✅ 28+35 body 类 wiremock e2e | P3 |
-| `openlark-hr` | 599 | 625 | 🚧 **按子域分 PR**：ehr+payroll+compensation ✅ / performance ✅ / 余 okr·attendance·hire·feishu_people | P4 |
+| `openlark-hr` | 599 | 625 | 🚧 **按子域分 PR**：ehr+payroll+compensation ✅ / performance ✅ / okr ✅ / 余 attendance·hire·feishu_people | P4 |
 
 **选型原则**：
 - pilot 选小而全（覆盖 GET/POST/LIST/DELETE/PATCH 等所有形状）的 crate，建立可复制范本 → `openlark-security`。
@@ -148,7 +148,7 @@ assert!(query.contains("device_type=gate"));
 - [x] pilot crate（`openlark-security`）全量替换为 wiremock 端到端（含移除 `src/lib.rs` 中的占位 roundtrip 测试）
 - [x] `cargo test -p openlark-security --all-features` 通过（79 项，含 39 个新增 e2e）
 - [x] P1–P3 业务 crate 按批完成（cardkit/user/analytics/helpdesk/application/mail/platform/meeting/workflow/docs/communication）
-- [ ] P4 `openlark-hr`：按子域分 PR（ehr+payroll+compensation ✅；performance ✅；后续 okr / attendance / hire / feishu_people）
+- [ ] P4 `openlark-hr`：按子域分 PR（ehr+payroll+compensation ✅；performance ✅；okr ✅；后续 attendance / hire / feishu_people）
 
 ## 6. 相关文档
 

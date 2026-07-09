@@ -84,6 +84,7 @@ impl ApiResponseTrait for CreateCycleObjectiveResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
 
     #[test]
     fn builder_initializes() {
@@ -107,5 +108,47 @@ mod tests {
         let resp: CreateCycleObjectiveResponse =
             serde_json::from_value(json).expect("反序列化失败");
         assert_eq!(resp.objective_id, Some("7342342398472398473".to_string()));
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_okr_v2_cycle_objective_create_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/okr/v2/cycles/cycle_001/objectives"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = Request::new(std::sync::Arc::new(config))
+            .cycle_id("cycle_001")
+            .execute(serde_json::json!({}))
+            .await
+            .expect("okr_v2_cycle_objective_create 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/okr/v2/cycles/cycle_001/objectives"
+        );
     }
 }

@@ -149,6 +149,7 @@ pub struct CycleOwner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
 
     #[test]
     fn builder_initializes() {
@@ -208,5 +209,44 @@ mod tests {
         assert_eq!(cycle.owner.owner_type, "user");
         assert_eq!(cycle.cycle_status, Some(1));
         assert_eq!(cycle.score, Some(0.5));
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_okr_v2_cycle_list_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/okr/v2/cycles"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = Request::new(std::sync::Arc::new(config))
+            .user_id("user_id_001")
+            .execute()
+            .await
+            .expect("okr_v2_cycle_list 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/okr/v2/cycles");
     }
 }
