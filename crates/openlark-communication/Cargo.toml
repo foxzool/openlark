@@ -23,6 +23,7 @@ tracing = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true }
 insta = { workspace = true }
+wiremock = { workspace = true }
 
 [features]
 default = ["im", "contact", "moments", "aily", "event"]
