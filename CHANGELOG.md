@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **hr performance 21 真实端点占位测试 → wiremock e2e**（#351 第 13 批，P4 hr performance）：
+  performance/v1（semester/stage_task/review_data 4）+ performance/v2 全子域（activity/
+  additional_information*/indicator/metric_*/question/review_*/reviewee/user_* 17）
+  占位 `serde_json` roundtrip → wiremock 端到端。模式同 PR A（Config 非 Arc + enum to_url +
+  enable_token_cache(false)）。域级 `mod.rs` 聚合占位删除。okr/attendance/hire/feishu_people
+  按子域后续 PR。**非 breaking**：纯测试替换/新增。
+
 - **hr ehr/payroll/compensation 35 真实端点占位测试 → wiremock e2e**（#351 第 12 批，P4 hr PR A）：
   ehr/v1（employee list + attachment get 2）+ payroll/v1 全子域（acct_item/cost_allocation_*/
   datasource/datasource_record/paygroup/payment_activity*/payment_detail 12）+
