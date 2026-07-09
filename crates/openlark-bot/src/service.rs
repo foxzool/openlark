@@ -29,13 +29,3 @@ impl BotService {
         crate::bot::bot::v4::bot::search::SearchBotRequest::new(self.config.clone())
     }
 }
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    #[test]
-    fn test_serialization_roundtrip() {
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-}
