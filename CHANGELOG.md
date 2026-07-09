@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **hr okr 37 真实端点占位测试 → wiremock e2e**（#351 第 14 批，P4 hr okr）：
+  okr/v1（progress_record/period/period_rule/image/okr/review/user 12）+ okr/v2 全子域
+  （category/cycle/objective/key_result/alignment/indicator 25）占位 roundtrip → wiremock 端到端。
+  v2 含 Arc<Config> + path builder + `execute(body: Value)` 形态；`user/okr/list` 按代码实际
+  path（`/users/{id}/okrs`，非 enum 的 user_okrs/list）mock。域级 mod.rs 聚合占位删除。
+  **非 breaking**：纯测试替换/新增。
+
 - **hr performance 21 真实端点占位测试 → wiremock e2e**（#351 第 13 批，P4 hr performance）：
   performance/v1（semester/stage_task/review_data 4）+ performance/v2 全子域（activity/
   additional_information*/indicator/metric_*/question/review_*/reviewee/user_* 17）

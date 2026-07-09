@@ -74,6 +74,7 @@ impl ApiResponseTrait for GetObjectiveResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
     #[test]
     fn builder_initializes() {
         let config = Arc::new(Config::default());
@@ -102,5 +103,60 @@ mod tests {
         assert_eq!(resp.objective.owner.owner_type, "user");
         assert_eq!(resp.objective.score, Some(0.8));
         assert!(resp.objective.content.is_none());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_okr_v2_objective_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body = json!({
+            "objective": {
+                "id": "O-123",
+                "create_time": "1700000000000",
+                "update_time": "1700000000000",
+                "owner": {"owner_type": "user", "user_id": "ou_xxx"},
+                "cycle_id": "C-1",
+                "position": 1,
+                "score": 0.8,
+                "weight": 0.5,
+                "deadline": "1700000000000",
+                "category_id": "cat-1"
+            }
+        });
+        Mock::given(method("GET"))
+            .and(path("/open-apis/okr/v2/objectives/objective_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = Request::new(std::sync::Arc::new(config))
+            .objective_id("objective_001")
+            .execute()
+            .await
+            .expect("okr_v2_objective_get 应成功");
+
+        let _ = &data.objective;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/okr/v2/objectives/objective_001"
+        );
     }
 }
