@@ -103,9 +103,7 @@
   - `ApprovalTaskQuery`
   - `ApprovalTaskAction`
   - `query_approval_tasks`
-  - `approve_task`
-  - `reject_task`
-  - `resubmit_task`
+  - `approve_task` / `reject_task` / `resubmit_task`（返回 `SDKResult<()>`；成功/失败只由 `Result` 表达，不伪造 `success: bool`，见 #350）
 
 ### 4.3 Workflow helper 设计规则
 

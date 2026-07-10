@@ -159,7 +159,7 @@ declare_client! {
         ty: crate::AnalyticsClient,
         doc: "Analytics meta 调用链入口：client.analytics.report... ...",
         init: |_core_config, _base_core_config| {
-            crate::AnalyticsClient::new(_core_config.clone())?
+            crate::AnalyticsClient::new(_core_config.clone())
         },
     },
     {

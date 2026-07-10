@@ -23,6 +23,7 @@ tracing = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
 insta = { workspace = true }
+wiremock = { workspace = true }
 
 [features]
 default = ["v1", "v2", "async", "board"]
