@@ -383,7 +383,11 @@ impl Config {
                 }
             }
             "OPENLARK_ENABLE_LOG" => {
-                inner.enable_log = !value.to_lowercase().starts_with('f');
+                let s = value.trim().to_lowercase();
+                // 空值保留当前状态（与 ENABLE_TOKEN_CACHE 一致）
+                if !s.is_empty() {
+                    inner.enable_log = !s.starts_with('f');
+                }
             }
             _ => {}
         }
@@ -410,57 +414,70 @@ impl Config {
 }
 
 /// 配置构建器
-#[derive(Default, Clone)]
+///
+/// 直接持有一份 canonical [`ConfigInner`] 状态：所有 setter、环境覆盖与 header
+/// 合并都写同一份状态，`build()` 仅将其移入 [`Config`]。
+///
+/// 不自动调用 [`Config::validate`]——保持 core 宽松构建契约。
+#[derive(Clone, Default)]
 pub struct ConfigBuilder {
-    app_id: Option<String>,
-    app_secret: Option<String>,
-    base_url: Option<String>,
-    enable_token_cache: Option<bool>,
-    app_type: Option<AppType>,
-    http_client: Option<reqwest::Client>,
-    req_timeout: Option<Duration>,
-    header: Option<HashMap<String, String>>,
-    token_provider: Option<Arc<dyn TokenProvider>>,
-    max_response_size: Option<u64>,
-    retry_count: Option<u32>,
-    enable_log: Option<bool>,
-    allow_custom_base_url: Option<bool>,
+    inner: ConfigInner,
+}
+
+impl std::fmt::Debug for ConfigBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // 脱敏输出：不包含 app_secret 明文、header 值、token_provider 内部
+        // （字段列表与 ConfigInner::Debug 保持同步）
+        f.debug_struct("ConfigBuilder")
+            .field("app_id", &self.inner.app_id)
+            .field("app_secret", &"***")
+            .field("base_url", &self.inner.base_url)
+            .field("enable_token_cache", &self.inner.enable_token_cache)
+            .field("app_type", &self.inner.app_type)
+            .field("req_timeout", &self.inner.req_timeout)
+            .field("max_response_size", &self.inner.max_response_size)
+            .field("retry_count", &self.inner.retry_count)
+            .field("enable_log", &self.inner.enable_log)
+            .field("allow_custom_base_url", &self.inner.allow_custom_base_url)
+            .field("header", &format!("{} headers", self.inner.header.len()))
+            .finish()
+    }
 }
 
 impl ConfigBuilder {
     /// 设置应用 ID
     pub fn app_id(mut self, app_id: impl Into<String>) -> Self {
-        self.app_id = Some(app_id.into());
+        self.inner.app_id = app_id.into();
         self
     }
 
     /// 设置应用密钥
     pub fn app_secret(mut self, app_secret: impl Into<String>) -> Self {
-        self.app_secret = Some(app_secret.into());
+        self.inner.app_secret = app_secret.into();
         self
     }
 
     /// 设置基础 URL
     pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
-        self.base_url = Some(base_url.into());
+        self.inner.base_url = base_url.into();
         self
     }
 
     /// 设置是否启用令牌缓存
     pub fn enable_token_cache(mut self, enable: bool) -> Self {
-        self.enable_token_cache = Some(enable);
+        self.inner.enable_token_cache = enable;
         self
     }
 
     /// 设置应用类型
     pub fn app_type(mut self, app_type: AppType) -> Self {
-        self.app_type = Some(app_type);
+        self.inner.app_type = app_type;
         self
     }
 
     /// 设置 HTTP 客户端
     pub fn http_client(mut self, client: reqwest::Client) -> Self {
-        self.http_client = Some(client);
+        self.inner.http_client = client;
         self
     }
 
@@ -470,7 +487,7 @@ impl ConfigBuilder {
         config: OptimizedHttpConfig,
     ) -> Result<Self, reqwest::Error> {
         let client = config.build_client()?;
-        self.http_client = Some(client);
+        self.inner.http_client = client;
         Ok(self)
     }
 
@@ -494,68 +511,66 @@ impl ConfigBuilder {
 
     /// 设置请求超时时间
     pub fn req_timeout(mut self, timeout: Duration) -> Self {
-        self.req_timeout = Some(timeout);
+        self.inner.req_timeout = Some(timeout);
         self
     }
 
-    /// 设置自定义 HTTP 头
+    /// 整体替换自定义 HTTP 头
+    ///
+    /// 与 [`Self::add_header`] 混用时按链式调用顺序生效：本方法清除先前增量写入。
     pub fn header(mut self, header: HashMap<String, String>) -> Self {
-        self.header = Some(header);
+        self.inner.header = header;
+        self
+    }
+
+    /// 增量添加单个 HTTP 头（同名键后写覆盖）
+    pub fn add_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.inner.header.insert(key.into(), value.into());
+        self
+    }
+
+    /// 在当前链式位置叠加 `OPENLARK_*` 环境变量
+    ///
+    /// 与 [`Config::from_env`] / [`Config::load_from_env`] 共用同一套环境解释逻辑。
+    /// 缺失、空值或不可解析的可选变量保留当前 builder 状态；有效值覆盖当前状态。
+    pub fn load_from_env(mut self) -> Self {
+        Config::apply_env_vars(&mut self.inner);
         self
     }
 
     /// 设置令牌提供者
     pub fn token_provider(mut self, provider: impl TokenProvider + 'static) -> Self {
-        self.token_provider = Some(Arc::new(provider));
+        self.inner.token_provider = Arc::new(provider);
         self
     }
 
     /// 设置响应体最大大小限制（字节），默认 100MB
     pub fn max_response_size(mut self, size: u64) -> Self {
-        self.max_response_size = Some(size);
+        self.inner.max_response_size = size;
         self
     }
 
     /// 设置默认重试次数，默认 3
     pub fn retry_count(mut self, count: u32) -> Self {
-        self.retry_count = Some(count);
+        self.inner.retry_count = count;
         self
     }
 
     /// 设置是否启用日志记录，默认 true
     pub fn enable_log(mut self, enable: bool) -> Self {
-        self.enable_log = Some(enable);
+        self.inner.enable_log = enable;
         self
     }
 
     /// 设置是否允许自定义 base_url 域名（绕过白名单 SSRF 防护），默认 false
     pub fn allow_custom_base_url(mut self, allow: bool) -> Self {
-        self.allow_custom_base_url = Some(allow);
+        self.inner.allow_custom_base_url = allow;
         self
     }
 
-    /// 构建 Config 实例
+    /// 构建 Config 实例（不自动校验）
     pub fn build(self) -> Config {
-        let default = ConfigInner::default();
-        Config::new(ConfigInner {
-            app_id: self.app_id.unwrap_or(default.app_id),
-            app_secret: self.app_secret.unwrap_or(default.app_secret),
-            base_url: self.base_url.unwrap_or(default.base_url),
-            enable_token_cache: self
-                .enable_token_cache
-                .unwrap_or(default.enable_token_cache),
-            app_type: self.app_type.unwrap_or(default.app_type),
-            http_client: self.http_client.unwrap_or(default.http_client),
-            req_timeout: self.req_timeout.or(default.req_timeout),
-            header: self.header.unwrap_or(default.header),
-            token_provider: self.token_provider.unwrap_or(default.token_provider),
-            max_response_size: self.max_response_size.unwrap_or(default.max_response_size),
-            retry_count: self.retry_count.unwrap_or(default.retry_count),
-            enable_log: self.enable_log.unwrap_or(default.enable_log),
-            allow_custom_base_url: self
-                .allow_custom_base_url
-                .unwrap_or(default.allow_custom_base_url),
-        })
+        Config::new(self.inner)
     }
 }
 
@@ -1144,5 +1159,189 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(token, "test_token");
+    }
+
+    // ===== #414: ConfigBuilder as canonical configuration state =====
+
+    #[test]
+    fn test_config_builder_default_timeout_is_none() {
+        let config = Config::builder().build();
+        assert!(config.req_timeout().is_none());
+    }
+
+    #[test]
+    fn test_config_builder_load_from_env_overrides_prior_setters() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("env_app")),
+                ("OPENLARK_TIMEOUT", Some("90")),
+            ],
+            || {
+                let config = Config::builder()
+                    .app_id("code_app")
+                    .req_timeout(Duration::from_secs(10))
+                    .load_from_env()
+                    .build();
+                assert_eq!(config.app_id(), "env_app");
+                assert_eq!(config.req_timeout(), Some(Duration::from_secs(90)));
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_builder_setter_after_load_from_env_overrides_env() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("env_app")),
+                ("OPENLARK_TIMEOUT", Some("90")),
+            ],
+            || {
+                let config = Config::builder()
+                    .load_from_env()
+                    .app_id("code_app")
+                    .req_timeout(Duration::from_secs(10))
+                    .build();
+                assert_eq!(config.app_id(), "code_app");
+                assert_eq!(config.req_timeout(), Some(Duration::from_secs(10)));
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_builder_load_from_env_ignores_missing_empty_and_invalid() {
+        with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("kept_if_empty_or_missing")),
+                ("OPENLARK_APP_SECRET", Some("")),
+                ("OPENLARK_TIMEOUT", Some("not-a-number")),
+                ("OPENLARK_APP_TYPE", Some("unknown_type")),
+                ("OPENLARK_RETRY_COUNT", Some("bad")),
+            ],
+            || {
+                // 先写入已知状态，再 load：缺失/空/非法 env 不得擦除
+                let config = Config::builder()
+                    .app_id("code_app")
+                    .app_secret("code_secret")
+                    .req_timeout(Duration::from_secs(15))
+                    .app_type(AppType::Marketplace)
+                    .retry_count(4)
+                    .load_from_env()
+                    .build();
+
+                // OPENLARK_APP_ID 有效 → 覆盖
+                assert_eq!(config.app_id(), "kept_if_empty_or_missing");
+                // 空 secret → 保留
+                assert_eq!(config.app_secret(), "code_secret");
+                // 非法 timeout / retry → 保留
+                assert_eq!(config.req_timeout(), Some(Duration::from_secs(15)));
+                assert_eq!(config.retry_count(), 4);
+                // 未知 app_type → 保留
+                assert_eq!(config.app_type(), AppType::Marketplace);
+            },
+        );
+    }
+
+    #[test]
+    fn test_config_builder_add_header_incremental_and_last_write_wins() {
+        let config = Config::builder()
+            .add_header("X-A", "1")
+            .add_header("X-B", "2")
+            .add_header("X-A", "3")
+            .build();
+        assert_eq!(config.header().get("X-A"), Some(&"3".to_string()));
+        assert_eq!(config.header().get("X-B"), Some(&"2".to_string()));
+        assert_eq!(config.header().len(), 2);
+    }
+
+    #[test]
+    fn test_config_builder_header_map_replace_and_add_order() {
+        let mut whole = HashMap::new();
+        whole.insert("X-A".to_string(), "from_map".to_string());
+        whole.insert("X-C".to_string(), "c".to_string());
+
+        // add → replace → add：整体替换清除先前增量，后续增量叠在 map 上
+        let config = Config::builder()
+            .add_header("X-A", "incremental")
+            .add_header("X-B", "b")
+            .header(whole)
+            .add_header("X-A", "after_map")
+            .build();
+
+        assert_eq!(config.header().get("X-A"), Some(&"after_map".to_string()));
+        assert_eq!(config.header().get("X-C"), Some(&"c".to_string()));
+        assert!(
+            !config.header().contains_key("X-B"),
+            "header(map) 应整体替换，清除先前的 X-B"
+        );
+    }
+
+    #[test]
+    fn test_config_builder_retains_allow_custom_base_url() {
+        let config = Config::builder()
+            .base_url("https://proxy.example.com")
+            .allow_custom_base_url(true)
+            .build();
+        assert!(config.allow_custom_base_url());
+        assert_eq!(config.base_url(), "https://proxy.example.com");
+    }
+
+    #[test]
+    fn test_config_builder_clone_preserves_state() {
+        let builder = Config::builder()
+            .app_id("clone_app")
+            .app_secret("clone_secret")
+            .req_timeout(Duration::from_secs(12))
+            .add_header("X-Clone", "yes")
+            .allow_custom_base_url(true);
+        let cloned = builder.clone();
+        let a = builder.build();
+        let b = cloned.build();
+        assert_eq!(a.app_id(), b.app_id());
+        assert_eq!(a.app_secret(), b.app_secret());
+        assert_eq!(a.req_timeout(), b.req_timeout());
+        assert_eq!(a.allow_custom_base_url(), b.allow_custom_base_url());
+        assert_eq!(a.header().get("X-Clone"), b.header().get("X-Clone"));
+    }
+
+    #[test]
+    fn test_config_builder_debug_redacts_secrets_and_headers() {
+        let builder = Config::builder()
+            .app_id("debug_app")
+            .app_secret("super-secret-value")
+            .add_header("Authorization", "Bearer secret-token")
+            .token_provider(TestTokenProvider);
+        let debug = format!("{builder:?}");
+        assert!(
+            debug.starts_with("ConfigBuilder"),
+            "Debug 应以 ConfigBuilder 开头: {debug}"
+        );
+        assert!(debug.contains("debug_app"), "Debug 应包含 app_id: {debug}");
+        assert!(
+            debug.contains("***"),
+            "Debug 应对 app_secret 脱敏为 ***: {debug}"
+        );
+        assert!(
+            !debug.contains("super-secret-value"),
+            "Debug 不得泄露 app_secret: {debug}"
+        );
+        assert!(
+            !debug.contains("Bearer secret-token"),
+            "Debug 不得泄露 header 值: {debug}"
+        );
+        assert!(
+            !debug.contains("TestTokenProvider"),
+            "Debug 不得暴露 token provider 内部: {debug}"
+        );
+    }
+
+    #[test]
+    fn test_config_builder_load_from_env_empty_enable_log_preserves() {
+        with_env_vars(&[("OPENLARK_ENABLE_LOG", Some(""))], || {
+            let config = Config::builder().enable_log(false).load_from_env().build();
+            assert!(
+                !config.enable_log(),
+                "空 OPENLARK_ENABLE_LOG 应保留 builder 中的 false"
+            );
+        });
     }
 }
