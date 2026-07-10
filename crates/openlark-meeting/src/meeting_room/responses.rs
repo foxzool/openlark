@@ -381,12 +381,18 @@ impl ApiResponseTrait for ReplyInstanceResponse {
 /// 视频会议信息（日程主题详情）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SummaryVchat {
-    /// 会议链接。
-    #[serde(default)]
-    pub meeting_url: Option<String>,
-    /// 视频会议类型。
+    /// 视频会议类型（`vc` / `third_party` / `no_meeting` 等）。
     #[serde(default)]
     pub vc_type: Option<String>,
+    /// 第三方视频会议 icon 类型。
+    #[serde(default)]
+    pub icon_type: Option<String>,
+    /// 第三方视频会议文案。
+    #[serde(default)]
+    pub description: Option<String>,
+    /// 视频会议 URL。
+    #[serde(default)]
+    pub meeting_url: Option<String>,
 }
 
 /// 会议室日程主题与会议详情。
@@ -406,14 +412,28 @@ pub struct SummaryEventInfo {
     pub vchat: Option<SummaryVchat>,
 }
 
+/// 查询失败的日程信息（`ErrorEventUids` 元素）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SummaryErrorEvent {
+    /// 日程 UID。
+    #[serde(default)]
+    pub uid: Option<String>,
+    /// 重复日程原始时间。
+    #[serde(default)]
+    pub original_time: Option<i64>,
+    /// 错误信息。
+    #[serde(default)]
+    pub error_msg: Option<String>,
+}
+
 /// 查询会议室日程主题和会议详情响应。
 ///
-/// 官方示例使用 PascalCase 字段名（`ErrorEventUids` / `EventInfos`）。
+/// 官方文档使用 PascalCase 字段名（`ErrorEventUids` / `EventInfos`）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchGetSummaryResponse {
-    /// 查询失败的事件 UID 列表。
+    /// 没有查询到的日程信息。
     #[serde(rename = "ErrorEventUids", default)]
-    pub error_event_uids: Vec<String>,
+    pub error_event_uids: Vec<SummaryErrorEvent>,
     /// 事件详情列表。
     #[serde(rename = "EventInfos", default)]
     pub event_infos: Vec<SummaryEventInfo>,
@@ -523,29 +543,34 @@ mod tests {
     #[test]
     fn deserialize_summary_pascal_case_fields() {
         let v = json!({
-            "ErrorEventUids": [],
+            "ErrorEventUids": [{
+                "uid": "missing-uid",
+                "original_time": 0,
+                "error_msg": "not found"
+            }],
             "EventInfos": [{
                 "original_time": 0,
                 "summary": "test",
                 "uid": "a04dbea1-86b9-4372-aa8d-64ebe801be2a",
                 "vchat": {
                     "meeting_url": "https://vc.feishu.cn/j/935314044",
-                    "vc_type": "vc"
+                    "vc_type": "third_party",
+                    "icon_type": "default",
+                    "description": "外部会议"
                 }
             }]
         });
         let resp: BatchGetSummaryResponse = serde_json::from_value(v).unwrap();
-        assert!(resp.error_event_uids.is_empty());
-        assert_eq!(resp.event_infos[0].summary.as_deref(), Some("test"));
+        assert_eq!(resp.error_event_uids.len(), 1);
         assert_eq!(
-            resp.event_infos[0]
-                .vchat
-                .as_ref()
-                .unwrap()
-                .vc_type
-                .as_deref(),
-            Some("vc")
+            resp.error_event_uids[0].error_msg.as_deref(),
+            Some("not found")
         );
+        assert_eq!(resp.event_infos[0].summary.as_deref(), Some("test"));
+        let vchat = resp.event_infos[0].vchat.as_ref().unwrap();
+        assert_eq!(vchat.vc_type.as_deref(), Some("third_party"));
+        assert_eq!(vchat.icon_type.as_deref(), Some("default"));
+        assert_eq!(vchat.description.as_deref(), Some("外部会议"));
     }
 
     #[test]
