@@ -614,11 +614,12 @@ mod tests {
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         let server = MockServer::start().await;
-        for p in [
+        let paths = [
             "/open-apis/approval/v4/tasks/approve",
             "/open-apis/approval/v4/tasks/reject",
             "/open-apis/approval/v4/tasks/resubmit",
-        ] {
+        ];
+        for p in paths {
             Mock::given(method("POST"))
                 .and(path(p))
                 .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -657,11 +658,30 @@ mod tests {
             .resubmit_task(action)
             .await
             .expect("resubmit_task 应在飞书成功响应时返回 Ok(())");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(
+            received.len(),
+            3,
+            "三个 helper 应各打一次飞书 approval v4 端点"
+        );
+        let hit: Vec<_> = received.iter().map(|r| r.url.path().to_string()).collect();
+        for p in paths {
+            assert!(
+                hit.iter().any(|h| h == p),
+                "missing request to {p}; got {hit:?}"
+            );
+        }
     }
 
-    /// #350：底层 API 失败时 helper 传播 Err，而非恒真 success。
+    /// #350：底层失败时 helper 传播 Err，而非恒真 success。
+    ///
+    /// `ApproveTaskRequestV4` 对飞书 `code != 0` 且无 `data` 的响应走
+    /// `missing_response_data`（Validation），而不是把 `msg` 映射成 `CoreError::Api`。
+    /// 本测试锁定 helper 契约：`Err` 必须向上抛出，不能伪装 `Ok(())`。
     #[tokio::test]
     async fn test_approve_task_helper_propagates_api_error() {
+        use openlark_core::error::CoreError;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -669,7 +689,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/approval/v4/tasks/approve"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 99991663,
+                "code": 99991400,
                 "msg": "invalid approval task"
             })))
             .mount(&server)
@@ -692,14 +712,22 @@ mod tests {
                 "task_123",
             ))
             .await
-            .expect_err("API 业务错误应传播为 Err");
+            .expect_err("飞书失败响应应传播为 Err，不得伪装 Ok(())");
+        assert!(
+            matches!(err, CoreError::Validation { .. } | CoreError::Api(_)),
+            "expected Validation (missing data on non-zero code) or Api, got {err:?}"
+        );
         let msg = err.to_string();
         assert!(
-            msg.contains("99991663")
-                || msg.contains("invalid approval task")
-                || msg.contains("验证错误")
-                || msg.contains("业务"),
-            "unexpected error (should be API/business failure, not silent Ok): {err}"
+            msg.contains("服务器没有返回有效的数据") || msg.contains("invalid approval task"),
+            "error should surface leaf validation or Feishu msg, got: {err}"
+        );
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/approval/v4/tasks/approve"
         );
     }
 }

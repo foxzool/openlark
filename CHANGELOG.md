@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        （`QueryApi`/`UserSearchApi`/`SearchRequest`/`SuggestRequest`/`SearchUserRequest`）。
        无已验证飞书端点（与 #2fab71234 / #108 约束一致：不发明未验证端点）；setter 死值 +
        `execute()` 恒失败是接口撒谎。与 #308 删除 `Search`/`SearchV2` 门面死链同向收口。
-       **迁移**：改用已实现的 `doc_wiki`/`schema`/`app`/`message`/`data_source` leaf builder。
+       **迁移**：这些 stub 从未接线，不是其它 leaf 的别名——请改用已实现的 search leaf
+       （`doc_wiki`/`schema`/`app`/`message`/`data_source`）。**用户搜索仍无 surface**。
     2. `AnalyticsService::new` 误导签名 `SDKResult<Self>` 但函数体永远 `Ok(...)` → 改为 `Self`
        （同 platform #373 / user #360）。**迁移**：`AnalyticsService::new(config)?` / client
        facade 去 `?`。
@@ -208,9 +209,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **analytics Search / SearchV2 / search() 标 `#[deprecated]`**（#308）：三层 `Arc<Config>`
   导航死胡同（Search → SearchV2 无真实 API 落地）标记 deprecated，note 指明替代路径
-  （v2 子模块的 `XxxRequest::new`，如 `query::SearchRequest` / `user::SearchUserRequest`）。
-  配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除。**非 breaking**：仅 deprecation
-  warning，旧调用仍可编译。
+  （v2 已实现 leaf：`doc_wiki` / `schema` / `app` / `message` / `data_source` 的 `XxxRequest::new`）。
+  配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除（#350 已删恒 `Err` 的 `query`/`user`
+  stub）。**非 breaking**：仅 deprecation warning，旧调用仍可编译。
 
 ### Breaking Changes
 

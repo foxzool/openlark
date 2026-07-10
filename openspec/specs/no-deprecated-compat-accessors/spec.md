@@ -23,7 +23,9 @@ openlark-analytics 的 `SearchV2` SHALL 不再提供 `query()`/`user()` deprecat
 
 #### Scenario: QueryApi/UserSearchApi 恒失败 stub 已删除（#350 收口）
 - **WHEN** 在 `crates/openlark-analytics/src/search/search/v2` 下查找 `query.rs`/`user.rs` 或 `QueryApi`/`UserSearchApi`
-- **THEN** 模块与类型均不存在（#350 P9：无已验证端点的恒 `Err` + setter 死值 stub 删除；改用 `doc_wiki`/`schema`/`app`/`message`/`data_source`）
+- **THEN** 模块与类型均不存在（#350 P9：无已验证端点的恒 `Err` + setter 死值 stub 删除；
+  调用方使用已实现 search leaf `doc_wiki`/`schema`/`app`/`message`/`data_source`；
+  用户搜索仍无 surface，勿把已删 stub 当作这些 leaf 的别名）
 
 ### Requirement: 移除不破坏构建与测试
 本次移除 SHALL 不导致 default/full/no-default 任一 feature 组合的 clippy 或测试失败。
