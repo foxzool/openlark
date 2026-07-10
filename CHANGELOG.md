@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **meeting_room 17 叶 `execute()` 返回类型 `Value` → typed Response**（#349）：
+  `meeting_room/{building,room,country,district,freebusy,instance,summary}` 全部
+  `execute()` / `execute_with_options()` 从 `SDKResult<serde_json::Value>` 改为 typed
+  Response（如 `ListBuildingResponse` / `BatchGetFreebusyResponse` / `DeleteBuildingResponse`）。
+  字段对齐飞书历史版文档 Response body example（该类文档为 GuideDocumentType，无结构化
+  apiSchema）；无 `data` 的写操作（update/delete/instance reply）在缺省时返回
+  `Default` 空响应。**v0.18 breaking**：调用方需按新 typed Response 取值，不可再按
+  `resp["field"]` 索引。请求 body 仍为 `serde_json::Value`（后续可独立 typed）。
+
 - **删除 `openlark-user` 幻影 `SystemStatusResource::get()` / `SystemStatusGetRequest`（#377）**：
   飞书 `personal_settings/v1/system_status` 仅有 6 个 API（batch_close / batch_open /
   create / delete / list / patch），无 `get`（"获取系统状态"对应 `list`）。既有

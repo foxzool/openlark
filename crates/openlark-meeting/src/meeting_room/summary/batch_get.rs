@@ -8,6 +8,7 @@ use openlark_core::{
 
 use crate::common::api_endpoints::MeetingRoomApi;
 use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::meeting_room::responses::BatchGetSummaryResponse;
 
 /// 查询会议室日程主题和会议详情请求
 pub struct BatchGetSummaryRequest {
@@ -25,7 +26,7 @@ impl BatchGetSummaryRequest {
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/>
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self, body: serde_json::Value) -> SDKResult<BatchGetSummaryResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
@@ -35,9 +36,9 @@ impl BatchGetSummaryRequest {
         self,
         body: serde_json::Value,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<BatchGetSummaryResponse> {
         let api_endpoint = MeetingRoomApi::RoomBatchGetSummary;
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
+        let req: ApiRequest<BatchGetSummaryResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "查询会议室日程主题和会议详情")?);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
@@ -49,7 +50,7 @@ impl BatchGetSummaryRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../meeting_room/rooms/batch_get_summary → 裸 Value（单层 resp["field"]）。
+    /// 端到端：POST .../meeting_room/rooms/batch_get_summary → BatchGetSummaryResponse。
     #[tokio::test]
     async fn test_batch_get_summary_returns_data_on_success() {
         use serde_json::json;
@@ -64,9 +65,16 @@ mod tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "summaries": [
-                        { "room_id": "room_001", "topic": "周会" }
-                    ]
+                    "ErrorEventUids": [],
+                    "EventInfos": [{
+                        "original_time": 0,
+                        "summary": "周会",
+                        "uid": "a04dbea1-86b9-4372-aa8d-64ebe801be2a",
+                        "vchat": {
+                            "meeting_url": "https://vc.feishu.cn/j/935314044",
+                            "vc_type": "vc"
+                        }
+                    }]
                 }
             })))
             .mount(&server)
@@ -83,7 +91,8 @@ mod tests {
             .execute(json!({ "room_ids": ["room_001"] }))
             .await
             .expect("查询会议室日程主题和会议详情应成功");
-        assert_eq!(resp["summaries"][0]["room_id"], json!("room_001"));
+        assert!(resp.error_event_uids.is_empty());
+        assert_eq!(resp.event_infos[0].summary.as_deref(), Some("周会"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

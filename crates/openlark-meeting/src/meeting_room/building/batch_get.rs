@@ -8,6 +8,7 @@ use openlark_core::{
 
 use crate::common::api_utils::extract_response_data;
 use crate::endpoints::MEETING_ROOM;
+use crate::meeting_room::responses::BatchGetBuildingResponse;
 
 /// 查询建筑物详情请求
 pub struct BatchGetBuildingRequest {
@@ -33,14 +34,17 @@ impl BatchGetBuildingRequest {
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details>
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<BatchGetBuildingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<BatchGetBuildingResponse> {
         // url: GET:/open-apis/meeting_room/building/batch_get
-        let mut req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<BatchGetBuildingResponse> =
             ApiRequest::get(format!("{MEETING_ROOM}/building/batch_get"));
         for (k, v) in self.query_params {
             req = req.query(k, v);
@@ -55,7 +59,7 @@ impl BatchGetBuildingRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../meeting_room/building/batch_get → 裸 Value（单层 resp["field"]）。
+    /// 端到端：GET .../meeting_room/building/batch_get → BatchGetBuildingResponse。
     #[tokio::test]
     async fn test_batch_get_building_returns_data_on_success() {
         use serde_json::json;
@@ -71,7 +75,13 @@ mod tests {
                 "msg": "success",
                 "data": {
                     "buildings": [
-                        { "building_id": "bldg_001", "name": "1号楼" }
+                        {
+                            "building_id": "bldg_001",
+                            "name": "1号楼",
+                            "floors": ["F1"],
+                            "country_id": "1814991",
+                            "district_id": "2034437"
+                        }
                     ]
                 }
             })))
@@ -90,7 +100,8 @@ mod tests {
             .execute()
             .await
             .expect("查询建筑物详情应成功");
-        assert_eq!(resp["buildings"][0]["building_id"], json!("bldg_001"));
+        assert_eq!(resp.buildings[0].building_id, "bldg_001");
+        assert_eq!(resp.buildings[0].name.as_deref(), Some("1号楼"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

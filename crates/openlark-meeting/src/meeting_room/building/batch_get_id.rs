@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
+use crate::meeting_room::responses::BatchGetBuildingIdResponse;
 use crate::{common::api_utils::extract_response_data, endpoints::MEETING_ROOM};
 
 /// 查询建筑物ID请求
@@ -32,14 +33,17 @@ impl BatchGetBuildingIdRequest {
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-building-id>
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<BatchGetBuildingIdResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<BatchGetBuildingIdResponse> {
         // url: GET:/open-apis/meeting_room/building/batch_get_id
-        let mut req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<BatchGetBuildingIdResponse> =
             ApiRequest::get(format!("{MEETING_ROOM}/building/batch_get_id"));
         for (k, v) in self.query_params {
             req = req.query(k, v);
@@ -53,7 +57,7 @@ impl BatchGetBuildingIdRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../meeting_room/building/batch_get_id → 裸 Value（单层 resp["field"]）。
+    /// 端到端：GET .../meeting_room/building/batch_get_id → BatchGetBuildingIdResponse。
     #[tokio::test]
     async fn test_batch_get_id_building_returns_data_on_success() {
         use serde_json::json;
@@ -67,7 +71,18 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "building_ids": ["bldg_001", "bldg_002"] }
+                "data": {
+                    "buildings": [
+                        {
+                            "building_id": "bldg_001",
+                            "custom_bulding_id": "test01"
+                        },
+                        {
+                            "building_id": "bldg_002",
+                            "custom_bulding_id": "test02"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -84,7 +99,11 @@ mod tests {
             .execute()
             .await
             .expect("查询建筑物ID应成功");
-        assert_eq!(resp["building_ids"][0], json!("bldg_001"));
+        assert_eq!(resp.buildings[0].building_id, "bldg_001");
+        assert_eq!(
+            resp.buildings[0].custom_bulding_id.as_deref(),
+            Some("test01")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

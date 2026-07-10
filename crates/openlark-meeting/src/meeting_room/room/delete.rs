@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::MeetingRoomApi;
-use crate::common::api_utils::extract_response_data;
+use crate::meeting_room::responses::DeleteRoomResponse;
 
 /// 删除会议室请求
 pub struct DeleteRoomRequest {
@@ -34,23 +34,35 @@ impl DeleteRoomRequest {
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/delete-meeting-room>
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<DeleteRoomResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteRoomResponse> {
         validate_required!(self.room_id, "room_id 不能为空");
 
         // url: DELETE:/open-apis/meeting_room/rooms/:room_id
         let api_endpoint = MeetingRoomApi::RoomDelete(self.room_id.clone());
-        let req: ApiRequest<serde_json::Value> =
+        let req: ApiRequest<DeleteRoomResponse> =
             ApiRequest::delete(api_endpoint.to_url()).body(serde_json::json!({
                 "room_id": self.room_id
             }));
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除会议室")
+        // 官方示例无 data 字段；成功且缺省时返回空响应。
+        if !resp.is_success() {
+            return Err(openlark_core::error::api_error(
+                resp.code() as u16,
+                "删除会议室",
+                resp.message().to_string(),
+                resp.raw().request_id.clone(),
+            ));
+        }
+        Ok(resp.data.unwrap_or_default())
     }
 }
 
@@ -58,7 +70,7 @@ impl DeleteRoomRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：DELETE .../meeting_room/rooms/{room_id} → 裸 Value（单层 resp["field"]）。
+    /// 端到端：DELETE .../meeting_room/rooms/{room_id} → DeleteRoomResponse。
     #[tokio::test]
     async fn test_delete_room_returns_data_on_success() {
         use serde_json::json;
@@ -71,8 +83,7 @@ mod tests {
             .and(path("/open-apis/meeting_room/rooms/room_001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
-                "msg": "success",
-                "data": { "success": true }
+                "msg": "success"
             })))
             .mount(&server)
             .await;
@@ -89,7 +100,7 @@ mod tests {
             .execute()
             .await
             .expect("删除会议室应成功");
-        assert_eq!(resp["success"], json!(true));
+        assert_eq!(resp, DeleteRoomResponse {});
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
