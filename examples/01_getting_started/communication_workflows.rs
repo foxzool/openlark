@@ -134,7 +134,7 @@ async fn workflow_execution_flow(
             println!("审批任务数: {}", tasks.len());
 
             if let Some(task) = tasks.first() {
-                let approved = client
+                client
                     .workflow
                     .approve_task(
                         ApprovalTaskAction::new(
@@ -147,7 +147,7 @@ async fn workflow_execution_flow(
                         .comment("workflow 示例审批通过"),
                     )
                     .await?;
-                println!("审批处理结果: {}", approved.success);
+                println!("审批处理成功");
             } else {
                 println!("未查询到待处理审批任务，跳过审批动作");
             }

@@ -7,6 +7,4 @@ pub mod app;
 pub mod data_source;
 pub mod doc_wiki;
 pub mod message;
-pub mod query;
 pub mod schema;
-pub mod user;

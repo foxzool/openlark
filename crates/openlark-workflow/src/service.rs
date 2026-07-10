@@ -282,13 +282,6 @@ impl ApprovalTaskAction {
 /// 审批任务条目类型别名。
 pub type ApprovalTaskItem = crate::approval::approval::v4::task::query::TaskItemV4;
 
-/// 审批任务动作结果 helper。
-#[derive(Debug, Clone, PartialEq)]
-pub struct ApprovalTaskActionResult {
-    /// 操作是否成功。
-    pub success: bool,
-}
-
 /// WorkflowService：工作流服务的统一入口
 ///
 /// 提供对任务、审批、看板 API 的访问能力
@@ -464,10 +457,10 @@ impl WorkflowService {
     }
 
     /// 同意审批任务 helper。
-    pub async fn approve_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
+    ///
+    /// 成功/失败由 `SDKResult` 表达：飞书 approval v4 同意接口响应 data 为空，
+    /// 不再伪造恒为 `true` 的 `success` 字段（#350 P9 接口形状撒谎修正）。
+    pub async fn approve_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
         let mut request = crate::approval::approval::v4::task::approve::ApproveTaskRequestV4::new(
             self.config.clone(),
         )
@@ -484,16 +477,14 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 
     /// 拒绝审批任务 helper。
-    pub async fn reject_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
+    ///
+    /// 成功/失败由 `SDKResult` 表达；响应 data 为空时不伪造 `success: true`。
+    pub async fn reject_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
         let mut request = crate::approval::approval::v4::task::reject::RejectTaskRequestV4::new(
             self.config.clone(),
         )
@@ -510,16 +501,14 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 
     /// 重新提交审批任务 helper。
-    pub async fn resubmit_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
+    ///
+    /// 成功/失败由 `SDKResult` 表达；响应 data 为空时不伪造 `success: true`。
+    pub async fn resubmit_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
         let mut request =
             crate::approval::approval::v4::task::resubmit::ResubmitTaskRequestV4::new(
                 self.config.clone(),
@@ -537,9 +526,8 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 }
 
@@ -617,5 +605,101 @@ mod tests {
         assert_eq!(action.user_id_type.as_deref(), Some("open_id"));
         assert_eq!(action.comment.as_deref(), Some("已确认"));
         assert_eq!(action.form.as_deref(), Some("[{}]"));
+    }
+
+    /// #350：approve/reject/resubmit 成功时返回 `Ok(())`，不再伪造恒真 `success`。
+    #[tokio::test]
+    async fn test_approve_reject_resubmit_helpers_return_unit_on_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        for p in [
+            "/open-apis/approval/v4/tasks/approve",
+            "/open-apis/approval/v4/tasks/reject",
+            "/open-apis/approval/v4/tasks/resubmit",
+        ] {
+            Mock::given(method("POST"))
+                .and(path(p))
+                .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": {}
+                })))
+                .mount(&server)
+                .await;
+        }
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let action =
+            ApprovalTaskAction::new("approval_code", "instance_code", "ou_xxx", "task_123")
+                .user_id_type("open_id")
+                .comment("ok")
+                .form("[]");
+
+        service
+            .approve_task(action.clone())
+            .await
+            .expect("approve_task 应在飞书成功响应时返回 Ok(())");
+        service
+            .reject_task(action.clone())
+            .await
+            .expect("reject_task 应在飞书成功响应时返回 Ok(())");
+        service
+            .resubmit_task(action)
+            .await
+            .expect("resubmit_task 应在飞书成功响应时返回 Ok(())");
+    }
+
+    /// #350：底层 API 失败时 helper 传播 Err，而非恒真 success。
+    #[tokio::test]
+    async fn test_approve_task_helper_propagates_api_error() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/approval/v4/tasks/approve"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 99991663,
+                "msg": "invalid approval task"
+            })))
+            .mount(&server)
+            .await;
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let err = service
+            .approve_task(ApprovalTaskAction::new(
+                "approval_code",
+                "instance_code",
+                "ou_xxx",
+                "task_123",
+            ))
+            .await
+            .expect_err("API 业务错误应传播为 Err");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("99991663")
+                || msg.contains("invalid approval task")
+                || msg.contains("验证错误")
+                || msg.contains("业务"),
+            "unexpected error (should be API/business failure, not silent Ok): {err}"
+        );
     }
 }

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
+  - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回
+    `ApprovalTaskActionResult { success: true }`（`success: false` 永不达）。改为
+    `SDKResult<()>`——成功/失败只由 `Result` 表达；删除 `ApprovalTaskActionResult`。
+    飞书 approval v4 同意/拒绝/重提响应 data 为空，与 `()` 一致。**迁移**：
+    `let r = service.approve_task(...).await?; r.success` → `service.approve_task(...).await?`。
+  - **analytics**：
+    1. 删除 `search/v2/query.rs` 与 `search/v2/user.rs` 恒 `Err` runtime stub
+       （`QueryApi`/`UserSearchApi`/`SearchRequest`/`SuggestRequest`/`SearchUserRequest`）。
+       无已验证飞书端点（与 #2fab71234 / #108 约束一致：不发明未验证端点）；setter 死值 +
+       `execute()` 恒失败是接口撒谎。与 #308 删除 `Search`/`SearchV2` 门面死链同向收口。
+       **迁移**：改用已实现的 `doc_wiki`/`schema`/`app`/`message`/`data_source` leaf builder。
+    2. `AnalyticsService::new` 误导签名 `SDKResult<Self>` 但函数体永远 `Ok(...)` → 改为 `Self`
+       （同 platform #373 / user #360）。**迁移**：`AnalyticsService::new(config)?` / client
+       facade 去 `?`。
+  - **platform / user（已合入）**：`PlatformService::new`（#373）、`UserService::new`（#360）
+    误导 `SDKResult<Self>` → `Self`，不在本变更重复。
+
 - **meeting_room 17 叶 `execute()` 返回类型 `Value` → typed Response**（#349）：
   `meeting_room/{building,room,country,district,freebusy,instance,summary}` 全部
   `execute()` / `execute_with_options()` 从 `SDKResult<serde_json::Value>` 改为 typed

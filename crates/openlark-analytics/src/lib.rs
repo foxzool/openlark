@@ -25,7 +25,7 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let _analytics_service = AnalyticsService::new(config)?;
+//! let _analytics_service = AnalyticsService::new(config);
 //!
 //! # Ok(())
 //! # }

@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("待审批任务数量: {}", approval_tasks.len());
 
     if let Some(task) = approval_tasks.first() {
-        let result = workflow_service
+        workflow_service
             .approve_task(
                 ApprovalTaskAction::new(
                     task.approval_code.clone(),
@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .comment("自动化示例通过"),
             )
             .await?;
-        println!("审批处理结果: {}", result.success);
+        println!("审批处理成功");
     }
 
     Ok(())
