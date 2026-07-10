@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **删除 `openlark-user` 幻影 `SystemStatusResource::get()` / `SystemStatusGetRequest`（#377）**：
+  飞书 `personal_settings/v1/system_status` 仅有 6 个 API（batch_close / batch_open /
+  create / delete / list / patch），无 `get`（"获取系统状态"对应 `list`）。既有
+  `get` 实现 URL 畸形（双段 `personal-settings` + 连字符 + `/get` 后缀），调用即失败。
+  直接移除 `get.rs`、`SystemStatusGetRequest`/`SystemStatusGetResponse`、以及
+  `SystemStatusResource::get()` accessor；文档与契约测试改为 6 个真实构建器。
+  **无迁移路径**：旧 `get` 对真实飞书本就 404；请改用 `list()` /
+  `SystemStatusListRequest`。
+
 - **删除 `openlark-helpdesk` 幻影/孤儿 API（#380）**：#351 helpdesk e2e catalog 核对发现
   (1) `faq/faq_image` 与 `faq/image` 生产代码完全重复且从未 re-export/挂到 `Faq`——删除孤儿
   `faq_image` 模块，保留 `image`（含 wiremock e2e）；(2) `notification/list`
@@ -175,13 +184,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （v2 子模块的 `XxxRequest::new`，如 `query::SearchRequest` / `user::SearchUserRequest`）。
   配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除。**非 breaking**：仅 deprecation
   warning，旧调用仍可编译。
-
-- **user `SystemStatusResource::get()` 标 `#[deprecated]`**（#377）：`personal_settings/v1/
-  system_status::get` 是幻影 API——飞书该目录无 `get` 接口（"获取系统状态"对应 `list`），URL
-  畸形且被暴露为 `service.get()` 公共方法（调用即打不存在的端点）。标记 deprecated，note 指明
-  替代（`SystemStatusResource::list` / `SystemStatusListRequest`）。配合 v0.18 deprecated 清理
-  节奏，下个 breaking 窗口连同 `get.rs` / `SystemStatusGetRequest` 一并删除。**非 breaking**：
-  仅 deprecation warning，旧调用仍可编译。
 
 ### Breaking Changes
 
