@@ -11,8 +11,6 @@ pub mod create;
 pub mod execute_send;
 /// 获取接口。
 pub mod get;
-/// 列表接口。
-pub mod list;
 /// 更新接口。
 pub mod patch;
 /// preview 模块。
@@ -33,11 +31,6 @@ impl Notification {
     /// 创建新的推送通知服务实例
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
-    }
-
-    /// 获取推送通知列表
-    pub fn list(&self) -> list::ListNotificationRequest {
-        list::ListNotificationRequest::new(self.config.clone())
     }
 
     /// 创建推送通知
@@ -112,7 +105,6 @@ pub use cancel_send::{CancelSendNotificationRequest, CancelSendNotificationReque
 pub use create::{CreateNotificationRequest, CreateNotificationRequestBuilder};
 pub use execute_send::{ExecuteSendNotificationRequest, ExecuteSendNotificationRequestBuilder};
 pub use get::{GetNotificationRequest, GetNotificationRequestBuilder};
-pub use list::{ListNotificationRequest, ListNotificationRequestBuilder};
 pub use patch::{PatchNotificationRequest, PatchNotificationRequestBuilder};
 pub use preview::{PreviewNotificationRequest, PreviewNotificationRequestBuilder};
 pub use submit_approve::{

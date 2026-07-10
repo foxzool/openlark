@@ -64,8 +64,6 @@ pub enum HelpdeskApiV1 {
     /// FAQ 图片端点。
     FaqImage(String, String),
     // Notification APIs
-    /// 通知列表端点。
-    NotificationList,
     /// 获取通知端点。
     NotificationGet(String),
     /// 创建通知端点。
@@ -177,7 +175,6 @@ impl HelpdeskApiV1 {
                 format!("/open-apis/helpdesk/v1/faqs/{id}/image/{image_key}")
             }
             // Notification APIs
-            HelpdeskApiV1::NotificationList => "/open-apis/helpdesk/v1/notifications".to_string(),
             HelpdeskApiV1::NotificationGet(id) => {
                 format!("/open-apis/helpdesk/v1/notifications/{id}")
             }
@@ -280,7 +277,6 @@ mod tests {
             HelpdeskApiV1::FaqDelete("id1".to_string()).to_url(),
             HelpdeskApiV1::FaqSearch.to_url(),
             HelpdeskApiV1::FaqImage("id1".to_string(), "id2".to_string()).to_url(),
-            HelpdeskApiV1::NotificationList.to_url(),
             HelpdeskApiV1::NotificationGet("id1".to_string()).to_url(),
             HelpdeskApiV1::NotificationCreate.to_url(),
             HelpdeskApiV1::NotificationPatch("id1".to_string()).to_url(),
