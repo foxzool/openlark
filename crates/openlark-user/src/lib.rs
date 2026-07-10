@@ -4,7 +4,7 @@
 //!
 //! ## 功能特性
 //!
-//! - **个人设置**: system_status 资源（list / get / create / patch / delete / batch_open / batch_close）
+//! - **个人设置**: system_status 资源（list / create / patch / delete / batch_open / batch_close）
 //!
 //! ## 模块组织
 //!
@@ -24,7 +24,7 @@
 //!
 //! let user_service = UserService::new(config);
 //!
-//! // 经 system_status() 直达（7 个真实构建器）
+//! // 经 system_status() 直达（6 个真实构建器）
 //! let system_status = user_service.system_status();
 //! let _list_req = system_status.list();
 //! ```

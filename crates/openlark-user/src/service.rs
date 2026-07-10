@@ -8,7 +8,7 @@ use std::sync::Arc;
 /// 用户设置服务
 ///
 /// 提供个人设置（system_status）功能的统一入口（ADR 0001：砍 `PersonalSettingsResource`
-/// 单转发中间层，`system_status()` 直达 7 个真实构建器）。
+/// 单转发中间层，`system_status()` 直达 6 个真实构建器）。
 #[derive(Debug, Clone)]
 pub struct UserService {
     /// 客户端配置
@@ -32,9 +32,9 @@ impl UserService {
         self.config.clone()
     }
 
-    /// system_status 资源入口（7 个真实请求构建器）。
+    /// system_status 资源入口（6 个真实请求构建器）。
     ///
-    /// 直达 `SystemStatusResource`（list / get / create / patch / delete / batch_open /
+    /// 直达 `SystemStatusResource`（list / create / patch / delete / batch_open /
     /// batch_close），消除原 `service.personal_settings().system_status()` 中
     /// `PersonalSettingsResource` 单转发中间层。
     pub fn system_status(&self) -> crate::personal_settings::SystemStatusResource {

@@ -192,7 +192,6 @@ fn user_service_config_roundtrip() {
 // ---------------------------------------------------------------------------
 
 #[test]
-#[allow(deprecated)] // get() 是幻影 API（#377），v0.18 移除前仍验证其可达
 fn system_status_service_access_contract() {
     use openlark_core::config::Config;
     use openlark_user::UserService;
@@ -206,10 +205,9 @@ fn system_status_service_access_contract() {
     // service config 可达
     assert_eq!(service.config().app_id(), "cli_ps_test");
 
-    // system_status() 直达（7 个真实构建器）
+    // system_status() 直达（6 个真实构建器；飞书无 get，#377 已移除幻影 get）
     let system_status = service.system_status();
     let _list = system_status.list();
-    let _get = system_status.get();
     let _create = system_status.create();
     let _patch = system_status.patch();
     let _delete = system_status.delete();
