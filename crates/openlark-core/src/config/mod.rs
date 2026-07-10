@@ -628,5 +628,4 @@ impl std::fmt::Display for ConfigSummary {
 }
 
 #[cfg(test)]
-#[path = "config_tests.rs"]
 mod tests;
