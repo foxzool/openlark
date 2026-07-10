@@ -8,6 +8,7 @@ use openlark_core::{
 
 use crate::common::api_utils::extract_response_data;
 use crate::endpoints::MEETING_ROOM;
+use crate::meeting_room::responses::BatchGetFreebusyResponse;
 
 /// 查询会议室忙闲请求
 pub struct BatchGetFreebusyRequest {
@@ -33,14 +34,17 @@ impl BatchGetFreebusyRequest {
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/query-room-availability>
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<BatchGetFreebusyResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<BatchGetFreebusyResponse> {
         // url: GET:/open-apis/meeting_room/freebusy/batch_get
-        let mut req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<BatchGetFreebusyResponse> =
             ApiRequest::get(format!("{MEETING_ROOM}/freebusy/batch_get"));
         for (k, v) in self.query_params {
             req = req.query(k, v);
@@ -55,7 +59,7 @@ impl BatchGetFreebusyRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../meeting_room/freebusy/batch_get → 裸 Value（单层 resp["field"]）。
+    /// 端到端：GET .../meeting_room/freebusy/batch_get → BatchGetFreebusyResponse。
     #[tokio::test]
     async fn test_batch_get_freebusy_returns_data_on_success() {
         use serde_json::json;
@@ -70,9 +74,20 @@ mod tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "freebusy_list": [
-                        { "room_id": "room_001", "status": "busy" }
-                    ]
+                    "time_max": "2019-09-04T09:45:00+08:00",
+                    "time_min": "2019-09-04T08:45:00+08:00",
+                    "free_busy": {
+                        "room_001": [{
+                            "start_time": "2019-09-04T09:00:00+08:00",
+                            "end_time": "2019-09-04T09:30:00+08:00",
+                            "uid": "bff6b51f-b7c1-40c6-b8ef-aef966c9ffc7",
+                            "original_time": 0,
+                            "organizer_info": {
+                                "name": "张三",
+                                "open_id": "ou_xxx"
+                            }
+                        }]
+                    }
                 }
             })))
             .mount(&server)
@@ -90,7 +105,15 @@ mod tests {
             .execute()
             .await
             .expect("查询会议室忙闲应成功");
-        assert_eq!(resp["freebusy_list"][0]["room_id"], json!("room_001"));
+        let slots = resp.free_busy.get("room_001").expect("应有 room_001 忙闲");
+        assert_eq!(
+            slots[0].uid.as_deref(),
+            Some("bff6b51f-b7c1-40c6-b8ef-aef966c9ffc7")
+        );
+        assert_eq!(
+            slots[0].organizer_info.as_ref().unwrap().name.as_deref(),
+            Some("张三")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

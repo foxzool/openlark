@@ -7,7 +7,8 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::MeetingRoomApi;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
+use crate::meeting_room::responses::ReplyInstanceResponse;
 
 /// 回复会议室日程实例请求
 pub struct ReplyInstanceRequest {
@@ -25,7 +26,7 @@ impl ReplyInstanceRequest {
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/reply-meeting-room-event-instance>
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self, body: serde_json::Value) -> SDKResult<ReplyInstanceResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
@@ -35,13 +36,22 @@ impl ReplyInstanceRequest {
         self,
         body: serde_json::Value,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<ReplyInstanceResponse> {
         let api_endpoint = MeetingRoomApi::InstanceReplyOld;
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
+        let req: ApiRequest<ReplyInstanceResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "回复会议室日程实例")?);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "回复会议室日程实例")
+        // 官方示例无 data 字段；成功且缺省时返回空响应。
+        if !resp.is_success() {
+            return Err(openlark_core::error::api_error(
+                resp.code() as u16,
+                "回复会议室日程实例",
+                resp.message().to_string(),
+                resp.raw().request_id.clone(),
+            ));
+        }
+        Ok(resp.data.unwrap_or_default())
     }
 }
 
@@ -49,7 +59,7 @@ impl ReplyInstanceRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../meeting_room/instance/reply → 裸 Value（单层 resp["field"]）。
+    /// 端到端：POST .../meeting_room/instance/reply → ReplyInstanceResponse。
     #[tokio::test]
     async fn test_reply_instance_returns_data_on_success() {
         use serde_json::json;
@@ -62,8 +72,7 @@ mod tests {
             .and(path("/open-apis/meeting_room/instance/reply"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
-                "msg": "success",
-                "data": { "instance_id": "inst_001", "status": "replied" }
+                "msg": "success"
             })))
             .mount(&server)
             .await;
@@ -79,7 +88,7 @@ mod tests {
             .execute(json!({ "instance_id": "inst_001", "reply": "accept" }))
             .await
             .expect("回复会议室日程实例应成功");
-        assert_eq!(resp["instance_id"], json!("inst_001"));
+        assert_eq!(resp, ReplyInstanceResponse {});
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

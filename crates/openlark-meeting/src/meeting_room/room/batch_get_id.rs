@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
+use crate::meeting_room::responses::BatchGetRoomIdResponse;
 use crate::{common::api_utils::extract_response_data, endpoints::MEETING_ROOM};
 
 /// 查询会议室ID请求
@@ -32,14 +33,17 @@ impl BatchGetRoomIdRequest {
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/obtain-meeting-room-id>
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    pub async fn execute(self) -> SDKResult<BatchGetRoomIdResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<BatchGetRoomIdResponse> {
         // url: GET:/open-apis/meeting_room/room/batch_get_id
-        let mut req: ApiRequest<serde_json::Value> =
+        let mut req: ApiRequest<BatchGetRoomIdResponse> =
             ApiRequest::get(format!("{MEETING_ROOM}/room/batch_get_id"));
         for (k, v) in self.query_params {
             req = req.query(k, v);
@@ -53,7 +57,7 @@ impl BatchGetRoomIdRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../meeting_room/room/batch_get_id → 裸 Value（单层 resp["field"]）。
+    /// 端到端：GET .../meeting_room/room/batch_get_id → BatchGetRoomIdResponse。
     #[tokio::test]
     async fn test_batch_get_id_room_returns_data_on_success() {
         use serde_json::json;
@@ -67,7 +71,12 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "room_ids": ["room_001", "room_002"] }
+                "data": {
+                    "rooms": [
+                        { "room_id": "room_001", "custom_room_id": "test01" },
+                        { "room_id": "room_002", "custom_room_id": "test02" }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -84,7 +93,8 @@ mod tests {
             .execute()
             .await
             .expect("查询会议室ID应成功");
-        assert_eq!(resp["room_ids"][0], json!("room_001"));
+        assert_eq!(resp.rooms[0].room_id, "room_001");
+        assert_eq!(resp.rooms[0].custom_room_id.as_deref(), Some("test01"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
