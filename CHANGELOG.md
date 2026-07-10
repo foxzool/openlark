@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **删除 `openlark-helpdesk` 幻影/孤儿 API（#380）**：#351 helpdesk e2e catalog 核对发现
+  (1) `faq/faq_image` 与 `faq/image` 生产代码完全重复且从未 re-export/挂到 `Faq`——删除孤儿
+  `faq_image` 模块，保留 `image`（含 wiremock e2e）；(2) `notification/list`
+  （`GET /open-apis/helpdesk/v1/notifications`，`HelpdeskApiV1::NotificationList`）不在
+  `api_list_export.csv` 的 8 个 notification 端点中，官方文档亦无 list——删除 list 源文件、
+  `Notification::list()`、公开 re-export 与 endpoint 变体。**无迁移路径**：list 对真实飞书
+  无 catalog/文档支撑；FAQ 图片请继续用 `Faq::image()`。
+
 - **删除 `openlark-application` 幻影/残破 stub（#382）**：#351 e2e 化对照
   `api_list_export.csv` 发现约 56 个从未可用的 stub——path 多一层
   （`/open-apis/application/application/...`）、create/delete/patch 滥用 GET、

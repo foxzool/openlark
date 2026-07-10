@@ -5,8 +5,6 @@
 pub mod create;
 /// 删除接口。
 pub mod delete;
-/// faq_image 模块。
-pub mod faq_image;
 /// 获取接口。
 pub mod get;
 /// image 模块。
