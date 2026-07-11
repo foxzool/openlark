@@ -13,7 +13,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
 };
 use lark_websocket_protobuf::pbbp2::Frame;
-use log::{debug, error, trace};
+use log::{debug, error, trace, warn};
 use prost::Message as ProstMessage;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -28,6 +28,11 @@ use super::frame_handler::{
     ControlFrameEffect, ControlFrameError, FRAME_METHOD_CONTROL, FRAME_METHOD_DATA, FrameHandler,
 };
 use super::package::{self, FramePackageBuffer};
+
+/// 串行 handler 队列容量（背压：满则拒绝入队，避免无界积压）。
+const HANDLER_QUEUE_CAP: usize = 64;
+/// 会话结束后等待 worker 排空的最长时间。
+const WORKER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// 会话连接状态（#421 / #428）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,6 +117,8 @@ impl Session {
     }
 
     /// 进入 Closing：停止新业务，排空 inflight 后再结束。
+    ///
+    /// 已在 Closing 时为幂等 no-op（保留首次关闭原因，避免被 EOF 覆盖）。
     fn begin_close(&mut self, reason: Option<WsCloseReason>) -> WsClientResult<()> {
         match self.state {
             SessionState::Closed => {
@@ -120,9 +127,8 @@ impl Session {
                 ));
             }
             SessionState::Closing => {
-                return Err(WsClientError::InvalidStateTransition(
-                    "session already Closing".to_string(),
-                ));
+                // 幂等：保留 pending_close，不报错、不覆盖原因
+                return Ok(());
             }
             SessionState::Active => {}
         }
@@ -147,11 +153,16 @@ impl Session {
     pub(crate) async fn run(mut self) -> WsClientResult<()> {
         // 存活计时：仅 WebSocket 层 Ping 刷新（保留历史 heartbeat 语义）。
         let mut last_activity = Instant::now();
-        let mut checkout_timeout = tokio::time::interval(Duration::from_secs(1));
+        // 检查周期不超过心跳超时，避免短超时测试/配置下迟迟不进入 Closing
+        let checkout_period = self
+            .heartbeat_timeout
+            .min(Duration::from_secs(1))
+            .max(Duration::from_millis(50));
+        let mut checkout_timeout = tokio::time::interval(checkout_period);
 
-        // 串行 worker：FIFO 处理完整数据帧，保持 handler 调用与 ACK 顺序。
-        let (job_tx, mut job_rx) = mpsc::unbounded_channel::<Frame>();
-        let (outcome_tx, mut outcome_rx) = mpsc::unbounded_channel::<HandlerOutcome>();
+        // 有界串行队列：满则拒绝新事件（背压），避免无界内存积压。
+        let (job_tx, mut job_rx) = mpsc::channel::<Frame>(HANDLER_QUEUE_CAP);
+        let (outcome_tx, mut outcome_rx) = mpsc::channel::<HandlerOutcome>(HANDLER_QUEUE_CAP);
         let worker_handler = self.event_handler.clone();
         let worker = tokio::spawn(async move {
             while let Some(frame) = job_rx.recv().await {
@@ -174,13 +185,15 @@ impl Session {
                         message: format!("handler task join error: {e}"),
                     })
                 });
-                if outcome_tx.send(outcome).is_err() {
+                if outcome_tx.send(outcome).await.is_err() {
                     break;
                 }
             }
         });
 
         let result = async {
+            // 流结束后必须停止 poll，否则 select 会忙等 None 饿死 outcome_rx
+            let mut stream_open = true;
             loop {
                 if let Some(done) = self.finish_if_drained() {
                     return done;
@@ -188,7 +201,7 @@ impl Session {
 
                 tokio::select! {
                     // Active 与 Closing 都继续读流：Closing 时再收 Binary 可触发可达的非法状态错误
-                    item = self.stream.next(), if self.state != SessionState::Closed => {
+                    item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
                         match item.transpose()? {
                             Some(msg) => {
                                 if msg.is_ping() {
@@ -201,12 +214,14 @@ impl Session {
                                                 .to_string(),
                                         ));
                                     }
-                                    // Closing 期间忽略多余 Ping/Pong/Close
+                                    // Closing 期间忽略多余 Ping/Pong/Close（含重复 Close）
                                     continue;
                                 }
                                 self.handle_message(msg, &job_tx).await?;
                             }
                             None => {
+                                // EOF：Active → begin_close；已 Closing 则幂等保留关闭原因
+                                stream_open = false;
                                 self.begin_close(None)?;
                             }
                         }
@@ -244,9 +259,17 @@ impl Session {
         }
         .await;
 
-        // 停止 worker：丢弃 job 发送端后等任务结束（不取消已在执行的 handler）
+        // 停止入队并有界等待 worker（防止永不返回的 handler 卡住 open）
         drop(job_tx);
-        let _ = worker.await;
+        if tokio::time::timeout(WORKER_SHUTDOWN_TIMEOUT, worker)
+            .await
+            .is_err()
+        {
+            warn!(
+                "handler worker did not finish within {:?}; aborting join wait",
+                WORKER_SHUTDOWN_TIMEOUT
+            );
+        }
         result
     }
 
@@ -280,7 +303,7 @@ impl Session {
     async fn handle_message(
         &mut self,
         msg: WsMessage,
-        job_tx: &mpsc::UnboundedSender<Frame>,
+        job_tx: &mpsc::Sender<Frame>,
     ) -> WsClientResult<()> {
         // Closing/Closed 下再收到业务 Binary 即为非法状态
         if self.state != SessionState::Active
@@ -348,21 +371,31 @@ impl Session {
         debug!("Updated ping interval from pong response: {ping_secs}s");
     }
 
-    /// 分包在主循环顺序完成；完整帧入队串行 worker。
+    /// 分包在主循环顺序完成；完整帧入有界串行队列。
     fn enqueue_data_frame(
         &mut self,
         frame: Frame,
-        job_tx: &mpsc::UnboundedSender<Frame>,
+        job_tx: &mpsc::Sender<Frame>,
     ) -> WsClientResult<()> {
         self.ensure_active()?;
         let Some(frame) = package::assemble_frame(&mut self.package_buffers, frame) else {
             return Ok(());
         };
 
-        job_tx.send(frame).map_err(|_| {
-            WsClientError::InvalidStateTransition("handler worker is gone".to_string())
-        })?;
-        self.inflight_handlers = self.inflight_handlers.saturating_add(1);
-        Ok(())
+        match job_tx.try_send(frame) {
+            Ok(()) => {
+                self.inflight_handlers = self.inflight_handlers.saturating_add(1);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(_)) => Err(WsClientError::ClientError {
+                code: 0,
+                message: format!(
+                    "handler queue full (capacity {HANDLER_QUEUE_CAP}); apply backpressure"
+                ),
+            }),
+            Err(mpsc::error::TrySendError::Closed(_)) => Err(
+                WsClientError::InvalidStateTransition("handler worker is gone".to_string()),
+            ),
+        }
     }
 }

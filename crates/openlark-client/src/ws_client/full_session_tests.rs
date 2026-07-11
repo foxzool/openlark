@@ -803,46 +803,122 @@ async fn full_session_handlers_run_serially_in_arrival_order() {
     assert_normal_close(open_result);
 }
 
-/// Closing 后再收到 Binary → InvalidStateTransition（可达状态错误路径）。
+/// Closing 后再收到 Binary → 必须得到 InvalidStateTransition（证明可达状态错误路径）。
+///
+/// 用短心跳 + 慢 handler 进入 Closing（仍有 inflight），再由 peer 发送 late Binary。
+/// 不用 peer.close()（会触发 SendAfterClosing，无法再送 Binary）。
 #[tokio::test]
 async fn full_session_data_after_close_is_invalid_state() {
+    use std::thread;
+
+    struct SlowHandler;
+    impl EventHandler for SlowHandler {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(800));
+            Ok(())
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, SlowHandler)
+        .expect("register")
+        .build();
+
+    let options = SessionOptions {
+        heartbeat_timeout: Duration::from_millis(200),
+    };
+
     let (open_result, ()) = run_session(
-        LocalSessionHarness::start().await,
-        EventDispatcherHandler::builder().build(),
-        SessionOptions::default(),
+        LocalSessionHarness::start_with_ping_interval(3600).await,
+        event_handler,
+        options,
         |mut peer| async move {
             let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
-            // 先发 Close，再塞一帧 Binary（对端违规时序）
-            peer.close(Some(CloseFrame {
-                code: CloseCode::Normal,
-                reason: "bye".into(),
-            }))
+            peer.send(Message::Binary(
+                event_data_frame(br#"{"header":{"event_type":"slow"},"event":{}}"#)
+                    .encode_to_vec()
+                    .into(),
+            ))
             .await
-            .ok();
-            let _ = peer
-                .send(Message::Binary(
-                    event_data_frame(br#"{"header":{"event_type":"late"}}"#)
-                        .encode_to_vec()
-                        .into(),
-                ))
-                .await;
+            .expect("send slow event");
+            // 等会话因无 WS Ping 进入 Closing（heartbeat 200ms，checkout ≤200ms），
+            // 且 handler 仍 inflight（800ms）
+            tokio::time::sleep(Duration::from_millis(400)).await;
+            peer.send(Message::Binary(
+                event_data_frame(br#"{"header":{"event_type":"late"}}"#)
+                    .encode_to_vec()
+                    .into(),
+            ))
+            .await
+            .expect("send late binary while session Closing");
             while let Some(Ok(_)) = peer.next().await {}
         },
     )
     .await;
 
-    // 可能先看到 ConnectionClosed（未读到 late data），或 InvalidStateTransition
     match open_result {
         Err(WsClientError::InvalidStateTransition(msg)) => {
             assert!(
-                msg.contains("Closing") || msg.contains("Closed"),
-                "unexpected msg: {msg}"
+                msg.contains("Closing"),
+                "expected Closing in message, got: {msg}"
             );
         }
-        Err(WsClientError::ConnectionClosed { .. }) => {
-            // 对端 close 后连接可能已拆，late binary 未必送达；允许
+        other => panic!("expected InvalidStateTransition, got: {other:?}"),
+    }
+}
+
+/// Close + inflight handler：排空后必须保留远端关闭原因（不得被 EOF 覆盖为别的错误）。
+#[tokio::test]
+async fn full_session_close_reason_preserved_with_inflight_handler() {
+    use std::thread;
+
+    struct SlowHandler;
+    impl EventHandler for SlowHandler {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(300));
+            Ok(())
         }
-        other => panic!("expected InvalidStateTransition or ConnectionClosed, got: {other:?}"),
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, SlowHandler)
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            peer.send(Message::Binary(
+                event_data_frame(br#"{"header":{"event_type":"slow"},"event":{}}"#)
+                    .encode_to_vec()
+                    .into(),
+            ))
+            .await
+            .expect("send event");
+            tokio::time::sleep(Duration::from_millis(30)).await;
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Away,
+                reason: "server restarting".into(),
+            }))
+            .await
+            .ok();
+            // 不再发 Binary；连接自然 EOF 时 begin_close 必须幂等保留 Away 原因
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    match open_result {
+        Err(WsClientError::ConnectionClosed {
+            reason: Some(WsCloseReason { code, message }),
+        }) => {
+            assert_eq!(code, CloseCode::Away);
+            assert_eq!(message, "server restarting");
+        }
+        other => panic!("expected ConnectionClosed with Away reason, got: {other:?}"),
     }
 }
 
