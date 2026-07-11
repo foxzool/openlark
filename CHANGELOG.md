@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **WebSocket 会话结果可观察（#426）**：`LarkWsClient::open` 在远端关闭或传输失败时
+  通过 `Result` 返回 `ConnectionClosed` / `WsError`（此前 `handler_loop` 忽略
+  `WsEvent::Error`，会话几乎总是以 `Ok(())` 结束）。`Message::Close(None)` 映射为
+  `ConnectionClosed { reason: None }`。连接建立与帧派发路径不变；新增本地
+  endpoint + WebSocket peer 的完整会话测试 seam。
+
 - **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
   均完整传播自定义域名放行标志，并执行同一白名单规则。
 

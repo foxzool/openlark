@@ -18,3 +18,6 @@ pub use state_machine::{ConnectionState, StateMachineEvent, WebSocketStateMachin
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "websocket"))]
+mod full_session_tests;

@@ -259,6 +259,16 @@ impl LarkWsClient {
     }
 
     /// 建立 WebSocket 长连接并启动事件处理循环。
+    ///
+    /// # 返回
+    ///
+    /// - `Ok(())`：事件通道在无会话错误的情况下结束（例如内部发送端全部 drop）
+    /// - `Err(WsClientError::ConnectionClosed { reason })`：对端关闭连接；
+    ///   `reason` 在收到带状态码的 Close 帧时为 `Some`，否则可能为 `None`
+    /// - 其它 `Err`：端点查询失败、传输错误、协议错误等
+    ///
+    /// 连接建立、帧派发与响应写回路径与历史行为一致；会话失败/关闭原因会通过
+    /// 本 `Result` 暴露，便于测试与运维观察。
     pub async fn open(
         config: std::sync::Arc<openlark_core::config::Config>,
         event_handler: EventDispatcherHandler,
@@ -310,53 +320,60 @@ impl LarkWsClient {
             package_buffers: HashMap::new(),
         };
 
-        client.handler_loop(event_handler).await;
-
-        Ok(())
+        // 将会话错误（含远端关闭原因）从事件环回传到 open 的 Result，
+        // 连接/派发/写回路径本身不变。
+        client.handler_loop(event_handler).await
     }
 
-    async fn handler_loop(&mut self, event_handler: EventDispatcherHandler) {
+    async fn handler_loop(&mut self, event_handler: EventDispatcherHandler) -> WsClientResult<()> {
         while let Some(ws_event) = self.event_rx.recv().await {
-            if let WsEvent::Data(frame) = ws_event {
-                // 更新状态机：收到数据
-                if let Err(e) = self
-                    .state_machine
-                    .handle_event(StateMachineEvent::DataReceived)
-                {
-                    error!("Failed to handle DataReceived event: {e}");
+            match ws_event {
+                WsEvent::Data(frame) => {
+                    // 更新状态机：收到数据
+                    if let Err(e) = self
+                        .state_machine
+                        .handle_event(StateMachineEvent::DataReceived)
+                    {
+                        error!("Failed to handle DataReceived event: {e}");
+                    }
+
+                    // 检查是否可以处理数据
+                    if !self.state_machine.can_send_data() {
+                        debug!(
+                            "Cannot process data in current state: {:?}",
+                            self.state_machine.current_state()
+                        );
+                        continue;
+                    }
+
+                    // 处理分包逻辑
+                    let processed_frame = self.process_frame_packages_internal(frame).await;
+                    let Some(frame) = processed_frame else {
+                        continue;
+                    };
+
+                    // 使用 FrameHandler 处理帧
+                    // 创建一个临时的事件发送器，因为FrameHandler需要WsEvent类型
+                    let (temp_tx, mut temp_rx) = mpsc::unbounded_channel::<WsEvent>();
+                    if let Some(response_frame) =
+                        FrameHandler::handle_frame(frame, &event_handler, &temp_tx).await
+                        && let Err(e) = self.frame_tx.send(response_frame)
+                    {
+                        error!("Failed to send response frame: {e:?}");
+                    }
+
+                    // 处理临时接收器中的任何事件 - 目前FrameHandler不会发送事件到这里，保留以备未来使用
+                    while let Ok(_ws_event) = temp_rx.try_recv() {
+                        // 暂时忽略，因为FrameHandler主要处理控制帧
+                    }
                 }
-
-                // 检查是否可以处理数据
-                if !self.state_machine.can_send_data() {
-                    debug!(
-                        "Cannot process data in current state: {:?}",
-                        self.state_machine.current_state()
-                    );
-                    continue;
-                }
-
-                // 处理分包逻辑
-                let processed_frame = self.process_frame_packages_internal(frame).await;
-                let Some(frame) = processed_frame else {
-                    continue;
-                };
-
-                // 使用 FrameHandler 处理帧
-                // 创建一个临时的事件发送器，因为FrameHandler需要WsEvent类型
-                let (temp_tx, mut temp_rx) = mpsc::unbounded_channel::<WsEvent>();
-                if let Some(response_frame) =
-                    FrameHandler::handle_frame(frame, &event_handler, &temp_tx).await
-                    && let Err(e) = self.frame_tx.send(response_frame)
-                {
-                    error!("Failed to send response frame: {e:?}");
-                }
-
-                // 处理临时接收器中的任何事件 - 目前FrameHandler不会发送事件到这里，保留以备未来使用
-                while let Ok(_ws_event) = temp_rx.try_recv() {
-                    // 暂时忽略，因为FrameHandler主要处理控制帧
+                WsEvent::Error(err) => {
+                    // 会话失败/远端关闭：作为 open 的返回值可观察
+                    return Err(err);
                 }
             }
         }
+        Ok(())
     }
 
     /// 处理分包的 Frame，如果需要组合多个包则返回组合后的结果
@@ -678,14 +695,15 @@ impl<'a> Context<'a> {
                     _ => {}
                 }
             }
-            Message::Close(Some(close_frame)) => {
+            Message::Close(close_frame) => {
                 return Err(WsClientError::ConnectionClosed {
-                    reason: Some(WsCloseReason {
-                        code: close_frame.code,
-                        message: close_frame.reason.to_string(),
+                    reason: close_frame.map(|frame| WsCloseReason {
+                        code: frame.code,
+                        message: frame.reason.to_string(),
                     }),
                 });
             }
+            // 非 Binary/Ping/Close 的控制消息（如 Text）不在协议预期内
             _ => return Err(WsClientError::UnexpectedResponse),
         }
 
