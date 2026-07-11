@@ -280,16 +280,10 @@ pub(crate) struct EndPointResponse {
 
 /// 服务端下发的 WebSocket 客户端配置（crate 内部）。
 ///
-/// 重连字段随 pong/endpoint 一并反序列化，当前会话实现仅消费 `ping_interval`。
+/// 会话仅消费 `PingInterval`。endpoint/pong JSON 中可能还带 `Reconnect*` 字段，
+/// serde 默认忽略未知键；本 crate 不实现重连策略（#421）。
 #[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
 pub(crate) struct ClientConfig {
-    #[serde(rename = "ReconnectCount")]
-    pub(crate) reconnect_count: i32,
-    #[serde(rename = "ReconnectInterval")]
-    pub(crate) reconnect_interval: i32,
-    #[serde(rename = "ReconnectNonce")]
-    pub(crate) reconnect_nonce: i32,
     #[serde(rename = "PingInterval")]
     pub(crate) ping_interval: i32,
 }

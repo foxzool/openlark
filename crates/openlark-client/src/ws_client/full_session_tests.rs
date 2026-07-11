@@ -1049,6 +1049,222 @@ async fn full_session_backlog_does_not_block_app_ping() {
     assert_normal_close(open_result);
 }
 
+/// 多包降级：sum>1 但 message_id 为空时按单包派发（package 降级分支，会话级断言）。
+#[tokio::test]
+async fn full_session_multipart_empty_message_id_degrades_and_dispatches() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let last_payload = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let partial = b"degraded-empty-mid";
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            CountingHandler {
+                calls: Arc::clone(&calls),
+                last_payload: Arc::clone(&last_payload),
+            },
+        )
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        move |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // message_id 空 + sum=2：无法聚合，立即派发本片 payload
+            let mut frame = multipart_event_frame("", Some(2), Some(0), partial);
+            frame.headers.retain(|h| h.key != "message_id");
+            frame.headers.push(Header {
+                key: "message_id".to_string(),
+                value: String::new(),
+            });
+            peer.send(Message::Binary(frame.encode_to_vec().into()))
+                .await
+                .expect("send degraded multipart");
+            let _ = recv_data_response_frame(&mut peer).await;
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "empty message_id degrade".into(),
+            }))
+            .await
+            .ok();
+        },
+    )
+    .await;
+
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        last_payload.lock().expect("mutex").as_slice(),
+        partial.as_slice()
+    );
+    assert_normal_close(open_result);
+}
+
+/// 多包降级：seq>=sum 时按单包派发（package 越界分支）。
+#[tokio::test]
+async fn full_session_multipart_seq_out_of_range_degrades_and_dispatches() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let last_payload = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let oob = b"degraded-oob-seq";
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            CountingHandler {
+                calls: Arc::clone(&calls),
+                last_payload: Arc::clone(&last_payload),
+            },
+        )
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        move |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            peer.send(Message::Binary(
+                multipart_event_frame("oob-msg", Some(2), Some(5), oob)
+                    .encode_to_vec()
+                    .into(),
+            ))
+            .await
+            .expect("send oob multipart");
+            let _ = recv_data_response_frame(&mut peer).await;
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "seq oob degrade".into(),
+            }))
+            .await
+            .ok();
+        },
+    )
+    .await;
+
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        last_payload.lock().expect("mutex").as_slice(),
+        oob.as_slice()
+    );
+    assert_normal_close(open_result);
+}
+
+/// EventHandler panic → 会话以 `HandlerPanicked` 结束。
+#[tokio::test]
+async fn full_session_handler_panic_is_session_error() {
+    struct PanicHandler;
+    impl EventHandler for PanicHandler {
+        fn handle(
+            &self,
+            _payload: &[u8],
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            panic!("intentional handler panic for full_session test");
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, PanicHandler)
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            let payload =
+                br#"{"header":{"event_type":"im.message.receive_v1"},"event":{"panic":true}}"#;
+            peer.send(Message::Binary(
+                event_data_frame(payload).encode_to_vec().into(),
+            ))
+            .await
+            .expect("send event");
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    match open_result {
+        Err(WsClientError::HandlerPanicked) => {}
+        other => panic!("expected HandlerPanicked, got: {other:?}"),
+    }
+}
+
+/// 队列 + outbox 双满时返回 `BacklogFull`（handler 短暂占住 worker，突发灌满缓冲）。
+#[tokio::test]
+async fn full_session_backlog_full_is_session_error() {
+    use std::thread;
+
+    /// 首个 job 阻塞足够久，让 peer 灌满 channel(64)+outbox(64)。
+    struct HoldFirstHandler {
+        hold_ms: u64,
+    }
+    impl EventHandler for HoldFirstHandler {
+        fn handle(
+            &self,
+            _payload: &[u8],
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(self.hold_ms));
+            Ok(())
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            HoldFirstHandler { hold_ms: 800 },
+        )
+        .expect("register")
+        .build();
+
+    // channel 64 + outbox 64 + 1 在飞 ≈ 需 ≥129 帧；多送一些抗调度抖动
+    const BURST: usize = 140;
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+
+            for i in 0..BURST {
+                let payload = format!(
+                    r#"{{"header":{{"event_type":"im.message.receive_v1"}},"event":{{"n":{i}}}}}"#
+                );
+                peer.send(Message::Binary(
+                    multipart_event_frame(&format!("backlog-{i}"), None, None, payload.as_bytes())
+                        .encode_to_vec()
+                        .into(),
+                ))
+                .await
+                .expect("send burst frame");
+            }
+
+            // 会话应因 BacklogFull 结束；排空对端
+            while let Some(Ok(_)) = timeout(Duration::from_millis(200), peer.next())
+                .await
+                .ok()
+                .flatten()
+            {}
+        },
+    )
+    .await;
+
+    match open_result {
+        Err(WsClientError::BacklogFull { message }) => {
+            assert!(
+                message.contains("64"),
+                "BacklogFull message should mention capacity, got: {message}"
+            );
+        }
+        other => panic!("expected BacklogFull, got: {other:?}"),
+    }
+}
+
 /// 入站 WebSocket Ping 会刷新存活计时，避免心跳超时（#421 US 8 正向路径）。
 #[tokio::test]
 async fn full_session_ws_ping_refreshes_heartbeat() {
@@ -1086,9 +1302,9 @@ async fn full_session_ws_ping_refreshes_heartbeat() {
 
 #[test]
 fn local_endpoint_client_config_shape_matches_production() {
+    // 生产 JSON 可含 Reconnect*；仅 PingInterval 被反序列化消费
     let raw =
         br#"{"ReconnectCount":1,"ReconnectInterval":1,"ReconnectNonce":0,"PingInterval":3600}"#;
     let cfg: ClientConfig = serde_json::from_slice(raw).expect("ClientConfig shape");
     assert_eq!(cfg.ping_interval, 3600);
-    assert_eq!(cfg.reconnect_count, 1);
 }
