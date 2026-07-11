@@ -344,7 +344,10 @@ fn assemble_multipart_empty_message_id_degrades_to_single() {
     let result = assemble(&mut buffers, frame);
     assert!(result.is_some());
     assert_eq!(result.unwrap().payload, Some(payload));
-    assert!(buffers.is_empty(), "degraded path must not retain package buffer");
+    assert!(
+        buffers.is_empty(),
+        "degraded path must not retain package buffer"
+    );
 }
 
 /// sum>1 但 seq>=sum：越界无法写入缓冲，降级为单包立即派发。

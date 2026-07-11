@@ -279,8 +279,8 @@ impl Session {
                         }
                     }
                     item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
-                        match item.transpose()? {
-                            Some(msg) => {
+                        match item.transpose() {
+                            Ok(Some(msg)) => {
                                 if msg.is_ping() {
                                     last_activity = Instant::now();
                                 }
@@ -294,9 +294,20 @@ impl Session {
                                 }
                                 self.handle_message(msg, &job_tx).await?;
                             }
-                            None => {
+                            Ok(None) => {
                                 stream_open = false;
                                 self.begin_close(None)?;
+                            }
+                            Err(e) => {
+                                // 远端已正常 Close（带 reason）后，后续传输/协议错误不得
+                                // 覆盖已记录的关闭原因（#421 US9）
+                                if let Some(reason) = self.drain_close_reason() {
+                                    self.state = SessionState::Closed;
+                                    return Err(WsClientError::ConnectionClosed {
+                                        reason: Some(reason),
+                                    });
+                                }
+                                return Err(e.into());
                             }
                         }
                     }

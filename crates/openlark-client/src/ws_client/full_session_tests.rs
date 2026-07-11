@@ -319,6 +319,21 @@ fn invalid_method_frame() -> Frame {
     }
 }
 
+/// 构造一个 server→client 的 WebSocket Binary 帧（无 mask；payload_len ≤ 65535）。
+/// 用于 peer 端 tungstenite 已进入 CLOSING、无法再 `send` 时绕过其状态机违约发送数据帧。
+fn raw_binary_ws_frame(payload: &[u8]) -> Vec<u8> {
+    let mut frame = Vec::with_capacity(2 + payload.len());
+    frame.push(0x82); // FIN + opcode 2 (binary)；server→client 不 mask
+    if payload.len() <= 125 {
+        frame.push(payload.len() as u8);
+    } else {
+        frame.push(126);
+        frame.extend_from_slice(&(payload.len() as u16).to_be_bytes());
+    }
+    frame.extend_from_slice(payload);
+    frame
+}
+
 fn assert_normal_close(result: WsClientResult<()>) {
     match result {
         Err(WsClientError::ConnectionClosed {
@@ -916,6 +931,72 @@ async fn full_session_close_reason_preserved_with_inflight_handler() {
     }
 }
 
+/// 远端先发 Close(Away)（服务端记录 WithReason(Away)），再违约发数据帧：client 端
+/// tungstenite 此时已 CLOSING，违约帧在协议层报错。该后续错误不得覆盖已记录的
+/// Away 关闭原因，必须经 `ConnectionClosed { Some(Away) }` 返回（#421 US9）。
+#[tokio::test]
+async fn full_session_data_after_remote_close_preserves_close_reason() {
+    use std::thread;
+    use tokio::io::AsyncWriteExt;
+
+    struct SlowHandler;
+    impl EventHandler for SlowHandler {
+        fn handle(&self, _: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(300));
+            Ok(())
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, SlowHandler)
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // 先投递一个 event 让 handler 进入 inflight（否则收到 Close 后会话立即
+            // idle 终止，来不及观察后续违约 Binary 的处理）
+            peer.send(Message::Binary(
+                event_data_frame(br#"{"header":{"event_type":"slow"},"event":{}}"#)
+                    .encode_to_vec()
+                    .into(),
+            ))
+            .await
+            .expect("send event");
+            tokio::time::sleep(Duration::from_millis(30)).await;
+            // 发 Close(Away)：服务端 begin_close(Some(Away)) → Closing + WithReason(Away)
+            peer.send(Message::Close(Some(CloseFrame {
+                code: CloseCode::Away,
+                reason: "server restarting".into(),
+            })))
+            .await
+            .expect("send close");
+            // peer 端 tungstenite 已 CLOSING，无法再 send Binary；用 raw write 违约发送
+            let late = event_data_frame(br#"{"header":{"event_type":"late"}}"#).encode_to_vec();
+            peer.get_mut()
+                .write_all(&raw_binary_ws_frame(&late))
+                .await
+                .expect("raw write late binary");
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    match open_result {
+        Err(WsClientError::ConnectionClosed {
+            reason: Some(WsCloseReason { code, message }),
+        }) => {
+            assert_eq!(code, CloseCode::Away);
+            assert_eq!(message, "server restarting");
+        }
+        other => panic!("expected ConnectionClosed with Away reason, got: {other:?}"),
+    }
+}
+
 /// 慢 EventHandler 不应阻塞 app-level ping 发出（串行 worker + spawn_blocking）。
 #[tokio::test]
 async fn full_session_slow_handler_does_not_block_app_ping() {
@@ -1157,10 +1238,7 @@ async fn full_session_multipart_seq_out_of_range_degrades_and_dispatches() {
 async fn full_session_handler_panic_is_session_error() {
     struct PanicHandler;
     impl EventHandler for PanicHandler {
-        fn handle(
-            &self,
-            _payload: &[u8],
-        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             panic!("intentional handler panic for full_session test");
         }
     }
@@ -1204,10 +1282,7 @@ async fn full_session_backlog_full_is_session_error() {
         hold_ms: u64,
     }
     impl EventHandler for HoldFirstHandler {
-        fn handle(
-            &self,
-            _payload: &[u8],
-        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             thread::sleep(Duration::from_millis(self.hold_ms));
             Ok(())
         }
