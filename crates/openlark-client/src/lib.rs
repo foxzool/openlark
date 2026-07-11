@@ -237,7 +237,6 @@
 
 // 核心模块
 pub mod client;
-mod client_build_config;
 pub mod error;
 pub mod features;
 pub mod registry;

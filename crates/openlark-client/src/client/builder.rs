@@ -1,5 +1,5 @@
 use super::Client;
-use crate::{Result, validation_error};
+use crate::Result;
 use openlark_core::config::{Config, ConfigBuilder};
 use openlark_core::error::ErrorTrait;
 use std::fmt;
@@ -142,26 +142,15 @@ impl ClientBuilder {
 
     /// 🔨 构建客户端实例
     ///
+    /// 与 [`Client::with_core_config`] 共用 [`Client::with_checked_core_config`]。
+    ///
     /// # 返回值
     /// 返回配置好的客户端实例或验证错误
     ///
     /// # 错误
     /// 如果配置验证失败，会返回相应的错误信息，包含用户友好的恢复建议
     pub fn build(self) -> Result<Client> {
-        let config = self.config.build();
-        let result = (|| {
-            // 使用 core 规范校验（凭据 / URL / 白名单 / retry）；保留零超时 Client 规则。
-            // 构造 seam 统一到 with_checked_core_config 留给后续 contraction 切片。
-            config.validate()?;
-            if config
-                .req_timeout()
-                .is_some_and(|timeout| timeout.is_zero())
-            {
-                return Err(validation_error("timeout", "timeout必须大于0"));
-            }
-            Client::with_validated_core_config(config, "ClientBuilder::build")
-        })();
-
+        let result = Client::with_checked_core_config(self.config.build(), "ClientBuilder::build");
         if let Err(ref error) = result {
             tracing::error!(
                 "客户端构建失败: {}",

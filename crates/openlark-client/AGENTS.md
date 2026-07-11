@@ -13,7 +13,6 @@ OpenLark 高级客户端，提供统一的 `Client` 入口点和轻量级 Servic
 src/
 ├── lib.rs                    # Crate 入口，导出 prelude 和公开 API
 ├── client.rs                 # 主 Client 实现 + ClientBuilder
-├── client_build_config.rs    # Client 构造校验 helper（状态已迁 core ConfigBuilder；待 contraction 删除）
 ├── error.rs                  # 客户端错误处理 + CoreError 适配
 ├── features.rs               # FeatureLoader（调用 registry::bootstrap）
 ├── registry/                 # 轻量 registry（仅元信息）

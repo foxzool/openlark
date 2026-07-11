@@ -15,9 +15,9 @@ pub use error_handling::ClientErrorHandling;
 
 use crate::{
     DefaultServiceRegistry, Result,
-    client_build_config::validate_core_config,
     error::{with_context, with_operation_context},
     traits::LarkClient,
+    validation_error,
 };
 use std::sync::Arc;
 
@@ -248,18 +248,40 @@ impl Client {
     }
 
     /// 🆕 使用统一 CoreConfig 创建客户端
+    ///
+    /// 与 [`ClientBuilder::build`] 共用私有构造 seam：`Config::validate`（含域名白名单）
+    /// + Client 零超时规则 + registry / token provider 装配。
     pub fn with_core_config(config: openlark_core::config::Config) -> Result<Self> {
-        if let Err(err) = validate_core_config(&config) {
-            return with_context(Err(err), "operation", "Client::with_core_config");
-        }
-
-        Self::with_validated_core_config(config, "Client::with_core_config")
+        Self::with_checked_core_config(config, "Client::with_core_config")
     }
 
-    pub(crate) fn with_validated_core_config(
+    /// 已校验构造 seam：`ClientBuilder::build` 与 [`Self::with_core_config`] 的唯一入口。
+    ///
+    /// 顺序：
+    /// 1. [`openlark_core::config::Config::validate`]（凭据 / URL / 白名单 / retry）
+    /// 2. Client 特有：拒绝 `req_timeout == Some(Duration::ZERO)`（`None` 允许）
+    /// 3. 校验错误附加 `operation` context
+    /// 4. registry 初始化（失败时保留 operation + `service_loading`）
+    /// 5. token provider 注入
+    /// 6. 组装 [`Client`]
+    pub(crate) fn with_checked_core_config(
         base_core_config: openlark_core::config::Config,
         operation: &str,
     ) -> Result<Self> {
+        if let Err(err) = base_core_config.validate() {
+            return with_context(Err(err), "operation", operation);
+        }
+        if base_core_config
+            .req_timeout()
+            .is_some_and(|timeout| timeout.is_zero())
+        {
+            return with_context(
+                Err(validation_error("timeout", "timeout必须大于0")),
+                "operation",
+                operation,
+            );
+        }
+
         let mut registry = DefaultServiceRegistry::new();
 
         if let Err(err) = crate::registry::bootstrap::register_compiled_services(&mut registry) {
