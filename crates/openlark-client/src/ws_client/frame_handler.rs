@@ -1,21 +1,21 @@
+//! 控制帧解释与数据帧派发（会话内部）。
+//!
+//! 方法分发由 [`super::session::Session`] 完成；本模块不再二次 match method。
+
 use lark_websocket_protobuf::pbbp2::{Frame, Header};
 use log::{debug, error, trace};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use super::client::{ClientConfig, EventDispatcherHandler};
+use super::headers;
 
-/// Frame 类型（crate 内部；生产路径用 method 整型判别）。
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum FrameType {
-    /// 控制帧。
-    Control = 0,
-    /// 数据帧。
-    Data = 1,
-}
+/// 飞书 WebSocket protobuf frame method：控制帧。
+pub(crate) const FRAME_METHOD_CONTROL: i32 = 0;
+/// 飞书 WebSocket protobuf frame method：数据帧。
+pub(crate) const FRAME_METHOD_DATA: i32 = 1;
 
-/// 控制帧解释结果（会话 I/O 与 FrameHandler 共用的唯一路径）。
+/// 控制帧解释结果。
 #[derive(Debug, Clone)]
 pub(crate) enum ControlFrameEffect {
     /// 合法 pong：会话应更新心跳配置。
@@ -32,18 +32,41 @@ pub(crate) enum ControlFrameError {
     MalformedPong(String),
 }
 
-/// Frame 处理器（crate 内部；#429 不再作为 public interface）。
+/// 数据帧事件应答（写回 peer 的 payload）。
+#[derive(Serialize, Deserialize, Debug)]
+struct EventAck {
+    code: u16,
+    headers: std::collections::HashMap<String, String>,
+    data: Vec<u8>,
+}
+
+impl EventAck {
+    fn ok() -> Self {
+        Self {
+            code: 200,
+            headers: Default::default(),
+            data: Default::default(),
+        }
+    }
+
+    fn error() -> Self {
+        Self {
+            code: 500,
+            headers: Default::default(),
+            data: Default::default(),
+        }
+    }
+}
+
+/// 帧协议 helper（无状态）。
 pub(crate) struct FrameHandler;
 
 impl FrameHandler {
-    /// 解释控制帧（唯一实现）。
-    ///
-    /// 会话 I/O 循环在收到 method=0 帧时调用本方法，并应用
-    /// [`ControlFrameEffect::UpdateClientConfig`] 到心跳间隔。
+    /// 解释控制帧。
     pub(crate) fn interpret_control_frame(
         frame: &Frame,
     ) -> Result<ControlFrameEffect, ControlFrameError> {
-        let frame_type = Self::get_header_value(&frame.headers, "type").unwrap_or_default();
+        let frame_type = headers::header_value(&frame.headers, "type").unwrap_or_default();
         trace!("Received control frame: {frame_type}");
 
         if frame_type != "pong" {
@@ -72,42 +95,18 @@ impl FrameHandler {
         }
     }
 
-    /// 处理接收到的 Frame。
+    /// 处理数据帧：派发事件并构造待写回的响应帧。
     ///
-    /// 数据帧在本方法内完成事件派发并返回待写回的响应帧；
-    /// 调用方（会话）负责通过同一 `frame_tx` 发送。
-    ///
-    /// 控制帧**不**经此方法写回；请使用 [`Self::interpret_control_frame`]
-    ///（由 I/O 会话调用并更新心跳）。
-    pub(crate) async fn handle_frame(
-        frame: Frame,
-        event_handler: &EventDispatcherHandler,
-    ) -> Option<Frame> {
-        match frame.method {
-            0 => {
-                // 控制帧无写回帧。解释与心跳更新只走 I/O 会话的
-                // `interpret_control_frame` → `apply_client_config` 路径。
-                None
-            }
-            1 => Self::handle_data_frame(frame, event_handler).await,
-            _ => {
-                error!("Unknown frame method: {}", frame.method);
-                None
-            }
-        }
-    }
-
-    /// 处理数据帧：派发事件并构造响应帧（由会话写回）。
-    async fn handle_data_frame(
+    /// 调用方（Session）负责经同一 sink 发送。
+    pub(crate) fn handle_data_frame(
         mut frame: Frame,
         event_handler: &EventDispatcherHandler,
     ) -> Option<Frame> {
         let headers = &frame.headers;
 
-        // 提取必要的头部信息
-        let msg_type = Self::get_header_value(headers, "type").unwrap_or_default();
-        let msg_id = Self::get_header_value(headers, "message_id").unwrap_or_default();
-        let trace_id = Self::get_header_value(headers, "trace_id").unwrap_or_default();
+        let msg_type = headers::header_value(headers, "type").unwrap_or_default();
+        let msg_id = headers::header_value(headers, "message_id").unwrap_or_default();
+        let trace_id = headers::header_value(headers, "trace_id").unwrap_or_default();
 
         let Some(payload) = frame.payload else {
             error!("Data frame missing payload");
@@ -118,11 +117,10 @@ impl FrameHandler {
             "Received data frame - type: {msg_type}, message_id: {msg_id}, trace_id: {trace_id}"
         );
 
-        match msg_type.as_str() {
+        match msg_type {
             "event" | "" => {
-                let response = Self::process_event(payload, event_handler).await;
+                let response = Self::process_event(&payload, event_handler);
 
-                // 添加处理时间到响应头
                 if let Some(biz_rt) = response.headers.get("biz_rt") {
                     frame.headers.push(Header {
                         key: "biz_rt".to_string(),
@@ -130,70 +128,50 @@ impl FrameHandler {
                     });
                 }
 
-                // 序列化响应
                 frame.payload = Some(serde_json::to_vec(&response).unwrap_or_else(|e| {
-                    error!("Failed to serialize response: {e:?}");
-                    vec![]
+                    error!("Failed to serialize EventAck: {e:?}");
+                    // 保证写回合法 JSON，避免空 payload 伪装成功
+                    br#"{"code":500,"headers":{},"data":[]}"#.to_vec()
                 }));
 
-                // 返回响应帧供上层发送
                 Some(frame)
             }
             "card" => {
                 debug!("Card frame received, skipping");
                 None
             }
-            _ => {
-                debug!("Unknown data frame type: {msg_type}");
+            other => {
+                debug!("Unknown data frame type: {other}");
                 None
             }
         }
     }
 
-    /// 处理事件
-    async fn process_event(
-        _payload: Vec<u8>,
-        event_handler: &EventDispatcherHandler,
-    ) -> NewWsResponse {
+    fn process_event(payload: &[u8], event_handler: &EventDispatcherHandler) -> EventAck {
         let start = Instant::now();
-
-        let result = event_handler.do_without_validation(&_payload);
+        let result = event_handler.do_without_validation(payload);
         let elapsed = start.elapsed().as_millis();
 
-        match result {
-            Ok(_) => {
-                let mut response = NewWsResponse::ok();
-                response
-                    .headers
-                    .insert("biz_rt".to_string(), elapsed.to_string());
-                response
-            }
+        let mut response = match result {
+            Ok(_) => EventAck::ok(),
             Err(err) => {
                 error!("Failed to handle event: {err:?}");
-                let mut response = NewWsResponse::error();
-                response
-                    .headers
-                    .insert("biz_rt".to_string(), elapsed.to_string());
-                response
+                EventAck::error()
             }
-        }
+        };
+        response
+            .headers
+            .insert("biz_rt".to_string(), elapsed.to_string());
+        response
     }
 
-    /// 从头部列表中获取指定键的值
-    fn get_header_value(headers: &[Header], key: &str) -> Option<String> {
-        headers
-            .iter()
-            .find(|h| h.key == key)
-            .map(|h| h.value.clone())
-    }
-
-    /// 构建 ping 帧
+    /// 构建 app-level ping 控制帧。
     pub(crate) fn build_ping_frame(service_id: i32) -> Frame {
         Frame {
             seq_id: 0,
             log_id: 0,
             service: service_id,
-            method: 0, // Control frame
+            method: FRAME_METHOD_CONTROL,
             headers: vec![Header {
                 key: "type".to_string(),
                 value: "ping".to_string(),
@@ -204,56 +182,9 @@ impl FrameHandler {
             log_id_new: None,
         }
     }
-
-    /// 构建数据帧响应
-    #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn build_response_frame(
-        service_id: i32,
-        headers: Vec<Header>,
-        payload: Vec<u8>,
-    ) -> Frame {
-        Frame {
-            seq_id: 0,
-            log_id: 0,
-            service: service_id,
-            method: 1, // Data frame
-            headers,
-            payload_encoding: None,
-            payload_type: None,
-            payload: Some(payload),
-            log_id_new: None,
-        }
-    }
-}
-
-/// WebSocket 响应结构
-#[derive(Serialize, Deserialize, Debug)]
-struct NewWsResponse {
-    code: u16,
-    headers: std::collections::HashMap<String, String>,
-    data: Vec<u8>,
-}
-
-impl NewWsResponse {
-    fn ok() -> Self {
-        Self {
-            code: 200,
-            headers: Default::default(),
-            data: Default::default(),
-        }
-    }
-
-    fn error() -> Self {
-        Self {
-            code: 500,
-            headers: Default::default(),
-            data: Default::default(),
-        }
-    }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use crate::ws_client::EventHandler;
@@ -297,7 +228,7 @@ mod tests {
 
     fn create_control_frame(frame_type: &str, payload: Option<Vec<u8>>) -> Frame {
         create_test_frame(
-            0, // Control frame
+            FRAME_METHOD_CONTROL,
             vec![Header {
                 key: "type".to_string(),
                 value: frame_type.to_string(),
@@ -308,7 +239,7 @@ mod tests {
 
     fn create_data_frame(msg_type: &str, payload: Option<Vec<u8>>) -> Frame {
         create_test_frame(
-            1, // Data frame
+            FRAME_METHOD_DATA,
             vec![
                 Header {
                     key: "type".to_string(),
@@ -328,32 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn test_frame_type_variants() {
-        assert_eq!(FrameType::Control as i32, 0);
-        assert_eq!(FrameType::Data as i32, 1);
-        assert_ne!(FrameType::Control, FrameType::Data);
-        assert_eq!(FrameType::Control, FrameType::Control);
-        assert_eq!(FrameType::Data, FrameType::Data);
-    }
-
-    #[test]
-    fn test_frame_type_debug_format() {
-        assert_eq!(format!("{:?}", FrameType::Control), "Control");
-        assert_eq!(format!("{:?}", FrameType::Data), "Data");
-    }
-
-    #[test]
-    fn test_frame_type_clone_and_copy() {
-        let original = FrameType::Control;
-        let cloned = original;
-        assert_eq!(original, cloned);
-
-        let copied = original;
-        assert_eq!(original, copied);
-    }
-
-    #[test]
-    fn test_get_header_value_existing() {
+    fn test_header_value_existing() {
         let headers = vec![
             Header {
                 key: "type".to_string(),
@@ -364,34 +270,27 @@ mod tests {
                 value: "123".to_string(),
             },
         ];
-
-        let result = FrameHandler::get_header_value(&headers, "type");
-        assert_eq!(result, Some("ping".to_string()));
-
-        let result = FrameHandler::get_header_value(&headers, "message_id");
-        assert_eq!(result, Some("123".to_string()));
+        assert_eq!(headers::header_value(&headers, "type"), Some("ping"));
+        assert_eq!(headers::header_value(&headers, "message_id"), Some("123"));
     }
 
     #[test]
-    fn test_get_header_value_nonexistent() {
+    fn test_header_value_nonexistent() {
         let headers = vec![Header {
             key: "type".to_string(),
             value: "ping".to_string(),
         }];
-
-        let result = FrameHandler::get_header_value(&headers, "nonexistent");
-        assert_eq!(result, None);
+        assert_eq!(headers::header_value(&headers, "nonexistent"), None);
     }
 
     #[test]
-    fn test_get_header_value_empty_list() {
+    fn test_header_value_empty_list() {
         let headers: Vec<Header> = vec![];
-        let result = FrameHandler::get_header_value(&headers, "type");
-        assert_eq!(result, None);
+        assert_eq!(headers::header_value(&headers, "type"), None);
     }
 
     #[test]
-    fn test_get_header_value_duplicate_keys() {
+    fn test_header_value_duplicate_keys_returns_first() {
         let headers = vec![
             Header {
                 key: "type".to_string(),
@@ -402,50 +301,18 @@ mod tests {
                 value: "second".to_string(),
             },
         ];
-
-        let result = FrameHandler::get_header_value(&headers, "type");
-        // Should return the first match
-        assert_eq!(result, Some("first".to_string()));
+        assert_eq!(headers::header_value(&headers, "type"), Some("first"));
     }
 
     #[test]
     fn test_build_ping_frame() {
         let frame = FrameHandler::build_ping_frame(42);
-
         assert_eq!(frame.service, 42);
-        assert_eq!(frame.method, 0); // Control frame
+        assert_eq!(frame.method, FRAME_METHOD_CONTROL);
         assert_eq!(frame.headers.len(), 1);
         assert_eq!(frame.headers[0].key, "type");
         assert_eq!(frame.headers[0].value, "ping");
         assert!(frame.payload.is_none());
-    }
-
-    #[test]
-    fn test_build_response_frame() {
-        let headers = vec![Header {
-            key: "status".to_string(),
-            value: "ok".to_string(),
-        }];
-        let payload = b"test response".to_vec();
-
-        let frame = FrameHandler::build_response_frame(99, headers, payload.clone());
-
-        assert_eq!(frame.service, 99);
-        assert_eq!(frame.method, 1); // Data frame
-        assert_eq!(frame.headers.len(), 1);
-        assert_eq!(frame.headers[0].key, "status");
-        assert_eq!(frame.headers[0].value, "ok");
-        assert_eq!(frame.payload, Some(payload));
-    }
-
-    #[tokio::test]
-    async fn test_handle_unknown_frame_method() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        let frame = create_test_frame(999, vec![], None);
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
     }
 
     #[test]
@@ -456,7 +323,7 @@ mod tests {
         let frame = create_control_frame("pong", Some(payload));
         let effect = FrameHandler::interpret_control_frame(&frame).expect("valid pong");
         match effect {
-            super::ControlFrameEffect::UpdateClientConfig(cfg) => {
+            ControlFrameEffect::UpdateClientConfig(cfg) => {
                 assert_eq!(cfg.ping_interval, 30);
                 assert_eq!(cfg.reconnect_count, 3);
             }
@@ -468,175 +335,81 @@ mod tests {
     fn test_interpret_control_frame_pong_invalid_json() {
         let frame = create_control_frame("pong", Some(b"{ invalid json".to_vec()));
         let err = FrameHandler::interpret_control_frame(&frame).expect_err("malformed");
-        assert!(matches!(err, super::ControlFrameError::MalformedPong(_)));
+        assert!(matches!(err, ControlFrameError::MalformedPong(_)));
     }
 
     #[test]
     fn test_interpret_control_frame_pong_no_payload() {
         let frame = create_control_frame("pong", None);
         let err = FrameHandler::interpret_control_frame(&frame).expect_err("missing payload");
-        assert!(matches!(err, super::ControlFrameError::MalformedPong(_)));
+        assert!(matches!(err, ControlFrameError::MalformedPong(_)));
     }
 
     #[test]
     fn test_interpret_control_frame_unhandled_type() {
         let frame = create_control_frame("unknown_type", None);
         let effect = FrameHandler::interpret_control_frame(&frame).expect("ignored");
-        assert!(matches!(effect, super::ControlFrameEffect::Ignored));
+        assert!(matches!(effect, ControlFrameEffect::Ignored));
     }
 
     #[test]
     fn test_interpret_control_frame_no_type_header() {
-        let frame = create_test_frame(0, vec![], None);
+        let frame = create_test_frame(FRAME_METHOD_CONTROL, vec![], None);
         let effect = FrameHandler::interpret_control_frame(&frame).expect("ignored");
-        assert!(matches!(effect, super::ControlFrameEffect::Ignored));
+        assert!(matches!(effect, ControlFrameEffect::Ignored));
     }
 
-    #[tokio::test]
-    async fn test_handle_frame_control_never_returns_writeback() {
+    #[test]
+    fn test_handle_data_frame_event_success() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let payload =
-            br#"{"ReconnectCount":3,"ReconnectInterval":5,"ReconnectNonce":123,"PingInterval":30}"#
-                .to_vec();
-        let frame = create_control_frame("pong", Some(payload));
-        // 控制帧不经 handle_frame 写回
-        assert!(
-            FrameHandler::handle_frame(frame, &event_handler)
-                .await
-                .is_none()
-        );
-    }
-
-    #[tokio::test]
-    async fn test_handle_data_frame_event_success() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
         let payload = b"test event data".to_vec();
         let frame = create_data_frame("event", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
+        let result = FrameHandler::handle_data_frame(frame, &event_handler);
 
         assert!(result.is_some());
-
-        let returned_frame = result.unwrap();
-        assert_eq!(returned_frame.method, 1); // Data frame
-        assert!(returned_frame.payload.is_some());
-
-        // Check that biz_rt header was added (even for error responses to track processing time)
-        let biz_rt_header = returned_frame.headers.iter().find(|h| h.key == "biz_rt");
-        assert!(biz_rt_header.is_some());
-        assert!(biz_rt_header.unwrap().value.parse::<u64>().is_ok());
-
-        // The payload should contain error response since no handler is registered
-        let response_json = String::from_utf8(returned_frame.payload.unwrap()).unwrap();
-        // 当前 EventDispatcherHandler 仍是占位实现（总是返回 Ok），因此这里期望成功响应
+        let returned = result.unwrap();
+        assert_eq!(returned.method, FRAME_METHOD_DATA);
+        assert!(returned.headers.iter().any(|h| h.key == "biz_rt"));
+        let response_json = String::from_utf8(returned.payload.unwrap()).unwrap();
         assert!(response_json.contains("\"code\":200"));
     }
 
-    #[tokio::test]
-    async fn test_handle_data_frame_event_failure() {
+    #[test]
+    fn test_handle_data_frame_event_no_payload() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        // Create a payload that will cause an error since there's no registered handler
-        let payload = b"test event data".to_vec();
-        let frame = create_data_frame("event", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_some());
-
-        let returned_frame = result.unwrap();
-        assert!(returned_frame.payload.is_some());
-
-        // The payload should contain error response since no handler is registered
-        let response_json = String::from_utf8(returned_frame.payload.unwrap()).unwrap();
-        // 当前 EventDispatcherHandler 仍是占位实现（总是返回 Ok），因此这里期望成功响应
-        assert!(response_json.contains("\"code\":200"));
-    }
-
-    #[tokio::test]
-    async fn test_handle_data_frame_event_no_payload() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
         let frame = create_data_frame("event", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+        assert!(FrameHandler::handle_data_frame(frame, &event_handler).is_none());
     }
 
-    #[tokio::test]
-    async fn test_handle_data_frame_card() {
+    #[test]
+    fn test_handle_data_frame_card() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        let payload = b"card data".to_vec();
-        let frame = create_data_frame("card", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+        let frame = create_data_frame("card", Some(b"card data".to_vec()));
+        assert!(FrameHandler::handle_data_frame(frame, &event_handler).is_none());
     }
 
-    #[tokio::test]
-    async fn test_handle_data_frame_unknown_type() {
+    #[test]
+    fn test_handle_data_frame_unknown_type() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        let payload = b"unknown data".to_vec();
-        let frame = create_data_frame("unknown_type", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+        let frame = create_data_frame("unknown_type", Some(b"data".to_vec()));
+        assert!(FrameHandler::handle_data_frame(frame, &event_handler).is_none());
     }
 
-    #[tokio::test]
-    async fn test_handle_data_frame_missing_headers() {
+    #[test]
+    fn test_handle_data_frame_missing_headers_still_processes_as_event() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        // Frame with no type header
-        let frame = create_test_frame(1, vec![], Some(b"data".to_vec()));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
+        let frame = create_test_frame(FRAME_METHOD_DATA, vec![], Some(b"data".to_vec()));
+        let result = FrameHandler::handle_data_frame(frame, &event_handler);
         assert!(result.is_some());
-
-        // Should default to empty message type and still process as event
-        let returned_frame = result.unwrap();
-        assert_eq!(returned_frame.method, 1);
+        assert_eq!(result.unwrap().method, FRAME_METHOD_DATA);
     }
 
-    #[tokio::test]
-    async fn test_process_event_success() {
+    #[test]
+    fn test_process_event_success() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        let payload = b"test data".to_vec();
-        let response = FrameHandler::process_event(payload, &event_handler).await;
-
-        // 当前 EventDispatcherHandler 仍是占位实现（总是返回 Ok），因此这里期望成功响应
-        assert_eq!(response.code, 200);
-    }
-
-    #[tokio::test]
-    async fn test_process_event_failure() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        let large_payload = vec![0u8; 2000];
-        let response = FrameHandler::process_event(large_payload, &event_handler).await;
-
-        // 当前 EventDispatcherHandler 仍是占位实现（总是返回 Ok），因此这里期望成功响应
+        let response = FrameHandler::process_event(b"test data", &event_handler);
         assert_eq!(response.code, 200);
         assert!(response.headers.contains_key("biz_rt"));
-    }
-
-    #[tokio::test]
-    async fn test_process_event_performance_timing() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        let payload = b"performance test".to_vec();
-        let start_time = std::time::Instant::now();
-        let response = FrameHandler::process_event(payload, &event_handler).await;
-        let elapsed = start_time.elapsed();
-
-        // 当前 EventDispatcherHandler 仍是占位实现（总是返回 Ok），因此这里期望成功响应
-        assert_eq!(response.code, 200);
-        assert!(response.headers.contains_key("biz_rt"));
-
-        // Should still complete quickly even with error
-        assert!(elapsed.as_millis() < 1000);
     }
 
     #[test]
@@ -647,33 +420,27 @@ mod tests {
             .build();
 
         let payload = b"payload-forward-test".to_vec();
-        let result = handler.do_without_validation(&payload);
-
-        assert!(result.is_ok());
-        let forwarded = payload_rx.try_recv().expect("payload should be forwarded");
-        assert_eq!(forwarded, payload);
+        assert!(handler.do_without_validation(&payload).is_ok());
+        assert_eq!(
+            payload_rx.try_recv().expect("payload should be forwarded"),
+            payload
+        );
     }
 
     #[test]
     fn test_event_dispatcher_no_sender_still_ok() {
         let handler = EventDispatcherHandler::builder().build();
-        let payload = b"payload-without-sender";
-
-        let result = handler.do_without_validation(payload);
-        assert!(result.is_ok());
+        assert!(handler.do_without_validation(b"payload-without-sender").is_ok());
     }
 
     #[test]
     fn test_event_dispatcher_returns_err_when_sender_closed() {
         let (payload_tx, payload_rx) = mpsc::unbounded_channel::<Vec<u8>>();
         drop(payload_rx);
-
         let handler = EventDispatcherHandler::builder()
             .payload_sender(payload_tx)
             .build();
-
-        let result = handler.do_without_validation(b"closed-channel");
-        assert!(result.is_err());
+        assert!(handler.do_without_validation(b"closed-channel").is_err());
     }
 
     #[test]
@@ -690,9 +457,7 @@ mod tests {
             .build();
 
         let payload = br#"{"header":{"event_type":"im.message.receive_v1"}}"#;
-        let result = handler.do_without_validation(payload);
-
-        assert!(result.is_ok());
+        assert!(handler.do_without_validation(payload).is_ok());
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
 
@@ -710,9 +475,7 @@ mod tests {
             .build();
 
         let payload = br#"{"header":{"event_type":"im.message.receive_v1"}}"#;
-        let result = handler.do_without_validation(payload);
-
-        assert!(result.is_ok());
+        assert!(handler.do_without_validation(payload).is_ok());
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
 
@@ -721,198 +484,16 @@ mod tests {
         let handler = EventDispatcherHandler::builder()
             .register_raw("raw", NoopHandler)
             .expect("first registration should work");
-
-        let duplicate = handler.register_raw("raw", NoopHandler);
-        assert!(duplicate.is_err());
+        assert!(handler.register_raw("raw", NoopHandler).is_err());
     }
 
     #[test]
-    fn test_new_ws_response_ok() {
-        let response = NewWsResponse::ok();
-
-        assert_eq!(response.code, 200);
-        assert!(response.headers.is_empty());
-        assert!(response.data.is_empty());
-    }
-
-    #[test]
-    fn test_new_ws_response_error() {
-        let response = NewWsResponse::error();
-
-        assert_eq!(response.code, 500);
-        assert!(response.headers.is_empty());
-        assert!(response.data.is_empty());
-    }
-
-    #[test]
-    fn test_new_ws_response_serialization() {
-        let response = NewWsResponse::ok();
+    fn test_event_ack_serialization() {
+        let response = EventAck::ok();
         let json = serde_json::to_string(&response).unwrap();
-        let deserialized: NewWsResponse = serde_json::from_str(&json).expect("JSON 反序列化失败");
-
+        let deserialized: EventAck = serde_json::from_str(&json).expect("JSON 反序列化失败");
         assert_eq!(response.code, deserialized.code);
         assert_eq!(response.headers, deserialized.headers);
         assert_eq!(response.data, deserialized.data);
-    }
-
-    #[test]
-    fn test_new_ws_response_with_headers() {
-        let mut response = NewWsResponse::ok();
-        response
-            .headers
-            .insert("test_key".to_string(), "test_value".to_string());
-
-        assert_eq!(response.code, 200);
-        assert_eq!(response.headers.len(), 1);
-        assert_eq!(response.headers["test_key"], "test_value");
-    }
-
-    #[test]
-    fn test_new_ws_response_debug_format() {
-        let response = NewWsResponse::error();
-        let debug_str = format!("{response:?}");
-        assert!(debug_str.contains("NewWsResponse"));
-        assert!(debug_str.contains("500"));
-    }
-
-    #[tokio::test]
-    async fn test_concurrent_frame_handling() {
-        let event_handler = std::sync::Arc::new(EventDispatcherHandler::builder().build());
-
-        let mut handles = vec![];
-
-        for i in 0..10 {
-            let handler_clone = event_handler.clone();
-
-            let payload = format!("test data {i}").into_bytes();
-            let frame = create_data_frame("event", Some(payload));
-
-            let handle =
-                tokio::spawn(
-                    async move { FrameHandler::handle_frame(frame, &handler_clone).await },
-                );
-
-            handles.push(handle);
-        }
-
-        // Wait for all tasks to complete
-        for handle in handles {
-            let result = handle.await.unwrap();
-            assert!(result.is_some());
-        }
-    }
-
-    #[tokio::test]
-    async fn test_frame_handler_with_complex_headers() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        let complex_headers = vec![
-            Header {
-                key: "type".to_string(),
-                value: "event".to_string(),
-            },
-            Header {
-                key: "message_id".to_string(),
-                value: "msg_12345".to_string(),
-            },
-            Header {
-                key: "trace_id".to_string(),
-                value: "trace_67890".to_string(),
-            },
-            Header {
-                key: "user_id".to_string(),
-                value: "user_abc".to_string(),
-            },
-            Header {
-                key: "timestamp".to_string(),
-                value: "1234567890".to_string(),
-            },
-        ];
-
-        let frame = create_test_frame(1, complex_headers, Some(b"complex data".to_vec()));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_some());
-    }
-
-    #[test]
-    fn test_frame_handler_unicode_headers() {
-        let unicode_headers = vec![
-            Header {
-                key: "type".to_string(),
-                value: "事件".to_string(), // Chinese characters
-            },
-            Header {
-                key: "message".to_string(),
-                value: "测试消息".to_string(),
-            },
-        ];
-
-        let frame = create_test_frame(0, unicode_headers, None);
-
-        // Should handle Unicode headers without panic
-        let result = FrameHandler::get_header_value(&frame.headers, "type");
-        assert_eq!(result, Some("事件".to_string()));
-
-        let result = FrameHandler::get_header_value(&frame.headers, "message");
-        assert_eq!(result, Some("测试消息".to_string()));
-    }
-
-    #[tokio::test]
-    async fn test_frame_handler_empty_and_large_payloads() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        // Test empty payload
-        let empty_frame = create_data_frame("event", Some(vec![]));
-        let result = FrameHandler::handle_frame(empty_frame, &event_handler).await;
-        assert!(result.is_some());
-
-        // Test large payload (but within limit)
-        let large_payload = vec![b'x'; 500];
-        let large_frame = create_data_frame("event", Some(large_payload));
-        let result = FrameHandler::handle_frame(large_frame, &event_handler).await;
-        assert!(result.is_some());
-    }
-
-    #[test]
-    fn test_header_value_edge_cases() {
-        // Test header with empty value
-        let headers = vec![
-            Header {
-                key: "empty".to_string(),
-                value: "".to_string(),
-            },
-            Header {
-                key: "normal".to_string(),
-                value: "value".to_string(),
-            },
-        ];
-
-        let result = FrameHandler::get_header_value(&headers, "empty");
-        assert_eq!(result, Some("".to_string()));
-
-        // Test header with special characters
-        let special_headers = vec![Header {
-            key: "special".to_string(),
-            value: "!@#$%^&*()_+-=[]{}|;':\",./<>?".to_string(),
-        }];
-
-        let result = FrameHandler::get_header_value(&special_headers, "special");
-        assert_eq!(result, Some("!@#$%^&*()_+-=[]{}|;':\",./<>?".to_string()));
-    }
-
-    #[tokio::test]
-    async fn test_frame_handler_serialization_error_handling() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        // Create a scenario where serialization might fail
-        let payload = b"test data".to_vec();
-        let frame = create_data_frame("event", Some(payload));
-
-        // The frame handler should handle serialization errors gracefully
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        // Should still return a frame even if serialization has issues
-        assert!(result.is_some());
     }
 }

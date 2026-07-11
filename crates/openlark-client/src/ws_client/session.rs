@@ -22,12 +22,16 @@ use tokio_tungstenite::{
 };
 
 use super::client::{ClientConfig, EventDispatcherHandler, WsClientError, WsClientResult, WsCloseReason};
-use super::frame_handler::{ControlFrameEffect, ControlFrameError, FrameHandler};
+use super::frame_handler::{
+    ControlFrameEffect, ControlFrameError, FRAME_METHOD_CONTROL, FRAME_METHOD_DATA, FrameHandler,
+};
 use super::package::{self, FramePackageBuffer};
 
 /// 会话运行选项（生产默认；测试可缩短心跳超时）。
 #[derive(Debug, Clone)]
 pub(crate) struct SessionOptions {
+    /// 入站空闲超时。任意入站 WebSocket 消息（含 Binary/Ping）会刷新计时；
+    /// 超时返回 `ConnectionClosed { reason: None }`。
     pub(crate) heartbeat_timeout: Duration,
 }
 
@@ -74,8 +78,12 @@ impl Session {
     }
 
     /// 运行会话直至关闭或错误。
+    ///
+    /// 正常对端 Close / 传输失败 / 协议错误均以 `Err` 返回（含
+    /// `ConnectionClosed`）。生产路径不返回 `Ok(())`。
     pub(crate) async fn run(mut self) -> WsClientResult<()> {
-        // 入站活动刷新存活（任意 Binary/Ping 均计），避免仅依赖 WS 层 Ping。
+        // 存活计时：任意入站消息刷新（不仅是 WS 层 Ping）。
+        // 这是有意语义：Binary 业务帧也证明链路存活。
         let mut last_activity = Instant::now();
         let mut checkout_timeout = tokio::time::interval(Duration::from_secs(1));
 
@@ -142,8 +150,8 @@ impl Session {
                 let frame = Frame::decode(&*data)?;
                 trace!("Received frame: {frame:?}");
                 match frame.method {
-                    0 => self.apply_control_frame(frame)?,
-                    1 => self.handle_data_frame(frame).await?,
+                    FRAME_METHOD_CONTROL => self.apply_control_frame(frame)?,
+                    FRAME_METHOD_DATA => self.handle_data_frame(frame).await?,
                     other => {
                         return Err(WsClientError::ClientError {
                             code: 0,
@@ -193,9 +201,7 @@ impl Session {
             return Ok(());
         };
 
-        if let Some(response_frame) =
-            FrameHandler::handle_frame(frame, &self.event_handler).await
-        {
+        if let Some(response_frame) = FrameHandler::handle_data_frame(frame, &self.event_handler) {
             self.send_frame(response_frame).await?;
         }
         Ok(())

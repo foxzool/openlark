@@ -68,8 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebSocket 单一 Session loop（#421 结构收口）**：删除 I/O 任务 +
   `handler_loop` + `WsEvent` 双环路与僵尸 `WebSocketStateMachine`。一次
   `select!` 拥有心跳、控制帧、分包、派发与响应写回；响应发送失败进入会话
-  `Result`。存活计时按入站活动刷新；心跳超时经 `SessionOptions` 注入（测试无
-  需全局覆盖）。模块拆为 `session` / `package` / `frame_handler` / `client`。
+  `Result`。**存活计时按任意入站 WebSocket 消息刷新**（不仅是 WS 层 Ping，
+  有意语义）。心跳超时经 `SessionOptions` 注入。模块拆为 `session` /
+  `package` / `frame_handler` / `headers` / `client`。未知 frame method 与
+  超大帧有完整会话级测试覆盖。
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

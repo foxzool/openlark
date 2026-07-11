@@ -2,8 +2,10 @@
 
 use std::collections::HashMap;
 
-use lark_websocket_protobuf::pbbp2::{Frame, Header};
+use lark_websocket_protobuf::pbbp2::Frame;
 use log::{debug, error};
+
+use super::headers;
 
 /// 分包消息缓存（按 message_id 聚合）
 #[derive(Debug, Default)]
@@ -56,27 +58,11 @@ pub(crate) fn assemble_frame(
     buffers: &mut HashMap<String, FramePackageBuffer>,
     mut frame: Frame,
 ) -> Option<Frame> {
-    let headers: &[Header] = frame.headers.as_ref();
+    let hdrs = frame.headers.as_ref();
 
-    fn header_value<'a>(headers: &'a [Header], key: &str) -> Option<&'a str> {
-        headers
-            .iter()
-            .find(|h| h.key == key)
-            .map(|h| h.value.as_str())
-    }
-
-    fn header_usize(headers: &[Header], key: &str) -> Option<usize> {
-        header_value(headers, key).and_then(|v| v.parse().ok())
-    }
-
-    let sum: usize = headers
-        .iter()
-        .find(|h| h.key == "sum")
-        .and_then(|h| h.value.parse().ok())
-        .unwrap_or(1);
-
-    let seq: usize = header_usize(headers, "seq").unwrap_or(0);
-    let msg_id: &str = header_value(headers, "message_id").unwrap_or("");
+    let sum: usize = headers::header_usize(hdrs, "sum").unwrap_or(1);
+    let seq: usize = headers::header_usize(hdrs, "seq").unwrap_or(0);
+    let msg_id: &str = headers::header_value(hdrs, "message_id").unwrap_or("");
 
     let Some(payload) = frame.payload.take() else {
         error!("Frame payload is empty");

@@ -5,6 +5,7 @@
 
 mod client;
 mod frame_handler;
+mod headers;
 mod package;
 mod session;
 

@@ -192,9 +192,12 @@ impl LarkWsClient {
     ///
     /// # 返回
     ///
-    /// - `Ok(())`：会话在无错误路径下结束（当前生产路径通常以关闭/错误结束）
-    /// - `Err(WsClientError::ConnectionClosed { reason })`：对端关闭
-    /// - 其它 `Err`：端点查询、传输、malformed 控制帧等
+    /// 生产路径在会话终止时几乎总是 `Err`：
+    /// - `Err(WsClientError::ConnectionClosed { reason })`：对端 Close（含正常关闭
+    ///   code）或入站空闲超时；**正常断开也是 `Err`，调用方请匹配此变体**
+    /// - 其它 `Err`：端点查询、传输、malformed 控制帧、未知 frame method 等
+    ///
+    /// 入站空闲超时按**任意**入站 WebSocket 消息刷新（不仅是 WS 层 Ping）。
     pub async fn open(
         config: Arc<openlark_core::config::Config>,
         event_handler: EventDispatcherHandler,

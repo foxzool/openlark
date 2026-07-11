@@ -20,6 +20,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use super::client::ClientConfig;
+use super::frame_handler::{FRAME_METHOD_CONTROL, FRAME_METHOD_DATA};
 use super::session::SessionOptions;
 use super::{
     EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsClientResult,
@@ -90,14 +91,17 @@ impl LocalSessionHarness {
         }
     }
 
-    fn config(&self) -> Config {
-        Config::builder()
+    fn config_with_max_response_size(&self, max_response_size: Option<usize>) -> Config {
+        let mut b = Config::builder()
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .base_url(self.mock_server.uri())
             .allow_custom_base_url(true)
-            .req_timeout(Duration::from_secs(5))
-            .build()
+            .req_timeout(Duration::from_secs(5));
+        if let Some(max) = max_response_size {
+            b = b.max_response_size(max as u64);
+        }
+        b.build()
     }
 
     async fn accept_peer(&mut self) -> WebSocketStream<tokio::net::TcpStream> {
@@ -114,7 +118,7 @@ impl LocalSessionHarness {
 
 /// 运行一次完整会话：peer 脚本与 `open_with` 并发，返回 open 结果与 peer 产出。
 async fn run_session<F, Fut, T>(
-    mut harness: LocalSessionHarness,
+    harness: LocalSessionHarness,
     event_handler: EventDispatcherHandler,
     options: SessionOptions,
     peer_script: F,
@@ -124,7 +128,22 @@ where
     Fut: std::future::Future<Output = T> + Send + 'static,
     T: Send + 'static,
 {
-    let config = Arc::new(harness.config());
+    run_session_with_config(harness, event_handler, options, None, peer_script).await
+}
+
+async fn run_session_with_config<F, Fut, T>(
+    mut harness: LocalSessionHarness,
+    event_handler: EventDispatcherHandler,
+    options: SessionOptions,
+    max_response_size: Option<usize>,
+    peer_script: F,
+) -> (WsClientResult<()>, T)
+where
+    F: FnOnce(WebSocketStream<tokio::net::TcpStream>) -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = T> + Send + 'static,
+    T: Send + 'static,
+{
+    let config = Arc::new(harness.config_with_max_response_size(max_response_size));
     let (peer_done_tx, peer_done_rx) = oneshot::channel::<T>();
 
     let peer_task = tokio::spawn(async move {
@@ -192,7 +211,7 @@ fn multipart_event_frame(
         seq_id: seq.unwrap_or(0) as u64,
         log_id: 100,
         service: SERVICE_ID,
-        method: 1,
+        method: FRAME_METHOD_DATA,
         headers,
         payload_encoding: None,
         payload_type: None,
@@ -220,7 +239,7 @@ async fn recv_next_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> F
 async fn recv_data_response_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> Frame {
     loop {
         let frame = recv_next_frame(peer).await;
-        if frame.method == 1 {
+        if frame.method == FRAME_METHOD_DATA {
             return frame;
         }
     }
@@ -229,7 +248,7 @@ async fn recv_data_response_frame(peer: &mut WebSocketStream<tokio::net::TcpStre
 async fn recv_app_ping_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> Frame {
     loop {
         let frame = recv_next_frame(peer).await;
-        if frame.method == 0 {
+        if frame.method == FRAME_METHOD_CONTROL {
             let ty = frame
                 .headers
                 .iter()
@@ -255,7 +274,7 @@ fn pong_control_frame(ping_interval: i32) -> Frame {
         seq_id: 0,
         log_id: 0,
         service: SERVICE_ID,
-        method: 0,
+        method: FRAME_METHOD_CONTROL,
         headers: vec![Header {
             key: "type".to_string(),
             value: "pong".to_string(),
@@ -272,7 +291,7 @@ fn malformed_pong_frame() -> Frame {
         seq_id: 0,
         log_id: 0,
         service: SERVICE_ID,
-        method: 0,
+        method: FRAME_METHOD_CONTROL,
         headers: vec![Header {
             key: "type".to_string(),
             value: "pong".to_string(),
@@ -280,6 +299,20 @@ fn malformed_pong_frame() -> Frame {
         payload_encoding: None,
         payload_type: None,
         payload: Some(b"{ not-json".to_vec()),
+        log_id_new: None,
+    }
+}
+
+fn invalid_method_frame() -> Frame {
+    Frame {
+        seq_id: 0,
+        log_id: 0,
+        service: SERVICE_ID,
+        method: 99,
+        headers: vec![],
+        payload_encoding: None,
+        payload_type: None,
+        payload: Some(b"x".to_vec()),
         log_id_new: None,
     }
 }
@@ -532,7 +565,7 @@ async fn full_session_multipart_incomplete_does_not_dispatch() {
 
 #[tokio::test]
 async fn full_session_pong_updates_ping_interval() {
-    let (open_result, ()) = run_session(
+    let (open_result, gap) = run_session(
         LocalSessionHarness::start_with_ping_interval(3600).await,
         EventDispatcherHandler::builder().build(),
         SessionOptions::default(),
@@ -540,15 +573,19 @@ async fn full_session_pong_updates_ping_interval() {
             let first = recv_app_ping_frame(&mut peer).await;
             assert_eq!(first.service, SERVICE_ID);
 
+            // 应用 PingInterval=1 后，reset_after(1s) 应使下一 tick 约 1s 后触发；
+            // 若 reset 失效，新 interval 会立即 tick，gap 会远小于 1s。
             peer.send(Message::Binary(
                 pong_control_frame(1).encode_to_vec().into(),
             ))
             .await
             .expect("send pong");
 
+            let t0 = tokio::time::Instant::now();
             timeout(Duration::from_secs(3), recv_app_ping_frame(&mut peer))
                 .await
                 .expect("second ping timed out — pong did not update interval?");
+            let gap = t0.elapsed();
 
             peer.close(Some(CloseFrame {
                 code: CloseCode::Normal,
@@ -556,11 +593,82 @@ async fn full_session_pong_updates_ping_interval() {
             }))
             .await
             .ok();
+            gap
         },
     )
     .await;
 
+    assert!(
+        gap >= Duration::from_millis(700),
+        "second ping arrived too soon ({gap:?}); expected ~1s after reset_after(1s)"
+    );
+    assert!(
+        gap <= Duration::from_millis(2500),
+        "second ping too late ({gap:?}); expected ~1s interval"
+    );
     assert_normal_close(open_result);
+}
+
+/// 无效 frame method 经会话 Result 可观察（规范测试决策）。
+#[tokio::test]
+async fn full_session_invalid_frame_method_is_session_error() {
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        EventDispatcherHandler::builder().build(),
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            peer.send(Message::Binary(
+                invalid_method_frame().encode_to_vec().into(),
+            ))
+            .await
+            .expect("send invalid method frame");
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    match open_result {
+        Err(WsClientError::ClientError { message, .. }) => {
+            assert!(
+                message.contains("invalid frame method"),
+                "unexpected message: {message}"
+            );
+        }
+        other => panic!("expected ClientError for invalid method, got: {other:?}"),
+    }
+}
+
+/// 超大帧受 `max_response_size` 限制，会话以传输错误结束（US 10）。
+#[tokio::test]
+async fn full_session_oversized_frame_is_rejected() {
+    // 极小上限，使 peer 发送的大 Binary 触发 tungstenite max frame/message size
+    const TINY_MAX: usize = 64;
+    let (open_result, ()) = run_session_with_config(
+        LocalSessionHarness::start().await,
+        EventDispatcherHandler::builder().build(),
+        SessionOptions::default(),
+        Some(TINY_MAX),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // 远超 64 字节的 binary（含 protobuf frame 开销）
+            let huge = vec![0u8; 4096];
+            let _ = peer.send(Message::Binary(huge.into())).await;
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    // 对端超限通常表现为传输/协议错误或连接关闭，而非成功派发
+    assert!(
+        matches!(
+            open_result,
+            Err(WsClientError::WsError(_))
+                | Err(WsClientError::ConnectionClosed { .. })
+                | Err(WsClientError::ProstError(_))
+        ),
+        "expected oversized frame to end session with transport/close error, got: {open_result:?}"
+    );
 }
 
 #[tokio::test]
