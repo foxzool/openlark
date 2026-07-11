@@ -59,9 +59,9 @@ impl SessionState {
     }
 }
 
-/// `try_send` 到 worker 的局部结果。
+/// `try_send` 到 worker 的局部结果（Full 装箱以避免 result_large_err）。
 enum TrySendToWorker {
-    Full(Frame),
+    Full(Box<Frame>),
     Closed,
 }
 
@@ -199,7 +199,9 @@ impl Session {
                 self.note_job_enqueued();
                 Ok(())
             }
-            Err(mpsc::error::TrySendError::Full(frame)) => Err(TrySendToWorker::Full(frame)),
+            Err(mpsc::error::TrySendError::Full(frame)) => {
+                Err(TrySendToWorker::Full(Box::new(frame)))
+            }
             Err(mpsc::error::TrySendError::Closed(_)) => Err(TrySendToWorker::Closed),
         }
     }
@@ -209,7 +211,7 @@ impl Session {
             match self.try_send_to_worker(job_tx, frame) {
                 Ok(()) => {}
                 Err(TrySendToWorker::Full(frame)) => {
-                    self.pending_outbox.push_front(frame);
+                    self.pending_outbox.push_front(*frame);
                     break;
                 }
                 Err(TrySendToWorker::Closed) => {
