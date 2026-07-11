@@ -374,10 +374,171 @@ fn test_from_app_id_string() {
 }
 
 #[test]
-fn test_builder_default() {
-    let builder = ClientBuilder::default();
-    assert!(builder.config.app_id.is_empty());
-    assert!(builder.config.app_secret.is_empty());
+fn test_builder_default_requires_credentials() {
+    // 空 builder 构建失败（经公开 interface 观察，不读私有字段）
+    let result = ClientBuilder::default().build();
+    assert!(result.is_err());
+}
+
+// ===== #415: ClientBuilder delegates to core ConfigBuilder =====
+
+#[test]
+fn test_client_builder_default_timeout_is_30s() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+    assert_eq!(
+        client.config().req_timeout(),
+        Some(Duration::from_secs(30)),
+        "ClientBuilder 默认超时应为 30 秒"
+    );
+}
+
+#[test]
+fn test_client_builder_allow_custom_base_url_propagates() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://proxy.example.com")
+        .allow_custom_base_url(true)
+        .build()
+        .unwrap();
+    assert!(client.config().allow_custom_base_url());
+    assert_eq!(client.config().base_url(), "https://proxy.example.com");
+}
+
+#[test]
+fn test_client_builder_custom_host_rejected_without_flag() {
+    let err = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://proxy.example.com")
+        .build()
+        .unwrap_err();
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("allow_custom_base_url") || msg.contains("白名单"),
+        "未放行自定义域名应失败: {msg}"
+    );
+}
+
+#[test]
+fn test_client_builder_from_env_then_setter_overrides() {
+    crate::test_utils::with_env_vars(
+        &[
+            ("OPENLARK_APP_ID", Some("env_app")),
+            ("OPENLARK_APP_SECRET", Some("env_secret")),
+            ("OPENLARK_TIMEOUT", Some("90")),
+        ],
+        || {
+            let client = Client::builder()
+                .from_env()
+                .app_id("code_app")
+                .timeout(Duration::from_secs(12))
+                .build()
+                .unwrap();
+            assert_eq!(client.config().app_id(), "code_app");
+            assert_eq!(client.config().app_secret(), "env_secret");
+            assert_eq!(client.config().req_timeout(), Some(Duration::from_secs(12)));
+        },
+    );
+}
+
+#[test]
+fn test_client_builder_setter_then_from_env_overrides() {
+    crate::test_utils::with_env_vars(
+        &[
+            ("OPENLARK_APP_ID", Some("env_app")),
+            ("OPENLARK_APP_SECRET", Some("env_secret")),
+            ("OPENLARK_TIMEOUT", Some("90")),
+        ],
+        || {
+            let client = Client::builder()
+                .app_id("code_app")
+                .app_secret("code_secret")
+                .timeout(Duration::from_secs(12))
+                .from_env()
+                .build()
+                .unwrap();
+            assert_eq!(client.config().app_id(), "env_app");
+            assert_eq!(client.config().app_secret(), "env_secret");
+            assert_eq!(client.config().req_timeout(), Some(Duration::from_secs(90)));
+        },
+    );
+}
+
+#[test]
+fn test_client_builder_header_incremental_and_last_write_wins() {
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .add_header("X-A", "1")
+        .add_header("X-B", "2")
+        .add_header("X-A", "3")
+        .build()
+        .unwrap();
+    assert_eq!(client.config().header().get("X-A"), Some(&"3".to_string()));
+    assert_eq!(client.config().header().get("X-B"), Some(&"2".to_string()));
+}
+
+#[test]
+fn test_client_builder_preserves_all_options_through_config() {
+    use openlark_core::constants::AppType;
+
+    let client = Client::builder()
+        .app_id("opt_app")
+        .app_secret("opt_secret")
+        .app_type(AppType::Marketplace)
+        .enable_token_cache(false)
+        .base_url("https://open.larksuite.com")
+        .timeout(Duration::from_secs(55))
+        .retry_count(5)
+        .enable_log(false)
+        .max_response_size(12345)
+        .add_header("X-Custom", "v")
+        .allow_custom_base_url(false)
+        .build()
+        .unwrap();
+
+    let c = client.config();
+    assert_eq!(c.app_id(), "opt_app");
+    assert_eq!(c.app_secret(), "opt_secret");
+    assert_eq!(c.app_type(), AppType::Marketplace);
+    assert!(!c.enable_token_cache());
+    assert_eq!(c.base_url(), "https://open.larksuite.com");
+    assert_eq!(c.req_timeout(), Some(Duration::from_secs(55)));
+    assert_eq!(c.retry_count(), 5);
+    assert!(!c.enable_log());
+    assert_eq!(c.max_response_size(), 12345);
+    assert_eq!(c.header().get("X-Custom"), Some(&"v".to_string()));
+    assert!(!c.allow_custom_base_url());
+}
+
+#[test]
+fn test_client_builder_clone_and_redacted_debug() {
+    let builder = Client::builder()
+        .app_id("debug_app")
+        .app_secret("super-secret-value")
+        .add_header("Authorization", "Bearer secret-token");
+    let cloned = builder.clone();
+    let debug = format!("{builder:?}");
+    assert!(
+        debug.starts_with("ClientBuilder"),
+        "Debug 应以 ClientBuilder 开头: {debug}"
+    );
+    assert!(
+        !debug.contains("super-secret-value"),
+        "Debug 不得泄露 app_secret: {debug}"
+    );
+    assert!(
+        !debug.contains("Bearer secret-token"),
+        "Debug 不得泄露 header 值: {debug}"
+    );
+
+    let client = cloned.build().unwrap();
+    assert_eq!(client.config().app_id(), "debug_app");
 }
 
 #[cfg(feature = "communication")]
