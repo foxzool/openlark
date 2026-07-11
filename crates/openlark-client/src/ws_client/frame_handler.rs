@@ -3,7 +3,7 @@ use log::{debug, error, trace};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
-use super::{ClientConfig, WsEvent};
+use super::ClientConfig;
 
 // 导入 client.rs 中的 EventDispatcherHandler
 use super::client::EventDispatcherHandler;
@@ -21,15 +21,17 @@ pub enum FrameType {
 pub struct FrameHandler;
 
 impl FrameHandler {
-    /// 处理接收到的 Frame
+    /// 处理接收到的 Frame。
+    ///
+    /// 数据帧在本方法内完成事件派发并返回待写回的响应帧；
+    /// 调用方（会话）负责通过同一 `frame_tx` 发送，不再使用临时 channel。
     pub async fn handle_frame(
         frame: Frame,
         event_handler: &EventDispatcherHandler,
-        event_tx: &tokio::sync::mpsc::UnboundedSender<WsEvent>,
     ) -> Option<Frame> {
         match frame.method {
             0 => Self::handle_control_frame(frame),
-            1 => Self::handle_data_frame(frame, event_handler, event_tx).await,
+            1 => Self::handle_data_frame(frame, event_handler).await,
             _ => {
                 error!("Unknown frame method: {}", frame.method);
                 None
@@ -70,11 +72,10 @@ impl FrameHandler {
         }
     }
 
-    /// 处理数据帧
+    /// 处理数据帧：派发事件并构造响应帧（由会话写回）。
     async fn handle_data_frame(
         mut frame: Frame,
         event_handler: &EventDispatcherHandler,
-        _event_tx: &tokio::sync::mpsc::UnboundedSender<WsEvent>,
     ) -> Option<Frame> {
         let headers = &frame.headers;
 
@@ -410,10 +411,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_unknown_frame_method() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let frame = create_test_frame(999, vec![], None);
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -421,7 +421,6 @@ mod tests {
     #[tokio::test]
     async fn test_handle_control_frame_pong_valid() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         // Create a JSON payload that matches what would be expected for ClientConfig
         let payload =
@@ -429,7 +428,7 @@ mod tests {
                 .to_vec();
 
         let frame = create_control_frame("pong", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         // The frame should be processed and returned if JSON parsing succeeds
         assert!(result.is_some());
@@ -440,11 +439,10 @@ mod tests {
     #[tokio::test]
     async fn test_handle_control_frame_pong_invalid_json() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let invalid_payload = b"{ invalid json".to_vec();
         let frame = create_control_frame("pong", Some(invalid_payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -452,10 +450,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_control_frame_pong_no_payload() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let frame = create_control_frame("pong", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -463,10 +460,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_control_frame_unhandled_type() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let frame = create_control_frame("unknown_type", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -474,10 +470,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_control_frame_no_type_header() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let frame = create_test_frame(0, vec![], None); // No type header
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -485,11 +480,10 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_event_success() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let payload = b"test event data".to_vec();
         let frame = create_data_frame("event", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_some());
 
@@ -511,12 +505,11 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_event_failure() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         // Create a payload that will cause an error since there's no registered handler
         let payload = b"test event data".to_vec();
         let frame = create_data_frame("event", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_some());
 
@@ -532,10 +525,9 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_event_no_payload() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let frame = create_data_frame("event", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -543,11 +535,10 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_card() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let payload = b"card data".to_vec();
         let frame = create_data_frame("card", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -555,11 +546,10 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_unknown_type() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let payload = b"unknown data".to_vec();
         let frame = create_data_frame("unknown_type", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_none());
     }
@@ -567,11 +557,10 @@ mod tests {
     #[tokio::test]
     async fn test_handle_data_frame_missing_headers() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         // Frame with no type header
         let frame = create_test_frame(1, vec![], Some(b"data".to_vec()));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_some());
 
@@ -759,19 +748,17 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_frame_handling() {
         let event_handler = std::sync::Arc::new(EventDispatcherHandler::builder().build());
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let mut handles = vec![];
 
         for i in 0..10 {
             let handler_clone = event_handler.clone();
-            let tx_clone = event_tx.clone();
 
             let payload = format!("test data {i}").into_bytes();
             let frame = create_data_frame("event", Some(payload));
 
             let handle = tokio::spawn(async move {
-                FrameHandler::handle_frame(frame, &handler_clone, &tx_clone).await
+                FrameHandler::handle_frame(frame, &handler_clone).await
             });
 
             handles.push(handle);
@@ -787,7 +774,6 @@ mod tests {
     #[tokio::test]
     async fn test_frame_handler_with_complex_headers() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         let complex_headers = vec![
             Header {
@@ -813,7 +799,7 @@ mod tests {
         ];
 
         let frame = create_test_frame(1, complex_headers, Some(b"complex data".to_vec()));
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         assert!(result.is_some());
     }
@@ -844,17 +830,16 @@ mod tests {
     #[tokio::test]
     async fn test_frame_handler_empty_and_large_payloads() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         // Test empty payload
         let empty_frame = create_data_frame("event", Some(vec![]));
-        let result = FrameHandler::handle_frame(empty_frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(empty_frame, &event_handler).await;
         assert!(result.is_some());
 
         // Test large payload (but within limit)
         let large_payload = vec![b'x'; 500];
         let large_frame = create_data_frame("event", Some(large_payload));
-        let result = FrameHandler::handle_frame(large_frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(large_frame, &event_handler).await;
         assert!(result.is_some());
     }
 
@@ -888,14 +873,13 @@ mod tests {
     #[tokio::test]
     async fn test_frame_handler_serialization_error_handling() {
         let event_handler = EventDispatcherHandler::builder().build();
-        let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
         // Create a scenario where serialization might fail
         let payload = b"test data".to_vec();
         let frame = create_data_frame("event", Some(payload));
 
         // The frame handler should handle serialization errors gracefully
-        let result = FrameHandler::handle_frame(frame, &event_handler, &event_tx).await;
+        let result = FrameHandler::handle_frame(frame, &event_handler).await;
 
         // Should still return a frame even if serialization has issues
         assert!(result.is_some());

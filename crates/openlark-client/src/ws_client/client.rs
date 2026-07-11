@@ -346,25 +346,17 @@ impl LarkWsClient {
                         continue;
                     }
 
-                    // 处理分包逻辑
-                    let processed_frame = self.process_frame_packages_internal(frame).await;
-                    let Some(frame) = processed_frame else {
+                    // 单一会话路径：分包组装 → 派发 → 经同一 frame_tx 写回响应
+                    let Some(frame) = self.process_frame_packages_internal(frame).await else {
+                        // 分包未齐：不派发、不写回
                         continue;
                     };
 
-                    // 使用 FrameHandler 处理帧
-                    // 创建一个临时的事件发送器，因为FrameHandler需要WsEvent类型
-                    let (temp_tx, mut temp_rx) = mpsc::unbounded_channel::<WsEvent>();
                     if let Some(response_frame) =
-                        FrameHandler::handle_frame(frame, &event_handler, &temp_tx).await
+                        FrameHandler::handle_frame(frame, &event_handler).await
                         && let Err(e) = self.frame_tx.send(response_frame)
                     {
                         error!("Failed to send response frame: {e:?}");
-                    }
-
-                    // 处理临时接收器中的任何事件 - 目前FrameHandler不会发送事件到这里，保留以备未来使用
-                    while let Ok(_ws_event) = temp_rx.try_recv() {
-                        // 暂时忽略，因为FrameHandler主要处理控制帧
                     }
                 }
                 WsEvent::Error(err) => {

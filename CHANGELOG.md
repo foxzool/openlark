@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ConnectionClosed { reason: None }`。连接建立与帧派发路径不变；新增本地
   endpoint + WebSocket peer 的完整会话测试 seam。
 
+- **WebSocket 数据帧单一会话路径（#427）**：分包组装 → 事件派发 → 经同一
+  `frame_tx` 写回响应；移除每帧临时 channel 与丢弃事件路径。完整会话测试覆盖
+  多包乱序只派发一次与缺包不派发。
+
 - **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
   均完整传播自定义域名放行标志，并执行同一白名单规则。
 
@@ -35,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OPENLARK_ENABLE_LOG` 时与 core 一致默认为 `true`（此前该工具函数默认为 `false`）。
 
 ### Breaking
+
+- **`FrameHandler::handle_frame` 去掉无用的 `event_tx` 参数（#427）**：签名由
+  `(frame, handler, event_tx)` 变为 `(frame, handler)`。响应帧仅由会话经
+  `frame_tx` 写回；应用侧应使用 `LarkWsClient::open`，勿直接依赖 FrameHandler。
+  （#429 将进一步收缩 frame/state 公开面。）
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

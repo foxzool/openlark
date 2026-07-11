@@ -108,11 +108,10 @@ async fn data_frame_processing_forwards_payload_and_returns_ok_response() {
     let handler = EventDispatcherHandler::builder()
         .payload_sender(payload_tx)
         .build();
-    let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
     let payload = br#"{"header":{"event_type":"im.message.receive_v1"}}"#.to_vec();
     let frame = create_data_frame(payload.clone());
-    let processed = FrameHandler::handle_frame(frame, &handler, &event_tx)
+    let processed = FrameHandler::handle_frame(frame, &handler)
         .await
         .expect("event frame should produce a response");
 
@@ -139,10 +138,9 @@ async fn event_type_specific_raw_handler_is_invoked() {
         )
         .expect("event-specific handler should register")
         .build();
-    let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
     let frame = create_data_frame(br#"{"header":{"event_type":"im.message.receive_v1"}}"#.to_vec());
-    let processed = FrameHandler::handle_frame(frame, &handler, &event_tx)
+    let processed = FrameHandler::handle_frame(frame, &handler)
         .await
         .expect("event frame should be handled");
 
@@ -158,10 +156,9 @@ async fn failing_raw_handler_produces_error_response() {
         .register_raw("im.message.receive_v1", FailingHandler)
         .expect("failing handler should register")
         .build();
-    let (event_tx, _event_rx) = mpsc::unbounded_channel();
 
     let frame = create_data_frame(br#"{"header":{"event_type":"im.message.receive_v1"}}"#.to_vec());
-    let processed = FrameHandler::handle_frame(frame, &handler, &event_tx)
+    let processed = FrameHandler::handle_frame(frame, &handler)
         .await
         .expect("event frame should still return a response frame");
 
@@ -200,10 +197,8 @@ async fn pong_frame_builder_and_parser_still_work() {
         ),
         log_id_new: None,
     };
-
-    let (event_tx, _event_rx) = mpsc::unbounded_channel();
     let handler = EventDispatcherHandler::builder().build();
-    let returned = FrameHandler::handle_frame(pong, &handler, &event_tx)
+    let returned = FrameHandler::handle_frame(pong, &handler)
         .await
         .expect("pong frame should round-trip");
     assert_eq!(returned.service, 42);

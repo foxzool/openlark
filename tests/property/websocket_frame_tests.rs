@@ -53,14 +53,13 @@ mod frame_handler_properties {
         #[test]
         fn frame_handler_never_panics(frame in arbitrary_frame()) {
             // 创建简单的事件处理器和通道
-            let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
             let handler = open_lark::event::dispatcher::EventDispatcherHandler::builder().build();
             
             // 在异步运行时中测试
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 // 这不应该崩溃，即使输入是畸形的
-                let _result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+                let _result = FrameHandler::handle_frame(frame, &handler).await;
                 // 我们不关心结果是什么，只要不崩溃即可
             });
         }
@@ -85,13 +84,11 @@ mod frame_handler_properties {
                 payload,
                 log_id_new: None,
             };
-
-            let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
             let handler = open_lark::event::dispatcher::EventDispatcherHandler::builder().build();
             
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                let _result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+                let _result = FrameHandler::handle_frame(frame, &handler).await;
                 // 控制帧处理应该总是安全的
             });
         }
@@ -118,13 +115,11 @@ mod frame_handler_properties {
                 payload: Some(payload_bytes),
                 log_id_new: None,
             };
-
-            let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
             let handler = open_lark::event::dispatcher::EventDispatcherHandler::builder().build();
             
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                let _result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+                let _result = FrameHandler::handle_frame(frame, &handler).await;
                 // 数据帧处理应该能处理任意载荷而不崩溃
             });
         }
@@ -172,12 +167,10 @@ mod frame_handler_properties {
             payload: Some(large_payload),
             log_id_new: None,
         };
-
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let handler = open_lark::event::dispatcher::EventDispatcherHandler::new();
         
         // 应该能处理大载荷而不崩溃
-        let _result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+        let _result = FrameHandler::handle_frame(frame, &handler).await;
     }
 
     /// 边界条件测试：空载荷处理
@@ -195,11 +188,9 @@ mod frame_handler_properties {
             payload_type: None,
             payload: None,
         };
-
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let handler = open_lark::event::dispatcher::EventDispatcherHandler::new();
         
-        let result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+        let result = FrameHandler::handle_frame(frame, &handler).await;
         // 空载荷的数据帧应该返回 None（被正确拒绝）
         assert!(result.is_none());
     }
@@ -221,11 +212,9 @@ mod frame_handler_properties {
             payload: Some(malformed_json.to_vec()),
             log_id_new: None,
         };
-
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let handler = open_lark::event::dispatcher::EventDispatcherHandler::new();
         
-        let result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+        let result = FrameHandler::handle_frame(frame, &handler).await;
         // 畸形 JSON 应该被优雅处理，返回 None
         assert!(result.is_none());
     }
@@ -247,11 +236,9 @@ mod frame_handler_properties {
             payload: Some(b"some data".to_vec()),
             log_id_new: None,
         };
-
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let handler = open_lark::event::dispatcher::EventDispatcherHandler::new();
         
-        let result = FrameHandler::handle_frame(frame, &handler, &tx).await;
+        let result = FrameHandler::handle_frame(frame, &handler).await;
         // 无效头部应该被优雅处理
         assert!(result.is_none());
     }

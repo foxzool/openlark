@@ -77,12 +77,9 @@ mod integration {
             // 测试帧处理不会崩溃
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
                 let handler = open_lark::event::dispatcher::EventDispatcherHandler::builder().build();
                 
-                let _result = open_lark::client::ws_client::frame_handler::FrameHandler::handle_frame(
-                    frame, &handler, &tx
-                ).await;
+                let _result = open_lark::client::ws_client::frame_handler::FrameHandler::handle_frame(frame, &handler).await;
                 
                 // 不关心具体结果，只要不崩溃即可
             });

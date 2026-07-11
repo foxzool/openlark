@@ -1,11 +1,12 @@
-//! 完整会话本地 adapter 测试（#426）。
+//! 完整会话本地 adapter 测试（#426 / #427）。
 //!
 //! 测试 seam：
 //! - 公开入口：[`LarkWsClient::open`]
 //! - 本地 HTTP endpoint（`/callback/ws/endpoint`）+ 本地 WebSocket peer
 //! - 可观察结果：EventHandler 调用、peer 收到的响应帧、`open` 返回的关闭原因
 //!
-//! 不直接调用 FrameHandler / 状态机；不改变生产连接路径，仅让会话结果可观察。
+//! 不直接调用 FrameHandler / 状态机。
+//! #427：分包组装 → 派发 → 同一会话写回；单包/多包只派发一次。
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -121,25 +122,49 @@ impl LocalSessionHarness {
 }
 
 fn event_data_frame(payload: &[u8]) -> Frame {
+    multipart_event_frame("full-session-msg-1", None, None, payload)
+}
+
+/// 构造数据事件帧；`sum`/`seq` 为 `Some` 时表示分包。
+fn multipart_event_frame(
+    message_id: &str,
+    sum: Option<usize>,
+    seq: Option<usize>,
+    payload: &[u8],
+) -> Frame {
+    let mut headers = vec![
+        Header {
+            key: "type".to_string(),
+            value: "event".to_string(),
+        },
+        Header {
+            key: "message_id".to_string(),
+            value: message_id.to_string(),
+        },
+        Header {
+            key: "trace_id".to_string(),
+            value: format!("trace-{message_id}"),
+        },
+    ];
+    if let Some(sum) = sum {
+        headers.push(Header {
+            key: "sum".to_string(),
+            value: sum.to_string(),
+        });
+    }
+    if let Some(seq) = seq {
+        headers.push(Header {
+            key: "seq".to_string(),
+            value: seq.to_string(),
+        });
+    }
+
     Frame {
-        seq_id: 1,
+        seq_id: seq.unwrap_or(0) as u64,
         log_id: 100,
         service: SERVICE_ID,
         method: 1, // data
-        headers: vec![
-            Header {
-                key: "type".to_string(),
-                value: "event".to_string(),
-            },
-            Header {
-                key: "message_id".to_string(),
-                value: "full-session-msg-1".to_string(),
-            },
-            Header {
-                key: "trace_id".to_string(),
-                value: "full-session-trace-1".to_string(),
-            },
-        ],
+        headers,
         payload_encoding: None,
         payload_type: None,
         payload: Some(payload.to_vec()),
@@ -358,6 +383,193 @@ async fn full_session_abrupt_peer_drop_is_observable_as_session_error() {
         | Err(WsClientError::ConnectionClosed { reason: None }) => {}
         other => panic!("expected session transport/close error, got: {other:?}"),
     }
+}
+
+/// #427：多包乱序到达时只组装一次、只派发一次，响应经同一会话写回。
+#[tokio::test]
+async fn full_session_multipart_out_of_order_dispatches_once() {
+    let mut harness = LocalSessionHarness::start().await;
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let last_payload = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let part0 = b"Hello ";
+    let part1 = b"World!";
+    let combined = b"Hello World!";
+    let message_id = "multipart-ood-1";
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            CountingHandler {
+                calls: Arc::clone(&calls),
+                last_payload: Arc::clone(&last_payload),
+            },
+        )
+        .expect("register raw handler")
+        .build();
+
+    let config = Arc::new(harness.config());
+    let (peer_done_tx, peer_done_rx) = oneshot::channel::<Frame>();
+
+    let peer_task = tokio::spawn(async move {
+        let mut peer = harness.accept_peer().await;
+        let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+
+        // 乱序：先 seq=1，再 seq=0
+        let frame_seq1 = multipart_event_frame(message_id, Some(2), Some(1), part1);
+        let frame_seq0 = multipart_event_frame(message_id, Some(2), Some(0), part0);
+        peer.send(Message::Binary(frame_seq1.encode_to_vec().into()))
+            .await
+            .expect("send part1");
+        peer.send(Message::Binary(frame_seq0.encode_to_vec().into()))
+            .await
+            .expect("send part0");
+
+        let response = recv_data_response_frame(&mut peer).await;
+
+        peer.close(Some(CloseFrame {
+            code: CloseCode::Normal,
+            reason: "multipart complete".into(),
+        }))
+        .await
+        .ok();
+
+        let _ = peer_done_tx.send(response);
+    });
+
+    tokio::task::yield_now().await;
+    let open_task = tokio::spawn(async move { LarkWsClient::open(config, event_handler).await });
+
+    let open_result = timeout(SESSION_TIMEOUT, open_task)
+        .await
+        .expect("open task timed out")
+        .expect("open task join");
+    let response_frame = timeout(SESSION_TIMEOUT, peer_done_rx)
+        .await
+        .expect("peer done timed out")
+        .expect("peer response");
+    peer_task.await.expect("peer task");
+
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        1,
+        "multipart event must be dispatched exactly once"
+    );
+    assert_eq!(
+        last_payload.lock().expect("payload mutex").as_slice(),
+        combined.as_slice()
+    );
+
+    assert_eq!(response_frame.method, 1);
+    let body = String::from_utf8(response_frame.payload.expect("payload")).expect("utf8");
+    assert!(body.contains("\"code\":200"), "got: {body}");
+
+    assert!(matches!(
+        open_result,
+        Err(WsClientError::ConnectionClosed {
+            reason: Some(WsCloseReason {
+                code: CloseCode::Normal,
+                ..
+            })
+        })
+    ));
+}
+
+/// #427：缺包时不得派发 handler，也不得写回业务响应帧。
+#[tokio::test]
+async fn full_session_multipart_incomplete_does_not_dispatch() {
+    let mut harness = LocalSessionHarness::start().await;
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let last_payload = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let message_id = "multipart-incomplete-1";
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            CountingHandler {
+                calls: Arc::clone(&calls),
+                last_payload: Arc::clone(&last_payload),
+            },
+        )
+        .expect("register raw handler")
+        .build();
+
+    let config = Arc::new(harness.config());
+    let (peer_done_tx, peer_done_rx) = oneshot::channel::<usize>();
+
+    let peer_task = tokio::spawn(async move {
+        let mut peer = harness.accept_peer().await;
+        let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+
+        // 只发 seq=0，缺 seq=1
+        let partial = multipart_event_frame(message_id, Some(2), Some(0), b"only-part-0");
+        peer.send(Message::Binary(partial.encode_to_vec().into()))
+            .await
+            .expect("send incomplete part");
+
+        // 短暂等待：若错误地派发，应在此窗口内收到 method=1 响应
+        let mut data_responses = 0usize;
+        let deadline = tokio::time::Instant::now() + Duration::from_millis(200);
+        loop {
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            match timeout(remaining, peer.next()).await {
+                Ok(Some(Ok(Message::Binary(data)))) => {
+                    let frame = Frame::decode(&*data).expect("decode");
+                    if frame.method == 1 {
+                        data_responses += 1;
+                    }
+                }
+                Ok(Some(Ok(Message::Ping(_) | Message::Pong(_)))) => continue,
+                Ok(Some(Ok(_))) | Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
+            }
+        }
+
+        peer.close(Some(CloseFrame {
+            code: CloseCode::Normal,
+            reason: "incomplete package test".into(),
+        }))
+        .await
+        .ok();
+
+        let _ = peer_done_tx.send(data_responses);
+    });
+
+    tokio::task::yield_now().await;
+    let open_result = timeout(
+        SESSION_TIMEOUT,
+        LarkWsClient::open(config, event_handler),
+    )
+    .await
+    .expect("open timed out");
+
+    let data_responses = timeout(SESSION_TIMEOUT, peer_done_rx)
+        .await
+        .expect("peer done timed out")
+        .expect("peer result");
+    peer_task.await.expect("peer task");
+
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        0,
+        "incomplete multipart must not dispatch handler"
+    );
+    assert_eq!(
+        data_responses, 0,
+        "incomplete multipart must not emit data response frame"
+    );
+    assert!(matches!(
+        open_result,
+        Err(WsClientError::ConnectionClosed {
+            reason: Some(WsCloseReason {
+                code: CloseCode::Normal,
+                ..
+            })
+        })
+    ));
 }
 
 // 确保 ClientConfig 反序列化字段与 endpoint 脚本一致（编译期/本地 harness 契约）
