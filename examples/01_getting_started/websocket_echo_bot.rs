@@ -65,31 +65,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| format!("注册 WebSocket 原始事件处理器失败: {e}"))?
         .build();
 
-    // 会话断开时 open 返回 Err(ConnectionClosed{...})（正常关闭也是 Err）。
-    // 生产 bot 应在此循环重连；示例按断开原因打印后退出。
-    let mut attempt = 0u32;
-    loop {
-        attempt += 1;
-        println!("🔌 正在建立飞书长连接... (attempt {attempt})");
-        match LarkWsClient::open(Arc::new(ws_config.clone()), event_handler.clone()).await {
-            Ok(()) => {
-                println!("✅ 会话正常结束");
-                break;
-            }
-            Err(WsClientError::ConnectionClosed { reason }) => {
-                println!("🔌 长连接已关闭: {reason:?}");
-                // 可在此 sleep 后 continue 实现自动重连；示例默认退出以免无凭据时死循环
-                if std::env::var("OPENLARK_WS_RECONNECT").as_deref() == Ok("1") {
-                    println!("🔁 OPENLARK_WS_RECONNECT=1，3s 后重连...");
-                    tokio::time::sleep(Duration::from_secs(3)).await;
-                    continue;
-                }
-                break;
-            }
-            Err(e) => {
-                return Err(e.into());
-            }
+    // 会话结束时 open 几乎总是 Err：正常断开也是 ConnectionClosed（非库崩溃）。
+    // 本示例不发明重连策略（#421）；生产侧可自行在 ConnectionClosed 后决定是否重连。
+    println!("🔌 正在建立飞书长连接...");
+    match LarkWsClient::open(Arc::new(ws_config), event_handler).await {
+        Ok(()) => println!("✅ 会话正常结束"),
+        Err(WsClientError::ConnectionClosed { reason }) => {
+            println!("🔌 长连接已关闭: {reason:?}");
         }
+        Err(e) => return Err(e.into()),
     }
     Ok(())
 }

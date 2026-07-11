@@ -46,11 +46,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
   `WsClientError` / `WsClientResult` / `WsCloseReason`。内部为单 `select!`
-  会话 + **串行** handler worker（`spawn_blocking`，保序）。**迁移**：只用
-  `LarkWsClient::open` + 事件 handler。
+  会话 + **串行** handler worker（`spawn_blocking`，保序）。
+
+  未走 deprecation 垫片：原 re-export 为实现渗漏（非 README 主推入口），
+  直接收缩以匹配「调用方只依赖会话行为」。**迁移表**：
+
+  | 旧 import | 替代 |
+  |-----------|------|
+  | `FrameHandler` / `FrameType` | 勿直接用；经 `LarkWsClient::open` |
+  | `WebSocketStateMachine` / `ConnectionState` / `StateMachineEvent` | 内部；观察 `open` 的 `Result` |
+  | `ClientConfig` / `EndPointResponse` / `WsEvent` | 内部 |
+  | `open().await?` 期望常驻 | 匹配 `Err(ConnectionClosed{..})` 作为正常断开 |
 
 - **WebSocket 协议错误更严格**：malformed pong、未知 frame method 结束会话
-  （`MalformedControlFrame` / `ClientError`），不再静默忽略。
+  （`MalformedControlFrame` / `InvalidFrameMethod`）；另增 `HandlerPanicked` /
+  `BacklogFull`。
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

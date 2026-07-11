@@ -346,6 +346,21 @@ pub enum WsClientError {
     #[error("invalid session state transition: {0}")]
     /// 会话状态不允许的操作（例如已关闭后继续处理业务帧）。
     InvalidStateTransition(String),
+    #[error("event handler panicked")]
+    /// 用户 EventHandler 在 blocking 池中 panic。
+    HandlerPanicked,
+    #[error("handler backlog full: {message}")]
+    /// 串行 handler 队列与本地 outbox 均已满。
+    BacklogFull {
+        /// 错误描述。
+        message: String,
+    },
+    #[error("invalid frame method: {method}")]
+    /// 未知 protobuf frame method。
+    InvalidFrameMethod {
+        /// 收到的 method 值。
+        method: i32,
+    },
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
@@ -355,7 +370,7 @@ impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
 }
 
 /// 连接关闭原因。
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WsCloseReason {
     /// Close code
     pub code: CloseCode,

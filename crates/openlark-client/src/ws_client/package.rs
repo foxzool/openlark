@@ -60,9 +60,9 @@ pub(crate) fn assemble_frame(
 ) -> Option<Frame> {
     let hdrs = frame.headers.as_ref();
 
-    let sum: usize = headers::header_usize(hdrs, "sum").unwrap_or(1);
-    let seq: usize = headers::header_usize(hdrs, "seq").unwrap_or(0);
-    let msg_id: &str = headers::header_value(hdrs, "message_id").unwrap_or("");
+    let sum: usize = headers::header_usize(hdrs, headers::HDR_SUM).unwrap_or(1);
+    let seq: usize = headers::header_usize(hdrs, headers::HDR_SEQ).unwrap_or(0);
+    let msg_id: &str = headers::header_value(hdrs, headers::HDR_MESSAGE_ID).unwrap_or("");
 
     let Some(payload) = frame.payload.take() else {
         error!("Frame payload is empty");

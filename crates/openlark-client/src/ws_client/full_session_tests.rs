@@ -631,13 +631,10 @@ async fn full_session_invalid_frame_method_is_session_error() {
     .await;
 
     match open_result {
-        Err(WsClientError::ClientError { message, .. }) => {
-            assert!(
-                message.contains("invalid frame method"),
-                "unexpected message: {message}"
-            );
+        Err(WsClientError::InvalidFrameMethod { method }) => {
+            assert_eq!(method, 99);
         }
-        other => panic!("expected ClientError for invalid method, got: {other:?}"),
+        other => panic!("expected InvalidFrameMethod, got: {other:?}"),
     }
 }
 
@@ -1052,6 +1049,41 @@ async fn full_session_backlog_does_not_block_app_ping() {
         got_ping,
         "expected app-level ping while handler queue/outbox is backlogged"
     );
+    assert_normal_close(open_result);
+}
+
+/// 入站 WebSocket Ping 会刷新存活计时，避免心跳超时（#421 US 8 正向路径）。
+#[tokio::test]
+async fn full_session_ws_ping_refreshes_heartbeat() {
+    let options = SessionOptions {
+        heartbeat_timeout: Duration::from_millis(400),
+    };
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start_with_ping_interval(3600).await,
+        EventDispatcherHandler::builder().build(),
+        options,
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // 每 150ms 发一次 WS Ping，覆盖 400ms 超时窗口
+            for _ in 0..4 {
+                peer.send(Message::Ping(vec![b'h', b'b'].into()))
+                    .await
+                    .expect("send ws ping");
+                tokio::time::sleep(Duration::from_millis(150)).await;
+            }
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "ping refresh test".into(),
+            }))
+            .await
+            .ok();
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    // 若 Ping 未刷新存活，会先以 ConnectionClosed { reason: None } 超时
     assert_normal_close(open_result);
 }
 

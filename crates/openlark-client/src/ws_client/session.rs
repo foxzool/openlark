@@ -48,6 +48,16 @@ enum SessionState {
     Closed,
 }
 
+/// 关闭意图：未开始 / 已 begin_close 且无远端 reason / 已 begin_close 且带 reason。
+#[derive(Debug, Clone)]
+enum CloseIntent {
+    None,
+    /// 超时或 EOF 等：无 WebSocket Close 载荷。
+    WithoutReason,
+    /// 对端 Close 帧带来的 code/message。
+    WithReason(WsCloseReason),
+}
+
 /// 会话运行选项（生产默认；测试可缩短心跳超时）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SessionOptions {
@@ -74,7 +84,7 @@ pub(crate) struct Session {
     ping_frame_interval: Interval,
     heartbeat_timeout: Duration,
     state: SessionState,
-    pending_close: Option<Option<WsCloseReason>>,
+    close_intent: CloseIntent,
     inflight_handlers: usize,
     /// worker 队列满时暂存的已组装帧（不丢弃；经 reserve 再入队）。
     pending_outbox: VecDeque<Frame>,
@@ -99,7 +109,7 @@ impl Session {
             ping_frame_interval: tokio::time::interval(Duration::from_secs(ping_secs)),
             heartbeat_timeout: options.heartbeat_timeout.max(Duration::from_millis(1)),
             state: SessionState::Active,
-            pending_close: None,
+            close_intent: CloseIntent::None,
             inflight_handlers: 0,
             pending_outbox: VecDeque::new(),
         }
@@ -126,7 +136,10 @@ impl Session {
             SessionState::Active => {}
         }
         self.state = SessionState::Closing;
-        self.pending_close = Some(reason);
+        self.close_intent = match reason {
+            Some(r) => CloseIntent::WithReason(r),
+            None => CloseIntent::WithoutReason,
+        };
         Ok(())
     }
 
@@ -136,7 +149,10 @@ impl Session {
             && self.pending_outbox.is_empty()
         {
             self.state = SessionState::Closed;
-            let reason = self.pending_close.take().flatten();
+            let reason = match std::mem::replace(&mut self.close_intent, CloseIntent::None) {
+                CloseIntent::WithReason(r) => Some(r),
+                CloseIntent::WithoutReason | CloseIntent::None => None,
+            };
             return Some(Err(WsClientError::ConnectionClosed { reason }));
         }
         None
@@ -181,19 +197,11 @@ impl Session {
                         FrameHandler::handle_data_frame(frame, &handler)
                     })) {
                         Ok(opt) => Ok(opt),
-                        Err(_) => Err(WsClientError::ClientError {
-                            code: 0,
-                            message: "event handler panicked".to_string(),
-                        }),
+                        Err(_) => Err(WsClientError::HandlerPanicked),
                     }
                 })
                 .await
-                .unwrap_or_else(|e| {
-                    Err(WsClientError::ClientError {
-                        code: 0,
-                        message: format!("handler task join error: {e}"),
-                    })
-                });
+                .unwrap_or_else(|_| Err(WsClientError::HandlerPanicked));
                 if outcome_tx.send(outcome).await.is_err() {
                     break;
                 }
@@ -258,8 +266,24 @@ impl Session {
                             }
                             Ok(None) => {}
                             Err(err) => {
+                                // 若已在 Closing 且有远端 close reason，优先保留关闭原因（US 9）
+                                if matches!(
+                                    self.close_intent,
+                                    CloseIntent::WithReason(_)
+                                ) {
+                                    self.state = SessionState::Closed;
+                                    let reason = match std::mem::replace(
+                                        &mut self.close_intent,
+                                        CloseIntent::None,
+                                    ) {
+                                        CloseIntent::WithReason(r) => Some(r),
+                                        _ => None,
+                                    };
+                                    warn!("handler failed during close: {err}; returning close reason");
+                                    return Err(WsClientError::ConnectionClosed { reason });
+                                }
                                 self.state = SessionState::Closed;
-                                self.pending_close = None;
+                                self.close_intent = CloseIntent::None;
                                 return Err(err);
                             }
                         }
@@ -302,19 +326,16 @@ impl Session {
         self.ensure_active()?;
         let frame = FrameHandler::build_ping_frame(self.service_id);
         let msg = Message::Binary(frame.encode_to_vec().into());
-        self.sink.send(msg).await.map_err(|e| {
+        if let Err(e) = self.sink.send(msg).await {
             error!("Failed to send ping message: {e:?}");
-            WsClientError::WsError(Box::new(e))
-        })?;
+            return Err(e.into());
+        }
         Ok(())
     }
 
     async fn send_frame(&mut self, frame: Frame) -> WsClientResult<()> {
         let msg = Message::Binary(frame.encode_to_vec().into());
-        self.sink
-            .send(msg)
-            .await
-            .map_err(|e| WsClientError::WsError(Box::new(e)))?;
+        self.sink.send(msg).await?;
         Ok(())
     }
 
@@ -335,10 +356,7 @@ impl Session {
         self.ensure_active()?;
         match msg {
             Message::Ping(data) => {
-                self.sink
-                    .send(Message::Pong(data))
-                    .await
-                    .map_err(|e| WsClientError::WsError(Box::new(e)))?;
+                self.sink.send(Message::Pong(data)).await?;
             }
             Message::Binary(data) => {
                 let frame = Frame::decode(&*data)?;
@@ -346,11 +364,8 @@ impl Session {
                 match frame.method {
                     FRAME_METHOD_CONTROL => self.apply_control_frame(frame)?,
                     FRAME_METHOD_DATA => self.enqueue_data_frame(frame, job_tx)?,
-                    other => {
-                        return Err(WsClientError::ClientError {
-                            code: 0,
-                            message: format!("invalid frame method: {other}"),
-                        });
+                    method => {
+                        return Err(WsClientError::InvalidFrameMethod { method });
                     }
                 }
             }
@@ -368,8 +383,8 @@ impl Session {
 
     fn apply_control_frame(&mut self, frame: Frame) -> WsClientResult<()> {
         match FrameHandler::interpret_control_frame(&frame) {
-            Ok(ControlFrameEffect::UpdateClientConfig(config)) => {
-                self.apply_ping_interval(config.ping_interval);
+            Ok(ControlFrameEffect::UpdatePingInterval(secs)) => {
+                self.apply_ping_interval(secs);
                 Ok(())
             }
             Ok(ControlFrameEffect::Ignored) => Ok(()),
@@ -405,11 +420,8 @@ impl Session {
             }
             Err(mpsc::error::TrySendError::Full(frame)) => {
                 if self.pending_outbox.len() >= PENDING_OUTBOX_CAP {
-                    return Err(WsClientError::ClientError {
-                        code: 0,
-                        message: format!(
-                            "handler backlog full (queue {HANDLER_QUEUE_CAP} + outbox {PENDING_OUTBOX_CAP})"
-                        ),
+                    return Err(WsClientError::BacklogFull {
+                        message: format!("queue {HANDLER_QUEUE_CAP} + outbox {PENDING_OUTBOX_CAP}"),
                     });
                 }
                 self.pending_outbox.push_back(frame);

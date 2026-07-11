@@ -18,8 +18,8 @@ pub(crate) const FRAME_METHOD_DATA: i32 = 1;
 /// 控制帧解释结果。
 #[derive(Debug, Clone)]
 pub(crate) enum ControlFrameEffect {
-    /// 合法 pong：会话应更新心跳配置。
-    UpdateClientConfig(ClientConfig),
+    /// 合法 pong：仅更新 app-level ping 间隔（秒）。
+    UpdatePingInterval(i32),
     /// 非 pong / 未知 type：忽略。
     Ignored,
 }
@@ -66,7 +66,8 @@ impl FrameHandler {
     pub(crate) fn interpret_control_frame(
         frame: &Frame,
     ) -> Result<ControlFrameEffect, ControlFrameError> {
-        let frame_type = headers::header_value(&frame.headers, "type").unwrap_or_default();
+        let frame_type =
+            headers::header_value(&frame.headers, headers::HDR_TYPE).unwrap_or_default();
         trace!("Received control frame: {frame_type}");
 
         if frame_type != "pong" {
@@ -86,8 +87,11 @@ impl FrameHandler {
 
         match serde_json::from_slice::<ClientConfig>(payload) {
             Ok(config) => {
-                debug!("Received pong with config: {config:?}");
-                Ok(ControlFrameEffect::UpdateClientConfig(config))
+                debug!(
+                    "Received pong with ping_interval={}s (other ClientConfig fields ignored)",
+                    config.ping_interval
+                );
+                Ok(ControlFrameEffect::UpdatePingInterval(config.ping_interval))
             }
             Err(e) => Err(ControlFrameError::MalformedPong(format!(
                 "invalid ClientConfig json: {e}"
@@ -104,9 +108,9 @@ impl FrameHandler {
     ) -> Option<Frame> {
         let headers = &frame.headers;
 
-        let msg_type = headers::header_value(headers, "type").unwrap_or_default();
-        let msg_id = headers::header_value(headers, "message_id").unwrap_or_default();
-        let trace_id = headers::header_value(headers, "trace_id").unwrap_or_default();
+        let msg_type = headers::header_value(headers, headers::HDR_TYPE).unwrap_or_default();
+        let msg_id = headers::header_value(headers, headers::HDR_MESSAGE_ID).unwrap_or_default();
+        let trace_id = headers::header_value(headers, headers::HDR_TRACE_ID).unwrap_or_default();
 
         let Some(payload) = frame.payload else {
             error!("Data frame missing payload");
@@ -323,11 +327,10 @@ mod tests {
         let frame = create_control_frame("pong", Some(payload));
         let effect = FrameHandler::interpret_control_frame(&frame).expect("valid pong");
         match effect {
-            ControlFrameEffect::UpdateClientConfig(cfg) => {
-                assert_eq!(cfg.ping_interval, 30);
-                assert_eq!(cfg.reconnect_count, 3);
+            ControlFrameEffect::UpdatePingInterval(secs) => {
+                assert_eq!(secs, 30);
             }
-            other => panic!("expected UpdateClientConfig, got {other:?}"),
+            other => panic!("expected UpdatePingInterval, got {other:?}"),
         }
     }
 
