@@ -450,7 +450,7 @@ impl Session {
                         message: format!("queue {HANDLER_QUEUE_CAP} + outbox {PENDING_OUTBOX_CAP}"),
                     });
                 }
-                self.pending_outbox.push_back(frame);
+                self.pending_outbox.push_back(*frame);
                 Ok(())
             }
             Err(TrySendToWorker::Closed) => Err(WsClientError::InvalidStateTransition {
