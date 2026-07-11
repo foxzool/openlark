@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
   均完整传播自定义域名放行标志，并执行同一白名单规则。
 
+- **`utils::create_config_from_env` 委托 core env 解释（#413 收尾）**：删除手写
+  `OPENLARK_*` 二次解析，改为 `check_env_config` 预检 + `Config::from_env()`。
+  与 `ConfigBuilder::load_from_env` / `ClientBuilder::from_env` 共用规则；未设
+  `OPENLARK_ENABLE_LOG` 时与 core 一致默认为 `true`（此前该工具函数默认为 `false`）。
+
 ### Breaking
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：

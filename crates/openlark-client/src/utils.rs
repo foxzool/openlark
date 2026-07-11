@@ -101,42 +101,16 @@ pub fn check_env_config() -> Result<EnvConfig> {
 
 /// 🔧 从环境变量创建配置
 ///
-/// 自动读取环境变量并创建客户端配置
+/// 先经 [`check_env_config`] 做运维向必填/格式预检，再委托 core
+/// [`Config::from_env`] 解释全部 `OPENLARK_*`（与 `ConfigBuilder::load_from_env` /
+/// `ClientBuilder::from_env` 共用同一套规则与默认值）。
 ///
 /// # 返回
 /// - `Ok(Config)`: 成功创建配置
 /// - `Err(Error)`: 配置创建失败，包含详细错误信息
 pub fn create_config_from_env() -> Result<Config> {
-    // 校验环境变量并获取已校验的凭证
-    let env_cfg = check_env_config()?;
-
-    let app_id = env_cfg.app_id;
-    let app_secret = env_cfg.app_secret;
-
-    let base_url =
-        env::var("OPENLARK_BASE_URL").unwrap_or_else(|_| "https://open.feishu.cn".to_string());
-
-    let timeout = env::var("OPENLARK_TIMEOUT")
-        .ok()
-        .and_then(|t| t.parse().ok())
-        .map(std::time::Duration::from_secs);
-
-    let enable_log = env::var("OPENLARK_ENABLE_LOG")
-        .ok()
-        .and_then(|l| l.parse().ok())
-        .unwrap_or(false);
-
-    let mut builder = Config::builder()
-        .app_id(app_id)
-        .app_secret(app_secret)
-        .base_url(base_url)
-        .enable_log(enable_log);
-
-    if let Some(timeout_duration) = timeout {
-        builder = builder.req_timeout(timeout_duration);
-    }
-
-    Ok(builder.build())
+    check_env_config()?;
+    Ok(Config::from_env())
 }
 
 /// 📊 获取配置摘要

@@ -729,6 +729,45 @@ mod tests {
     }
 
     #[test]
+    fn test_create_config_from_env_uses_canonical_env_interpretation() {
+        // 委托 Config::from_env：ENABLE_LOG 用 parse_env_bool（"0"→false），
+        // 缺省 enable_log 保持 core 默认 true（不再手写默认 false）。
+        test_utils::with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("test_app_id")),
+                ("OPENLARK_APP_SECRET", Some("test_secret")),
+                ("OPENLARK_TIMEOUT", Some("45")),
+                ("OPENLARK_ENABLE_LOG", Some("0")),
+                ("OPENLARK_RETRY_COUNT", Some("5")),
+            ],
+            || {
+                let config = utils::create_config_from_env().unwrap();
+                assert_eq!(
+                    config.req_timeout(),
+                    Some(std::time::Duration::from_secs(45))
+                );
+                assert!(!config.enable_log());
+                assert_eq!(config.retry_count(), 5);
+            },
+        );
+
+        test_utils::with_env_vars(
+            &[
+                ("OPENLARK_APP_ID", Some("test_app_id")),
+                ("OPENLARK_APP_SECRET", Some("test_secret")),
+                ("OPENLARK_ENABLE_LOG", None),
+            ],
+            || {
+                let config = utils::create_config_from_env().unwrap();
+                assert!(
+                    config.enable_log(),
+                    "未设 OPENLARK_ENABLE_LOG 时应为 core 默认 true"
+                );
+            },
+        );
+    }
+
+    #[test]
     fn test_create_config_from_env_missing_vars() {
         test_utils::with_env_vars(
             &[("OPENLARK_APP_ID", None), ("OPENLARK_APP_SECRET", None)],
