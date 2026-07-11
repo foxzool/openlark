@@ -343,9 +343,12 @@ pub enum WsClientError {
         /// 错误描述。
         message: String,
     },
-    #[error("invalid session state transition: {0}")]
+    #[error("invalid session state transition: {kind}")]
     /// 会话状态不允许的操作（例如已关闭后继续处理业务帧）。
-    InvalidStateTransition(String),
+    InvalidStateTransition {
+        /// 结构化原因（测试与调用方可 match，勿依赖展示字符串）。
+        kind: InvalidStateKind,
+    },
     #[error("event handler panicked")]
     /// 用户 EventHandler 在 blocking 池中 panic。
     HandlerPanicked,
@@ -363,6 +366,37 @@ pub enum WsClientError {
     },
 }
 
+/// 会话非法状态转换的结构化原因。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InvalidStateKind {
+    /// 需要 Active，实际为其它状态。
+    ExpectedActive {
+        /// 当前状态名（如 `"Closing"` / `"Closed"`）。
+        actual: &'static str,
+    },
+    /// Closing 期间又收到业务 Binary/Text。
+    DataWhileClosing,
+    /// 已 Closed 仍尝试 begin_close。
+    AlreadyClosed,
+    /// 串行 handler worker 通道已关闭。
+    WorkerGone,
+}
+
+impl std::fmt::Display for InvalidStateKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExpectedActive { actual } => {
+                write!(f, "session is {actual}, expected Active")
+            }
+            Self::DataWhileClosing => {
+                write!(f, "received data frame while session is Closing")
+            }
+            Self::AlreadyClosed => write!(f, "session already Closed"),
+            Self::WorkerGone => write!(f, "handler worker is gone"),
+        }
+    }
+}
+
 impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
     fn from(error: tokio_tungstenite::tungstenite::Error) -> Self {
         WsClientError::WsError(Box::new(error))
@@ -372,9 +406,9 @@ impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
 /// 连接关闭原因。
 #[derive(Debug, Clone)]
 pub struct WsCloseReason {
-    /// Close code
+    /// WebSocket 关闭码。
     pub code: CloseCode,
-    /// Reason string
+    /// 关闭原因文案。
     pub message: String,
 }
 

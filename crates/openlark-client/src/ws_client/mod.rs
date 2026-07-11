@@ -12,8 +12,8 @@ mod session;
 #[cfg(feature = "websocket")]
 /// 会话级公开 API。
 pub use client::{
-    EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsClientResult,
-    WsCloseReason,
+    EventDispatcherHandler, EventHandler, InvalidStateKind, LarkWsClient, WsClientError,
+    WsClientResult, WsCloseReason,
 };
 
 #[cfg(test)]

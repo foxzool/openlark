@@ -23,8 +23,8 @@ use super::client::ClientConfig;
 use super::frame_handler::{FRAME_METHOD_CONTROL, FRAME_METHOD_DATA};
 use super::session::SessionOptions;
 use super::{
-    EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsClientResult,
-    WsCloseReason,
+    EventDispatcherHandler, EventHandler, InvalidStateKind, LarkWsClient, WsClientError,
+    WsClientResult, WsCloseReason,
 };
 
 const SERVICE_ID: i32 = 42;
@@ -854,13 +854,10 @@ async fn full_session_data_after_close_is_invalid_state() {
     .await;
 
     match open_result {
-        Err(WsClientError::InvalidStateTransition(msg)) => {
-            assert!(
-                msg.contains("Closing"),
-                "expected Closing in message, got: {msg}"
-            );
-        }
-        other => panic!("expected InvalidStateTransition, got: {other:?}"),
+        Err(WsClientError::InvalidStateTransition {
+            kind: InvalidStateKind::DataWhileClosing,
+        }) => {}
+        other => panic!("expected InvalidStateTransition(DataWhileClosing), got: {other:?}"),
     }
 }
 

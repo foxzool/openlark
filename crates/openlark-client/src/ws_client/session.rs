@@ -26,7 +26,8 @@ use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::protocol::Message};
 
 use super::client::{
-    ClientConfig, EventDispatcherHandler, WsClientError, WsClientResult, WsCloseReason,
+    ClientConfig, EventDispatcherHandler, InvalidStateKind, WsClientError, WsClientResult,
+    WsCloseReason,
 };
 use super::frame_handler::{
     ControlFrameEffect, ControlFrameError, FRAME_METHOD_CONTROL, FRAME_METHOD_DATA, FrameHandler,
@@ -45,6 +46,22 @@ const WORKER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 enum SessionState {
     Active,
     Closing,
+    Closed,
+}
+
+impl SessionState {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "Active",
+            Self::Closing => "Closing",
+            Self::Closed => "Closed",
+        }
+    }
+}
+
+/// `try_send` 到 worker 的局部结果。
+enum TrySendToWorker {
+    Full(Frame),
     Closed,
 }
 
@@ -117,10 +134,11 @@ impl Session {
 
     fn ensure_active(&self) -> WsClientResult<()> {
         if self.state != SessionState::Active {
-            return Err(WsClientError::InvalidStateTransition(format!(
-                "session is {:?}, expected Active",
-                self.state
-            )));
+            return Err(WsClientError::InvalidStateTransition {
+                kind: InvalidStateKind::ExpectedActive {
+                    actual: self.state.as_str(),
+                },
+            });
         }
         Ok(())
     }
@@ -128,10 +146,11 @@ impl Session {
     fn begin_close(&mut self, reason: Option<WsCloseReason>) -> WsClientResult<()> {
         match self.state {
             SessionState::Closed => {
-                return Err(WsClientError::InvalidStateTransition(
-                    "session already Closed".to_string(),
-                ));
+                return Err(WsClientError::InvalidStateTransition {
+                    kind: InvalidStateKind::AlreadyClosed,
+                });
             }
+            // 幂等：保留首次 close 意图（远端 close reason 不被 EOF 覆盖）
             SessionState::Closing => return Ok(()),
             SessionState::Active => {}
         }
@@ -143,35 +162,60 @@ impl Session {
         Ok(())
     }
 
-    fn finish_if_drained(&mut self) -> Option<WsClientResult<()>> {
+    /// 取出并清空 close_intent 中的远端关闭原因（若有）。
+    fn drain_close_reason(&mut self) -> Option<WsCloseReason> {
+        match std::mem::replace(&mut self.close_intent, CloseIntent::None) {
+            CloseIntent::WithReason(r) => Some(r),
+            CloseIntent::WithoutReason | CloseIntent::None => None,
+        }
+    }
+
+    /// 若已进入 Closing 且 in-flight/outbox 均空，返回终态 `ConnectionClosed`。
+    /// `None` 表示会话尚未结束，应继续 `select!`。
+    fn take_connection_closed_if_idle(&mut self) -> Option<WsClientResult<()>> {
         if self.state == SessionState::Closing
             && self.inflight_handlers == 0
             && self.pending_outbox.is_empty()
         {
             self.state = SessionState::Closed;
-            let reason = match std::mem::replace(&mut self.close_intent, CloseIntent::None) {
-                CloseIntent::WithReason(r) => Some(r),
-                CloseIntent::WithoutReason | CloseIntent::None => None,
-            };
+            let reason = self.drain_close_reason();
             return Some(Err(WsClientError::ConnectionClosed { reason }));
         }
         None
     }
 
+    fn note_job_enqueued(&mut self) {
+        self.inflight_handlers = self.inflight_handlers.saturating_add(1);
+    }
+
+    /// 非阻塞将一帧交给 worker；满则退回调用方决定（outbox / 错误）。
+    fn try_send_to_worker(
+        &mut self,
+        job_tx: &mpsc::Sender<Frame>,
+        frame: Frame,
+    ) -> Result<(), TrySendToWorker> {
+        match job_tx.try_send(frame) {
+            Ok(()) => {
+                self.note_job_enqueued();
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(frame)) => Err(TrySendToWorker::Full(frame)),
+            Err(mpsc::error::TrySendError::Closed(_)) => Err(TrySendToWorker::Closed),
+        }
+    }
+
     fn flush_outbox_try(&mut self, job_tx: &mpsc::Sender<Frame>) -> WsClientResult<()> {
         while let Some(frame) = self.pending_outbox.pop_front() {
-            match job_tx.try_send(frame) {
-                Ok(()) => {
-                    self.inflight_handlers = self.inflight_handlers.saturating_add(1);
-                }
-                Err(mpsc::error::TrySendError::Full(frame)) => {
+            match self.try_send_to_worker(job_tx, frame) {
+                Ok(()) => {}
+                Err(TrySendToWorker::Full(frame)) => {
                     self.pending_outbox.push_front(frame);
                     break;
                 }
-                Err(mpsc::error::TrySendError::Closed(_)) => {
-                    return Err(WsClientError::InvalidStateTransition(
-                        "handler worker is gone".to_string(),
-                    ));
+                Err(TrySendToWorker::Closed) => {
+                    return Err(WsClientError::InvalidStateTransition {
+                        kind: InvalidStateKind::WorkerGone,
+                    });
                 }
             }
         }
@@ -211,26 +255,25 @@ impl Session {
         let result = async {
             let mut stream_open = true;
             loop {
-                if let Some(done) = self.finish_if_drained() {
+                if let Some(done) = self.take_connection_closed_if_idle() {
                     return done;
                 }
                 self.flush_outbox_try(&job_tx)?;
 
-                // Closing 时也要冲刷 outbox，否则 finish_if_drained 永远等非空 outbox
+                // Closing 时也要冲刷 outbox，否则 idle 检查永远等非空 outbox
                 let need_reserve =
                     !self.pending_outbox.is_empty() && self.state != SessionState::Closed;
 
                 tokio::select! {
                     permit = job_tx.reserve(), if need_reserve => {
                         let permit = permit.map_err(|_| {
-                            WsClientError::InvalidStateTransition(
-                                "handler worker is gone".to_string(),
-                            )
+                            WsClientError::InvalidStateTransition {
+                                kind: InvalidStateKind::WorkerGone,
+                            }
                         })?;
                         if let Some(frame) = self.pending_outbox.pop_front() {
                             permit.send(frame);
-                            self.inflight_handlers =
-                                self.inflight_handlers.saturating_add(1);
+                            self.note_job_enqueued();
                         }
                     }
                     item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
@@ -241,10 +284,9 @@ impl Session {
                                 }
                                 if self.state == SessionState::Closing {
                                     if matches!(msg, Message::Binary(_) | Message::Text(_)) {
-                                        return Err(WsClientError::InvalidStateTransition(
-                                            "received data frame while session is Closing"
-                                                .to_string(),
-                                        ));
+                                        return Err(WsClientError::InvalidStateTransition {
+                                            kind: InvalidStateKind::DataWhileClosing,
+                                        });
                                     }
                                     continue;
                                 }
@@ -266,20 +308,13 @@ impl Session {
                             }
                             Ok(None) => {}
                             Err(err) => {
-                                // 若已在 Closing 且有远端 close reason，优先保留关闭原因（US 9）
-                                if matches!(
-                                    self.close_intent,
-                                    CloseIntent::WithReason(_)
-                                ) {
+                                // 关闭排空中 handler 失败：优先返回已记录的远端关闭原因
+                                if matches!(self.close_intent, CloseIntent::WithReason(_)) {
                                     self.state = SessionState::Closed;
-                                    let reason = match std::mem::replace(
-                                        &mut self.close_intent,
-                                        CloseIntent::None,
-                                    ) {
-                                        CloseIntent::WithReason(r) => Some(r),
-                                        _ => None,
-                                    };
-                                    warn!("handler failed during close: {err}; returning close reason");
+                                    let reason = self.drain_close_reason();
+                                    warn!(
+                                        "handler failed during close: {err}; returning close reason"
+                                    );
                                     return Err(WsClientError::ConnectionClosed { reason });
                                 }
                                 self.state = SessionState::Closed;
@@ -288,7 +323,7 @@ impl Session {
                             }
                         }
                         self.flush_outbox_try(&job_tx)?;
-                        if let Some(done) = self.finish_if_drained() {
+                        if let Some(done) = self.take_connection_closed_if_idle() {
                             return done;
                         }
                     }
@@ -344,15 +379,7 @@ impl Session {
         msg: WsMessage,
         job_tx: &mpsc::Sender<Frame>,
     ) -> WsClientResult<()> {
-        if self.state != SessionState::Active
-            && matches!(msg, Message::Binary(_) | Message::Text(_))
-        {
-            return Err(WsClientError::InvalidStateTransition(format!(
-                "received data while session is {:?}",
-                self.state
-            )));
-        }
-
+        // 仅在 Active 时由 run 循环调用；Closing 业务帧在 select 分支直接拒绝
         self.ensure_active()?;
         match msg {
             Message::Ping(data) => {
@@ -413,12 +440,9 @@ impl Session {
             return Ok(());
         };
 
-        match job_tx.try_send(frame) {
-            Ok(()) => {
-                self.inflight_handlers = self.inflight_handlers.saturating_add(1);
-                Ok(())
-            }
-            Err(mpsc::error::TrySendError::Full(frame)) => {
+        match self.try_send_to_worker(job_tx, frame) {
+            Ok(()) => Ok(()),
+            Err(TrySendToWorker::Full(frame)) => {
                 if self.pending_outbox.len() >= PENDING_OUTBOX_CAP {
                     return Err(WsClientError::BacklogFull {
                         message: format!("queue {HANDLER_QUEUE_CAP} + outbox {PENDING_OUTBOX_CAP}"),
@@ -427,9 +451,9 @@ impl Session {
                 self.pending_outbox.push_back(frame);
                 Ok(())
             }
-            Err(mpsc::error::TrySendError::Closed(_)) => Err(
-                WsClientError::InvalidStateTransition("handler worker is gone".to_string()),
-            ),
+            Err(TrySendToWorker::Closed) => Err(WsClientError::InvalidStateTransition {
+                kind: InvalidStateKind::WorkerGone,
+            }),
         }
     }
 }

@@ -48,8 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WsClientError` / `WsClientResult` / `WsCloseReason`。内部为单 `select!`
   会话 + **串行** handler worker（`spawn_blocking`，保序）。
 
-  未走 deprecation 垫片：原 re-export 为实现渗漏（非 README 主推入口），
-  直接收缩以匹配「调用方只依赖会话行为」。**迁移表**：
+  **设计收缩，非常规废弃**（非安全/正确性紧急例外；主动将实现渗漏移出
+  public API，跨 minor 0.18 直接移除而非先 `#[deprecated]`）。**迁移表**：
 
   | 旧 import | 替代 |
   |-----------|------|
