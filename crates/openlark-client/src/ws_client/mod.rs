@@ -19,5 +19,5 @@ pub use client::{
 #[cfg(test)]
 mod tests;
 
-#[cfg(all(test, feature = "websocket"))]
+#[cfg(test)]
 mod full_session_tests;

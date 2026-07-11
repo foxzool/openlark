@@ -2,6 +2,8 @@
 //!
 //! 测试 seam：[`LarkWsClient::open`] / `open_with` + 本地 endpoint + WS peer。
 
+#![cfg(feature = "websocket")]
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
