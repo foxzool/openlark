@@ -1,28 +1,20 @@
+//! WebSocket 公开入口与 endpoint 发现。
+//!
+//! 会话协议实现见 [`super::session::Session`]。
+
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
 
-use futures_util::{
-    SinkExt, StreamExt,
-    stream::{SplitSink, SplitStream},
-};
-use lark_websocket_protobuf::pbbp2::{Frame, Header};
-use log::{debug, error, info, trace};
-use prost::Message as ProstMessage;
+use log::{debug, info};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
-use tokio::{net::TcpStream, sync::mpsc, time::Instant, time::Interval};
-use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
-use tokio_tungstenite::{
-    MaybeTlsStream, WebSocketStream, connect_async_with_config,
-    tungstenite::protocol::{Message, frame::coding::CloseCode},
-};
+use tokio::sync::mpsc;
+use tokio_tungstenite::connect_async_with_config;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use url::Url;
 
-use super::frame_handler::{ControlFrameEffect, ControlFrameError, FrameHandler};
-use super::state_machine::{CloseReason, StateMachineEvent, WebSocketStateMachine};
+use super::session::{Session, SessionOptions};
 
 type EventHandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
@@ -59,52 +51,6 @@ fn extract_endpoint_response(
     }
 
     Ok(end_point)
-}
-
-/// 分包消息缓存（按 message_id 聚合）
-#[derive(Debug, Default)]
-struct FramePackageBuffer {
-    sum: usize,
-    parts: Vec<Option<Vec<u8>>>,
-    received: usize,
-}
-
-impl FramePackageBuffer {
-    fn new(sum: usize) -> Self {
-        Self {
-            sum,
-            parts: vec![None; sum],
-            received: 0,
-        }
-    }
-
-    fn insert_part(&mut self, seq: usize, payload: Vec<u8>) {
-        if seq >= self.sum {
-            return;
-        }
-
-        if self.parts[seq].is_none() {
-            self.received = self.received.saturating_add(1);
-        }
-        self.parts[seq] = Some(payload);
-    }
-
-    fn is_complete(&self) -> bool {
-        self.sum > 0 && self.received == self.sum && self.parts.iter().all(|p| p.is_some())
-    }
-
-    fn combine(self) -> Vec<u8> {
-        let total_len: usize = self
-            .parts
-            .iter()
-            .filter_map(|p| p.as_ref().map(|v| v.len()))
-            .sum();
-        let mut out = Vec::with_capacity(total_len);
-        for part in self.parts.into_iter().flatten() {
-            out.extend_from_slice(&part);
-        }
-        out
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -235,99 +181,32 @@ impl EventDispatcherHandler {
 }
 
 const END_POINT_URL: &str = "/callback/ws/endpoint";
-const DEFAULT_HEARTBEAT_TIMEOUT_MS: u64 = 120_000;
 
-/// 心跳超时（毫秒）。生产默认 120s；测试可通过 [`HeartbeatTimeoutGuard`] 覆盖。
-static HEARTBEAT_TIMEOUT_MS: AtomicU64 = AtomicU64::new(DEFAULT_HEARTBEAT_TIMEOUT_MS);
-
-fn heartbeat_timeout() -> Duration {
-    Duration::from_millis(HEARTBEAT_TIMEOUT_MS.load(Ordering::Relaxed).max(1))
-}
-
-/// 测试用：临时覆盖心跳超时，Drop 时恢复。
-#[cfg(test)]
-pub(crate) struct HeartbeatTimeoutGuard {
-    previous: u64,
-}
-
-#[cfg(test)]
-impl HeartbeatTimeoutGuard {
-    pub(crate) fn set(timeout: Duration) -> Self {
-        let millis = timeout.as_millis().max(1) as u64;
-        let previous = HEARTBEAT_TIMEOUT_MS.swap(millis, Ordering::Relaxed);
-        Self { previous }
-    }
-}
-
-#[cfg(test)]
-impl Drop for HeartbeatTimeoutGuard {
-    fn drop(&mut self) {
-        HEARTBEAT_TIMEOUT_MS.store(self.previous, Ordering::Relaxed);
-    }
-}
-
-/// 飞书 WebSocket 客户端。
-pub struct LarkWsClient {
-    frame_tx: mpsc::UnboundedSender<Frame>,
-    event_rx: mpsc::UnboundedReceiver<WsEvent>,
-    state_machine: WebSocketStateMachine,
-    package_buffers: HashMap<String, FramePackageBuffer>,
-}
+/// 飞书 WebSocket 客户端入口。
+///
+/// 会话协议由内部 [`Session`](super::session::Session) 单一 loop 拥有。
+pub struct LarkWsClient;
 
 impl LarkWsClient {
-    #[cfg(test)]
-    /// 创建一个仅用于测试的客户端实例。
-    pub fn new_for_test() -> Self {
-        let (frame_tx, _frame_rx) = mpsc::unbounded_channel();
-        let (_event_tx, event_rx) = mpsc::unbounded_channel();
-
-        Self {
-            frame_tx,
-            event_rx,
-            state_machine: WebSocketStateMachine::new(),
-            package_buffers: HashMap::new(),
-        }
-    }
-
-    /// 测试用：带事件注入口的客户端；状态为 Initial（DataReceived 非法）。
-    #[cfg(test)]
-    pub(crate) fn new_for_test_with_event_tx() -> (Self, mpsc::UnboundedSender<WsEvent>) {
-        let (frame_tx, _frame_rx) = mpsc::unbounded_channel();
-        let (event_tx, event_rx) = mpsc::unbounded_channel();
-        (
-            Self {
-                frame_tx,
-                event_rx,
-                state_machine: WebSocketStateMachine::new(),
-                package_buffers: HashMap::new(),
-            },
-            event_tx,
-        )
-    }
-
-    /// 测试用：跑完 handler 事件循环（与 open 会话路径一致）。
-    #[cfg(test)]
-    pub(crate) async fn run_handler_loop_for_test(
-        &mut self,
-        event_handler: EventDispatcherHandler,
-    ) -> WsClientResult<()> {
-        self.handler_loop(event_handler).await
-    }
-
-    /// 建立 WebSocket 长连接并启动事件处理循环。
+    /// 建立 WebSocket 长连接并运行完整会话，直到关闭或错误。
     ///
     /// # 返回
     ///
-    /// - `Ok(())`：事件通道在无会话错误的情况下结束（例如内部发送端全部 drop）
-    /// - `Err(WsClientError::ConnectionClosed { reason })`：对端关闭连接；
-    ///   `reason` 在收到带状态码的 Close 帧时为 `Some`，否则可能为 `None`
-    /// - 其它 `Err`：端点查询失败、传输错误、协议错误等
-    ///
-    /// 连接建立、帧派发与响应写回路径与历史行为一致；会话失败/关闭原因会通过
-    /// 本 `Result` 暴露，便于测试与运维观察。
+    /// - `Ok(())`：会话在无错误路径下结束（当前生产路径通常以关闭/错误结束）
+    /// - `Err(WsClientError::ConnectionClosed { reason })`：对端关闭
+    /// - 其它 `Err`：端点查询、传输、malformed 控制帧等
     pub async fn open(
-        config: std::sync::Arc<openlark_core::config::Config>,
+        config: Arc<openlark_core::config::Config>,
         event_handler: EventDispatcherHandler,
+    ) -> WsClientResult<()> {
+        Self::open_with(config, event_handler, SessionOptions::default()).await
+    }
+
+    /// 与 [`open`](Self::open) 相同，可注入会话选项（测试用心跳超时等）。
+    pub(crate) async fn open_with(
+        config: Arc<openlark_core::config::Config>,
+        event_handler: EventDispatcherHandler,
+        options: SessionOptions,
     ) -> WsClientResult<()> {
         let end_point = Self::get_conn_url(&config).await?;
         let conn_url = end_point.url.ok_or(WsClientError::UnexpectedResponse)?;
@@ -336,18 +215,11 @@ impl LarkWsClient {
             .ok_or(WsClientError::UnexpectedResponse)?;
         let url = Url::parse(&conn_url)?;
         let query_pairs: HashMap<_, _> = url.query_pairs().into_iter().collect();
-        // let conn_id = query_pairs.get("device_id").unwrap();
         let service_id = query_pairs
             .get("service_id")
             .ok_or(WsClientError::UnexpectedResponse)?
             .parse()
             .map_err(|_| WsClientError::UnexpectedResponse)?;
-
-        // 连接状态转换失败直接返回，不再仅写日志
-        let mut state_machine = WebSocketStateMachine::new();
-        state_machine
-            .handle_event(StateMachineEvent::StartConnection)
-            .map_err(WsClientError::InvalidStateTransition)?;
 
         let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig::default()
             .max_message_size(Some(config.max_response_size() as usize))
@@ -356,191 +228,14 @@ impl LarkWsClient {
         let (conn, _response) = connect_async_with_config(conn_url, Some(ws_config), false).await?;
         info!("connected to {url}");
 
-        state_machine
-            .handle_event(StateMachineEvent::ConnectionEstablished)
-            .map_err(WsClientError::InvalidStateTransition)?;
-        let (frame_tx, frame_rx) = mpsc::unbounded_channel();
-        let (event_tx, event_rx) = mpsc::unbounded_channel();
-        tokio::spawn(client_loop(
-            service_id,
-            client_config,
-            conn,
-            frame_rx,
-            event_tx,
-        ));
-        let mut client = LarkWsClient {
-            frame_tx,
-            event_rx,
-            state_machine,
-            package_buffers: HashMap::new(),
-        };
-
-        // 将会话错误（含远端关闭原因）从事件环回传到 open 的 Result，
-        // 连接/派发/写回路径本身不变。
-        client.handler_loop(event_handler).await
-    }
-
-    async fn handler_loop(&mut self, event_handler: EventDispatcherHandler) -> WsClientResult<()> {
-        while let Some(ws_event) = self.event_rx.recv().await {
-            match ws_event {
-                WsEvent::Data(frame) => {
-                    // 非法状态转换通过会话 Result 返回，不再吞掉
-                    if let Err(e) = self
-                        .state_machine
-                        .handle_event(StateMachineEvent::DataReceived)
-                    {
-                        let err = WsClientError::InvalidStateTransition(e);
-                        self.record_terminal_state(&err);
-                        return Err(err);
-                    }
-
-                    // 单一会话路径：分包组装 → 派发 → 经同一 frame_tx 写回响应
-                    let Some(frame) = self.process_frame_packages_internal(frame).await else {
-                        // 分包未齐：不派发、不写回
-                        continue;
-                    };
-
-                    if let Some(response_frame) =
-                        FrameHandler::handle_frame(frame, &event_handler).await
-                        && let Err(e) = self.frame_tx.send(response_frame)
-                    {
-                        error!("Failed to send response frame: {e:?}");
-                    }
-                }
-                WsEvent::Error(err) => {
-                    self.record_terminal_state(&err);
-                    return Err(err);
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// 将会话终止原因写入状态机（best-effort，失败不覆盖原始错误）。
-    fn record_terminal_state(&mut self, err: &WsClientError) {
-        match err {
-            WsClientError::ConnectionClosed { reason } => {
-                let sm_reason = reason.as_ref().map(|r| CloseReason {
-                    code: r.code.into(),
-                    reason: r.message.clone(),
-                });
-                if self
-                    .state_machine
-                    .handle_event(StateMachineEvent::ConnectionClosed(sm_reason))
-                    .is_err()
-                {
-                    let _ = self
-                        .state_machine
-                        .handle_event(StateMachineEvent::ErrorOccurred(err.to_string()));
-                }
-            }
-            _ => {
-                let _ = self
-                    .state_machine
-                    .handle_event(StateMachineEvent::ErrorOccurred(err.to_string()));
-            }
-        }
-    }
-
-    /// 处理分包的 Frame，如果需要组合多个包则返回组合后的结果
-    #[cfg(test)]
-    pub async fn process_frame_packages(&mut self, frame: Frame) -> Option<Frame> {
-        self.process_frame_packages_internal(frame).await
-    }
-
-    /// 内部处理分包的 Frame，如果需要组合多个包则返回组合后的结果
-    async fn process_frame_packages_internal(&mut self, mut frame: Frame) -> Option<Frame> {
-        let headers: &[Header] = frame.headers.as_ref();
-
-        fn header_value<'a>(headers: &'a [Header], key: &str) -> Option<&'a str> {
-            headers
-                .iter()
-                .find(|h| h.key == key)
-                .map(|h| h.value.as_str())
-        }
-
-        fn header_usize(headers: &[Header], key: &str) -> Option<usize> {
-            header_value(headers, key).and_then(|v| v.parse().ok())
-        }
-
-        // 拆包数，未拆包为1
-        let sum: usize = headers
-            .iter()
-            .find(|h| h.key == "sum")
-            .and_then(|h| h.value.parse().ok())
-            .unwrap_or(1);
-
-        // 包序号，未拆包为0
-        let seq: usize = header_usize(headers, "seq").unwrap_or(0);
-
-        // 消息ID，拆包后继承
-        let msg_id: &str = header_value(headers, "message_id").unwrap_or("");
-
-        let Some(payload) = frame.payload.take() else {
-            error!("Frame payload is empty");
-            return None;
-        };
-
-        let sum = if sum == 0 { 1 } else { sum };
-
-        // 单包：直接透传
-        if sum == 1 {
-            frame.payload = Some(payload);
-            return Some(frame);
-        }
-
-        // 分包：需要 message_id 作为聚合键；缺失则降级为单包透传，避免丢消息
-        if msg_id.is_empty() {
-            debug!(
-                "收到分包帧但 message_id 为空，无法聚合，降级为单包处理（sum={sum}, seq={seq}）"
-            );
-            frame.payload = Some(payload);
-            return Some(frame);
-        }
-
-        if seq >= sum {
-            debug!(
-                "收到分包帧但 seq 越界，降级为单包处理（sum={sum}, seq={seq}, message_id={msg_id}）"
-            );
-            frame.payload = Some(payload);
-            return Some(frame);
-        }
-
-        // 获取/初始化缓存；sum 不一致时以最新为准重置（防止错配）
-        let buffer = self
-            .package_buffers
-            .entry(msg_id.to_string())
-            .or_insert_with(|| {
-                debug!("开始聚合分包消息（sum={sum}, message_id={msg_id}）");
-                FramePackageBuffer::new(sum)
-            });
-
-        if buffer.sum != sum {
-            debug!(
-                "分包聚合参数变化，重置缓存（old_sum={}, new_sum={}, message_id={msg_id}）",
-                buffer.sum, sum
-            );
-            *buffer = FramePackageBuffer::new(sum);
-        }
-
-        buffer.insert_part(seq, payload);
-
-        if !buffer.is_complete() {
-            return None;
-        }
-
-        let buffer = self
-            .package_buffers
-            .remove(msg_id)
-            .unwrap_or_else(|| FramePackageBuffer::new(sum));
-
-        frame.payload = Some(buffer.combine());
-        Some(frame)
+        Session::new(service_id, client_config, conn, event_handler, options)
+            .run()
+            .await
     }
 
     /// 获取连接配置
     async fn get_conn_url(
-        config: &std::sync::Arc<openlark_core::config::Config>,
+        config: &Arc<openlark_core::config::Config>,
     ) -> WsClientResult<EndPointResponse> {
         let body = json!({
             "AppID": config.app_id(),
@@ -574,10 +269,8 @@ impl LarkWsClient {
 #[derive(Debug, Deserialize)]
 pub(crate) struct EndPointResponse {
     #[serde(rename = "URL")]
-    /// WebSocket 连接地址。
     pub url: Option<String>,
     #[serde(rename = "ClientConfig")]
-    /// 服务端下发的客户端配置。
     pub client_config: Option<ClientConfig>,
 }
 
@@ -588,16 +281,12 @@ pub(crate) struct EndPointResponse {
 #[allow(dead_code)]
 pub(crate) struct ClientConfig {
     #[serde(rename = "ReconnectCount")]
-    /// 允许的最大重连次数。
     pub(crate) reconnect_count: i32,
     #[serde(rename = "ReconnectInterval")]
-    /// 重连间隔（秒）。
     pub(crate) reconnect_interval: i32,
     #[serde(rename = "ReconnectNonce")]
-    /// 重连随机因子。
     pub(crate) reconnect_nonce: i32,
     #[serde(rename = "PingInterval")]
-    /// Ping 心跳间隔（秒）。
     pub(crate) ping_interval: i32,
 }
 
@@ -605,9 +294,7 @@ pub(crate) struct ClientConfig {
 pub type WsClientResult<T> = Result<T, WsClientError>;
 
 #[derive(Debug, thiserror::Error)]
-/// WebSocket客户端错误类型
-///
-/// 定义WebSocket连接和通信过程中可能出现的各种错误
+/// WebSocket 客户端错误类型。
 pub enum WsClientError {
     #[error("unexpected response")]
     /// 返回体缺少预期字段。
@@ -637,7 +324,7 @@ pub enum WsClientError {
     #[error("connection closed")]
     /// 连接被关闭。
     ConnectionClosed {
-        /// The reason the connection was closed
+        /// 关闭原因。
         reason: Option<WsCloseReason>,
     },
     #[error("WebSocket error: {0}")]
@@ -652,9 +339,6 @@ pub enum WsClientError {
         /// 错误描述。
         message: String,
     },
-    #[error("invalid session state transition: {0}")]
-    /// 连接状态机拒绝的非法转换。
-    InvalidStateTransition(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
@@ -663,210 +347,16 @@ impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
     }
 }
 
-struct Context<'a> {
-    service_id: i32,
-    sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, WsMessage>,
-    stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    command_rx: &'a mut mpsc::UnboundedReceiver<Frame>,
-    event_sender: &'a mut mpsc::UnboundedSender<WsEvent>,
-    client_config: ClientConfig,
-    ping_frame_interval: Interval,
-}
-
-impl<'a> Context<'a> {
-    fn new(
-        service_id: i32,
-        client_config: ClientConfig,
-        conn: WebSocketStream<MaybeTlsStream<TcpStream>>,
-        command_rx: &'a mut mpsc::UnboundedReceiver<Frame>,
-        event_sender: &'a mut mpsc::UnboundedSender<WsEvent>,
-    ) -> Self {
-        let (sink, stream) = conn.split();
-        let ping_secs = (client_config.ping_interval.max(1)) as u64;
-        Context {
-            service_id,
-            sink,
-            stream,
-            command_rx,
-            event_sender,
-            ping_frame_interval: tokio::time::interval(Duration::from_secs(ping_secs)),
-            client_config,
-        }
-    }
-
-    fn send_event(&mut self, event: WsEvent) {
-        let _ = self.event_sender.send(event);
-    }
-
-    async fn process_loop(&mut self) -> WsClientResult<()> {
-        let mut ping_time = Instant::now();
-        let mut checkout_timeout = tokio::time::interval(Duration::from_secs(1));
-        loop {
-            tokio::select! {
-                item = self.stream.next() => {
-                    match item.transpose()? {
-                        Some(msg) => {
-                            if msg.is_ping() {
-                                ping_time = Instant::now();
-                            }
-                            self.handle_message(msg).await?;
-                        },
-                        None => return Err(WsClientError::ConnectionClosed { reason: None}),
-                    }
-                }
-                item = self.command_rx.recv() => {
-                    match item {
-                        Some(command) => self.handle_send_frame(command).await?,
-                        None => return Ok(()),
-                    }
-                }
-                _ = self.ping_frame_interval.tick() => {
-                        let service_id: i32 = self.service_id;
-                        let frame = FrameHandler::build_ping_frame(service_id);
-                        let msg = Message::Binary(frame.encode_to_vec().into());
-                        trace!(
-                            "Sending ping message:  {:?} {} {}",
-                            msg,
-                            msg.len(),
-                            service_id
-                        );
-                        if let Err(e) = self.sink.send(msg).await {
-                            error!("Failed to send ping message: {e:?}");
-                            return Err(WsClientError::WsError(Box::new(e)));
-                        }
-
-                }
-
-                _ = checkout_timeout.tick() => {
-                    if (Instant::now() - ping_time) > heartbeat_timeout() {
-                        return Err(WsClientError::ConnectionClosed {
-                            reason: None
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    async fn handle_message(&mut self, msg: WsMessage) -> WsClientResult<()> {
-        match msg {
-            Message::Ping(data) => {
-                self.sink.send(Message::Pong(data)).await?;
-            }
-            Message::Binary(data) => {
-                let frame = Frame::decode(&*data)?;
-                trace!("Received frame: {frame:?}");
-
-                match frame.method {
-                    // FrameTypeControl — 唯一路径：FrameHandler::interpret_control_frame
-                    0 => self.apply_control_frame(frame)?,
-                    // FrameTypeData
-                    1 => {
-                        if let Err(e) = self.event_sender.send(WsEvent::Data(frame)) {
-                            error!("Failed to send data event: {e:?}");
-                        }
-                    }
-                    _ => {
-                        return Err(WsClientError::ClientError {
-                            code: 0,
-                            message: format!("invalid frame method: {}", frame.method),
-                        });
-                    }
-                }
-            }
-            Message::Close(close_frame) => {
-                return Err(WsClientError::ConnectionClosed {
-                    reason: close_frame.map(|frame| WsCloseReason {
-                        code: frame.code,
-                        message: frame.reason.to_string(),
-                    }),
-                });
-            }
-            // 非 Binary/Ping/Close 的控制消息（如 Text）不在协议预期内
-            _ => return Err(WsClientError::UnexpectedResponse),
-        }
-
-        Ok(())
-    }
-
-    /// 应用控制帧效果（更新心跳配置或上报 malformed pong）。
-    fn apply_control_frame(&mut self, frame: Frame) -> WsClientResult<()> {
-        match FrameHandler::interpret_control_frame(&frame) {
-            Ok(ControlFrameEffect::UpdateClientConfig(config)) => {
-                self.apply_client_config(config);
-                Ok(())
-            }
-            Ok(ControlFrameEffect::Ignored) => Ok(()),
-            Err(ControlFrameError::MalformedPong(message)) => {
-                Err(WsClientError::MalformedControlFrame { message })
-            }
-        }
-    }
-
-    /// 用 pong 下发的 ClientConfig 更新心跳间隔（会话唯一写点）。
-    fn apply_client_config(&mut self, config: ClientConfig) {
-        let ping_interval = (config.ping_interval.max(1)) as u64;
-        self.ping_frame_interval = tokio::time::interval(Duration::from_secs(ping_interval));
-        self.ping_frame_interval
-            .reset_after(Duration::from_secs(ping_interval));
-        self.client_config = config;
-        debug!("Updated ping interval from pong response: {ping_interval}s");
-    }
-
-    async fn handle_send_frame(&mut self, frame: Frame) -> WsClientResult<()> {
-        trace!("send frame: {frame:?}");
-        let msg = Message::Binary(frame.encode_to_vec().into());
-
-        self.sink.send(msg).await?;
-        Ok(())
-    }
-}
-
-async fn client_loop(
-    service_id: i32,
-    client_config: ClientConfig,
-    conn: WebSocketStream<MaybeTlsStream<TcpStream>>,
-    mut frame_tx: mpsc::UnboundedReceiver<Frame>,
-    mut event_sender: mpsc::UnboundedSender<WsEvent>,
-) {
-    let mut ctx = Context::new(
-        service_id,
-        client_config,
-        conn,
-        &mut frame_tx,
-        &mut event_sender,
-    );
-
-    let res = ctx.process_loop().await;
-    match res {
-        Ok(()) => (),
-        Err(err) => {
-            ctx.send_event(WsEvent::Error(err));
-        }
-    };
-}
-
-#[derive(Debug)]
-/// WebSocket 内部事件（crate 内会话通道；#429 不公开）。
-pub(crate) enum WsEvent {
-    /// 错误事件。
-    Error(WsClientError),
-    /// 数据帧事件。
-    Data(Frame),
-}
-
-/// Connection close reason
+/// 连接关闭原因。
 #[derive(Debug)]
 pub struct WsCloseReason {
     /// Close code
     pub code: CloseCode,
-
     /// Reason string
     pub message: String,
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::{
         WsClientError, WsEndpointApiResponse, extract_endpoint_response, map_ws_api_error,

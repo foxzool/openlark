@@ -1,11 +1,18 @@
-use super::LarkWsClient;
+//! 分包组装单元测试（同步 `package::assemble_frame`）。
+
+use std::collections::HashMap;
+
 use lark_websocket_protobuf::pbbp2::{Frame, Header};
 
-#[tokio::test]
-async fn test_single_package_payload_preservation() {
-    let mut client = LarkWsClient::new_for_test();
+use super::package::{self, FramePackageBuffer};
 
-    // 创建单包消息的 frame
+fn assemble(buffers: &mut HashMap<String, FramePackageBuffer>, frame: Frame) -> Option<Frame> {
+    package::assemble_frame(buffers, frame)
+}
+
+#[test]
+fn test_single_package_payload_preservation() {
+    let mut buffers = HashMap::new();
     let test_payload = b"test payload data".to_vec();
     let frame = Frame {
         seq_id: 1,
@@ -21,7 +28,6 @@ async fn test_single_package_payload_preservation() {
                 key: "message_id".to_string(),
                 value: "test_msg_001".to_string(),
             },
-            // 没有 sum 和 seq 头部，应该默认为单包
         ],
         payload_encoding: None,
         payload_type: None,
@@ -29,25 +35,19 @@ async fn test_single_package_payload_preservation() {
         log_id_new: None,
     };
 
-    // 处理单包消息
-    let result = client.process_frame_packages(frame).await;
-
-    // 验证结果
+    let result = assemble(&mut buffers, frame);
     assert!(result.is_some());
     let processed_frame = result.unwrap();
-    assert!(processed_frame.payload.is_some());
     assert_eq!(processed_frame.payload.unwrap(), test_payload);
 }
 
-#[tokio::test]
-async fn test_multi_package_payload_combination() {
-    let mut client = LarkWsClient::new_for_test();
-
+#[test]
+fn test_multi_package_payload_combination() {
+    let mut buffers = HashMap::new();
     let part1 = b"Hello ".to_vec();
     let part2 = b"World!".to_vec();
     let combined = b"Hello World!".to_vec();
 
-    // 创建第一个包
     let frame1 = Frame {
         seq_id: 1,
         log_id: 1,
@@ -77,11 +77,8 @@ async fn test_multi_package_payload_combination() {
         log_id_new: None,
     };
 
-    // 处理第一个包 - 应该返回 None 因为还没收齐
-    let result1 = client.process_frame_packages(frame1).await;
-    assert!(result1.is_none());
+    assert!(assemble(&mut buffers, frame1).is_none());
 
-    // 创建第二个包
     let frame2 = Frame {
         seq_id: 2,
         log_id: 1,
@@ -111,18 +108,14 @@ async fn test_multi_package_payload_combination() {
         log_id_new: None,
     };
 
-    // 处理第二个包 - 应该返回组合后的完整消息
-    let result2 = client.process_frame_packages(frame2).await;
-    assert!(result2.is_some());
-    let processed_frame = result2.unwrap();
-    assert!(processed_frame.payload.is_some());
-    assert_eq!(processed_frame.payload.unwrap(), combined);
+    let result = assemble(&mut buffers, frame2);
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().payload.unwrap(), combined);
 }
 
-#[tokio::test]
-async fn test_process_frame_packages_missing_payload_returns_none() {
-    let mut client = LarkWsClient::new_for_test();
-
+#[test]
+fn test_process_frame_packages_missing_payload_returns_none() {
+    let mut buffers = HashMap::new();
     let frame = Frame {
         seq_id: 1,
         log_id: 1,
@@ -152,14 +145,12 @@ async fn test_process_frame_packages_missing_payload_returns_none() {
         log_id_new: None,
     };
 
-    let result = client.process_frame_packages(frame).await;
-    assert!(result.is_none());
+    assert!(assemble(&mut buffers, frame).is_none());
 }
 
-#[tokio::test]
-async fn test_process_frame_packages_without_sum_passthrough() {
-    let mut client = LarkWsClient::new_for_test();
-
+#[test]
+fn test_process_frame_packages_without_sum_passthrough() {
+    let mut buffers = HashMap::new();
     let payload = b"single frame no-sum".to_vec();
     let frame = Frame {
         seq_id: 1,
@@ -182,15 +173,14 @@ async fn test_process_frame_packages_without_sum_passthrough() {
         log_id_new: None,
     };
 
-    let result = client.process_frame_packages(frame).await;
+    let result = assemble(&mut buffers, frame);
     assert!(result.is_some());
-    let processed_frame = result.unwrap();
-    assert_eq!(processed_frame.payload, Some(payload));
+    assert_eq!(result.unwrap().payload, Some(payload));
 }
 
-#[tokio::test]
-async fn test_process_frame_packages_sum_change_resets_buffer() {
-    let mut client = LarkWsClient::new_for_test();
+#[test]
+fn test_process_frame_packages_sum_change_resets_buffer() {
+    let mut buffers = HashMap::new();
 
     let first = Frame {
         seq_id: 1,
@@ -308,12 +298,11 @@ async fn test_process_frame_packages_sum_change_resets_buffer() {
         log_id_new: None,
     };
 
-    assert!(client.process_frame_packages(first).await.is_none());
-    assert!(client.process_frame_packages(second).await.is_none());
-    assert!(client.process_frame_packages(third).await.is_none());
+    assert!(assemble(&mut buffers, first).is_none());
+    assert!(assemble(&mut buffers, second).is_none());
+    assert!(assemble(&mut buffers, third).is_none());
 
-    let result = client.process_frame_packages(fourth).await;
+    let result = assemble(&mut buffers, fourth);
     assert!(result.is_some());
-    let processed_frame = result.unwrap();
-    assert_eq!(processed_frame.payload, Some(b"BCD".to_vec()));
+    assert_eq!(result.unwrap().payload, Some(b"BCD".to_vec()));
 }
