@@ -108,9 +108,12 @@ fn failing_raw_handler_surfaces_error() {
 #[test]
 fn duplicate_raw_handler_registration_is_rejected() {
     let handler = EventDispatcherHandler::builder()
-        .register_raw("raw", CountingHandler {
-            calls: Arc::new(AtomicUsize::new(0)),
-        })
+        .register_raw(
+            "raw",
+            CountingHandler {
+                calls: Arc::new(AtomicUsize::new(0)),
+            },
+        )
         .expect("first registration");
 
     let dup = handler.register_raw(

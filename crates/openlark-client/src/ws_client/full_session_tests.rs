@@ -730,7 +730,123 @@ async fn full_session_heartbeat_timeout_is_observable() {
     );
 }
 
-/// 慢 EventHandler 不应阻塞 app-level ping 发出（Codex P1：spawn_blocking）。
+/// 事件 handler 串行：先完成的慢任务不得被后到的快任务抢先 ACK（Codex：保留串行 contract）。
+#[tokio::test]
+async fn full_session_handlers_run_serially_in_arrival_order() {
+    use std::sync::Mutex;
+    use std::thread;
+
+    struct OrderedHandler {
+        log: Arc<Mutex<Vec<u8>>>,
+    }
+    impl EventHandler for OrderedHandler {
+        fn handle(&self, payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            let id = payload.last().copied().unwrap_or(0);
+            if id == 1 {
+                thread::sleep(Duration::from_millis(400));
+            }
+            self.log.lock().expect("mutex").push(id);
+            Ok(())
+        }
+    }
+
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(
+            EventDispatcherHandler::RAW_EVENT_KEY,
+            OrderedHandler {
+                log: Arc::clone(&log),
+            },
+        )
+        .expect("register")
+        .build();
+
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // 两个完整事件：慢(1) 先到，快(2) 后到
+            let mut p1 = br#"{"header":{"event_type":"t"},"event":{"n":1}}"#.to_vec();
+            p1.push(1);
+            let mut p2 = br#"{"header":{"event_type":"t"},"event":{"n":2}}"#.to_vec();
+            p2.push(2);
+            peer.send(Message::Binary(
+                event_data_frame(&p1).encode_to_vec().into(),
+            ))
+            .await
+            .expect("send 1");
+            peer.send(Message::Binary(
+                event_data_frame(&p2).encode_to_vec().into(),
+            ))
+            .await
+            .expect("send 2");
+            // 等两个 ACK
+            let _ = recv_data_response_frame(&mut peer).await;
+            let _ = recv_data_response_frame(&mut peer).await;
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "serial order test".into(),
+            }))
+            .await
+            .ok();
+        },
+    )
+    .await;
+
+    assert_eq!(
+        log.lock().expect("mutex").as_slice(),
+        &[1, 2],
+        "handlers must run in arrival order (serial worker)"
+    );
+    assert_normal_close(open_result);
+}
+
+/// Closing 后再收到 Binary → InvalidStateTransition（可达状态错误路径）。
+#[tokio::test]
+async fn full_session_data_after_close_is_invalid_state() {
+    let (open_result, ()) = run_session(
+        LocalSessionHarness::start().await,
+        EventDispatcherHandler::builder().build(),
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+            // 先发 Close，再塞一帧 Binary（对端违规时序）
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "bye".into(),
+            }))
+            .await
+            .ok();
+            let _ = peer
+                .send(Message::Binary(
+                    event_data_frame(br#"{"header":{"event_type":"late"}}"#)
+                        .encode_to_vec()
+                        .into(),
+                ))
+                .await;
+            while let Some(Ok(_)) = peer.next().await {}
+        },
+    )
+    .await;
+
+    // 可能先看到 ConnectionClosed（未读到 late data），或 InvalidStateTransition
+    match open_result {
+        Err(WsClientError::InvalidStateTransition(msg)) => {
+            assert!(
+                msg.contains("Closing") || msg.contains("Closed"),
+                "unexpected msg: {msg}"
+            );
+        }
+        Err(WsClientError::ConnectionClosed { .. }) => {
+            // 对端 close 后连接可能已拆，late binary 未必送达；允许
+        }
+        other => panic!("expected InvalidStateTransition or ConnectionClosed, got: {other:?}"),
+    }
+}
+
+/// 慢 EventHandler 不应阻塞 app-level ping 发出（串行 worker + spawn_blocking）。
 #[tokio::test]
 async fn full_session_slow_handler_does_not_block_app_ping() {
     use std::thread;

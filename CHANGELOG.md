@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。
+
 ### Security
 
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
@@ -41,15 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-> 下列 WebSocket 破坏性变更面向下一 minor **0.18.0**（当前 workspace 仍为
-> 0.17.0 开发线；发布 0.18 时一并升版本号）。
-
-- **WebSocket 公开面收缩（#429）与单一 Session（#421）**：`ws_client` 仅 re-export
-  `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
-  `WsClientError` / `WsClientResult` / `WsCloseReason`。`FrameHandler`、
-  状态机类型、`ClientConfig`、`EndPointResponse` 等不再公开。内部为单
-  `select!` 会话：I/O、心跳、控制帧、分包、handler 调度（`spawn_blocking`）
-  与写回。**迁移**：只用 `LarkWsClient::open` + 事件 handler。
+- **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
+  仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
+  `WsClientError` / `WsClientResult` / `WsCloseReason`。内部为单 `select!`
+  会话 + **串行** handler worker（`spawn_blocking`，保序）。**迁移**：只用
+  `LarkWsClient::open` + 事件 handler。
 
 - **WebSocket 协议错误更严格**：malformed pong、未知 frame method 结束会话
   （`MalformedControlFrame` / `ClientError`），不再静默忽略。
