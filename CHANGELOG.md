@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
+  `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行
+  `Config::validate()`（凭据 / URL / Feishu·Lark 域名白名单 / retry）以及 Client
+  特有的零超时拒绝（`req_timeout == Some(0)` 失败，`None` 允许）。修复
+  `with_core_config` 此前可绕过域名白名单的 SSRF 缺口；非白名单域名须显式
+  `allow_custom_base_url(true)`。删除 `client_build_config` 重复弱校验（#415 已将
+  配置状态迁至 core `ConfigBuilder`）。校验文案以 core 规范为准（不保证与旧
+  client 字符串逐字兼容）。
+
+### Fixed
+
+- **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
+  均完整传播自定义域名放行标志，并执行同一白名单规则。
+
 ### Breaking
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：

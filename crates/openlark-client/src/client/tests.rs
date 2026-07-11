@@ -80,6 +80,127 @@ fn test_client_not_configured() {
     }
 }
 
+// ===== #416: unified with_checked_core_config seam =====
+
+/// `Config::validate` 经 `validation_builder` 时 field 在 `CoreError::Validation` 变体上；
+/// `validation_error()` 还会写入 context。两种路径都接受。
+fn validation_field(err: &openlark_core::error::CoreError) -> Option<&str> {
+    match err {
+        openlark_core::error::CoreError::Validation { field, .. } => Some(field.as_ref()),
+        _ => err.context().get_context("field"),
+    }
+}
+
+#[test]
+fn test_with_core_config_rejects_custom_host_without_flag() {
+    let config = openlark_core::config::Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://proxy.example.com")
+        .build();
+    let err = Client::with_core_config(config).unwrap_err();
+    assert!(err.is_validation_error());
+    assert_eq!(validation_field(&err), Some("base_url"));
+    assert_eq!(
+        err.context().get_context("operation"),
+        Some("Client::with_core_config")
+    );
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("allow_custom_base_url") || msg.contains("白名单"),
+        "with_core_config 必须执行白名单: {msg}"
+    );
+}
+
+#[test]
+fn test_with_core_config_allows_custom_host_with_flag() {
+    let config = openlark_core::config::Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://proxy.example.com")
+        .allow_custom_base_url(true)
+        .build();
+    let client = Client::with_core_config(config).unwrap();
+    assert!(client.config().allow_custom_base_url());
+    assert_eq!(client.config().base_url(), "https://proxy.example.com");
+}
+
+#[test]
+fn test_with_core_config_accepts_unset_timeout() {
+    let config = openlark_core::config::Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://open.feishu.cn")
+        .build();
+    assert!(config.req_timeout().is_none());
+    let client = Client::with_core_config(config).unwrap();
+    assert!(client.config().req_timeout().is_none());
+}
+
+#[test]
+fn test_with_core_config_rejects_zero_timeout() {
+    let config = openlark_core::config::Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://open.feishu.cn")
+        .req_timeout(Duration::ZERO)
+        .build();
+    let err = Client::with_core_config(config).unwrap_err();
+    assert!(err.is_validation_error());
+    assert_eq!(validation_field(&err), Some("timeout"));
+    assert_eq!(
+        err.context().get_context("operation"),
+        Some("Client::with_core_config")
+    );
+}
+
+#[test]
+fn test_client_builder_rejects_zero_timeout() {
+    let err = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .timeout(Duration::ZERO)
+        .build()
+        .unwrap_err();
+    assert!(err.is_validation_error());
+    assert_eq!(validation_field(&err), Some("timeout"));
+    assert_eq!(
+        err.context().get_context("operation"),
+        Some("ClientBuilder::build")
+    );
+}
+
+#[test]
+fn test_client_builder_validation_error_has_operation_context() {
+    let err = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url("https://proxy.example.com")
+        .build()
+        .unwrap_err();
+    assert!(err.is_validation_error());
+    assert_eq!(validation_field(&err), Some("base_url"));
+    assert_eq!(
+        err.context().get_context("operation"),
+        Some("ClientBuilder::build")
+    );
+}
+
+#[test]
+fn test_with_core_config_empty_app_id_field_and_operation() {
+    let config = openlark_core::config::Config::builder()
+        .app_secret("secret")
+        .base_url("https://open.feishu.cn")
+        .build();
+    let err = Client::with_core_config(config).unwrap_err();
+    assert!(err.is_validation_error());
+    assert_eq!(validation_field(&err), Some("app_id"));
+    assert_eq!(
+        err.context().get_context("operation"),
+        Some("Client::with_core_config")
+    );
+}
+
 #[test]
 fn test_client_clone() {
     let client = Client::builder()
