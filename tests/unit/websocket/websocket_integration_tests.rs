@@ -13,8 +13,8 @@
 
 use lark_websocket_protobuf::pbbp2::{Frame, Header};
 use open_lark::ws_client::{
-    ConnectionState, EventDispatcherHandler, EventHandler, FrameHandler, StateMachineEvent,
-    WebSocketStateMachine,
+    ConnectionState, ControlFrameEffect, EventDispatcherHandler, EventHandler, FrameHandler,
+    StateMachineEvent, WebSocketStateMachine,
 };
 use serde_json::Value;
 use std::error::Error;
@@ -197,9 +197,12 @@ async fn pong_frame_builder_and_parser_still_work() {
         ),
         log_id_new: None,
     };
-    let handler = EventDispatcherHandler::builder().build();
-    let returned = FrameHandler::handle_frame(pong, &handler)
-        .await
-        .expect("pong frame should round-trip");
-    assert_eq!(returned.service, 42);
+    let effect = FrameHandler::interpret_control_frame(&pong).expect("valid pong");
+    match effect {
+        ControlFrameEffect::UpdateClientConfig(cfg) => {
+            assert_eq!(cfg.ping_interval, 10);
+            assert_eq!(cfg.reconnect_count, 1);
+        }
+        other => panic!("expected UpdateClientConfig, got {other:?}"),
+    }
 }

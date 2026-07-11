@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `frame_tx` 写回响应；移除每帧临时 channel 与丢弃事件路径。完整会话测试覆盖
   多包乱序只派发一次与缺包不派发。
 
+- **WebSocket 控制帧 / 心跳 / 状态机统一（#428）**：pong 仅经
+  `FrameHandler::interpret_control_frame` 解释，会话 I/O 唯一应用
+  `ClientConfig` 并更新 ping 间隔；移除 `handle_*_direct` 双路径。非法状态转换
+  与 malformed pong 经 `open`/`InvalidStateTransition`/`MalformedControlFrame`
+  返回；心跳超时可测。
+
 - **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
   均完整传播自定义域名放行标志，并执行同一白名单规则。
 
@@ -44,6 +50,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `(frame, handler, event_tx)` 变为 `(frame, handler)`。响应帧仅由会话经
   `frame_tx` 写回；应用侧应使用 `LarkWsClient::open`，勿直接依赖 FrameHandler。
   （#429 将进一步收缩 frame/state 公开面。）
+
+- **WebSocket 会话错误与控制帧契约（#428）**：
+  - `WsClientError` 新增 `MalformedControlFrame` / `InvalidStateTransition`
+  - malformed pong 由「日志后忽略」改为会话错误返回
+  - 非法状态转换由「仅 error 日志」改为会话错误返回
+  - 未知 frame method 由忽略改为 `ClientError`
+  - 新增公开 `ControlFrameEffect` / `ControlFrameError` 与
+    `FrameHandler::interpret_control_frame`（控制帧唯一解释入口）
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

@@ -17,56 +17,81 @@ pub enum FrameType {
     Data = 1,
 }
 
+/// 控制帧解释结果（会话 I/O 与 FrameHandler 共用的唯一路径）。
+#[derive(Debug, Clone)]
+pub enum ControlFrameEffect {
+    /// 合法 pong：会话应更新心跳配置。
+    UpdateClientConfig(ClientConfig),
+    /// 非 pong / 未知 type：忽略。
+    Ignored,
+}
+
+/// 控制帧解释错误（例如 malformed pong）。
+#[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
+pub enum ControlFrameError {
+    /// pong 缺少 payload 或 ClientConfig JSON 非法。
+    #[error("malformed pong: {0}")]
+    MalformedPong(String),
+}
+
 /// Frame 处理器，负责处理不同类型的 Frame
 pub struct FrameHandler;
 
 impl FrameHandler {
+    /// 解释控制帧（唯一实现）。
+    ///
+    /// 会话 I/O 循环在收到 method=0 帧时调用本方法，并应用
+    /// [`ControlFrameEffect::UpdateClientConfig`] 到心跳间隔。
+    pub fn interpret_control_frame(frame: &Frame) -> Result<ControlFrameEffect, ControlFrameError> {
+        let frame_type = Self::get_header_value(&frame.headers, "type").unwrap_or_default();
+        trace!("Received control frame: {frame_type}");
+
+        if frame_type != "pong" {
+            if frame_type.is_empty() {
+                debug!("control frame missing type header");
+            } else {
+                debug!("Unhandled control frame type: {frame_type}");
+            }
+            return Ok(ControlFrameEffect::Ignored);
+        }
+
+        let Some(payload) = frame.payload.as_ref() else {
+            return Err(ControlFrameError::MalformedPong(
+                "pong frame missing payload".to_string(),
+            ));
+        };
+
+        match serde_json::from_slice::<ClientConfig>(payload) {
+            Ok(config) => {
+                debug!("Received pong with config: {config:?}");
+                Ok(ControlFrameEffect::UpdateClientConfig(config))
+            }
+            Err(e) => Err(ControlFrameError::MalformedPong(format!(
+                "invalid ClientConfig json: {e}"
+            ))),
+        }
+    }
+
     /// 处理接收到的 Frame。
     ///
     /// 数据帧在本方法内完成事件派发并返回待写回的响应帧；
-    /// 调用方（会话）负责通过同一 `frame_tx` 发送，不再使用临时 channel。
+    /// 调用方（会话）负责通过同一 `frame_tx` 发送。
+    ///
+    /// 控制帧**不**经此方法写回；请使用 [`Self::interpret_control_frame`]
+    ///（由 I/O 会话调用并更新心跳）。
     pub async fn handle_frame(
         frame: Frame,
         event_handler: &EventDispatcherHandler,
     ) -> Option<Frame> {
         match frame.method {
-            0 => Self::handle_control_frame(frame),
+            0 => {
+                // 控制帧无写回帧。解释与心跳更新只走 I/O 会话的
+                // `interpret_control_frame` → `apply_client_config` 路径。
+                None
+            }
             1 => Self::handle_data_frame(frame, event_handler).await,
             _ => {
                 error!("Unknown frame method: {}", frame.method);
-                None
-            }
-        }
-    }
-
-    /// 处理控制帧
-    fn handle_control_frame(frame: Frame) -> Option<Frame> {
-        let headers = &frame.headers;
-        let frame_type = Self::get_header_value(headers, "type")?;
-
-        trace!("Received control frame: {frame_type}");
-
-        match frame_type.as_str() {
-            "pong" => Self::handle_pong_frame(frame),
-            _ => {
-                debug!("Unhandled control frame type: {frame_type}");
-                None
-            }
-        }
-    }
-
-    /// 处理 Pong 帧
-    fn handle_pong_frame(frame: Frame) -> Option<Frame> {
-        let payload = frame.payload.as_ref()?;
-
-        match serde_json::from_slice::<ClientConfig>(payload) {
-            Ok(config) => {
-                debug!("Received pong with config: {config:?}");
-                // 返回配置信息供上层处理
-                Some(frame)
-            }
-            Err(e) => {
-                error!("Failed to parse ClientConfig from pong frame: {e:?}");
                 None
             }
         }
@@ -418,63 +443,59 @@ mod tests {
         assert!(result.is_none());
     }
 
-    #[tokio::test]
-    async fn test_handle_control_frame_pong_valid() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        // Create a JSON payload that matches what would be expected for ClientConfig
+    #[test]
+    fn test_interpret_control_frame_pong_valid() {
         let payload =
             br#"{"ReconnectCount":3,"ReconnectInterval":5,"ReconnectNonce":123,"PingInterval":30}"#
                 .to_vec();
-
         let frame = create_control_frame("pong", Some(payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        // The frame should be processed and returned if JSON parsing succeeds
-        assert!(result.is_some());
-        let returned_frame = result.unwrap();
-        assert_eq!(returned_frame.method, 0); // Control frame
+        let effect = FrameHandler::interpret_control_frame(&frame).expect("valid pong");
+        match effect {
+            super::ControlFrameEffect::UpdateClientConfig(cfg) => {
+                assert_eq!(cfg.ping_interval, 30);
+                assert_eq!(cfg.reconnect_count, 3);
+            }
+            other => panic!("expected UpdateClientConfig, got {other:?}"),
+        }
     }
 
-    #[tokio::test]
-    async fn test_handle_control_frame_pong_invalid_json() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
-        let invalid_payload = b"{ invalid json".to_vec();
-        let frame = create_control_frame("pong", Some(invalid_payload));
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+    #[test]
+    fn test_interpret_control_frame_pong_invalid_json() {
+        let frame = create_control_frame("pong", Some(b"{ invalid json".to_vec()));
+        let err = FrameHandler::interpret_control_frame(&frame).expect_err("malformed");
+        assert!(matches!(err, super::ControlFrameError::MalformedPong(_)));
     }
 
-    #[tokio::test]
-    async fn test_handle_control_frame_pong_no_payload() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
+    #[test]
+    fn test_interpret_control_frame_pong_no_payload() {
         let frame = create_control_frame("pong", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+        let err = FrameHandler::interpret_control_frame(&frame).expect_err("missing payload");
+        assert!(matches!(err, super::ControlFrameError::MalformedPong(_)));
     }
 
-    #[tokio::test]
-    async fn test_handle_control_frame_unhandled_type() {
-        let event_handler = EventDispatcherHandler::builder().build();
-
+    #[test]
+    fn test_interpret_control_frame_unhandled_type() {
         let frame = create_control_frame("unknown_type", None);
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
+        let effect = FrameHandler::interpret_control_frame(&frame).expect("ignored");
+        assert!(matches!(effect, super::ControlFrameEffect::Ignored));
+    }
 
-        assert!(result.is_none());
+    #[test]
+    fn test_interpret_control_frame_no_type_header() {
+        let frame = create_test_frame(0, vec![], None);
+        let effect = FrameHandler::interpret_control_frame(&frame).expect("ignored");
+        assert!(matches!(effect, super::ControlFrameEffect::Ignored));
     }
 
     #[tokio::test]
-    async fn test_handle_control_frame_no_type_header() {
+    async fn test_handle_frame_control_never_returns_writeback() {
         let event_handler = EventDispatcherHandler::builder().build();
-
-        let frame = create_test_frame(0, vec![], None); // No type header
-        let result = FrameHandler::handle_frame(frame, &event_handler).await;
-
-        assert!(result.is_none());
+        let payload =
+            br#"{"ReconnectCount":3,"ReconnectInterval":5,"ReconnectNonce":123,"PingInterval":30}"#
+                .to_vec();
+        let frame = create_control_frame("pong", Some(payload));
+        // 控制帧不经 handle_frame 写回
+        assert!(FrameHandler::handle_frame(frame, &event_handler).await.is_none());
     }
 
     #[tokio::test]

@@ -1,12 +1,13 @@
-//! 完整会话本地 adapter 测试（#426 / #427）。
+//! 完整会话本地 adapter 测试（#426 / #427 / #428）。
 //!
 //! 测试 seam：
 //! - 公开入口：[`LarkWsClient::open`]
 //! - 本地 HTTP endpoint（`/callback/ws/endpoint`）+ 本地 WebSocket peer
 //! - 可观察结果：EventHandler 调用、peer 收到的响应帧、`open` 返回的关闭原因
 //!
-//! 不直接调用 FrameHandler / 状态机。
+//! 不直接调用 FrameHandler / 状态机（除会话路径本身）。
 //! #427：分包组装 → 派发 → 同一会话写回；单包/多包只派发一次。
+//! #428：pong 更新心跳、malformed pong / 超时 / 关闭原因可观察。
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -18,19 +19,28 @@ use openlark_core::config::Config;
 use prost::Message as ProstMessage;
 use serde_json::json;
 use tokio::net::TcpListener;
-use tokio::sync::oneshot;
+use tokio::sync::{Mutex, MutexGuard, oneshot};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::protocol::{CloseFrame, Message, frame::coding::CloseCode};
 use tokio_tungstenite::{WebSocketStream, accept_async};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use super::client::HeartbeatTimeoutGuard;
 use super::{
-    ClientConfig, EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsCloseReason,
+    ClientConfig, EventDispatcherHandler, EventHandler, FrameHandler, LarkWsClient, WsClientError,
+    WsCloseReason, WsEvent,
 };
 
 const SERVICE_ID: i32 = 42;
 const SESSION_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// 串行化完整会话测试：心跳超时覆盖是进程级全局状态，并行会互相污染。
+static SESSION_TEST_LOCK: Mutex<()> = Mutex::const_new(());
+
+async fn lock_session_tests() -> MutexGuard<'static, ()> {
+    SESSION_TEST_LOCK.lock().await
+}
 
 /// 记录原始事件处理器调用次数。
 struct CountingHandler {
@@ -58,6 +68,10 @@ struct LocalSessionHarness {
 
 impl LocalSessionHarness {
     async fn start() -> Self {
+        Self::start_with_ping_interval(3600).await
+    }
+
+    async fn start_with_ping_interval(ping_interval_secs: i32) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind local websocket listener");
@@ -80,7 +94,7 @@ impl LocalSessionHarness {
                         "ReconnectInterval": 1,
                         "ReconnectNonce": 0,
                         // 大间隔避免测试期间额外 ping 干扰；首 tick 仍会立刻发一次
-                        "PingInterval": 3600
+                        "PingInterval": ping_interval_secs
                     }
                 }
             })))
@@ -208,6 +222,7 @@ async fn recv_data_response_frame(
 
 #[tokio::test]
 async fn full_session_dispatches_handler_and_emits_response_frame() {
+    let _lock = lock_session_tests().await;
     let mut harness = LocalSessionHarness::start().await;
 
     let calls = Arc::new(AtomicUsize::new(0));
@@ -307,6 +322,7 @@ async fn full_session_dispatches_handler_and_emits_response_frame() {
 
 #[tokio::test]
 async fn full_session_remote_close_reason_is_observable() {
+    let _lock = lock_session_tests().await;
     let mut harness = LocalSessionHarness::start().await;
     let config = Arc::new(harness.config());
 
@@ -355,6 +371,7 @@ async fn full_session_remote_close_reason_is_observable() {
 
 #[tokio::test]
 async fn full_session_abrupt_peer_drop_is_observable_as_session_error() {
+    let _lock = lock_session_tests().await;
     let mut harness = LocalSessionHarness::start().await;
     let config = Arc::new(harness.config());
     let event_handler = EventDispatcherHandler::builder().build();
@@ -388,6 +405,7 @@ async fn full_session_abrupt_peer_drop_is_observable_as_session_error() {
 /// #427：多包乱序到达时只组装一次、只派发一次，响应经同一会话写回。
 #[tokio::test]
 async fn full_session_multipart_out_of_order_dispatches_once() {
+    let _lock = lock_session_tests().await;
     let mut harness = LocalSessionHarness::start().await;
 
     let calls = Arc::new(AtomicUsize::new(0));
@@ -478,6 +496,7 @@ async fn full_session_multipart_out_of_order_dispatches_once() {
 /// #427：缺包时不得派发 handler，也不得写回业务响应帧。
 #[tokio::test]
 async fn full_session_multipart_incomplete_does_not_dispatch() {
+    let _lock = lock_session_tests().await;
     let mut harness = LocalSessionHarness::start().await;
 
     let calls = Arc::new(AtomicUsize::new(0));
@@ -572,6 +591,212 @@ async fn full_session_multipart_incomplete_does_not_dispatch() {
     ));
 }
 
+fn pong_control_frame(ping_interval: i32) -> Frame {
+    let payload = serde_json::to_vec(&json!({
+        "ReconnectCount": 1,
+        "ReconnectInterval": 1,
+        "ReconnectNonce": 0,
+        "PingInterval": ping_interval
+    }))
+    .expect("serialize ClientConfig");
+    Frame {
+        seq_id: 0,
+        log_id: 0,
+        service: SERVICE_ID,
+        method: 0,
+        headers: vec![Header {
+            key: "type".to_string(),
+            value: "pong".to_string(),
+        }],
+        payload_encoding: None,
+        payload_type: None,
+        payload: Some(payload),
+        log_id_new: None,
+    }
+}
+
+fn malformed_pong_frame() -> Frame {
+    Frame {
+        seq_id: 0,
+        log_id: 0,
+        service: SERVICE_ID,
+        method: 0,
+        headers: vec![Header {
+            key: "type".to_string(),
+            value: "pong".to_string(),
+        }],
+        payload_encoding: None,
+        payload_type: None,
+        payload: Some(b"{ not-json".to_vec()),
+        log_id_new: None,
+    }
+}
+
+/// 等待客户端发出的 method=0 ping 控制帧。
+async fn recv_app_ping_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> Frame {
+    loop {
+        let frame = recv_next_frame(peer).await;
+        if frame.method == 0 {
+            let ty = frame
+                .headers
+                .iter()
+                .find(|h| h.key == "type")
+                .map(|h| h.value.as_str())
+                .unwrap_or("");
+            if ty == "ping" {
+                return frame;
+            }
+        }
+    }
+}
+
+/// #428：合法 pong 会实际缩短后续 app-level ping 间隔。
+#[tokio::test]
+async fn full_session_pong_updates_ping_interval() {
+    let _lock = lock_session_tests().await;
+    let mut harness = LocalSessionHarness::start_with_ping_interval(3600).await;
+    let config = Arc::new(harness.config());
+    let event_handler = EventDispatcherHandler::builder().build();
+
+    let peer_task = tokio::spawn(async move {
+        let mut peer = harness.accept_peer().await;
+        // 首 tick 立即 ping
+        let first = recv_app_ping_frame(&mut peer).await;
+        assert_eq!(first.service, SERVICE_ID);
+
+        // 下发 PingInterval=1 的 pong
+        peer.send(Message::Binary(
+            pong_control_frame(1).encode_to_vec().into(),
+        ))
+        .await
+        .expect("send pong");
+
+        // 更新后应在约 1s 内再收到 ping（放宽到 3s 防调度抖动）
+        let second = timeout(Duration::from_secs(3), recv_app_ping_frame(&mut peer))
+            .await
+            .expect("second ping timed out — pong did not update interval?");
+
+        assert_eq!(second.method, 0);
+
+        peer.close(Some(CloseFrame {
+            code: CloseCode::Normal,
+            reason: "pong interval test".into(),
+        }))
+        .await
+        .ok();
+    });
+
+    tokio::task::yield_now().await;
+    let open_result = timeout(SESSION_TIMEOUT, LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out");
+    peer_task.await.expect("peer task");
+
+    assert!(matches!(
+        open_result,
+        Err(WsClientError::ConnectionClosed {
+            reason: Some(WsCloseReason {
+                code: CloseCode::Normal,
+                ..
+            })
+        })
+    ));
+}
+
+/// #428：malformed pong 经会话 Result 可观察。
+#[tokio::test]
+async fn full_session_malformed_pong_is_session_error() {
+    let _lock = lock_session_tests().await;
+    let mut harness = LocalSessionHarness::start().await;
+    let config = Arc::new(harness.config());
+    let event_handler = EventDispatcherHandler::builder().build();
+
+    let peer_task = tokio::spawn(async move {
+        let mut peer = harness.accept_peer().await;
+        let _ = timeout(SESSION_TIMEOUT, peer.next()).await;
+        peer.send(Message::Binary(
+            malformed_pong_frame().encode_to_vec().into(),
+        ))
+        .await
+        .expect("send malformed pong");
+        // 等待对端因错误结束
+        while let Some(Ok(_)) = peer.next().await {}
+    });
+
+    tokio::task::yield_now().await;
+    let open_result = timeout(SESSION_TIMEOUT, LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out");
+    peer_task.await.expect("peer task");
+
+    match open_result {
+        Err(WsClientError::MalformedControlFrame { message }) => {
+            assert!(
+                message.contains("invalid ClientConfig") || message.contains("malformed"),
+                "unexpected message: {message}"
+            );
+        }
+        other => panic!("expected MalformedControlFrame, got: {other:?}"),
+    }
+}
+
+/// #428：心跳超时以 ConnectionClosed 结束会话。
+#[tokio::test]
+async fn full_session_heartbeat_timeout_is_observable() {
+    let _lock = lock_session_tests().await;
+    let _guard = HeartbeatTimeoutGuard::set(Duration::from_millis(250));
+    let mut harness = LocalSessionHarness::start_with_ping_interval(3600).await;
+    let config = Arc::new(harness.config());
+    let event_handler = EventDispatcherHandler::builder().build();
+
+    let peer_task = tokio::spawn(async move {
+        let mut peer = harness.accept_peer().await;
+        // 消费客户端首 ping，但不发送任何 WebSocket Ping，等待超时
+        let _ = timeout(Duration::from_secs(2), peer.next()).await;
+        while let Some(Ok(_)) = peer.next().await {}
+    });
+
+    tokio::task::yield_now().await;
+    let open_result = timeout(Duration::from_secs(5), LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out waiting for heartbeat");
+    peer_task.await.expect("peer task");
+
+    assert!(
+        matches!(
+            open_result,
+            Err(WsClientError::ConnectionClosed { reason: None })
+        ),
+        "expected heartbeat ConnectionClosed, got: {open_result:?}"
+    );
+}
+
+/// #428：非法状态转换经 handler 会话路径返回错误（非仅日志）。
+#[tokio::test]
+async fn handler_loop_invalid_state_transition_returns_error() {
+    let (mut client, event_tx) = LarkWsClient::new_for_test_with_event_tx();
+    // Initial 状态下 DataReceived 非法
+    let frame = event_data_frame(br#"{"header":{"event_type":"t"}}"#);
+    event_tx
+        .send(WsEvent::Data(frame))
+        .expect("send data event");
+    drop(event_tx);
+
+    let result = client
+        .run_handler_loop_for_test(EventDispatcherHandler::builder().build())
+        .await;
+
+    match result {
+        Err(WsClientError::InvalidStateTransition(msg)) => {
+            assert!(
+                msg.contains("Invalid state transition"),
+                "unexpected msg: {msg}"
+            );
+        }
+        other => panic!("expected InvalidStateTransition, got: {other:?}"),
+    }
+}
+
 // 确保 ClientConfig 反序列化字段与 endpoint 脚本一致（编译期/本地 harness 契约）
 #[test]
 fn local_endpoint_client_config_shape_matches_production() {
@@ -579,4 +804,17 @@ fn local_endpoint_client_config_shape_matches_production() {
     let cfg: ClientConfig = serde_json::from_slice(raw).expect("ClientConfig shape");
     assert_eq!(cfg.ping_interval, 3600);
     assert_eq!(cfg.reconnect_count, 1);
+}
+
+#[test]
+fn interpret_control_frame_is_single_pong_path() {
+    // 与 Context 共用同一解释入口
+    let frame = pong_control_frame(15);
+    let effect = FrameHandler::interpret_control_frame(&frame).expect("ok");
+    match effect {
+        super::ControlFrameEffect::UpdateClientConfig(cfg) => {
+            assert_eq!(cfg.ping_interval, 15);
+        }
+        other => panic!("expected config update, got {other:?}"),
+    }
 }

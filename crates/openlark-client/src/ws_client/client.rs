@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use futures_util::{
@@ -20,7 +21,11 @@ use tokio_tungstenite::{
 };
 use url::Url;
 
-use super::{FrameHandler, WebSocketStateMachine, state_machine::StateMachineEvent};
+use super::{
+    FrameHandler, WebSocketStateMachine,
+    frame_handler::{ControlFrameEffect, ControlFrameError},
+    state_machine::{CloseReason, StateMachineEvent},
+};
 
 type EventHandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
@@ -233,7 +238,36 @@ impl EventDispatcherHandler {
 }
 
 const END_POINT_URL: &str = "/callback/ws/endpoint";
-const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(120);
+const DEFAULT_HEARTBEAT_TIMEOUT_MS: u64 = 120_000;
+
+/// 心跳超时（毫秒）。生产默认 120s；测试可通过 [`HeartbeatTimeoutGuard`] 覆盖。
+static HEARTBEAT_TIMEOUT_MS: AtomicU64 = AtomicU64::new(DEFAULT_HEARTBEAT_TIMEOUT_MS);
+
+fn heartbeat_timeout() -> Duration {
+    Duration::from_millis(HEARTBEAT_TIMEOUT_MS.load(Ordering::Relaxed).max(1))
+}
+
+/// 测试用：临时覆盖心跳超时，Drop 时恢复。
+#[cfg(test)]
+pub(crate) struct HeartbeatTimeoutGuard {
+    previous: u64,
+}
+
+#[cfg(test)]
+impl HeartbeatTimeoutGuard {
+    pub(crate) fn set(timeout: Duration) -> Self {
+        let millis = timeout.as_millis().max(1) as u64;
+        let previous = HEARTBEAT_TIMEOUT_MS.swap(millis, Ordering::Relaxed);
+        Self { previous }
+    }
+}
+
+#[cfg(test)]
+impl Drop for HeartbeatTimeoutGuard {
+    fn drop(&mut self) {
+        HEARTBEAT_TIMEOUT_MS.store(self.previous, Ordering::Relaxed);
+    }
+}
 
 /// 飞书 WebSocket 客户端。
 pub struct LarkWsClient {
@@ -256,6 +290,31 @@ impl LarkWsClient {
             state_machine: WebSocketStateMachine::new(),
             package_buffers: HashMap::new(),
         }
+    }
+
+    /// 测试用：带事件注入口的客户端；状态为 Initial（DataReceived 非法）。
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_event_tx() -> (Self, mpsc::UnboundedSender<WsEvent>) {
+        let (frame_tx, _frame_rx) = mpsc::unbounded_channel();
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        (
+            Self {
+                frame_tx,
+                event_rx,
+                state_machine: WebSocketStateMachine::new(),
+                package_buffers: HashMap::new(),
+            },
+            event_tx,
+        )
+    }
+
+    /// 测试用：跑完 handler 事件循环（与 open 会话路径一致）。
+    #[cfg(test)]
+    pub(crate) async fn run_handler_loop_for_test(
+        &mut self,
+        event_handler: EventDispatcherHandler,
+    ) -> WsClientResult<()> {
+        self.handler_loop(event_handler).await
     }
 
     /// 建立 WebSocket 长连接并启动事件处理循环。
@@ -287,11 +346,11 @@ impl LarkWsClient {
             .parse()
             .map_err(|_| WsClientError::UnexpectedResponse)?;
 
-        // 开始连接状态转换
+        // 连接状态转换失败直接返回，不再仅写日志
         let mut state_machine = WebSocketStateMachine::new();
-        if let Err(e) = state_machine.handle_event(StateMachineEvent::StartConnection) {
-            error!("Failed to transition to connecting state: {e}");
-        }
+        state_machine
+            .handle_event(StateMachineEvent::StartConnection)
+            .map_err(WsClientError::InvalidStateTransition)?;
 
         let ws_config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig::default()
             .max_message_size(Some(config.max_response_size() as usize))
@@ -300,10 +359,9 @@ impl LarkWsClient {
         let (conn, _response) = connect_async_with_config(conn_url, Some(ws_config), false).await?;
         info!("connected to {url}");
 
-        // 连接成功状态转换
-        if let Err(e) = state_machine.handle_event(StateMachineEvent::ConnectionEstablished) {
-            error!("Failed to transition to connected state: {e}");
-        }
+        state_machine
+            .handle_event(StateMachineEvent::ConnectionEstablished)
+            .map_err(WsClientError::InvalidStateTransition)?;
         let (frame_tx, frame_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         tokio::spawn(client_loop(
@@ -329,21 +387,14 @@ impl LarkWsClient {
         while let Some(ws_event) = self.event_rx.recv().await {
             match ws_event {
                 WsEvent::Data(frame) => {
-                    // 更新状态机：收到数据
+                    // 非法状态转换通过会话 Result 返回，不再吞掉
                     if let Err(e) = self
                         .state_machine
                         .handle_event(StateMachineEvent::DataReceived)
                     {
-                        error!("Failed to handle DataReceived event: {e}");
-                    }
-
-                    // 检查是否可以处理数据
-                    if !self.state_machine.can_send_data() {
-                        debug!(
-                            "Cannot process data in current state: {:?}",
-                            self.state_machine.current_state()
-                        );
-                        continue;
+                        let err = WsClientError::InvalidStateTransition(e);
+                        self.record_terminal_state(&err);
+                        return Err(err);
                     }
 
                     // 单一会话路径：分包组装 → 派发 → 经同一 frame_tx 写回响应
@@ -360,12 +411,38 @@ impl LarkWsClient {
                     }
                 }
                 WsEvent::Error(err) => {
-                    // 会话失败/远端关闭：作为 open 的返回值可观察
+                    self.record_terminal_state(&err);
                     return Err(err);
                 }
             }
         }
         Ok(())
+    }
+
+    /// 将会话终止原因写入状态机（best-effort，失败不覆盖原始错误）。
+    fn record_terminal_state(&mut self, err: &WsClientError) {
+        match err {
+            WsClientError::ConnectionClosed { reason } => {
+                let sm_reason = reason.as_ref().map(|r| CloseReason {
+                    code: r.code.into(),
+                    reason: r.message.clone(),
+                });
+                if self
+                    .state_machine
+                    .handle_event(StateMachineEvent::ConnectionClosed(sm_reason))
+                    .is_err()
+                {
+                    let _ = self
+                        .state_machine
+                        .handle_event(StateMachineEvent::ErrorOccurred(err.to_string()));
+                }
+            }
+            _ => {
+                let _ = self
+                    .state_machine
+                    .handle_event(StateMachineEvent::ErrorOccurred(err.to_string()));
+            }
+        }
     }
 
     /// 处理分包的 Frame，如果需要组合多个包则返回组合后的结果
@@ -569,6 +646,15 @@ pub enum WsClientError {
     #[error("Prost error: {0}")]
     /// Protobuf 解码错误。
     ProstError(#[from] prost::DecodeError),
+    #[error("malformed control frame: {message}")]
+    /// 控制帧（如 pong）payload 非法。
+    MalformedControlFrame {
+        /// 错误描述。
+        message: String,
+    },
+    #[error("invalid session state transition: {0}")]
+    /// 连接状态机拒绝的非法转换。
+    InvalidStateTransition(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {
@@ -596,15 +682,14 @@ impl<'a> Context<'a> {
         event_sender: &'a mut mpsc::UnboundedSender<WsEvent>,
     ) -> Self {
         let (sink, stream) = conn.split();
+        let ping_secs = (client_config.ping_interval.max(1)) as u64;
         Context {
             service_id,
             sink,
             stream,
             command_rx,
             event_sender,
-            ping_frame_interval: tokio::time::interval(Duration::from_secs(
-                client_config.ping_interval as u64,
-            )),
+            ping_frame_interval: tokio::time::interval(Duration::from_secs(ping_secs)),
             client_config,
         }
     }
@@ -653,7 +738,7 @@ impl<'a> Context<'a> {
                 }
 
                 _ = checkout_timeout.tick() => {
-                    if (Instant::now() - ping_time) > HEARTBEAT_TIMEOUT {
+                    if (Instant::now() - ping_time) > heartbeat_timeout() {
                         return Err(WsClientError::ConnectionClosed {
                             reason: None
                         });
@@ -673,18 +758,20 @@ impl<'a> Context<'a> {
                 trace!("Received frame: {frame:?}");
 
                 match frame.method {
-                    // FrameTypeControl
-                    0 => {
-                        // 直接在本地处理控制帧，避免跨线程Send问题
-                        self.handle_control_frame_direct(frame)?;
-                    }
+                    // FrameTypeControl — 唯一路径：FrameHandler::interpret_control_frame
+                    0 => self.apply_control_frame(frame)?,
                     // FrameTypeData
                     1 => {
                         if let Err(e) = self.event_sender.send(WsEvent::Data(frame)) {
                             error!("Failed to send data event: {e:?}");
                         }
                     }
-                    _ => {}
+                    _ => {
+                        return Err(WsClientError::ClientError {
+                            code: 0,
+                            message: format!("invalid frame method: {}", frame.method),
+                        });
+                    }
                 }
             }
             Message::Close(close_frame) => {
@@ -702,49 +789,28 @@ impl<'a> Context<'a> {
         Ok(())
     }
 
-    /// 直接处理控制帧
-    fn handle_control_frame_direct(&mut self, frame: Frame) -> WsClientResult<()> {
-        let headers = &frame.headers;
-        let frame_type = headers
-            .iter()
-            .find(|h| h.key == "type")
-            .map(|h| h.value.as_str())
-            .unwrap_or("");
-
-        trace!("Received control frame: {frame_type}");
-
-        if frame_type == "pong" {
-            self.handle_pong_frame_direct(frame)?;
+    /// 应用控制帧效果（更新心跳配置或上报 malformed pong）。
+    fn apply_control_frame(&mut self, frame: Frame) -> WsClientResult<()> {
+        match FrameHandler::interpret_control_frame(&frame) {
+            Ok(ControlFrameEffect::UpdateClientConfig(config)) => {
+                self.apply_client_config(config);
+                Ok(())
+            }
+            Ok(ControlFrameEffect::Ignored) => Ok(()),
+            Err(ControlFrameError::MalformedPong(message)) => {
+                Err(WsClientError::MalformedControlFrame { message })
+            }
         }
-
-        Ok(())
     }
 
-    /// 处理Pong帧
-    fn handle_pong_frame_direct(&mut self, frame: Frame) -> WsClientResult<()> {
-        let Some(payload) = frame.payload else {
-            error!("Pong frame missing payload");
-            return Ok(());
-        };
-
-        let config = match serde_json::from_slice::<ClientConfig>(&payload) {
-            Ok(cfg) => cfg,
-            Err(e) => {
-                error!("Failed to parse ClientConfig: {e:?}");
-                return Ok(());
-            }
-        };
-
-        // 更新ping间隔
-        let ping_interval = config.ping_interval;
-        self.ping_frame_interval = tokio::time::interval(Duration::from_secs(ping_interval as u64));
+    /// 用 pong 下发的 ClientConfig 更新心跳间隔（会话唯一写点）。
+    fn apply_client_config(&mut self, config: ClientConfig) {
+        let ping_interval = (config.ping_interval.max(1)) as u64;
+        self.ping_frame_interval = tokio::time::interval(Duration::from_secs(ping_interval));
         self.ping_frame_interval
-            .reset_after(Duration::from_secs(ping_interval as u64));
+            .reset_after(Duration::from_secs(ping_interval));
         self.client_config = config;
-
         debug!("Updated ping interval from pong response: {ping_interval}s");
-
-        Ok(())
     }
 
     async fn handle_send_frame(&mut self, frame: Frame) -> WsClientResult<()> {

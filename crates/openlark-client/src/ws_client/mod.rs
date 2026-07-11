@@ -13,7 +13,9 @@ pub use client::{
     WsClientError, WsClientResult, WsCloseReason, WsEvent,
 };
 
-pub use frame_handler::{FrameHandler, FrameType};
+pub use frame_handler::{
+    ControlFrameEffect, ControlFrameError, FrameHandler, FrameType,
+};
 pub use state_machine::{ConnectionState, StateMachineEvent, WebSocketStateMachine};
 
 #[cfg(test)]
