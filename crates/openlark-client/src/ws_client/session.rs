@@ -237,8 +237,9 @@ impl Session {
                             }
                             Ok(None) => {}
                             Err(err) => {
-                                let _ = self.begin_close(None);
+                                // 强制终止：不再经 begin_close（避免 pending_close 与返回 err 不一致）
                                 self.state = SessionState::Closed;
+                                self.pending_close = None;
                                 return Err(err);
                             }
                         }
@@ -259,16 +260,19 @@ impl Session {
         }
         .await;
 
-        // 停止入队并有界等待 worker（防止永不返回的 handler 卡住 open）
+        // 停止入队并有界等待 worker；超时则 abort，避免永不返回的 handler 卡住 open
         drop(job_tx);
-        if tokio::time::timeout(WORKER_SHUTDOWN_TIMEOUT, worker)
-            .await
-            .is_err()
-        {
-            warn!(
-                "handler worker did not finish within {:?}; aborting join wait",
-                WORKER_SHUTDOWN_TIMEOUT
-            );
+        let mut worker = worker;
+        tokio::select! {
+            _ = &mut worker => {}
+            _ = tokio::time::sleep(WORKER_SHUTDOWN_TIMEOUT) => {
+                warn!(
+                    "handler worker did not finish within {:?}; aborting worker task",
+                    WORKER_SHUTDOWN_TIMEOUT
+                );
+                worker.abort();
+                let _ = worker.await;
+            }
         }
         result
     }
@@ -328,7 +332,7 @@ impl Session {
                 trace!("Received frame: {frame:?}");
                 match frame.method {
                     FRAME_METHOD_CONTROL => self.apply_control_frame(frame)?,
-                    FRAME_METHOD_DATA => self.enqueue_data_frame(frame, job_tx)?,
+                    FRAME_METHOD_DATA => self.enqueue_data_frame(frame, job_tx).await?,
                     other => {
                         return Err(WsClientError::ClientError {
                             code: 0,
@@ -372,7 +376,9 @@ impl Session {
     }
 
     /// 分包在主循环顺序完成；完整帧入有界串行队列。
-    fn enqueue_data_frame(
+    ///
+    /// 队列满时 `send().await` 等待空位（背压），**不丢弃**已组装帧，也不因满队列杀会话。
+    async fn enqueue_data_frame(
         &mut self,
         frame: Frame,
         job_tx: &mpsc::Sender<Frame>,
@@ -382,20 +388,10 @@ impl Session {
             return Ok(());
         };
 
-        match job_tx.try_send(frame) {
-            Ok(()) => {
-                self.inflight_handlers = self.inflight_handlers.saturating_add(1);
-                Ok(())
-            }
-            Err(mpsc::error::TrySendError::Full(_)) => Err(WsClientError::ClientError {
-                code: 0,
-                message: format!(
-                    "handler queue full (capacity {HANDLER_QUEUE_CAP}); apply backpressure"
-                ),
-            }),
-            Err(mpsc::error::TrySendError::Closed(_)) => Err(
-                WsClientError::InvalidStateTransition("handler worker is gone".to_string()),
-            ),
-        }
+        job_tx.send(frame).await.map_err(|_| {
+            WsClientError::InvalidStateTransition("handler worker is gone".to_string())
+        })?;
+        self.inflight_handlers = self.inflight_handlers.saturating_add(1);
+        Ok(())
     }
 }

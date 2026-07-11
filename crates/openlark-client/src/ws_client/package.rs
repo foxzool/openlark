@@ -109,9 +109,11 @@ pub(crate) fn assemble_frame(
         return None;
     }
 
-    let buffer = buffers
-        .remove(msg_id)
-        .unwrap_or_else(|| FramePackageBuffer::new(sum));
+    // is_complete 已对 entry 判真，remove 必然命中；勿用空 buffer 兜底掩盖逻辑错误
+    let Some(buffer) = buffers.remove(msg_id) else {
+        error!("分包缓存丢失（message_id={msg_id}），放弃本帧");
+        return None;
+    };
 
     frame.payload = Some(buffer.combine());
     Some(frame)
