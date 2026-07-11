@@ -142,7 +142,7 @@ impl ClientBuilder {
 
     /// 🔨 构建客户端实例
     ///
-    /// 与 [`Client::with_core_config`] 共用 [`Client::with_checked_core_config`]。
+    /// 与 [`Client::with_core_config`] 共用同一私有 checked 构造 seam。
     ///
     /// # 返回值
     /// 返回配置好的客户端实例或验证错误
