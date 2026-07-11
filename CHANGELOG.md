@@ -45,11 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
-  `WsClientError` / `WsClientResult` / `WsCloseReason`。内部为单 `select!`
-  会话 + **串行** handler worker（`spawn_blocking`，保序）。
+  `WsClientError` / `WsClientResult` / `WsCloseReason` / `InvalidStateKind`。
+  内部为单 `select!` 会话 + **串行** handler worker（`spawn_blocking`，保序）。
 
-  **设计收缩，非常规废弃**（非安全/正确性紧急例外；主动将实现渗漏移出
-  public API，跨 minor 0.18 直接移除而非先 `#[deprecated]`）。**迁移表**：
+  **设计收缩，非常规废弃**（对照 `docs/PUBLIC_API_STABILITY_POLICY.md`：主动将
+  实现渗漏移出 public API，属跨 minor 可接受的公开面收敛，而非安全/正确性紧急
+  例外；0.18 直接移除而非先 `#[deprecated]`）。**迁移表**：
 
   | 旧 import | 替代 |
   |-----------|------|
@@ -57,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | `WebSocketStateMachine` / `ConnectionState` / `StateMachineEvent` | 内部；观察 `open` 的 `Result` |
   | `ClientConfig` / `EndPointResponse` / `WsEvent` | 内部 |
   | `open().await?` 期望常驻 | 匹配 `Err(ConnectionClosed{..})` 作为正常断开 |
+  | 状态错误字符串匹配 | `Err(InvalidStateTransition { kind })` + `InvalidStateKind`（#428 可 match） |
+
+  `InvalidStateKind` 为 #428「状态错误可 match」保留的公开枚举；配合
+  `WsClientError::InvalidStateTransition`，勿依赖其 `Display` 文案做分支。
 
 - **WebSocket 协议错误更严格**：malformed pong、未知 frame method 结束会话
   （`MalformedControlFrame` / `InvalidFrameMethod`）；另增 `HandlerPanicked` /
