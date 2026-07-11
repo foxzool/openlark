@@ -74,15 +74,11 @@ mod integration {
                 log_id_new: None,
             };
 
-            // 测试帧处理不会崩溃
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let handler = open_lark::event::dispatcher::EventDispatcherHandler::builder().build();
-                
-                let _result = open_lark::client::ws_client::frame_handler::FrameHandler::handle_frame(frame, &handler).await;
-                
-                // 不关心具体结果，只要不崩溃即可
-            });
+            // #429：不再穿透 FrameHandler；公开 dispatcher 对任意 payload 不应 panic
+            let _ = frame; // 保留帧构造作为序列化健壮性检查
+            let handler = open_lark::ws_client::EventDispatcherHandler::builder().build();
+            let payload_bytes = serde_json::to_vec(&event_json).unwrap();
+            let _ = handler.do_without_validation(&payload_bytes);
         }
     }
 

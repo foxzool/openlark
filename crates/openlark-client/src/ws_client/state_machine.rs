@@ -1,8 +1,8 @@
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
-/// WebSocket 连接状态机
+/// WebSocket 连接状态机状态（crate 内部；#429 不再作为 public interface）。
 #[derive(Debug, Clone, PartialEq)]
-pub enum ConnectionState {
+pub(crate) enum ConnectionState {
     /// 初始状态
     Initial,
     /// 正在连接
@@ -23,9 +23,9 @@ pub enum ConnectionState {
     },
 }
 
-/// 连接关闭原因
+/// 连接关闭原因（crate 内部）。
 #[derive(Debug, Clone, PartialEq)]
-pub struct CloseReason {
+pub(crate) struct CloseReason {
     /// 关闭状态码。
     pub code: u16,
     /// 关闭原因描述。
@@ -41,20 +41,23 @@ impl From<CloseFrame> for CloseReason {
     }
 }
 
-/// 状态机事件
+/// 状态机事件（crate 内部）。
 #[derive(Debug, Clone)]
-pub enum StateMachineEvent {
+pub(crate) enum StateMachineEvent {
     /// 开始连接
     StartConnection,
     /// 连接成功
     ConnectionEstablished,
-    /// 收到 Ping
+    /// 收到 Ping（WS 层；预留给心跳可观测扩展）
+    #[allow(dead_code)]
     PingReceived,
-    /// 收到 Pong
+    /// 收到 Pong（应用层配置更新；预留给状态可观测扩展）
+    #[allow(dead_code)]
     PongReceived,
     /// 收到数据
     DataReceived,
     /// 请求断开连接
+    #[allow(dead_code)]
     RequestDisconnect,
     /// 连接关闭
     ConnectionClosed(Option<CloseReason>),
@@ -62,26 +65,27 @@ pub enum StateMachineEvent {
     ErrorOccurred(String),
 }
 
-/// WebSocket 状态机
-pub struct WebSocketStateMachine {
+/// WebSocket 状态机（crate 内部）。
+pub(crate) struct WebSocketStateMachine {
     state: ConnectionState,
 }
 
 impl WebSocketStateMachine {
     /// 创建新的 WebSocket 状态机。
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             state: ConnectionState::Initial,
         }
     }
 
     /// 获取当前状态
-    pub fn current_state(&self) -> &ConnectionState {
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn current_state(&self) -> &ConnectionState {
         &self.state
     }
 
     /// 处理事件并转换状态
-    pub fn handle_event(&mut self, event: StateMachineEvent) -> Result<(), String> {
+    pub(crate) fn handle_event(&mut self, event: StateMachineEvent) -> Result<(), String> {
         use ConnectionState::*;
         use StateMachineEvent::*;
 
@@ -119,26 +123,9 @@ impl WebSocketStateMachine {
     }
 
     /// 检查是否可以发送数据
-    pub fn can_send_data(&self) -> bool {
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn can_send_data(&self) -> bool {
         matches!(self.state, ConnectionState::Connected)
-    }
-
-    /// 检查是否正在连接
-    pub fn is_connecting(&self) -> bool {
-        matches!(self.state, ConnectionState::Connecting)
-    }
-
-    /// 检查是否已连接
-    pub fn is_connected(&self) -> bool {
-        matches!(self.state, ConnectionState::Connected)
-    }
-
-    /// 检查是否已断开
-    pub fn is_disconnected(&self) -> bool {
-        matches!(
-            self.state,
-            ConnectionState::Disconnected { .. } | ConnectionState::Error { .. }
-        )
     }
 }
 

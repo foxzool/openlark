@@ -56,8 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - malformed pong 由「日志后忽略」改为会话错误返回
   - 非法状态转换由「仅 error 日志」改为会话错误返回
   - 未知 frame method 由忽略改为 `ClientError`
-  - 新增公开 `ControlFrameEffect` / `ControlFrameError` 与
-    `FrameHandler::interpret_control_frame`（控制帧唯一解释入口）
+  - 控制帧唯一解释入口 `interpret_control_frame`（现为 crate 内部，见 #429）
+
+- **WebSocket 公开面收缩（#429）**：`ws_client` 仅 re-export 会话入口
+  `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
+  `WsClientError` / `WsClientResult` / `WsCloseReason`。以下变为 crate 内部：
+  `FrameHandler`、`FrameType`、`ControlFrameEffect`/`Error`、
+  `WebSocketStateMachine`、`ConnectionState`、`StateMachineEvent`、
+  `ClientConfig`、`EndPointResponse`、`WsEvent`。
+  **迁移**：删除对 frame/state/内部通道类型的直接依赖；会话用
+  `LarkWsClient::open` + 事件 handler。
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

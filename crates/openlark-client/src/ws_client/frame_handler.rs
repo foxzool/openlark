@@ -3,14 +3,12 @@ use log::{debug, error, trace};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
-use super::ClientConfig;
+use super::client::{ClientConfig, EventDispatcherHandler};
 
-// 导入 client.rs 中的 EventDispatcherHandler
-use super::client::EventDispatcherHandler;
-
-/// Frame 类型
+/// Frame 类型（crate 内部；生产路径用 method 整型判别）。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum FrameType {
+pub(crate) enum FrameType {
     /// 控制帧。
     Control = 0,
     /// 数据帧。
@@ -19,7 +17,7 @@ pub enum FrameType {
 
 /// 控制帧解释结果（会话 I/O 与 FrameHandler 共用的唯一路径）。
 #[derive(Debug, Clone)]
-pub enum ControlFrameEffect {
+pub(crate) enum ControlFrameEffect {
     /// 合法 pong：会话应更新心跳配置。
     UpdateClientConfig(ClientConfig),
     /// 非 pong / 未知 type：忽略。
@@ -28,21 +26,23 @@ pub enum ControlFrameEffect {
 
 /// 控制帧解释错误（例如 malformed pong）。
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
-pub enum ControlFrameError {
+pub(crate) enum ControlFrameError {
     /// pong 缺少 payload 或 ClientConfig JSON 非法。
     #[error("malformed pong: {0}")]
     MalformedPong(String),
 }
 
-/// Frame 处理器，负责处理不同类型的 Frame
-pub struct FrameHandler;
+/// Frame 处理器（crate 内部；#429 不再作为 public interface）。
+pub(crate) struct FrameHandler;
 
 impl FrameHandler {
     /// 解释控制帧（唯一实现）。
     ///
     /// 会话 I/O 循环在收到 method=0 帧时调用本方法，并应用
     /// [`ControlFrameEffect::UpdateClientConfig`] 到心跳间隔。
-    pub fn interpret_control_frame(frame: &Frame) -> Result<ControlFrameEffect, ControlFrameError> {
+    pub(crate) fn interpret_control_frame(
+        frame: &Frame,
+    ) -> Result<ControlFrameEffect, ControlFrameError> {
         let frame_type = Self::get_header_value(&frame.headers, "type").unwrap_or_default();
         trace!("Received control frame: {frame_type}");
 
@@ -79,7 +79,7 @@ impl FrameHandler {
     ///
     /// 控制帧**不**经此方法写回；请使用 [`Self::interpret_control_frame`]
     ///（由 I/O 会话调用并更新心跳）。
-    pub async fn handle_frame(
+    pub(crate) async fn handle_frame(
         frame: Frame,
         event_handler: &EventDispatcherHandler,
     ) -> Option<Frame> {
@@ -188,7 +188,7 @@ impl FrameHandler {
     }
 
     /// 构建 ping 帧
-    pub fn build_ping_frame(service_id: i32) -> Frame {
+    pub(crate) fn build_ping_frame(service_id: i32) -> Frame {
         Frame {
             seq_id: 0,
             log_id: 0,
@@ -206,7 +206,12 @@ impl FrameHandler {
     }
 
     /// 构建数据帧响应
-    pub fn build_response_frame(service_id: i32, headers: Vec<Header>, payload: Vec<u8>) -> Frame {
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn build_response_frame(
+        service_id: i32,
+        headers: Vec<Header>,
+        payload: Vec<u8>,
+    ) -> Frame {
         Frame {
             seq_id: 0,
             log_id: 0,
@@ -495,7 +500,11 @@ mod tests {
                 .to_vec();
         let frame = create_control_frame("pong", Some(payload));
         // 控制帧不经 handle_frame 写回
-        assert!(FrameHandler::handle_frame(frame, &event_handler).await.is_none());
+        assert!(
+            FrameHandler::handle_frame(frame, &event_handler)
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -778,9 +787,10 @@ mod tests {
             let payload = format!("test data {i}").into_bytes();
             let frame = create_data_frame("event", Some(payload));
 
-            let handle = tokio::spawn(async move {
-                FrameHandler::handle_frame(frame, &handler_clone).await
-            });
+            let handle =
+                tokio::spawn(
+                    async move { FrameHandler::handle_frame(frame, &handler_clone).await },
+                );
 
             handles.push(handle);
         }

@@ -1,11 +1,11 @@
-//! 完整会话本地 adapter 测试（#426 / #427 / #428）。
+//! 完整会话本地 adapter 测试（#426 / #427 / #428 / #429）。
 //!
 //! 测试 seam：
 //! - 公开入口：[`LarkWsClient::open`]
 //! - 本地 HTTP endpoint（`/callback/ws/endpoint`）+ 本地 WebSocket peer
 //! - 可观察结果：EventHandler 调用、peer 收到的响应帧、`open` 返回的关闭原因
 //!
-//! 不直接调用 FrameHandler / 状态机（除会话路径本身）。
+//! 不穿透 frame handler / 状态机 public API（#429 已收回）。
 //! #427：分包组装 → 派发 → 同一会话写回；单包/多包只派发一次。
 //! #428：pong 更新心跳、malformed pong / 超时 / 关闭原因可观察。
 
@@ -26,10 +26,11 @@ use tokio_tungstenite::{WebSocketStream, accept_async};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use super::client::HeartbeatTimeoutGuard;
+use super::client::{
+    ClientConfig, HeartbeatTimeoutGuard, WsEvent,
+};
 use super::{
-    ClientConfig, EventDispatcherHandler, EventHandler, FrameHandler, LarkWsClient, WsClientError,
-    WsCloseReason, WsEvent,
+    EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsCloseReason,
 };
 
 const SERVICE_ID: i32 = 42;
@@ -75,9 +76,7 @@ impl LocalSessionHarness {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind local websocket listener");
-        let ws_addr = listener
-            .local_addr()
-            .expect("local websocket address");
+        let ws_addr = listener.local_addr().expect("local websocket address");
 
         let mock_server = MockServer::start().await;
         let ws_url = format!("ws://{ws_addr}/?service_id={SERVICE_ID}&device_id=test-device");
@@ -118,20 +117,13 @@ impl LocalSessionHarness {
     }
 
     /// 接受一次 WebSocket 连接并返回 peer stream。
-    async fn accept_peer(
-        &mut self,
-    ) -> WebSocketStream<tokio::net::TcpStream> {
-        let listener = self
-            .listener
-            .take()
-            .expect("listener already consumed");
+    async fn accept_peer(&mut self) -> WebSocketStream<tokio::net::TcpStream> {
+        let listener = self.listener.take().expect("listener already consumed");
         let (stream, _) = timeout(SESSION_TIMEOUT, listener.accept())
             .await
             .expect("accept timed out")
             .expect("accept connection");
-        accept_async(stream)
-            .await
-            .expect("websocket handshake")
+        accept_async(stream).await.expect("websocket handshake")
     }
 }
 
@@ -187,9 +179,7 @@ fn multipart_event_frame(
 }
 
 /// 从 peer 侧读取下一帧 protobuf Frame（跳过 WebSocket 层 ping/pong）。
-async fn recv_next_frame(
-    peer: &mut WebSocketStream<tokio::net::TcpStream>,
-) -> Frame {
+async fn recv_next_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> Frame {
     loop {
         let msg = timeout(SESSION_TIMEOUT, peer.next())
             .await
@@ -208,9 +198,7 @@ async fn recv_next_frame(
 }
 
 /// 等待 method=1 的数据响应帧；忽略客户端发出的控制/ping 帧。
-async fn recv_data_response_frame(
-    peer: &mut WebSocketStream<tokio::net::TcpStream>,
-) -> Frame {
+async fn recv_data_response_frame(peer: &mut WebSocketStream<tokio::net::TcpStream>) -> Frame {
     loop {
         let frame = recv_next_frame(peer).await;
         if frame.method == 1 {
@@ -227,7 +215,8 @@ async fn full_session_dispatches_handler_and_emits_response_frame() {
 
     let calls = Arc::new(AtomicUsize::new(0));
     let last_payload = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let event_payload = br#"{"header":{"event_type":"im.message.receive_v1"},"event":{"text":"hi"}}"#;
+    let event_payload =
+        br#"{"header":{"event_type":"im.message.receive_v1"},"event":{"text":"hi"}}"#;
 
     let event_handler = EventDispatcherHandler::builder()
         .register_raw(
@@ -288,10 +277,7 @@ async fn full_session_dispatches_handler_and_emits_response_frame() {
     // handler 从 LarkWsClient 会话路径被调用
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(
-        last_payload
-            .lock()
-            .expect("payload mutex")
-            .as_slice(),
+        last_payload.lock().expect("payload mutex").as_slice(),
         event_payload
     );
 
@@ -349,12 +335,9 @@ async fn full_session_remote_close_reason_is_observable() {
 
     tokio::task::yield_now().await;
 
-    let open_result = timeout(
-        SESSION_TIMEOUT,
-        LarkWsClient::open(config, event_handler),
-    )
-    .await
-    .expect("open timed out");
+    let open_result = timeout(SESSION_TIMEOUT, LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out");
 
     peer_task.await.expect("peer task");
 
@@ -384,20 +367,16 @@ async fn full_session_abrupt_peer_drop_is_observable_as_session_error() {
 
     tokio::task::yield_now().await;
 
-    let open_result = timeout(
-        SESSION_TIMEOUT,
-        LarkWsClient::open(config, event_handler),
-    )
-    .await
-    .expect("open timed out");
+    let open_result = timeout(SESSION_TIMEOUT, LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out");
 
     peer_task.await.expect("peer task");
 
     // 未完成 Close 握手时，tungstenite 通常报 Protocol(ResetWithoutClosingHandshake)；
     // 也可能落到 ConnectionClosed { reason: None }。两者都说明会话错误可观察。
     match open_result {
-        Err(WsClientError::WsError(_))
-        | Err(WsClientError::ConnectionClosed { reason: None }) => {}
+        Err(WsClientError::WsError(_)) | Err(WsClientError::ConnectionClosed { reason: None }) => {}
         other => panic!("expected session transport/close error, got: {other:?}"),
     }
 }
@@ -558,12 +537,9 @@ async fn full_session_multipart_incomplete_does_not_dispatch() {
     });
 
     tokio::task::yield_now().await;
-    let open_result = timeout(
-        SESSION_TIMEOUT,
-        LarkWsClient::open(config, event_handler),
-    )
-    .await
-    .expect("open timed out");
+    let open_result = timeout(SESSION_TIMEOUT, LarkWsClient::open(config, event_handler))
+        .await
+        .expect("open timed out");
 
     let data_responses = timeout(SESSION_TIMEOUT, peer_done_rx)
         .await
@@ -757,9 +733,12 @@ async fn full_session_heartbeat_timeout_is_observable() {
     });
 
     tokio::task::yield_now().await;
-    let open_result = timeout(Duration::from_secs(5), LarkWsClient::open(config, event_handler))
-        .await
-        .expect("open timed out waiting for heartbeat");
+    let open_result = timeout(
+        Duration::from_secs(5),
+        LarkWsClient::open(config, event_handler),
+    )
+    .await
+    .expect("open timed out waiting for heartbeat");
     peer_task.await.expect("peer task");
 
     assert!(
@@ -800,21 +779,9 @@ async fn handler_loop_invalid_state_transition_returns_error() {
 // 确保 ClientConfig 反序列化字段与 endpoint 脚本一致（编译期/本地 harness 契约）
 #[test]
 fn local_endpoint_client_config_shape_matches_production() {
-    let raw = br#"{"ReconnectCount":1,"ReconnectInterval":1,"ReconnectNonce":0,"PingInterval":3600}"#;
+    let raw =
+        br#"{"ReconnectCount":1,"ReconnectInterval":1,"ReconnectNonce":0,"PingInterval":3600}"#;
     let cfg: ClientConfig = serde_json::from_slice(raw).expect("ClientConfig shape");
     assert_eq!(cfg.ping_interval, 3600);
     assert_eq!(cfg.reconnect_count, 1);
-}
-
-#[test]
-fn interpret_control_frame_is_single_pong_path() {
-    // 与 Context 共用同一解释入口
-    let frame = pong_control_frame(15);
-    let effect = FrameHandler::interpret_control_frame(&frame).expect("ok");
-    match effect {
-        super::ControlFrameEffect::UpdateClientConfig(cfg) => {
-            assert_eq!(cfg.ping_interval, 15);
-        }
-        other => panic!("expected config update, got {other:?}"),
-    }
 }

@@ -21,11 +21,8 @@ use tokio_tungstenite::{
 };
 use url::Url;
 
-use super::{
-    FrameHandler, WebSocketStateMachine,
-    frame_handler::{ControlFrameEffect, ControlFrameError},
-    state_machine::{CloseReason, StateMachineEvent},
-};
+use super::frame_handler::{ControlFrameEffect, ControlFrameError, FrameHandler};
+use super::state_machine::{CloseReason, StateMachineEvent, WebSocketStateMachine};
 
 type EventHandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
@@ -573,9 +570,9 @@ impl LarkWsClient {
     }
 }
 
-/// WebSocket 端点查询响应。
+/// WebSocket 端点查询响应（crate 内部）。
 #[derive(Debug, Deserialize)]
-pub struct EndPointResponse {
+pub(crate) struct EndPointResponse {
     #[serde(rename = "URL")]
     /// WebSocket 连接地址。
     pub url: Option<String>,
@@ -584,21 +581,24 @@ pub struct EndPointResponse {
     pub client_config: Option<ClientConfig>,
 }
 
-/// 服务端下发的 WebSocket 客户端配置。
+/// 服务端下发的 WebSocket 客户端配置（crate 内部）。
+///
+/// 重连字段随 pong/endpoint 一并反序列化，当前会话实现仅消费 `ping_interval`。
 #[derive(Debug, Deserialize, Clone)]
-pub struct ClientConfig {
+#[allow(dead_code)]
+pub(crate) struct ClientConfig {
     #[serde(rename = "ReconnectCount")]
     /// 允许的最大重连次数。
-    pub reconnect_count: i32,
+    pub(crate) reconnect_count: i32,
     #[serde(rename = "ReconnectInterval")]
     /// 重连间隔（秒）。
-    pub reconnect_interval: i32,
+    pub(crate) reconnect_interval: i32,
     #[serde(rename = "ReconnectNonce")]
     /// 重连随机因子。
-    pub reconnect_nonce: i32,
+    pub(crate) reconnect_nonce: i32,
     #[serde(rename = "PingInterval")]
     /// Ping 心跳间隔（秒）。
-    pub ping_interval: i32,
+    pub(crate) ping_interval: i32,
 }
 
 /// WebSocket 客户端结果类型别名。
@@ -847,10 +847,8 @@ async fn client_loop(
 }
 
 #[derive(Debug)]
-/// WebSocket事件类型
-///
-/// 定义WebSocket连接中可能接收到的各种事件
-pub enum WsEvent {
+/// WebSocket 内部事件（crate 内会话通道；#429 不公开）。
+pub(crate) enum WsEvent {
     /// 错误事件。
     Error(WsClientError),
     /// 数据帧事件。

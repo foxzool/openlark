@@ -1,22 +1,21 @@
 // WebSocket 客户端模块
 //
-// 提供WebSocket连接和事件处理功能
+// 公开入口仅暴露会话级类型（LarkWsClient / EventHandler 等）。
+// frame 解析与连接状态机为 implementation detail，不作为独立 public interface。
 
 mod client;
 mod frame_handler;
 mod state_machine;
 
 #[cfg(feature = "websocket")]
-// client 模块显式导出
+/// 会话级公开 API（#429：frame / state / 内部事件通道不再 re-export）。
 pub use client::{
-    ClientConfig, EndPointResponse, EventDispatcherHandler, EventHandler, LarkWsClient,
-    WsClientError, WsClientResult, WsCloseReason, WsEvent,
+    EventDispatcherHandler, EventHandler, LarkWsClient, WsClientError, WsClientResult,
+    WsCloseReason,
 };
 
-pub use frame_handler::{
-    ControlFrameEffect, ControlFrameError, FrameHandler, FrameType,
-};
-pub use state_machine::{ConnectionState, StateMachineEvent, WebSocketStateMachine};
+// ClientConfig / EndPointResponse / WsEvent / frame_handler / state_machine：
+// 仅 crate 内可见，不 re-export。
 
 #[cfg(test)]
 mod tests;
