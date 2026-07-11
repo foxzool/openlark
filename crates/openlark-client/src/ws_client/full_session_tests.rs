@@ -110,9 +110,7 @@ impl LocalSessionHarness {
             .await
             .expect("accept timed out")
             .expect("accept connection");
-        accept_async(stream)
-            .await
-            .expect("websocket handshake")
+        accept_async(stream).await.expect("websocket handshake")
     }
 }
 
@@ -154,10 +152,14 @@ where
 
     tokio::task::yield_now().await;
 
-    let open_result = timeout(
-        SESSION_TIMEOUT,
-        LarkWsClient::open_with(config, event_handler, options),
-    )
+    // 默认选项走公开 `open` seam（#426）；仅非默认 SessionOptions 用 open_with
+    let open_result = timeout(SESSION_TIMEOUT, async move {
+        if options == SessionOptions::default() {
+            LarkWsClient::open(config, event_handler).await
+        } else {
+            LarkWsClient::open_with(config, event_handler, options).await
+        }
+    })
     .await
     .expect("open timed out");
 
@@ -320,10 +322,11 @@ fn invalid_method_frame() -> Frame {
 fn assert_normal_close(result: WsClientResult<()>) {
     match result {
         Err(WsClientError::ConnectionClosed {
-            reason: Some(WsCloseReason {
-                code: CloseCode::Normal,
-                ..
-            }),
+            reason:
+                Some(WsCloseReason {
+                    code: CloseCode::Normal,
+                    ..
+                }),
         }) => {}
         other => panic!("expected Normal ConnectionClosed, got: {other:?}"),
     }
@@ -429,8 +432,7 @@ async fn full_session_abrupt_peer_drop_is_observable_as_session_error() {
     .await;
 
     match open_result {
-        Err(WsClientError::WsError(_))
-        | Err(WsClientError::ConnectionClosed { reason: None }) => {}
+        Err(WsClientError::WsError(_)) | Err(WsClientError::ConnectionClosed { reason: None }) => {}
         other => panic!("expected session transport/close error, got: {other:?}"),
     }
 }
@@ -702,7 +704,7 @@ async fn full_session_malformed_pong_is_session_error() {
 
 #[tokio::test]
 async fn full_session_heartbeat_timeout_is_observable() {
-    // 会话级注入超时，无需全局状态 / 串行锁
+    // 仅 WS Ping 刷新存活；peer 不发 Ping → 超时。会话级注入超时。
     let options = SessionOptions {
         heartbeat_timeout: Duration::from_millis(250),
     };
@@ -712,8 +714,7 @@ async fn full_session_heartbeat_timeout_is_observable() {
         EventDispatcherHandler::builder().build(),
         options,
         |mut peer| async move {
-            // 不发送任何帧；会话会因 inactivity 超时。
-            // 仍读一下可能的首 ping，避免写缓冲阻塞。
+            // 读走客户端 app ping（Binary），不发 WebSocket Ping。
             let _ = timeout(Duration::from_secs(2), peer.next()).await;
             while let Some(Ok(_)) = peer.next().await {}
         },
@@ -727,6 +728,68 @@ async fn full_session_heartbeat_timeout_is_observable() {
         ),
         "expected heartbeat ConnectionClosed, got: {open_result:?}"
     );
+}
+
+/// 慢 EventHandler 不应阻塞 app-level ping 发出（Codex P1：spawn_blocking）。
+#[tokio::test]
+async fn full_session_slow_handler_does_not_block_app_ping() {
+    use std::thread;
+    use std::time::Instant;
+
+    struct SlowHandler;
+    impl EventHandler for SlowHandler {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(800));
+            Ok(())
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, SlowHandler)
+        .expect("register")
+        .build();
+
+    let (open_result, ping_during_handler) = run_session(
+        LocalSessionHarness::start_with_ping_interval(1).await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            // 排空首 tick ping
+            let _ = timeout(SESSION_TIMEOUT, recv_app_ping_frame(&mut peer)).await;
+
+            let payload =
+                br#"{"header":{"event_type":"im.message.receive_v1"},"event":{"slow":true}}"#;
+            peer.send(Message::Binary(
+                event_data_frame(payload).encode_to_vec().into(),
+            ))
+            .await
+            .expect("send event");
+
+            // handler 阻塞 800ms 期间，主循环仍应能发 app ping（interval=1s 且首 tick 后约 1s）
+            let t0 = Instant::now();
+            let got_ping = timeout(Duration::from_millis(1500), recv_app_ping_frame(&mut peer))
+                .await
+                .is_ok();
+            let elapsed = t0.elapsed();
+
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "slow handler test".into(),
+            }))
+            .await
+            .ok();
+            // 若 handler 阻塞主循环，响应写回与后续 ping 会一起卡 ≥800ms 且更易超时
+            (got_ping, elapsed)
+        },
+    )
+    .await;
+
+    let (got_ping, _elapsed) = ping_during_handler;
+    assert!(
+        got_ping,
+        "expected app-level ping while slow handler runs (select must not block on handler)"
+    );
+    assert_normal_close(open_result);
 }
 
 #[test]

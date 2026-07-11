@@ -21,20 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **WebSocket 会话结果可观察（#426）**：`LarkWsClient::open` 在远端关闭或传输失败时
-  通过 `Result` 返回 `ConnectionClosed` / `WsError`（此前 `handler_loop` 忽略
-  `WsEvent::Error`，会话几乎总是以 `Ok(())` 结束）。`Message::Close(None)` 映射为
-  `ConnectionClosed { reason: None }`。连接建立与帧派发路径不变；新增本地
-  endpoint + WebSocket peer 的完整会话测试 seam。
+  通过 `Result` 返回 `ConnectionClosed` / `WsError`（此前会话几乎总是以
+  `Ok(())` 结束）。新增本地 endpoint + WebSocket peer 的完整会话测试 seam。
 
-- **WebSocket 数据帧单一会话路径（#427）**：分包组装 → 事件派发 → 经同一
-  `frame_tx` 写回响应；移除每帧临时 channel 与丢弃事件路径。完整会话测试覆盖
-  多包乱序只派发一次与缺包不派发。
+- **WebSocket 数据帧单一会话路径（#427）**：分包组装 → 事件派发 → 同会话 sink
+  写回；移除每帧临时 channel。完整会话测试覆盖多包乱序与缺包。
 
-- **WebSocket 控制帧 / 心跳 / 状态机统一（#428）**：pong 仅经
-  `FrameHandler::interpret_control_frame` 解释，会话 I/O 唯一应用
-  `ClientConfig` 并更新 ping 间隔；移除 `handle_*_direct` 双路径。非法状态转换
-  与 malformed pong 经 `open`/`InvalidStateTransition`/`MalformedControlFrame`
-  返回；心跳超时可测。
+- **WebSocket 控制帧 / 心跳（#428）**：pong 经内部 `interpret_control_frame`
+  解释并更新 ping 间隔；malformed pong / 非法会话状态经
+  `MalformedControlFrame` / `InvalidStateTransition` 返回；心跳超时可测。
 
 - **`allow_custom_base_url` 与构造入口一致性（#415–#416）**：Client 两条公开构造路径
   均完整传播自定义域名放行标志，并执行同一白名单规则。
@@ -46,32 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-- **`FrameHandler::handle_frame` 去掉无用的 `event_tx` 参数（#427）**：签名由
-  `(frame, handler, event_tx)` 变为 `(frame, handler)`。响应帧仅由会话经
-  `frame_tx` 写回；应用侧应使用 `LarkWsClient::open`，勿直接依赖 FrameHandler。
-  （#429 将进一步收缩 frame/state 公开面。）
+> 下列 WebSocket 破坏性变更面向下一 minor **0.18.0**（当前 workspace 仍为
+> 0.17.0 开发线；发布 0.18 时一并升版本号）。
 
-- **WebSocket 会话错误与控制帧契约（#428，后经单 Session 收口调整）**：
-  - `WsClientError` 新增 `MalformedControlFrame`
-  - malformed pong 由「日志后忽略」改为会话错误返回
-  - 未知 frame method 由忽略改为 `ClientError`
-  - 控制帧唯一解释入口 `interpret_control_frame`（crate 内部）
-
-- **WebSocket 公开面收缩（#429）**：`ws_client` 仅 re-export 会话入口
+- **WebSocket 公开面收缩（#429）与单一 Session（#421）**：`ws_client` 仅 re-export
   `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
-  `WsClientError` / `WsClientResult` / `WsCloseReason`。以下变为 crate 内部：
-  `FrameHandler`、`FrameType`、`ControlFrameEffect`/`Error`、
-  `ClientConfig`、`EndPointResponse`。
-  **迁移**：删除对 frame/state/内部通道类型的直接依赖；会话用
-  `LarkWsClient::open` + 事件 handler。
+  `WsClientError` / `WsClientResult` / `WsCloseReason`。`FrameHandler`、
+  状态机类型、`ClientConfig`、`EndPointResponse` 等不再公开。内部为单
+  `select!` 会话：I/O、心跳、控制帧、分包、handler 调度（`spawn_blocking`）
+  与写回。**迁移**：只用 `LarkWsClient::open` + 事件 handler。
 
-- **WebSocket 单一 Session loop（#421 结构收口）**：删除 I/O 任务 +
-  `handler_loop` + `WsEvent` 双环路与僵尸 `WebSocketStateMachine`。一次
-  `select!` 拥有心跳、控制帧、分包、派发与响应写回；响应发送失败进入会话
-  `Result`。**存活计时按任意入站 WebSocket 消息刷新**（不仅是 WS 层 Ping，
-  有意语义）。心跳超时经 `SessionOptions` 注入。模块拆为 `session` /
-  `package` / `frame_handler` / `headers` / `client`。未知 frame method 与
-  超大帧有完整会话级测试覆盖。
+- **WebSocket 协议错误更严格**：malformed pong、未知 frame method 结束会话
+  （`MalformedControlFrame` / `ClientError`），不再静默忽略。
 
 - **#350 P9 接口形状撒谎修正（workflow + analytics；platform/user 已先行）**：
   - **workflow**：`approve_task`/`reject_task`/`resubmit_task` 原丢弃真实响应并恒返回

@@ -257,8 +257,9 @@ mod test_utils;
 // WebSocket 模块（条件编译）
 /// WebSocket 客户端模块
 ///
-/// 提供与飞书WebSocket服务的实时连接功能，支持事件接收和状态管理。
-/// 此模块重新导出了openlark-core中的WebSocket实现。
+/// 提供与飞书 WebSocket 服务的实时连接与事件接收。
+/// 公开入口：[`ws_client::LarkWsClient`]、[`ws_client::EventDispatcherHandler`]、
+/// [`ws_client::EventHandler`]。
 #[cfg(feature = "websocket")]
 pub mod ws_client;
 

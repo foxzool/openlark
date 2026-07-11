@@ -184,7 +184,7 @@ const END_POINT_URL: &str = "/callback/ws/endpoint";
 
 /// 飞书 WebSocket 客户端入口。
 ///
-/// 会话协议由内部 [`Session`](super::session::Session) 单一 loop 拥有。
+/// 连接建立后由内部单一 session loop 拥有：I/O、心跳、控制帧、分包、事件调度与写回。
 pub struct LarkWsClient;
 
 impl LarkWsClient {
@@ -195,9 +195,10 @@ impl LarkWsClient {
     /// 生产路径在会话终止时几乎总是 `Err`：
     /// - `Err(WsClientError::ConnectionClosed { reason })`：对端 Close（含正常关闭
     ///   code）或入站空闲超时；**正常断开也是 `Err`，调用方请匹配此变体**
-    /// - 其它 `Err`：端点查询、传输、malformed 控制帧、未知 frame method 等
+    /// - 其它 `Err`：端点查询、传输、malformed 控制帧、未知 frame method、
+    ///   非法会话状态等
     ///
-    /// 入站空闲超时按**任意**入站 WebSocket 消息刷新（不仅是 WS 层 Ping）。
+    /// 入站空闲超时**仅**在收到 WebSocket 层 `Ping` 时刷新（与历史行为一致）。
     pub async fn open(
         config: Arc<openlark_core::config::Config>,
         event_handler: EventDispatcherHandler,
@@ -342,6 +343,9 @@ pub enum WsClientError {
         /// 错误描述。
         message: String,
     },
+    #[error("invalid session state transition: {0}")]
+    /// 会话状态不允许的操作（例如已关闭后继续处理业务帧）。
+    InvalidStateTransition(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for WsClientError {

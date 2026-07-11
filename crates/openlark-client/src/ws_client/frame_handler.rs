@@ -430,7 +430,11 @@ mod tests {
     #[test]
     fn test_event_dispatcher_no_sender_still_ok() {
         let handler = EventDispatcherHandler::builder().build();
-        assert!(handler.do_without_validation(b"payload-without-sender").is_ok());
+        assert!(
+            handler
+                .do_without_validation(b"payload-without-sender")
+                .is_ok()
+        );
     }
 
     #[test]
