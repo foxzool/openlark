@@ -1,10 +1,14 @@
 //! 单一 WebSocket 会话实现。
 //!
 //! 一次 `select!` 循环拥有：传输 I/O、心跳、控制帧、分包、**串行**事件派发调度与写回。
-//! 用户 `EventHandler` 在专用 worker 中经 `spawn_blocking` 顺序执行，既不阻塞 Ping/收帧，
-//! 又保持与旧 `handler_loop` 一致的串行调用与 ACK 顺序。
+//! 用户 `EventHandler` 在专用 worker 中经 `spawn_blocking` 顺序执行，保持与旧
+//! `handler_loop` 一致的串行调用与 ACK 顺序。
+//!
+//! 入队使用 **try_send + 本地 outbox + `reserve()`**：队列满时不丢弃已组装帧，
+//! 也不在 select 关键路径上 `send().await` 阻塞 Ping/心跳。
+//! （outbox 与 worker 队列均有界；两者皆满时才返回错误，避免无界内存。）
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::panic::AssertUnwindSafe;
 use std::time::Duration;
 
@@ -29,29 +33,25 @@ use super::frame_handler::{
 };
 use super::package::{self, FramePackageBuffer};
 
-/// 串行 handler 队列容量（背压：满则拒绝入队，避免无界积压）。
+/// 串行 handler 队列容量（worker 侧有界缓冲）。
 const HANDLER_QUEUE_CAP: usize = 64;
+/// 主循环本地待发 outbox 上限（与队列同量级，内存有界且不丢帧）。
+const PENDING_OUTBOX_CAP: usize = HANDLER_QUEUE_CAP;
 /// 会话结束后等待 worker 排空的最长时间。
 const WORKER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// 会话连接状态（#421 / #428）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SessionState {
-    /// 已连接，可处理业务帧。
     Active,
-    /// 正在关闭：不再接收新业务帧，可排空已排队的 handler。
     Closing,
-    /// 已关闭。
     Closed,
 }
 
 /// 会话运行选项（生产默认；测试可缩短心跳超时）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SessionOptions {
-    /// 入站空闲超时。
-    ///
-    /// **仅** WebSocket 层 `Ping` 刷新存活计时（与历史行为一致）；
-    /// Binary 业务帧不刷新。超时返回 `ConnectionClosed { reason: None }`。
+    /// **仅** WebSocket 层 `Ping` 刷新存活计时；超时返回 `ConnectionClosed { reason: None }`。
     pub(crate) heartbeat_timeout: Duration,
 }
 
@@ -63,10 +63,8 @@ impl Default for SessionOptions {
     }
 }
 
-/// handler 完成后回写主循环的结果。
 type HandlerOutcome = WsClientResult<Option<Frame>>;
 
-/// 单次 WebSocket 会话：连接建立后的全部协议行为。
 pub(crate) struct Session {
     service_id: i32,
     sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, WsMessage>,
@@ -76,10 +74,10 @@ pub(crate) struct Session {
     ping_frame_interval: Interval,
     heartbeat_timeout: Duration,
     state: SessionState,
-    /// 关闭原因（Closing 时暂存，排空 handler 后返回）。
     pending_close: Option<Option<WsCloseReason>>,
-    /// 已提交给串行 worker、尚未回写的任务数。
     inflight_handlers: usize,
+    /// worker 队列满时暂存的已组装帧（不丢弃；经 reserve 再入队）。
+    pending_outbox: VecDeque<Frame>,
 }
 
 impl Session {
@@ -103,6 +101,7 @@ impl Session {
             state: SessionState::Active,
             pending_close: None,
             inflight_handlers: 0,
+            pending_outbox: VecDeque::new(),
         }
     }
 
@@ -116,9 +115,6 @@ impl Session {
         Ok(())
     }
 
-    /// 进入 Closing：停止新业务，排空 inflight 后再结束。
-    ///
-    /// 已在 Closing 时为幂等 no-op（保留首次关闭原因，避免被 EOF 覆盖）。
     fn begin_close(&mut self, reason: Option<WsCloseReason>) -> WsClientResult<()> {
         match self.state {
             SessionState::Closed => {
@@ -126,10 +122,7 @@ impl Session {
                     "session already Closed".to_string(),
                 ));
             }
-            SessionState::Closing => {
-                // 幂等：保留 pending_close，不报错、不覆盖原因
-                return Ok(());
-            }
+            SessionState::Closing => return Ok(()),
             SessionState::Active => {}
         }
         self.state = SessionState::Closing;
@@ -138,7 +131,10 @@ impl Session {
     }
 
     fn finish_if_drained(&mut self) -> Option<WsClientResult<()>> {
-        if self.state == SessionState::Closing && self.inflight_handlers == 0 {
+        if self.state == SessionState::Closing
+            && self.inflight_handlers == 0
+            && self.pending_outbox.is_empty()
+        {
             self.state = SessionState::Closed;
             let reason = self.pending_close.take().flatten();
             return Some(Err(WsClientError::ConnectionClosed { reason }));
@@ -146,21 +142,34 @@ impl Session {
         None
     }
 
-    /// 运行会话直至关闭或错误。
-    ///
-    /// 正常对端 Close / 传输失败 / 协议错误均以 `Err` 返回（含
-    /// `ConnectionClosed`）。生产路径不返回 `Ok(())`。
+    fn flush_outbox_try(&mut self, job_tx: &mpsc::Sender<Frame>) -> WsClientResult<()> {
+        while let Some(frame) = self.pending_outbox.pop_front() {
+            match job_tx.try_send(frame) {
+                Ok(()) => {
+                    self.inflight_handlers = self.inflight_handlers.saturating_add(1);
+                }
+                Err(mpsc::error::TrySendError::Full(frame)) => {
+                    self.pending_outbox.push_front(frame);
+                    break;
+                }
+                Err(mpsc::error::TrySendError::Closed(_)) => {
+                    return Err(WsClientError::InvalidStateTransition(
+                        "handler worker is gone".to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) async fn run(mut self) -> WsClientResult<()> {
-        // 存活计时：仅 WebSocket 层 Ping 刷新（保留历史 heartbeat 语义）。
         let mut last_activity = Instant::now();
-        // 检查周期不超过心跳超时，避免短超时测试/配置下迟迟不进入 Closing
         let checkout_period = self
             .heartbeat_timeout
             .min(Duration::from_secs(1))
             .max(Duration::from_millis(50));
         let mut checkout_timeout = tokio::time::interval(checkout_period);
 
-        // 有界串行队列：满则拒绝新事件（背压），避免无界内存积压。
         let (job_tx, mut job_rx) = mpsc::channel::<Frame>(HANDLER_QUEUE_CAP);
         let (outcome_tx, mut outcome_rx) = mpsc::channel::<HandlerOutcome>(HANDLER_QUEUE_CAP);
         let worker_handler = self.event_handler.clone();
@@ -192,15 +201,30 @@ impl Session {
         });
 
         let result = async {
-            // 流结束后必须停止 poll，否则 select 会忙等 None 饿死 outcome_rx
             let mut stream_open = true;
             loop {
                 if let Some(done) = self.finish_if_drained() {
                     return done;
                 }
+                self.flush_outbox_try(&job_tx)?;
+
+                // Closing 时也要冲刷 outbox，否则 finish_if_drained 永远等非空 outbox
+                let need_reserve =
+                    !self.pending_outbox.is_empty() && self.state != SessionState::Closed;
 
                 tokio::select! {
-                    // Active 与 Closing 都继续读流：Closing 时再收 Binary 可触发可达的非法状态错误
+                    permit = job_tx.reserve(), if need_reserve => {
+                        let permit = permit.map_err(|_| {
+                            WsClientError::InvalidStateTransition(
+                                "handler worker is gone".to_string(),
+                            )
+                        })?;
+                        if let Some(frame) = self.pending_outbox.pop_front() {
+                            permit.send(frame);
+                            self.inflight_handlers =
+                                self.inflight_handlers.saturating_add(1);
+                        }
+                    }
                     item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
                         match item.transpose()? {
                             Some(msg) => {
@@ -214,13 +238,11 @@ impl Session {
                                                 .to_string(),
                                         ));
                                     }
-                                    // Closing 期间忽略多余 Ping/Pong/Close（含重复 Close）
                                     continue;
                                 }
                                 self.handle_message(msg, &job_tx).await?;
                             }
                             None => {
-                                // EOF：Active → begin_close；已 Closing 则幂等保留关闭原因
                                 stream_open = false;
                                 self.begin_close(None)?;
                             }
@@ -230,19 +252,18 @@ impl Session {
                         self.inflight_handlers = self.inflight_handlers.saturating_sub(1);
                         match outcome {
                             Ok(Some(response_frame)) => {
-                                // Closing 时丢弃 ACK，不再写回
                                 if self.state == SessionState::Active {
                                     self.send_frame(response_frame).await?;
                                 }
                             }
                             Ok(None) => {}
                             Err(err) => {
-                                // 强制终止：不再经 begin_close（避免 pending_close 与返回 err 不一致）
                                 self.state = SessionState::Closed;
                                 self.pending_close = None;
                                 return Err(err);
                             }
                         }
+                        self.flush_outbox_try(&job_tx)?;
                         if let Some(done) = self.finish_if_drained() {
                             return done;
                         }
@@ -260,14 +281,14 @@ impl Session {
         }
         .await;
 
-        // 停止入队并有界等待 worker；超时则 abort，避免永不返回的 handler 卡住 open
         drop(job_tx);
         let mut worker = worker;
         tokio::select! {
             _ = &mut worker => {}
             _ = tokio::time::sleep(WORKER_SHUTDOWN_TIMEOUT) => {
                 warn!(
-                    "handler worker did not finish within {:?}; aborting worker task",
+                    "handler worker did not finish within {:?}; aborting worker task \
+                     (in-flight spawn_blocking handler may still run until it returns)",
                     WORKER_SHUTDOWN_TIMEOUT
                 );
                 worker.abort();
@@ -281,12 +302,6 @@ impl Session {
         self.ensure_active()?;
         let frame = FrameHandler::build_ping_frame(self.service_id);
         let msg = Message::Binary(frame.encode_to_vec().into());
-        trace!(
-            "Sending ping message: {:?} {} {}",
-            msg,
-            msg.len(),
-            self.service_id
-        );
         self.sink.send(msg).await.map_err(|e| {
             error!("Failed to send ping message: {e:?}");
             WsClientError::WsError(Box::new(e))
@@ -295,7 +310,6 @@ impl Session {
     }
 
     async fn send_frame(&mut self, frame: Frame) -> WsClientResult<()> {
-        trace!("send frame: {frame:?}");
         let msg = Message::Binary(frame.encode_to_vec().into());
         self.sink
             .send(msg)
@@ -309,7 +323,6 @@ impl Session {
         msg: WsMessage,
         job_tx: &mpsc::Sender<Frame>,
     ) -> WsClientResult<()> {
-        // Closing/Closed 下再收到业务 Binary 即为非法状态
         if self.state != SessionState::Active
             && matches!(msg, Message::Binary(_) | Message::Text(_))
         {
@@ -332,7 +345,7 @@ impl Session {
                 trace!("Received frame: {frame:?}");
                 match frame.method {
                     FRAME_METHOD_CONTROL => self.apply_control_frame(frame)?,
-                    FRAME_METHOD_DATA => self.enqueue_data_frame(frame, job_tx).await?,
+                    FRAME_METHOD_DATA => self.enqueue_data_frame(frame, job_tx)?,
                     other => {
                         return Err(WsClientError::ClientError {
                             code: 0,
@@ -366,7 +379,6 @@ impl Session {
         }
     }
 
-    /// 仅应用 pong 中的 `PingInterval`。
     fn apply_ping_interval(&mut self, ping_interval: i32) {
         let ping_secs = (ping_interval.max(1)) as u64;
         self.ping_frame_interval = tokio::time::interval(Duration::from_secs(ping_secs));
@@ -375,10 +387,8 @@ impl Session {
         debug!("Updated ping interval from pong response: {ping_secs}s");
     }
 
-    /// 分包在主循环顺序完成；完整帧入有界串行队列。
-    ///
-    /// 队列满时 `send().await` 等待空位（背压），**不丢弃**已组装帧，也不因满队列杀会话。
-    async fn enqueue_data_frame(
+    /// try_send 入队；满则进 outbox（不丢帧）；outbox 也满才 Err。
+    fn enqueue_data_frame(
         &mut self,
         frame: Frame,
         job_tx: &mpsc::Sender<Frame>,
@@ -388,10 +398,26 @@ impl Session {
             return Ok(());
         };
 
-        job_tx.send(frame).await.map_err(|_| {
-            WsClientError::InvalidStateTransition("handler worker is gone".to_string())
-        })?;
-        self.inflight_handlers = self.inflight_handlers.saturating_add(1);
-        Ok(())
+        match job_tx.try_send(frame) {
+            Ok(()) => {
+                self.inflight_handlers = self.inflight_handlers.saturating_add(1);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(frame)) => {
+                if self.pending_outbox.len() >= PENDING_OUTBOX_CAP {
+                    return Err(WsClientError::ClientError {
+                        code: 0,
+                        message: format!(
+                            "handler backlog full (queue {HANDLER_QUEUE_CAP} + outbox {PENDING_OUTBOX_CAP})"
+                        ),
+                    });
+                }
+                self.pending_outbox.push_back(frame);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Closed(_)) => Err(
+                WsClientError::InvalidStateTransition("handler worker is gone".to_string()),
+            ),
+        }
     }
 }

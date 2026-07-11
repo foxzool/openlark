@@ -984,6 +984,77 @@ async fn full_session_slow_handler_does_not_block_app_ping() {
     assert_normal_close(open_result);
 }
 
+/// 队列积压（多帧 + 慢 handler）时 app ping 仍应发出（try_send/outbox/reserve 不阻塞 select）。
+#[tokio::test]
+async fn full_session_backlog_does_not_block_app_ping() {
+    use std::thread;
+    use std::time::Instant;
+
+    struct SlowHandler;
+    impl EventHandler for SlowHandler {
+        fn handle(&self, _payload: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            thread::sleep(Duration::from_millis(50));
+            Ok(())
+        }
+    }
+
+    let event_handler = EventDispatcherHandler::builder()
+        .register_raw(EventDispatcherHandler::RAW_EVENT_KEY, SlowHandler)
+        .expect("register")
+        .build();
+
+    let (open_result, got_ping) = run_session(
+        LocalSessionHarness::start_with_ping_interval(1).await,
+        event_handler,
+        SessionOptions::default(),
+        |mut peer| async move {
+            let _ = timeout(SESSION_TIMEOUT, recv_app_ping_frame(&mut peer)).await;
+
+            // 突发 80 帧（> HANDLER_QUEUE_CAP 64），触发 outbox 路径
+            for i in 0..80u8 {
+                let mut payload =
+                    br#"{"header":{"event_type":"im.message.receive_v1"},"event":{"n":0}}"#
+                        .to_vec();
+                if let Some(last) = payload.last_mut() {
+                    *last = b'0' + (i % 10);
+                }
+                peer.send(Message::Binary(
+                    event_data_frame(&payload).encode_to_vec().into(),
+                ))
+                .await
+                .expect("send burst event");
+            }
+
+            let t0 = Instant::now();
+            let got_ping = timeout(Duration::from_millis(2000), recv_app_ping_frame(&mut peer))
+                .await
+                .is_ok();
+            let _ = t0;
+
+            peer.close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "backlog ping test".into(),
+            }))
+            .await
+            .ok();
+            // 排空可能的 ACK，避免 peer 挂起
+            while let Some(Ok(_)) = timeout(Duration::from_millis(100), peer.next())
+                .await
+                .ok()
+                .flatten()
+            {}
+            got_ping
+        },
+    )
+    .await;
+
+    assert!(
+        got_ping,
+        "expected app-level ping while handler queue/outbox is backlogged"
+    );
+    assert_normal_close(open_result);
+}
+
 #[test]
 fn local_endpoint_client_config_shape_matches_production() {
     let raw =
