@@ -74,6 +74,24 @@ fn require_decoded_payload<T: ApiResponseTrait>(
     }
 }
 
+/// 成功响应缺少 `data` 字段时：尝试以空对象 `{}` 解码（兼容空 struct 删除类 API）。
+fn try_empty_object_payload<T: ApiResponseTrait + for<'de> Deserialize<'de>>() -> Option<T> {
+    serde_json::from_value(serde_json::json!({})).ok()
+}
+
+/// 成功且 data 缺失时的收尾：空对象兼容 / optional / 明确错误。
+fn resolve_missing_data_field<T: ApiResponseTrait + for<'de> Deserialize<'de>>()
+-> Result<Option<T>, String> {
+    if let Some(empty) = try_empty_object_payload::<T>() {
+        return Ok(Some(empty));
+    }
+    if T::requires_payload() {
+        Err("成功响应缺少必需的 data 字段".to_string())
+    } else {
+        Ok(None)
+    }
+}
+
 impl ResponseDecoder {
     /// 处理响应：按 `T::data_format()` 分派到对应解码策略。
     pub async fn handle_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
@@ -133,14 +151,16 @@ impl ResponseDecoder {
 
         // 尝试直接解析为BaseResponse<T>
         match serde_json::from_str::<Response<T>>(&response_text) {
-            Ok(base_response) => {
-                if base_response.is_success()
-                    && base_response.data.is_none()
-                    && T::requires_payload()
-                {
-                    let error_msg = "成功响应缺少必需的 data 字段".to_string();
-                    tracker.error(&error_msg);
-                    return Err(validation_error("api_response_data", error_msg));
+            Ok(mut base_response) => {
+                if base_response.is_success() && base_response.data.is_none() {
+                    match resolve_missing_data_field::<T>() {
+                        Ok(Some(data)) => base_response.data = Some(data),
+                        Ok(None) => {}
+                        Err(error_msg) => {
+                            tracker.error(&error_msg);
+                            return Err(validation_error("api_response_data", error_msg));
+                        }
+                    }
                 }
                 tracker.success();
                 Ok(base_response)
@@ -158,6 +178,7 @@ impl ResponseDecoder {
                             .to_string();
 
                         // 成功时：缺失或不可解析的必需 data 返回明确错误（#422 / #431）
+                        // 空 struct 删除类 API：无 data 时尝试 `{}` 解码。
                         let data = if code == 0 {
                             if let Some(data_value) = raw_value.get("data") {
                                 match serde_json::from_value::<T>(data_value.clone()) {
@@ -182,15 +203,17 @@ impl ResponseDecoder {
                                         None
                                     }
                                 }
-                            } else if T::requires_payload() {
-                                let error_msg = "成功响应缺少必需的 data 字段".to_string();
-                                tracker.error(&error_msg);
-                                return Err(validation_error("api_response_data", error_msg));
                             } else {
-                                tracing::debug!(
-                                    "No data field in success response (payload not required)"
-                                );
-                                None
+                                match resolve_missing_data_field::<T>() {
+                                    Ok(data) => data,
+                                    Err(error_msg) => {
+                                        tracker.error(&error_msg);
+                                        return Err(validation_error(
+                                            "api_response_data",
+                                            error_msg,
+                                        ));
+                                    }
+                                }
                             }
                         } else {
                             None

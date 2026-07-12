@@ -118,9 +118,10 @@ impl ResponseFormat {
 
 /// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
 ///
-/// - [`data_format`] 选择解码路径（不得静默降级到 Data）
-/// - [`requires_payload`]：成功（业务 code=0 / Binary/Text 可读）时是否必须解出 `data`
-/// - Binary / Text / Custom 通过类型方法参与解码，避免运行时 `TypeId` 猜测
+/// - [`Self::data_format`] 选择解码路径（不得静默降级到 Data）
+/// - [`Self::requires_payload`]：成功（业务 code=0 / Binary/Text 可读）时是否必须解出 `data`
+/// - Binary / Text / Custom 通过 [`Self::from_binary`] / [`Self::from_text`] /
+///   [`Self::from_custom`] 参与解码，避免运行时 `TypeId` 猜测
 pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
     /// 获取响应数据格式
     fn data_format() -> ResponseFormat {
