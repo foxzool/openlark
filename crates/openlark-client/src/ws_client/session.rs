@@ -226,11 +226,12 @@ impl Session {
 
     pub(crate) async fn run(mut self) -> WsClientResult<()> {
         let mut last_activity = Instant::now();
-        let checkout_period = self
+        // 心跳过期轮询周期（非业务 checkout）；钳在 [50ms, 1s] 与 timeout 之间。
+        let heartbeat_check_period = self
             .heartbeat_timeout
             .min(Duration::from_secs(1))
             .max(Duration::from_millis(50));
-        let mut checkout_timeout = tokio::time::interval(checkout_period);
+        let mut heartbeat_check_interval = tokio::time::interval(heartbeat_check_period);
 
         let (job_tx, mut job_rx) = mpsc::channel::<Frame>(HANDLER_QUEUE_CAP);
         let (outcome_tx, mut outcome_rx) = mpsc::channel::<HandlerOutcome>(HANDLER_QUEUE_CAP);
@@ -343,7 +344,7 @@ impl Session {
                     _ = self.ping_frame_interval.tick(), if self.state == SessionState::Active => {
                         self.send_app_ping().await?;
                     }
-                    _ = checkout_timeout.tick(), if self.state == SessionState::Active => {
+                    _ = heartbeat_check_interval.tick(), if self.state == SessionState::Active => {
                         if last_activity.elapsed() > self.heartbeat_timeout {
                             self.begin_close(None)?;
                         }
