@@ -49,32 +49,41 @@ async fn read_body_with_limit(
 #[cfg(test)]
 use crate::error::{CoreError, ErrorCategory, ErrorCode, ErrorContext};
 
-/// 改进的响应处理器，解决双重解析问题
-/// 使用 #[serde(flatten)] 和高级 Serde 特性简化反序列化
-pub struct ImprovedResponseHandler;
+/// 按 `ResponseFormat` 做类型化响应解码（request_execution 内）。
+pub struct ResponseDecoder;
 
-impl ImprovedResponseHandler {
-    /// 处理响应的核心方法
-    /// 相比原始实现，这个版本：
-    /// 1. 减少了不必要的JSON解析次数
-    /// 2. 使用更高效的直接反序列化
-    /// 3. 更好的错误处理
-    /// 4. 完整的可观测性支持
+fn success_raw_response() -> RawResponse {
+    RawResponse {
+        code: 0,
+        msg: "success".to_string(),
+        request_id: None,
+        data: None,
+        error: None,
+    }
+}
+
+/// 将 trait 解码结果转为 `Option`；必需 payload 缺失时返回错误文案。
+fn require_decoded_payload<T: ApiResponseTrait>(
+    decoded: Option<T>,
+    missing_msg: impl Into<String>,
+) -> Result<Option<T>, String> {
+    match decoded {
+        Some(parsed) => Ok(Some(parsed)),
+        None if T::requires_payload() => Err(missing_msg.into()),
+        None => Ok(None),
+    }
+}
+
+impl ResponseDecoder {
+    /// 处理响应：按 `T::data_format()` 分派到对应解码策略。
     pub async fn handle_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
         response: reqwest::Response,
         max_size: u64,
     ) -> SDKResult<Response<T>> {
-        let format = match T::data_format() {
-            ResponseFormat::Data => "data",
-            ResponseFormat::Flatten => "flatten",
-            ResponseFormat::Binary => "binary",
-            ResponseFormat::Text => "text",
-            ResponseFormat::Custom => "custom",
-        };
-
+        let format = T::data_format();
         let span = info_span!(
             "response_handling",
-            format = format,
+            format = format.as_label(),
             status_code = response.status().as_u16(),
             content_length = tracing::field::Empty,
             processing_duration_ms = tracing::field::Empty,
@@ -89,7 +98,7 @@ impl ImprovedResponseHandler {
                 tracing::Span::current().record("content_length", length);
             }
 
-            let result = match T::data_format() {
+            let result = match format {
                 ResponseFormat::Data => Self::handle_data_response(response, max_size).await,
                 ResponseFormat::Flatten => Self::handle_flatten_response(response, max_size).await,
                 ResponseFormat::Binary => Self::handle_binary_response(response, max_size).await,
@@ -306,26 +315,20 @@ impl ImprovedResponseHandler {
             }
         };
 
-        let data = match T::from_binary(file_name, bytes) {
-            Some(parsed) => Some(parsed),
-            None if T::requires_payload() => {
-                let error_msg =
-                    "Binary 响应解码失败：类型未实现 from_binary 或返回 None".to_string();
+        let data = match require_decoded_payload(
+            T::from_binary(file_name, bytes),
+            "Binary 响应解码失败：类型未实现 from_binary 或返回 None",
+        ) {
+            Ok(data) => data,
+            Err(error_msg) => {
                 tracker.error(&error_msg);
                 return Err(validation_error("binary_response", error_msg));
             }
-            None => None,
         };
 
         tracker.success();
         Ok(BaseResponse {
-            raw_response: RawResponse {
-                code: 0,
-                msg: "success".to_string(),
-                request_id: None,
-                data: None,
-                error: None,
-            },
+            raw_response: success_raw_response(),
             data,
         })
     }
@@ -340,25 +343,20 @@ impl ImprovedResponseHandler {
         tracker.parsing_complete();
         let text = String::from_utf8_lossy(&body_bytes).into_owned();
 
-        let data = match T::from_text(text) {
-            Some(parsed) => Some(parsed),
-            None if T::requires_payload() => {
-                let error_msg = "Text 响应解码失败：类型未实现 from_text 或返回 None".to_string();
+        let data = match require_decoded_payload(
+            T::from_text(text),
+            "Text 响应解码失败：类型未实现 from_text 或返回 None",
+        ) {
+            Ok(data) => data,
+            Err(error_msg) => {
                 tracker.error(&error_msg);
                 return Err(validation_error("text_response", error_msg));
             }
-            None => None,
         };
 
         tracker.success();
         Ok(BaseResponse {
-            raw_response: RawResponse {
-                code: 0,
-                msg: "success".to_string(),
-                request_id: None,
-                data: None,
-                error: None,
-            },
+            raw_response: success_raw_response(),
             data,
         })
     }
@@ -377,26 +375,20 @@ impl ImprovedResponseHandler {
         let body_bytes = read_body_with_limit(response, max_size).await?;
         tracker.parsing_complete();
 
-        let data = match T::from_custom(body_bytes, content_type.as_deref()) {
-            Some(parsed) => Some(parsed),
-            None if T::requires_payload() => {
-                let error_msg =
-                    "Custom 响应解码失败：类型未实现 from_custom 或返回 None".to_string();
+        let data = match require_decoded_payload(
+            T::from_custom(body_bytes, content_type.as_deref()),
+            "Custom 响应解码失败：类型未实现 from_custom 或返回 None",
+        ) {
+            Ok(data) => data,
+            Err(error_msg) => {
                 tracker.error(&error_msg);
                 return Err(validation_error("custom_response", error_msg));
             }
-            None => None,
         };
 
         tracker.success();
         Ok(BaseResponse {
-            raw_response: RawResponse {
-                code: 0,
-                msg: "success".to_string(),
-                request_id: None,
-                data: None,
-                error: None,
-            },
+            raw_response: success_raw_response(),
             data,
         })
     }
@@ -964,7 +956,7 @@ mod tests {
             .expect("mock response should be fetched");
 
         let parsed =
-            ImprovedResponseHandler::handle_response::<TestTokenFlattenData>(response, 1024 * 1024)
+            ResponseDecoder::handle_response::<TestTokenFlattenData>(response, 1024 * 1024)
                 .await
                 .expect("flatten token response should parse");
 

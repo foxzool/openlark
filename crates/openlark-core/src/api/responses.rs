@@ -103,6 +103,19 @@ pub enum ResponseFormat {
     Custom,
 }
 
+impl ResponseFormat {
+    /// 观测/日志用短标签（与解码分派共用，避免双 match）
+    pub fn as_label(self) -> &'static str {
+        match self {
+            ResponseFormat::Data => "data",
+            ResponseFormat::Flatten => "flatten",
+            ResponseFormat::Binary => "binary",
+            ResponseFormat::Text => "text",
+            ResponseFormat::Custom => "custom",
+        }
+    }
+}
+
 /// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
 ///
 /// - [`data_format`] 选择解码路径（不得静默降级到 Data）

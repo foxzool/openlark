@@ -13,7 +13,7 @@ use crate::{
     constants::*,
     error::CoreError,
     req_option::RequestOption,
-    request_execution::{ImprovedResponseHandler, UnifiedRequestBuilder},
+    request_execution::{ResponseDecoder, UnifiedRequestBuilder},
 };
 
 /// HTTP 传输层
@@ -173,7 +173,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
                     tracing::Span::current().record("response_code", status_code.as_u16());
 
                     // 使用改进的响应处理器，单次解析而非双重解析
-                    ImprovedResponseHandler::handle_response(response, max_response_size).await
+                    ResponseDecoder::handle_response(response, max_response_size).await
                 }
                 Err(err) => {
                     debug!("Request error: {err:?}");

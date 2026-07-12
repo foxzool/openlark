@@ -7,7 +7,7 @@ mod decode;
 mod multipart_builder;
 
 pub use auth_handler::AuthHandler;
-pub use decode::ImprovedResponseHandler;
+pub use decode::ResponseDecoder;
 pub use multipart_builder::MultipartBuilder;
 
 use crate::{

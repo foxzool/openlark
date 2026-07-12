@@ -420,6 +420,125 @@ async fn transport_oversized_known_body_returns_response_too_large() {
     }
 }
 
+/// Transfer-Encoding: chunked（无 Content-Length）且 body 超限 → 流式累计限流（#422 streamed oversized）。
+#[tokio::test]
+async fn transport_oversized_streamed_body_returns_response_too_large() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind chunked server");
+    let addr = listener.local_addr().expect("local_addr");
+    let body = "y".repeat(2048);
+    let body_len_hex = format!("{:x}", body.len());
+
+    tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.expect("accept");
+        let mut buf = vec![0u8; 4096];
+        // 读完请求头
+        loop {
+            let n = stream.read(&mut buf).await.expect("read req");
+            if n == 0 {
+                return;
+            }
+            if buf[..n].windows(4).any(|w| w == b"\r\n\r\n") {
+                break;
+            }
+        }
+        // 无 Content-Length 的 chunked 响应 → content_length() 为 None，走流式累计
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nContent-Type: application/json\r\n\r\n{body_len_hex}\r\n{body}\r\n0\r\n\r\n"
+        );
+        let _ = stream.write_all(resp.as_bytes()).await;
+    });
+
+    let config = config_with_max_response(&format!("http://{addr}"), 512);
+    let req = get_req("/open-apis/contract/oversized-stream");
+
+    let err = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect_err("streamed oversized body must error");
+
+    match err {
+        CoreError::ResponseTooLarge { limit, actual, .. } => {
+            assert_eq!(limit, 512);
+            assert!(actual > 512, "actual={actual}");
+        }
+        other => panic!("expected ResponseTooLarge from stream path, got: {other:?}"),
+    }
+}
+
+/// 业务 code=10012 时触发 app_ticket resend 副作用（#422 app-ticket recovery）。
+#[tokio::test]
+async fn transport_app_ticket_invalid_triggers_resend() {
+    use openlark_core::constants::{APPLY_APP_TICKET_PATH, ERR_CODE_APP_TICKET_INVALID};
+
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/app-ticket"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": ERR_CODE_APP_TICKET_INVALID,
+            "msg": "app ticket invalid",
+            "data": null
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path(APPLY_APP_TICKET_PATH))
+        .and(body_json(serde_json::json!({
+            "app_id": "contract_app_id",
+            "app_secret": "contract_app_secret"
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "msg": "success"
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/app-ticket");
+
+    let resp = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("API error envelope still returns Ok Response");
+    assert!(!resp.is_success());
+    assert_eq!(resp.code(), ERR_CODE_APP_TICKET_INVALID);
+    // wiremock expect(1) on resend 在 drop server 时校验
+}
+
+/// 现状契约：Config.retry_count 不在 Transport 层触发自动重试（配置存在、链路未接线）。
+#[tokio::test]
+async fn transport_does_not_auto_retry_on_network_error() {
+    let server = MockServer::start().await;
+    // 故意不 mount 任何 handler → 404/连接成功但无 mock 匹配时可能空响应或 404
+    // 使用已关闭的端口制造网络错误更稳：先启 mock 再 drop，改用无效路径 + 只 expect 0
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/no-retry"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("fail"))
+        .expect(1) // 若自动重试 3 次会 fail expect
+        .mount(&server)
+        .await;
+
+    let config = Config::builder()
+        .app_id("contract_app_id")
+        .app_secret("contract_app_secret")
+        .base_url(server.uri())
+        .enable_token_cache(false)
+        .retry_count(3)
+        .build();
+
+    let req = get_req("/open-apis/contract/no-retry");
+    // 500 + 非 JSON 可能 decode 失败，或成功解析失败 — 关键是只打 1 次
+    let _ = Transport::<ContractData>::request(req, &config, Some(no_auth_option())).await;
+    // Mock expect(1) 在 MockServer drop 时断言调用次数
+}
+
 #[tokio::test]
 async fn transport_success_missing_required_data_returns_error() {
     // #431：成功 code=0 但缺少必需 data → 明确错误，不再 Ok(data=None)
