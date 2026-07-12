@@ -248,11 +248,8 @@ impl<T> Response<T> {
 
 // 为常见类型实现 ApiResponseTrait
 impl ApiResponseTrait for serde_json::Value {}
-impl ApiResponseTrait for String {
-    fn from_text(text: String) -> Option<Self> {
-        Some(text)
-    }
-}
+// String 默认 Data 格式（JSON envelope）；Text 请用自定义类型并覆写 data_format + from_text
+impl ApiResponseTrait for String {}
 impl ApiResponseTrait for Vec<u8> {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Binary

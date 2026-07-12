@@ -17,8 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ApiResponseTrait` 增加 `requires_payload` / `from_binary` / `from_text` /
     `from_custom`；`ResponseFormat::Text|Custom` 不再静默走 Data 路径；Binary
     不再 `TypeId` 猜测。
-  - **行为**：Data/Flatten 在业务 `code==0` 且缺少或无法解析必需 payload 时返回
-    `Err`（`()` 仍允许无 body）。契约测试仅经 `Transport::request` + wiremock。
+  - **行为（0.18 可能波及业务 crate）**：Data/Flatten 在业务 `code==0` 时：
+    - 缺少可解析的必需 payload → `Err`（不再 `Ok(data: None)`）。
+    - **例外**：若响应类型能从空对象 `{}` 反序列化（空 struct / 全 `Option` 字段），
+      缺 `data` 字段时按 `{}` 兼容解码为 `Ok(Some(空值))`（删除类 API、HR 全
+      Option 响应等）。
+    - 无体成功请用 `()`（`requires_payload() == false`）。
+  - 契约测试仅经 `Transport::request` + wiremock。
 
 ### Security
 

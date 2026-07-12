@@ -623,9 +623,7 @@ impl ApiResponseTrait for TextBody {
     }
 }
 
-// TextBody is not Deserialize; Transport requires Deserialize bound.
-// Use a wrapper that deserializes as unit for trait object compatibility...
-// Actually Transport requires Deserialize - TextBody needs Deserialize even if unused.
+// Transport 要求 Deserialize 约束；Text 路径实际经 from_text，此 impl 满足编译边界。
 impl<'de> Deserialize<'de> for TextBody {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;

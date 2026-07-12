@@ -92,6 +92,11 @@ fn resolve_missing_data_field<T: ApiResponseTrait + for<'de> Deserialize<'de>>()
     }
 }
 
+fn fail_payload(tracker: ResponseTracker, error_msg: String) -> crate::error::CoreError {
+    tracker.error(&error_msg);
+    validation_error("api_response_data", error_msg)
+}
+
 impl ResponseDecoder {
     /// 处理响应：按 `T::data_format()` 分派到对应解码策略。
     pub async fn handle_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
@@ -156,10 +161,7 @@ impl ResponseDecoder {
                     match resolve_missing_data_field::<T>() {
                         Ok(Some(data)) => base_response.data = Some(data),
                         Ok(None) => {}
-                        Err(error_msg) => {
-                            tracker.error(&error_msg);
-                            return Err(validation_error("api_response_data", error_msg));
-                        }
+                        Err(error_msg) => return Err(fail_payload(tracker, error_msg)),
                     }
                 }
                 tracker.success();
@@ -191,11 +193,7 @@ impl ResponseDecoder {
                                             let error_msg = format!(
                                                 "成功响应 data 字段无法解析为期望类型: {data_parse_err}"
                                             );
-                                            tracker.error(&error_msg);
-                                            return Err(validation_error(
-                                                "api_response_data",
-                                                error_msg,
-                                            ));
+                                            return Err(fail_payload(tracker, error_msg));
                                         }
                                         tracing::debug!(
                                             "Failed to parse data field as type T (optional): {data_parse_err:?}"
@@ -207,11 +205,7 @@ impl ResponseDecoder {
                                 match resolve_missing_data_field::<T>() {
                                     Ok(data) => data,
                                     Err(error_msg) => {
-                                        tracker.error(&error_msg);
-                                        return Err(validation_error(
-                                            "api_response_data",
-                                            error_msg,
-                                        ));
+                                        return Err(fail_payload(tracker, error_msg));
                                     }
                                 }
                             }
@@ -1680,26 +1674,10 @@ mod tests {
     }
 }
 
-/// 使用示例
+/// 使用示例（文档用；经 `Transport::request` 走 `ResponseDecoder`）：
 ///
-/// 在RequestExecutor中使用改进的响应处理器：
 /// ```rust,ignore
-/// impl RequestExecutor {
-///     pub async fn execute_improved<T: ApiResponseTrait + DeserializeOwned>(
-///         // ... 参数
-///     ) -> SDKResult<OptimizedBaseResponse<T>> {
-///         // ... 构建请求
-///         let response = http_client.send(request).await?;
-///         ImprovedResponseHandler::handle_response(response, max_response_size).await
-///     }
-/// }
-///
-/// // 使用新的响应格式
-/// let result = RequestExecutor::execute_improved::<MessageData>(...).await?;
-///
-/// match result.into_data() {
-///     Ok(data) => println!("Success: {:?}", data),
-///     Err(e) => println!("Error: {:?}", e),
-/// }
+/// use openlark_core::http::Transport;
+/// // let resp: Response<MyData> = Transport::request(req, &config, None).await?;
 /// ```
 mod usage_examples {}

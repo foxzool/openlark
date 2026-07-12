@@ -100,7 +100,7 @@ pub struct RequestOption {
 
 ### 公开 API 设计
 - **最小化原则**: 只导出必要的类型（KISS）
-- **内部模块**: observability/query_params/request_builder 为 pub(crate)
+- **内部模块**: `observability` / `request_execution` 为 `pub(crate)`（后者含构建、认证与解码）
 - **Re-export**: 常用类型从 crate root 重新导出
 - **Prelude**: 不 re-export 第三方类型（serde/HashMap 等）
 
