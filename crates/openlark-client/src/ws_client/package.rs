@@ -79,16 +79,13 @@ pub(crate) fn assemble_frame(
 
     // 多包必须可聚合：空 message_id / seq 越界时扣留帧，禁止把残片当完整事件派发（#421 US2）。
     if msg_id.is_empty() {
-        error!(
-            "multipart frame missing message_id; withhold without dispatch (sum={sum}, seq={seq})"
-        );
+        error!("收到分包帧但 message_id 为空，扣留不派发（sum={sum}, seq={seq}）");
         return None;
     }
 
     if seq >= sum {
         error!(
-            "multipart frame seq out of range; withhold without dispatch \
-             (sum={sum}, seq={seq}, message_id={msg_id})"
+            "收到分包帧但 seq 越界，扣留不派发（sum={sum}, seq={seq}, message_id={msg_id}）"
         );
         return None;
     }

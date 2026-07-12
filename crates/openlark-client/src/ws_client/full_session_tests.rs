@@ -349,6 +349,33 @@ fn assert_normal_close(result: WsClientResult<()>) {
     }
 }
 
+/// 在 `window` 内统计入站数据响应帧数（忽略 Ping/Pong）；超时或流结束则返回已计数。
+/// 用于「不应派发 / 无 ACK」负向断言，避免三处 deadline 轮询复制粘贴。
+async fn count_data_responses_within(
+    peer: &mut WebSocketStream<tokio::net::TcpStream>,
+    window: Duration,
+) -> usize {
+    let mut data_responses = 0usize;
+    let deadline = tokio::time::Instant::now() + window;
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        match timeout(remaining, peer.next()).await {
+            Ok(Some(Ok(Message::Binary(data)))) => {
+                let frame = Frame::decode(&*data).expect("decode");
+                if frame.method == FRAME_METHOD_DATA {
+                    data_responses += 1;
+                }
+            }
+            Ok(Some(Ok(Message::Ping(_) | Message::Pong(_)))) => continue,
+            Ok(Some(Ok(_))) | Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
+        }
+    }
+    data_responses
+}
+
 #[tokio::test]
 async fn full_session_dispatches_handler_and_emits_response_frame() {
     let calls = Arc::new(AtomicUsize::new(0));
@@ -547,24 +574,8 @@ async fn full_session_multipart_incomplete_does_not_dispatch() {
             .await
             .expect("send incomplete");
 
-            let mut data_responses = 0usize;
-            let deadline = tokio::time::Instant::now() + Duration::from_millis(200);
-            loop {
-                let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-                if remaining.is_zero() {
-                    break;
-                }
-                match timeout(remaining, peer.next()).await {
-                    Ok(Some(Ok(Message::Binary(data)))) => {
-                        let frame = Frame::decode(&*data).expect("decode");
-                        if frame.method == 1 {
-                            data_responses += 1;
-                        }
-                    }
-                    Ok(Some(Ok(Message::Ping(_) | Message::Pong(_)))) => continue,
-                    Ok(Some(Ok(_))) | Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
-                }
-            }
+            let data_responses =
+                count_data_responses_within(&mut peer, Duration::from_millis(200)).await;
 
             peer.close(Some(CloseFrame {
                 code: CloseCode::Normal,
@@ -1166,24 +1177,8 @@ async fn full_session_multipart_empty_message_id_does_not_dispatch() {
                 .await
                 .expect("send invalid multipart");
 
-            let mut data_responses = 0usize;
-            let deadline = tokio::time::Instant::now() + Duration::from_millis(200);
-            loop {
-                let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-                if remaining.is_zero() {
-                    break;
-                }
-                match timeout(remaining, peer.next()).await {
-                    Ok(Some(Ok(Message::Binary(data)))) => {
-                        let frame = Frame::decode(&*data).expect("decode");
-                        if frame.method == 1 {
-                            data_responses += 1;
-                        }
-                    }
-                    Ok(Some(Ok(Message::Ping(_) | Message::Pong(_)))) => continue,
-                    Ok(Some(Ok(_))) | Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
-                }
-            }
+            let data_responses =
+                count_data_responses_within(&mut peer, Duration::from_millis(200)).await;
 
             peer.close(Some(CloseFrame {
                 code: CloseCode::Normal,
@@ -1234,24 +1229,8 @@ async fn full_session_multipart_seq_out_of_range_does_not_dispatch() {
             .await
             .expect("send oob multipart");
 
-            let mut data_responses = 0usize;
-            let deadline = tokio::time::Instant::now() + Duration::from_millis(200);
-            loop {
-                let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-                if remaining.is_zero() {
-                    break;
-                }
-                match timeout(remaining, peer.next()).await {
-                    Ok(Some(Ok(Message::Binary(data)))) => {
-                        let frame = Frame::decode(&*data).expect("decode");
-                        if frame.method == 1 {
-                            data_responses += 1;
-                        }
-                    }
-                    Ok(Some(Ok(Message::Ping(_) | Message::Pong(_)))) => continue,
-                    Ok(Some(Ok(_))) | Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
-                }
-            }
+            let data_responses =
+                count_data_responses_within(&mut peer, Duration::from_millis(200)).await;
 
             peer.close(Some(CloseFrame {
                 code: CloseCode::Normal,

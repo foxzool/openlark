@@ -301,9 +301,12 @@ impl Session {
                             }
                             Err(e) => {
                                 // 远端已正常 Close（带 reason）后，后续传输/协议错误不得
-                                // 覆盖已记录的关闭原因（#421 US9）
+                                // 覆盖已记录的关闭原因（#421 US9）；与 outcome-error 对称
                                 if let Some(reason) = self.drain_close_reason() {
                                     self.state = SessionState::Closed;
+                                    warn!(
+                                        "stream error after remote close: {e}; returning close reason"
+                                    );
                                     return Err(WsClientError::ConnectionClosed {
                                         reason: Some(reason),
                                     });
