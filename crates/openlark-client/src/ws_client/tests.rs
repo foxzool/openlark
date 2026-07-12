@@ -307,11 +307,10 @@ fn test_process_frame_packages_sum_change_resets_buffer() {
     assert_eq!(result.unwrap().payload, Some(b"BCD".to_vec()));
 }
 
-/// sum>1 但 message_id 为空：无法聚合，降级为单包立即派发（当前行为；与 US2 有张力）。
+/// sum>1 但 message_id 为空：无法聚合，扣留且不派发（#421 US2 禁止残片泄漏）。
 #[test]
-fn assemble_multipart_empty_message_id_degrades_to_single() {
+fn assemble_multipart_empty_message_id_is_withheld() {
     let mut buffers = HashMap::new();
-    let payload = b"orphan-part".to_vec();
     let frame = Frame {
         seq_id: 1,
         log_id: 1,
@@ -337,21 +336,21 @@ fn assemble_multipart_empty_message_id_degrades_to_single() {
         ],
         payload_encoding: None,
         payload_type: None,
-        payload: Some(payload.clone()),
+        payload: Some(b"orphan-part".to_vec()),
         log_id_new: None,
     };
 
-    let result = assemble(&mut buffers, frame);
-    assert!(result.is_some());
-    assert_eq!(result.unwrap().payload, Some(payload));
-    assert!(buffers.is_empty(), "degraded path must not retain package buffer");
+    assert!(assemble(&mut buffers, frame).is_none());
+    assert!(
+        buffers.is_empty(),
+        "withheld path must not retain package buffer"
+    );
 }
 
-/// sum>1 但 seq>=sum：越界无法写入缓冲，降级为单包立即派发。
+/// sum>1 但 seq>=sum：越界残片扣留且不派发。
 #[test]
-fn assemble_multipart_seq_out_of_range_degrades_to_single() {
+fn assemble_multipart_seq_out_of_range_is_withheld() {
     let mut buffers = HashMap::new();
-    let payload = b"oob-part".to_vec();
     let frame = Frame {
         seq_id: 9,
         log_id: 1,
@@ -377,12 +376,10 @@ fn assemble_multipart_seq_out_of_range_degrades_to_single() {
         ],
         payload_encoding: None,
         payload_type: None,
-        payload: Some(payload.clone()),
+        payload: Some(b"oob-part".to_vec()),
         log_id_new: None,
     };
 
-    let result = assemble(&mut buffers, frame);
-    assert!(result.is_some());
-    assert_eq!(result.unwrap().payload, Some(payload));
+    assert!(assemble(&mut buffers, frame).is_none());
     assert!(buffers.is_empty());
 }

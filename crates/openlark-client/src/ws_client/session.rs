@@ -226,11 +226,12 @@ impl Session {
 
     pub(crate) async fn run(mut self) -> WsClientResult<()> {
         let mut last_activity = Instant::now();
-        let checkout_period = self
+        // 心跳过期轮询周期（非业务 checkout）；钳在 [50ms, 1s] 与 timeout 之间。
+        let heartbeat_check_period = self
             .heartbeat_timeout
             .min(Duration::from_secs(1))
             .max(Duration::from_millis(50));
-        let mut checkout_timeout = tokio::time::interval(checkout_period);
+        let mut heartbeat_check_interval = tokio::time::interval(heartbeat_check_period);
 
         let (job_tx, mut job_rx) = mpsc::channel::<Frame>(HANDLER_QUEUE_CAP);
         let (outcome_tx, mut outcome_rx) = mpsc::channel::<HandlerOutcome>(HANDLER_QUEUE_CAP);
@@ -279,8 +280,8 @@ impl Session {
                         }
                     }
                     item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
-                        match item.transpose()? {
-                            Some(msg) => {
+                        match item.transpose() {
+                            Ok(Some(msg)) => {
                                 if msg.is_ping() {
                                     last_activity = Instant::now();
                                 }
@@ -294,9 +295,23 @@ impl Session {
                                 }
                                 self.handle_message(msg, &job_tx).await?;
                             }
-                            None => {
+                            Ok(None) => {
                                 stream_open = false;
                                 self.begin_close(None)?;
+                            }
+                            Err(e) => {
+                                // 远端已正常 Close（带 reason）后，后续传输/协议错误不得
+                                // 覆盖已记录的关闭原因（#421 US9）；与 outcome-error 对称
+                                if let Some(reason) = self.drain_close_reason() {
+                                    self.state = SessionState::Closed;
+                                    warn!(
+                                        "stream error after remote close: {e}; returning close reason"
+                                    );
+                                    return Err(WsClientError::ConnectionClosed {
+                                        reason: Some(reason),
+                                    });
+                                }
+                                return Err(e.into());
                             }
                         }
                     }
@@ -332,7 +347,7 @@ impl Session {
                     _ = self.ping_frame_interval.tick(), if self.state == SessionState::Active => {
                         self.send_app_ping().await?;
                     }
-                    _ = checkout_timeout.tick(), if self.state == SessionState::Active => {
+                    _ = heartbeat_check_interval.tick(), if self.state == SessionState::Active => {
                         if last_activity.elapsed() > self.heartbeat_timeout {
                             self.begin_close(None)?;
                         }

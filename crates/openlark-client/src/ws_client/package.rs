@@ -53,7 +53,8 @@ impl FramePackageBuffer {
     }
 }
 
-/// 处理分包：未齐返回 `None`；齐了返回组合后的帧。
+/// 处理分包：未齐或非法多包（空 `message_id` / `seq` 越界）返回 `None`（不派发）；
+/// 齐了返回组合后的帧。
 pub(crate) fn assemble_frame(
     buffers: &mut HashMap<String, FramePackageBuffer>,
     mut frame: Frame,
@@ -76,18 +77,15 @@ pub(crate) fn assemble_frame(
         return Some(frame);
     }
 
+    // 多包必须可聚合：空 message_id / seq 越界时扣留帧，禁止把残片当完整事件派发（#421 US2）。
     if msg_id.is_empty() {
-        debug!("收到分包帧但 message_id 为空，无法聚合，降级为单包处理（sum={sum}, seq={seq}）");
-        frame.payload = Some(payload);
-        return Some(frame);
+        error!("收到分包帧但 message_id 为空，扣留不派发（sum={sum}, seq={seq}）");
+        return None;
     }
 
     if seq >= sum {
-        debug!(
-            "收到分包帧但 seq 越界，降级为单包处理（sum={sum}, seq={seq}, message_id={msg_id}）"
-        );
-        frame.payload = Some(payload);
-        return Some(frame);
+        error!("收到分包帧但 seq 越界，扣留不派发（sum={sum}, seq={seq}, message_id={msg_id}）");
+        return None;
     }
 
     let buffer = buffers.entry(msg_id.to_string()).or_insert_with(|| {
