@@ -103,11 +103,36 @@ pub enum ResponseFormat {
     Custom,
 }
 
-/// API响应特征
-pub trait ApiResponseTrait: Send + Sync + 'static {
+/// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
+///
+/// - [`data_format`] 选择解码路径（不得静默降级到 Data）
+/// - [`requires_payload`]：成功（业务 code=0 / Binary/Text 可读）时是否必须解出 `data`
+/// - Binary / Text / Custom 通过类型方法参与解码，避免运行时 `TypeId` 猜测
+pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
     /// 获取响应数据格式
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    /// 成功响应是否必须携带可解码 payload。
+    /// `()` 等无体响应返回 `false`；默认 `true`。
+    fn requires_payload() -> bool {
+        true
+    }
+
+    /// Binary 解码：保留文件名 metadata，由类型自行映射。
+    fn from_binary(_file_name: String, _body: Vec<u8>) -> Option<Self> {
+        None
+    }
+
+    /// Text 解码：原始响应体按 UTF-8 文本处理。
+    fn from_text(_text: String) -> Option<Self> {
+        None
+    }
+
+    /// Custom 解码：原始字节 + Content-Type，未实现则解码失败。
+    fn from_custom(_body: Vec<u8>, _content_type: Option<&str>) -> Option<Self> {
+        None
     }
 }
 
@@ -207,15 +232,27 @@ impl<T> Response<T> {
     }
 }
 
-// 为常见类型实现ApiResponseTrait
+// 为常见类型实现 ApiResponseTrait
 impl ApiResponseTrait for serde_json::Value {}
-impl ApiResponseTrait for String {}
+impl ApiResponseTrait for String {
+    fn from_text(text: String) -> Option<Self> {
+        Some(text)
+    }
+}
 impl ApiResponseTrait for Vec<u8> {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Binary
     }
+
+    fn from_binary(_file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(body)
+    }
 }
-impl ApiResponseTrait for () {}
+impl ApiResponseTrait for () {
+    fn requires_payload() -> bool {
+        false
+    }
+}
 
 // 类型别名，用于向后兼容
 /// 基础响应类型别名

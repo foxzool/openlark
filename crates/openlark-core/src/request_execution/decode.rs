@@ -11,7 +11,6 @@ use crate::{
     observability::ResponseTracker,
 };
 use serde::Deserialize;
-use std::any::Any;
 
 /// 读取响应体，带大小限制保护
 async fn read_body_with_limit(
@@ -94,8 +93,8 @@ impl ImprovedResponseHandler {
                 ResponseFormat::Data => Self::handle_data_response(response, max_size).await,
                 ResponseFormat::Flatten => Self::handle_flatten_response(response, max_size).await,
                 ResponseFormat::Binary => Self::handle_binary_response(response, max_size).await,
-                ResponseFormat::Text => Self::handle_data_response(response, max_size).await, // 暂时使用data处理器
-                ResponseFormat::Custom => Self::handle_data_response(response, max_size).await, // 暂时使用data处理器
+                ResponseFormat::Text => Self::handle_text_response(response, max_size).await,
+                ResponseFormat::Custom => Self::handle_custom_response(response, max_size).await,
             };
 
             // 记录处理时间
@@ -126,6 +125,14 @@ impl ImprovedResponseHandler {
         // 尝试直接解析为BaseResponse<T>
         match serde_json::from_str::<Response<T>>(&response_text) {
             Ok(base_response) => {
+                if base_response.is_success()
+                    && base_response.data.is_none()
+                    && T::requires_payload()
+                {
+                    let error_msg = "成功响应缺少必需的 data 字段".to_string();
+                    tracker.error(&error_msg);
+                    return Err(validation_error("api_response_data", error_msg));
+                }
                 tracker.success();
                 Ok(base_response)
             }
@@ -141,26 +148,39 @@ impl ImprovedResponseHandler {
                             .unwrap_or("Unknown error")
                             .to_string();
 
-                        // 如果响应成功，尝试提取并解析data字段
+                        // 成功时：缺失或不可解析的必需 data 返回明确错误（#422 / #431）
                         let data = if code == 0 {
                             if let Some(data_value) = raw_value.get("data") {
-                                // 尝试解析为期望的类型T
                                 match serde_json::from_value::<T>(data_value.clone()) {
                                     Ok(parsed_data) => {
                                         tracing::debug!("Successfully parsed data field as type T");
                                         Some(parsed_data)
                                     }
                                     Err(data_parse_err) => {
+                                        if T::requires_payload() {
+                                            let error_msg = format!(
+                                                "成功响应 data 字段无法解析为期望类型: {data_parse_err}"
+                                            );
+                                            tracker.error(&error_msg);
+                                            return Err(validation_error(
+                                                "api_response_data",
+                                                error_msg,
+                                            ));
+                                        }
                                         tracing::debug!(
-                                            "Failed to parse data field as type T: {data_parse_err:?}"
+                                            "Failed to parse data field as type T (optional): {data_parse_err:?}"
                                         );
-                                        // 保持 core 通用性：不在这里做“按具体业务类型名”的特殊兼容。
-                                        // 若某个业务 API 存在历史字段差异，请在对应业务 crate 的响应模型上做兼容反序列化。
                                         None
                                     }
                                 }
+                            } else if T::requires_payload() {
+                                let error_msg = "成功响应缺少必需的 data 字段".to_string();
+                                tracker.error(&error_msg);
+                                return Err(validation_error("api_response_data", error_msg));
                             } else {
-                                tracing::debug!("No data field found in successful response");
+                                tracing::debug!(
+                                    "No data field in success response (payload not required)"
+                                );
                                 None
                             }
                         } else {
@@ -239,7 +259,12 @@ impl ImprovedResponseHandler {
                     Some(parsed_data)
                 }
                 Err(e) => {
-                    debug!("Failed to parse data for flatten response: {e}");
+                    if T::requires_payload() {
+                        let error_msg = format!("成功 Flatten 响应无法解析为期望类型: {e}");
+                        tracker.error(&error_msg);
+                        return Err(validation_error("flatten_response", error_msg));
+                    }
+                    debug!("Failed to parse optional flatten response: {e}");
                     tracker.validation_complete();
                     None
                 }
@@ -253,25 +278,22 @@ impl ImprovedResponseHandler {
         Ok(BaseResponse { raw_response, data })
     }
 
-    /// 处理二进制响应，包含可观测性支持
+    /// 处理二进制响应：经 `ApiResponseTrait::from_binary` 解码，不依赖 TypeId。
     async fn handle_binary_response<T: ApiResponseTrait>(
         response: reqwest::Response,
         max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("binary", response.content_length());
 
-        // 获取文件名
-        let _file_name = response
+        let file_name = response
             .headers()
             .get("Content-Disposition")
             .and_then(|header| header.to_str().ok())
             .and_then(content_disposition::extract_filename)
             .unwrap_or_default();
 
-        // 记录解析阶段完成（文件名提取）
         tracker.parsing_complete();
 
-        // 获取二进制数据（带大小限制保护）
         let bytes = match read_body_with_limit(response, max_size).await {
             Ok(data) => {
                 tracing::debug!("Binary response received: {} bytes", data.len());
@@ -284,21 +306,86 @@ impl ImprovedResponseHandler {
             }
         };
 
-        // 二进制响应：目前仅对 `Vec<u8>` / `String` 做直接承载，其它类型返回 None。
-        // 约定：当业务侧需要二进制内容时，将响应类型定义为 `Vec<u8>`（并使用 ResponseFormat::Binary）。
-        let data: Option<T> = {
-            let any: Box<dyn Any> =
-                if std::any::TypeId::of::<T>() == std::any::TypeId::of::<Vec<u8>>() {
-                    Box::new(bytes)
-                } else if std::any::TypeId::of::<T>() == std::any::TypeId::of::<String>() {
-                    let s = String::from_utf8_lossy(&bytes).to_string();
-                    Box::new(s)
-                } else {
-                    // 其它类型目前不做自动解析
-                    Box::new(())
-                };
+        let data = match T::from_binary(file_name, bytes) {
+            Some(parsed) => Some(parsed),
+            None if T::requires_payload() => {
+                let error_msg =
+                    "Binary 响应解码失败：类型未实现 from_binary 或返回 None".to_string();
+                tracker.error(&error_msg);
+                return Err(validation_error("binary_response", error_msg));
+            }
+            None => None,
+        };
 
-            any.downcast::<T>().ok().map(|boxed| *boxed)
+        tracker.success();
+        Ok(BaseResponse {
+            raw_response: RawResponse {
+                code: 0,
+                msg: "success".to_string(),
+                request_id: None,
+                data: None,
+                error: None,
+            },
+            data,
+        })
+    }
+
+    /// Text：原始 body 作为文本，经 `from_text` 解码（不走 Data JSON envelope）。
+    async fn handle_text_response<T: ApiResponseTrait>(
+        response: reqwest::Response,
+        max_size: u64,
+    ) -> SDKResult<Response<T>> {
+        let tracker = ResponseTracker::start("text", response.content_length());
+        let body_bytes = read_body_with_limit(response, max_size).await?;
+        tracker.parsing_complete();
+        let text = String::from_utf8_lossy(&body_bytes).into_owned();
+
+        let data = match T::from_text(text) {
+            Some(parsed) => Some(parsed),
+            None if T::requires_payload() => {
+                let error_msg = "Text 响应解码失败：类型未实现 from_text 或返回 None".to_string();
+                tracker.error(&error_msg);
+                return Err(validation_error("text_response", error_msg));
+            }
+            None => None,
+        };
+
+        tracker.success();
+        Ok(BaseResponse {
+            raw_response: RawResponse {
+                code: 0,
+                msg: "success".to_string(),
+                request_id: None,
+                data: None,
+                error: None,
+            },
+            data,
+        })
+    }
+
+    /// Custom：原始 body 经 `from_custom` 解码；未实现则明确错误，禁止静默走 Data。
+    async fn handle_custom_response<T: ApiResponseTrait>(
+        response: reqwest::Response,
+        max_size: u64,
+    ) -> SDKResult<Response<T>> {
+        let tracker = ResponseTracker::start("custom", response.content_length());
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_string);
+        let body_bytes = read_body_with_limit(response, max_size).await?;
+        tracker.parsing_complete();
+
+        let data = match T::from_custom(body_bytes, content_type.as_deref()) {
+            Some(parsed) => Some(parsed),
+            None if T::requires_payload() => {
+                let error_msg =
+                    "Custom 响应解码失败：类型未实现 from_custom 或返回 None".to_string();
+                tracker.error(&error_msg);
+                return Err(validation_error("custom_response", error_msg));
+            }
+            None => None,
         };
 
         tracker.success();
@@ -421,7 +508,7 @@ pub struct ErrorDetail {
     pub description: Option<String>,
 }
 
-/// 使用宏简化APIResponseTrait实现
+/// 使用宏简化 APIResponseTrait 实现
 #[macro_export]
 macro_rules! impl_api_response {
     ($type:ty, $format:expr) => {
@@ -503,6 +590,13 @@ mod tests {
     impl ApiResponseTrait for TestBinaryData {
         fn data_format() -> ResponseFormat {
             ResponseFormat::Binary
+        }
+
+        fn from_binary(file_name: String, body: Vec<u8>) -> Option<Self> {
+            Some(Self {
+                file_name,
+                content: body,
+            })
         }
     }
 

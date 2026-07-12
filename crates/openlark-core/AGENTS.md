@@ -40,10 +40,13 @@ src/
 │   ├── traits.rs            # ErrorType 枚举
 │   ├── prelude.rs           # 错误系统预置导入
 │   └── mod.rs               # 错误模块入口
-├── http.rs                   # HTTP 客户端封装
+├── http.rs                   # Transport 公开 seam（HTTP 边界）
 ├── req_option.rs            # 请求选项
-├── req_translator.rs        # 请求转换器
-├── response_handler.rs      # 响应处理器
+├── request_execution/       # pub(crate) 深请求执行（#422）
+│   ├── mod.rs               # UnifiedRequestBuilder 协调
+│   ├── auth_handler.rs      # TokenProvider 双 adapter 认证 seam
+│   ├── multipart_builder.rs # multipart 组合规则
+│   └── decode.rs            # 类型化响应解码（Data/Flatten/Text/Binary/Custom）
 ├── validation/              # 参数验证
 │   ├── mod.rs               # 模块入口
 │   ├── core.rs              # 核心验证函数 + ValidateBuilder
@@ -52,12 +55,6 @@ src/
     ├── content_disposition.rs
     ├── observability.rs      # pub(crate) - 可观测性
     ├── performance/          # 性能监控
-    ├── query_params.rs       # pub(crate)
-    ├── request_builder/      # pub(crate) - 请求构建
-    │   ├── auth_handler.rs
-    │   ├── header_builder.rs
-    │   ├── mod.rs
-    │   └── multipart_builder.rs
     ├── testing/              # 测试工具
     │   ├── mod.rs
     │   ├── assertions.rs

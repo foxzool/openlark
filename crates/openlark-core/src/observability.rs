@@ -1,11 +1,11 @@
 //! 可观测性模块
 //!
 //! 提供响应处理跟踪（`ResponseTracker`），记录响应解析、验证、总耗时与成功/失败，
-//! 供 `response_handler` 在处理响应时埋点。
+//! 供 `request_execution::decode` 在处理响应时埋点。
 //!
 //! 历史上的 `OperationTracker`/`HttpTracker`/`AuthTracker`/`trace_health_check`/
 //! `trace_*` 宏及 `tracing-init`/`otel` 初始化函数均为 0 引用死代码，已在 #277
-//! （inner-attribute 收尾）删除；本模块现仅保留被 `response_handler` 实际使用的
+//! （inner-attribute 收尾）删除；本模块现仅保留被 `request_execution::decode` 实际使用的
 //! `ResponseTracker`。
 
 use std::time::Instant;
