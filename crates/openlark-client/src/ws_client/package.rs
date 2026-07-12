@@ -84,9 +84,7 @@ pub(crate) fn assemble_frame(
     }
 
     if seq >= sum {
-        error!(
-            "收到分包帧但 seq 越界，扣留不派发（sum={sum}, seq={seq}, message_id={msg_id}）"
-        );
+        error!("收到分包帧但 seq 越界，扣留不派发（sum={sum}, seq={seq}, message_id={msg_id}）");
         return None;
     }
 
