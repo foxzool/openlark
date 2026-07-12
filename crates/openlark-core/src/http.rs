@@ -13,8 +13,7 @@ use crate::{
     constants::*,
     error::CoreError,
     req_option::RequestOption,
-    req_translator::ReqTranslator,
-    response_handler::ImprovedResponseHandler,
+    request_execution::{ResponseDecoder, UnifiedRequestBuilder},
 };
 
 /// HTTP 传输层
@@ -116,8 +115,9 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
         config: &Config,
         option: RequestOption,
     ) -> SDKResult<Response<T>> {
+        // 纯委托 ReqTranslator 已吸收：直接走统一请求构建（#422 / #432）
         let req =
-            ReqTranslator::translate(&mut http_req, access_token_type, config, &option).await?;
+            UnifiedRequestBuilder::build(&mut http_req, access_token_type, config, &option).await?;
         debug!(
             method = %http_req.method(),
             path = %http_req.api_path(),
@@ -173,7 +173,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
                     tracing::Span::current().record("response_code", status_code.as_u16());
 
                     // 使用改进的响应处理器，单次解析而非双重解析
-                    ImprovedResponseHandler::handle_response(response, max_response_size).await
+                    ResponseDecoder::handle_response(response, max_response_size).await
                 }
                 Err(err) => {
                     debug!("Request error: {err:?}");

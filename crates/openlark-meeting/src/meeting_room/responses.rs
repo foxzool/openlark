@@ -115,6 +115,10 @@ impl ApiResponseTrait for UpdateBuildingResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    fn empty_success() -> Option<Self> {
+        Some(Self {})
+    }
 }
 
 /// 删除建筑物响应（官方示例无 `data` 字段）。
@@ -124,6 +128,10 @@ pub struct DeleteBuildingResponse {}
 impl ApiResponseTrait for DeleteBuildingResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    fn empty_success() -> Option<Self> {
+        Some(Self {})
     }
 }
 
@@ -241,6 +249,10 @@ impl ApiResponseTrait for UpdateRoomResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    fn empty_success() -> Option<Self> {
+        Some(Self {})
+    }
 }
 
 /// 删除会议室响应（官方示例无 `data` 字段）。
@@ -250,6 +262,10 @@ pub struct DeleteRoomResponse {}
 impl ApiResponseTrait for DeleteRoomResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    fn empty_success() -> Option<Self> {
+        Some(Self {})
     }
 }
 
@@ -371,6 +387,10 @@ pub struct ReplyInstanceResponse {}
 impl ApiResponseTrait for ReplyInstanceResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    fn empty_success() -> Option<Self> {
+        Some(Self {})
     }
 }
 

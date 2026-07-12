@@ -103,11 +103,60 @@ pub enum ResponseFormat {
     Custom,
 }
 
-/// API响应特征
-pub trait ApiResponseTrait: Send + Sync + 'static {
+impl ResponseFormat {
+    /// 观测/日志用短标签（与解码分派共用，避免双 match）
+    pub fn as_label(self) -> &'static str {
+        match self {
+            ResponseFormat::Data => "data",
+            ResponseFormat::Flatten => "flatten",
+            ResponseFormat::Binary => "binary",
+            ResponseFormat::Text => "text",
+            ResponseFormat::Custom => "custom",
+        }
+    }
+}
+
+/// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
+///
+/// - [`Self::data_format`] 选择解码路径（不得静默降级到 Data）
+/// - [`Self::requires_payload`]：成功时是否必须解出 `data`（默认 `true`）
+/// - [`Self::empty_success`]：成功且**无** `data` 字段时的显式空载荷（删除类 API）；
+///   **禁止**用「能否反序列化 `{}`」探测代替本方法
+/// - Binary / Text / Custom 通过 [`Self::from_binary`] / [`Self::from_text`] /
+///   [`Self::from_custom`] 参与解码，避免运行时 `TypeId` 猜测
+pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
     /// 获取响应数据格式
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    /// 成功响应是否必须携带可解码 payload。
+    /// `()` 等无体响应返回 `false`；默认 `true`。
+    fn requires_payload() -> bool {
+        true
+    }
+
+    /// 成功且响应体无 `data` 字段时的显式空成功值。
+    ///
+    /// 默认 `None`：若同时 [`Self::requires_payload`] 为 true，则解码失败。
+    /// 删除类空 struct 应返回 `Some(Self { .. })`。
+    fn empty_success() -> Option<Self> {
+        None
+    }
+
+    /// Binary 解码：保留文件名 metadata，由类型自行映射。
+    fn from_binary(_file_name: String, _body: Vec<u8>) -> Option<Self> {
+        None
+    }
+
+    /// Text 解码：原始响应体按 UTF-8 文本处理。
+    fn from_text(_text: String) -> Option<Self> {
+        None
+    }
+
+    /// Custom 解码：原始字节 + Content-Type，未实现则解码失败。
+    fn from_custom(_body: Vec<u8>, _content_type: Option<&str>) -> Option<Self> {
+        None
     }
 }
 
@@ -207,15 +256,24 @@ impl<T> Response<T> {
     }
 }
 
-// 为常见类型实现ApiResponseTrait
+// 为常见类型实现 ApiResponseTrait
 impl ApiResponseTrait for serde_json::Value {}
+// String 默认 Data 格式（JSON envelope）；Text 请用自定义类型并覆写 data_format + from_text
 impl ApiResponseTrait for String {}
 impl ApiResponseTrait for Vec<u8> {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Binary
     }
+
+    fn from_binary(_file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(body)
+    }
 }
-impl ApiResponseTrait for () {}
+impl ApiResponseTrait for () {
+    fn requires_payload() -> bool {
+        false
+    }
+}
 
 // 类型别名，用于向后兼容
 /// 基础响应类型别名

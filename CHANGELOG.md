@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。
 
+### Changed
+
+- **core：加深 `Transport::request` 请求执行（#422 / #430–#433）**：
+  - 内部收敛为 `request_execution` 深模块（构建 + 认证 + 解码）；删除纯委托
+    `ReqTranslator` 与一行式 `HeaderBuilder`。
+  - `ApiResponseTrait` 增加 `requires_payload` / `from_binary` / `from_text` /
+    `from_custom`；`ResponseFormat::Text|Custom` 不再静默走 Data 路径；Binary
+    不再 `TypeId` 猜测。
+  - **行为（0.18 可能波及业务 crate）**：Data/Flatten 在业务 `code==0` 时：
+    - 缺少可解析的必需 payload → `Err`（不再 `Ok(data: None)`）。
+    - 无 `data` 字段时**仅**通过 `ApiResponseTrait::empty_success()` 提供空成功
+      （删除类空 struct 显式 `Some(Self {})`）；**不再**用「能否反序列化 `{}`」探测。
+    - 无体成功请用 `()`（`requires_payload() == false`）。
+  - 契约测试仅经 `Transport::request` + wiremock。
+
 ### Security
 
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与

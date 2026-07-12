@@ -420,10 +420,128 @@ async fn transport_oversized_known_body_returns_response_too_large() {
     }
 }
 
+/// Transfer-Encoding: chunked（无 Content-Length）且 body 超限 → 流式累计限流（#422 streamed oversized）。
 #[tokio::test]
-async fn transport_success_without_matching_data_still_returns_ok() {
-    // Baseline of *current* Data-format behavior: success code with missing/unparseable
-    // data field yields Ok(Response) with data=None (documented for future deepen work).
+async fn transport_oversized_streamed_body_returns_response_too_large() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind chunked server");
+    let addr = listener.local_addr().expect("local_addr");
+    let body = "y".repeat(2048);
+    let body_len_hex = format!("{:x}", body.len());
+
+    tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.expect("accept");
+        let mut buf = vec![0u8; 4096];
+        // 读完请求头
+        loop {
+            let n = stream.read(&mut buf).await.expect("read req");
+            if n == 0 {
+                return;
+            }
+            if buf[..n].windows(4).any(|w| w == b"\r\n\r\n") {
+                break;
+            }
+        }
+        // 无 Content-Length 的 chunked 响应 → content_length() 为 None，走流式累计
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nContent-Type: application/json\r\n\r\n{body_len_hex}\r\n{body}\r\n0\r\n\r\n"
+        );
+        let _ = stream.write_all(resp.as_bytes()).await;
+    });
+
+    let config = config_with_max_response(&format!("http://{addr}"), 512);
+    let req = get_req("/open-apis/contract/oversized-stream");
+
+    let err = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect_err("streamed oversized body must error");
+
+    match err {
+        CoreError::ResponseTooLarge { limit, actual, .. } => {
+            assert_eq!(limit, 512);
+            assert!(actual > 512, "actual={actual}");
+        }
+        other => panic!("expected ResponseTooLarge from stream path, got: {other:?}"),
+    }
+}
+
+/// 业务 code=10012 时触发 app_ticket resend 副作用（#422 app-ticket recovery）。
+#[tokio::test]
+async fn transport_app_ticket_invalid_triggers_resend() {
+    use openlark_core::constants::{APPLY_APP_TICKET_PATH, ERR_CODE_APP_TICKET_INVALID};
+
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/app-ticket"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": ERR_CODE_APP_TICKET_INVALID,
+            "msg": "app ticket invalid",
+            "data": null
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path(APPLY_APP_TICKET_PATH))
+        .and(body_json(serde_json::json!({
+            "app_id": "contract_app_id",
+            "app_secret": "contract_app_secret"
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "msg": "success"
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/app-ticket");
+
+    let resp = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("API error envelope still returns Ok Response");
+    assert!(!resp.is_success());
+    assert_eq!(resp.code(), ERR_CODE_APP_TICKET_INVALID);
+    // wiremock expect(1) on resend 在 drop server 时校验
+}
+
+/// 现状契约：Config.retry_count 不在 Transport 层触发自动重试（配置存在、链路未接线）。
+#[tokio::test]
+async fn transport_does_not_auto_retry_on_network_error() {
+    let server = MockServer::start().await;
+    // 故意不 mount 任何 handler → 404/连接成功但无 mock 匹配时可能空响应或 404
+    // 使用已关闭的端口制造网络错误更稳：先启 mock 再 drop，改用无效路径 + 只 expect 0
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/no-retry"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("fail"))
+        .expect(1) // 若自动重试 3 次会 fail expect
+        .mount(&server)
+        .await;
+
+    let config = Config::builder()
+        .app_id("contract_app_id")
+        .app_secret("contract_app_secret")
+        .base_url(server.uri())
+        .enable_token_cache(false)
+        .retry_count(3)
+        .build();
+
+    let req = get_req("/open-apis/contract/no-retry");
+    // 500 + 非 JSON 可能 decode 失败，或成功解析失败 — 关键是只打 1 次
+    let _ = Transport::<ContractData>::request(req, &config, Some(no_auth_option())).await;
+    // Mock expect(1) 在 MockServer drop 时断言调用次数
+}
+
+#[tokio::test]
+async fn transport_success_missing_required_data_returns_error() {
+    // #431：成功 code=0 但缺少必需 data → 明确错误，不再 Ok(data=None)
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/open-apis/contract/empty-data"))
@@ -438,9 +556,267 @@ async fn transport_success_without_matching_data_still_returns_ok() {
     let config = contract_config(&server.uri());
     let req = get_req("/open-apis/contract/empty-data");
 
-    let resp = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+    let err = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
         .await
-        .expect("current baseline returns Ok");
+        .expect_err("missing required data must error");
+    assert!(
+        matches!(err, CoreError::Validation { .. }),
+        "expected Validation, got: {err:?}"
+    );
+    assert!(
+        err.to_string().contains("data") || err.to_string().contains("必需"),
+        "message should mention data: {err}"
+    );
+}
+
+#[tokio::test]
+async fn transport_unit_success_without_data_is_ok() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/unit-empty"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "msg": "success"
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/unit-empty");
+    let resp = Transport::<()>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("() does not require payload");
     assert!(resp.is_success());
     assert!(resp.data.is_none());
+}
+
+// ---------------------------------------------------------------------------
+// Typed formats: Flatten / Text / Binary / Custom (#431)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct FlattenToken {
+    code: i32,
+    msg: String,
+    app_access_token: String,
+    #[serde(alias = "expire")]
+    expires_in: i64,
+}
+
+impl ApiResponseTrait for FlattenToken {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Flatten
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TextBody(String);
+
+impl ApiResponseTrait for TextBody {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Text
+    }
+
+    fn from_text(text: String) -> Option<Self> {
+        Some(Self(text))
+    }
+}
+
+// Transport 要求 Deserialize 约束；Text 路径实际经 from_text，此 impl 满足编译边界。
+impl<'de> Deserialize<'de> for TextBody {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(s))
+    }
+}
+
+impl Serialize for TextBody {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.serialize(serializer)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct BinaryFile {
+    file_name: String,
+    content: Vec<u8>,
+}
+
+impl ApiResponseTrait for BinaryFile {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Binary
+    }
+
+    fn from_binary(file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(Self {
+            file_name,
+            content: body,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for BinaryFile {
+    fn deserialize<D: serde::Deserializer<'de>>(_deserializer: D) -> Result<Self, D::Error> {
+        Err(serde::de::Error::custom(
+            "BinaryFile is only constructed via from_binary",
+        ))
+    }
+}
+
+impl Serialize for BinaryFile {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut st = serializer.serialize_struct("BinaryFile", 2)?;
+        st.serialize_field("file_name", &self.file_name)?;
+        st.serialize_field("content", &self.content)?;
+        st.end()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CustomRaw(Vec<u8>);
+
+impl ApiResponseTrait for CustomRaw {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Custom
+    }
+
+    fn from_custom(body: Vec<u8>, _content_type: Option<&str>) -> Option<Self> {
+        Some(Self(body))
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomRaw {
+    fn deserialize<D: serde::Deserializer<'de>>(_deserializer: D) -> Result<Self, D::Error> {
+        Err(serde::de::Error::custom("CustomRaw via from_custom only"))
+    }
+}
+
+impl Serialize for CustomRaw {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bytes(&self.0)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct UnimplementedCustom;
+
+impl ApiResponseTrait for UnimplementedCustom {
+    fn data_format() -> ResponseFormat {
+        ResponseFormat::Custom
+    }
+}
+
+#[tokio::test]
+async fn transport_flatten_success() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/flatten"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "msg": "ok",
+            "app_access_token": "tok-flat",
+            "expire": 3600
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/flatten");
+    let resp = Transport::<FlattenToken>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("flatten should decode");
+    let data = resp.data.expect("flatten payload");
+    assert_eq!(data.app_access_token, "tok-flat");
+    assert_eq!(data.expires_in, 3600);
+}
+
+#[tokio::test]
+async fn transport_text_format_does_not_use_data_envelope() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/text"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("plain-text-body"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/text");
+    let resp = Transport::<TextBody>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("text path should decode raw body");
+    assert_eq!(
+        resp.data.as_ref().map(|t| t.0.as_str()),
+        Some("plain-text-body")
+    );
+}
+
+#[tokio::test]
+async fn transport_binary_preserves_filename_metadata() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/binary"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("content-disposition", "attachment; filename=\"report.bin\"")
+                .set_body_bytes(b"BIN-CONTENT-430".as_slice()),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/binary");
+    let resp = Transport::<BinaryFile>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("binary should decode via from_binary");
+    let data = resp.data.expect("binary data");
+    assert_eq!(data.file_name, "report.bin");
+    assert_eq!(data.content, b"BIN-CONTENT-430");
+}
+
+#[tokio::test]
+async fn transport_custom_format_uses_from_custom() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/custom"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"custom-bytes".as_slice()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/custom");
+    let resp = Transport::<CustomRaw>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("custom should decode");
+    assert_eq!(
+        resp.data.as_ref().map(|c| c.0.as_slice()),
+        Some(b"custom-bytes".as_slice())
+    );
+}
+
+#[tokio::test]
+async fn transport_custom_unimplemented_returns_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/custom-unimplemented"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("whatever"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/custom-unimplemented");
+    let err = Transport::<UnimplementedCustom>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect_err("unimplemented custom must not fall through to Data");
+    assert!(
+        err.to_string().to_lowercase().contains("custom")
+            || err.to_string().contains("from_custom"),
+        "got: {err}"
+    );
 }

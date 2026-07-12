@@ -17,7 +17,7 @@ pub mod http;
 pub(crate) mod observability;
 /// 请求选项模块（RequestOption、自定义头部、租户键等）
 pub mod req_option;
-pub(crate) mod request_builder;
+pub(crate) mod request_execution;
 /// Security utilities for handling sensitive data
 pub mod security;
 #[cfg(feature = "testing")]
@@ -28,8 +28,6 @@ pub mod validation;
 // 已移动到 auth::app_ticket
 mod content_disposition;
 mod performance;
-mod req_translator;
-mod response_handler;
 mod utils;
 
 // Re-export commonly used types from crate root

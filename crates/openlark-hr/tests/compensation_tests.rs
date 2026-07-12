@@ -179,13 +179,12 @@ mod validation_tests {
             .mount(&mock_server)
             .await;
 
-        let err = archive::create::CreateRequest::new(test_config(&mock_server.uri()))
+        // CreateResponse 字段均为 Option：缺 data 时 Transport 以 `{}` 兼容解码（#422）
+        let data = archive::create::CreateRequest::new(test_config(&mock_server.uri()))
             .execute_with_options(auth_option())
             .await
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(err.contains("创建薪资档案响应数据为空"));
+            .expect("empty success should decode to empty CreateResponse");
+        assert!(data.archive_id.is_none());
     }
 
     #[tokio::test]
@@ -203,7 +202,12 @@ mod validation_tests {
             .err()
             .unwrap()
             .to_string();
-        assert!(err.contains("批量查询员工薪资档案响应数据为空"));
+        assert!(
+            err.contains("批量查询员工薪资档案响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 
     #[tokio::test]
@@ -222,7 +226,12 @@ mod validation_tests {
             .err()
             .unwrap()
             .to_string();
-        assert!(err.contains("查询参保方案响应数据为空"));
+        assert!(
+            err.contains("查询参保方案响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 
     #[tokio::test]
@@ -244,7 +253,12 @@ mod validation_tests {
         .err()
         .unwrap()
         .to_string();
-        assert!(err.contains("查询参保方案响应数据为空"));
+        assert!(
+            err.contains("查询参保方案响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 }
 

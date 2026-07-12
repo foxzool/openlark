@@ -1,22 +1,27 @@
+//! 深 request-execution module（#422）：
+//! 在 `Transport::request` 背后协调 token、构造、认证、multipart 与响应解码。
+//! 仅 `AuthHandler`（生产/测试 TokenProvider 双 adapter）与 multipart 组合规则保留为子模块。
+
 mod auth_handler;
-mod header_builder;
+mod decode;
 mod multipart_builder;
 
 pub use auth_handler::AuthHandler;
-pub use header_builder::HeaderBuilder;
+pub use decode::ResponseDecoder;
 pub use multipart_builder::MultipartBuilder;
 
 use crate::{
     api::{ApiRequest, RequestData},
     config::Config,
-    constants::AccessTokenType,
+    constants::{AccessTokenType, CUSTOM_REQUEST_ID, USER_AGENT_HEADER},
     error::CoreError,
     req_option::RequestOption,
+    utils::user_agent,
 };
 use reqwest::RequestBuilder;
 use std::{future::Future, pin::Pin};
 
-/// 统一的请求构建器，负责协调各个子构建器
+/// 统一请求构建：URL / 头 / 认证 / body / multipart / timeout（#422 deep request execution）。
 pub struct UnifiedRequestBuilder;
 
 impl UnifiedRequestBuilder {
@@ -29,7 +34,6 @@ impl UnifiedRequestBuilder {
         Box::pin(async move {
             // 1. 构建基础请求
             let url = Self::build_url(config, req)?;
-            // 将HttpMethod转换为reqwest::Method
             let reqwest_method = match req.method() {
                 crate::api::HttpMethod::Get => reqwest::Method::GET,
                 crate::api::HttpMethod::Post => reqwest::Method::POST,
@@ -42,17 +46,16 @@ impl UnifiedRequestBuilder {
 
             let mut req_builder = config.http_client.request(reqwest_method, url.as_ref());
 
-            // 2. 构建请求头
-            req_builder = HeaderBuilder::build_headers(req_builder, config, option);
-            for (key, value) in &req.headers {
-                req_builder = HeaderBuilder::add_header(req_builder, key, value);
-            }
+            // 2. 请求头（原 HeaderBuilder 已吸收，不再单独 seam）
+            req_builder = Self::apply_headers(req_builder, config, option, &req.headers);
 
-            // 3. 处理认证
+            // 3. 认证（TokenProvider 双 adapter 保留 AuthHandler）
             req_builder =
                 AuthHandler::apply_auth(req_builder, access_token_type, config, option).await?;
 
-            // 4. 处理请求体
+            // 4. 请求体所有权：
+            // - multipart：表单挂在 RequestBuilder 上，send 时不再二次 body
+            // - 非 multipart：仅声明 Content-Type，字节由 Transport::do_send 统一 body()
             if !req.file().is_empty() {
                 if let Some(_body_data) = &req.body {
                     req_builder = MultipartBuilder::build_multipart(
@@ -64,18 +67,12 @@ impl UnifiedRequestBuilder {
             } else if let Some(body_data) = &req.body {
                 match body_data {
                     RequestData::Binary(data) if !data.is_empty() => {
-                        req_builder = req_builder.body(data.clone());
                         req_builder = req_builder.header(
                             crate::constants::CONTENT_TYPE_HEADER,
                             crate::constants::DEFAULT_CONTENT_TYPE,
                         );
                     }
-                    RequestData::Json(json) => {
-                        let json_bytes = serde_json::to_vec(json).unwrap_or_else(|e| {
-                            tracing::warn!(error = %e, "request_builder body JSON 序列化失败，使用空 vec");
-                            vec![]
-                        });
-                        req_builder = req_builder.body(json_bytes);
+                    RequestData::Json(_) => {
                         req_builder = req_builder.header(
                             crate::constants::CONTENT_TYPE_HEADER,
                             crate::constants::DEFAULT_CONTENT_TYPE,
@@ -85,13 +82,35 @@ impl UnifiedRequestBuilder {
                 }
             }
 
-            // 5. 应用超时：ApiRequest.timeout > Config.req_timeout > 无超时
+            // 5. 超时：ApiRequest.timeout > Config.req_timeout > 无超时
             if let Some(timeout) = req.timeout.or(config.req_timeout) {
                 req_builder = req_builder.timeout(timeout);
             }
 
             Ok(req_builder)
         })
+    }
+
+    fn apply_headers(
+        mut req_builder: RequestBuilder,
+        config: &Config,
+        option: &RequestOption,
+        request_headers: &std::collections::HashMap<String, String>,
+    ) -> RequestBuilder {
+        if let Some(ref request_id) = option.request_id {
+            req_builder = req_builder.header(CUSTOM_REQUEST_ID, request_id);
+        }
+        for (key, value) in &option.header {
+            req_builder = req_builder.header(key, value);
+        }
+        for (key, value) in config.header() {
+            req_builder = req_builder.header(key, value);
+        }
+        req_builder = req_builder.header(USER_AGENT_HEADER, user_agent());
+        for (key, value) in request_headers {
+            req_builder = req_builder.header(key, value);
+        }
+        req_builder
     }
 
     fn build_url<R: Send>(config: &Config, req: &ApiRequest<R>) -> Result<url::Url, CoreError> {

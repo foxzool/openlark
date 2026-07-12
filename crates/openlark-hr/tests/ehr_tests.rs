@@ -78,7 +78,12 @@ mod validation_tests {
         .err()
         .unwrap()
         .to_string();
-        assert!(err.contains("下载人员附件响应数据为空"));
+        assert!(
+            err.contains("下载人员附件响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 
     #[tokio::test]
@@ -96,7 +101,12 @@ mod validation_tests {
             .err()
             .unwrap()
             .to_string();
-        assert!(err.contains("批量获取员工花名册响应数据为空"));
+        assert!(
+            err.contains("批量获取员工花名册响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 }
 
