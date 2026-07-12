@@ -306,6 +306,6 @@ impl ResponseDecoder {
     }
 }
 
+// 文件名须与 mod 名一致，供 tools/check_mod_reachability 识别 cfg(test) 挂载。
 #[cfg(test)]
-#[path = "decode_tests.rs"]
-mod tests;
+mod decode_tests;
