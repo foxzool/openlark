@@ -19,9 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     不再 `TypeId` 猜测。
   - **行为（0.18 可能波及业务 crate）**：Data/Flatten 在业务 `code==0` 时：
     - 缺少可解析的必需 payload → `Err`（不再 `Ok(data: None)`）。
-    - **例外**：若响应类型能从空对象 `{}` 反序列化（空 struct / 全 `Option` 字段），
-      缺 `data` 字段时按 `{}` 兼容解码为 `Ok(Some(空值))`（删除类 API、HR 全
-      Option 响应等）。
+    - 无 `data` 字段时**仅**通过 `ApiResponseTrait::empty_success()` 提供空成功
+      （删除类空 struct 显式 `Some(Self {})`）；**不再**用「能否反序列化 `{}`」探测。
     - 无体成功请用 `()`（`requires_payload() == false`）。
   - 契约测试仅经 `Transport::request` + wiremock。
 

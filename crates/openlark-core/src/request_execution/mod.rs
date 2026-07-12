@@ -53,7 +53,9 @@ impl UnifiedRequestBuilder {
             req_builder =
                 AuthHandler::apply_auth(req_builder, access_token_type, config, option).await?;
 
-            // 4. 请求体
+            // 4. 请求体所有权：
+            // - multipart：表单挂在 RequestBuilder 上，send 时不再二次 body
+            // - 非 multipart：仅声明 Content-Type，字节由 Transport::do_send 统一 body()
             if !req.file().is_empty() {
                 if let Some(_body_data) = &req.body {
                     req_builder = MultipartBuilder::build_multipart(
@@ -65,18 +67,12 @@ impl UnifiedRequestBuilder {
             } else if let Some(body_data) = &req.body {
                 match body_data {
                     RequestData::Binary(data) if !data.is_empty() => {
-                        req_builder = req_builder.body(data.clone());
                         req_builder = req_builder.header(
                             crate::constants::CONTENT_TYPE_HEADER,
                             crate::constants::DEFAULT_CONTENT_TYPE,
                         );
                     }
-                    RequestData::Json(json) => {
-                        let json_bytes = serde_json::to_vec(json).unwrap_or_else(|e| {
-                            tracing::warn!(error = %e, "request_builder body JSON 序列化失败，使用空 vec");
-                            vec![]
-                        });
-                        req_builder = req_builder.body(json_bytes);
+                    RequestData::Json(_) => {
                         req_builder = req_builder.header(
                             crate::constants::CONTENT_TYPE_HEADER,
                             crate::constants::DEFAULT_CONTENT_TYPE,

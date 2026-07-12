@@ -119,7 +119,9 @@ impl ResponseFormat {
 /// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
 ///
 /// - [`Self::data_format`] 选择解码路径（不得静默降级到 Data）
-/// - [`Self::requires_payload`]：成功（业务 code=0 / Binary/Text 可读）时是否必须解出 `data`
+/// - [`Self::requires_payload`]：成功时是否必须解出 `data`（默认 `true`）
+/// - [`Self::empty_success`]：成功且**无** `data` 字段时的显式空载荷（删除类 API）；
+///   **禁止**用「能否反序列化 `{}`」探测代替本方法
 /// - Binary / Text / Custom 通过 [`Self::from_binary`] / [`Self::from_text`] /
 ///   [`Self::from_custom`] 参与解码，避免运行时 `TypeId` 猜测
 pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
@@ -132,6 +134,14 @@ pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
     /// `()` 等无体响应返回 `false`；默认 `true`。
     fn requires_payload() -> bool {
         true
+    }
+
+    /// 成功且响应体无 `data` 字段时的显式空成功值。
+    ///
+    /// 默认 `None`：若同时 [`Self::requires_payload`] 为 true，则解码失败。
+    /// 删除类空 struct 应返回 `Some(Self { .. })`。
+    fn empty_success() -> Option<Self> {
+        None
     }
 
     /// Binary 解码：保留文件名 metadata，由类型自行映射。

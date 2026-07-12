@@ -61,6 +61,11 @@ impl ApiResponseTrait for CreateResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    /// 官方成功响应可能无 `data`；全 Option 字段时声明空成功（非 `{}` 探测）。
+    fn empty_success() -> Option<Self> {
+        Some(Self { archive_id: None })
+    }
 }
 
 #[cfg(test)]
