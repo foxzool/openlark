@@ -449,90 +449,74 @@ impl ClientBuilder {
 }
 ```
 
-#### 6.1.2 服务注册与发现机制
+#### 6.1.2 业务入口与编译能力诊断（0.18）
 
-客户端采用服务注册表模式，支持动态服务发现和依赖管理：
+> **现行模型**（#423 / #434–#437）：业务经 `Client` 的 **meta 字段链**访问；
+> `registry` 仅为编译期 capability catalog 的 **metadata-only 诊断**，不提供
+> 方法式 `client.auth()`、运行时注册、热加载或 `ServiceStatus`。
+> 详见 §7.2.1 与 `docs/migration-guide.md` 0.18 节。
 
 ```rust
-// 服务注册表结构
+// Client 挂载 feature-gated 字段（由 capability catalog 生成）
 pub struct Client {
-    config: Arc<Config>,
+    config: Config,
     registry: Arc<DefaultServiceRegistry>,
+    #[cfg(feature = "auth")]
+    pub auth: AuthClient,
+    #[cfg(feature = "communication")]
+    pub communication: CommunicationClient,
+    #[cfg(feature = "docs")]
+    pub docs: DocsClient,
+    // ... 其余业务域同理
 }
 
-impl Client {
-    // 🔐 访问认证服务（需要 auth feature）
-    #[cfg(feature = "auth")]
-    pub fn auth(&self) -> crate::services::AuthService {
-        crate::services::AuthService::new(&self.config)
-    }
+// 业务调用：字段链，不是 registry 取实例
+#[cfg(feature = "docs")]
+let _ = &client.docs;
 
-    // 📡 访问通讯服务（需要 communication feature）
-    #[cfg(feature = "communication")]
-    pub fn communication(&self) -> Result<crate::services::CommunicationService<'_>> {
-        crate::services::CommunicationService::new(&self.config, &self.registry)
-    }
-
-    // 📄 访问文档服务（需要 docs feature）
-    #[cfg(feature = "docs")]
-    pub fn docs(&self) -> crate::services::DocsService<'_> {
-        crate::services::DocsService::new(&self.config)
-    }
-
-    // 📊 访问多维表格服务（需要 bitable feature）
-    #[cfg(feature = "docs")]
-    pub fn bitable(&self) -> &'static str {
-        "BitableService 尚未实现"
-    }
+// 诊断：是否编译了某能力（与 Cargo feature 一致）
+if client.registry().has_service("docs") { /* ... */ }
+for entry in client.registry().list_services() {
+    // 稳定顺序：priority 升序，同 priority 按 name
+    println!("{}", entry.metadata.name);
 }
 ```
 
-#### 6.1.3 服务生命周期管理
+#### 6.1.3 能力元数据（无 lifecycle）
 
-服务采用分层注册机制，按优先级和依赖关系管理：
+构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register：
 
 ```rust
-// 分层服务注册
-fn load_enabled_services(config: &Config, registry: &mut DefaultServiceRegistry) -> Result<()> {
-    // 核心层服务（优先级1-2）
-    register_core_services(config, registry)?;
-
-    // 专业层服务（优先级3-4）
-    register_professional_services(config, registry)?;
-
-    // 企业层服务（优先级5-6）
-    register_enterprise_services(config, registry)?;
+pub struct ServiceMetadata {
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub dependencies: Vec<String>, // 须与 Cargo feature 关系一致
+    pub provides: Vec<String>,
+    pub priority: u32,
 }
 
-// 服务元数据管理
+// 示例（构造期内部；非用户公开 register API）
 let metadata = ServiceMetadata {
     name: "communication".to_string(),
     version: "1.0.0".to_string(),
     description: Some("飞书通讯服务，提供消息、联系人、群组等功能".to_string()),
     dependencies: vec!["auth".to_string()],
     provides: vec!["im".to_string(), "contacts".to_string()],
-    status: ServiceStatus::Uninitialized,
     priority: 2,
 };
 ```
 
-#### 6.1.4 功能标志和依赖解析
+#### 6.1.4 功能标志（编译时）
 
-支持编译时功能标志和运行时依赖解析：
+能力由 Cargo feature 决定字段是否存在；依赖关系写在 catalog 的 `dependencies` 中供诊断：
 
 ```rust
-// 编译时功能控制
-#[cfg(feature = "communication")]
-pub fn communication(&self) -> Result<CommunicationService<'_>> {
-    CommunicationService::new(&self.config, &self.registry)
-}
+// Cargo.toml（openlark-client）
+// communication = ["auth", "dep:openlark-communication"]
 
-// 依赖关系定义
-impl CommunicationService {
-    pub fn dependencies() -> &'static [&'static str] {
-        &["auth"]  // 依赖认证服务
-    }
-}
+#[cfg(feature = "communication")]
+// client.communication 字段可用；registry.has_service("communication") == true
 ```
 
 ### 6.2 请求构建模式

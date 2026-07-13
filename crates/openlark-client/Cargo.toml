@@ -85,6 +85,9 @@ websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "pr
 core-layer = ["communication", "docs", "security"]
 p0-services = ["communication", "docs", "security"]
 
+# 仅 trybuild compile-fail 导出隐藏宏；非产品能力（见 tests/ui.rs required-features）
+__compile_fail_harness = []
+
 [dev-dependencies]
 tokio-test = "0.4"
 wiremock = { workspace = true }
@@ -92,3 +95,8 @@ rstest = { workspace = true }
 tempfile = { workspace = true }
 mockall = { workspace = true }
 trybuild = "1.0"
+
+[[test]]
+name = "ui"
+path = "tests/ui.rs"
+required-features = ["__compile_fail_harness"]

@@ -1,4 +1,6 @@
 //! compile-fail 回归：capability catalog generation-time 唯一性（#423 / #455）
+//!
+//! 需 `--features __compile_fail_harness`（本文件 `required-features` 已声明）。
 
 #[test]
 fn capability_catalog_generation_time_uniqueness() {
