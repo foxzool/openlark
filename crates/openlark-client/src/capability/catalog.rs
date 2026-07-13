@@ -384,7 +384,13 @@ mod tests {
                 vec!["auth".to_string()],
                 "ai catalog dependencies 必须与 Cargo feature 关系一致"
             );
-            assert!(!entry.metadata.dependencies.iter().any(|d| d == "communication"));
+            assert!(
+                !entry
+                    .metadata
+                    .dependencies
+                    .iter()
+                    .any(|d| d == "communication")
+            );
             assert_eq!(
                 entry.metadata.provides,
                 vec!["chatbot".to_string(), "smart-analysis".to_string()]

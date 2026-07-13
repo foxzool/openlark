@@ -157,7 +157,9 @@ mod tests {
     #[test]
     fn test_service_registration_and_lookup() {
         let mut registry = DefaultServiceRegistry::new();
-        registry.register_service(sample_metadata("test-service")).unwrap();
+        registry
+            .register_service(sample_metadata("test-service"))
+            .unwrap();
 
         assert!(registry.has_service("test-service"));
         let entry = registry.get_service("test-service").unwrap();
@@ -169,7 +171,9 @@ mod tests {
     #[test]
     fn test_duplicate_registration() {
         let mut registry = DefaultServiceRegistry::new();
-        registry.register_service(sample_metadata("test-service")).unwrap();
+        registry
+            .register_service(sample_metadata("test-service"))
+            .unwrap();
 
         let result = registry.register_service(sample_metadata("test-service"));
         assert!(matches!(

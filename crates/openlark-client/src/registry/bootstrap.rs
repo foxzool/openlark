@@ -48,7 +48,10 @@ mod tests {
             let pb = registry.get_service(b).unwrap().metadata.priority;
             pa.cmp(&pb).then_with(|| a.cmp(b))
         });
-        assert_eq!(listed, expected, "list_services 须为稳定顺序（priority, name）");
+        assert_eq!(
+            listed, expected,
+            "list_services 须为稳定顺序（priority, name）"
+        );
     }
 
     #[test]
