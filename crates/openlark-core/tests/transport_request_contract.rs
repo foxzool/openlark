@@ -820,3 +820,107 @@ async fn transport_custom_unimplemented_returns_error() {
         "got: {err}"
     );
 }
+
+/// raw 路径：HTTP 非 2xx 不得伪装为 code=0 成功（Codex #451 Spec High）。
+#[tokio::test]
+async fn transport_binary_http_error_is_not_success_payload() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/binary-http-err"))
+        .respond_with(
+            ResponseTemplate::new(500)
+                .insert_header("X-Request-Id", "rid-http-500")
+                .set_body_string("internal server error"),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/binary-http-err");
+    let resp = Transport::<BinaryFile>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("HTTP error should still return Response, not panic");
+    assert!(!resp.is_success());
+    assert_eq!(resp.code(), 500);
+    assert!(resp.data.is_none());
+    assert_eq!(
+        resp.raw().request_id.as_deref(),
+        Some("rid-http-500"),
+        "request_id from header must be preserved"
+    );
+}
+
+/// raw 路径：HTTP 200 但 body 为业务错误 envelope，不得走 from_binary。
+#[tokio::test]
+async fn transport_binary_api_error_envelope_is_not_success_payload() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/binary-api-err"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 99991672,
+            "msg": "download denied",
+            "request_id": "rid-bin-api"
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/binary-api-err");
+    let resp = Transport::<BinaryFile>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("api error envelope");
+    assert!(!resp.is_success());
+    assert_eq!(resp.code(), 99991672);
+    assert!(resp.data.is_none());
+    assert_eq!(resp.raw().request_id.as_deref(), Some("rid-bin-api"));
+}
+
+/// Data 路径保留 header / body 中的 request_id。
+#[tokio::test]
+async fn transport_data_preserves_request_id_from_header() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/rid"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("X-Request-Id", "rid-header-data")
+                .set_body_json(success_envelope(
+                    serde_json::json!({"id": 9, "name": "rid"}),
+                )),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/rid");
+    let resp = Transport::<ContractData>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect("success");
+    assert!(resp.is_success());
+    assert_eq!(resp.raw().request_id.as_deref(), Some("rid-header-data"));
+}
+
+/// Text 严格 UTF-8：非法字节返回解码错误（非 lossy 成功）。
+#[tokio::test]
+async fn transport_text_invalid_utf8_returns_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/text-bad-utf8"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes([0xff, 0xfe, 0xfd].as_slice()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/text-bad-utf8");
+    let err = Transport::<TextBody>::request(req, &config, Some(no_auth_option()))
+        .await
+        .expect_err("invalid utf-8 must fail");
+    assert!(
+        err.to_string().contains("UTF-8") || err.to_string().to_lowercase().contains("utf"),
+        "got: {err}"
+    );
+}
