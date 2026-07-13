@@ -44,148 +44,177 @@ impl AuthClient {
     }
 }
 
-declare_client! {
-    {
-        feature: "cardkit",
-        field: cardkit,
-        ty: openlark_cardkit::CardkitClient,
-        doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
-        init: |_core_config, _base_core_config| {
-            openlark_cardkit::CardkitClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "auth",
-        field: auth,
-        ty: AuthClient,
-        doc: "Auth meta 调用链入口：client.auth.app / client.auth.user / client.auth.oauth",
-        init: |_core_config, _base_core_config| {
-            AuthClient::new(_base_core_config.clone())
-        },
-    },
-    {
-        feature: "docs",
-        field: docs,
-        ty: openlark_docs::DocsClient,
-        doc: "Docs meta 调用链入口：client.docs.config() / 各 async helper（如 search_bitable_records_all）...",
-        init: |_core_config, _base_core_config| {
-            openlark_docs::DocsClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "communication",
-        field: communication,
-        ty: openlark_communication::CommunicationClient,
-        doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
-        init: |_core_config, _base_core_config| {
-            openlark_communication::CommunicationClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "hr",
-        field: hr,
-        ty: openlark_hr::HrClient,
-        doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
-        init: |_core_config, _base_core_config| {
-            openlark_hr::HrClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "meeting",
-        field: meeting,
-        ty: openlark_meeting::MeetingClient,
-        doc: "Meeting meta 调用链入口：client.meeting.vc.v1.note.get(...) 等（ADR 0001：room/meeting/reserve 空壳已砍，真实 builder 经 strict 路径）",
-        init: |_core_config, _base_core_config| {
-            openlark_meeting::MeetingClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "ai",
-        field: ai,
-        ty: openlark_ai::AiClient,
-        doc: "AI meta 调用链入口：client.ai.chat.create() ...",
-        init: |_core_config, _base_core_config| {
-            openlark_ai::AiClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "workflow",
-        field: workflow,
-        ty: crate::WorkflowClient,
-        doc: "Workflow meta 调用链入口：client.workflow.v2().task().create() ...",
-        init: |_core_config, _base_core_config| {
-            crate::WorkflowClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "platform",
-        field: platform,
-        ty: crate::PlatformClient,
-        doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
-        init: |_core_config, _base_core_config| {
-            crate::PlatformClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "application",
-        field: application,
-        ty: crate::ApplicationClient,
-        doc: "Application meta 调用链入口：client.application.applet... ...",
-        init: |_core_config, _base_core_config| {
-            crate::ApplicationClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "helpdesk",
-        field: helpdesk,
-        ty: crate::HelpdeskClient,
-        doc: "Helpdesk meta 调用链入口：client.helpdesk.ticket... ...",
-        init: |_core_config, _base_core_config| {
-            crate::HelpdeskClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "mail",
-        field: mail,
-        ty: crate::MailClient,
-        doc: "Mail meta 调用链入口：client.mail.group... ...",
-        init: |_core_config, _base_core_config| {
-            crate::MailClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "analytics",
-        field: analytics,
-        ty: crate::AnalyticsClient,
-        doc: "Analytics meta 调用链入口：client.analytics.report... ...",
-        init: |_core_config, _base_core_config| {
-            crate::AnalyticsClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "user",
-        field: user,
-        ty: crate::UserClient,
-        doc: "User meta 调用链入口：client.user.system_status... ...",
-        init: |_core_config, _base_core_config| {
-            crate::UserClient::new(_core_config.clone())
-        },
-    },
-    {
-        feature: "security",
-        field: security,
-        ty: crate::SecurityClient,
-        doc: "Security meta 调用链入口：client.security.acs... ...",
-        init: |_core_config, _base_core_config| {
-            let security_config = openlark_security::config::SecurityConfig::new(
-                _core_config.app_id().to_string(),
-                _core_config.app_secret().to_string(),
-            )
-            .with_base_url(_core_config.base_url());
-            openlark_security::SecurityClient::new(security_config)
-        },
-    },
+// legacy 业务域仍走 declare_client 双声明；catalog 域（目前仅 bot）通过
+// for_each_compiled_capability callback 合并进同一 Client 结构体。
+macro_rules! declare_client_with_catalog {
+    ($({
+        feature: $c_feature:literal,
+        field: $c_field:ident,
+        ty: $c_ty:ty,
+        doc: $c_doc:literal,
+        init: |$c_core:ident, $c_base:ident| $c_init:block,
+        name: $_name:literal,
+        description: $_description:literal,
+        dependencies: [$( $_dep:literal ),* $(,)?],
+        provides: [$( $_cap:literal ),* $(,)?],
+        priority: $_priority:literal $(,)?
+    }),* $(,)?) => {
+        declare_client! {
+            {
+                feature: "cardkit",
+                field: cardkit,
+                ty: openlark_cardkit::CardkitClient,
+                doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
+                init: |_core_config, _base_core_config| {
+                    openlark_cardkit::CardkitClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "auth",
+                field: auth,
+                ty: AuthClient,
+                doc: "Auth meta 调用链入口：client.auth.app / client.auth.user / client.auth.oauth",
+                init: |_core_config, _base_core_config| {
+                    AuthClient::new(_base_core_config.clone())
+                },
+            },
+            {
+                feature: "docs",
+                field: docs,
+                ty: openlark_docs::DocsClient,
+                doc: "Docs meta 调用链入口：client.docs.config() / 各 async helper（如 search_bitable_records_all）...",
+                init: |_core_config, _base_core_config| {
+                    openlark_docs::DocsClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "communication",
+                field: communication,
+                ty: openlark_communication::CommunicationClient,
+                doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_communication::CommunicationClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "hr",
+                field: hr,
+                ty: openlark_hr::HrClient,
+                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_hr::HrClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "meeting",
+                field: meeting,
+                ty: openlark_meeting::MeetingClient,
+                doc: "Meeting meta 调用链入口：client.meeting.vc.v1.note.get(...) 等（ADR 0001：room/meeting/reserve 空壳已砍，真实 builder 经 strict 路径）",
+                init: |_core_config, _base_core_config| {
+                    openlark_meeting::MeetingClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "ai",
+                field: ai,
+                ty: openlark_ai::AiClient,
+                doc: "AI meta 调用链入口：client.ai.chat.create() ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_ai::AiClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "workflow",
+                field: workflow,
+                ty: crate::WorkflowClient,
+                doc: "Workflow meta 调用链入口：client.workflow.v2().task().create() ...",
+                init: |_core_config, _base_core_config| {
+                    crate::WorkflowClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "platform",
+                field: platform,
+                ty: crate::PlatformClient,
+                doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::PlatformClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "application",
+                field: application,
+                ty: crate::ApplicationClient,
+                doc: "Application meta 调用链入口：client.application.applet... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::ApplicationClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "helpdesk",
+                field: helpdesk,
+                ty: crate::HelpdeskClient,
+                doc: "Helpdesk meta 调用链入口：client.helpdesk.ticket... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::HelpdeskClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "mail",
+                field: mail,
+                ty: crate::MailClient,
+                doc: "Mail meta 调用链入口：client.mail.group... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::MailClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "analytics",
+                field: analytics,
+                ty: crate::AnalyticsClient,
+                doc: "Analytics meta 调用链入口：client.analytics.report... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::AnalyticsClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "user",
+                field: user,
+                ty: crate::UserClient,
+                doc: "User meta 调用链入口：client.user.system_status... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::UserClient::new(_core_config.clone())
+                },
+            },
+            {
+                feature: "security",
+                field: security,
+                ty: crate::SecurityClient,
+                doc: "Security meta 调用链入口：client.security.acs... ...",
+                init: |_core_config, _base_core_config| {
+                    let security_config = openlark_security::config::SecurityConfig::new(
+                        _core_config.app_id().to_string(),
+                        _core_config.app_secret().to_string(),
+                    )
+                    .with_base_url(_core_config.base_url());
+                    openlark_security::SecurityClient::new(security_config)
+                },
+            },
+            // capability catalog 条目（#434 bot tracer；后续域迁入后仅改 catalog）
+            $(
+                {
+                    feature: $c_feature,
+                    field: $c_field,
+                    ty: $c_ty,
+                    doc: $c_doc,
+                    init: |$c_core, $c_base| $c_init,
+                },
+            )*
+        }
+    };
 }
+
+crate::capability::for_each_compiled_capability!(declare_client_with_catalog);
 
 impl Client {
     /// 🔥 从环境变量创建客户端

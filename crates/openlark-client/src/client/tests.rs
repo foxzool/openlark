@@ -673,3 +673,68 @@ fn test_communication_service_access() {
 
     let _comm = &client.communication;
 }
+
+// ===== #434: compiled-capability catalog bot tracer =====
+// 最高运行时 seam：`Client::registry()` 与 Client 字段对 bot feature 的一致性。
+
+#[test]
+fn bot_capability_client_and_registry_agree() {
+    use crate::registry::ServiceRegistry;
+
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    #[cfg(feature = "bot")]
+    {
+        // Client 字段可用
+        let _bot = &client.bot;
+        // registry 报告 bot，且元数据完整
+        assert!(
+            client.registry().has_service("bot"),
+            "bot feature 启用时 registry 必须报告 bot"
+        );
+        let entry = client.registry().get_service("bot").unwrap();
+        assert_eq!(entry.metadata.name, "bot");
+        assert_eq!(
+            entry.metadata.description.as_deref(),
+            Some("飞书机器人服务，提供机器人搜索等功能")
+        );
+        assert_eq!(entry.metadata.dependencies, vec!["auth".to_string()]);
+        assert_eq!(entry.metadata.provides, vec!["bot".to_string()]);
+        assert_eq!(entry.metadata.priority, 4);
+        // metadata-only：无 runtime instance
+        assert!(entry.instance.is_none());
+    }
+
+    #[cfg(not(feature = "bot"))]
+    {
+        assert!(
+            !client.registry().has_service("bot"),
+            "bot feature 禁用时 registry 不得报告 bot"
+        );
+    }
+}
+
+#[test]
+fn legacy_domains_still_register_via_old_path() {
+    use crate::registry::ServiceRegistry;
+
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // 默认 feature 含 auth；确认旧路径未被 capability catalog 破坏
+    #[cfg(feature = "auth")]
+    assert!(client.registry().has_service("auth"));
+
+    #[cfg(feature = "communication")]
+    assert!(client.registry().has_service("communication"));
+
+    #[cfg(not(feature = "hr"))]
+    assert!(!client.registry().has_service("hr"));
+}

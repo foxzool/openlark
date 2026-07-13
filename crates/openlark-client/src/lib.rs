@@ -236,6 +236,8 @@
 //! ```
 
 // 核心模块
+/// 编译期能力目录（Client 字段 + registry 元数据统一声明，#434 tracer: bot）
+pub(crate) mod capability;
 pub mod client;
 pub mod error;
 pub mod features;
