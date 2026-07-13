@@ -2,6 +2,7 @@
 //!
 //! Data 走单一 Value 路径；Binary/Text/Custom 共用 raw-body 管线。
 //! 缺 `data` 时只认 [`ApiResponseTrait::empty_success`]，不做 `{}` 探测。
+//! raw 路径先识别 HTTP / 业务错误 envelope，再调用 `from_*`（Codex #451 review）。
 
 use futures_util::StreamExt;
 use serde::Deserialize;
@@ -11,7 +12,8 @@ use tracing::{Instrument, info_span};
 
 use crate::{
     SDKResult,
-    api::{ApiResponseTrait, BaseResponse, RawResponse, Response, ResponseFormat},
+    api::{ApiResponseTrait, BaseResponse, ErrorInfo, RawResponse, Response, ResponseFormat},
+    constants::{CUSTOM_REQUEST_ID, HTTP_HEADER_KEY_REQUEST_ID, HTTP_HEADER_REQUEST_ID},
     content_disposition,
     error::{network_error, validation_error},
     observability::ResponseTracker,
@@ -49,11 +51,85 @@ async fn read_body_with_limit(
     Ok(body)
 }
 
-fn success_raw_response() -> RawResponse {
+/// 从响应头提取请求标识（多键兼容）。
+fn request_id_from_headers(headers: &reqwest::header::HeaderMap) -> Option<String> {
+    const CANDIDATES: &[&str] = &[
+        HTTP_HEADER_KEY_REQUEST_ID,
+        HTTP_HEADER_REQUEST_ID,
+        CUSTOM_REQUEST_ID,
+        "x-tt-logid",
+        "X-Tt-Logid",
+    ];
+    for key in CANDIDATES {
+        if let Some(v) = headers.get(*key).and_then(|h| h.to_str().ok()) {
+            let trimmed = v.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+    None
+}
+
+fn request_id_from_json(value: &Value) -> Option<String> {
+    value
+        .get("request_id")
+        .or_else(|| value.get("log_id"))
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+}
+
+fn error_info_from_json(value: &Value) -> Option<ErrorInfo> {
+    value
+        .get("error")
+        .cloned()
+        .and_then(|e| serde_json::from_value(e).ok())
+}
+
+fn raw_from_envelope(
+    value: &Value,
+    header_request_id: Option<String>,
+    fallback_code: i32,
+    fallback_msg: impl Into<String>,
+) -> RawResponse {
+    let code = value
+        .get("code")
+        .and_then(|c| c.as_i64())
+        .map(|c| c as i32)
+        .unwrap_or(fallback_code);
+    let msg = value
+        .get("msg")
+        .and_then(|m| m.as_str())
+        .map(str::to_string)
+        .unwrap_or_else(|| fallback_msg.into());
+    let request_id = request_id_from_json(value).or(header_request_id);
+    let error = error_info_from_json(value).or_else(|| {
+        if code != 0 {
+            Some(ErrorInfo {
+                code,
+                message: msg.clone(),
+                details: None,
+            })
+        } else {
+            None
+        }
+    });
+    RawResponse {
+        code,
+        msg,
+        request_id,
+        data: value.get("data").cloned().filter(|d| !d.is_null()),
+        error,
+    }
+}
+
+fn success_raw_response(request_id: Option<String>) -> RawResponse {
     RawResponse {
         code: 0,
         msg: "success".to_string(),
-        request_id: None,
+        request_id,
         data: None,
         error: None,
     }
@@ -85,6 +161,21 @@ fn require_decoded_payload<T: ApiResponseTrait>(
         None if T::requires_payload() => Err(missing_msg.into()),
         None => Ok(None),
     }
+}
+
+/// 若 body 为带 `code` 的 JSON 业务 envelope 且 `code != 0`，返回解析后的 RawResponse。
+fn try_api_error_envelope(body: &[u8], header_request_id: Option<String>) -> Option<RawResponse> {
+    let value: Value = serde_json::from_slice(body).ok()?;
+    let code = value.get("code")?.as_i64()? as i32;
+    if code == 0 {
+        return None;
+    }
+    Some(raw_from_envelope(
+        &value,
+        header_request_id,
+        code,
+        "api error",
+    ))
 }
 
 /// 按 `ResponseFormat` 做类型化响应解码。
@@ -127,12 +218,13 @@ impl ResponseDecoder {
         .await
     }
 
-    /// Data：单一 Value 路径（无 Response&lt;T&gt; 优先 + fallback 双树）。
+    /// Data：单一 Value 路径。
     async fn handle_data_response<T: ApiResponseTrait + for<'de> Deserialize<'de>>(
         response: reqwest::Response,
         max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("json_data", response.content_length());
+        let header_request_id = request_id_from_headers(response.headers());
         let body_bytes = read_body_with_limit(response, max_size).await?;
         tracker.parsing_complete();
 
@@ -145,11 +237,8 @@ impl ResponseDecoder {
             }
         };
 
-        let code = raw_value["code"].as_i64().unwrap_or(-1) as i32;
-        let msg = raw_value["msg"]
-            .as_str()
-            .unwrap_or("Unknown error")
-            .to_string();
+        let raw_response = raw_from_envelope(&raw_value, header_request_id, -1, "Unknown error");
+        let code = raw_response.code;
 
         let data = if code == 0 {
             match raw_value.get("data") {
@@ -168,7 +257,6 @@ impl ResponseDecoder {
                         }
                     }
                 }
-                // data 缺失或 null
                 _ => match resolve_missing_data_field::<T>() {
                     Ok(data) => data,
                     Err(msg) => return Err(fail_payload(tracker, msg)),
@@ -180,16 +268,7 @@ impl ResponseDecoder {
 
         tracker.validation_complete();
         tracker.success();
-        Ok(BaseResponse {
-            raw_response: RawResponse {
-                code,
-                msg,
-                request_id: None,
-                data: None,
-                error: None,
-            },
-            data,
-        })
+        Ok(BaseResponse { raw_response, data })
     }
 
     /// Flatten：整包 JSON 同时作为 raw 与业务类型。
@@ -198,6 +277,7 @@ impl ResponseDecoder {
         max_size: u64,
     ) -> SDKResult<Response<T>> {
         let tracker = ResponseTracker::start("json_flatten", response.content_length());
+        let header_request_id = request_id_from_headers(response.headers());
         let body_bytes = read_body_with_limit(response, max_size).await?;
 
         let raw_value: Value = match serde_json::from_slice(&body_bytes) {
@@ -212,7 +292,7 @@ impl ResponseDecoder {
             }
         };
 
-        let raw_response: RawResponse = match serde_json::from_value(raw_value.clone()) {
+        let mut raw_response: RawResponse = match serde_json::from_value(raw_value.clone()) {
             Ok(response) => response,
             Err(e) => {
                 let error_msg = format!("Failed to parse raw response: {e}");
@@ -220,6 +300,13 @@ impl ResponseDecoder {
                 return Err(validation_error("response", error_msg));
             }
         };
+        if raw_response.request_id.is_none() {
+            raw_response.request_id =
+                header_request_id.or_else(|| request_id_from_json(&raw_value));
+        }
+        if raw_response.error.is_none() {
+            raw_response.error = error_info_from_json(&raw_value);
+        }
 
         let data = if raw_response.code == 0 {
             match serde_json::from_value::<T>(raw_value) {
@@ -247,7 +334,7 @@ impl ResponseDecoder {
         Ok(BaseResponse { raw_response, data })
     }
 
-    /// Binary / Text / Custom 共用 raw body 管线。
+    /// Binary / Text / Custom：先识别 HTTP / 业务错误，再 `from_*`。
     async fn handle_raw_format<T: ApiResponseTrait>(
         response: reqwest::Response,
         max_size: u64,
@@ -255,6 +342,8 @@ impl ResponseDecoder {
     ) -> SDKResult<Response<T>> {
         let label = format.as_label();
         let tracker = ResponseTracker::start(label, response.content_length());
+        let status = response.status();
+        let header_request_id = request_id_from_headers(response.headers());
 
         let file_name = response
             .headers()
@@ -277,10 +366,57 @@ impl ResponseDecoder {
         };
         tracker.parsing_complete();
 
+        // HTTP 非成功：不得伪装为 code=0 成功 payload
+        if !status.is_success() {
+            if let Some(raw) = try_api_error_envelope(&body_bytes, header_request_id.clone()) {
+                tracker.success();
+                return Ok(BaseResponse {
+                    raw_response: raw,
+                    data: None,
+                });
+            }
+            let status_code = status.as_u16() as i32;
+            let msg = status
+                .canonical_reason()
+                .unwrap_or("http error")
+                .to_string();
+            tracker.success();
+            return Ok(BaseResponse {
+                raw_response: RawResponse {
+                    code: status_code,
+                    msg: msg.clone(),
+                    request_id: header_request_id,
+                    data: None,
+                    error: Some(ErrorInfo {
+                        code: status_code,
+                        message: msg,
+                        details: None,
+                    }),
+                },
+                data: None,
+            });
+        }
+
+        // HTTP 成功但 body 为飞书业务错误 envelope（常见于下载失败 JSON）
+        if let Some(raw) = try_api_error_envelope(&body_bytes, header_request_id.clone()) {
+            tracker.success();
+            return Ok(BaseResponse {
+                raw_response: raw,
+                data: None,
+            });
+        }
+
         let decoded = match format {
             ResponseFormat::Binary => T::from_binary(file_name, body_bytes),
             ResponseFormat::Text => {
-                let text = String::from_utf8_lossy(&body_bytes).into_owned();
+                let text = match String::from_utf8(body_bytes) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        let error_msg = format!("Text 响应不是合法 UTF-8: {e}");
+                        tracker.error(&error_msg);
+                        return Err(validation_error("text_response", error_msg));
+                    }
+                };
                 T::from_text(text)
             }
             ResponseFormat::Custom => T::from_custom(body_bytes, content_type.as_deref()),
@@ -300,7 +436,7 @@ impl ResponseDecoder {
 
         tracker.success();
         Ok(BaseResponse {
-            raw_response: success_raw_response(),
+            raw_response: success_raw_response(header_request_id),
             data,
         })
     }

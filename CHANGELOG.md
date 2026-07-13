@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       （删除类空 struct 显式 `Some(Self {})`）；**不再**用「能否反序列化 `{}`」探测。
     - 无体成功请用 `()`（`requires_payload() == false`）。
   - 契约测试仅经 `Transport::request` + wiremock。
+  - **decode 收尾（Codex review #451）**：`ResponseFormat::as_label` 收为
+    `pub(crate)`；Binary/Text/Custom 先识别 HTTP 非 2xx 与业务错误 envelope，
+    不再伪装 `code:0`；保留 `X-Request-Id` 等请求标识；Text 使用严格 UTF-8。
 
 ### Security
 
