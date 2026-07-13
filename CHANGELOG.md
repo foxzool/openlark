@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client：编译期能力目录 tracer（#434 / #423）**：新增 `capability` catalog，
+  以 `bot` 为 tracer 用同一声明同时生成 `Client::bot` 字段与 registry 诊断元数据；
+  启用 `bot` feature 时 `client.bot` 可用且 `registry.has_service("bot")`；禁用时
+  两处均不可用。其余业务域仍走 `declare_client!` + `registry/catalog.rs` 旧路径。
+
 - **core：加深 `Transport::request` 请求执行（#422 / #430–#433）**：
   - 内部收敛为 `request_execution` 深模块（构建 + 认证 + 解码）；删除纯委托
     `ReqTranslator` 与一行式 `HeaderBuilder`。

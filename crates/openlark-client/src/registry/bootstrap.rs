@@ -59,7 +59,15 @@ macro_rules! compiled_services {
 
 #[path = "catalog.rs"]
 mod catalog;
-pub(crate) use catalog::register_compiled_services;
+
+/// 注册所有已编译服务元数据：legacy `registry/catalog` + capability catalog（#434 bot tracer）。
+pub(crate) fn register_compiled_services(
+    registry: &mut super::DefaultServiceRegistry,
+) -> crate::Result<()> {
+    catalog::register_compiled_services(registry)?;
+    crate::capability::register_catalog_capabilities(registry)?;
+    Ok(())
+}
 
 #[cfg(test)]
 use catalog::compiled_service_names;
@@ -223,6 +231,31 @@ mod tests {
         assert_feature_service!("mail", "mail");
         assert_feature_service!("analytics", "analytics");
         assert_feature_service!("user", "user");
+        // bot 走 capability catalog（#434），不在 legacy compiled_service_names 中
+    }
+
+    #[test]
+    fn test_register_compiled_services_includes_catalog_bot() {
+        use super::super::ServiceRegistry;
+
+        let mut registry = DefaultServiceRegistry::new();
+        register_compiled_services(&mut registry).unwrap();
+
+        #[cfg(feature = "bot")]
+        assert!(
+            registry.has_service("bot"),
+            "bot feature 启用时 register_compiled_services 必须注册 bot"
+        );
+
+        #[cfg(not(feature = "bot"))]
+        assert!(
+            !registry.has_service("bot"),
+            "bot feature 禁用时 register_compiled_services 不得注册 bot"
+        );
+
+        // legacy 路径仍工作
+        #[cfg(feature = "auth")]
+        assert!(registry.has_service("auth"));
     }
 
     #[test]
