@@ -706,7 +706,6 @@ macro_rules! assert_catalog_domain {
                     .collect::<Vec<_>>()
             );
             assert_eq!(entry.metadata.priority, $priority);
-            assert!(entry.instance.is_none(), "{} 应为 metadata-only", $name);
         }
 
         #[cfg(not(feature = $feature))]

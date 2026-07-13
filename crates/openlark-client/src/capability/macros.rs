@@ -31,7 +31,7 @@ macro_rules! generate_catalog_registry {
             $(
                 #[cfg(feature = $feature)]
                 {
-                    use crate::registry::{ServiceMetadata, ServiceRegistry, ServiceStatus};
+                    use crate::registry::ServiceMetadata;
 
                     // 只写诊断元数据；构造字段已在匹配中吸收。
                     let metadata = ServiceMetadata {
@@ -40,10 +40,10 @@ macro_rules! generate_catalog_registry {
                         description: Some($description.to_string()),
                         dependencies: vec![$($dependency.to_string()),*],
                         provides: vec![$($capability.to_string()),*],
-                        status: ServiceStatus::Uninitialized,
                         priority: $priority,
                     };
-                    ServiceRegistry::register_service(registry, metadata)
+                    registry
+                        .register_service(metadata)
                         .map_err(crate::error::registry_error)?;
                 }
             )*

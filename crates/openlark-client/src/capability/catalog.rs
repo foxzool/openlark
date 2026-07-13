@@ -373,7 +373,6 @@ mod tests {
                 ]
             );
             assert_eq!(entry.metadata.priority, 1);
-            assert!(entry.instance.is_none());
         }
 
         // #436：AI deps 与 Cargo `ai = ["auth", ...]` 一致（不再误报 communication）
@@ -390,7 +389,6 @@ mod tests {
                 entry.metadata.provides,
                 vec!["chatbot".to_string(), "smart-analysis".to_string()]
             );
-            assert!(entry.instance.is_none());
         }
 
         #[cfg(feature = "bot")]
@@ -403,7 +401,6 @@ mod tests {
             assert_eq!(entry.metadata.dependencies, vec!["auth".to_string()]);
             assert_eq!(entry.metadata.provides, vec!["bot".to_string()]);
             assert_eq!(entry.metadata.priority, 4);
-            assert!(entry.instance.is_none());
         }
     }
 }

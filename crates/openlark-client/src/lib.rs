@@ -12,7 +12,7 @@
 //! - 运行时入口优先使用 [`Client`] / [`ClientBuilder`]
 //! - 导入优先使用 `openlark_client::prelude::*`
 //! - 业务调用优先从 `client.<domain>` 字段链开始
-//! - `ServiceRegistry`、`FeatureLoader`、traits 等顶层导出属于高级客户端层能力，不是普通用户默认入口
+//! - `ServiceRegistry` 与 traits 等顶层导出属于高级客户端层能力，不是普通用户默认入口
 //!
 //! 也就是说：如果你不需要这些高级能力，优先回到根 crate `openlark`。
 //!
@@ -23,7 +23,7 @@
 //! - **🔒 类型安全**: 完全编译时验证的 API 调用
 //! - **🚀 异步优先**: 完全异步的客户端实现
 //! - **🏗️ 现代构建器**: 流畅的构建器模式 API
-//! - **🔍 服务发现**: 动态服务注册和管理
+//! - **🔍 能力诊断**: 编译期能力 catalog + 只读 registry 元数据查询
 //! - **🛡️ 企业级**: 基于 CoreError 的高级错误处理、重试和监控支持
 //! - **🌐 中文优先**: 100% 中文错误消息和文档，专为中国开发者优化
 //!
@@ -139,7 +139,7 @@
 //!
 //! ## 高级用法
 //!
-//! ### 服务注册和管理
+//! ### 编译能力诊断（metadata-only）
 //!
 //! ```rust,no_run
 //! use openlark_client::prelude::*;
@@ -148,8 +148,10 @@
 //! let client = Client::from_env()?;
 //! let registry = client.registry();
 //!
-//! // 检查可用服务
-//! println!("可用服务: {:?}", registry.list_services());
+//! // 列出当前 feature 组合下已编译的能力
+//! for entry in registry.list_services() {
+//!     println!("可用服务: {}", entry.metadata.name);
+//! }
 //!
 //! // 检查特定服务是否可用
 //! if registry.has_service("communication") {
@@ -236,11 +238,10 @@
 //! ```
 
 // 核心模块
-/// 编译期能力目录（Client 字段 + registry 元数据统一声明，#434 tracer: bot）
+/// 编译期能力目录（Client 字段 + registry 元数据统一声明，#434–#437）
 pub(crate) mod capability;
 pub mod client;
 pub mod error;
-pub mod features;
 pub mod registry;
 pub mod traits;
 
@@ -299,11 +300,8 @@ pub use error::{
     validation_error,          // 验证错误
 };
 
-// 功能管理和服务注册
-pub use features::FeatureLoader;
-pub use registry::{
-    DefaultServiceRegistry, ServiceEntry, ServiceMetadata, ServiceRegistry, ServiceStatus,
-};
+// 服务注册（metadata-only 诊断；无 typed instance / lifecycle）
+pub use registry::{DefaultServiceRegistry, ServiceEntry, ServiceMetadata, ServiceRegistry};
 
 // 客户端特征
 pub use traits::{LarkClient, ServiceLifecycle};
@@ -452,16 +450,9 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::traits::{LarkClient, ServiceLifecycle, ServiceTrait};
 
-    // 服务注册
+    // 服务注册（诊断）
     #[doc(hidden)]
     pub use crate::ServiceRegistry;
-
-    // ============================================================================
-    // 功能管理
-    // ============================================================================
-
-    #[doc(hidden)]
-    pub use crate::FeatureLoader;
 
     // meta 风格链式入口（字段链式）
     #[cfg(feature = "cardkit")]

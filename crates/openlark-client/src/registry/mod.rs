@@ -1,6 +1,8 @@
-//! 服务注册和发现机制
+//! 服务注册与诊断查询（metadata-only）
 //!
-//! 提供轻量级的服务元信息注册与查询功能
+//! #423 / #437：`Client::registry()` 是编译能力的诊断 seam，只暴露 listing /
+//! lookup / presence 与不可变元数据。不提供 runtime 服务实例、生命周期状态机
+//! 或 typed downcast。
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,140 +10,71 @@ use thiserror::Error;
 
 pub(crate) mod bootstrap;
 
-/// 服务注册和发现错误
+/// 服务注册表错误
 #[derive(Error, Debug, Clone)]
 pub enum RegistryError {
-    /// 服务已存在错误
-    ///
-    /// 当尝试注册的服务名称已经存在时触发
+    /// 服务名称已存在
     #[error("服务 '{name}' 已存在")]
     ServiceAlreadyExists {
         /// 已存在的服务名称
         name: String,
     },
 
-    /// 服务不存在错误
-    ///
-    /// 当尝试访问不存在的服务时触发
+    /// 服务不存在
     #[error("服务 '{name}' 不存在")]
     ServiceNotFound {
         /// 不存在的服务名称
         name: String,
-    },
-
-    /// 循环依赖错误
-    ///
-    /// 当检测到服务间存在循环依赖关系时触发
-    #[error("循环依赖检测: {dependency_chain}")]
-    CircularDependency {
-        /// 循环依赖链
-        dependency_chain: String,
-    },
-
-    /// 缺少依赖服务错误
-    ///
-    /// 当服务依赖的其他服务不存在时触发
-    #[error("缺少依赖服务: {missing_dependencies:?}")]
-    MissingDependencies {
-        /// 缺失的依赖服务列表
-        missing_dependencies: Vec<String>,
-    },
-
-    /// 无效功能标志错误
-    ///
-    /// 当使用了未定义的功能标志时触发
-    #[error("功能标志 '{flag}' 无效")]
-    InvalidFeatureFlag {
-        /// 无效的功能标志名称
-        flag: String,
     },
 }
 
 /// 服务注册表结果类型
 pub type RegistryResult<T> = Result<T, RegistryError>;
 
-/// 服务元数据
+/// 服务诊断元数据（不可变；与 capability catalog 对齐）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceMetadata {
-    /// 服务名称
+    /// 服务名称（与 Cargo feature / Client 字段对应）
     pub name: String,
-    /// 服务版本
+    /// 服务版本（元信息）
     pub version: String,
     /// 服务描述
     pub description: Option<String>,
-    /// 依赖的服务列表
+    /// 依赖的服务 / feature 名（须与 Cargo feature 关系一致）
     pub dependencies: Vec<String>,
-    /// 提供的功能
+    /// 提供的能力标签
     pub provides: Vec<String>,
-    /// 服务状态
-    pub status: ServiceStatus,
-    /// 服务优先级（数值越小优先级越高）
+    /// 优先级（数值越小优先级越高）
     pub priority: u32,
 }
 
-/// 服务状态
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum ServiceStatus {
-    /// 未初始化
-    Uninitialized,
-    /// 初始化中
-    Initializing,
-    /// 已就绪
-    Ready,
-    /// 运行中
-    Running,
-    /// 已停止
-    Stopped,
-    /// 错误状态
-    Error(String),
-}
-
-/// 服务条目
-#[derive(Debug)]
+/// 服务条目：仅包装诊断元数据
+#[derive(Debug, Clone)]
 pub struct ServiceEntry {
     /// 服务元数据
     pub metadata: ServiceMetadata,
-    /// 服务实例
-    pub instance: Option<Box<dyn std::any::Any + Send + Sync>>,
-    /// 创建时间
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    /// 最后更新时间
-    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// 服务注册表特征
+/// 服务注册表诊断接口（只读）
+///
+/// 注册发生在 Client 构造期（`pub(crate)`），不经本 trait 暴露给调用方。
 pub trait ServiceRegistry: Send + Sync {
-    /// 注册服务
-    fn register_service(&mut self, metadata: ServiceMetadata) -> RegistryResult<()>;
-
-    /// 注销服务
-    fn unregister_service(&mut self, name: &str) -> RegistryResult<()>;
-
-    /// 获取服务
+    /// 按名称查找服务条目
     fn get_service(&self, name: &str) -> RegistryResult<&ServiceEntry>;
 
-    /// 获取服务实例（类型安全）
-    fn get_service_typed<T>(&self, name: &str) -> RegistryResult<&T>
-    where
-        T: 'static;
-
-    /// 列出所有服务
+    /// 列出所有已编译服务
     fn list_services(&self) -> Vec<&ServiceEntry>;
 
-    /// 检查服务是否存在
+    /// 检查服务是否存在（是否在当前 feature 组合下编译）
     fn has_service(&self, name: &str) -> bool;
 
-    /// 更新服务状态
-    fn update_service_status(&mut self, name: &str, status: ServiceStatus) -> RegistryResult<()>;
-
-    /// 获取依赖关系图
+    /// 依赖关系图：`name -> dependencies`
     fn get_dependency_graph(&self) -> HashMap<String, Vec<String>>;
 }
 
 /// 默认服务注册表实现
 #[derive(Debug)]
 pub struct DefaultServiceRegistry {
-    /// 服务存储
     services: HashMap<String, ServiceEntry>,
 }
 
@@ -152,68 +85,36 @@ impl Default for DefaultServiceRegistry {
 }
 
 impl DefaultServiceRegistry {
-    /// 创建新的服务注册表
+    /// 创建空注册表
     pub fn new() -> Self {
         Self {
             services: HashMap::new(),
         }
     }
-}
 
-impl ServiceRegistry for DefaultServiceRegistry {
-    fn register_service(&mut self, metadata: ServiceMetadata) -> RegistryResult<()> {
-        // 检查服务是否已存在
+    /// 注册服务元数据（仅 Client / catalog bootstrap 使用）
+    ///
+    /// 在未启用任何业务 feature 时 catalog 不会调用本方法；保留以供有 feature 时注册。
+    #[allow(dead_code)]
+    pub(crate) fn register_service(&mut self, metadata: ServiceMetadata) -> RegistryResult<()> {
         if self.services.contains_key(&metadata.name) {
             return Err(RegistryError::ServiceAlreadyExists {
                 name: metadata.name,
             });
         }
 
-        // 创建服务条目
-        let entry = ServiceEntry {
-            metadata: metadata.clone(),
-            instance: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-
-        // 注册服务
-        self.services.insert(metadata.name.clone(), entry);
-
+        let name = metadata.name.clone();
+        self.services.insert(name, ServiceEntry { metadata });
         Ok(())
     }
+}
 
-    fn unregister_service(&mut self, name: &str) -> RegistryResult<()> {
-        if !self.services.contains_key(name) {
-            return Err(RegistryError::ServiceNotFound {
-                name: name.to_string(),
-            });
-        }
-
-        self.services.remove(name);
-        Ok(())
-    }
-
+impl ServiceRegistry for DefaultServiceRegistry {
     fn get_service(&self, name: &str) -> RegistryResult<&ServiceEntry> {
         self.services
             .get(name)
             .ok_or_else(|| RegistryError::ServiceNotFound {
                 name: name.to_string(),
-            })
-    }
-
-    fn get_service_typed<T>(&self, name: &str) -> RegistryResult<&T>
-    where
-        T: 'static,
-    {
-        let entry = self.get_service(name)?;
-
-        entry
-            .instance
-            .as_ref()
-            .and_then(|instance| instance.downcast_ref::<T>())
-            .ok_or_else(|| RegistryError::ServiceNotFound {
-                name: format!("类型转换失败: {name}"),
             })
     }
 
@@ -225,20 +126,6 @@ impl ServiceRegistry for DefaultServiceRegistry {
         self.services.contains_key(name)
     }
 
-    fn update_service_status(&mut self, name: &str, status: ServiceStatus) -> RegistryResult<()> {
-        let entry = self
-            .services
-            .get_mut(name)
-            .ok_or_else(|| RegistryError::ServiceNotFound {
-                name: name.to_string(),
-            })?;
-
-        entry.metadata.status = status.clone();
-        entry.updated_at = chrono::Utc::now();
-
-        Ok(())
-    }
-
     fn get_dependency_graph(&self) -> HashMap<String, Vec<String>> {
         self.services
             .iter()
@@ -248,48 +135,69 @@ impl ServiceRegistry for DefaultServiceRegistry {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_service_registration() {
-        let mut registry = DefaultServiceRegistry::new();
-
-        let metadata = ServiceMetadata {
-            name: "test-service".to_string(),
+    fn sample_metadata(name: &str) -> ServiceMetadata {
+        ServiceMetadata {
+            name: name.to_string(),
             version: "1.0.0".to_string(),
             description: Some("测试服务".to_string()),
             dependencies: vec![],
             provides: vec!["test-feature".to_string()],
-            status: ServiceStatus::Uninitialized,
             priority: 1,
-        };
+        }
+    }
 
-        assert!(registry.register_service(metadata).is_ok());
+    #[test]
+    fn test_service_registration_and_lookup() {
+        let mut registry = DefaultServiceRegistry::new();
+        registry.register_service(sample_metadata("test-service")).unwrap();
+
         assert!(registry.has_service("test-service"));
+        let entry = registry.get_service("test-service").unwrap();
+        assert_eq!(entry.metadata.name, "test-service");
+        assert_eq!(entry.metadata.priority, 1);
+        assert_eq!(registry.list_services().len(), 1);
     }
 
     #[test]
     fn test_duplicate_registration() {
         let mut registry = DefaultServiceRegistry::new();
+        registry.register_service(sample_metadata("test-service")).unwrap();
 
-        let metadata = ServiceMetadata {
-            name: "test-service".to_string(),
-            version: "1.0.0".to_string(),
-            description: None,
-            dependencies: vec![],
-            provides: vec![],
-            status: ServiceStatus::Uninitialized,
-            priority: 1,
-        };
-
-        registry.register_service(metadata.clone()).unwrap();
-
-        let result = registry.register_service(metadata);
+        let result = registry.register_service(sample_metadata("test-service"));
         assert!(matches!(
             result,
             Err(RegistryError::ServiceAlreadyExists { .. })
         ));
+    }
+
+    #[test]
+    fn test_missing_service() {
+        let registry = DefaultServiceRegistry::new();
+        assert!(!registry.has_service("missing"));
+        assert!(matches!(
+            registry.get_service("missing"),
+            Err(RegistryError::ServiceNotFound { .. })
+        ));
+    }
+
+    #[test]
+    fn test_dependency_graph() {
+        let mut registry = DefaultServiceRegistry::new();
+        registry
+            .register_service(ServiceMetadata {
+                name: "comm".to_string(),
+                version: "1.0.0".to_string(),
+                description: None,
+                dependencies: vec!["auth".to_string()],
+                provides: vec!["im".to_string()],
+                priority: 2,
+            })
+            .unwrap();
+
+        let graph = registry.get_dependency_graph();
+        assert_eq!(graph.get("comm").unwrap(), &vec!["auth".to_string()]);
     }
 }

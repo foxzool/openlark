@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client：收缩 registry / 删除 FeatureLoader（#437 / #423）**：
+  `Client::registry()` 仅保留 listing / lookup / presence / 依赖图与不可变
+  `ServiceMetadata`（name/version/description/dependencies/provides/priority）。
+  移除 `get_service_typed`、`update_service_status`、`unregister_service`、
+  `ServiceStatus`、条目 `instance` / 时间戳，以及空的 legacy catalog 与
+  `FeatureLoader` 旁路初始化；bootstrap 只走 capability catalog。去掉
+  仅服务于假 lifecycle 的 `chrono` 依赖。
+
 - **client：剩余业务域迁入编译期能力目录（#436 / #423）**：
   `hr` / `ai` / `workflow` / `platform` / `application` / `helpdesk` / `mail` /
   `analytics` / `user` 亦由统一 `capability` catalog 生成；legacy
@@ -77,6 +85,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OPENLARK_ENABLE_LOG` 时与 core 一致默认为 `true`（此前该工具函数默认为 `false`）。
 
 ### Breaking
+
+- **client registry / FeatureLoader（#437）→ 0.18.0**：
+  - 删除公开类型 `FeatureLoader`、`ServiceStatus`。
+  - `ServiceRegistry` 只读：删除 `register_service` / `unregister_service` /
+    `get_service_typed` / `update_service_status`（注册仅 `pub(crate)` 于
+    `DefaultServiceRegistry`）。
+  - `ServiceEntry` 仅含 `metadata`；`ServiceMetadata` 删除 `status` 字段。
+  - 诊断请用 `has_service` / `get_service` / `list_services` /
+    `get_dependency_graph`；能力真相来自 capability catalog。
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
