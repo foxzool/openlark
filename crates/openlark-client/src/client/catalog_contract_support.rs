@@ -5,8 +5,7 @@ use super::super::Client;
 /// 单域 registry 元数据期望（避免 8 元组参数散落）。
 ///
 /// 域 feature 关闭时宏只断言 `name` 不在 registry；其余字段仍随调用方字面量保留，
-/// 以便 feature 矩阵下同一调用点可编译。
-#[allow(dead_code)]
+/// 以便 feature 矩阵下同一调用点可编译（关闭分支会读取字段以保持无 dead_code）。
 pub(super) struct CatalogDomainMeta {
     pub name: &'static str,
     pub description: &'static str,
@@ -54,6 +53,14 @@ macro_rules! assert_catalog_domain {
         #[cfg(not(feature = $feature))]
         {
             let meta: &super::catalog_contract_support::CatalogDomainMeta = &$meta;
+            // 与启用分支共用同一字面量形状；关闭时只校验 registry 不报告 name，
+            // 其余字段仍读取一次，避免 no-default-features 下 dead_code。
+            let _ = (
+                meta.description,
+                meta.dependencies,
+                meta.provides,
+                meta.priority,
+            );
             assert!(
                 !$client.registry().has_service(meta.name),
                 "{} feature 禁用时 registry 不得报告 {}",
