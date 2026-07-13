@@ -8,13 +8,12 @@
 
 /// 由 `for_each_compiled_capability!` 展开：生成 registry 注册与测试辅助。
 ///
-/// 死匹配（field/ty/doc/init）：统一条目同时含构造与诊断字段，本侧只消费诊断字段；
+/// 死匹配（ty/doc/init）：统一条目同时含构造与诊断字段，本侧只消费诊断字段；
 /// 与 `append_catalog_entries!` 对称，是双投影的固有成本（#434 review）。
 macro_rules! generate_catalog_registry {
     ($({
         feature: $feature:literal,
-        // Client 构造字段：由 append_catalog_entries! 消费；此处仅匹配统一条目形状
-        // `$field` 同时用于 generation-time 唯一性（同名字段 → 重复 struct 编译失败）
+        // `$field`：Client 字段名；generation-time 唯一性（同模块重复 struct → 编译失败）
         field: $field:ident,
         ty: $_ty:ty,
         doc: $_doc:literal,
@@ -25,33 +24,48 @@ macro_rules! generate_catalog_registry {
         provides: [$($capability:literal),* $(,)?],
         priority: $priority:literal $(,)?
     }),* $(,)?) => {
-        /// generation-time：catalog 声明内 `field` 必须唯一（#423 duplicate-name rejection）。
-        /// 不随 feature cfg 开关——声明表本身不可有重复条目。
-        #[allow(non_camel_case_types, dead_code)]
+        // generation-time 唯一性（#423）：
+        // 每个 field 生成 unit struct（重复标识符 → 编译失败）；const 块 size_of 引用类型，
+        // 且 assert name == stringify!(field)。普通 cargo build 即拒绝，无需 -D warnings。
+        #[allow(non_camel_case_types)]
         mod __capability_catalog_unique_fields {
             $(
                 pub struct $field;
             )*
         }
 
-        /// generation-time：诊断 `name` 字面量必须唯一（重复 match arm → unreachable pattern）。
-        /// 在 `register_catalog_capabilities` 内调用，避免 unused 警告。
-        fn __capability_catalog_unique_names() {
-            // 重复 `$name` 会在第二次成为 unreachable pattern（-D warnings 失败）
-            match "" {
-                $(
-                    $name => {}
-                )*
-                _ => {}
+        /// const 字符串相等（generation-time name == field）。
+        const fn __catalog_str_eq(a: &str, b: &str) -> bool {
+            if a.len() != b.len() {
+                return false;
             }
+            let ab = a.as_bytes();
+            let bb = b.as_bytes();
+            let mut i = 0;
+            while i < ab.len() {
+                if ab[i] != bb[i] {
+                    return false;
+                }
+                i += 1;
+            }
+            true
         }
+
+        const _: () = {
+            $(
+                let _ = core::mem::size_of::<__capability_catalog_unique_fields::$field>();
+                assert!(
+                    __catalog_str_eq(stringify!($field), $name),
+                    "capability catalog: name must equal field identifier text"
+                );
+            )*
+        };
 
         /// 将 catalog 中已编译的能力注册为 registry 元数据（metadata-only）。
         pub(crate) fn register_catalog_capabilities(
             registry: &mut crate::DefaultServiceRegistry,
         ) -> crate::Result<()> {
-            // generation-time 重名检查；并保持 `register_service` 在无 feature 时仍被引用
-            __capability_catalog_unique_names();
+            // 保持 `register_service` 在无业务 feature 时仍被引用（避免 dead_code）
             let _: fn(
                 &mut crate::DefaultServiceRegistry,
                 crate::registry::ServiceMetadata,
@@ -63,7 +77,6 @@ macro_rules! generate_catalog_registry {
                 {
                     use crate::registry::ServiceMetadata;
 
-                    // 只写诊断元数据；构造字段已在匹配中吸收。
                     let metadata = ServiceMetadata {
                         name: $name.to_string(),
                         version: "1.0.0".to_string(),
@@ -82,7 +95,7 @@ macro_rules! generate_catalog_registry {
             Ok(())
         }
 
-        /// 当前编译进包的 catalog 能力名（仅测试/诊断使用；顺序与声明一致）。
+        /// 当前编译进包的 catalog 能力名（顺序与声明一致；仅测试对照生成结果）。
         #[cfg(test)]
         pub(crate) fn catalog_capability_names() -> Vec<&'static str> {
             [

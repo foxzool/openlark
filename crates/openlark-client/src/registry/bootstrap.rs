@@ -14,7 +14,7 @@ pub(crate) fn register_compiled_services(
 mod tests {
     use super::super::{DefaultServiceRegistry, ServiceRegistry};
     use super::*;
-    use crate::capability::catalog_capability_names;
+    use crate::capability::expected_capability_names_from_features;
 
     #[test]
     fn test_register_compiled_services() {
@@ -22,27 +22,22 @@ mod tests {
         assert!(register_compiled_services(&mut registry).is_ok());
     }
 
-    /// bootstrap 只委托 catalog：注册集合 = catalog 能力名（无第二套域矩阵）。
+    /// bootstrap 委托 catalog：集合与顺序相对独立 feature oracle（非宏内部列表）。
     #[test]
     fn register_compiled_services_matches_catalog_names() {
         let mut registry = DefaultServiceRegistry::new();
         register_compiled_services(&mut registry).unwrap();
 
-        let catalog = catalog_capability_names();
-        assert_eq!(registry.list_services().len(), catalog.len());
-        for name in &catalog {
-            assert!(
-                registry.has_service(name),
-                "bootstrap 必须注册 catalog 能力 {name}"
-            );
+        let mut expected = expected_capability_names_from_features();
+        assert_eq!(registry.list_services().len(), expected.len());
+        for name in &expected {
+            assert!(registry.has_service(name), "bootstrap 必须注册能力 {name}");
         }
-        // 稳定顺序：list_services 按 priority 再 name；与 catalog 声明顺序在同 priority 下一致
         let listed: Vec<&str> = registry
             .list_services()
             .into_iter()
             .map(|e| e.metadata.name.as_str())
             .collect();
-        let mut expected = catalog;
         expected.sort_by(|a, b| {
             let pa = registry.get_service(a).unwrap().metadata.priority;
             let pb = registry.get_service(b).unwrap().metadata.priority;

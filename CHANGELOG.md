@@ -96,11 +96,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 诊断请用 `has_service` / `get_service` / `list_services` /
     `get_dependency_graph`；能力真相来自 capability catalog。
 
-  **设计收缩，非常规废弃**（对照 `docs/PUBLIC_API_STABILITY_POLICY.md`：主动将
-  无法兑现的 typed-instance / 虚假 lifecycle 与旁路 `FeatureLoader` 移出 public
-  API，属跨 minor 可接受的公开面收敛；与 WebSocket 0.18 收缩同档，0.18 直接移除
-  而非先 `#[deprecated]`）。**迁移**：删除对 `FeatureLoader` /
-  `ServiceStatus` / `get_service_typed` / `update_service_status` 的依赖；改用
+  **严重正确性例外，跳过完整废弃周期**（对照
+  `docs/PUBLIC_API_STABILITY_POLICY.md` Deprecation 策略：立即删除仅允许安全或
+  **严重正确性**问题）。依据 parent #423：`get_service_typed` 在 instance 恒为
+  `None` 时永不成功；`ServiceStatus` / `update_service_status` 与时间戳构成虚假
+  lifecycle；`FeatureLoader` 与 Client 构造形成重复初始化入口并掩盖能力真相。
+  继续保留会系统性误导调用方（接口谎言），属严重正确性缺陷，故 0.18 与 WebSocket
+  公开面收缩同档直接移除。**迁移**：删除对 `FeatureLoader` / `ServiceStatus` /
+  `get_service_typed` / `update_service_status` 的依赖；改用
   `client.registry().has_service` / `list_services` / `get_service`。
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`

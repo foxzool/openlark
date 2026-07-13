@@ -267,51 +267,12 @@ mod tests {
 
     #[test]
     fn catalog_names_reflect_enabled_features() {
-        let names = catalog_capability_names();
-
-        // 精确集合：仅 cfg 启用的 feature，顺序与 catalog 声明一致
-        let expected: Vec<&str> = [
-            None::<&str>,
-            #[cfg(feature = "auth")]
-            Some("auth"),
-            #[cfg(feature = "communication")]
-            Some("communication"),
-            #[cfg(feature = "docs")]
-            Some("docs"),
-            #[cfg(feature = "cardkit")]
-            Some("cardkit"),
-            #[cfg(feature = "meeting")]
-            Some("meeting"),
-            #[cfg(feature = "security")]
-            Some("security"),
-            #[cfg(feature = "hr")]
-            Some("hr"),
-            #[cfg(feature = "ai")]
-            Some("ai"),
-            #[cfg(feature = "workflow")]
-            Some("workflow"),
-            #[cfg(feature = "platform")]
-            Some("platform"),
-            #[cfg(feature = "application")]
-            Some("application"),
-            #[cfg(feature = "helpdesk")]
-            Some("helpdesk"),
-            #[cfg(feature = "mail")]
-            Some("mail"),
-            #[cfg(feature = "analytics")]
-            Some("analytics"),
-            #[cfg(feature = "user")]
-            Some("user"),
-            #[cfg(feature = "bot")]
-            Some("bot"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-
+        // 生成结果 vs 独立 feature oracle（不互为唯一来源）
+        let generated = super::catalog_capability_names();
+        let expected = crate::capability::expected_capability_names_from_features();
         assert_eq!(
-            names, expected,
-            "catalog names 必须与启用 feature 的精确集合一致（含顺序）"
+            generated, expected,
+            "catalog 生成名必须与独立 feature oracle 一致（含声明顺序）"
         );
     }
 
@@ -320,42 +281,20 @@ mod tests {
         let mut registry = DefaultServiceRegistry::new();
         register_catalog_capabilities(&mut registry).unwrap();
 
-        macro_rules! assert_registered {
-            ($feature:literal, $name:literal) => {
-                #[cfg(feature = $feature)]
-                assert!(
-                    registry.has_service($name),
-                    "feature {} 启用时 registry 应注册 {}",
-                    $feature,
-                    $name
-                );
-
-                #[cfg(not(feature = $feature))]
-                assert!(
-                    !registry.has_service($name),
-                    "feature {} 禁用时 registry 不得注册 {}",
-                    $feature,
-                    $name
-                );
-            };
+        let expected = crate::capability::expected_capability_names_from_features();
+        assert_eq!(registry.list_services().len(), expected.len());
+        for name in &expected {
+            assert!(
+                registry.has_service(name),
+                "feature 启用时 registry 应注册 {name}"
+            );
         }
 
-        assert_registered!("auth", "auth");
-        assert_registered!("communication", "communication");
-        assert_registered!("docs", "docs");
-        assert_registered!("cardkit", "cardkit");
-        assert_registered!("meeting", "meeting");
-        assert_registered!("security", "security");
-        assert_registered!("hr", "hr");
-        assert_registered!("ai", "ai");
-        assert_registered!("workflow", "workflow");
-        assert_registered!("platform", "platform");
-        assert_registered!("application", "application");
-        assert_registered!("helpdesk", "helpdesk");
-        assert_registered!("mail", "mail");
-        assert_registered!("analytics", "analytics");
-        assert_registered!("user", "user");
-        assert_registered!("bot", "bot");
+        // 已知关闭域：oracle 不含则不得注册
+        #[cfg(not(feature = "hr"))]
+        assert!(!registry.has_service("hr"));
+        #[cfg(not(feature = "bot"))]
+        assert!(!registry.has_service("bot"));
 
         #[cfg(feature = "auth")]
         {

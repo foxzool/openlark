@@ -918,11 +918,11 @@ fn remaining_capability_client_and_registry_agree() {
     );
 }
 
-/// registry 列出的服务名集合 = 当前启用的 catalog 能力（与 Client 字段同源），
-/// 且顺序稳定（priority 升序，同 priority 按 name）。
+/// 公开 seam：`Client::registry().list_services()` 集合与顺序。
+/// 期望来自独立 feature oracle + 公开 metadata.priority，不读宏内部生成列表。
 #[test]
 fn registry_listing_matches_catalog_capability_set() {
-    use crate::capability::catalog_capability_names;
+    use crate::capability::expected_capability_names_from_features;
     use crate::registry::ServiceRegistry;
 
     let client = Client::builder()
@@ -931,7 +931,6 @@ fn registry_listing_matches_catalog_capability_set() {
         .build()
         .unwrap();
 
-    let catalog = catalog_capability_names();
     let listed: Vec<&str> = client
         .registry()
         .list_services()
@@ -939,7 +938,7 @@ fn registry_listing_matches_catalog_capability_set() {
         .map(|e| e.metadata.name.as_str())
         .collect();
 
-    let mut expected = catalog;
+    let mut expected = expected_capability_names_from_features();
     expected.sort_by(|a, b| {
         let pa = client.registry().get_service(a).unwrap().metadata.priority;
         let pb = client.registry().get_service(b).unwrap().metadata.priority;
@@ -948,6 +947,6 @@ fn registry_listing_matches_catalog_capability_set() {
 
     assert_eq!(
         listed, expected,
-        "registry listing 必须与 catalog 能力集合一致且顺序稳定"
+        "registry listing 必须与独立 feature oracle 一致且顺序稳定"
     );
 }
