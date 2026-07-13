@@ -17,7 +17,6 @@ workspace = true
 [dependencies]
 # Core dependencies
 openlark-core = { workspace = true }
-openlark-capability-unique = { path = "../openlark-capability-unique" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

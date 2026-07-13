@@ -108,6 +108,19 @@ class TestIsTestOnlyModule(unittest.TestCase):
             orphan = root / "tests.rs"
             self.assertFalse(mod.is_test_only_module(orphan, root))
 
+    def test_detects_cfg_test_with_stacked_attributes(self):
+        """`#[cfg(test)]` + `#[macro_use]` 后接 `mod support;` → 视为测试专用。"""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "parent.rs").write_text(
+                "#[cfg(test)]\n#[macro_use]\nmod support;\n",
+                encoding="utf-8",
+            )
+            orphan = root / "support.rs"
+            self.assertTrue(mod.is_test_only_module(orphan, root))
+
 
 if __name__ == "__main__":
     unittest.main()

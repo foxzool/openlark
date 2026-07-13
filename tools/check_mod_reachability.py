@@ -89,9 +89,14 @@ def is_test_only_module(orphan: Path, crate_src_dir: Path) -> bool:
             if "cfg(test)" not in line:
                 continue
             # 找紧随其后的非空、非属性行，检查是否声明了该模块
+            # （允许多个属性叠放，如 `#[cfg(test)]` + `#[macro_use]`）
             j = i + 1
-            while j < len(lines) and lines[j].strip() == "":
-                j += 1
+            while j < len(lines):
+                stripped = lines[j].strip()
+                if stripped == "" or stripped.startswith("#"):
+                    j += 1
+                    continue
+                break
             if j < len(lines) and mod_pattern.search(lines[j]):
                 return True
     return False

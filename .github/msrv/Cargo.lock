@@ -1627,7 +1627,6 @@ dependencies = [
  "openlark-application",
  "openlark-auth",
  "openlark-bot",
- "openlark-capability-unique",
  "openlark-cardkit",
  "openlark-communication",
  "openlark-core",

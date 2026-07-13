@@ -7,7 +7,14 @@ mod macros;
 
 mod builder;
 #[cfg(test)]
-mod catalog_contract_tests;
+#[macro_use]
+mod catalog_contract_support;
+#[cfg(test)]
+mod catalog_contract_foundational;
+#[cfg(test)]
+mod catalog_contract_listing;
+#[cfg(test)]
+mod catalog_contract_remaining;
 mod error_handling;
 #[cfg(test)]
 mod tests;
