@@ -674,8 +674,52 @@ fn test_communication_service_access() {
     let _comm = &client.communication;
 }
 
-// ===== #434/#435: compiled-capability catalog =====
+// ===== #434–#436: compiled-capability catalog =====
 // 最高运行时 seam：`Client::registry()` 与 Client 字段对 catalog 域 feature 的一致性。
+
+macro_rules! assert_catalog_domain {
+    ($client:expr, $feature:literal, $name:literal, $access:expr, $desc:expr, $deps:expr, $provides:expr, $priority:expr) => {
+        #[cfg(feature = $feature)]
+        {
+            let _field = $access;
+            assert!(
+                $client.registry().has_service($name),
+                "{} feature 启用时 registry 必须报告 {}",
+                $name,
+                $name
+            );
+            let entry = $client.registry().get_service($name).unwrap();
+            assert_eq!(entry.metadata.name, $name);
+            assert_eq!(entry.metadata.description.as_deref(), Some($desc));
+            assert_eq!(
+                entry.metadata.dependencies,
+                $deps
+                    .iter()
+                    .map(|s: &&str| (*s).to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                entry.metadata.provides,
+                $provides
+                    .iter()
+                    .map(|s: &&str| (*s).to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(entry.metadata.priority, $priority);
+            assert!(entry.instance.is_none(), "{} 应为 metadata-only", $name);
+        }
+
+        #[cfg(not(feature = $feature))]
+        {
+            assert!(
+                !$client.registry().has_service($name),
+                "{} feature 禁用时 registry 不得报告 {}",
+                $name,
+                $name
+            );
+        }
+    };
+}
 
 #[test]
 fn bot_capability_client_and_registry_agree() {
@@ -687,39 +731,19 @@ fn bot_capability_client_and_registry_agree() {
         .build()
         .unwrap();
 
-    #[cfg(feature = "bot")]
-    {
-        // Client 字段可用
-        let _bot = &client.bot;
-        // registry 报告 bot，且元数据完整
-        assert!(
-            client.registry().has_service("bot"),
-            "bot feature 启用时 registry 必须报告 bot"
-        );
-        let entry = client.registry().get_service("bot").unwrap();
-        assert_eq!(entry.metadata.name, "bot");
-        assert_eq!(
-            entry.metadata.description.as_deref(),
-            Some("飞书机器人服务，提供机器人搜索等功能")
-        );
-        assert_eq!(entry.metadata.dependencies, vec!["auth".to_string()]);
-        assert_eq!(entry.metadata.provides, vec!["bot".to_string()]);
-        assert_eq!(entry.metadata.priority, 4);
-        // metadata-only：无 runtime instance
-        assert!(entry.instance.is_none());
-    }
-
-    #[cfg(not(feature = "bot"))]
-    {
-        assert!(
-            !client.registry().has_service("bot"),
-            "bot feature 禁用时 registry 不得报告 bot"
-        );
-    }
+    assert_catalog_domain!(
+        client,
+        "bot",
+        "bot",
+        &client.bot,
+        "飞书机器人服务，提供机器人搜索等功能",
+        &["auth"],
+        &["bot"],
+        4
+    );
 }
 
-/// #435：foundational 域（auth / communication / docs / cardkit / meeting / security）
-/// 启用时 Client 字段与 registry 各恰有一条；禁用时两处均无。
+/// #435：foundational 域启用时 Client 字段与 registry 各恰有一条；禁用时两处均无。
 #[test]
 fn foundational_capability_client_and_registry_agree() {
     use crate::registry::ServiceRegistry;
@@ -730,51 +754,8 @@ fn foundational_capability_client_and_registry_agree() {
         .build()
         .unwrap();
 
-    macro_rules! assert_domain {
-        ($feature:literal, $name:literal, $access:expr, $desc:expr, $deps:expr, $provides:expr, $priority:expr) => {
-            #[cfg(feature = $feature)]
-            {
-                let _field = $access;
-                assert!(
-                    client.registry().has_service($name),
-                    "{} feature 启用时 registry 必须报告 {}",
-                    $name,
-                    $name
-                );
-                let entry = client.registry().get_service($name).unwrap();
-                assert_eq!(entry.metadata.name, $name);
-                assert_eq!(entry.metadata.description.as_deref(), Some($desc));
-                assert_eq!(
-                    entry.metadata.dependencies,
-                    $deps
-                        .iter()
-                        .map(|s: &&str| (*s).to_string())
-                        .collect::<Vec<_>>()
-                );
-                assert_eq!(
-                    entry.metadata.provides,
-                    $provides
-                        .iter()
-                        .map(|s: &&str| (*s).to_string())
-                        .collect::<Vec<_>>()
-                );
-                assert_eq!(entry.metadata.priority, $priority);
-                assert!(entry.instance.is_none(), "{} 应为 metadata-only", $name);
-            }
-
-            #[cfg(not(feature = $feature))]
-            {
-                assert!(
-                    !client.registry().has_service($name),
-                    "{} feature 禁用时 registry 不得报告 {}",
-                    $name,
-                    $name
-                );
-            }
-        };
-    }
-
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "auth",
         "auth",
         &client.auth,
@@ -783,7 +764,8 @@ fn foundational_capability_client_and_registry_agree() {
         &["token-management", "permission-control"],
         1
     );
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "communication",
         "communication",
         &client.communication,
@@ -792,7 +774,8 @@ fn foundational_capability_client_and_registry_agree() {
         &["im", "contacts", "groups"],
         2
     );
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "docs",
         "docs",
         &client.docs,
@@ -801,7 +784,8 @@ fn foundational_capability_client_and_registry_agree() {
         &["cloud-docs", "sheets", "wiki"],
         2
     );
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "cardkit",
         "cardkit",
         &client.cardkit,
@@ -810,7 +794,8 @@ fn foundational_capability_client_and_registry_agree() {
         &["card"],
         3
     );
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "meeting",
         "meeting",
         &client.meeting,
@@ -819,7 +804,8 @@ fn foundational_capability_client_and_registry_agree() {
         &["vc"],
         3
     );
-    assert_domain!(
+    assert_catalog_domain!(
+        client,
         "security",
         "security",
         &client.security,
@@ -830,8 +816,9 @@ fn foundational_capability_client_and_registry_agree() {
     );
 }
 
+/// #436：剩余业务域走 catalog；AI deps 与 Cargo feature 一致（仅 auth）。
 #[test]
-fn remaining_legacy_domains_still_register_via_old_path() {
+fn remaining_capability_client_and_registry_agree() {
     use crate::registry::ServiceRegistry;
 
     let client = Client::builder()
@@ -840,16 +827,121 @@ fn remaining_legacy_domains_still_register_via_old_path() {
         .build()
         .unwrap();
 
-    // #436 前的剩余域仍走 legacy；默认 feature 下 hr 未启用
-    #[cfg(feature = "hr")]
-    assert!(client.registry().has_service("hr"));
+    assert_catalog_domain!(
+        client,
+        "hr",
+        "hr",
+        &client.hr,
+        "飞书人力资源服务，提供员工、考勤、薪酬等功能",
+        &["auth"],
+        &["attendance", "corehr", "ehr"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "ai",
+        "ai",
+        &client.ai,
+        "飞书AI服务，提供智能助手、AI分析等功能",
+        &["auth"],
+        &["chatbot", "smart-analysis"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "workflow",
+        "workflow",
+        &client.workflow,
+        "飞书工作流服务，提供审批、任务、看板等功能",
+        &["auth"],
+        &["approval", "task", "board"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "platform",
+        "platform",
+        &client.platform,
+        "飞书平台服务，提供应用平台相关功能",
+        &["auth"],
+        &["app-platform"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "application",
+        "application",
+        &client.application,
+        "飞书应用服务，提供应用管理相关功能",
+        &["auth"],
+        &["app-management"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "helpdesk",
+        "helpdesk",
+        &client.helpdesk,
+        "飞书帮助台服务，提供工单管理相关功能",
+        &["auth"],
+        &["ticket"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "mail",
+        "mail",
+        &client.mail,
+        "飞书邮件服务，提供邮件相关功能",
+        &["auth"],
+        &["email"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "analytics",
+        "analytics",
+        &client.analytics,
+        "飞书分析服务，提供数据分析相关功能",
+        &["auth"],
+        &["report"],
+        4
+    );
+    assert_catalog_domain!(
+        client,
+        "user",
+        "user",
+        &client.user,
+        "飞书用户服务，提供用户设置相关功能",
+        &["auth"],
+        &["system_status"],
+        4
+    );
+}
 
-    #[cfg(not(feature = "hr"))]
-    assert!(!client.registry().has_service("hr"));
+/// registry 列出的服务名集合 = 当前启用的 catalog 能力（与 Client 字段同源）。
+#[test]
+fn registry_listing_matches_catalog_capability_set() {
+    use crate::capability::catalog_capability_names;
+    use crate::registry::ServiceRegistry;
+    use std::collections::HashSet;
 
-    #[cfg(feature = "user")]
-    assert!(client.registry().has_service("user"));
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
 
-    #[cfg(not(feature = "user"))]
-    assert!(!client.registry().has_service("user"));
+    let catalog: HashSet<&str> = catalog_capability_names().into_iter().collect();
+    let listed: HashSet<&str> = client
+        .registry()
+        .list_services()
+        .into_iter()
+        .map(|e| e.metadata.name.as_str())
+        .collect();
+
+    assert_eq!(
+        listed, catalog,
+        "registry listing 必须与 catalog 能力集合一致"
+    );
 }

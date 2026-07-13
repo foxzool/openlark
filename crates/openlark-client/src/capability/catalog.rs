@@ -1,21 +1,19 @@
 //! 编译期能力目录（单一事实来源）
 //!
-//! #434 tracer `bot`；#435 迁入 foundational 域：
-//! `auth` / `communication` / `docs` / `cardkit` / `meeting` / `security`。
-//! 其余业务域仍使用 `declare_client!` + `registry/catalog.rs` 双声明旧路径
-//!（见 #436）。
-//!
+//! #434–#436：全部业务域 Client 字段与 registry 诊断元数据均由本目录生成。
 //! 统一声明同时包含：
 //! - Client 构造：`feature` / `field` / `ty` / `doc` / `init`
 //! - 诊断元数据：`name` / `description` / `dependencies` / `provides` / `priority`
 //!
 //! 两个 callback 各自只消费一半字段（另一半为死匹配），以保证「单源」而非「两份声明」。
+//!
+//! `dependencies` 必须与 `openlark-client` Cargo feature 关系一致（#423 / #436）。
 
 /// 对每个已声明的编译期能力调用 `$callback! { ...entries }`。
 ///
 /// 现有 callback：
 /// - `generate_catalog_registry` — registry 诊断投影
-/// - `append_catalog_entries` — 追加进 `declare_client!` 的 Client 构造投影
+/// - `append_catalog_entries` — 生成 `declare_client!` 的 Client 构造投影
 macro_rules! for_each_compiled_capability {
     ($callback:ident) => {
         $callback! {
@@ -110,6 +108,134 @@ macro_rules! for_each_compiled_capability {
                 provides: ["security"],
                 priority: 3,
             },
+            // --- remaining（#436）---
+            {
+                feature: "hr",
+                field: hr,
+                ty: openlark_hr::HrClient,
+                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_hr::HrClient::new(_core_config.clone())
+                },
+                name: "hr",
+                description: "飞书人力资源服务，提供员工、考勤、薪酬等功能",
+                dependencies: ["auth"],
+                provides: ["attendance", "corehr", "ehr"],
+                priority: 4,
+            },
+            {
+                feature: "ai",
+                field: ai,
+                ty: openlark_ai::AiClient,
+                doc: "AI meta 调用链入口：client.ai.chat.create() ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_ai::AiClient::new(_core_config.clone())
+                },
+                name: "ai",
+                description: "飞书AI服务，提供智能助手、AI分析等功能",
+                // Cargo: ai = ["auth", "dep:openlark-ai"] — 不依赖 communication feature
+                dependencies: ["auth"],
+                provides: ["chatbot", "smart-analysis"],
+                priority: 4,
+            },
+            {
+                feature: "workflow",
+                field: workflow,
+                ty: crate::WorkflowClient,
+                doc: "Workflow meta 调用链入口：client.workflow.v2().task().create() ...",
+                init: |_core_config, _base_core_config| {
+                    crate::WorkflowClient::new(_core_config.clone())
+                },
+                name: "workflow",
+                description: "飞书工作流服务，提供审批、任务、看板等功能",
+                dependencies: ["auth"],
+                provides: ["approval", "task", "board"],
+                priority: 4,
+            },
+            {
+                feature: "platform",
+                field: platform,
+                ty: crate::PlatformClient,
+                doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::PlatformClient::new(_core_config.clone())
+                },
+                name: "platform",
+                description: "飞书平台服务，提供应用平台相关功能",
+                dependencies: ["auth"],
+                provides: ["app-platform"],
+                priority: 4,
+            },
+            {
+                feature: "application",
+                field: application,
+                ty: crate::ApplicationClient,
+                doc: "Application meta 调用链入口：client.application.applet... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::ApplicationClient::new(_core_config.clone())
+                },
+                name: "application",
+                description: "飞书应用服务，提供应用管理相关功能",
+                dependencies: ["auth"],
+                provides: ["app-management"],
+                priority: 4,
+            },
+            {
+                feature: "helpdesk",
+                field: helpdesk,
+                ty: crate::HelpdeskClient,
+                doc: "Helpdesk meta 调用链入口：client.helpdesk.ticket... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::HelpdeskClient::new(_core_config.clone())
+                },
+                name: "helpdesk",
+                description: "飞书帮助台服务，提供工单管理相关功能",
+                dependencies: ["auth"],
+                provides: ["ticket"],
+                priority: 4,
+            },
+            {
+                feature: "mail",
+                field: mail,
+                ty: crate::MailClient,
+                doc: "Mail meta 调用链入口：client.mail.group... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::MailClient::new(_core_config.clone())
+                },
+                name: "mail",
+                description: "飞书邮件服务，提供邮件相关功能",
+                dependencies: ["auth"],
+                provides: ["email"],
+                priority: 4,
+            },
+            {
+                feature: "analytics",
+                field: analytics,
+                ty: crate::AnalyticsClient,
+                doc: "Analytics meta 调用链入口：client.analytics.report... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::AnalyticsClient::new(_core_config.clone())
+                },
+                name: "analytics",
+                description: "飞书分析服务，提供数据分析相关功能",
+                dependencies: ["auth"],
+                provides: ["report"],
+                priority: 4,
+            },
+            {
+                feature: "user",
+                field: user,
+                ty: crate::UserClient,
+                doc: "User meta 调用链入口：client.user.system_status... ...",
+                init: |_core_config, _base_core_config| {
+                    crate::UserClient::new(_core_config.clone())
+                },
+                name: "user",
+                description: "飞书用户服务，提供用户设置相关功能",
+                dependencies: ["auth"],
+                provides: ["system_status"],
+                priority: 4,
+            },
             // --- tracer（#434）---
             {
                 feature: "bot",
@@ -158,6 +284,24 @@ mod tests {
             Some("meeting"),
             #[cfg(feature = "security")]
             Some("security"),
+            #[cfg(feature = "hr")]
+            Some("hr"),
+            #[cfg(feature = "ai")]
+            Some("ai"),
+            #[cfg(feature = "workflow")]
+            Some("workflow"),
+            #[cfg(feature = "platform")]
+            Some("platform"),
+            #[cfg(feature = "application")]
+            Some("application"),
+            #[cfg(feature = "helpdesk")]
+            Some("helpdesk"),
+            #[cfg(feature = "mail")]
+            Some("mail"),
+            #[cfg(feature = "analytics")]
+            Some("analytics"),
+            #[cfg(feature = "user")]
+            Some("user"),
             #[cfg(feature = "bot")]
             Some("bot"),
         ]
@@ -202,6 +346,15 @@ mod tests {
         assert_registered!("cardkit", "cardkit");
         assert_registered!("meeting", "meeting");
         assert_registered!("security", "security");
+        assert_registered!("hr", "hr");
+        assert_registered!("ai", "ai");
+        assert_registered!("workflow", "workflow");
+        assert_registered!("platform", "platform");
+        assert_registered!("application", "application");
+        assert_registered!("helpdesk", "helpdesk");
+        assert_registered!("mail", "mail");
+        assert_registered!("analytics", "analytics");
+        assert_registered!("user", "user");
         assert_registered!("bot", "bot");
 
         #[cfg(feature = "auth")]
@@ -220,6 +373,23 @@ mod tests {
                 ]
             );
             assert_eq!(entry.metadata.priority, 1);
+            assert!(entry.instance.is_none());
+        }
+
+        // #436：AI deps 与 Cargo `ai = ["auth", ...]` 一致（不再误报 communication）
+        #[cfg(feature = "ai")]
+        {
+            let entry = registry.get_service("ai").unwrap();
+            assert_eq!(
+                entry.metadata.dependencies,
+                vec!["auth".to_string()],
+                "ai catalog dependencies 必须与 Cargo feature 关系一致"
+            );
+            assert!(!entry.metadata.dependencies.iter().any(|d| d == "communication"));
+            assert_eq!(
+                entry.metadata.provides,
+                vec!["chatbot".to_string(), "smart-analysis".to_string()]
+            );
             assert!(entry.instance.is_none());
         }
 

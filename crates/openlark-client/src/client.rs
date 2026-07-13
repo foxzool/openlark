@@ -44,11 +44,8 @@ impl AuthClient {
     }
 }
 
-// legacy 业务域（#436 待迁）仍走 declare_client 双声明；
-// catalog 域（#434 bot + #435 foundational）通过 for_each_compiled_capability
-// callback 追加进同一 Client 结构体。
-//
-// 命名：本宏是「包裹 declare_client! 并追加 catalog 条目」，不是「声明 catalog 本身」。
+// 全部业务域由 capability catalog 生成（#434–#436）。
+// 命名：本宏是「由 catalog 条目生成 declare_client!」，不是「声明 catalog 本身」。
 // 死匹配（name/description/...）：统一条目同时含构造与诊断字段，本侧只消费构造字段；
 // 与 generate_catalog_registry! 对称，是双投影的固有成本，而非重复逻辑。
 macro_rules! append_catalog_entries {
@@ -66,89 +63,6 @@ macro_rules! append_catalog_entries {
         priority: $_priority:literal $(,)?
     }),* $(,)?) => {
         declare_client! {
-            // --- legacy（#436）---
-            {
-                feature: "hr",
-                field: hr,
-                ty: openlark_hr::HrClient,
-                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
-                init: |_core_config, _base_core_config| {
-                    openlark_hr::HrClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "ai",
-                field: ai,
-                ty: openlark_ai::AiClient,
-                doc: "AI meta 调用链入口：client.ai.chat.create() ...",
-                init: |_core_config, _base_core_config| {
-                    openlark_ai::AiClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "workflow",
-                field: workflow,
-                ty: crate::WorkflowClient,
-                doc: "Workflow meta 调用链入口：client.workflow.v2().task().create() ...",
-                init: |_core_config, _base_core_config| {
-                    crate::WorkflowClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "platform",
-                field: platform,
-                ty: crate::PlatformClient,
-                doc: "Platform meta 调用链入口：client.platform.app_engine... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::PlatformClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "application",
-                field: application,
-                ty: crate::ApplicationClient,
-                doc: "Application meta 调用链入口：client.application.applet... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::ApplicationClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "helpdesk",
-                field: helpdesk,
-                ty: crate::HelpdeskClient,
-                doc: "Helpdesk meta 调用链入口：client.helpdesk.ticket... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::HelpdeskClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "mail",
-                field: mail,
-                ty: crate::MailClient,
-                doc: "Mail meta 调用链入口：client.mail.group... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::MailClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "analytics",
-                field: analytics,
-                ty: crate::AnalyticsClient,
-                doc: "Analytics meta 调用链入口：client.analytics.report... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::AnalyticsClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "user",
-                field: user,
-                ty: crate::UserClient,
-                doc: "User meta 调用链入口：client.user.system_status... ...",
-                init: |_core_config, _base_core_config| {
-                    crate::UserClient::new(_core_config.clone())
-                },
-            },
-            // capability catalog 条目（#434 bot + #435 foundational；#436 继续只改 catalog）
             $(
                 {
                     feature: $c_feature,

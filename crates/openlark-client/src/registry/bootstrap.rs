@@ -3,65 +3,16 @@
 //! openlark-client 不在本 crate 内重复实现业务 API 包装层，但仍需要一份轻量的“服务元信息”
 //! 以支持 registry 的可观测、依赖关系展示等用途。
 //!
-//! 这里集中管理 **按 feature 编译进来的服务**，避免在多个位置重复注册（DRY）。
+//! #434–#436 后，业务域元数据由 `capability` catalog 统一生成；legacy
+//! `registry/catalog` 为空 no-op（#437 可进一步删除重复 bootstrap / FeatureLoader）。
 
 #[cfg(test)]
 use super::ServiceStatus;
 
-macro_rules! compiled_services {
-    ($(
-        {
-            feature: $feature:literal,
-            name: $name:literal,
-            description: $description:literal,
-            dependencies: [$($dependency:literal),* $(,)?],
-            provides: [$($capability:literal),* $(,)?],
-            priority: $priority:literal $(,)?
-        }
-    ),+ $(,)?) => {
-        pub(crate) fn register_compiled_services(
-            registry: &mut DefaultServiceRegistry,
-        ) -> Result<()> {
-            let _ = &registry;
-
-            $(
-                #[cfg(feature = $feature)]
-                super::register(
-                    registry,
-                    super::service_metadata(
-                        $name,
-                        $description,
-                        &[$($dependency),*],
-                        &[$($capability),*],
-                        $priority,
-                    ),
-                )?;
-            )*
-
-            Ok(())
-        }
-
-        #[cfg(test)]
-        pub(super) fn compiled_service_names() -> Vec<&'static str> {
-            [
-                None::<&'static str>,
-                $(
-                    #[cfg(feature = $feature)]
-                    Some($name),
-                )*
-            ]
-            .into_iter()
-            .flatten()
-            .collect()
-        }
-    };
-}
-
 #[path = "catalog.rs"]
 mod catalog;
 
-/// 注册所有已编译服务元数据：legacy `registry/catalog` + capability catalog
-///（#434 bot + #435 foundational）。
+/// 注册所有已编译服务元数据（capability catalog；legacy catalog 为空）。
 pub(crate) fn register_compiled_services(
     registry: &mut super::DefaultServiceRegistry,
 ) -> crate::Result<()> {
@@ -73,38 +24,7 @@ pub(crate) fn register_compiled_services(
 #[cfg(test)]
 use catalog::compiled_service_names;
 
-// legacy catalog 域（#436）；foundational + bot 已迁 capability，不再需要 cfg 门控。
-#[cfg(any(
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
-fn register(
-    registry: &mut super::DefaultServiceRegistry,
-    metadata: super::ServiceMetadata,
-) -> crate::Result<()> {
-    super::ServiceRegistry::register_service(registry, metadata)
-        .map_err(crate::error::registry_error)
-}
-
-#[cfg(any(
-    test,
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
+#[cfg(test)]
 fn service_metadata(
     name: &'static str,
     description: &'static str,
@@ -123,18 +43,7 @@ fn service_metadata(
     }
 }
 
-#[cfg(any(
-    test,
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
+#[cfg(test)]
 fn owned_strings(values: &[&'static str]) -> Vec<String> {
     values.iter().map(|value| (*value).to_string()).collect()
 }
@@ -187,42 +96,16 @@ mod tests {
     }
 
     #[test]
-    fn test_compiled_service_names_reflect_enabled_features() {
+    fn test_legacy_compiled_service_names_empty_after_catalog_migration() {
         let service_names = compiled_service_names();
-
-        macro_rules! assert_feature_service {
-            ($feature:literal, $service:literal) => {
-                #[cfg(feature = $feature)]
-                assert!(service_names.contains(&$service));
-
-                #[cfg(not(feature = $feature))]
-                assert!(!service_names.contains(&$service));
-            };
-        }
-
-        // legacy only（#436）；foundational + bot 不在此列表
-        assert_feature_service!("hr", "hr");
-        assert_feature_service!("ai", "ai");
-        assert_feature_service!("workflow", "workflow");
-        assert_feature_service!("platform", "platform");
-        assert_feature_service!("application", "application");
-        assert_feature_service!("helpdesk", "helpdesk");
-        assert_feature_service!("mail", "mail");
-        assert_feature_service!("analytics", "analytics");
-        assert_feature_service!("user", "user");
-
-        // capability catalog 域不得出现在 legacy compiled_service_names
-        assert!(!service_names.contains(&"auth"));
-        assert!(!service_names.contains(&"communication"));
-        assert!(!service_names.contains(&"docs"));
-        assert!(!service_names.contains(&"cardkit"));
-        assert!(!service_names.contains(&"meeting"));
-        assert!(!service_names.contains(&"security"));
-        assert!(!service_names.contains(&"bot"));
+        assert!(
+            service_names.is_empty(),
+            "legacy compiled_service_names 在 #436 后应为空，实际: {service_names:?}"
+        );
     }
 
     #[test]
-    fn test_register_compiled_services_includes_catalog_foundational() {
+    fn test_register_compiled_services_includes_all_catalog_domains() {
         use super::super::ServiceRegistry;
 
         let mut registry = DefaultServiceRegistry::new();
@@ -254,14 +137,16 @@ mod tests {
         assert_catalog_service!("cardkit", "cardkit");
         assert_catalog_service!("meeting", "meeting");
         assert_catalog_service!("security", "security");
+        assert_catalog_service!("hr", "hr");
+        assert_catalog_service!("ai", "ai");
+        assert_catalog_service!("workflow", "workflow");
+        assert_catalog_service!("platform", "platform");
+        assert_catalog_service!("application", "application");
+        assert_catalog_service!("helpdesk", "helpdesk");
+        assert_catalog_service!("mail", "mail");
+        assert_catalog_service!("analytics", "analytics");
+        assert_catalog_service!("user", "user");
         assert_catalog_service!("bot", "bot");
-
-        // legacy 路径仍工作
-        #[cfg(feature = "hr")]
-        assert!(registry.has_service("hr"));
-
-        #[cfg(not(feature = "hr"))]
-        assert!(!registry.has_service("hr"));
     }
 
     #[test]

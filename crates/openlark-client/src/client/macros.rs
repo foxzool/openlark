@@ -1,4 +1,5 @@
 macro_rules! declare_client {
+    // `*`：允许零业务域（仅 config/registry）；catalog 全量生成时通常为多项
     ($(
         {
             feature: $feature:literal,
@@ -7,7 +8,7 @@ macro_rules! declare_client {
             doc: $doc:literal,
             init: |$core_config:ident, $base_core_config:ident| $init:block $(,)?
         }
-    ),+ $(,)?) => {
+    ),* $(,)?) => {
         /// 🚀 OpenLark客户端 - 极简设计
         ///
         /// # 特性

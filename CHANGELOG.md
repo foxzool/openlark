@@ -11,11 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client：剩余业务域迁入编译期能力目录（#436 / #423）**：
+  `hr` / `ai` / `workflow` / `platform` / `application` / `helpdesk` / `mail` /
+  `analytics` / `user` 亦由统一 `capability` catalog 生成；legacy
+  `registry/catalog` 业务条目清空。修正 **AI** 诊断 `dependencies` 为 `["auth"]`，
+  与 Cargo `ai = ["auth", ...]` 一致（不再误报 `communication`）。
+  `Client::registry()` listing 与 catalog / Client 字段集合一致。
+
 - **client：foundational 域迁入编译期能力目录（#435 / #423）**：
   `auth` / `communication` / `docs` / `cardkit` / `meeting` / `security` 的
   Client 字段与 registry 诊断元数据改由统一 `capability` catalog 生成，不再维护
-  Client/registry 双声明。禁用 feature 时两处均不产生字段或 entry。剩余域
-  （hr/ai/…）仍走 legacy 路径（#436）。
+  Client/registry 双声明。禁用 feature 时两处均不产生字段或 entry。
 
 - **client：编译期能力目录 tracer（#434 / #423）**：新增 `capability` catalog，
   以 `bot` 为 tracer 用同一声明同时生成 `Client::bot` 字段与 registry 诊断元数据；
