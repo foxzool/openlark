@@ -24,42 +24,12 @@ macro_rules! generate_catalog_registry {
         provides: [$($capability:literal),* $(,)?],
         priority: $priority:literal $(,)?
     }),* $(,)?) => {
-        // generation-time 唯一性（#423）：
-        // 每个 field 生成 unit struct（重复标识符 → 编译失败）；const 块 size_of 引用类型，
-        // 且 assert name == stringify!(field)。普通 cargo build 即拒绝，无需 -D warnings。
-        #[allow(non_camel_case_types)]
-        mod __capability_catalog_unique_fields {
+        // generation-time 唯一性（#423）；实现见 unique.rs / trybuild 回归
+        $crate::__openlark_assert_capability_catalog_unique! {
             $(
-                pub struct $field;
+                { field: $field, name: $name },
             )*
         }
-
-        /// const 字符串相等（generation-time name == field）。
-        const fn __catalog_str_eq(a: &str, b: &str) -> bool {
-            if a.len() != b.len() {
-                return false;
-            }
-            let ab = a.as_bytes();
-            let bb = b.as_bytes();
-            let mut i = 0;
-            while i < ab.len() {
-                if ab[i] != bb[i] {
-                    return false;
-                }
-                i += 1;
-            }
-            true
-        }
-
-        const _: () = {
-            $(
-                let _ = core::mem::size_of::<__capability_catalog_unique_fields::$field>();
-                assert!(
-                    __catalog_str_eq(stringify!($field), $name),
-                    "capability catalog: name must equal field identifier text"
-                );
-            )*
-        };
 
         /// 将 catalog 中已编译的能力注册为 registry 元数据（metadata-only）。
         pub(crate) fn register_catalog_capabilities(

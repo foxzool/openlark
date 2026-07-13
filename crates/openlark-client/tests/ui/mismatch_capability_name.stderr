@@ -1,0 +1,9 @@
+error[E0080]: evaluation panicked: capability catalog: name must equal field identifier text
+ --> tests/ui/mismatch_capability_name.rs:4:5
+  |
+4 | /     openlark_client::__openlark_assert_capability_catalog_unique! {
+5 | |         { field: auth, name: "bot" },
+6 | |     }
+  | |_____^ evaluation of `main::_` failed here
+  |
+  = note: this error originates in the macro `$crate::panic::panic_2021` which comes from the expansion of the macro `openlark_client::__openlark_assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)

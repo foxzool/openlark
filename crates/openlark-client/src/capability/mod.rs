@@ -8,6 +8,8 @@
 //! 宏面刻意保持最小（单列表 + 两投影 callback）。
 
 #[macro_use]
+mod unique;
+#[macro_use]
 mod macros;
 
 mod catalog;
