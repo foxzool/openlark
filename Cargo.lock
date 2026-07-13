@@ -1595,6 +1595,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "openlark-capability-unique"
+version = "0.0.0"
+dependencies = [
+ "trybuild",
+]
+
+[[package]]
 name = "openlark-cardkit"
 version = "0.18.0"
 dependencies = [
@@ -1620,6 +1627,7 @@ dependencies = [
  "openlark-application",
  "openlark-auth",
  "openlark-bot",
+ "openlark-capability-unique",
  "openlark-cardkit",
  "openlark-communication",
  "openlark-core",
@@ -1643,7 +1651,6 @@ dependencies = [
  "tokio-test",
  "tokio-tungstenite",
  "tracing",
- "trybuild",
  "url",
  "wiremock",
 ]

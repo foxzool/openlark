@@ -24,8 +24,8 @@ macro_rules! generate_catalog_registry {
         provides: [$($capability:literal),* $(,)?],
         priority: $priority:literal $(,)?
     }),* $(,)?) => {
-        // generation-time 唯一性（#423）；实现见 unique.rs / trybuild 回归
-        $crate::capability::assert_capability_catalog_unique! {
+        // generation-time 唯一性（#423）：单一实现在 openlark-capability-unique（publish=false）
+        ::openlark_capability_unique::assert_capability_catalog_unique! {
             $(
                 { field: $field, name: $name },
             )*

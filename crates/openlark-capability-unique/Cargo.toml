@@ -1,0 +1,15 @@
+[package]
+name = "openlark-capability-unique"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+description = "Internal generation-time uniqueness checks for openlark-client capability catalog (not published)"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+trybuild = "1.0"

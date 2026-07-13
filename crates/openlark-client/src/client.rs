@@ -6,6 +6,8 @@
 mod macros;
 
 mod builder;
+#[cfg(test)]
+mod catalog_contract_tests;
 mod error_handling;
 #[cfg(test)]
 mod tests;

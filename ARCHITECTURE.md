@@ -281,7 +281,13 @@ graph TD
 
 ## openlark-client 服务层重构方案（crates/openlark-client/src/services）
 
-> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client` 采用简化的「字段挂载」模式（见 `crates/openlark-client/src/client.rs` + `registry/` 宏生成的 feature-gated 字段），**未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算系统。保留本节仅作设计演进的历史记录（见 issue #269）。如需了解实际架构，参阅 `client.rs` 与 `registry/{bootstrap,catalog,mod}.rs`。
+> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client`（0.18 / #423–#437）采用：
+> - **capability catalog**（`crates/openlark-client/src/capability/catalog.rs`）为 Client 字段与
+>   registry 诊断元数据的**单一事实来源**
+> - **字段挂载** meta 链（`client.rs` + `declare_client!` 由 catalog 投影）
+> - **metadata-only** `registry/`（`mod.rs` + `bootstrap.rs` 委托 catalog；**无** `registry/catalog.rs`）
+>
+> **未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算 / 热加载。保留本节仅作设计演进的历史记录（见 issue #269）。
 
 ### 重构目标
 - 消除重复：统一 `services/` 与 `registry/` 的能力，避免双重工厂/注册逻辑。

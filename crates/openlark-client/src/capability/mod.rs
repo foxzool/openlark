@@ -8,15 +8,12 @@
 //! 宏面刻意保持最小（单列表 + 两投影 callback）。
 
 #[macro_use]
-mod unique;
-#[macro_use]
 mod macros;
 
 mod catalog;
 
 pub(crate) use catalog::for_each_compiled_capability;
 pub(crate) use catalog::register_catalog_capabilities;
-pub(crate) use unique::assert_capability_catalog_unique;
 
 /// 独立于 catalog 生成的 feature oracle（#423：测试公共结果，不以宏内部为唯一期望源）。
 ///
