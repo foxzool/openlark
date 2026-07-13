@@ -5,6 +5,7 @@
 //! 其余业务域仍由 `declare_client!` 与 `registry/catalog.rs` 分别维护。
 //!
 //! 统一声明入口：[`for_each_compiled_capability`]。
+//! 宏面刻意保持最小（单列表 + 两投影 callback）；#435 扩容前不继续抽象。
 
 #[macro_use]
 mod macros;

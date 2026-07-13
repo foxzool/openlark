@@ -45,14 +45,19 @@ impl AuthClient {
 }
 
 // legacy 业务域仍走 declare_client 双声明；catalog 域（目前仅 bot）通过
-// for_each_compiled_capability callback 合并进同一 Client 结构体。
-macro_rules! declare_client_with_catalog {
+// for_each_compiled_capability callback 追加进同一 Client 结构体。
+//
+// 命名：本宏是「包裹 declare_client! 并追加 catalog 条目」，不是「声明 catalog 本身」。
+// 死匹配（name/description/...）：统一条目同时含构造与诊断字段，本侧只消费构造字段；
+// 与 generate_catalog_registry! 对称，是双投影的固有成本，而非重复逻辑（#434 review）。
+macro_rules! append_catalog_entries {
     ($({
         feature: $c_feature:literal,
         field: $c_field:ident,
         ty: $c_ty:ty,
         doc: $c_doc:literal,
         init: |$c_core:ident, $c_base:ident| $c_init:block,
+        // 诊断字段：由 registry 投影消费；此处仅匹配统一条目形状
         name: $_name:literal,
         description: $_description:literal,
         dependencies: [$( $_dep:literal ),* $(,)?],
@@ -200,7 +205,7 @@ macro_rules! declare_client_with_catalog {
                     openlark_security::SecurityClient::new(security_config)
                 },
             },
-            // capability catalog 条目（#434 bot tracer；后续域迁入后仅改 catalog）
+            // capability catalog 条目（#434 bot tracer；#435/#436 迁域时只改 catalog 声明）
             $(
                 {
                     feature: $c_feature,
@@ -214,7 +219,7 @@ macro_rules! declare_client_with_catalog {
     };
 }
 
-crate::capability::for_each_compiled_capability!(declare_client_with_catalog);
+crate::capability::for_each_compiled_capability!(append_catalog_entries);
 
 impl Client {
     /// 🔥 从环境变量创建客户端

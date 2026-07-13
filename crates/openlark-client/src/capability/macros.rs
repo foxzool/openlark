@@ -1,13 +1,19 @@
 //! 编译期能力目录宏
 //!
 //! callback 模式：`for_each_compiled_capability!`（定义于 `catalog.rs`）持有统一声明，
-//! 本模块的 `generate_catalog_registry!` 与 `client` 侧 callback 分别消费同一条目列表。
+//! 本模块的 `generate_catalog_registry!` 与 `client` 侧 `append_catalog_entries!`
+//! 分别投影同一条目列表（Client 构造 vs registry 诊断）。
+//!
+//! #434 仅为 bot tracer：在 #435 真正扩容前不再扩大宏面（避免 Speculative Generality）。
 
 /// 由 `for_each_compiled_capability!` 展开：生成 registry 注册与测试辅助。
+///
+/// 死匹配（field/ty/doc/init）：统一条目同时含构造与诊断字段，本侧只消费诊断字段；
+/// 与 `append_catalog_entries!` 对称，是双投影的固有成本（#434 review）。
 macro_rules! generate_catalog_registry {
     ($({
         feature: $feature:literal,
-        // Client 构造字段：由 client 侧 callback 消费，registry 路径仅保留匹配形状
+        // Client 构造字段：由 append_catalog_entries! 消费；此处仅匹配统一条目形状
         field: $_field:ident,
         ty: $_ty:ty,
         doc: $_doc:literal,
@@ -27,7 +33,7 @@ macro_rules! generate_catalog_registry {
                 {
                     use crate::registry::{ServiceMetadata, ServiceRegistry, ServiceStatus};
 
-                    // Client 侧字段/ty/doc/init 由 client callback 消费；此处只写诊断元数据。
+                    // 只写诊断元数据；构造字段已在匹配中吸收。
                     let metadata = ServiceMetadata {
                         name: $name.to_string(),
                         version: "1.0.0".to_string(),
