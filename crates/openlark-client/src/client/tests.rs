@@ -674,8 +674,8 @@ fn test_communication_service_access() {
     let _comm = &client.communication;
 }
 
-// ===== #434: compiled-capability catalog bot tracer =====
-// 最高运行时 seam：`Client::registry()` 与 Client 字段对 bot feature 的一致性。
+// ===== #434/#435: compiled-capability catalog =====
+// 最高运行时 seam：`Client::registry()` 与 Client 字段对 catalog 域 feature 的一致性。
 
 #[test]
 fn bot_capability_client_and_registry_agree() {
@@ -718,8 +718,10 @@ fn bot_capability_client_and_registry_agree() {
     }
 }
 
+/// #435：foundational 域（auth / communication / docs / cardkit / meeting / security）
+/// 启用时 Client 字段与 registry 各恰有一条；禁用时两处均无。
 #[test]
-fn legacy_domains_still_register_via_old_path() {
+fn foundational_capability_client_and_registry_agree() {
     use crate::registry::ServiceRegistry;
 
     let client = Client::builder()
@@ -728,13 +730,126 @@ fn legacy_domains_still_register_via_old_path() {
         .build()
         .unwrap();
 
-    // 默认 feature 含 auth；确认旧路径未被 capability catalog 破坏
-    #[cfg(feature = "auth")]
-    assert!(client.registry().has_service("auth"));
+    macro_rules! assert_domain {
+        ($feature:literal, $name:literal, $access:expr, $desc:expr, $deps:expr, $provides:expr, $priority:expr) => {
+            #[cfg(feature = $feature)]
+            {
+                let _field = $access;
+                assert!(
+                    client.registry().has_service($name),
+                    "{} feature 启用时 registry 必须报告 {}",
+                    $name,
+                    $name
+                );
+                let entry = client.registry().get_service($name).unwrap();
+                assert_eq!(entry.metadata.name, $name);
+                assert_eq!(entry.metadata.description.as_deref(), Some($desc));
+                assert_eq!(
+                    entry.metadata.dependencies,
+                    $deps
+                        .iter()
+                        .map(|s: &&str| (*s).to_string())
+                        .collect::<Vec<_>>()
+                );
+                assert_eq!(
+                    entry.metadata.provides,
+                    $provides
+                        .iter()
+                        .map(|s: &&str| (*s).to_string())
+                        .collect::<Vec<_>>()
+                );
+                assert_eq!(entry.metadata.priority, $priority);
+                assert!(entry.instance.is_none(), "{} 应为 metadata-only", $name);
+            }
 
-    #[cfg(feature = "communication")]
-    assert!(client.registry().has_service("communication"));
+            #[cfg(not(feature = $feature))]
+            {
+                assert!(
+                    !client.registry().has_service($name),
+                    "{} feature 禁用时 registry 不得报告 {}",
+                    $name,
+                    $name
+                );
+            }
+        };
+    }
+
+    assert_domain!(
+        "auth",
+        "auth",
+        &client.auth,
+        "飞书认证服务，提供令牌管理、身份验证等功能",
+        &[] as &[&str],
+        &["token-management", "permission-control"],
+        1
+    );
+    assert_domain!(
+        "communication",
+        "communication",
+        &client.communication,
+        "飞书通讯服务，提供消息、联系人、群组等功能",
+        &["auth"],
+        &["im", "contacts", "groups"],
+        2
+    );
+    assert_domain!(
+        "docs",
+        "docs",
+        &client.docs,
+        "飞书文档服务，提供云文档、表格、知识库等功能",
+        &["auth"],
+        &["cloud-docs", "sheets", "wiki"],
+        2
+    );
+    assert_domain!(
+        "cardkit",
+        "cardkit",
+        &client.cardkit,
+        "飞书卡片服务，提供卡片渲染与交互能力",
+        &["auth"],
+        &["card"],
+        3
+    );
+    assert_domain!(
+        "meeting",
+        "meeting",
+        &client.meeting,
+        "飞书会议服务，提供视频会议与会议室管理能力",
+        &["auth"],
+        &["vc"],
+        3
+    );
+    assert_domain!(
+        "security",
+        "security",
+        &client.security,
+        "飞书安全服务，提供安全审计与风控相关能力",
+        &["auth"],
+        &["security"],
+        3
+    );
+}
+
+#[test]
+fn remaining_legacy_domains_still_register_via_old_path() {
+    use crate::registry::ServiceRegistry;
+
+    let client = Client::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .build()
+        .unwrap();
+
+    // #436 前的剩余域仍走 legacy；默认 feature 下 hr 未启用
+    #[cfg(feature = "hr")]
+    assert!(client.registry().has_service("hr"));
 
     #[cfg(not(feature = "hr"))]
     assert!(!client.registry().has_service("hr"));
+
+    #[cfg(feature = "user")]
+    assert!(client.registry().has_service("user"));
+
+    #[cfg(not(feature = "user"))]
+    assert!(!client.registry().has_service("user"));
 }

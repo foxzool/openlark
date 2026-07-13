@@ -60,7 +60,8 @@ macro_rules! compiled_services {
 #[path = "catalog.rs"]
 mod catalog;
 
-/// 注册所有已编译服务元数据：legacy `registry/catalog` + capability catalog（#434 bot tracer）。
+/// 注册所有已编译服务元数据：legacy `registry/catalog` + capability catalog
+///（#434 bot + #435 foundational）。
 pub(crate) fn register_compiled_services(
     registry: &mut super::DefaultServiceRegistry,
 ) -> crate::Result<()> {
@@ -72,13 +73,8 @@ pub(crate) fn register_compiled_services(
 #[cfg(test)]
 use catalog::compiled_service_names;
 
+// legacy catalog 域（#436）；foundational + bot 已迁 capability，不再需要 cfg 门控。
 #[cfg(any(
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
     feature = "hr",
     feature = "ai",
     feature = "workflow",
@@ -99,12 +95,6 @@ fn register(
 
 #[cfg(any(
     test,
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
     feature = "hr",
     feature = "ai",
     feature = "workflow",
@@ -135,12 +125,6 @@ fn service_metadata(
 
 #[cfg(any(
     test,
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
     feature = "hr",
     feature = "ai",
     feature = "workflow",
@@ -216,12 +200,7 @@ mod tests {
             };
         }
 
-        assert_feature_service!("auth", "auth");
-        assert_feature_service!("communication", "communication");
-        assert_feature_service!("docs", "docs");
-        assert_feature_service!("cardkit", "cardkit");
-        assert_feature_service!("meeting", "meeting");
-        assert_feature_service!("security", "security");
+        // legacy only（#436）；foundational + bot 不在此列表
         assert_feature_service!("hr", "hr");
         assert_feature_service!("ai", "ai");
         assert_feature_service!("workflow", "workflow");
@@ -231,31 +210,58 @@ mod tests {
         assert_feature_service!("mail", "mail");
         assert_feature_service!("analytics", "analytics");
         assert_feature_service!("user", "user");
-        // bot 走 capability catalog（#434），不在 legacy compiled_service_names 中
+
+        // capability catalog 域不得出现在 legacy compiled_service_names
+        assert!(!service_names.contains(&"auth"));
+        assert!(!service_names.contains(&"communication"));
+        assert!(!service_names.contains(&"docs"));
+        assert!(!service_names.contains(&"cardkit"));
+        assert!(!service_names.contains(&"meeting"));
+        assert!(!service_names.contains(&"security"));
+        assert!(!service_names.contains(&"bot"));
     }
 
     #[test]
-    fn test_register_compiled_services_includes_catalog_bot() {
+    fn test_register_compiled_services_includes_catalog_foundational() {
         use super::super::ServiceRegistry;
 
         let mut registry = DefaultServiceRegistry::new();
         register_compiled_services(&mut registry).unwrap();
 
-        #[cfg(feature = "bot")]
-        assert!(
-            registry.has_service("bot"),
-            "bot feature 启用时 register_compiled_services 必须注册 bot"
-        );
+        macro_rules! assert_catalog_service {
+            ($feature:literal, $name:literal) => {
+                #[cfg(feature = $feature)]
+                assert!(
+                    registry.has_service($name),
+                    "{} feature 启用时 register_compiled_services 必须注册 {}",
+                    $name,
+                    $name
+                );
 
-        #[cfg(not(feature = "bot"))]
-        assert!(
-            !registry.has_service("bot"),
-            "bot feature 禁用时 register_compiled_services 不得注册 bot"
-        );
+                #[cfg(not(feature = $feature))]
+                assert!(
+                    !registry.has_service($name),
+                    "{} feature 禁用时 register_compiled_services 不得注册 {}",
+                    $name,
+                    $name
+                );
+            };
+        }
+
+        assert_catalog_service!("auth", "auth");
+        assert_catalog_service!("communication", "communication");
+        assert_catalog_service!("docs", "docs");
+        assert_catalog_service!("cardkit", "cardkit");
+        assert_catalog_service!("meeting", "meeting");
+        assert_catalog_service!("security", "security");
+        assert_catalog_service!("bot", "bot");
 
         // legacy 路径仍工作
-        #[cfg(feature = "auth")]
-        assert!(registry.has_service("auth"));
+        #[cfg(feature = "hr")]
+        assert!(registry.has_service("hr"));
+
+        #[cfg(not(feature = "hr"))]
+        assert!(!registry.has_service("hr"));
     }
 
     #[test]

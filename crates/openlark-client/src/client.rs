@@ -44,12 +44,13 @@ impl AuthClient {
     }
 }
 
-// legacy 业务域仍走 declare_client 双声明；catalog 域（目前仅 bot）通过
-// for_each_compiled_capability callback 追加进同一 Client 结构体。
+// legacy 业务域（#436 待迁）仍走 declare_client 双声明；
+// catalog 域（#434 bot + #435 foundational）通过 for_each_compiled_capability
+// callback 追加进同一 Client 结构体。
 //
 // 命名：本宏是「包裹 declare_client! 并追加 catalog 条目」，不是「声明 catalog 本身」。
 // 死匹配（name/description/...）：统一条目同时含构造与诊断字段，本侧只消费构造字段；
-// 与 generate_catalog_registry! 对称，是双投影的固有成本，而非重复逻辑（#434 review）。
+// 与 generate_catalog_registry! 对称，是双投影的固有成本，而非重复逻辑。
 macro_rules! append_catalog_entries {
     ($({
         feature: $c_feature:literal,
@@ -65,42 +66,7 @@ macro_rules! append_catalog_entries {
         priority: $_priority:literal $(,)?
     }),* $(,)?) => {
         declare_client! {
-            {
-                feature: "cardkit",
-                field: cardkit,
-                ty: openlark_cardkit::CardkitClient,
-                doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
-                init: |_core_config, _base_core_config| {
-                    openlark_cardkit::CardkitClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "auth",
-                field: auth,
-                ty: AuthClient,
-                doc: "Auth meta 调用链入口：client.auth.app / client.auth.user / client.auth.oauth",
-                init: |_core_config, _base_core_config| {
-                    AuthClient::new(_base_core_config.clone())
-                },
-            },
-            {
-                feature: "docs",
-                field: docs,
-                ty: openlark_docs::DocsClient,
-                doc: "Docs meta 调用链入口：client.docs.config() / 各 async helper（如 search_bitable_records_all）...",
-                init: |_core_config, _base_core_config| {
-                    openlark_docs::DocsClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "communication",
-                field: communication,
-                ty: openlark_communication::CommunicationClient,
-                doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
-                init: |_core_config, _base_core_config| {
-                    openlark_communication::CommunicationClient::new(_core_config.clone())
-                },
-            },
+            // --- legacy（#436）---
             {
                 feature: "hr",
                 field: hr,
@@ -108,15 +74,6 @@ macro_rules! append_catalog_entries {
                 doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
                 init: |_core_config, _base_core_config| {
                     openlark_hr::HrClient::new(_core_config.clone())
-                },
-            },
-            {
-                feature: "meeting",
-                field: meeting,
-                ty: openlark_meeting::MeetingClient,
-                doc: "Meeting meta 调用链入口：client.meeting.vc.v1.note.get(...) 等（ADR 0001：room/meeting/reserve 空壳已砍，真实 builder 经 strict 路径）",
-                init: |_core_config, _base_core_config| {
-                    openlark_meeting::MeetingClient::new(_core_config.clone())
                 },
             },
             {
@@ -191,21 +148,7 @@ macro_rules! append_catalog_entries {
                     crate::UserClient::new(_core_config.clone())
                 },
             },
-            {
-                feature: "security",
-                field: security,
-                ty: crate::SecurityClient,
-                doc: "Security meta 调用链入口：client.security.acs... ...",
-                init: |_core_config, _base_core_config| {
-                    let security_config = openlark_security::config::SecurityConfig::new(
-                        _core_config.app_id().to_string(),
-                        _core_config.app_secret().to_string(),
-                    )
-                    .with_base_url(_core_config.base_url());
-                    openlark_security::SecurityClient::new(security_config)
-                },
-            },
-            // capability catalog 条目（#434 bot tracer；#435/#436 迁域时只改 catalog 声明）
+            // capability catalog 条目（#434 bot + #435 foundational；#436 继续只改 catalog）
             $(
                 {
                     feature: $c_feature,

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client：foundational 域迁入编译期能力目录（#435 / #423）**：
+  `auth` / `communication` / `docs` / `cardkit` / `meeting` / `security` 的
+  Client 字段与 registry 诊断元数据改由统一 `capability` catalog 生成，不再维护
+  Client/registry 双声明。禁用 feature 时两处均不产生字段或 entry。剩余域
+  （hr/ai/…）仍走 legacy 路径（#436）。
+
 - **client：编译期能力目录 tracer（#434 / #423）**：新增 `capability` catalog，
   以 `bot` 为 tracer 用同一声明同时生成 `Client::bot` 字段与 registry 诊断元数据；
   启用 `bot` feature 时 `client.bot` 可用且 `registry.has_service("bot")`；禁用时

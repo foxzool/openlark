@@ -1,55 +1,9 @@
 use super::super::DefaultServiceRegistry;
 use crate::Result;
 
+// #436 待迁：hr / ai / workflow / platform / application / helpdesk / mail /
+// analytics / user 仍走 legacy 双声明。foundational + bot 已迁入 capability catalog。
 compiled_services! {
-    {
-        feature: "auth",
-        name: "auth",
-        description: "飞书认证服务，提供令牌管理、身份验证等功能",
-        dependencies: [],
-        provides: ["token-management", "permission-control"],
-        priority: 1,
-    },
-    {
-        feature: "communication",
-        name: "communication",
-        description: "飞书通讯服务，提供消息、联系人、群组等功能",
-        dependencies: ["auth"],
-        provides: ["im", "contacts", "groups"],
-        priority: 2,
-    },
-    {
-        feature: "docs",
-        name: "docs",
-        description: "飞书文档服务，提供云文档、表格、知识库等功能",
-        dependencies: ["auth"],
-        provides: ["cloud-docs", "sheets", "wiki"],
-        priority: 2,
-    },
-    {
-        feature: "cardkit",
-        name: "cardkit",
-        description: "飞书卡片服务，提供卡片渲染与交互能力",
-        dependencies: ["auth"],
-        provides: ["card"],
-        priority: 3,
-    },
-    {
-        feature: "meeting",
-        name: "meeting",
-        description: "飞书会议服务，提供视频会议与会议室管理能力",
-        dependencies: ["auth"],
-        provides: ["vc"],
-        priority: 3,
-    },
-    {
-        feature: "security",
-        name: "security",
-        description: "飞书安全服务，提供安全审计与风控相关能力",
-        dependencies: ["auth"],
-        provides: ["security"],
-        priority: 3,
-    },
     {
         feature: "hr",
         name: "hr",

@@ -4,7 +4,7 @@
 //! 本模块的 `generate_catalog_registry!` 与 `client` 侧 `append_catalog_entries!`
 //! 分别投影同一条目列表（Client 构造 vs registry 诊断）。
 //!
-//! #434 仅为 bot tracer：在 #435 真正扩容前不再扩大宏面（避免 Speculative Generality）。
+//! 宏面保持最小（单列表 + 两投影）；扩容靠 catalog 条目，不新增宏层。
 
 /// 由 `for_each_compiled_capability!` 展开：生成 registry 注册与测试辅助。
 ///
