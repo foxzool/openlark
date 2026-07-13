@@ -14,6 +14,7 @@ pub(crate) fn register_compiled_services(
 mod tests {
     use super::super::{DefaultServiceRegistry, ServiceRegistry};
     use super::*;
+    use crate::capability::catalog_capability_names;
 
     #[test]
     fn test_register_compiled_services() {
@@ -21,50 +22,35 @@ mod tests {
         assert!(register_compiled_services(&mut registry).is_ok());
     }
 
+    /// bootstrap 只委托 catalog：注册集合 = catalog 能力名（无第二套域矩阵）。
     #[test]
-    fn test_register_compiled_services_includes_all_catalog_domains() {
+    fn register_compiled_services_matches_catalog_names() {
         let mut registry = DefaultServiceRegistry::new();
         register_compiled_services(&mut registry).unwrap();
 
-        macro_rules! assert_catalog_service {
-            ($feature:literal, $name:literal) => {
-                #[cfg(feature = $feature)]
-                assert!(
-                    registry.has_service($name),
-                    "{} feature 启用时 register_compiled_services 必须注册 {}",
-                    $name,
-                    $name
-                );
-
-                #[cfg(not(feature = $feature))]
-                assert!(
-                    !registry.has_service($name),
-                    "{} feature 禁用时 register_compiled_services 不得注册 {}",
-                    $name,
-                    $name
-                );
-            };
+        let catalog = catalog_capability_names();
+        assert_eq!(registry.list_services().len(), catalog.len());
+        for name in &catalog {
+            assert!(
+                registry.has_service(name),
+                "bootstrap 必须注册 catalog 能力 {name}"
+            );
         }
-
-        assert_catalog_service!("auth", "auth");
-        assert_catalog_service!("communication", "communication");
-        assert_catalog_service!("docs", "docs");
-        assert_catalog_service!("cardkit", "cardkit");
-        assert_catalog_service!("meeting", "meeting");
-        assert_catalog_service!("security", "security");
-        assert_catalog_service!("hr", "hr");
-        assert_catalog_service!("ai", "ai");
-        assert_catalog_service!("workflow", "workflow");
-        assert_catalog_service!("platform", "platform");
-        assert_catalog_service!("application", "application");
-        assert_catalog_service!("helpdesk", "helpdesk");
-        assert_catalog_service!("mail", "mail");
-        assert_catalog_service!("analytics", "analytics");
-        assert_catalog_service!("user", "user");
-        assert_catalog_service!("bot", "bot");
+        // 稳定顺序：list_services 按 priority 再 name；与 catalog 声明顺序在同 priority 下一致
+        let listed: Vec<&str> = registry
+            .list_services()
+            .into_iter()
+            .map(|e| e.metadata.name.as_str())
+            .collect();
+        let mut expected = catalog;
+        expected.sort_by(|a, b| {
+            let pa = registry.get_service(a).unwrap().metadata.priority;
+            let pb = registry.get_service(b).unwrap().metadata.priority;
+            pa.cmp(&pb).then_with(|| a.cmp(b))
+        });
+        assert_eq!(listed, expected, "list_services 须为稳定顺序（priority, name）");
     }
 
-    /// registry 为 metadata-only：无 typed instance、无 lifecycle 突变 API。
     #[test]
     fn registry_exposes_immutable_metadata_only() {
         let mut registry = DefaultServiceRegistry::new();
@@ -75,7 +61,6 @@ mod tests {
             let entry = registry.get_service("auth").unwrap();
             assert_eq!(entry.metadata.name, "auth");
             assert!(entry.metadata.description.is_some());
-            // 字段存在性由类型系统保证：无 instance / status / created_at
             let _deps = &entry.metadata.dependencies;
             let _provides = &entry.metadata.provides;
             let _priority = entry.metadata.priority;

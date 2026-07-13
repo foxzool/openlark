@@ -92,8 +92,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `get_service_typed` / `update_service_status`（注册仅 `pub(crate)` 于
     `DefaultServiceRegistry`）。
   - `ServiceEntry` 仅含 `metadata`；`ServiceMetadata` 删除 `status` 字段。
+  - `list_services` 顺序稳定：`priority` 升序，同 priority 按 `name`。
   - 诊断请用 `has_service` / `get_service` / `list_services` /
     `get_dependency_graph`；能力真相来自 capability catalog。
+
+  **设计收缩，非常规废弃**（对照 `docs/PUBLIC_API_STABILITY_POLICY.md`：主动将
+  无法兑现的 typed-instance / 虚假 lifecycle 与旁路 `FeatureLoader` 移出 public
+  API，属跨 minor 可接受的公开面收敛；与 WebSocket 0.18 收缩同档，0.18 直接移除
+  而非先 `#[deprecated]`）。**迁移**：删除对 `FeatureLoader` /
+  `ServiceStatus` / `get_service_typed` / `update_service_status` 的依赖；改用
+  `client.registry().has_service` / `list_services` / `get_service`。
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /

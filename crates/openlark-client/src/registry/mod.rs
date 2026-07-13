@@ -93,9 +93,6 @@ impl DefaultServiceRegistry {
     }
 
     /// 注册服务元数据（仅 Client / catalog bootstrap 使用）
-    ///
-    /// 在未启用任何业务 feature 时 catalog 不会调用本方法；保留以供有 feature 时注册。
-    #[allow(dead_code)]
     pub(crate) fn register_service(&mut self, metadata: ServiceMetadata) -> RegistryResult<()> {
         if self.services.contains_key(&metadata.name) {
             return Err(RegistryError::ServiceAlreadyExists {
@@ -118,8 +115,16 @@ impl ServiceRegistry for DefaultServiceRegistry {
             })
     }
 
+    /// 稳定顺序：priority 升序，同 priority 按 name 字典序。
     fn list_services(&self) -> Vec<&ServiceEntry> {
-        self.services.values().collect()
+        let mut entries: Vec<&ServiceEntry> = self.services.values().collect();
+        entries.sort_by(|a, b| {
+            a.metadata
+                .priority
+                .cmp(&b.metadata.priority)
+                .then_with(|| a.metadata.name.cmp(&b.metadata.name))
+        });
+        entries
     }
 
     fn has_service(&self, name: &str) -> bool {
@@ -199,5 +204,29 @@ mod tests {
 
         let graph = registry.get_dependency_graph();
         assert_eq!(graph.get("comm").unwrap(), &vec!["auth".to_string()]);
+    }
+
+    #[test]
+    fn list_services_stable_order_by_priority_then_name() {
+        let mut registry = DefaultServiceRegistry::new();
+        for (name, priority) in [("zeta", 2u32), ("alpha", 1), ("beta", 1), ("mid", 2)] {
+            registry
+                .register_service(ServiceMetadata {
+                    name: name.to_string(),
+                    version: "1.0.0".to_string(),
+                    description: None,
+                    dependencies: vec![],
+                    provides: vec![],
+                    priority,
+                })
+                .unwrap();
+        }
+
+        let names: Vec<&str> = registry
+            .list_services()
+            .into_iter()
+            .map(|e| e.metadata.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["alpha", "beta", "mid", "zeta"]);
     }
 }

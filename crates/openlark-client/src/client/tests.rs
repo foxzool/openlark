@@ -918,12 +918,12 @@ fn remaining_capability_client_and_registry_agree() {
     );
 }
 
-/// registry 列出的服务名集合 = 当前启用的 catalog 能力（与 Client 字段同源）。
+/// registry 列出的服务名集合 = 当前启用的 catalog 能力（与 Client 字段同源），
+/// 且顺序稳定（priority 升序，同 priority 按 name）。
 #[test]
 fn registry_listing_matches_catalog_capability_set() {
     use crate::capability::catalog_capability_names;
     use crate::registry::ServiceRegistry;
-    use std::collections::HashSet;
 
     let client = Client::builder()
         .app_id("test_app_id")
@@ -931,16 +931,23 @@ fn registry_listing_matches_catalog_capability_set() {
         .build()
         .unwrap();
 
-    let catalog: HashSet<&str> = catalog_capability_names().into_iter().collect();
-    let listed: HashSet<&str> = client
+    let catalog = catalog_capability_names();
+    let listed: Vec<&str> = client
         .registry()
         .list_services()
         .into_iter()
         .map(|e| e.metadata.name.as_str())
         .collect();
 
+    let mut expected = catalog;
+    expected.sort_by(|a, b| {
+        let pa = client.registry().get_service(a).unwrap().metadata.priority;
+        let pb = client.registry().get_service(b).unwrap().metadata.priority;
+        pa.cmp(&pb).then_with(|| a.cmp(b))
+    });
+
     assert_eq!(
-        listed, catalog,
-        "registry listing 必须与 catalog 能力集合一致"
+        listed, expected,
+        "registry listing 必须与 catalog 能力集合一致且顺序稳定"
     );
 }
