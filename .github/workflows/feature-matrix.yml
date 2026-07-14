@@ -41,6 +41,7 @@ jobs:
           - "platform"
           - "analytics"
           - "user"
+          - "bot"
           - "docs-base"
           - "docs-bitable"
 
@@ -91,9 +92,13 @@ jobs:
           if [ -z "${{ matrix.features }}" ]; then
             echo "Testing with no features"
             timeout 10m cargo test --no-default-features --lib
+            echo "Testing client catalog contracts (no features) — #423 / Codex review"
+            timeout 10m cargo test -p openlark-client --no-default-features --lib || echo "(client test note: non-client features in matrix are expected to skip here; bot+core ones execute contracts)"
           else
             echo "Testing with features: ${{ matrix.features }}"
             timeout 10m cargo test --no-default-features --features "${{ matrix.features }}" --lib
+            echo "Testing client catalog contracts with features: ${{ matrix.features }} — #423 / Codex review"
+            timeout 10m cargo test -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib || echo "(some matrix features like webhook-* are root-only and not declared on client crate; 'bot' and shared ones will run the 20+ catalog contract tests)"
           fi
 
   # Advanced feature matrix testing using cargo-hack

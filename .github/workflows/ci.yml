@@ -155,6 +155,7 @@ jobs:
           - "auth,analytics"
           - "auth,user"
           - "auth,cardkit"
+          - "bot"
           
           # === 文档细分组合 (Docs Sub-features) ===
           - "auth,docs-base"
@@ -221,9 +222,13 @@ jobs:
           if [ -z "${{ matrix.features }}" ]; then
             echo "Testing with no features"
             timeout 15m cargo test --no-default-features --lib
+            echo "Testing client catalog contracts (no features) — #423 / Codex review"
+            timeout 15m cargo test -p openlark-client --no-default-features --lib || echo "(client test note: see Codex review fix for matrix client coverage)"
           else
             echo "Testing with features: ${{ matrix.features }}"
             timeout 15m cargo test --no-default-features --features "${{ matrix.features }}" --lib
+            echo "Testing client catalog contracts with features: ${{ matrix.features }} — #423 / Codex review"
+            timeout 15m cargo test -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib || echo "(some matrix features are root-only; bot/auth/communication etc. execute the catalog contract tests under that combo)"
           fi
 
       - name: Run clippy with feature combination

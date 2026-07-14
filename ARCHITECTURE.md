@@ -1175,41 +1175,30 @@ impl Config {
 
 #### 7.1.3 功能标志控制
 
-编译时功能标志控制服务可用性：
+编译时功能标志通过 capability catalog 控制 Client 上的 meta 字段是否出现（0.18 现行模型）：
 
 ```rust
-// 功能标志检查宏
-macro_rules! require_feature {
-    ($feature:literal, $service:literal) => {
-        if !cfg!(feature = $feature) {
-            compile_error!(concat!(
-                "启用 ", $service, " 服务需要启用 '",
-                $feature, "' feature"
-            ));
-        }
-    };
-}
-
-// 服务访问器
-impl Client {
-    #[cfg(feature = "communication")]
-    pub fn communication(&self) -> Result<CommunicationService<'_>> {
-        require_feature!("communication", "通讯");
-        CommunicationService::new(&self.config, &self.registry)
-    }
-
-    #[cfg(feature = "docs")]
-    pub fn docs(&self) -> DocsService<'_> {
-        require_feature!("docs", "文档");
-        DocsService::new(&self.config)
-    }
+// Client 上的业务字段由 catalog 宏 + cfg(feature) 生成（非方法式访问器）
+pub struct Client {
+    registry: Arc<DefaultServiceRegistry>,
+    config: openlark_core::config::Config,
 
     #[cfg(feature = "auth")]
-    pub fn auth(&self) -> AuthService {
-        require_feature!("auth", "认证");
-        AuthService::new(&self.config)
-    }
+    pub auth: AuthClient,
+    #[cfg(feature = "communication")]
+    pub communication: CommunicationClient,
+    #[cfg(feature = "docs")]
+    pub docs: DocsClient,
+    // 其余域同理，由 crates/openlark-client/src/capability/catalog.rs 统一声明
 }
+
+// 用法：字段访问（启用对应 feature 方可编译）
+#[cfg(feature = "docs")]
+let _ = &client.docs;
+if client.registry().has_service("docs") { /* 诊断 */ }
+```
+
+旧的 `fn communication(&self)` / `require_feature!` 宏访问器模式已在 0.18 废弃，详见 §6.1.2 与 crates/openlark-client/AGENTS.md。
 ```
 
 #### 7.1.4 错误处理和上下文管理
@@ -1417,7 +1406,14 @@ impl DependencyResolver {
 > 不提供运行时热加载 / ServiceWatcher / `ServiceStatus` 生命周期。能力是否可用
 > 仅取决于 Cargo feature + `client.registry().has_service`。
 
-### 7.3 服务生命周期管理
+### 7.3 服务生命周期管理（0.18：已否决，整个章节为历史设计）
+
+> **警告**：本节描述的 `Service` trait、`ServiceLifecycleManager`、`ServiceState`、
+> 健康检查容器等在 0.18 已被明确否决（见 7.2.1 与 AGENTS.md: metadata-only 规则）。
+> 当前 Client 不包含运行时生命周期管理；registry 仅提供不可变元数据诊断。
+> 以下代码片段仅作历史存档，请勿视作现行架构。
+
+> 违反 crates/openlark-client/AGENTS.md 规定的 metadata-only 规则的旧描述已保留仅供参考。
 
 #### 7.3.1 Service trait定义
 

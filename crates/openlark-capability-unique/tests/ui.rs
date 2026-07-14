@@ -8,4 +8,6 @@ fn capability_catalog_generation_time_uniqueness() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/duplicate_capability_field.rs");
     t.compile_fail("tests/ui/mismatch_capability_name.rs");
+    // Codex review item: prove that disabled feature produces no Client field (compile-time)
+    t.compile_fail("tests/ui/disabled_client_field.rs");
 }

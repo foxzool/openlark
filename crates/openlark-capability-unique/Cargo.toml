@@ -13,3 +13,5 @@ workspace = true
 
 [dev-dependencies]
 trybuild = "1.0"
+# 用于 compile-fail 测试“禁用 feature 时 Client 字段不存在”（Codex review P2）
+openlark-client = { path = "../openlark-client", default-features = false }
