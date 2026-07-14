@@ -1,9 +1,9 @@
-error[E0080]: evaluation panicked: capability catalog: name must equal field identifier text
+error: cannot find macro `__capability_catalog_unique_body` in this scope
  --> tests/ui/mismatch_capability_name.rs:4:5
   |
 4 | /     openlark_capability_unique::assert_capability_catalog_unique! {
 5 | |         { field: auth, name: "bot" },
 6 | |     }
-  | |_____^ evaluation of `main::_` failed here
+  | |_____^
   |
-  = note: this error originates in the macro `$crate::panic::panic_2021` which comes from the expansion of the macro `openlark_capability_unique::assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the macro `openlark_capability_unique::assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)
