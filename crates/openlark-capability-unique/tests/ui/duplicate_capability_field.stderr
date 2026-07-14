@@ -11,4 +11,4 @@ error[E0428]: the name `auth` is defined multiple times
   |       previous definition of the module `auth` here
   |
   = note: `auth` must be defined only once in the type namespace of this module
-  = note: this error originates in the macro `$crate::__capability_catalog_unique_impl` which comes from the expansion of the macro `openlark_capability_unique::assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the macro `openlark_capability_unique::assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,11 +1,8 @@
 //! compile-fail：generation-time catalog uniqueness（#423 / #455）
 //!
-//! 此测试通过 openlark-capability-unique 导出的宏（其实现体通过 include! 直接来自
-//! openlark-client 的唯一源码 unique-macro.inc.rs）来验证错误格式与行为。
-//! 因此 compile-fail 实际使用与生产路径完全相同的逻辑。
-//!
-//! 生产路径在 openlark-client 每次编译 catalog（generate_catalog_registry!）时
-//! 都会执行相同的断言，确保重复 field / name mismatch 会在 generation time 失败。
+//! 此测试通过 openlark-capability-unique 导出的宏来验证错误格式。
+//! 实现体与 openlark-client 生产路径中的保持一致（手动同步）。
+//! 生产路径在每次编译 catalog 时执行断言。
 
 #[test]
 fn capability_catalog_generation_time_uniqueness() {
