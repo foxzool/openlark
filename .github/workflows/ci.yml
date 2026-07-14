@@ -221,14 +221,12 @@ jobs:
         run: |
           if [ -z "${{ matrix.features }}" ]; then
             echo "Testing with no features"
-            timeout 15m cargo test --no-default-features --lib
-            echo "Testing client catalog contracts (no features) — #423 / Codex review"
-            timeout 15m cargo test -p openlark-client --no-default-features --lib || echo "(client test note: see Codex review fix for matrix client coverage)"
+            timeout 15m cargo test -p openlark -p openlark-client --no-default-features --lib
           else
             echo "Testing with features: ${{ matrix.features }}"
-            timeout 15m cargo test --no-default-features --features "${{ matrix.features }}" --lib
-            echo "Testing client catalog contracts with features: ${{ matrix.features }} — #423 / Codex review"
-            timeout 15m cargo test -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib || echo "(some matrix features are root-only; bot/auth/communication etc. execute the catalog contract tests under that combo)"
+            # 同时选择根 crate 与 client：root-only feature 由 openlark 解析，并通过
+            # 依赖关系把对应 client feature 传播给 catalog contract tests。
+            timeout 15m cargo test -p openlark -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib
           fi
 
       - name: Run clippy with feature combination

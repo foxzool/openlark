@@ -1199,7 +1199,6 @@ if client.registry().has_service("docs") { /* 诊断 */ }
 ```
 
 旧的 `fn communication(&self)` / `require_feature!` 宏访问器模式已在 0.18 废弃，详见 §6.1.2 与 crates/openlark-client/AGENTS.md。
-```
 
 #### 7.1.4 错误处理和上下文管理
 
