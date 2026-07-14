@@ -47,3 +47,43 @@ fn registry_listing_matches_catalog_capability_set() {
         "registry listing 必须与独立 feature oracle 一致且顺序稳定"
     );
 }
+
+/// #423 明确不允许在未单独决策时调整公开业务字段顺序。
+///
+/// `Client` 的 Debug 投影保留声明顺序，因此用它锁定 0.17 已有字段顺序；
+/// registry listing 仍独立按 `(priority, name)` 排序。
+#[test]
+fn client_public_field_order_remains_compatible() {
+    let debug = format!("{:?}", test_client());
+    let expected = [
+        "cardkit",
+        "auth",
+        "docs",
+        "communication",
+        "hr",
+        "meeting",
+        "ai",
+        "workflow",
+        "platform",
+        "application",
+        "helpdesk",
+        "mail",
+        "analytics",
+        "user",
+        "security",
+        "bot",
+    ];
+
+    let mut previous = 0;
+    for field in expected {
+        let marker = format!("{field}: ");
+        let position = debug
+            .find(&marker)
+            .unwrap_or_else(|| panic!("Client Debug 缺少字段 {field}: {debug}"));
+        assert!(
+            position >= previous,
+            "Client 公开字段顺序改变：{field} 出现在前一字段之前；{debug}"
+        );
+        previous = position;
+    }
+}

@@ -11,8 +11,5 @@ description = "Internal generation-time uniqueness checks for openlark-client ca
 [lints]
 workspace = true
 
-[dependencies]
-openlark-client = { path = "../openlark-client", features = ["_test-catalog-unique"] }
-
 [dev-dependencies]
 trybuild = "1.0"

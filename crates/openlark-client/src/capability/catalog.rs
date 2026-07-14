@@ -17,7 +17,21 @@
 macro_rules! for_each_compiled_capability {
     ($callback:ident) => {
         $callback! {
-            // --- foundational（#435）---
+            // 保持 0.17 公开 Client 字段顺序（#423 明确排除未经决策的重排）。
+            {
+                feature: "cardkit",
+                field: cardkit,
+                ty: openlark_cardkit::CardkitClient,
+                doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
+                init: |_core_config, _base_core_config| {
+                    openlark_cardkit::CardkitClient::new(_core_config.clone())
+                },
+                name: "cardkit",
+                description: "飞书卡片服务，提供卡片渲染与交互能力",
+                dependencies: ["auth"],
+                provides: ["card"],
+                priority: 3,
+            },
             {
                 feature: "auth",
                 field: auth,
@@ -34,20 +48,6 @@ macro_rules! for_each_compiled_capability {
                 priority: 1,
             },
             {
-                feature: "communication",
-                field: communication,
-                ty: openlark_communication::CommunicationClient,
-                doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
-                init: |_core_config, _base_core_config| {
-                    openlark_communication::CommunicationClient::new(_core_config.clone())
-                },
-                name: "communication",
-                description: "飞书通讯服务，提供消息、联系人、群组等功能",
-                dependencies: ["auth"],
-                provides: ["im", "contacts", "groups"],
-                priority: 2,
-            },
-            {
                 feature: "docs",
                 field: docs,
                 ty: openlark_docs::DocsClient,
@@ -62,18 +62,32 @@ macro_rules! for_each_compiled_capability {
                 priority: 2,
             },
             {
-                feature: "cardkit",
-                field: cardkit,
-                ty: openlark_cardkit::CardkitClient,
-                doc: "CardKit meta 调用链：client.cardkit.v1.card.create(...)",
+                feature: "communication",
+                field: communication,
+                ty: openlark_communication::CommunicationClient,
+                doc: "Communication meta 调用链入口：client.communication.im / client.communication.contact ...",
                 init: |_core_config, _base_core_config| {
-                    openlark_cardkit::CardkitClient::new(_core_config.clone())
+                    openlark_communication::CommunicationClient::new(_core_config.clone())
                 },
-                name: "cardkit",
-                description: "飞书卡片服务，提供卡片渲染与交互能力",
+                name: "communication",
+                description: "飞书通讯服务，提供消息、联系人、群组等功能",
                 dependencies: ["auth"],
-                provides: ["card"],
-                priority: 3,
+                provides: ["im", "contacts", "groups"],
+                priority: 2,
+            },
+            {
+                feature: "hr",
+                field: hr,
+                ty: openlark_hr::HrClient,
+                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
+                init: |_core_config, _base_core_config| {
+                    openlark_hr::HrClient::new(_core_config.clone())
+                },
+                name: "hr",
+                description: "飞书人力资源服务，提供员工、考勤、薪酬等功能",
+                dependencies: ["auth"],
+                provides: ["attendance", "corehr", "ehr"],
+                priority: 4,
             },
             {
                 feature: "meeting",
@@ -88,40 +102,6 @@ macro_rules! for_each_compiled_capability {
                 dependencies: ["auth"],
                 provides: ["vc"],
                 priority: 3,
-            },
-            {
-                feature: "security",
-                field: security,
-                ty: crate::SecurityClient,
-                doc: "Security meta 调用链入口：client.security.acs... ...",
-                init: |_core_config, _base_core_config| {
-                    let security_config = openlark_security::config::SecurityConfig::new(
-                        _core_config.app_id().to_string(),
-                        _core_config.app_secret().to_string(),
-                    )
-                    .with_base_url(_core_config.base_url());
-                    openlark_security::SecurityClient::new(security_config)
-                },
-                name: "security",
-                description: "飞书安全服务，提供安全审计与风控相关能力",
-                dependencies: ["auth"],
-                provides: ["security"],
-                priority: 3,
-            },
-            // --- remaining（#436）---
-            {
-                feature: "hr",
-                field: hr,
-                ty: openlark_hr::HrClient,
-                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
-                init: |_core_config, _base_core_config| {
-                    openlark_hr::HrClient::new(_core_config.clone())
-                },
-                name: "hr",
-                description: "飞书人力资源服务，提供员工、考勤、薪酬等功能",
-                dependencies: ["auth"],
-                provides: ["attendance", "corehr", "ehr"],
-                priority: 4,
             },
             {
                 feature: "ai",
@@ -236,7 +216,25 @@ macro_rules! for_each_compiled_capability {
                 provides: ["system_status"],
                 priority: 4,
             },
-            // --- tracer（#434）---
+            {
+                feature: "security",
+                field: security,
+                ty: crate::SecurityClient,
+                doc: "Security meta 调用链入口：client.security.acs... ...",
+                init: |_core_config, _base_core_config| {
+                    let security_config = openlark_security::config::SecurityConfig::new(
+                        _core_config.app_id().to_string(),
+                        _core_config.app_secret().to_string(),
+                    )
+                    .with_base_url(_core_config.base_url());
+                    openlark_security::SecurityClient::new(security_config)
+                },
+                name: "security",
+                description: "飞书安全服务，提供安全审计与风控相关能力",
+                dependencies: ["auth"],
+                provides: ["security"],
+                priority: 3,
+            },
             {
                 feature: "bot",
                 field: bot,

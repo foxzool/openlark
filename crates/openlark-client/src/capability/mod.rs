@@ -24,20 +24,18 @@ pub(crate) use catalog::register_catalog_capabilities;
 pub(crate) fn expected_capability_names_from_features() -> Vec<&'static str> {
     [
         None::<&str>,
-        #[cfg(feature = "auth")]
-        Some("auth"),
-        #[cfg(feature = "communication")]
-        Some("communication"),
-        #[cfg(feature = "docs")]
-        Some("docs"),
         #[cfg(feature = "cardkit")]
         Some("cardkit"),
-        #[cfg(feature = "meeting")]
-        Some("meeting"),
-        #[cfg(feature = "security")]
-        Some("security"),
+        #[cfg(feature = "auth")]
+        Some("auth"),
+        #[cfg(feature = "docs")]
+        Some("docs"),
+        #[cfg(feature = "communication")]
+        Some("communication"),
         #[cfg(feature = "hr")]
         Some("hr"),
+        #[cfg(feature = "meeting")]
+        Some("meeting"),
         #[cfg(feature = "ai")]
         Some("ai"),
         #[cfg(feature = "workflow")]
@@ -54,6 +52,8 @@ pub(crate) fn expected_capability_names_from_features() -> Vec<&'static str> {
         Some("analytics"),
         #[cfg(feature = "user")]
         Some("user"),
+        #[cfg(feature = "security")]
+        Some("security"),
         #[cfg(feature = "bot")]
         Some("bot"),
     ]

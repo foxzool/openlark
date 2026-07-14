@@ -29,6 +29,7 @@
 | `ServiceRegistry::update_service_status` | 删除 |
 | `ServiceEntry.instance` / 时间戳 | 删除 |
 | `ServiceMetadata.status` | 删除 |
+| `RegistryError::CircularDependency` / `MissingDependencies` / `InvalidFeatureFlag` | 删除。这些变体只对应已移除的运行时注册、依赖校验和 `FeatureLoader` 路径；删除直接构造与穷举匹配分支 |
 
 ### 推荐诊断写法
 

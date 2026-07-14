@@ -490,7 +490,8 @@ for entry in client.registry().list_services() {
 
 #### 6.1.3 能力元数据（无 lifecycle）
 
-构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register：
+构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register。
+文档示例也从 registry 读取 catalog 投影，不复制名称与描述字面量：
 
 ```rust
 pub struct ServiceMetadata {
@@ -502,15 +503,16 @@ pub struct ServiceMetadata {
     pub priority: u32,
 }
 
-// 示例（构造期内部；非用户公开 register API）
-let metadata = ServiceMetadata {
-    name: "communication".to_string(),
-    version: "1.0.0".to_string(),
-    description: Some("飞书通讯服务，提供消息、联系人、群组等功能".to_string()),
-    dependencies: vec!["auth".to_string()],
-    provides: vec!["im".to_string(), "contacts".to_string()],
-    priority: 2,
-};
+// 诊断数据来自唯一 catalog，不在文档中另建一份 metadata。
+let entry = client.registry().get_service("communication")?;
+println!(
+    "{}: {:?}, deps={:?}, provides={:?}, priority={}",
+    entry.metadata.name,
+    entry.metadata.description,
+    entry.metadata.dependencies,
+    entry.metadata.provides,
+    entry.metadata.priority,
+);
 ```
 
 #### 6.1.4 功能标志（编译时）

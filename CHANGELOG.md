@@ -91,6 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `get_service_typed` / `update_service_status`（注册仅 `pub(crate)` 于
     `DefaultServiceRegistry`）。
   - `ServiceEntry` 仅含 `metadata`；`ServiceMetadata` 删除 `status` 字段。
+  - `RegistryError` 删除只服务于已移除的运行时注册、依赖校验与
+    `FeatureLoader` 路径的 `CircularDependency` / `MissingDependencies` /
+    `InvalidFeatureFlag` 变体。
   - `list_services` 顺序稳定：`priority` 升序，同 priority 按 `name`。
   - 诊断请用 `has_service` / `get_service` / `list_services` /
     `get_dependency_graph`；能力真相来自 capability catalog。
@@ -100,10 +103,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **严重正确性**问题）。依据 parent #423：`get_service_typed` 在 instance 恒为
   `None` 时永不成功；`ServiceStatus` / `update_service_status` 与时间戳构成虚假
   lifecycle；`FeatureLoader` 与 Client 构造形成重复初始化入口并掩盖能力真相。
+  上述三个 `RegistryError` 变体也仅表达这些已删除路径中的不可达状态；
   继续保留会系统性误导调用方（接口谎言），属严重正确性缺陷，故 0.18 与 WebSocket
-  公开面收缩同档直接移除。**迁移**：删除对 `FeatureLoader` / `ServiceStatus` /
+  公开面收缩同档直接移除。**受影响范围**：直接构造或穷举匹配这些变体的代码。
+  **迁移**：删除对 `FeatureLoader` / `ServiceStatus` /
   `get_service_typed` / `update_service_status` 的依赖；改用
-  `client.registry().has_service` / `list_services` / `get_service`。
+  `client.registry().has_service` / `list_services` / `get_service`；从 `RegistryError`
+  匹配中删除上述三个不可达分支，并仅处理保留的 lookup 错误。
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /

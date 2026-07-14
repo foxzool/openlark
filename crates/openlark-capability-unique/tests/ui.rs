@@ -1,7 +1,7 @@
 //! compile-fail：generation-time catalog uniqueness（#423 / #455）
 //!
-//! 此测试直接使用 openlark_client::assert_capability_catalog_unique! (via the _test-catalog-unique feature on the dep).
-//! This ensures the compile-fail test exercises the actual production macro implementation.
+//! UI 用例直接引入生产 `capability/unique.rs`，确保 compile-fail
+//! 覆盖真实宏实现，不经过第二份 harness 实现。
 
 #[test]
 fn capability_catalog_generation_time_uniqueness() {

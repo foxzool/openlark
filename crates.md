@@ -34,26 +34,24 @@
 
 | bizTag | API 数量（排除 old） | API 总数 | old 数量 |
 |---|---:|---:|---:|
-| `feishu_people` | 269 | 269 | 0 |
+| `feishu_people` | 262 | 262 | 0 |
 | `hire` | 182 | 182 | 0 |
-| `ccm` | 127 | 176 | 49 |
-| `mail` | 107 | 107 | 0 |
-| `task` | 80 | 80 | 0 |
-| `im` | 74 | 78 | 4 |
+| `ccm` | 122 | 171 | 49 |
+| `task` | 75 | 75 | 0 |
 | `contact` | 71 | 78 | 7 |
-| `vc` | 64 | 64 | 0 |
+| `im` | 71 | 75 | 4 |
+| `mail` | 67 | 67 | 0 |
+| `vc` | 56 | 56 | 0 |
 | `base` | 52 | 52 | 0 |
 | `helpdesk` | 50 | 50 | 0 |
-| `app_engine` | 49 | 49 | 0 |
+| `app_engine` | 48 | 48 | 0 |
 | `calendar` | 44 | 44 | 0 |
-| `approval` | 42 | 65 | 23 |
 | `attendance` | 39 | 39 | 0 |
-| `okr` | 37 | 37 | 0 |
-| `application` | 32 | 37 | 5 |
-| `aily` | 31 | 31 | 0 |
+| `approval` | 31 | 54 | 23 |
+| `application` | 27 | 32 | 5 |
 | `baike` | 27 | 27 | 0 |
-| `spark` | 24 | 24 | 0 |
 | `ai` | 23 | 23 | 0 |
+| `aily` | 21 | 21 | 0 |
 | `compensation_management` | 21 | 21 | 0 |
 | `directory` | 21 | 21 | 0 |
 | `performance` | 21 | 21 | 0 |
@@ -61,26 +59,27 @@
 | `acs` | 14 | 14 | 0 |
 | `admin` | 14 | 14 | 0 |
 | `security_and_compliance` | 13 | 13 | 0 |
+| `okr` | 12 | 12 | 0 |
 | `payroll` | 12 | 12 | 0 |
 | `auth` | 10 | 11 | 1 |
 | `cardkit` | 10 | 10 | 0 |
-| `minutes` | 8 | 8 | 0 |
-| `board` | 7 | 7 | 0 |
+| `board` | 6 | 6 | 0 |
 | `personal_settings` | 6 | 6 | 0 |
 | `trust_party` | 5 | 5 | 0 |
 | `mdm` | 4 | 4 | 0 |
+| `minutes` | 4 | 4 | 0 |
 | `report` | 3 | 3 | 0 |
 | `workplace` | 3 | 3 | 0 |
 | `ehr` | 2 | 2 | 0 |
-| `event` | 2 | 2 | 0 |
 | `passport` | 2 | 2 | 0 |
 | `tenant` | 2 | 2 | 0 |
-| `bot` | 1 | 1 | 0 |
+| `event` | 1 | 1 | 0 |
 | `human_authentication` | 1 | 4 | 3 |
 | `moments` | 1 | 1 | 0 |
+| `spark` | 1 | 1 | 0 |
 | `verification_information` | 1 | 1 | 0 |
 | `meeting_room` | 0 | 17 | 17 |
-| **合计** | 1623 | 1732 | 109 |
+| **合计** | 1473 | 1582 | 109 |
 
 ## 工具用法
 

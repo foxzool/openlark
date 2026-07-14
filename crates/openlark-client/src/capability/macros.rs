@@ -25,7 +25,7 @@ macro_rules! generate_catalog_registry {
         priority: $priority:literal $(,)?
     }),* $(,)?) => {
         // generation-time 唯一性（#423 / #455）：crate 私有宏（见 unique.rs；非公开 API）
-        // 实现体共享自 unique-macro.inc.rs，compile-fail 测试通过 harness reexport 覆盖生产版本。
+        // compile-fail UI 用例通过 #[path] 直接引入 unique.rs，覆盖同一生产宏。
         // 使用 snake_case mod 占位实现重复检测，lint-clean（无 non_camel_case_types allow）。
         assert_capability_catalog_unique! {
             $(
