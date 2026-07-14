@@ -4,23 +4,46 @@
 //! **trybuild**：见 workspace 成员 `openlark-capability-unique`（`publish = false`，
 //! 且 **不是** 本 crate 的依赖，避免阻断 `cargo package` / crates.io 发布）。
 //!
-//! 宏实现臂通过 include! 共享自 unique-macro.inc.rs，实现体单一来源。
-//! 生产 client 私有使用，harness 仅用于导出测试宏。
+//! 宏体与 harness 中的重复（设计上为隔离发布；两个文件的手工同步）。
+//! 测试覆盖生成期拒绝逻辑。
 
-/// 生产用：私有唯一性断言（catalog 注册宏调用）。
-///
-/// - 重复 `field` → 同模块重复 `mod` 项 → E0428 编译失败（lint clean，无需 non_camel_case_types allow）
-/// - `name` 必须与 `stringify!(field)` 逐字节相等 → **const assert 失败**
-include!("unique-macro.inc.rs");
-
-#[cfg(not(feature = "_test-catalog-unique"))]
+// Private uniqueness assert for catalog registration macro (see above for usage).
 macro_rules! assert_capability_catalog_unique {
-    ($($t:tt)*) => { __capability_catalog_unique_body! { $($t)* } };
-}
+    ($({
+        field: $field:ident,
+        name: $name:literal $(,)?
+    }),* $(,)?) => {
+        mod __capability_catalog_unique_fields {
+            $(
+                /// 生成期占位模块：重复 field 标识符时在此触发 E0428。
+                /// 使用 `mod`（snake_case 合法）而非 unit struct，避免 #[allow(non_camel_case_types)]。
+                pub mod $field {}
+            )*
+        }
 
-#[cfg(feature = "_test-catalog-unique")]
-#[macro_export]
-#[doc(hidden)]
-macro_rules! assert_capability_catalog_unique {
-    ($($t:tt)*) => { __capability_catalog_unique_body! { $($t)* } };
+        const fn __catalog_str_eq(a: &str, b: &str) -> bool {
+            if a.len() != b.len() {
+                return false;
+            }
+            let ab = a.as_bytes();
+            let bb = b.as_bytes();
+            let mut i = 0;
+            while i < ab.len() {
+                if ab[i] != bb[i] {
+                    return false;
+                }
+                i += 1;
+            }
+            true
+        }
+
+        const _: () = {
+            $(
+                assert!(
+                    __catalog_str_eq(::core::stringify!($field), $name),
+                    "capability catalog: name must equal field identifier text"
+                );
+            )*
+        };
+    };
 }

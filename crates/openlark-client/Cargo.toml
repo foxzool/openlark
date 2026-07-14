@@ -84,8 +84,7 @@ websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "pr
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
 
-# 内部测试 feature：允许测试 harness 直接使用生产唯一性宏（不影响正常发布）
-_test-catalog-unique = []
+
 p0-services = ["communication", "docs", "security"]
 
 [dev-dependencies]

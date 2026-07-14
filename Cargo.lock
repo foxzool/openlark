@@ -1598,7 +1598,6 @@ dependencies = [
 name = "openlark-capability-unique"
 version = "0.0.0"
 dependencies = [
- "openlark-client",
  "trybuild",
 ]
 
