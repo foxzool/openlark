@@ -216,9 +216,12 @@ cargo llvm-cov --workspace --show-missing-lines
 | **openlark-auth** | 50% | 警告 |
 
 **查看 CI 覆盖率**：
-1. 打开 PR 或 Push 的 Actions 页面
+Coverage CI（行覆盖率）仅在 `push` 到 `main`（含合并后）时运行，PR 期间不触发以避免重复耗时测试。PR 开发请使用本地命令查看覆盖率。
+1. 打开仓库 Actions 页面，查看 "Coverage" workflow（仅 main 分支 push 触发）
 2. 查看 "Coverage" job 的 Step Summary
 3. 下载 "coverage-report" artifact 查看 HTML 报告
+
+PR 期间推荐：`just coverage` 或 `just coverage-check`（本地生成报告与阈值检查）。
 
 ---
 
