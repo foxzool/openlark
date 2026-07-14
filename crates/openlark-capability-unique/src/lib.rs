@@ -1,14 +1,14 @@
-//! trybuild harness：capability catalog 生成期唯一性（#423）
+//! trybuild harness：capability catalog 生成期唯一性（#423 / #455）
 //!
 //! 本 crate **`publish = false`**，且 **不是** `openlark-client` 的依赖。
 //! 生产路径使用 `openlark-client` 内的 crate 私有宏；此处仅供 compile-fail
 //! 固定期望，避免在可发布 crate 上导出测试宏或内部 Cargo feature。
 //!
-//! 宏体须与 `openlark-client` 的 `capability/unique.rs` 保持语义一致。
+//! 宏定义体与 openlark-client 内的重复（为 publish 隔离）；保持同步。
 
 /// 断言 catalog 条目在生成期唯一（trybuild 调用面）。
 ///
-/// - 重复 `field` 标识符 → 重复 unit struct → **编译失败**
+/// - 重复 `field` 标识符 → 重复 `mod` 项 → **编译失败**
 /// - `name` 必须与 `stringify!(field)` 逐字节相等 → **const assert 失败**
 ///
 /// 在普通 `cargo build` 下即可失败（无需 `-D warnings`）。
@@ -18,11 +18,11 @@ macro_rules! assert_capability_catalog_unique {
         field: $field:ident,
         name: $name:literal $(,)?
     }),* $(,)?) => {
-        #[allow(non_camel_case_types)]
         mod __capability_catalog_unique_fields {
             $(
-                /// 生成期占位：同名 field 重复时在此模块触发 E0428。
-                pub struct $field;
+                /// 生成期占位模块：同名 field 重复时在此模块触发 E0428。
+                /// 使用 snake_case `mod` 而非 struct，lint-clean（遵循 AGENTS.md PascalCase 仅适用于结构体）。
+                pub mod $field {}
             )*
         }
 
@@ -44,7 +44,6 @@ macro_rules! assert_capability_catalog_unique {
 
         const _: () = {
             $(
-                let _ = ::core::mem::size_of::<__capability_catalog_unique_fields::$field>();
                 assert!(
                     __catalog_str_eq(::core::stringify!($field), $name),
                     "capability catalog: name must equal field identifier text"

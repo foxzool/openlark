@@ -24,7 +24,8 @@ macro_rules! generate_catalog_registry {
         provides: [$($capability:literal),* $(,)?],
         priority: $priority:literal $(,)?
     }),* $(,)?) => {
-        // generation-time 唯一性（#423）：crate 私有宏（见 unique.rs；非公开 API）
+        // generation-time 唯一性（#423 / #455）：crate 私有宏（见 unique.rs；非公开 API）
+        // 使用 snake_case mod 占位实现重复检测，lint-clean（无 non_camel_case_types allow）。
         assert_capability_catalog_unique! {
             $(
                 { field: $field, name: $name },

@@ -5,7 +5,10 @@ error[E0428]: the name `auth` is defined multiple times
 5 | |         { field: auth, name: "auth" },
 6 | |         { field: auth, name: "auth" },
 7 | |     }
-  | |_____^ `auth` redefined here
+  | |     ^
+  | |     |
+  | |_____`auth` redefined here
+  |       previous definition of the module `auth` here
   |
   = note: `auth` must be defined only once in the type namespace of this module
   = note: this error originates in the macro `openlark_capability_unique::assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)
