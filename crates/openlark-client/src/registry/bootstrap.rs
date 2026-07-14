@@ -1,276 +1,67 @@
-//! 内置服务注册（meta 单入口）
+//! 编译期服务元信息注册
 //!
-//! openlark-client 不在本 crate 内重复实现业务 API 包装层，但仍需要一份轻量的“服务元信息”
-//! 以支持 registry 的可观测、依赖关系展示等用途。
-//!
-//! 这里集中管理 **按 feature 编译进来的服务**，避免在多个位置重复注册（DRY）。
+//! 唯一入口：capability catalog（#434–#437）。不再有 legacy catalog 双路径
+//! 或 FeatureLoader 旁路初始化。
 
-#[cfg(test)]
-use super::ServiceStatus;
-
-macro_rules! compiled_services {
-    ($(
-        {
-            feature: $feature:literal,
-            name: $name:literal,
-            description: $description:literal,
-            dependencies: [$($dependency:literal),* $(,)?],
-            provides: [$($capability:literal),* $(,)?],
-            priority: $priority:literal $(,)?
-        }
-    ),+ $(,)?) => {
-        pub(crate) fn register_compiled_services(
-            registry: &mut DefaultServiceRegistry,
-        ) -> Result<()> {
-            let _ = &registry;
-
-            $(
-                #[cfg(feature = $feature)]
-                super::register(
-                    registry,
-                    super::service_metadata(
-                        $name,
-                        $description,
-                        &[$($dependency),*],
-                        &[$($capability),*],
-                        $priority,
-                    ),
-                )?;
-            )*
-
-            Ok(())
-        }
-
-        #[cfg(test)]
-        pub(super) fn compiled_service_names() -> Vec<&'static str> {
-            [
-                None::<&'static str>,
-                $(
-                    #[cfg(feature = $feature)]
-                    Some($name),
-                )*
-            ]
-            .into_iter()
-            .flatten()
-            .collect()
-        }
-    };
-}
-
-#[path = "catalog.rs"]
-mod catalog;
-
-/// 注册所有已编译服务元数据：legacy `registry/catalog` + capability catalog（#434 bot tracer）。
+/// 将当前 feature 组合下的 catalog 能力注册为 registry 诊断元数据。
 pub(crate) fn register_compiled_services(
     registry: &mut super::DefaultServiceRegistry,
 ) -> crate::Result<()> {
-    catalog::register_compiled_services(registry)?;
-    crate::capability::register_catalog_capabilities(registry)?;
-    Ok(())
-}
-
-#[cfg(test)]
-use catalog::compiled_service_names;
-
-#[cfg(any(
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
-fn register(
-    registry: &mut super::DefaultServiceRegistry,
-    metadata: super::ServiceMetadata,
-) -> crate::Result<()> {
-    super::ServiceRegistry::register_service(registry, metadata)
-        .map_err(crate::error::registry_error)
-}
-
-#[cfg(any(
-    test,
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
-fn service_metadata(
-    name: &'static str,
-    description: &'static str,
-    dependencies: &[&'static str],
-    provides: &[&'static str],
-    priority: u32,
-) -> super::ServiceMetadata {
-    super::ServiceMetadata {
-        name: name.to_string(),
-        version: "1.0.0".to_string(),
-        description: Some(description.to_string()),
-        dependencies: owned_strings(dependencies),
-        provides: owned_strings(provides),
-        status: super::ServiceStatus::Uninitialized,
-        priority,
-    }
-}
-
-#[cfg(any(
-    test,
-    feature = "auth",
-    feature = "communication",
-    feature = "docs",
-    feature = "cardkit",
-    feature = "meeting",
-    feature = "security",
-    feature = "hr",
-    feature = "ai",
-    feature = "workflow",
-    feature = "platform",
-    feature = "application",
-    feature = "helpdesk",
-    feature = "mail",
-    feature = "analytics",
-    feature = "user"
-))]
-fn owned_strings(values: &[&'static str]) -> Vec<String> {
-    values.iter().map(|value| (*value).to_string()).collect()
+    crate::capability::register_catalog_capabilities(registry)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::DefaultServiceRegistry;
+    use super::super::{DefaultServiceRegistry, ServiceRegistry};
     use super::*;
-
-    #[test]
-    fn test_service_metadata_creation() {
-        let metadata = service_metadata(
-            "test_service",
-            "Test service description",
-            &["auth"],
-            &["test"],
-            1,
-        );
-
-        assert_eq!(metadata.name, "test_service");
-        assert_eq!(metadata.version, "1.0.0");
-        assert_eq!(
-            metadata.description.as_deref(),
-            Some("Test service description")
-        );
-        assert_eq!(metadata.dependencies, vec!["auth"]);
-        assert_eq!(metadata.provides, vec!["test"]);
-        assert_eq!(metadata.priority, 1);
-    }
-
-    #[test]
-    fn test_service_status_debug() {
-        let status = ServiceStatus::Uninitialized;
-        let debug_str = format!("{status:?}");
-        assert!(debug_str.contains("Uninitialized"));
-    }
-
-    #[test]
-    fn test_service_status_clone() {
-        let status = ServiceStatus::Uninitialized;
-        let cloned = status.clone();
-        assert!(matches!(cloned, ServiceStatus::Uninitialized));
-    }
+    use crate::capability::expected_capability_names_from_features;
 
     #[test]
     fn test_register_compiled_services() {
         let mut registry = DefaultServiceRegistry::new();
-        let result = register_compiled_services(&mut registry);
-        assert!(result.is_ok());
+        assert!(register_compiled_services(&mut registry).is_ok());
     }
 
+    /// bootstrap 委托 catalog：集合与顺序相对独立 feature oracle（非宏内部列表）。
     #[test]
-    fn test_compiled_service_names_reflect_enabled_features() {
-        let service_names = compiled_service_names();
-
-        macro_rules! assert_feature_service {
-            ($feature:literal, $service:literal) => {
-                #[cfg(feature = $feature)]
-                assert!(service_names.contains(&$service));
-
-                #[cfg(not(feature = $feature))]
-                assert!(!service_names.contains(&$service));
-            };
-        }
-
-        assert_feature_service!("auth", "auth");
-        assert_feature_service!("communication", "communication");
-        assert_feature_service!("docs", "docs");
-        assert_feature_service!("cardkit", "cardkit");
-        assert_feature_service!("meeting", "meeting");
-        assert_feature_service!("security", "security");
-        assert_feature_service!("hr", "hr");
-        assert_feature_service!("ai", "ai");
-        assert_feature_service!("workflow", "workflow");
-        assert_feature_service!("platform", "platform");
-        assert_feature_service!("application", "application");
-        assert_feature_service!("helpdesk", "helpdesk");
-        assert_feature_service!("mail", "mail");
-        assert_feature_service!("analytics", "analytics");
-        assert_feature_service!("user", "user");
-        // bot 走 capability catalog（#434），不在 legacy compiled_service_names 中
-    }
-
-    #[test]
-    fn test_register_compiled_services_includes_catalog_bot() {
-        use super::super::ServiceRegistry;
-
+    fn register_compiled_services_matches_catalog_names() {
         let mut registry = DefaultServiceRegistry::new();
         register_compiled_services(&mut registry).unwrap();
 
-        #[cfg(feature = "bot")]
-        assert!(
-            registry.has_service("bot"),
-            "bot feature 启用时 register_compiled_services 必须注册 bot"
+        let mut expected = expected_capability_names_from_features();
+        assert_eq!(registry.list_services().len(), expected.len());
+        for name in &expected {
+            assert!(registry.has_service(name), "bootstrap 必须注册能力 {name}");
+        }
+        let listed: Vec<&str> = registry
+            .list_services()
+            .into_iter()
+            .map(|e| e.metadata.name.as_str())
+            .collect();
+        expected.sort_by(|a, b| {
+            let pa = registry.get_service(a).unwrap().metadata.priority;
+            let pb = registry.get_service(b).unwrap().metadata.priority;
+            pa.cmp(&pb).then_with(|| a.cmp(b))
+        });
+        assert_eq!(
+            listed, expected,
+            "list_services 须为稳定顺序（priority, name）"
         );
+    }
 
-        #[cfg(not(feature = "bot"))]
-        assert!(
-            !registry.has_service("bot"),
-            "bot feature 禁用时 register_compiled_services 不得注册 bot"
-        );
+    #[test]
+    fn registry_exposes_immutable_metadata_only() {
+        let mut registry = DefaultServiceRegistry::new();
+        register_compiled_services(&mut registry).unwrap();
 
-        // legacy 路径仍工作
         #[cfg(feature = "auth")]
-        assert!(registry.has_service("auth"));
-    }
-
-    #[test]
-    fn test_service_metadata_with_empty_dependencies() {
-        let metadata = service_metadata("standalone_service", "Standalone", &[], &[], 0);
-
-        assert!(metadata.dependencies.is_empty());
-        assert!(metadata.provides.is_empty());
-    }
-
-    #[test]
-    fn test_service_metadata_priority_ordering() {
-        let low_priority = service_metadata("low", "Low priority", &[], &[], 1);
-        let high_priority = service_metadata("high", "High priority", &[], &[], 10);
-
-        assert!(high_priority.priority > low_priority.priority);
+        {
+            let entry = registry.get_service("auth").unwrap();
+            assert_eq!(entry.metadata.name, "auth");
+            assert!(entry.metadata.description.is_some());
+            let _deps = &entry.metadata.dependencies;
+            let _provides = &entry.metadata.provides;
+            let _priority = entry.metadata.priority;
+        }
     }
 }

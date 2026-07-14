@@ -1,3 +1,86 @@
+# OpenLark 迁移指南
+
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.18.0**；下方按版本分节。
+
+---
+
+# OpenLark 0.18 迁移指南
+
+适用范围：从 `0.17.x` 或更早版本迁移到 `0.18.x`
+
+## 一句话结论
+
+`0.18` 在 WebSocket 会话收缩之外，完成了 **编译能力 catalog 统一**与 **registry metadata-only 诊断收缩**（#423 / #434–#437）：
+
+- 全部业务域 Client 字段与 registry 元数据由 `capability` catalog 单源生成
+- `Client::registry()` 只读诊断：listing / lookup / presence / 依赖图
+- 删除无法兑现的 typed-instance、虚假 lifecycle 与 `FeatureLoader` 旁路初始化
+
+## 1. registry / FeatureLoader 迁移
+
+### 已删除（严重正确性例外，0.18 直接移除）
+
+| 旧 API | 替代 |
+|--------|------|
+| `openlark_client::FeatureLoader` | 删除。能力在 `Client::builder()...build()` 时由 catalog 注册 |
+| `ServiceStatus` | 删除。registry 不再表达 lifecycle 状态 |
+| `ServiceRegistry::register_service` / `unregister_service`（公开） | 删除。构造期内部注册为 `pub(crate)` |
+| `ServiceRegistry::get_service_typed` | 删除。无 runtime instance；业务走 `client.<domain>` |
+| `ServiceRegistry::update_service_status` | 删除 |
+| `ServiceEntry.instance` / 时间戳 | 删除 |
+| `ServiceMetadata.status` | 删除 |
+| `RegistryError::CircularDependency` / `MissingDependencies` / `InvalidFeatureFlag` | 删除。这些变体只对应已移除的运行时注册、依赖校验和 `FeatureLoader` 路径；删除直接构造与穷举匹配分支 |
+
+### 推荐诊断写法
+
+```rust
+use openlark_client::prelude::*;
+
+let client = Client::builder()
+    .app_id("app")
+    .app_secret("secret")
+    .build()?;
+
+// 是否编译了某业务能力（与 Cargo feature 一致）
+if client.registry().has_service("docs") {
+    // ...
+}
+
+// 稳定顺序：priority 升序，同 priority 按 name
+for entry in client.registry().list_services() {
+    println!(
+        "{} prio={} deps={:?}",
+        entry.metadata.name, entry.metadata.priority, entry.metadata.dependencies
+    );
+}
+
+// 单条元数据
+let entry = client.registry().get_service("auth")?;
+assert!(entry.metadata.description.is_some());
+```
+
+### 业务调用（不变）
+
+```rust
+// 继续使用 meta 链，不经 registry 取实例
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
+```
+
+## 2. WebSocket（0.18）
+
+见 CHANGELOG Breaking 表与 `docs/PUBLIC_API_STABILITY_POLICY.md`；`ws_client` 仅保留
+`LarkWsClient` / 事件 handler 相关公开类型。
+
+## 3. 升级自检
+
+- [ ] 代码中无 `FeatureLoader` / `ServiceStatus` / `get_service_typed`
+- [ ] 诊断仅用 `has_service` / `list_services` / `get_service` / `get_dependency_graph`
+- [ ] 业务路径使用 `client.<domain>`，不期望 registry 返回可调用实例
+- [ ] 阅读 CHANGELOG Unreleased / 0.18 Breaking 段
+
+---
+
 # OpenLark 0.15 迁移指南
 
 适用范围：从 `0.14.x` 或更早版本迁移到 `0.15.x`

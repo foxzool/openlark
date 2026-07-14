@@ -73,7 +73,7 @@ openlark = { version = "0.18.0", features = ["essential"] }
 
 - canonical 高级入口：`openlark_client::Client` / `ClientBuilder`
 - canonical 调用方式：`client.auth`、`client.communication`、`client.docs`、`client.hr`
-- 保留在本 crate 的高级能力：`ServiceRegistry`、`FeatureLoader`、traits
+- 保留在本 crate 的高级能力：`ServiceRegistry`（metadata-only 诊断）、traits
 - 非默认推荐场景：普通业务应用直接把 `openlark-client` 当作根入口
 
 ## 🧩 meta 调用链（按 CSV 映射）
@@ -220,8 +220,8 @@ graph TD
 
 **说明**：
 - **编译期**: Cargo features 决定哪些 meta client 字段被编译进 Client
-- **启动期**: `registry::bootstrap` 注册已编译服务的元信息到 DefaultServiceRegistry
-- **运行期**: Registry 仅提供元信息查询（服务名、依赖关系等），不管理服务实例生命周期
+- **启动期**: `registry::bootstrap` 调用 capability catalog 注册元信息到 DefaultServiceRegistry
+- **运行期**: Registry 仅提供不可变元信息查询（listing / lookup / presence / 依赖图），不管理实例或生命周期
 
 ### 核心 Trait
 

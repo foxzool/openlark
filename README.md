@@ -166,7 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | 目标 | 说明 |
 |------|------|
 | **🔗 统一 API 调用模式** | 将散乱的 API 实现统一为 Builder 模式，提供一致的开发体验 |
-| **🚪 单入口架构** | 实现 ServiceRegistry 统一服务注册，所有服务通过 `Client` 单入口访问 |
+| **🚪 单入口架构** | 业务经 `Client` meta 链访问；`ServiceRegistry` 仅作编译能力诊断（metadata-only） |
 | **📦 模块化设计** | 按业务领域拆分为独立 crates（通讯、文档、HR、会议等），支持按需引入 |
 | **🧹 技术债务清理** | 清理过时模块、简化 trait 系统、移除死代码和硬编码 URL |
 
@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | 模块 | 状态 | API 数量 | 说明 |
 |------|------|---------|------|
 | openlark-core | ✅ 完成 | - | 核心基础设施，HTTP 客户端，错误处理 |
-| openlark-client | ✅ 完成 | - | 单入口架构，ServiceRegistry |
+| openlark-client | ✅ 完成 | - | 单入口 + capability catalog + metadata-only registry |
 | openlark-protocol | ✅ 完成 | - | WebSocket 协议 |
 | openlark-auth | ✅ 完成 | 15 | Token 管理，认证服务 |
 | openlark-hr | ✅ 完成 | 562 | 招聘、CoreHR、考勤、薪酬等 |

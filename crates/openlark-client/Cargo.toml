@@ -23,9 +23,6 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
 
-# Additional dependencies for unified client
-chrono = { workspace = true, features = ["serde"] }
-
 # WebSocket dependencies
 tokio-tungstenite = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
@@ -86,6 +83,7 @@ websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "pr
 
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
+
 p0-services = ["communication", "docs", "security"]
 
 [dev-dependencies]

@@ -4,6 +4,8 @@ members = [
     # === 核心基础设施 (Core Infrastructure) ===
     "crates/openlark-core",           # 核心 HTTP 客户端和错误处理
     "crates/openlark-client",         # 高级客户端接口
+    # 内部 trybuild：catalog 唯一性 compile-fail（publish=false；openlark-client 不依赖本 crate）
+    "crates/openlark-capability-unique",
 
     # === 生产就绪模块 (Production Ready) ===
     # 认证与安全

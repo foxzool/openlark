@@ -54,7 +54,7 @@
 - 🚧 ApiEndpoint trait（Enum+Builder API Endpoint 系统）
 - 🚧 GracefulShutdownManager（优雅关闭管理）
 - 🚧 TokenBucketRateLimiter（令牌桶限流器）
-- 🚧 动态服务发现和热加载机制
+- ~~🚧 动态服务发现和热加载机制~~（**0.18 否决**：registry 为编译期 metadata-only 诊断，见 #423 / #437）
 - 🚧 完整的指标收集和告警系统（MetricsCollector/AlertManager）
 - 🚧 性能剖析系统
 #### 代码示例说明
@@ -281,7 +281,13 @@ graph TD
 
 ## openlark-client 服务层重构方案（crates/openlark-client/src/services）
 
-> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client` 采用简化的「字段挂载」模式（见 `crates/openlark-client/src/client.rs` + `registry/` 宏生成的 feature-gated 字段），**未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算系统。保留本节仅作设计演进的历史记录（见 issue #269）。如需了解实际架构，参阅 `client.rs` 与 `registry/{bootstrap,catalog,mod}.rs`。
+> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client`（0.18 / #423–#437）采用：
+> - **capability catalog**（`crates/openlark-client/src/capability/catalog.rs`）为 Client 字段与
+>   registry 诊断元数据的**单一事实来源**
+> - **字段挂载** meta 链（`client.rs` + `declare_client!` 由 catalog 投影）
+> - **metadata-only** `registry/`（`mod.rs` + `bootstrap.rs` 委托 catalog；**无** `registry/catalog.rs`）
+>
+> **未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算 / 热加载。保留本节仅作设计演进的历史记录（见 issue #269）。
 
 ### 重构目标
 - 消除重复：统一 `services/` 与 `registry/` 的能力，避免双重工厂/注册逻辑。
@@ -449,90 +455,76 @@ impl ClientBuilder {
 }
 ```
 
-#### 6.1.2 服务注册与发现机制
+#### 6.1.2 业务入口与编译能力诊断（0.18）
 
-客户端采用服务注册表模式，支持动态服务发现和依赖管理：
+> **现行模型**（#423 / #434–#437）：业务经 `Client` 的 **meta 字段链**访问；
+> `registry` 仅为编译期 capability catalog 的 **metadata-only 诊断**，不提供
+> 方法式 `client.auth()`、运行时注册、热加载或 `ServiceStatus`。
+> 详见 §7.2.1 与 `docs/migration-guide.md` 0.18 节。
 
 ```rust
-// 服务注册表结构
+// Client 挂载 feature-gated 字段（由 capability catalog 生成）
 pub struct Client {
-    config: Arc<Config>,
+    config: Config,
     registry: Arc<DefaultServiceRegistry>,
-}
-
-impl Client {
-    // 🔐 访问认证服务（需要 auth feature）
     #[cfg(feature = "auth")]
-    pub fn auth(&self) -> crate::services::AuthService {
-        crate::services::AuthService::new(&self.config)
-    }
-
-    // 📡 访问通讯服务（需要 communication feature）
+    pub auth: AuthClient,
     #[cfg(feature = "communication")]
-    pub fn communication(&self) -> Result<crate::services::CommunicationService<'_>> {
-        crate::services::CommunicationService::new(&self.config, &self.registry)
-    }
-
-    // 📄 访问文档服务（需要 docs feature）
+    pub communication: CommunicationClient,
     #[cfg(feature = "docs")]
-    pub fn docs(&self) -> crate::services::DocsService<'_> {
-        crate::services::DocsService::new(&self.config)
-    }
+    pub docs: DocsClient,
+    // ... 其余业务域同理
+}
 
-    // 📊 访问多维表格服务（需要 bitable feature）
-    #[cfg(feature = "docs")]
-    pub fn bitable(&self) -> &'static str {
-        "BitableService 尚未实现"
-    }
+// 业务调用：字段链，不是 registry 取实例
+#[cfg(feature = "docs")]
+let _ = &client.docs;
+
+// 诊断：是否编译了某能力（与 Cargo feature 一致）
+if client.registry().has_service("docs") { /* ... */ }
+for entry in client.registry().list_services() {
+    // 稳定顺序：priority 升序，同 priority 按 name
+    println!("{}", entry.metadata.name);
 }
 ```
 
-#### 6.1.3 服务生命周期管理
+#### 6.1.3 能力元数据（无 lifecycle）
 
-服务采用分层注册机制，按优先级和依赖关系管理：
+构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register。
+文档示例也从 registry 读取 catalog 投影，不复制名称与描述字面量：
 
 ```rust
-// 分层服务注册
-fn load_enabled_services(config: &Config, registry: &mut DefaultServiceRegistry) -> Result<()> {
-    // 核心层服务（优先级1-2）
-    register_core_services(config, registry)?;
-
-    // 专业层服务（优先级3-4）
-    register_professional_services(config, registry)?;
-
-    // 企业层服务（优先级5-6）
-    register_enterprise_services(config, registry)?;
+pub struct ServiceMetadata {
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub dependencies: Vec<String>, // 须与 Cargo feature 关系一致
+    pub provides: Vec<String>,
+    pub priority: u32,
 }
 
-// 服务元数据管理
-let metadata = ServiceMetadata {
-    name: "communication".to_string(),
-    version: "1.0.0".to_string(),
-    description: Some("飞书通讯服务，提供消息、联系人、群组等功能".to_string()),
-    dependencies: vec!["auth".to_string()],
-    provides: vec!["im".to_string(), "contacts".to_string()],
-    status: ServiceStatus::Uninitialized,
-    priority: 2,
-};
+// 诊断数据来自唯一 catalog，不在文档中另建一份 metadata。
+let entry = client.registry().get_service("communication")?;
+println!(
+    "{}: {:?}, deps={:?}, provides={:?}, priority={}",
+    entry.metadata.name,
+    entry.metadata.description,
+    entry.metadata.dependencies,
+    entry.metadata.provides,
+    entry.metadata.priority,
+);
 ```
 
-#### 6.1.4 功能标志和依赖解析
+#### 6.1.4 功能标志（编译时）
 
-支持编译时功能标志和运行时依赖解析：
+能力由 Cargo feature 决定字段是否存在；依赖关系写在 catalog 的 `dependencies` 中供诊断：
 
 ```rust
-// 编译时功能控制
+// Cargo.toml（openlark-client）
+// communication = ["auth", "dep:openlark-communication"]
+
 #[cfg(feature = "communication")]
-pub fn communication(&self) -> Result<CommunicationService<'_>> {
-    CommunicationService::new(&self.config, &self.registry)
-}
-
-// 依赖关系定义
-impl CommunicationService {
-    pub fn dependencies() -> &'static [&'static str] {
-        &["auth"]  // 依赖认证服务
-    }
-}
+// client.communication 字段可用；registry.has_service("communication") == true
 ```
 
 ### 6.2 请求构建模式
@@ -1253,83 +1245,43 @@ pub trait ClientErrorHandling {
 
 ### 7.2 服务注册机制
 
-#### 7.2.1 ServiceRegistry注册表
+#### 7.2.1 ServiceRegistry（0.18：metadata-only 诊断）
 
-服务注册表管理所有可用服务和依赖关系：
+> **0.18 现行行为**（#423 / #434–#437）：`Client::registry()` 是编译能力诊断 seam，
+> **不是**服务容器。条目由 capability catalog 在 Client 构造期写入；公开 API 只读
+> （`has_service` / `get_service` / `list_services` / `get_dependency_graph`）。
+> 已删除：`FeatureLoader`、`ServiceStatus`、typed-instance、`update_service_status`、
+> 公开 `register_service`。迁移见 `docs/migration-guide.md` 0.18 节。
 
 ```rust
-// 服务注册表
-pub struct ServiceRegistry {
-    services: HashMap<String, ServiceEntry>,
-    // [已删除] factories: HashMap<String, Box<dyn ServiceFactoryTrait>>,
-}
-    services: HashMap<String, ServiceEntry>,
-    factories: HashMap<String, Box<dyn ServiceFactoryTrait>>,
-}
+// 现行形状（简化）
+pub struct DefaultServiceRegistry { /* 内部 HashMap */ }
 
-#[derive(Debug, Clone)]
-pub struct ServiceEntry {
+pub struct ServiceMetadata {
     pub name: String,
     pub version: String,
     pub description: Option<String>,
     pub dependencies: Vec<String>,
     pub provides: Vec<String>,
-    pub status: ServiceStatus,
     pub priority: u32,
+    // 无 status / instance / 时间戳
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ServiceStatus {
-    Uninitialized,
-    Initializing,
-    Ready,
-    Failed(String),
-    Stopped,
+pub struct ServiceEntry {
+    pub metadata: ServiceMetadata,
 }
 
-impl ServiceRegistry {
-    pub fn register_service(&mut self, metadata: ServiceMetadata) -> Result<()> {
-        // 检查循环依赖
-        self.check_circular_dependencies(&metadata.dependencies)?;
+pub trait ServiceRegistry: Send + Sync {
+    fn get_service(&self, name: &str) -> RegistryResult<&ServiceEntry>;
+    fn list_services(&self) -> Vec<&ServiceEntry>; // 稳定顺序：priority, name
+    fn has_service(&self, name: &str) -> bool;
+    fn get_dependency_graph(&self) -> HashMap<String, Vec<String>>;
+}
 
-        // 验证依赖存在
-        for dep in &metadata.dependencies {
-            if !self.services.contains_key(dep) {
-                return Err(service_error(
-                    "dependency_missing",
-                    &format!("依赖服务 '{}' 不存在", dep)
-                ));
-            }
-        }
-
-        let entry = ServiceEntry {
-            name: metadata.name,
-            version: metadata.version,
-            description: metadata.description,
-            dependencies: metadata.dependencies,
-            provides: metadata.provides,
-            status: ServiceStatus::Uninitialized,
-            priority: metadata.priority,
-        };
-
-        self.services.insert(entry.name.clone(), entry);
-        Ok(())
-    }
-
-    fn check_circular_dependencies(&self, deps: &[String]) -> Result<()> {
-        for dep in deps {
-            if let Some(entry) = self.services.get(dep) {
-                // 检查是否存在反向依赖
-                if self.has_reverse_dependency(dep) {
-                    return Err(service_error(
-                        "circular_dependency",
-                        &format!("检测到循环依赖: {}", dep)
-                    ));
-                }
-            }
-        }
-        Ok(())
-    }
+// 使用
+if client.registry().has_service("docs") { /* feature 已编译 */ }
+for entry in client.registry().list_services() {
+    println!("{}", entry.metadata.name);
 }
 ```
 
@@ -1459,51 +1411,11 @@ impl DependencyResolver {
 }
 ```
 
-#### 7.2.4 动态服务发现
+#### 7.2.4 动态服务发现（0.18：已否决）
 
-运行时服务发现和热加载支持：
-
-```rust
-// 动态服务发现
-pub struct ServiceDiscovery {
-    registry: Arc<RwLock<ServiceRegistry>>,
-    watchers: Vec<Box<dyn ServiceWatcher>>,
-}
-
-pub trait ServiceWatcher: Send + Sync {
-    fn on_service_added(&self, service: &ServiceEntry);
-    fn on_service_removed(&self, service_name: &str);
-    fn on_service_status_changed(&self, service_name: &str, status: ServiceStatus);
-}
-
-impl ServiceDiscovery {
-    pub async fn discover_services(&self) -> Vec<String> {
-        let registry = self.registry.read().await;
-        registry.services.keys().cloned().collect()
-    }
-
-    pub async fn get_service_status(&self, service_name: &str) -> Option<ServiceStatus> {
-        let registry = self.registry.read().await;
-        registry.services.get(service_name).map(|s| s.status.clone())
-    }
-
-    pub async fn add_service(&self, metadata: ServiceMetadata) -> Result<()> {
-        let mut registry = self.registry.write().await;
-
-        // 验证并注册服务
-        registry.register_service(metadata)?;
-
-        // 通知观察者
-        if let Some(entry) = registry.services.get(&metadata.name) {
-            for watcher in &self.watchers {
-                watcher.on_service_added(entry);
-            }
-        }
-
-        Ok(())
-    }
-}
-```
+> **不再实现**。0.18 明确 registry 为编译期 capability catalog 的不可变诊断投影，
+> 不提供运行时热加载 / ServiceWatcher / `ServiceStatus` 生命周期。能力是否可用
+> 仅取决于 Cargo feature + `client.registry().has_service`。
 
 ### 7.3 服务生命周期管理
 
@@ -5963,17 +5875,11 @@ impl Service for CustomNotificationService {
     }
 }
 
-// 在客户端中注册自定义服务
-let mut client = Client::builder()
-    .from_env()?
-    .build()?;
-
-let notification_service = CustomNotificationService::new(
-    client.clone(),
-    CustomConfig::default()
-);
-
-client.register_service("custom_notification", Box::new(notification_service));
+// [0.18 已删除] client.register_service(...) — 无运行时服务容器。
+// 业务能力经 client.<domain> meta 链访问；诊断用 client.registry().has_service。
+let client = Client::builder().from_env()?.build()?;
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
 ```
 
 #### 10.4.2 中间件开发
@@ -6331,11 +6237,8 @@ pub mod hr;
 #[cfg(feature = "communication")]
 pub mod communication;
 
-// 客户端中的条件注册
-#[cfg(feature = "hr")]
-fn register_hr_services(client: &mut LarkClient) {
-    client.register_service("hr", HRService::new(client.config.clone()));
-}
+// 0.18：条件编译控制 Client 字段（capability catalog），无 register_service
+// #[cfg(feature = "hr")] → client.hr 字段存在；registry.has_service("hr") == true
 ```
 
 ### 依赖优化

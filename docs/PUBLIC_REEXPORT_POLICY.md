@@ -37,7 +37,7 @@
 适用场景：
 
 - 明确需要直接依赖统一客户端层
-- 需要使用 `ServiceRegistry`、`FeatureLoader` 等客户端层能力
+- 需要使用 `ServiceRegistry` 等客户端层诊断能力
 - 明确不想通过根 crate 聚合依赖
 
 ### 3. 单业务域最小依赖入口
@@ -93,7 +93,7 @@
 
 不应新增：
 
-- `ServiceRegistry` / `FeatureLoader` / trait 等客户端内部实现细节
+- `ServiceRegistry` / trait 等客户端内部实现细节
 - 业务 crate 的 resource / version / request / response 类型
 - 仅服务调试或内部拼装的结构
 
@@ -102,7 +102,7 @@
 负责暴露：
 
 - 统一客户端层的核心类型
-- `ServiceRegistry`、`FeatureLoader`、客户端 trait 等高级能力
+- `ServiceRegistry`（metadata-only 诊断）、客户端 trait 等高级能力
 - 各业务 crate 的顶层 meta client 类型
 
 `openlark-client::prelude` 可暴露：

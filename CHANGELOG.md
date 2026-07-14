@@ -11,10 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client：收缩 registry / 删除 FeatureLoader（#437 / #423）**：
+  `Client::registry()` 仅保留 listing / lookup / presence / 依赖图与不可变
+  `ServiceMetadata`（name/version/description/dependencies/provides/priority）。
+  移除 `get_service_typed`、`update_service_status`、`unregister_service`、
+  `ServiceStatus`、条目 `instance` / 时间戳，以及空的 legacy catalog 与
+  `FeatureLoader` 旁路初始化；bootstrap 只走 capability catalog。去掉
+  仅服务于假 lifecycle 的 `chrono` 依赖。
+
+- **client：剩余业务域迁入编译期能力目录（#436 / #423）**：
+  `hr` / `ai` / `workflow` / `platform` / `application` / `helpdesk` / `mail` /
+  `analytics` / `user` 亦由统一 `capability` catalog 生成；legacy
+  `registry/catalog` 业务条目清空。修正 **AI** 诊断 `dependencies` 为 `["auth"]`，
+  与 Cargo `ai = ["auth", ...]` 一致（不再误报 `communication`）。
+  `Client::registry()` listing 与 catalog / Client 字段集合一致。
+
+- **client：foundational 域迁入编译期能力目录（#435 / #423）**：
+  `auth` / `communication` / `docs` / `cardkit` / `meeting` / `security` 的
+  Client 字段与 registry 诊断元数据改由统一 `capability` catalog 生成，不再维护
+  Client/registry 双声明。禁用 feature 时两处均不产生字段或 entry。
+
 - **client：编译期能力目录 tracer（#434 / #423）**：新增 `capability` catalog，
-  以 `bot` 为 tracer 用同一声明同时生成 `Client::bot` 字段与 registry 诊断元数据；
-  启用 `bot` feature 时 `client.bot` 可用且 `registry.has_service("bot")`；禁用时
-  两处均不可用。其余业务域仍走 `declare_client!` + `registry/catalog.rs` 旧路径。
+  以 `bot` 为 tracer 起步；随后 #435/#436 将全部业务域迁入同一目录（见上）。
+  启用对应 feature 时 Client 字段与 `registry.has_service` 一致；禁用时两处均无。
 
 - **core：加深 `Transport::request` 请求执行（#422 / #430–#433）**：
   - 内部收敛为 `request_execution` 深模块（构建 + 认证 + 解码）；删除纯委托
@@ -65,6 +84,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OPENLARK_ENABLE_LOG` 时与 core 一致默认为 `true`（此前该工具函数默认为 `false`）。
 
 ### Breaking
+
+- **client registry / FeatureLoader（#437）→ 0.18.0**：
+  - 删除公开类型 `FeatureLoader`、`ServiceStatus`。
+  - `ServiceRegistry` 只读：删除 `register_service` / `unregister_service` /
+    `get_service_typed` / `update_service_status`（注册仅 `pub(crate)` 于
+    `DefaultServiceRegistry`）。
+  - `ServiceEntry` 仅含 `metadata`；`ServiceMetadata` 删除 `status` 字段。
+  - `RegistryError` 删除只服务于已移除的运行时注册、依赖校验与
+    `FeatureLoader` 路径的 `CircularDependency` / `MissingDependencies` /
+    `InvalidFeatureFlag` 变体。
+  - `list_services` 顺序稳定：`priority` 升序，同 priority 按 `name`。
+  - 诊断请用 `has_service` / `get_service` / `list_services` /
+    `get_dependency_graph`；能力真相来自 capability catalog。
+
+  **严重正确性例外，跳过完整废弃周期**（对照
+  `docs/PUBLIC_API_STABILITY_POLICY.md` Deprecation 策略：立即删除仅允许安全或
+  **严重正确性**问题）。依据 parent #423：`get_service_typed` 在 instance 恒为
+  `None` 时永不成功；`ServiceStatus` / `update_service_status` 与时间戳构成虚假
+  lifecycle；`FeatureLoader` 与 Client 构造形成重复初始化入口并掩盖能力真相。
+  上述三个 `RegistryError` 变体也仅表达这些已删除路径中的不可达状态；
+  继续保留会系统性误导调用方（接口谎言），属严重正确性缺陷，故 0.18 与 WebSocket
+  公开面收缩同档直接移除。**受影响范围**：直接构造或穷举匹配这些变体的代码。
+  **迁移**：删除对 `FeatureLoader` / `ServiceStatus` /
+  `get_service_typed` / `update_service_status` 的依赖；改用
+  `client.registry().has_service` / `list_services` / `get_service`；从 `RegistryError`
+  匹配中删除上述三个不可达分支，并仅处理保留的 lookup 错误。
 
 - **WebSocket 公开面收缩（#429）与单一 Session（#421）→ 0.18.0**：`ws_client`
   仅 re-export `LarkWsClient` / `EventDispatcherHandler` / `EventHandler` /
