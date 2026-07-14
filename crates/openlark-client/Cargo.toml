@@ -84,6 +84,9 @@ websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "pr
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
 
+# Internal feature to allow the test harness to access the production uniqueness macro for direct coverage (not for normal use or docs).
+_test-catalog-unique = []
+
 
 p0-services = ["communication", "docs", "security"]
 

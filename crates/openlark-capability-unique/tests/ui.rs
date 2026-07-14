@@ -1,8 +1,7 @@
 //! compile-fail：generation-time catalog uniqueness（#423 / #455）
 //!
-//! 此测试通过 openlark_capability_unique 导出的宏验证错误格式。
-//! 实现体与生产 client 中的保持一致（设计隔离）。
-//! 生产路径在 client 每次构建 catalog 时执行断言。
+//! 此测试直接使用 openlark_client::assert_capability_catalog_unique! (via the _test-catalog-unique feature on the dep).
+//! This ensures the compile-fail test exercises the actual production macro implementation.
 
 #[test]
 fn capability_catalog_generation_time_uniqueness() {
