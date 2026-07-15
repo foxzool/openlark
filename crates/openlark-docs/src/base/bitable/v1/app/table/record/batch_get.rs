@@ -102,12 +102,14 @@ impl BatchGetRecordRequest {
 
         // #424: batch get uses POST in catalog
         let api_request: ApiRequest<BatchGetRecordResponse> =
-            api_endpoint.to_request().body(serde_json::to_vec(&BatchGetRecordRequestBody {
-                record_ids: self.record_ids,
-                user_id_type: self.user_id_type,
-                with_shared_url: self.with_shared_url,
-                automatic_fields: self.automatic_fields,
-            })?);
+            api_endpoint
+                .to_request()
+                .body(serde_json::to_vec(&BatchGetRecordRequestBody {
+                    record_ids: self.record_ids,
+                    user_id_type: self.user_id_type,
+                    with_shared_url: self.with_shared_url,
+                    automatic_fields: self.automatic_fields,
+                })?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

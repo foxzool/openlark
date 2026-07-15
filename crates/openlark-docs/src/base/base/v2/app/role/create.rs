@@ -127,7 +127,8 @@ impl Create {
         let api_endpoint = BaseApiV2::RoleCreate(self.app_token);
 
         // #438: method 来自 catalog
-        let api_request: ApiRequest<CreateResp> = api_endpoint.to_request()
+        let api_request: ApiRequest<CreateResp> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.req, "新增自定义角色")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

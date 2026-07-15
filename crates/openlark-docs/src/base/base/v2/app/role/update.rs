@@ -132,7 +132,8 @@ impl Update {
         let api_endpoint = BaseApiV2::RoleUpdate(self.app_token, self.role_id);
 
         // #438: method 来自 catalog
-        let api_request: ApiRequest<UpdateResp> = api_endpoint.to_request()
+        let api_request: ApiRequest<UpdateResp> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.req, "更新自定义角色")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

@@ -143,8 +143,7 @@ impl GetRecordRequest {
         );
 
         // #424: GET from catalog
-        let mut api_request: ApiRequest<GetRecordResponse> =
-            api_endpoint.to_request();
+        let mut api_request: ApiRequest<GetRecordResponse> = api_endpoint.to_request();
 
         api_request = api_request.query_opt(
             "text_field_as_array",

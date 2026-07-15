@@ -198,8 +198,7 @@ impl ListRecordRequest {
         let api_endpoint = BitableApiV1::RecordList(self.app_token.clone(), self.table_id.clone());
 
         // #424: GET method + path from catalog
-        let mut api_request: ApiRequest<ListRecordResponse> =
-            api_endpoint.to_request();
+        let mut api_request: ApiRequest<ListRecordResponse> = api_endpoint.to_request();
 
         // 构建查询参数
         if let Some(ref page_token) = self.page_token {

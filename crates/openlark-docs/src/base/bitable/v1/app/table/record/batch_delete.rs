@@ -101,9 +101,11 @@ impl BatchDeleteRecordRequest {
 
         // #424 catalog POST for batch delete
         let api_request: ApiRequest<BatchDeleteRecordResponse> =
-            api_endpoint.to_request().body(serde_json::to_vec(&BatchDeleteRecordRequestBody {
-                record_ids: self.record_ids,
-            })?);
+            api_endpoint
+                .to_request()
+                .body(serde_json::to_vec(&BatchDeleteRecordRequestBody {
+                    record_ids: self.record_ids,
+                })?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

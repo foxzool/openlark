@@ -118,8 +118,9 @@ impl BatchUpdateRecordRequest {
             BitableApiV1::RecordBatchUpdate(self.app_token.clone(), self.table_id.clone());
 
         // #424: POST via catalog for batch update
-        let mut api_request: ApiRequest<BatchUpdateRecordResponse> =
-            api_endpoint.to_request().body(serde_json::to_vec(&BatchUpdateRecordRequestBody {
+        let mut api_request: ApiRequest<BatchUpdateRecordResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&BatchUpdateRecordRequestBody {
                 records: self.records,
             })?);
 
