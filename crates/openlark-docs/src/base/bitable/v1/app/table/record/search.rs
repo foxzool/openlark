@@ -3,7 +3,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/search>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     error::{SDKResult, validation_error},
     http::Transport,
@@ -124,7 +124,9 @@ impl SearchRecordRequest {
         let api_endpoint =
             BitableApiV1::RecordSearch(self.app_token.clone(), self.table_id.clone());
 
-        let request = ApiRequest::<SearchRecordResponse>::post(&api_endpoint.to_url())
+        // #424: POST via catalog (search carries body)
+        let request = api_endpoint
+            .to_request::<SearchRecordResponse>()
             .query_opt("user_id_type", self.user_id_type)
             .query_opt("page_token", self.page_token)
             .query_opt("page_size", self.page_size.map(|v| v.to_string()))

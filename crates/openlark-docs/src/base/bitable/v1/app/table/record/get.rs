@@ -142,8 +142,9 @@ impl GetRecordRequest {
             self.record_id,
         );
 
+        // #424: GET from catalog
         let mut api_request: ApiRequest<GetRecordResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+            api_endpoint.to_request();
 
         api_request = api_request.query_opt(
             "text_field_as_array",

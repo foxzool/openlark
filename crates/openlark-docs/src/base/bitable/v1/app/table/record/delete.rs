@@ -3,7 +3,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/delete>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     error::SDKResult,
     http::Transport,
@@ -92,7 +92,8 @@ impl DeleteRecordRequest {
 
         let api_endpoint =
             BitableApiV1::RecordDelete(self.app_token, self.table_id, self.record_id);
-        let request = ApiRequest::<DeleteRecordResponse>::delete(&api_endpoint.to_url());
+        // #424: method 来自 catalog，保持 path+method+auth locality
+        let request = api_endpoint.to_request::<DeleteRecordResponse>();
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "删除记录")
@@ -132,6 +133,8 @@ impl ApiResponseTrait for DeleteRecordResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::api_endpoints::BitableApiV1;
+    use openlark_core::api::{ApiRequest, HttpMethod};
 
     #[test]
     fn test_delete_record_request_builder() {
@@ -205,5 +208,14 @@ mod tests {
     #[test]
     fn test_response_trait() {
         assert_eq!(DeleteRecordResponse::data_format(), ResponseFormat::Data);
+    }
+
+    #[test]
+    fn test_delete_uses_delete_method_from_catalog() {
+        // 验证迁移后叶子使用 catalog 的 method（#424）
+        let ep = BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
+        let req: ApiRequest<DeleteRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Delete);
+        assert!(ep.to_url().contains("/records/rec"));
     }
 }

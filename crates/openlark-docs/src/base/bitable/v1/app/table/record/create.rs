@@ -4,7 +4,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -102,7 +102,8 @@ impl CreateRecordRequest {
 
         let api_endpoint =
             BitableApiV1::RecordCreate(self.app_token.clone(), self.table_id.clone());
-        let mut request = ApiRequest::<CreateRecordResponse>::post(&api_endpoint.to_url());
+        // #424：稳定 method 来自目录；叶子只附加 query/body/option
+        let mut request = api_endpoint.to_request::<CreateRecordResponse>();
 
         if let Some(ref user_id_type) = self.user_id_type {
             request = request.query("user_id_type", user_id_type);
@@ -182,6 +183,8 @@ impl ApiResponseTrait for CreateRecordResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::api_endpoints::BitableApiV1;
+    use openlark_core::api::{ApiRequest, HttpMethod};
 
     #[test]
     fn test_create_record_request_builder() {
@@ -242,5 +245,13 @@ mod tests {
         let request = CreateRecordRequest::new(config).fields(fields.clone());
 
         assert_eq!(request.fields, fields);
+    }
+
+    #[test]
+    fn test_create_uses_post_from_catalog_424() {
+        // 叶子现在委托 method 给 catalog
+        let ep = BitableApiV1::RecordCreate("app".into(), "tbl".into());
+        let req: ApiRequest<CreateRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Post);
     }
 }
