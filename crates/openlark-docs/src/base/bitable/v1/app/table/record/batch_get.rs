@@ -100,15 +100,16 @@ impl BatchGetRecordRequest {
         let api_endpoint =
             BitableApiV1::RecordBatchGet(self.app_token.clone(), self.table_id.clone());
 
-        let api_request: ApiRequest<BatchGetRecordResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&BatchGetRecordRequestBody {
-            record_ids: self.record_ids,
-            user_id_type: self.user_id_type,
-            with_shared_url: self.with_shared_url,
-            automatic_fields: self.automatic_fields,
-        })?);
+        // #424: batch get uses POST in catalog
+        let api_request: ApiRequest<BatchGetRecordResponse> =
+            api_endpoint
+                .to_request()
+                .body(serde_json::to_vec(&BatchGetRecordRequestBody {
+                    record_ids: self.record_ids,
+                    user_id_type: self.user_id_type,
+                    with_shared_url: self.with_shared_url,
+                    automatic_fields: self.automatic_fields,
+                })?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

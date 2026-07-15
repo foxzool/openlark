@@ -3,7 +3,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     error::SDKResult,
     http::Transport,
@@ -128,7 +128,9 @@ impl UpdateRecordRequest {
             self.record_id,
         );
 
-        let request = ApiRequest::<UpdateRecordResponse>::put(&api_endpoint.to_url())
+        // #424: PUT method from catalog
+        let request = api_endpoint
+            .to_request::<UpdateRecordResponse>()
             .query_opt("user_id_type", self.user_id_type)
             .query_opt(
                 "ignore_consistency_check",

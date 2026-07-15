@@ -123,12 +123,12 @@ impl BatchCreateRecordRequest {
         let api_endpoint =
             BitableApiV1::RecordBatchCreate(self.app_token.clone(), self.table_id.clone());
 
-        let mut api_request: ApiRequest<BatchCreateRecordResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&BatchCreateRecordRequestBody {
-            records: self.records,
-        })?);
+        // #424: POST + body from leaf data
+        let mut api_request: ApiRequest<BatchCreateRecordResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&BatchCreateRecordRequestBody {
+                records: self.records,
+            })?);
 
         api_request = api_request.query_opt("user_id_type", self.user_id_type);
         api_request = api_request.query_opt("client_token", self.client_token);

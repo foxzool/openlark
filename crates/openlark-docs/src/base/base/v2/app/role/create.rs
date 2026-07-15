@@ -12,6 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
 use crate::common::api_utils::*;
 
 /// 新增自定义角色
@@ -123,10 +124,11 @@ impl Create {
         }
 
         // 使用类型安全的端点枚举生成路径
-        use crate::common::api_endpoints::BaseApiV2;
         let api_endpoint = BaseApiV2::RoleCreate(self.app_token);
 
-        let api_request: ApiRequest<CreateResp> = ApiRequest::post(&api_endpoint.to_url())
+        // #438: method 来自 catalog
+        let api_request: ApiRequest<CreateResp> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.req, "新增自定义角色")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -179,5 +181,12 @@ mod tests {
             received[0].url.path(),
             "/open-apis/base/v2/apps/app001/roles"
         );
+    }
+
+    #[test]
+    fn test_create_role_uses_post_from_catalog_438() {
+        let ep = BaseApiV2::RoleCreate("app".into());
+        let req: openlark_core::api::ApiRequest<CreateResp> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Post);
     }
 }

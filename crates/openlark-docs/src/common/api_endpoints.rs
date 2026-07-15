@@ -30,35 +30,46 @@
 //!
 //! 不建议混合使用两个系统，应根据场景选择合适的端点方式。
 
-/// Base API V2 端点枚举
-#[derive(Debug, Clone, PartialEq)]
-pub enum BaseApiV2 {
-    /// 新增自定义角色
-    RoleCreate(String),
-    /// 更新自定义角色
-    RoleUpdate(String, String),
-    /// 列出自定义角色
-    RoleList(String),
-}
+use openlark_core::api::{ApiRequest, HttpMethod};
+use openlark_core::constants::AccessTokenType;
 
-impl BaseApiV2 {
-    /// 生成对应的 URL
-    pub fn to_url(&self) -> String {
-        match self {
-            BaseApiV2::RoleCreate(app_token) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles")
-            }
-            BaseApiV2::RoleUpdate(app_token, role_id) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles/{role_id}")
-            }
-            BaseApiV2::RoleList(app_token) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles")
-            }
+/// 端点 catalog 的通用语义接口（#424 / #438）。
+/// 允许 to_request 等逻辑共享，减少重复。
+pub trait CatalogEndpoint {
+    /// 返回端点 URL。
+    fn to_url(&self) -> String;
+
+    /// 返回 HTTP 方法。
+    fn method(&self) -> HttpMethod;
+
+    /// 稳定的访问令牌要求（默认 None）。
+    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
+        None
+    }
+
+    /// 构建带正确方法的请求。
+    fn to_request<R>(&self) -> ApiRequest<R> {
+        let mut req = match self.method() {
+            HttpMethod::Get => ApiRequest::get(self.to_url()),
+            HttpMethod::Post => ApiRequest::post(self.to_url()),
+            HttpMethod::Put => ApiRequest::put(self.to_url()),
+            HttpMethod::Delete => ApiRequest::delete(self.to_url()),
+            HttpMethod::Patch => ApiRequest::patch(self.to_url()),
+            _ => ApiRequest::get(self.to_url()),
+        };
+        if let Some(tokens) = self.supported_access_token_types() {
+            req = req.with_supported_access_token_types(tokens);
         }
+        req
     }
 }
 
-/// Bitable API V1 端点枚举
+pub mod base;
+pub use base::BaseApiV2;
+
+/// Bitable API V1 端点枚举（#424 深化了请求语义：method + path + auth 在此集中）。
+///
+/// 注意：此文件已 > 2700 行。Bitable 相关定义未来应迁移到独立子模块以避免进一步膨胀。
 #[derive(Debug, Clone, PartialEq)]
 pub enum BitableApiV1 {
     /// App管理相关
@@ -376,6 +387,95 @@ impl BitableApiV1 {
             }
         }
     }
+
+    /// 返回配置了正确 HTTP 方法的 ApiRequest（委托到 CatalogEndpoint trait）。
+    pub fn to_request<R>(&self) -> ApiRequest<R> {
+        <Self as CatalogEndpoint>::to_request(self)
+    }
+
+    /// 该端点的 HTTP 方法。稳定语义，method 与 path 必须在同一处变更。
+    pub fn method(&self) -> HttpMethod {
+        match self {
+            // App 管理
+            BitableApiV1::AppCreate => HttpMethod::Post,
+            BitableApiV1::AppCopy(_) => HttpMethod::Post,
+            BitableApiV1::AppGet(_) => HttpMethod::Get,
+            BitableApiV1::AppUpdate(_) => HttpMethod::Put,
+            BitableApiV1::DashboardList(_) => HttpMethod::Get,
+            BitableApiV1::DashboardCopy(_, _) => HttpMethod::Post,
+            BitableApiV1::BlockWorkflowList(_) => HttpMethod::Get,
+            BitableApiV1::WorkflowList(_) => HttpMethod::Get,
+            BitableApiV1::WorkflowUpdate(_, _) => HttpMethod::Put,
+
+            // 表格管理
+            BitableApiV1::TableCreate(_) => HttpMethod::Post,
+            BitableApiV1::TableBatchCreate(_) => HttpMethod::Post,
+            BitableApiV1::TableUpdate(_, _) => HttpMethod::Put,
+            BitableApiV1::TableDelete(_, _) => HttpMethod::Delete,
+            BitableApiV1::TableBatchDelete(_) => HttpMethod::Post,
+            BitableApiV1::TableGet(_, _) => HttpMethod::Get,
+            BitableApiV1::TableList(_) => HttpMethod::Get,
+            BitableApiV1::TablePatch(_, _) => HttpMethod::Patch,
+
+            // 字段管理
+            BitableApiV1::FieldCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::FieldGroupCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::FieldUpdate(_, _, _) => HttpMethod::Put,
+            BitableApiV1::FieldDelete(_, _, _) => HttpMethod::Delete,
+            BitableApiV1::FieldList(_, _) => HttpMethod::Get,
+
+            // 视图管理
+            BitableApiV1::ViewCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::ViewUpdate(_, _, _) => HttpMethod::Put,
+            BitableApiV1::ViewDelete(_, _, _) => HttpMethod::Delete,
+            BitableApiV1::ViewGet(_, _, _) => HttpMethod::Get,
+            BitableApiV1::ViewList(_, _) => HttpMethod::Get,
+            BitableApiV1::ViewPatch(_, _, _) => HttpMethod::Patch,
+
+            // 记录管理（tracer bullet #424）
+            BitableApiV1::RecordCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::RecordBatchCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::RecordGet(_, _, _) => HttpMethod::Get,
+            BitableApiV1::RecordBatchGet(_, _) => HttpMethod::Post,
+            BitableApiV1::RecordUpdate(_, _, _) => HttpMethod::Put,
+            BitableApiV1::RecordBatchUpdate(_, _) => HttpMethod::Post,
+            BitableApiV1::RecordDelete(_, _, _) => HttpMethod::Delete,
+            BitableApiV1::RecordBatchDelete(_, _) => HttpMethod::Post,
+            BitableApiV1::RecordList(_, _) => HttpMethod::Get,
+            BitableApiV1::RecordSearch(_, _) => HttpMethod::Post,
+
+            // 表单管理
+            BitableApiV1::FormGet(_, _, _) => HttpMethod::Get,
+            BitableApiV1::FormPatch(_, _, _) => HttpMethod::Patch,
+            BitableApiV1::FormUpgrade(_, _, _) => HttpMethod::Post,
+            BitableApiV1::FormFieldList(_, _, _) => HttpMethod::Get,
+            BitableApiV1::FormFieldPatch(_, _, _, _) => HttpMethod::Patch,
+
+            // 权限/角色管理
+            BitableApiV1::RoleCreate(_) => HttpMethod::Post,
+            BitableApiV1::RoleUpdate(_, _) => HttpMethod::Put,
+            BitableApiV1::RoleDelete(_, _) => HttpMethod::Delete,
+            BitableApiV1::RoleList(_) => HttpMethod::Get,
+            BitableApiV1::RoleMemberCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::RoleMemberBatchCreate(_, _) => HttpMethod::Post,
+            BitableApiV1::RoleMemberDelete(_, _, _) => HttpMethod::Delete,
+            BitableApiV1::RoleMemberBatchDelete(_, _) => HttpMethod::Post,
+            BitableApiV1::RoleMemberList(_, _) => HttpMethod::Get,
+        }
+    }
+}
+
+impl CatalogEndpoint for BitableApiV1 {
+    fn to_url(&self) -> String {
+        // delegate to inherent for backward compat
+        BitableApiV1::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
+        BitableApiV1::method(self)
+    }
+
+    // supported and to_request use trait defaults
 }
 
 /// Minutes API V1 端点枚举
@@ -2124,6 +2224,7 @@ pub const LINGO_API_V1: &str = "/open-apis/lingo/v1";
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::api::{ApiRequest, HttpMethod};
 
     // ========== BaseApiV2 Tests ==========
     #[test]
@@ -2133,6 +2234,10 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Post);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Post);
+        assert!(endpoint.supported_access_token_types().is_none());
     }
 
     #[test]
@@ -2143,6 +2248,9 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Put);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Put);
     }
 
     #[test]
@@ -2152,6 +2260,22 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Get);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Get);
+    }
+
+    #[test]
+    fn test_base_api_v2_role_delete() {
+        let endpoint =
+            BaseApiV2::RoleDelete("app_token_123".to_string(), "role_id_456".to_string());
+        assert_eq!(
+            endpoint.to_url(),
+            "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
+        );
+        assert_eq!(endpoint.method(), HttpMethod::Delete);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Delete);
     }
 
     #[test]
@@ -2280,6 +2404,57 @@ mod tests {
             "table_id_456".to_string(),
         );
         assert!(endpoint.to_url().contains("batch_delete"));
+    }
+
+    // ========== #424: 端点目录语义测试（method + path + auth） ==========
+    // tracer: record 族，确保 method/path 组合由 catalog 拥有，防止叶子漂移。
+    #[test]
+    fn test_bitable_record_endpoints_semantics_424() {
+        use openlark_core::api::HttpMethod;
+
+        // Create / BatchCreate -> POST
+        let ep = BitableApiV1::RecordCreate("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Post);
+        assert!(ep.to_url().contains("/records"));
+        let req: ApiRequest<()> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Post);
+
+        let ep = BitableApiV1::RecordBatchCreate("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Post);
+
+        // Get / List -> GET
+        let ep = BitableApiV1::RecordGet("app".into(), "tbl".into(), "rec".into());
+        assert_eq!(ep.method(), HttpMethod::Get);
+        let req: ApiRequest<()> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Get);
+
+        let ep = BitableApiV1::RecordList("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Get);
+
+        // Update -> PUT , BatchUpdate -> POST
+        let ep = BitableApiV1::RecordUpdate("app".into(), "tbl".into(), "rec".into());
+        assert_eq!(ep.method(), HttpMethod::Put);
+
+        let ep = BitableApiV1::RecordBatchUpdate("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Post);
+
+        // Delete -> DELETE , BatchDelete -> POST
+        let ep = BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
+        assert_eq!(ep.method(), HttpMethod::Delete);
+        let req: ApiRequest<()> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Delete);
+
+        let ep = BitableApiV1::RecordBatchDelete("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Post);
+
+        // Search -> POST (body query)
+        let ep = BitableApiV1::RecordSearch("app".into(), "tbl".into());
+        assert_eq!(ep.method(), HttpMethod::Post);
+        assert!(ep.to_url().contains("/search"));
+
+        // auth: 默认 None -> User+Tenant （由 ApiRequest 默认提供）
+        let ep = BitableApiV1::RecordCreate("a".into(), "t".into());
+        assert!(ep.supported_access_token_types().is_none());
     }
 
     // ========== MinutesApiV1 Tests ==========
