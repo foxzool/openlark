@@ -255,4 +255,14 @@ mod tests {
     fn test_response_trait() {
         assert_eq!(GetRecordResponse::data_format(), ResponseFormat::Data);
     }
+
+    #[test]
+    fn test_get_uses_get_method_from_catalog_424() {
+        // 验证迁移后叶子使用 catalog 的 method（#424）
+        use crate::common::api_endpoints::BitableApiV1;
+        use openlark_core::api::{ApiRequest, HttpMethod};
+        let ep = BitableApiV1::RecordGet("app".into(), "tbl".into(), "rec".into());
+        let req: ApiRequest<GetRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Get);
+    }
 }

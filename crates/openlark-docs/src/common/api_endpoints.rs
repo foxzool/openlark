@@ -61,7 +61,9 @@ impl BaseApiV2 {
     }
 }
 
-/// Bitable API V1 端点枚举
+/// Bitable API V1 端点枚举（#424 深化了请求语义：method + path + auth 在此集中）。
+///
+/// 注意：此文件已 > 2700 行。Bitable 相关定义未来应迁移到独立子模块以避免进一步膨胀。
 #[derive(Debug, Clone, PartialEq)]
 pub enum BitableApiV1 {
     /// App管理相关
@@ -382,19 +384,17 @@ impl BitableApiV1 {
 
     /// 返回配置了正确 HTTP 方法的 ApiRequest（#424：请求语义收归目录）。
     /// 叶子 builder 只负责领域数据（query/body）和 RequestOption，稳定 method/path/auth 由 catalog 提供。
+    ///
+    /// 注意：method() 与 to_url() 共同定义端点语义，修改时需在对应 arm 中同步（未来可通过宏统一）。
     pub fn to_request<R>(&self) -> ApiRequest<R> {
-        let mut req = match self.method() {
+        match self.method() {
             HttpMethod::Get => ApiRequest::get(self.to_url()),
             HttpMethod::Post => ApiRequest::post(self.to_url()),
             HttpMethod::Put => ApiRequest::put(self.to_url()),
             HttpMethod::Delete => ApiRequest::delete(self.to_url()),
             HttpMethod::Patch => ApiRequest::patch(self.to_url()),
-            _ => ApiRequest::get(self.to_url()),
-        };
-        if let Some(tokens) = self.supported_access_token_types() {
-            req = req.with_supported_access_token_types(tokens);
+            _ => ApiRequest::get(self.to_url()), // 防御：catalog 仅产生标准 CRUD 方法
         }
-        req
     }
 
     /// 该端点的 HTTP 方法。稳定语义，method 与 path 必须在同一处变更。
@@ -470,8 +470,8 @@ impl BitableApiV1 {
 
     /// 稳定的访问令牌类型要求（默认 None 表示 User+Tenant）。
     /// 特殊端点在此返回特定列表，实现 locality。
+    /// 当前 Bitable 所有端点均使用默认（User + Tenant）。
     pub fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        // Bitable 端点一般支持 tenant/user；如有仅 tenant 的在此返回 Some(vec![AccessTokenType::Tenant])
         None
     }
 }
