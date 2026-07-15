@@ -248,7 +248,8 @@ mod tests {
     #[test]
     fn test_create_uses_post_from_catalog_424() {
         // 叶子现在委托 method 给 catalog
-        let ep = crate::common::api_endpoints::BitableApiV1::RecordCreate("app".into(), "tbl".into());
+        let ep =
+            crate::common::api_endpoints::BitableApiV1::RecordCreate("app".into(), "tbl".into());
         let req: openlark_core::api::ApiRequest<CreateRecordResponse> = ep.to_request();
         assert_eq!(req.method(), &openlark_core::api::HttpMethod::Post);
     }

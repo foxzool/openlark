@@ -211,7 +211,11 @@ mod tests {
     #[test]
     fn test_delete_uses_delete_method_from_catalog() {
         // 验证迁移后叶子使用 catalog 的 method（#424）
-        let ep = crate::common::api_endpoints::BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
+        let ep = crate::common::api_endpoints::BitableApiV1::RecordDelete(
+            "app".into(),
+            "tbl".into(),
+            "rec".into(),
+        );
         let req: openlark_core::api::ApiRequest<DeleteRecordResponse> = ep.to_request();
         assert_eq!(req.method(), &openlark_core::api::HttpMethod::Delete);
         assert!(ep.to_url().contains("/records/rec"));
