@@ -71,10 +71,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: taiki-e/install-action@v2
         with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          tool: protoc@23.4
 
       - name: Build with feature combination
         run: |
@@ -120,10 +119,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: taiki-e/install-action@v2
         with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          tool: protoc@23.4
 
       # Test each feature individually
       - name: Test each feature individually
