@@ -133,8 +133,6 @@ impl ApiResponseTrait for DeleteRecordResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::BitableApiV1;
-    use openlark_core::api::{ApiRequest, HttpMethod};
 
     #[test]
     fn test_delete_record_request_builder() {
@@ -213,11 +211,9 @@ mod tests {
     #[test]
     fn test_delete_uses_delete_method_from_catalog() {
         // 验证迁移后叶子使用 catalog 的 method（#424）
-        use crate::common::api_endpoints::BitableApiV1;
-        use openlark_core::api::HttpMethod;
-        let ep = BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
-        let req: ApiRequest<DeleteRecordResponse> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Delete);
+        let ep = crate::common::api_endpoints::BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
+        let req: openlark_core::api::ApiRequest<DeleteRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Delete);
         assert!(ep.to_url().contains("/records/rec"));
     }
 }

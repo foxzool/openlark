@@ -12,6 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
 use crate::common::api_utils::*;
 
 /// 更新自定义角色
@@ -128,7 +129,6 @@ impl Update {
             ));
         }
 
-        use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
         let api_endpoint = BaseApiV2::RoleUpdate(self.app_token, self.role_id);
 
         // #438: method 来自 catalog
@@ -190,10 +190,8 @@ mod tests {
 
     #[test]
     fn test_update_role_uses_put_from_catalog_438() {
-        use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
-        use openlark_core::api::{ApiRequest, HttpMethod};
         let ep = BaseApiV2::RoleUpdate("app".into(), "role001".into());
-        let req: ApiRequest<UpdateResp> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Put);
+        let req: openlark_core::api::ApiRequest<UpdateResp> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Put);
     }
 }

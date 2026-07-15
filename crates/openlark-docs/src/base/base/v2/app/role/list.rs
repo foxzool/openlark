@@ -12,6 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
 use crate::common::api_utils::*;
 
 /// 列出自定义角色
@@ -101,7 +102,6 @@ impl List {
             ));
         }
 
-        use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
         let api_endpoint = BaseApiV2::RoleList(self.app_token);
 
         // #438: method 来自 catalog
@@ -161,10 +161,8 @@ mod tests {
 
     #[test]
     fn test_list_roles_uses_get_from_catalog_438() {
-        use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
-        use openlark_core::api::{ApiRequest, HttpMethod};
         let ep = BaseApiV2::RoleList("app".into());
-        let req: ApiRequest<ListResp> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Get);
+        let req: openlark_core::api::ApiRequest<ListResp> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Get);
     }
 }

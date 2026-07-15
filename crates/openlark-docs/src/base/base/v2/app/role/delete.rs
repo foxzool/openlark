@@ -11,7 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_endpoints::CatalogEndpoint;
+use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
 use crate::common::api_utils::*;
 
 /// 删除自定义角色请求。
@@ -58,7 +58,6 @@ impl Delete {
         validate_required!(self.app_token.trim(), "app_token 不能为空");
         validate_required!(self.role_id.trim(), "role_id 不能为空");
 
-        use crate::common::api_endpoints::BaseApiV2;
         let api_endpoint = BaseApiV2::RoleDelete(self.app_token, self.role_id);
 
         let api_request: ApiRequest<DeleteResp> = api_endpoint.to_request();
@@ -119,10 +118,8 @@ mod tests {
 
     #[test]
     fn test_delete_role_uses_delete_from_catalog_438() {
-        use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
-        use openlark_core::api::HttpMethod;
         let ep = BaseApiV2::RoleDelete("app".into(), "role001".into());
-        let req: ApiRequest<DeleteResp> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Delete);
+        let req: openlark_core::api::ApiRequest<DeleteResp> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Delete);
     }
 }

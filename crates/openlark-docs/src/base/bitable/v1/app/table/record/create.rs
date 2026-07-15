@@ -183,8 +183,6 @@ impl ApiResponseTrait for CreateRecordResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::BitableApiV1;
-    use openlark_core::api::{ApiRequest, HttpMethod};
 
     #[test]
     fn test_create_record_request_builder() {
@@ -250,10 +248,8 @@ mod tests {
     #[test]
     fn test_create_uses_post_from_catalog_424() {
         // 叶子现在委托 method 给 catalog
-        use crate::common::api_endpoints::BitableApiV1;
-        use openlark_core::api::HttpMethod;
-        let ep = BitableApiV1::RecordCreate("app".into(), "tbl".into());
-        let req: ApiRequest<CreateRecordResponse> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Post);
+        let ep = crate::common::api_endpoints::BitableApiV1::RecordCreate("app".into(), "tbl".into());
+        let req: openlark_core::api::ApiRequest<CreateRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Post);
     }
 }
