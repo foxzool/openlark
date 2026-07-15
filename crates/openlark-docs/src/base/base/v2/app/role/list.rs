@@ -104,7 +104,8 @@ impl List {
         use crate::common::api_endpoints::BaseApiV2;
         let api_endpoint = BaseApiV2::RoleList(self.app_token);
 
-        let mut api_request: ApiRequest<ListResp> = ApiRequest::get(&api_endpoint.to_url());
+        // #438: method 来自 catalog
+        let mut api_request: ApiRequest<ListResp> = api_endpoint.to_request();
         api_request = api_request.query_opt("page_size", self.req.page_size.map(|v| v.to_string()));
         api_request = api_request.query_opt("page_token", self.req.page_token);
 
@@ -156,5 +157,14 @@ mod tests {
             received[0].url.path(),
             "/open-apis/base/v2/apps/app001/roles"
         );
+    }
+
+    #[test]
+    fn test_list_roles_uses_get_from_catalog_438() {
+        use crate::common::api_endpoints::BaseApiV2;
+        use openlark_core::api::{ApiRequest, HttpMethod};
+        let ep = BaseApiV2::RoleList("app".into());
+        let req: ApiRequest<ListResp> = ep.to_request();
+        assert_eq!(req.method(), &HttpMethod::Get);
     }
 }

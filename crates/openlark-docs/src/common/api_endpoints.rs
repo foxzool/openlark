@@ -42,6 +42,8 @@ pub enum BaseApiV2 {
     RoleUpdate(String, String),
     /// 列出自定义角色
     RoleList(String),
+    /// 删除自定义角色
+    RoleDelete(String, String),
 }
 
 impl BaseApiV2 {
@@ -57,7 +59,38 @@ impl BaseApiV2 {
             BaseApiV2::RoleList(app_token) => {
                 format!("/open-apis/base/v2/apps/{app_token}/roles")
             }
+            BaseApiV2::RoleDelete(app_token, role_id) => {
+                format!("/open-apis/base/v2/apps/{app_token}/roles/{role_id}")
+            }
         }
+    }
+
+    /// 返回配置了正确 HTTP 方法的 ApiRequest（#438：Base App Role tracer 证明 catalog 语义）。
+    /// 叶子只负责领域数据和 RequestOption。
+    pub fn to_request<R>(&self) -> ApiRequest<R> {
+        match self.method() {
+            HttpMethod::Get => ApiRequest::get(self.to_url()),
+            HttpMethod::Post => ApiRequest::post(self.to_url()),
+            HttpMethod::Put => ApiRequest::put(self.to_url()),
+            HttpMethod::Delete => ApiRequest::delete(self.to_url()),
+            HttpMethod::Patch => ApiRequest::patch(self.to_url()),
+            _ => ApiRequest::get(self.to_url()),
+        }
+    }
+
+    /// 该端点的 HTTP 方法。method 与 path 统一由 catalog 拥有。
+    pub fn method(&self) -> HttpMethod {
+        match self {
+            BaseApiV2::RoleCreate(_) => HttpMethod::Post,
+            BaseApiV2::RoleUpdate(_, _) => HttpMethod::Put,
+            BaseApiV2::RoleList(_) => HttpMethod::Get,
+            BaseApiV2::RoleDelete(_, _) => HttpMethod::Delete,
+        }
+    }
+
+    /// 稳定的访问令牌要求（默认 None 表示 User+Tenant）。
+    pub fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
+        None
     }
 }
 
@@ -2231,6 +2264,10 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Post);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Post);
+        assert!(endpoint.supported_access_token_types().is_none());
     }
 
     #[test]
@@ -2241,6 +2278,9 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Put);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Put);
     }
 
     #[test]
@@ -2250,6 +2290,22 @@ mod tests {
             endpoint.to_url(),
             "/open-apis/base/v2/apps/app_token_123/roles"
         );
+        assert_eq!(endpoint.method(), HttpMethod::Get);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Get);
+    }
+
+    #[test]
+    fn test_base_api_v2_role_delete() {
+        let endpoint =
+            BaseApiV2::RoleDelete("app_token_123".to_string(), "role_id_456".to_string());
+        assert_eq!(
+            endpoint.to_url(),
+            "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
+        );
+        assert_eq!(endpoint.method(), HttpMethod::Delete);
+        let req: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(req.method(), &HttpMethod::Delete);
     }
 
     #[test]
