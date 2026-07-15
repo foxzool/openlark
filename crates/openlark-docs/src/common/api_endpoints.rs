@@ -33,66 +33,39 @@
 use openlark_core::api::{ApiRequest, HttpMethod};
 use openlark_core::constants::AccessTokenType;
 
-/// Base API V2 端点枚举
-#[derive(Debug, Clone, PartialEq)]
-pub enum BaseApiV2 {
-    /// 新增自定义角色
-    RoleCreate(String),
-    /// 更新自定义角色
-    RoleUpdate(String, String),
-    /// 列出自定义角色
-    RoleList(String),
-    /// 删除自定义角色
-    RoleDelete(String, String),
-}
+/// 端点 catalog 的通用语义接口（#424 / #438）。
+/// 允许 to_request 等逻辑共享，减少重复。
+pub trait CatalogEndpoint {
+    /// 返回端点 URL。
+    fn to_url(&self) -> String;
 
-impl BaseApiV2 {
-    /// 生成对应的 URL
-    pub fn to_url(&self) -> String {
-        match self {
-            BaseApiV2::RoleCreate(app_token) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles")
-            }
-            BaseApiV2::RoleUpdate(app_token, role_id) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles/{role_id}")
-            }
-            BaseApiV2::RoleList(app_token) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles")
-            }
-            BaseApiV2::RoleDelete(app_token, role_id) => {
-                format!("/open-apis/base/v2/apps/{app_token}/roles/{role_id}")
-            }
-        }
+    /// 返回 HTTP 方法。
+    fn method(&self) -> HttpMethod;
+
+    /// 稳定的访问令牌要求（默认 None）。
+    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
+        None
     }
 
-    /// 返回配置了正确 HTTP 方法的 ApiRequest（#438：Base App Role tracer 证明 catalog 语义）。
-    /// 叶子只负责领域数据和 RequestOption。
-    pub fn to_request<R>(&self) -> ApiRequest<R> {
-        match self.method() {
+    /// 构建带正确方法的请求。
+    fn to_request<R>(&self) -> ApiRequest<R> {
+        let mut req = match self.method() {
             HttpMethod::Get => ApiRequest::get(self.to_url()),
             HttpMethod::Post => ApiRequest::post(self.to_url()),
             HttpMethod::Put => ApiRequest::put(self.to_url()),
             HttpMethod::Delete => ApiRequest::delete(self.to_url()),
             HttpMethod::Patch => ApiRequest::patch(self.to_url()),
             _ => ApiRequest::get(self.to_url()),
+        };
+        if let Some(tokens) = self.supported_access_token_types() {
+            req = req.with_supported_access_token_types(tokens);
         }
-    }
-
-    /// 该端点的 HTTP 方法。method 与 path 统一由 catalog 拥有。
-    pub fn method(&self) -> HttpMethod {
-        match self {
-            BaseApiV2::RoleCreate(_) => HttpMethod::Post,
-            BaseApiV2::RoleUpdate(_, _) => HttpMethod::Put,
-            BaseApiV2::RoleList(_) => HttpMethod::Get,
-            BaseApiV2::RoleDelete(_, _) => HttpMethod::Delete,
-        }
-    }
-
-    /// 稳定的访问令牌要求（默认 None 表示 User+Tenant）。
-    pub fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        None
+        req
     }
 }
+
+pub mod base;
+pub use base::BaseApiV2;
 
 /// Bitable API V1 端点枚举（#424 深化了请求语义：method + path + auth 在此集中）。
 ///
@@ -415,19 +388,9 @@ impl BitableApiV1 {
         }
     }
 
-    /// 返回配置了正确 HTTP 方法的 ApiRequest（#424：请求语义收归目录）。
-    /// 叶子 builder 只负责领域数据（query/body）和 RequestOption，稳定 method/path/auth 由 catalog 提供。
-    ///
-    /// 注意：method() 与 to_url() 共同定义端点语义，修改时需在对应 arm 中同步（未来可通过宏统一）。
+    /// 返回配置了正确 HTTP 方法的 ApiRequest（委托到 CatalogEndpoint trait）。
     pub fn to_request<R>(&self) -> ApiRequest<R> {
-        match self.method() {
-            HttpMethod::Get => ApiRequest::get(self.to_url()),
-            HttpMethod::Post => ApiRequest::post(self.to_url()),
-            HttpMethod::Put => ApiRequest::put(self.to_url()),
-            HttpMethod::Delete => ApiRequest::delete(self.to_url()),
-            HttpMethod::Patch => ApiRequest::patch(self.to_url()),
-            _ => ApiRequest::get(self.to_url()), // 防御：catalog 仅产生标准 CRUD 方法
-        }
+        <Self as CatalogEndpoint>::to_request(self)
     }
 
     /// 该端点的 HTTP 方法。稳定语义，method 与 path 必须在同一处变更。
@@ -500,13 +463,19 @@ impl BitableApiV1 {
             BitableApiV1::RoleMemberList(_, _) => HttpMethod::Get,
         }
     }
+}
 
-    /// 稳定的访问令牌类型要求（默认 None 表示 User+Tenant）。
-    /// 特殊端点在此返回特定列表，实现 locality。
-    /// 当前 Bitable 所有端点均使用默认（User + Tenant）。
-    pub fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        None
+impl CatalogEndpoint for BitableApiV1 {
+    fn to_url(&self) -> String {
+        // delegate to inherent for backward compat
+        BitableApiV1::to_url(self)
     }
+
+    fn method(&self) -> HttpMethod {
+        BitableApiV1::method(self)
+    }
+
+    // supported and to_request use trait defaults
 }
 
 /// Minutes API V1 端点枚举
