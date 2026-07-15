@@ -73,7 +73,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
 
       - name: Build with feature combination
         run: |
@@ -121,7 +121,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
 
       # Test each feature individually
       - name: Test each feature individually

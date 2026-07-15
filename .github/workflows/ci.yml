@@ -26,7 +26,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
       - name: Run cargo test (workspace, all features)
         run: cargo test --workspace --all-features --no-fail-fast
 
@@ -47,7 +47,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
       - name: Run cargo doc
         run: cargo doc --workspace --all-features --no-deps
 
@@ -94,7 +94,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
       - name: Check format
         run: cargo fmt --all -- --check
       - name: Run clippy (all features)
@@ -197,7 +197,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
 
       - name: Build with feature combination
         run: |
@@ -243,7 +243,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
       - name: Use pinned MSRV lockfile
         run: cp .github/msrv/Cargo.lock Cargo.lock
       - name: Check MSRV build

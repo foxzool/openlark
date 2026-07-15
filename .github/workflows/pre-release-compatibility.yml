@@ -49,7 +49,7 @@ jobs:
       - name: Install Protoc
         uses: taiki-e/install-action@v2
         with:
-          tool: protoc@25.9
+          tool: protoc
 
       - name: Run pre-release compatibility verification
         run: bash scripts/check-pre-release-compatibility.sh
