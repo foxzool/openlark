@@ -2224,6 +2224,7 @@ pub const LINGO_API_V1: &str = "/open-apis/lingo/v1";
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openlark_core::api::{ApiRequest, HttpMethod};
 
     // ========== BaseApiV2 Tests ==========
     #[test]
