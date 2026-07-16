@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -79,7 +79,8 @@ impl DeleteFileVersionRequest {
 
         // ========== 构建 API 请求 ==========
         let api_endpoint = DriveApi::DeleteFileVersion(self.file_token, self.version_id);
-        let request = ApiRequest::<DeleteFileVersionResponse>::delete(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<DeleteFileVersionResponse>()
             .query("obj_type", self.obj_type)
             .query_opt("user_id_type", self.user_id_type);
 

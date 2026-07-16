@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -88,7 +88,8 @@ impl GetPublicPermissionRequest {
         }
 
         let api_endpoint = DriveApi::GetPublicPermission(self.token);
-        let request = ApiRequest::<GetPublicPermissionResponse>::get(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<GetPublicPermissionResponse>()
             .query("type", self.r#type);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;

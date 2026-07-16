@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -49,7 +49,8 @@ impl CheckTaskStatusRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::TaskCheck;
-        let api_request = ApiRequest::<CheckTaskStatusResponse>::get(&api_endpoint.to_url())
+        let api_request = api_endpoint
+            .to_request::<CheckTaskStatusResponse>()
             .query("task_id", &self.task_id);
 
         // ===== 发送请求 =====

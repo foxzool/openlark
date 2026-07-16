@@ -127,7 +127,7 @@ pub async fn patch_subscription(
     );
 
     let api_request: ApiRequest<PatchSubscriptionResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &PatchSubscriptionRequestBody {
                 is_subscribe: request.is_subscribe,
 

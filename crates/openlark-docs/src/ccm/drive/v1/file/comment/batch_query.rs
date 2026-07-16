@@ -158,7 +158,7 @@ pub async fn batch_query_comment(
     let api_endpoint = DriveApi::BatchQueryComments(request.file_token.clone());
 
     let mut api_request: ApiRequest<BatchQueryCommentResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &BatchQueryCommentRequestBody {
                 comment_ids: request.comment_ids,
             },

@@ -133,9 +133,8 @@ pub async fn get_file_statistics(
     }
 
     // ===== 构建请求 =====
-    let url = DriveApi::GetFileStatistics(request.file_token.clone()).to_url();
-
-    let mut api_request: ApiRequest<GetFileStatisticsResponse> = ApiRequest::get(&url);
+    let mut api_request: ApiRequest<GetFileStatisticsResponse> =
+        DriveApi::GetFileStatistics(request.file_token.clone()).to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 

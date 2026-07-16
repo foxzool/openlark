@@ -6,11 +6,7 @@
 
 use crate::common::api_endpoints::DriveApi;
 use openlark_core::{
-    SDKResult,
-    api::{ApiRequest, Response},
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
+    SDKResult, api::Response, config::Config, http::Transport, req_option::RequestOption,
     validate_required,
 };
 
@@ -54,7 +50,7 @@ impl DownloadExportRequest {
 
         let api_endpoint = DriveApi::DownloadExportFile(self.file_token.clone());
 
-        let api_request = ApiRequest::<Vec<u8>>::get(&api_endpoint.to_url());
+        let api_request = api_endpoint.to_request::<Vec<u8>>();
 
         let result = Transport::request(api_request, &self.config, Some(option)).await;
         match result {

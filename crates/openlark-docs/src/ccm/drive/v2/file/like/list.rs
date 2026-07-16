@@ -1,6 +1,6 @@
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -96,7 +96,8 @@ impl ListFileLikesRequest {
         }
 
         let api_endpoint = DriveApi::ListFileLikes(self.file_token);
-        let request = ApiRequest::<ListFileLikesResponse>::get(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<ListFileLikesResponse>()
             .query("file_type", self.file_type)
             .query_opt("page_size", self.page_size.map(|v| v.to_string()))
             .query_opt("page_token", self.page_token)

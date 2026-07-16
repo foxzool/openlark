@@ -13,7 +13,8 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
+use crate::common::api_utils::*;
 
 /// 获取文件夹中的文件清单请求
 #[derive(Debug)]
@@ -222,7 +223,9 @@ impl ListFilesRequest {
         // ========== 构建 API 请求 ==========
 
         let api_endpoint = DriveApi::ListFiles;
-        let mut request = ApiRequest::<ListFilesResponse>::get(&api_endpoint.to_url());
+
+        // #440: method 来自 catalog
+        let mut request: ApiRequest<ListFilesResponse> = api_endpoint.to_request();
 
         if let Some(token) = &self.folder_token {
             request = request.query("folder_token", token);

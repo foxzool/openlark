@@ -158,8 +158,8 @@ pub async fn update_reply(
         request.reply_id.clone(),
     );
 
-    let mut api_request: ApiRequest<UpdateReplyResponse> = ApiRequest::put(&api_endpoint.to_url())
-        .body(serialize_params(
+    let mut api_request: ApiRequest<UpdateReplyResponse> =
+        api_endpoint.to_request().body(serialize_params(
             &UpdateReplyRequestBody {
                 content: request.content,
             },

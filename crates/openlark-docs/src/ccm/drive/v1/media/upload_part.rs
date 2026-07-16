@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -143,7 +143,8 @@ impl UploadPartMediaRequest {
             checksum: self.checksum,
         };
 
-        let request = ApiRequest::<UploadPartMediaResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadPartMediaResponse>()
             .json_body(&meta)
             .file_content(self.file);
 

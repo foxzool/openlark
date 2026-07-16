@@ -129,10 +129,10 @@ pub async fn update_permission_public_with_options(
         copy_entity: request.copy_entity,
     };
 
-    let api_request: ApiRequest<UpdatePermissionPublicResponse> =
-        ApiRequest::patch(&api_endpoint.to_url())
-            .query("type", &request.r#type)
-            .body(serialize_params(&body, "更新云文档权限设置")?);
+    let api_request: ApiRequest<UpdatePermissionPublicResponse> = api_endpoint
+        .to_request()
+        .query("type", &request.r#type)
+        .body(serialize_params(&body, "更新云文档权限设置")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "更新云文档权限设置")

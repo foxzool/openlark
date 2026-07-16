@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -117,7 +117,8 @@ impl UploadPrepareRequest {
         }
 
         let api_endpoint = DriveApi::UploadPrepare;
-        let request = ApiRequest::<UploadPrepareResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadPrepareResponse>()
             .body(serialize_params(&self, "分片上传文件-预上传")?);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;

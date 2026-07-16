@@ -8,6 +8,8 @@ use openlark_core::{
 };
 use std::sync::Arc;
 
+use crate::common::api_endpoints::DriveApi;
+
 /// 添加回复请求。
 #[derive(Debug, Clone)]
 pub struct FileCommentReplyCreateRequest {
@@ -52,11 +54,10 @@ impl FileCommentReplyCreateRequest {
     ) -> SDKResult<serde_json::Value> {
         validate_required!(self.file_token, "file_token 不能为空");
         validate_required!(self.comment_id, "comment_id 不能为空");
-        let path = format!(
-            "/open-apis/drive/v1/files/{}/comments/{}/replies",
-            self.file_token, self.comment_id
-        );
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
+        let req: ApiRequest<serde_json::Value> =
+            DriveApi::CreateCommentReply(self.file_token, self.comment_id)
+                .to_request()
+                .body(body);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data
             .ok_or_else(|| openlark_core::error::validation_error("添加回复", "响应数据为空"))

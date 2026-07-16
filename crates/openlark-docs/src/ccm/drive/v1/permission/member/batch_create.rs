@@ -184,7 +184,7 @@ impl BatchCreatePermissionMemberRequest {
         };
 
         let mut api_request: ApiRequest<BatchCreatePermissionMemberResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).query("type", &self.file_type);
+            api_endpoint.to_request().query("type", &self.file_type);
 
         if let Some(need_notification) = self.need_notification {
             api_request = api_request.query("need_notification", need_notification.to_string());

@@ -128,8 +128,7 @@ pub async fn delete_comment_reply(
         request.reply_id.clone(),
     );
 
-    let mut api_request: ApiRequest<DeleteCommentReplyResponse> =
-        ApiRequest::delete(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<DeleteCommentReplyResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 

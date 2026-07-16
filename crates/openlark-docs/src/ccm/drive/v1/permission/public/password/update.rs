@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -76,9 +76,9 @@ impl UpdatePermissionPublicPasswordRequest {
         }
 
         let api_endpoint = DriveApi::UpdatePublicPassword(self.token);
-        let request =
-            ApiRequest::<UpdatePermissionPublicPasswordResponse>::put(&api_endpoint.to_url())
-                .query("type", self.r#type);
+        let request = api_endpoint
+            .to_request::<UpdatePermissionPublicPasswordResponse>()
+            .query("type", self.r#type);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "更新")

@@ -160,7 +160,7 @@ pub async fn create_file_subscription(
     let api_endpoint = DriveApi::CreateFileSubscription(request.file_token.clone());
 
     let api_request: ApiRequest<CreateFileSubscriptionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &CreateFileSubscriptionRequestBody {
                 subscription_id: request.subscription_id,
 

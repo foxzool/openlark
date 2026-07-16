@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -155,7 +155,7 @@ impl CreateFileShortcutRequest {
         }
 
         let api_endpoint = DriveApi::CreateShortcut;
-        let mut request = ApiRequest::<CreateFileShortcutResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<CreateFileShortcutResponse>();
 
         if let Some(user_id_type) = &self.user_id_type {
             request = request.query("user_id_type", user_id_type);

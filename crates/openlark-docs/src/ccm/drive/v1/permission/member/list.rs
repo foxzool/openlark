@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -100,8 +100,7 @@ impl ListPermissionMembersRequest {
 
         let api_endpoint = DriveApi::ListPermissionMembers(self.token.clone());
 
-        let mut api_request =
-            ApiRequest::<ListPermissionMembersResponse>::get(&api_endpoint.to_url());
+        let mut api_request = api_endpoint.to_request::<ListPermissionMembersResponse>();
 
         api_request = api_request.query("type", &self.file_type);
         if let Some(fields) = &self.fields {

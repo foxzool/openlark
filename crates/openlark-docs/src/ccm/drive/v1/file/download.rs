@@ -5,13 +5,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/download/download>
 
 use crate::common::api_endpoints::DriveApi;
-use openlark_core::{
-    SDKResult,
-    api::{ApiRequest, Response},
-    config::Config,
-    http::Transport,
-    validate_required,
-};
+use openlark_core::{SDKResult, api::Response, config::Config, http::Transport, validate_required};
 
 /// 下载文件请求
 ///
@@ -143,7 +137,7 @@ impl DownloadFileRequest {
         }
 
         let api_endpoint = DriveApi::DownloadFile(self.file_token.clone());
-        let mut request = ApiRequest::<Vec<u8>>::get(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<Vec<u8>>();
 
         if let Some(r) = &self.range {
             request = request.header("Range", r);

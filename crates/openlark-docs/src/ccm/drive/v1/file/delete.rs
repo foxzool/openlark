@@ -7,7 +7,7 @@
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -64,7 +64,7 @@ impl DeleteFileRequest {
         }
 
         let api_endpoint = DriveApi::DeleteFile(self.file_token);
-        let mut request = ApiRequest::<DeleteFileResponse>::delete(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<DeleteFileResponse>();
 
         request = request.query("type", self.r#type);
 

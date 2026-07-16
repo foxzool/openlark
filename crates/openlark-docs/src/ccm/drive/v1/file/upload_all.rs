@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -197,7 +197,8 @@ impl UploadAllRequest {
 
         // 使用 json_body 传递元数据，使用 file_content 传递文件
         // UnifiedRequestBuilder 会将其组合成 multipart 请求
-        let request = ApiRequest::<UploadAllResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadAllResponse>()
             .json_body(&meta)
             .file_content(self.file);
 
