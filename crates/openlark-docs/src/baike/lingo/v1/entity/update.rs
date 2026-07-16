@@ -89,7 +89,9 @@ impl UpdateEntityRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<UpdateEntityResp> =
-            ApiRequest::put(&LingoApiV1::EntityUpdate(self.entity_id).to_url()).body(body);
+            LingoApiV1::EntityUpdate(self.entity_id)
+                .to_request()
+                .body(body);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }

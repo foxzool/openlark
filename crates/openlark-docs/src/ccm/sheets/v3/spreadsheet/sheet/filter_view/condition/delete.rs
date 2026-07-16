@@ -57,8 +57,7 @@ pub async fn delete_filter_condition_with_options(
         filter_view_id.to_string(),
         condition_id.to_string(),
     );
-    let api_request: ApiRequest<DeleteFilterConditionResponse> =
-        ApiRequest::delete(&api_endpoint.to_url());
+    let api_request: ApiRequest<DeleteFilterConditionResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "删除筛选条件")

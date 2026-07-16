@@ -72,8 +72,7 @@ impl GetWikiSpaceNodeRequest {
         let api_endpoint = WikiApiV2::SpaceGetNode;
 
         // 创建API请求 - 使用类型安全的URL生成
-        let mut api_request: ApiRequest<GetWikiSpaceNodeResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetWikiSpaceNodeResponse> = api_endpoint.to_request();
 
         // 设置查询参数
         api_request = api_request.query("token", &params.token);

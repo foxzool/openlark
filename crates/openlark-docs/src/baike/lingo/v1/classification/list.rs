@@ -83,7 +83,7 @@ impl ListClassificationRequest {
     ) -> SDKResult<ListClassificationResp> {
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<ListClassificationResp> =
-            ApiRequest::get(&LingoApiV1::ClassificationList.to_url());
+            LingoApiV1::ClassificationList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }

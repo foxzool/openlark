@@ -78,8 +78,7 @@ impl GetWikiTaskRequest {
         let api_endpoint = WikiApiV2::TaskGet(self.task_id.clone());
 
         // 创建API请求 - 使用类型安全的URL生成
-        let mut api_request: ApiRequest<GetWikiTaskResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetWikiTaskResponse> = api_endpoint.to_request();
 
         if let Some(task_type) = self.task_type {
             api_request = api_request.query("task_type", &task_type);

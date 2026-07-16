@@ -132,7 +132,8 @@ impl SearchWikiRequest {
             page_token: self.page_token,
         };
 
-        let api_request: ApiRequest<SearchWikiResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<SearchWikiResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&request_body, "搜索Wiki")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -145,7 +146,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/wiki/v1/nodes/search → SearchWikiResponse（items）。
@@ -154,6 +155,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/wiki/v1/nodes/search"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "items": [], "has_more": false }
             })))
@@ -167,12 +169,21 @@ mod tests {
             .build();
         let resp = SearchWikiRequest::new(config)
             .query("测试")
-            .execute()
+            .page_size(20)
+            .execute_with_options(
+                openlark_core::req_option::RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
             .await
             .expect("搜索Wiki应成功");
         assert!(resp.items.is_empty());
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/wiki/v1/nodes/search");
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["query"], "测试");
+        assert_eq!(body["page_size"], 20);
     }
 }

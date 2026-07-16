@@ -96,9 +96,9 @@ impl CopyWikiSpaceNodeRequest {
         let api_endpoint = WikiApiV2::SpaceNodeCopy(self.space_id.clone(), self.node_token.clone());
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<CopyWikiSpaceNodeResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "创建知识空间节点副本")?);
+        let api_request: ApiRequest<CopyWikiSpaceNodeResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "创建知识空间节点副本")?);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

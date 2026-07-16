@@ -57,7 +57,7 @@ pub async fn get_filter_view_with_options(
         sheet_id.to_string(),
         filter_view_id.to_string(),
     );
-    let api_request: ApiRequest<GetFilterViewResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetFilterViewResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "获取筛选视图")

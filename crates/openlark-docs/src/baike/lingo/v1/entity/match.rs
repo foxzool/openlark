@@ -97,7 +97,7 @@ impl MatchEntityRequest {
         })?;
 
         let mut api_request: ApiRequest<MatchEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntityMatch.to_url()).body(body);
+            LingoApiV1::EntityMatch.to_request().body(body);
         if let Some(repo_id) = &self.repo_id {
             api_request = api_request.query("repo_id", repo_id);
         }

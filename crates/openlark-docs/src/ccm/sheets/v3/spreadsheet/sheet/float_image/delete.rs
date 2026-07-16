@@ -53,8 +53,7 @@ pub async fn delete_float_image_with_options(
         sheet_id.to_string(),
         float_image_id.to_string(),
     );
-    let api_request: ApiRequest<DeleteFloatImageResponse> =
-        ApiRequest::delete(&api_endpoint.to_url());
+    let api_request: ApiRequest<DeleteFloatImageResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "删除浮动图片")

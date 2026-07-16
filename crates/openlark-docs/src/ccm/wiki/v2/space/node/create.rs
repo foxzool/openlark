@@ -176,9 +176,9 @@ impl CreateWikiSpaceNodeRequest {
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceNodeCreate(self.space_id.clone());
 
-        let api_request: ApiRequest<CreateWikiSpaceNodeResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "创建知识空间节点")?);
+        let api_request: ApiRequest<CreateWikiSpaceNodeResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "创建知识空间节点")?);
 
         // ===== 发送请求 =====
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

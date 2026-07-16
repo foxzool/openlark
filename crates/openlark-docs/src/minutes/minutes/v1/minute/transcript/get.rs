@@ -89,7 +89,7 @@ impl GetMinuteTranscriptRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = MinutesApiV1::TranscriptGet(minute_token);
-        let mut api_request: ApiRequest<Vec<u8>> = ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<Vec<u8>> = api_endpoint.to_request();
 
         if let Some(v) = self.need_speaker {
             api_request = api_request.query("need_speaker", v.to_string());

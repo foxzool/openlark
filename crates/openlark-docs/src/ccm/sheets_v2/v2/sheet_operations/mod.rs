@@ -123,8 +123,9 @@ pub async fn delete_range_with_options(
     let api_endpoint = CcmSheetApiOld::DeleteRange(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteRangeResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除范围")?);
+    let api_request: ApiRequest<DeleteRangeResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除范围")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -161,8 +162,9 @@ pub async fn insert_dimension_with_options(
     let api_endpoint = CcmSheetApiOld::InsertDimension(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<InsertDimensionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "插入行列")?);
+    let api_request: ApiRequest<InsertDimensionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "插入行列")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -199,8 +201,9 @@ pub async fn move_dimension_with_options(
     let api_endpoint = CcmSheetApiOld::MoveDimension(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<MoveDimensionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "移动行列")?);
+    let api_request: ApiRequest<MoveDimensionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "移动行列")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -237,8 +240,9 @@ pub async fn replace_range_with_options(
     let api_endpoint = CcmSheetApiOld::ReplaceRange(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<ReplaceRangeResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "替换范围")?);
+    let api_request: ApiRequest<ReplaceRangeResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "替换范围")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -276,8 +280,9 @@ pub async fn find_replace_with_options(
     let api_endpoint = CcmSheetApiOld::FindReplace(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<FindReplaceResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "查找替换")?);
+    let api_request: ApiRequest<FindReplaceResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "查找替换")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -314,8 +319,9 @@ pub async fn merge_cells_with_options(
     let api_endpoint = CcmSheetApiOld::MergeCells(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<MergeCellsResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "合并单元格")?);
+    let api_request: ApiRequest<MergeCellsResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "合并单元格")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -352,8 +358,9 @@ pub async fn unmerge_cells_with_options(
     let api_endpoint = CcmSheetApiOld::UnmergeCells(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UnmergeCellsResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "取消合并单元格")?);
+    let api_request: ApiRequest<UnmergeCellsResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "取消合并单元格")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

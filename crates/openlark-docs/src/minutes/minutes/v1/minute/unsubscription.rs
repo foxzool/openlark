@@ -41,9 +41,9 @@ impl UnsubscribeMinuteRequest {
             ));
         }
 
-        let req: ApiRequest<serde_json::Value> =
-            ApiRequest::post(MinutesApiV1::Unsubscription.to_url())
-                .body(serialize_params(&body, "取消订阅妙记变更事件")?);
+        let req: ApiRequest<serde_json::Value> = MinutesApiV1::Unsubscription
+            .to_request()
+            .body(serialize_params(&body, "取消订阅妙记变更事件")?);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "取消订阅妙记变更事件")
     }

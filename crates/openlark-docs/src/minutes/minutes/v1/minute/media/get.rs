@@ -58,8 +58,7 @@ impl GetMinuteMediaRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = MinutesApiV1::MediaGet(minute_token);
-        let api_request: ApiRequest<GetMinuteMediaResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetMinuteMediaResponse> = api_endpoint.to_request();
 
         // ===== 发送请求 =====
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

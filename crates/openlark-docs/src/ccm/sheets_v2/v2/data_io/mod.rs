@@ -126,7 +126,8 @@ pub async fn read_single_range_with_options(
         CcmSheetApiOld::ReadSingleRange(spreadsheet_token.to_string(), params.value_range.clone());
 
     // 创建API请求
-    let api_request: ApiRequest<ReadSingleRangeResponse> = ApiRequest::get(&api_endpoint.to_url())
+    let api_request: ApiRequest<ReadSingleRangeResponse> = api_endpoint
+        .to_request()
         .query_opt("valueRenderOption", params.value_render_option.as_ref())
         .query_opt("dateTimeRenderOption", params.date_render_option.as_ref());
 
@@ -173,11 +174,11 @@ pub async fn read_multiple_ranges_with_options(
     let ranges = params.ranges.join(",");
 
     // 创建API请求
-    let api_request: ApiRequest<ReadMultipleRangesResponse> =
-        ApiRequest::get(&api_endpoint.to_url())
-            .query("ranges", ranges)
-            .query_opt("valueRenderOption", params.value_render_option.as_ref())
-            .query_opt("dateTimeRenderOption", params.date_render_option.as_ref());
+    let api_request: ApiRequest<ReadMultipleRangesResponse> = api_endpoint
+        .to_request()
+        .query("ranges", ranges)
+        .query_opt("valueRenderOption", params.value_render_option.as_ref())
+        .query_opt("dateTimeRenderOption", params.date_render_option.as_ref());
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -215,8 +216,9 @@ pub async fn write_single_range_with_options(
     let api_endpoint = CcmSheetApiOld::WriteSingleRange(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<WriteSingleRangeResponse> =
-        ApiRequest::put(&api_endpoint.to_url()).body(serialize_params(&params, "写入单个范围")?);
+    let api_request: ApiRequest<WriteSingleRangeResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "写入单个范围")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -260,8 +262,9 @@ pub async fn batch_write_ranges_with_options(
     let api_endpoint = CcmSheetApiOld::BatchWriteRanges(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<BatchWriteRangesResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "批量写入范围")?);
+    let api_request: ApiRequest<BatchWriteRangesResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "批量写入范围")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -298,8 +301,9 @@ pub async fn append_values_with_options(
     let api_endpoint = CcmSheetApiOld::AppendValues(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<AppendValuesResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "追加数据")?);
+    let api_request: ApiRequest<AppendValuesResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "追加数据")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -336,8 +340,9 @@ pub async fn insert_values_with_options(
     let api_endpoint = CcmSheetApiOld::InsertValues(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<InsertValuesResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "插入数据")?);
+    let api_request: ApiRequest<InsertValuesResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "插入数据")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -374,8 +379,9 @@ pub async fn values_image_with_options(
     let api_endpoint = CcmSheetApiOld::ValuesImage(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<ValuesImageResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "写入图片")?);
+    let api_request: ApiRequest<ValuesImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "写入图片")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

@@ -40,7 +40,7 @@ pub async fn get_spreadsheet_with_options(
     let api_endpoint = SheetsApiV3::GetSpreadsheet(spreadsheet_token.to_string());
 
     // 创建API请求 - 使用类型安全的URL生成和标准化的参数序列化
-    let api_request: ApiRequest<GetSpreadsheetResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetSpreadsheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

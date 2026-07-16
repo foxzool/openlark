@@ -39,7 +39,7 @@ impl DownloadFileRequest {
         validate_required!(self.file_token, "file_token 不能为空");
 
         let api_request: ApiRequest<Vec<u8>> =
-            ApiRequest::get(&LingoApiV1::FileDownload(self.file_token).to_url());
+            LingoApiV1::FileDownload(self.file_token).to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         Ok(response)

@@ -57,7 +57,7 @@ mod tests {
         let server = MockServer::start().await;
         let body = b"baike binary payload".to_vec();
         Mock::given(method("GET"))
-            .and(path("/open-apis/baike/v1/files/ftk001/download"))
+            .and(path("/open-apis/lingo/v1/files/ftk001/download"))
             .respond_with(ResponseTemplate::new(200).set_body_bytes(body.clone()))
             .mount(&server)
             .await;
@@ -79,7 +79,7 @@ mod tests {
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
-            "/open-apis/baike/v1/files/ftk001/download"
+            "/open-apis/lingo/v1/files/ftk001/download"
         );
     }
 }

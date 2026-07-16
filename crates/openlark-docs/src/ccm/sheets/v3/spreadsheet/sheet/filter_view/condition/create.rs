@@ -73,8 +73,9 @@ pub async fn create_filter_condition_with_options(
         sheet_id.to_string(),
         filter_view_id.to_string(),
     );
-    let api_request: ApiRequest<CreateFilterConditionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建筛选条件")?);
+    let api_request: ApiRequest<CreateFilterConditionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建筛选条件")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "创建筛选条件")

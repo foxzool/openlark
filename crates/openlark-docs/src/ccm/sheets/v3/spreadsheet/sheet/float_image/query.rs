@@ -55,7 +55,7 @@ pub async fn query_float_images_with_options(
 ) -> SDKResult<QueryFloatImagesResponse> {
     let api_endpoint =
         SheetsApiV3::QueryFloatImages(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<QueryFloatImagesResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<QueryFloatImagesResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "查询浮动图片")

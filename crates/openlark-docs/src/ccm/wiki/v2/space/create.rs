@@ -106,9 +106,9 @@ impl CreateWikiSpaceRequest {
             open_sharing: self.open_sharing,
         };
 
-        let api_request: ApiRequest<CreateWikiSpaceResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&request_body, "创建知识空间")?);
+        let api_request: ApiRequest<CreateWikiSpaceResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&request_body, "创建知识空间")?);
 
         // ===== 发送请求 =====
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

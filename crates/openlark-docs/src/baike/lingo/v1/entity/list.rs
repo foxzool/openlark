@@ -105,8 +105,7 @@ impl ListEntityRequest {
         }
 
         // ===== 构建请求 =====
-        let mut api_request: ApiRequest<ListEntityResp> =
-            ApiRequest::get(&LingoApiV1::EntityList.to_url());
+        let mut api_request: ApiRequest<ListEntityResp> = LingoApiV1::EntityList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }

@@ -54,7 +54,7 @@ pub async fn get_filter_with_options(
     option: RequestOption,
 ) -> SDKResult<GetFilterResponse> {
     let api_endpoint = SheetsApiV3::GetFilter(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<GetFilterResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetFilterResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "获取筛选")

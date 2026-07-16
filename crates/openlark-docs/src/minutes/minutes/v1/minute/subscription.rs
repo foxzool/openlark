@@ -41,9 +41,9 @@ impl SubscribeMinuteRequest {
             ));
         }
 
-        let req: ApiRequest<serde_json::Value> =
-            ApiRequest::post(MinutesApiV1::Subscription.to_url())
-                .body(serialize_params(&body, "订阅妙记变更事件")?);
+        let req: ApiRequest<serde_json::Value> = MinutesApiV1::Subscription
+            .to_request()
+            .body(serialize_params(&body, "订阅妙记变更事件")?);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         extract_response_data(resp, "订阅妙记变更事件")
     }

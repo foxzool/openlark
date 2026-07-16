@@ -67,8 +67,9 @@ pub async fn create_filter_view_with_options(
 ) -> SDKResult<CreateFilterViewResponse> {
     let api_endpoint =
         SheetsApiV3::CreateFilterView(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<CreateFilterViewResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建筛选视图")?);
+    let api_request: ApiRequest<CreateFilterViewResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建筛选视图")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "创建筛选视图")

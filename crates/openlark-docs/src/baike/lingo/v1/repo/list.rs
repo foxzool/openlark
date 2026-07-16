@@ -47,7 +47,7 @@ impl ListRepoRequest {
 
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListRepoResp> {
-        let api_request: ApiRequest<ListRepoResp> = ApiRequest::get(&LingoApiV1::RepoList.to_url());
+        let api_request: ApiRequest<ListRepoResp> = LingoApiV1::RepoList.to_request();
 
         let response: Response<ListRepoResp> =
             Transport::request(api_request, &self.config, Some(option)).await?;

@@ -77,8 +77,7 @@ impl GetMinuteRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = MinutesApiV1::Get(minute_token);
-        let mut api_request: ApiRequest<GetMinuteResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetMinuteResponse> = api_endpoint.to_request();
 
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type);

@@ -47,7 +47,7 @@ pub async fn delete_filter_with_options(
 ) -> SDKResult<DeleteFilterResponse> {
     let api_endpoint =
         SheetsApiV3::DeleteFilter(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<DeleteFilterResponse> = ApiRequest::delete(&api_endpoint.to_url());
+    let api_request: ApiRequest<DeleteFilterResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "删除筛选")
