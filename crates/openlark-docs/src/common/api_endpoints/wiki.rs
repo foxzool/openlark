@@ -2,7 +2,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Wiki API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -34,9 +33,7 @@ impl CatalogEndpoint for WikiApiV1 {
         HttpMethod::Post
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// Wiki API V2 端点枚举
@@ -151,9 +148,7 @@ impl CatalogEndpoint for WikiApiV2 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// Wiki API 端点枚举
@@ -290,7 +285,5 @@ impl CatalogEndpoint for WikiApi {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }

@@ -42,9 +42,10 @@ pub trait CatalogEndpoint {
     /// 返回 HTTP 方法。
     fn method(&self) -> HttpMethod;
 
-    /// 稳定的访问令牌要求（默认 None）。
+    /// 稳定的访问令牌要求。
+    /// Docs 域的绝大多数端点都同时接受 User 和 Tenant token（#424 系列）。
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        None
+        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
     }
 
     /// 构建带正确方法的请求。
@@ -61,7 +62,7 @@ pub trait CatalogEndpoint {
             HttpMethod::Put => ApiRequest::put(url),
             HttpMethod::Delete => ApiRequest::delete(url),
             HttpMethod::Patch => ApiRequest::patch(url),
-            _ => ApiRequest::get(self.to_url()),
+            _ => unreachable!("CatalogEndpoint encountered unknown HttpMethod variant — this should never happen"),
         };
         if let Some(tokens) = self.supported_access_token_types() {
             req = req.with_supported_access_token_types(tokens);

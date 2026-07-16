@@ -2,7 +2,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Lingo语言服务 API v1 端点
 #[derive(Debug, Clone, PartialEq)]
@@ -142,7 +141,5 @@ impl CatalogEndpoint for LingoApiV1 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
