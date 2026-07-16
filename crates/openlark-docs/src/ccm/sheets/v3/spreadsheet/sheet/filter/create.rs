@@ -66,8 +66,9 @@ pub async fn create_filter_with_options(
 ) -> SDKResult<CreateFilterResponse> {
     let api_endpoint =
         SheetsApiV3::CreateFilter(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<CreateFilterResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建筛选")?);
+    let api_request: ApiRequest<CreateFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建筛选")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "创建筛选")
@@ -78,7 +79,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST .../sheets/{sheet_id}/filter → CreateFilterResponse（空 data）。
@@ -89,6 +90,7 @@ mod tests {
             .and(path(
                 "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter",
             ))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -104,7 +106,7 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        create_filter(
+        create_filter_with_options(
             &config,
             "tokenAbc",
             "sheetId001",
@@ -118,6 +120,9 @@ mod tests {
                     ignore_case: None,
                 },
             },
+            RequestOption::builder()
+                .tenant_access_token("test-tenant-token")
+                .build(),
         )
         .await
         .expect("创建筛选应成功");

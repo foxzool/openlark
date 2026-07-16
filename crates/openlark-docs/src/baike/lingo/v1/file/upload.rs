@@ -71,10 +71,10 @@ impl UploadFileRequest {
         });
 
         // ===== 构建请求并发送 =====
-        let api_request: ApiRequest<UploadFileResp> =
-            ApiRequest::post(&LingoApiV1::FileUpload.to_url())
-                .body(body)
-                .file_content(self.file);
+        let api_request: ApiRequest<UploadFileResp> = LingoApiV1::FileUpload
+            .to_request()
+            .body(body)
+            .file_content(self.file);
 
         let response: Response<UploadFileResp> =
             Transport::request(api_request, &self.config, Some(option)).await?;

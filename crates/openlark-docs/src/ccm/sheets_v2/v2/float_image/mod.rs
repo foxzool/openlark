@@ -102,8 +102,9 @@ pub async fn create_float_image_with_options(
         CcmSheetApiOld::CreateFloatImage(spreadsheet_token.to_string(), params.sheet_id.clone());
 
     // 创建API请求
-    let api_request: ApiRequest<CreateFloatImageResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建浮图")?);
+    let api_request: ApiRequest<CreateFloatImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建浮图")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -146,8 +147,9 @@ pub async fn get_float_image_with_options(
     );
 
     // 创建API请求
-    let api_request: ApiRequest<GetFloatImageResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "获取浮图")?);
+    let api_request: ApiRequest<GetFloatImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "获取浮图")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -190,8 +192,9 @@ pub async fn update_float_image_with_options(
     );
 
     // 创建API请求
-    let api_request: ApiRequest<UpdateFloatImageResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "更新浮图")?);
+    let api_request: ApiRequest<UpdateFloatImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新浮图")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -234,8 +237,9 @@ pub async fn delete_float_image_with_options(
     );
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteFloatImageResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除浮图")?);
+    let api_request: ApiRequest<DeleteFloatImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除浮图")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

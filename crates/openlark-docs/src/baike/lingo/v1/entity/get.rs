@@ -80,7 +80,7 @@ impl GetEntityRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<GetEntityResp> =
-            ApiRequest::get(&LingoApiV1::EntityGet(self.entity_id).to_url());
+            LingoApiV1::EntityGet(self.entity_id).to_request();
         if let Some(provider) = &self.provider {
             api_request = api_request.query("provider", provider);
         }

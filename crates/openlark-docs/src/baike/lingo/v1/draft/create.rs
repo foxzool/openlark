@@ -94,7 +94,7 @@ impl CreateDraftRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<CreateDraftResp> =
-            ApiRequest::post(&LingoApiV1::DraftCreate.to_url()).body(body);
+            LingoApiV1::DraftCreate.to_request().body(body);
         if let Some(repo_id) = &self.repo_id {
             api_request = api_request.query("repo_id", repo_id);
         }

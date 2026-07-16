@@ -99,8 +99,9 @@ pub async fn create_filter_with_options(
     let api_endpoint = CcmSheetApiOld::CreateFilter(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<CreateFilterResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建筛选")?);
+    let api_request: ApiRequest<CreateFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建筛选")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -137,8 +138,9 @@ pub async fn get_filter_with_options(
     let api_endpoint = CcmSheetApiOld::GetFilter(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<GetFilterResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "获取筛选")?);
+    let api_request: ApiRequest<GetFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "获取筛选")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -175,8 +177,9 @@ pub async fn update_filter_with_options(
     let api_endpoint = CcmSheetApiOld::UpdateFilter(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UpdateFilterResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "更新筛选")?);
+    let api_request: ApiRequest<UpdateFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新筛选")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -213,8 +216,9 @@ pub async fn delete_filter_with_options(
     let api_endpoint = CcmSheetApiOld::DeleteFilter(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteFilterResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除筛选")?);
+    let api_request: ApiRequest<DeleteFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除筛选")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

@@ -102,8 +102,9 @@ pub async fn add_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::AddSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<AddSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "添加工作表")?);
+    let api_request: ApiRequest<AddSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "添加工作表")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -141,7 +142,7 @@ pub async fn get_sheet_with_options(
         SheetsApiV3::GetSheet(spreadsheet_token.to_string(), params.sheet_id.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<GetSheetResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetSheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -178,8 +179,9 @@ pub async fn update_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::UpdateSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UpdateSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "更新工作表")?);
+    let api_request: ApiRequest<UpdateSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新工作表")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;
@@ -216,8 +218,9 @@ pub async fn delete_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::DeleteSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除工作表")?);
+    let api_request: ApiRequest<DeleteSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除工作表")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

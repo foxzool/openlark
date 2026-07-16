@@ -87,8 +87,9 @@ impl UpdateDraftRequest {
             openlark_core::error::serialization_error("序列化更新草稿请求体失败", Some(e))
         })?;
 
-        let mut api_request: ApiRequest<UpdateDraftResp> =
-            ApiRequest::put(&LingoApiV1::DraftUpdate(self.draft_id).to_url()).body(body);
+        let mut api_request: ApiRequest<UpdateDraftResp> = LingoApiV1::DraftUpdate(self.draft_id)
+            .to_request()
+            .body(body);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }

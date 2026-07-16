@@ -53,8 +53,7 @@ pub async fn delete_filter_view_with_options(
         sheet_id.to_string(),
         filter_view_id.to_string(),
     );
-    let api_request: ApiRequest<DeleteFilterViewResponse> =
-        ApiRequest::delete(&api_endpoint.to_url());
+    let api_request: ApiRequest<DeleteFilterViewResponse> = api_endpoint.to_request();
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "删除筛选视图")

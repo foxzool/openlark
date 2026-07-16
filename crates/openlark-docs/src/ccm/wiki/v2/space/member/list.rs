@@ -87,8 +87,7 @@ impl ListWikiSpaceMembersRequest {
         let api_endpoint = WikiApiV2::SpaceMemberList(self.space_id.clone());
 
         // 创建API请求 - 使用类型安全的URL生成
-        let mut api_request: ApiRequest<ListWikiSpaceMembersResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListWikiSpaceMembersResponse> = api_endpoint.to_request();
 
         // 设置查询参数
         if let Some(params) = params {

@@ -69,7 +69,7 @@ impl GetWikiSpaceRequest {
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceGet(self.space_id.clone());
 
-        let api_request: ApiRequest<GetWikiSpaceResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetWikiSpaceResponse> = api_endpoint.to_request();
 
         // ===== 发送请求 =====
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

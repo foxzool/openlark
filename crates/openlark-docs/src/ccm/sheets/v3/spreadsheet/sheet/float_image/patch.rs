@@ -84,8 +84,9 @@ pub async fn update_float_image_with_options(
         sheet_id.to_string(),
         float_image_id.to_string(),
     );
-    let api_request: ApiRequest<UpdateFloatImageResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(&params, "更新浮动图片")?);
+    let api_request: ApiRequest<UpdateFloatImageResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新浮动图片")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "更新浮动图片")

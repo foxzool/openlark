@@ -55,8 +55,9 @@ pub async fn move_dimension_with_options(
         SheetsApiV3::MoveDimension(spreadsheet_token.to_string(), sheet_id.to_string());
 
     // 创建API请求 - 使用类型安全的URL生成和标准化的参数序列化
-    let api_request: ApiRequest<MoveDimensionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "移动行列")?);
+    let api_request: ApiRequest<MoveDimensionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "移动行列")?);
 
     // 发送请求并提取响应数据
     let response = Transport::request(api_request, config, Some(option)).await?;

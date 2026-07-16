@@ -155,7 +155,7 @@ impl SearchEntityRequest {
         })?;
 
         let mut api_request: ApiRequest<SearchEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntitySearch.to_url()).body(body);
+            LingoApiV1::EntitySearch.to_request().body(body);
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }

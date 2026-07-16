@@ -45,8 +45,9 @@ pub async fn find_cells_with_options(
     option: RequestOption,
 ) -> SDKResult<FindResponse> {
     let api_endpoint = SheetsApiV3::FindCells(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<FindResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "查找单元格")?);
+    let api_request: ApiRequest<FindResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "查找单元格")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "查找单元格")

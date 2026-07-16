@@ -64,8 +64,9 @@ pub async fn update_filter_with_options(
 ) -> SDKResult<UpdateFilterResponse> {
     let api_endpoint =
         SheetsApiV3::UpdateFilter(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<UpdateFilterResponse> =
-        ApiRequest::put(&api_endpoint.to_url()).body(serialize_params(&params, "更新筛选")?);
+    let api_request: ApiRequest<UpdateFilterResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新筛选")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "更新筛选")

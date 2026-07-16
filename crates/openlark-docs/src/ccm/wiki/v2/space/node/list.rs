@@ -89,8 +89,7 @@ impl ListWikiSpaceNodesRequest {
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceNodeList(self.space_id.clone());
 
-        let mut api_request: ApiRequest<ListWikiSpaceNodesResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListWikiSpaceNodesResponse> = api_endpoint.to_request();
 
         // 设置查询参数
         if let Some(params) = params {

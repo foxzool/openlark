@@ -89,7 +89,7 @@ impl HighlightEntityRequest {
         })?;
 
         let api_request: ApiRequest<HighlightEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntityHighlight.to_url()).body(body);
+            LingoApiV1::EntityHighlight.to_request().body(body);
 
         // ===== 发送请求 =====
         let response: Response<HighlightEntityResp> =

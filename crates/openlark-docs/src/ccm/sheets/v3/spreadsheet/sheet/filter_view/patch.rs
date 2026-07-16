@@ -71,8 +71,9 @@ pub async fn update_filter_view_with_options(
         sheet_id.to_string(),
         filter_view_id.to_string(),
     );
-    let api_request: ApiRequest<UpdateFilterViewResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(&params, "更新筛选视图")?);
+    let api_request: ApiRequest<UpdateFilterViewResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新筛选视图")?);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "更新筛选视图")

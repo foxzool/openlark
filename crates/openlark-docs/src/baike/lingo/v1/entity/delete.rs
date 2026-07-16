@@ -65,7 +65,7 @@ impl DeleteEntityRequest {
         validate_required!(self.entity_id, "entity_id 不能为空");
 
         let mut api_request: ApiRequest<DeleteEntityResp> =
-            ApiRequest::delete(&LingoApiV1::EntityDelete(self.entity_id).to_url());
+            LingoApiV1::EntityDelete(self.entity_id).to_request();
         if let Some(provider) = &self.provider {
             api_request = api_request.query("provider", provider);
         }
