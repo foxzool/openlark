@@ -62,7 +62,9 @@ pub trait CatalogEndpoint {
             HttpMethod::Put => ApiRequest::put(url),
             HttpMethod::Delete => ApiRequest::delete(url),
             HttpMethod::Patch => ApiRequest::patch(url),
-            _ => unreachable!("CatalogEndpoint encountered unknown HttpMethod variant — this should never happen"),
+            _ => unreachable!(
+                "CatalogEndpoint encountered unknown HttpMethod variant — this should never happen"
+            ),
         };
         if let Some(tokens) = self.supported_access_token_types() {
             req = req.with_supported_access_token_types(tokens);

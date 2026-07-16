@@ -81,9 +81,9 @@ impl MatchEntityRequest {
         }
 
         // 使用 catalog 提供 method + path + auth（#443）
-        let api_request: ApiRequest<MatchEntityResp> =
-            BaikeApiV1::EntityMatch.to_request()
-                .body(serde_json::to_value(&self.req)?);
+        let api_request: ApiRequest<MatchEntityResp> = BaikeApiV1::EntityMatch
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
 
         let response: Response<MatchEntityResp> =
             Transport::request(api_request, &self.config, Some(option)).await?;

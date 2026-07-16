@@ -104,8 +104,7 @@ impl ListEntityRequest {
 
         // ===== 构建请求 =====
         // 使用 catalog 提供 method + path + auth（#443）
-        let mut api_request: ApiRequest<ListEntityResp> =
-            BaikeApiV1::EntityList.to_request();
+        let mut api_request: ApiRequest<ListEntityResp> = BaikeApiV1::EntityList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", page_size.to_string());
         }

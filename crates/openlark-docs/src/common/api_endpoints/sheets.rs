@@ -722,14 +722,13 @@ impl CatalogEndpoint for SheetsApiV3 {
             | Self::CreateFilterView(_, _)
             | Self::CreateFilterCondition(_, _, _)
             | Self::CreateFloatImage(_, _) => HttpMethod::Post,
-            Self::MoveDimension(_, _)
-            | Self::FindCells(_, _)
-            | Self::ReplaceCells(_, _) => HttpMethod::Post,
+            Self::MoveDimension(_, _) | Self::FindCells(_, _) | Self::ReplaceCells(_, _) => {
+                HttpMethod::Post
+            }
             Self::PatchSpreadsheet(_)
             | Self::PatchFilterView(_, _, _)
             | Self::PatchFloatImage(_, _, _) => HttpMethod::Patch,
-            Self::UpdateFilter(_, _)
-            | Self::UpdateFilterCondition(_, _, _, _) => HttpMethod::Put,
+            Self::UpdateFilter(_, _) | Self::UpdateFilterCondition(_, _, _, _) => HttpMethod::Put,
             Self::DeleteFilter(_, _)
             | Self::DeleteFilterView(_, _, _)
             | Self::DeleteFilterCondition(_, _, _, _)
