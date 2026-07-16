@@ -6,6 +6,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 /// CCM Sheet API Old V2 端点枚举
 /// 对应 meta.project = ccm_sheet, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmSheetApiOld {
     /// 操作工作表 (第一个)
     OperateSheets(String), // spreadsheet_token
@@ -517,6 +518,7 @@ impl CatalogEndpoint for CcmSheetApiOld {
 /// Sheets API v3 端点枚举
 /// 对应 meta.project = sheets, meta.version = v3
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum SheetsApiV3 {
     // =====================
     // spreadsheet
@@ -741,60 +743,17 @@ impl CatalogEndpoint for SheetsApiV3 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn sheets_catalog_covers_every_family_and_http_method_class() {
-        assert_endpoint_semantics(
-            CcmSheetApiOld::GetSpreadsheet("sheet".into()),
-            HttpMethod::Get,
-            "/open-apis/sheets/v3/spreadsheets/sheet",
+    fn sheets_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "ccm_sheet_old_catalog_semantics",
+            catalog_semantics_snapshot::<CcmSheetApiOld>()
         );
-        assert_endpoint_semantics(
-            CcmSheetApiOld::CreateSpreadsheet,
-            HttpMethod::Post,
-            "/open-apis/sheets/v3/spreadsheets",
-        );
-        assert_endpoint_semantics(
-            CcmSheetApiOld::Values("sheet".into()),
-            HttpMethod::Put,
-            "/open-apis/sheets/v2/spreadsheets/sheet/values",
-        );
-        assert_endpoint_semantics(
-            CcmSheetApiOld::UpdateSpreadsheet("sheet".into()),
-            HttpMethod::Patch,
-            "/open-apis/sheets/v3/spreadsheets/sheet",
-        );
-        assert_endpoint_semantics(
-            CcmSheetApiOld::DimensionRangeDelete("sheet".into()),
-            HttpMethod::Delete,
-            "/open-apis/sheets/v2/spreadsheets/sheet/dimension_range",
-        );
-
-        assert_endpoint_semantics(
-            SheetsApiV3::GetSpreadsheet("sheet".into()),
-            HttpMethod::Get,
-            "/open-apis/sheets/v3/spreadsheets/sheet",
-        );
-        assert_endpoint_semantics(
-            SheetsApiV3::CreateSpreadsheet,
-            HttpMethod::Post,
-            "/open-apis/sheets/v3/spreadsheets",
-        );
-        assert_endpoint_semantics(
-            SheetsApiV3::UpdateFilter("sheet".into(), "tab".into()),
-            HttpMethod::Put,
-            "/open-apis/sheets/v3/spreadsheets/sheet/sheets/tab/filter",
-        );
-        assert_endpoint_semantics(
-            SheetsApiV3::PatchSpreadsheet("sheet".into()),
-            HttpMethod::Patch,
-            "/open-apis/sheets/v3/spreadsheets/sheet",
-        );
-        assert_endpoint_semantics(
-            SheetsApiV3::DeleteFilter("sheet".into(), "tab".into()),
-            HttpMethod::Delete,
-            "/open-apis/sheets/v3/spreadsheets/sheet/sheets/tab/filter",
+        insta::assert_snapshot!(
+            "sheets_v3_catalog_semantics",
+            catalog_semantics_snapshot::<SheetsApiV3>()
         );
     }
 }

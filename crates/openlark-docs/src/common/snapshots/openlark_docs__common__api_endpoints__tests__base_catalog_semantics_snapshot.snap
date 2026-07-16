@@ -1,0 +1,7 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints.rs
+expression: "catalog_semantics_snapshot::<BaseApiV2>()"
+---
+RoleCreate("") | Post | /open-apis/base/v2/apps//roles | Some([User, Tenant])
+RoleUpdate("", "") | Put | /open-apis/base/v2/apps//roles/ | Some([User, Tenant])
+RoleList("") | Get | /open-apis/base/v2/apps//roles | Some([User, Tenant])

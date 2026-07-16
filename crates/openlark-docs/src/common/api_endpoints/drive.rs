@@ -6,6 +6,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 /// CCM Drive Explorer API Old V2 端点枚举
 /// 对应 meta.project = ccm_drive_explorer, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDriveExplorerApiOld {
     /// 获取我的空间（根文件夹）元数据
     RootFolderMeta,
@@ -81,6 +82,7 @@ impl CatalogEndpoint for CcmDriveExplorerApiOld {
 /// CCM Drive Explorer API V1 端点枚举
 /// 对应 meta.project = ccm_drive_explorer, meta.version = v1
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDriveExplorerApi {
     /// 获取根目录元数据
     RootFolderMeta,
@@ -185,6 +187,7 @@ fn simple_url_encode(input: &str) -> String {
 /// CCM Drive Permission API V1 端点枚举
 /// 对应 meta.project = permission, meta.version = v1
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum PermissionApi {
     /// 判断协作者是否有某权限
     MemberPermitted,
@@ -229,6 +232,7 @@ impl CatalogEndpoint for PermissionApi {
 /// CCM Drive Permission API Old V2 端点枚举
 /// 对应 meta.project = permission, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum PermissionApiOld {
     /// 判断协作者是否有某权限
     MemberPermitted,
@@ -272,6 +276,7 @@ impl CatalogEndpoint for PermissionApiOld {
 
 /// Drive API 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum DriveApi {
     // V1 APIs - 文件操作
     /// 获取文件夹中的文件清单
@@ -713,71 +718,29 @@ impl CatalogEndpoint for DriveApi {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn drive_catalog_covers_every_family_and_http_method_class() {
-        assert_endpoint_semantics(
-            CcmDriveExplorerApiOld::RootFolderMeta,
-            HttpMethod::Get,
-            "/open-apis/drive/explorer/v2/root_folder/meta",
+    fn drive_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "ccm_drive_explorer_old_catalog_semantics",
+            catalog_semantics_snapshot::<CcmDriveExplorerApiOld>()
         );
-        assert_endpoint_semantics(
-            CcmDriveExplorerApiOld::File("folder".into()),
-            HttpMethod::Post,
-            "/open-apis/drive/explorer/v2/file/folder",
+        insta::assert_snapshot!(
+            "ccm_drive_explorer_catalog_semantics",
+            catalog_semantics_snapshot::<CcmDriveExplorerApi>()
         );
-        assert_endpoint_semantics(
-            CcmDriveExplorerApiOld::FileDocs("doc".into()),
-            HttpMethod::Delete,
-            "/open-apis/drive/explorer/v2/file/docs/doc",
+        insta::assert_snapshot!(
+            "permission_catalog_semantics",
+            catalog_semantics_snapshot::<PermissionApi>()
         );
-
-        assert_endpoint_semantics(
-            CcmDriveExplorerApi::RootFolderMeta,
-            HttpMethod::Get,
-            "/open-apis/drive/v1/explorer/root_folder/meta",
+        insta::assert_snapshot!(
+            "permission_old_catalog_semantics",
+            catalog_semantics_snapshot::<PermissionApiOld>()
         );
-        assert_endpoint_semantics(
-            CcmDriveExplorerApi::Folder,
-            HttpMethod::Post,
-            "/open-apis/drive/v1/explorer/folder",
-        );
-        assert_endpoint_semantics(
-            PermissionApi::MemberPermitted,
-            HttpMethod::Post,
-            "/open-apis/drive/v1/permission/member/permitted",
-        );
-        assert_endpoint_semantics(
-            PermissionApiOld::MemberPermitted,
-            HttpMethod::Post,
-            "/open-apis/drive/v1/permission/member/permitted",
-        );
-
-        assert_endpoint_semantics(
-            DriveApi::ListFiles,
-            HttpMethod::Get,
-            "/open-apis/drive/v1/files",
-        );
-        assert_endpoint_semantics(
-            DriveApi::CreateFolder,
-            HttpMethod::Post,
-            "/open-apis/drive/v1/files/create_folder",
-        );
-        assert_endpoint_semantics(
-            DriveApi::UpdatePermissionMember("token".into(), "member".into()),
-            HttpMethod::Put,
-            "/open-apis/drive/v1/permissions/token/members/member",
-        );
-        assert_endpoint_semantics(
-            DriveApi::UpdatePublicPermission("token".into()),
-            HttpMethod::Patch,
-            "/open-apis/drive/v1/permissions/token/public",
-        );
-        assert_endpoint_semantics(
-            DriveApi::DeleteFile("token".into()),
-            HttpMethod::Delete,
-            "/open-apis/drive/v1/files/token",
+        insta::assert_snapshot!(
+            "drive_catalog_semantics",
+            catalog_semantics_snapshot::<DriveApi>()
         );
     }
 }

@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Minutes API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum MinutesApiV1 {
     /// 获取妙记信息
     Get(String),
@@ -68,6 +69,7 @@ impl CatalogEndpoint for MinutesApiV1 {
 
 /// 不扩展公开 `MinutesApiV1` 的补充端点，避免破坏下游穷举匹配。
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 #[cfg(feature = "minutes")]
 pub(crate) enum MinutesExtraApiV1 {
     /// 搜索妙记。
@@ -108,34 +110,18 @@ impl CatalogEndpoint for MinutesExtraApiV1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn minutes_catalog_covers_every_http_method_class() {
-        assert_endpoint_semantics(
-            MinutesApiV1::Get("minute".into()),
-            HttpMethod::Get,
-            "/open-apis/minutes/v1/minutes/minute",
+    fn minutes_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "minutes_catalog_semantics",
+            catalog_semantics_snapshot::<MinutesApiV1>()
         );
-        assert_endpoint_semantics(
-            MinutesApiV1::Subscription,
-            HttpMethod::Post,
-            "/open-apis/minutes/v1/minutes/subscription",
-        );
-    }
-
-    #[cfg(feature = "minutes")]
-    #[test]
-    fn minutes_extra_catalog_covers_every_http_method_class() {
-        assert_endpoint_semantics(
-            MinutesExtraApiV1::Search,
-            HttpMethod::Post,
-            "/open-apis/minutes/v1/minutes/search",
-        );
-        assert_endpoint_semantics(
-            MinutesExtraApiV1::Artifacts("minute".into()),
-            HttpMethod::Get,
-            "/open-apis/minutes/v1/minutes/minute/artifacts",
+        #[cfg(feature = "minutes")]
+        insta::assert_snapshot!(
+            "minutes_extra_catalog_semantics",
+            catalog_semantics_snapshot::<MinutesExtraApiV1>()
         );
     }
 }

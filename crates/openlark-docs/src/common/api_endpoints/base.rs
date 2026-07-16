@@ -7,6 +7,7 @@ use openlark_core::api::HttpMethod;
 
 /// Base API V2 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum BaseApiV2 {
     /// 新增自定义角色
     RoleCreate(String),

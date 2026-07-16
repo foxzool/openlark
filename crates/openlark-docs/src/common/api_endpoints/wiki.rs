@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Wiki API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApiV1 {
     /// 搜索Wiki
     NodeSearch,
@@ -38,6 +39,7 @@ impl CatalogEndpoint for WikiApiV1 {
 
 /// Wiki API V2 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApiV2 {
     /// 获取知识空间列表
     SpaceList,
@@ -153,6 +155,7 @@ impl CatalogEndpoint for WikiApiV2 {
 
 /// Wiki API 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApi {
     // Space APIs
     /// 获取知识空间列表
@@ -291,56 +294,21 @@ impl CatalogEndpoint for WikiApi {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn wiki_catalog_covers_every_http_method_class() {
-        assert_endpoint_semantics(
-            WikiApiV1::NodeSearch,
-            HttpMethod::Post,
-            "/open-apis/wiki/v1/nodes/search",
+    fn wiki_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "wiki_v1_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApiV1>()
         );
-
-        assert_endpoint_semantics(
-            WikiApiV2::SpaceGet("space".into()),
-            HttpMethod::Get,
-            "/open-apis/wiki/v2/spaces/space",
+        insta::assert_snapshot!(
+            "wiki_v2_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApiV2>()
         );
-        assert_endpoint_semantics(
-            WikiApiV2::SpaceCreate,
-            HttpMethod::Post,
-            "/open-apis/wiki/v2/spaces",
-        );
-        assert_endpoint_semantics(
-            WikiApiV2::SpaceSettingUpdate("space".into()),
-            HttpMethod::Put,
-            "/open-apis/wiki/v2/spaces/space/setting",
-        );
-        assert_endpoint_semantics(
-            WikiApiV2::SpaceMemberDelete("space".into(), "member".into()),
-            HttpMethod::Delete,
-            "/open-apis/wiki/v2/spaces/space/members/member",
-        );
-
-        assert_endpoint_semantics(
-            WikiApi::GetSpace,
-            HttpMethod::Get,
-            "/open-apis/wiki/v2/spaces/get_node",
-        );
-        assert_endpoint_semantics(
-            WikiApi::CreateSpace,
-            HttpMethod::Post,
-            "/open-apis/wiki/v2/spaces",
-        );
-        assert_endpoint_semantics(
-            WikiApi::UpdateSpaceSetting("space".into()),
-            HttpMethod::Put,
-            "/open-apis/wiki/v2/spaces/space/setting",
-        );
-        assert_endpoint_semantics(
-            WikiApi::DeleteSpaceMember("space".into(), "member".into()),
-            HttpMethod::Delete,
-            "/open-apis/wiki/v2/spaces/space/members/member",
+        insta::assert_snapshot!(
+            "wiki_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApi>()
         );
     }
 }

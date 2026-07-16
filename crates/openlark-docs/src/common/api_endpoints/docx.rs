@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Docx API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum DocxApiV1 {
     // 群公告相关API (7个)
     /// 获取群公告基本信息
@@ -162,29 +163,10 @@ impl CatalogEndpoint for DocxApiV1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn docx_catalog_covers_every_http_method_class() {
-        assert_endpoint_semantics(
-            DocxApiV1::DocumentGet("doc".into()),
-            HttpMethod::Get,
-            "/open-apis/docx/v1/documents/doc",
-        );
-        assert_endpoint_semantics(
-            DocxApiV1::DocumentCreate,
-            HttpMethod::Post,
-            "/open-apis/docx/v1/documents",
-        );
-        assert_endpoint_semantics(
-            DocxApiV1::DocumentBlockPatch("doc".into(), "block".into()),
-            HttpMethod::Patch,
-            "/open-apis/docx/v1/documents/doc/blocks/block",
-        );
-        assert_endpoint_semantics(
-            DocxApiV1::DocumentBlockChildrenBatchDelete("doc".into(), "block".into()),
-            HttpMethod::Delete,
-            "/open-apis/docx/v1/documents/doc/blocks/block/children/batch_delete",
-        );
+    fn docx_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<DocxApiV1>());
     }
 }

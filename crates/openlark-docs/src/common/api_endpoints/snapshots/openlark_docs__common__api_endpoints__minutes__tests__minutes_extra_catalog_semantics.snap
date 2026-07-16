@@ -1,0 +1,6 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/minutes.rs
+expression: "catalog_semantics_snapshot::<MinutesExtraApiV1>()"
+---
+Search | Post | /open-apis/minutes/v1/minutes/search | Some([User, Tenant])
+Artifacts("") | Get | /open-apis/minutes/v1/minutes//artifacts | Some([User, Tenant])

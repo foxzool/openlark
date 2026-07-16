@@ -8,6 +8,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Bitable API V1 端点枚举（#424 深化了请求语义：method + path + auth 在此集中）。
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum BitableApiV1 {
     /// App管理相关
     AppCreate,
@@ -413,7 +414,14 @@ impl CatalogEndpoint for BitableApiV1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::{
+        assert_endpoint_semantics, catalog_semantics_snapshot,
+    };
+
+    #[test]
+    fn bitable_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<BitableApiV1>());
+    }
 
     #[test]
     fn test_bitable_api_v1_app_create() {
@@ -563,35 +571,6 @@ mod tests {
             BitableApiV1::RecordSearch("app".into(), "tbl".into()),
             HttpMethod::Post,
             "/open-apis/bitable/v1/apps/app/tables/tbl/records/search",
-        );
-    }
-
-    #[test]
-    fn bitable_catalog_covers_non_record_http_method_classes() {
-        assert_endpoint_semantics(
-            BitableApiV1::AppCreate,
-            HttpMethod::Post,
-            "/open-apis/bitable/v1/apps",
-        );
-        assert_endpoint_semantics(
-            BitableApiV1::AppGet("app".into()),
-            HttpMethod::Get,
-            "/open-apis/bitable/v1/apps/app",
-        );
-        assert_endpoint_semantics(
-            BitableApiV1::AppUpdate("app".into()),
-            HttpMethod::Put,
-            "/open-apis/bitable/v1/apps/app",
-        );
-        assert_endpoint_semantics(
-            BitableApiV1::TablePatch("app".into(), "tbl".into()),
-            HttpMethod::Patch,
-            "/open-apis/bitable/v1/apps/app/tables/tbl",
-        );
-        assert_endpoint_semantics(
-            BitableApiV1::TableDelete("app".into(), "tbl".into()),
-            HttpMethod::Delete,
-            "/open-apis/bitable/v1/apps/app/tables/tbl",
         );
     }
 }

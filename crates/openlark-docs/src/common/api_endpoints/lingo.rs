@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Lingo语言服务 API v1 端点
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum LingoApiV1 {
     /// 草稿管理
     DraftCreate,
@@ -147,29 +148,10 @@ impl CatalogEndpoint for LingoApiV1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
 
     #[test]
-    fn lingo_catalog_covers_every_http_method_class() {
-        assert_endpoint_semantics(
-            LingoApiV1::EntityGet("entity".into()),
-            HttpMethod::Get,
-            "/open-apis/lingo/v1/entities/entity",
-        );
-        assert_endpoint_semantics(
-            LingoApiV1::EntityCreate,
-            HttpMethod::Post,
-            "/open-apis/lingo/v1/entities",
-        );
-        assert_endpoint_semantics(
-            LingoApiV1::EntityUpdate("entity".into()),
-            HttpMethod::Put,
-            "/open-apis/lingo/v1/entities/entity",
-        );
-        assert_endpoint_semantics(
-            LingoApiV1::EntityDelete("entity".into()),
-            HttpMethod::Delete,
-            "/open-apis/lingo/v1/entities/entity",
-        );
+    fn lingo_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<LingoApiV1>());
     }
 }

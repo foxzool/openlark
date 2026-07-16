@@ -102,6 +102,8 @@ rstest = { workspace = true }
 tempfile = { workspace = true }
 mockall = { workspace = true }
 insta = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 
 [[example]]
 name = "docs_readme_examples"

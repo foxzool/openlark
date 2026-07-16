@@ -1,0 +1,19 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/wiki.rs
+expression: "catalog_semantics_snapshot::<WikiApiV2>()"
+---
+SpaceList | Get | /open-apis/wiki/v2/spaces | Some([User, Tenant])
+SpaceGet("") | Get | /open-apis/wiki/v2/spaces/ | Some([User, Tenant])
+SpaceCreate | Post | /open-apis/wiki/v2/spaces | Some([User, Tenant])
+SpaceSettingUpdate("") | Put | /open-apis/wiki/v2/spaces//setting | Some([User, Tenant])
+SpaceGetNode | Get | /open-apis/wiki/v2/spaces/get_node | Some([User, Tenant])
+SpaceNodeList("") | Get | /open-apis/wiki/v2/spaces//nodes | Some([User, Tenant])
+SpaceNodeCreate("") | Post | /open-apis/wiki/v2/spaces//nodes | Some([User, Tenant])
+SpaceMemberList("") | Get | /open-apis/wiki/v2/spaces//members | Some([User, Tenant])
+SpaceMemberCreate("") | Post | /open-apis/wiki/v2/spaces//members | Some([User, Tenant])
+SpaceMemberDelete("", "") | Delete | /open-apis/wiki/v2/spaces//members/ | Some([User, Tenant])
+SpaceNodeMove("", "") | Post | /open-apis/wiki/v2/spaces//nodes//move | Some([User, Tenant])
+SpaceNodeUpdateTitle("", "") | Post | /open-apis/wiki/v2/spaces//nodes//update_title | Some([User, Tenant])
+SpaceNodeCopy("", "") | Post | /open-apis/wiki/v2/spaces//nodes//copy | Some([User, Tenant])
+SpaceNodeMoveDocsToWiki("") | Post | /open-apis/wiki/v2/spaces//nodes/move_docs_to_wiki | Some([User, Tenant])
+TaskGet("") | Get | /open-apis/wiki/v2/tasks/ | Some([User, Tenant])
