@@ -74,8 +74,7 @@ impl GetDocumentBlockRequest {
 
         let api_endpoint =
             DocxApiV1::DocumentBlockGet(params.document_id.clone(), params.block_id.clone());
-        let mut api_request: ApiRequest<GetDocumentBlockResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetDocumentBlockResponse> = api_endpoint.to_request();
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =

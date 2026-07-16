@@ -89,7 +89,7 @@ impl GetChatAnnouncementBlockChildrenRequest {
         );
 
         let mut api_request: ApiRequest<GetChatAnnouncementBlockChildrenResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+            api_endpoint.to_request();
 
         if let Some(page_size) = params.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());

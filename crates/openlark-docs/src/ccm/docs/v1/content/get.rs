@@ -91,7 +91,8 @@ pub async fn get_docs_content(
 
     let api_endpoint = DocsApiV1::ContentGet;
 
-    let api_request: ApiRequest<GetDocsContentResponse> = ApiRequest::get(&api_endpoint.to_url())
+    let api_request: ApiRequest<GetDocsContentResponse> = api_endpoint
+        .to_request()
         .query("doc_token", &request.doc_token)
         .query("doc_type", &request.doc_type)
         .query("content_type", &request.content_type)

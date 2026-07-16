@@ -109,8 +109,9 @@ impl CreateDocumentBlockDescendantRequest {
             params.block_id.clone(),
         );
 
-        let mut api_request: ApiRequest<CreateDocumentBlockDescendantResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建嵌套块")?);
+        let mut api_request: ApiRequest<CreateDocumentBlockDescendantResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "创建嵌套块")?);
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =

@@ -84,8 +84,9 @@ impl BatchDeleteDocumentBlockChildrenRequest {
             params.block_id.clone(),
         );
 
-        let mut api_request: ApiRequest<BatchDeleteDocumentBlockChildrenResponse> =
-            ApiRequest::delete(&api_endpoint.to_url()).body(serialize_params(&params, "删除块")?);
+        let mut api_request: ApiRequest<BatchDeleteDocumentBlockChildrenResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "删除块")?);
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =
@@ -102,7 +103,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：DELETE .../blocks/{block_id}/children/batch_delete → BatchDeleteDocumentBlockChildrenResponse（document_revision_id）。
@@ -113,6 +114,7 @@ mod tests {
             .and(path(
                 "/open-apis/docx/v1/documents/doc1/blocks/blk1/children/batch_delete",
             ))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": { "document_revision_id": 2, "client_token": "ct001" }
@@ -128,13 +130,18 @@ mod tests {
             .build();
 
         let resp = BatchDeleteDocumentBlockChildrenRequest::new(config)
-            .execute(BatchDeleteDocumentBlockChildrenParams {
-                document_id: "doc1".into(),
-                block_id: "blk1".into(),
-                document_revision_id: None,
-                start_index: 0,
-                end_index: 1,
-            })
+            .execute_with_options(
+                BatchDeleteDocumentBlockChildrenParams {
+                    document_id: "doc1".into(),
+                    block_id: "blk1".into(),
+                    document_revision_id: Some(-1),
+                    start_index: 0,
+                    end_index: 1,
+                },
+                RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
             .await
             .expect("删除子块应成功");
         assert_eq!(resp.document_revision_id, 2);
@@ -145,5 +152,18 @@ mod tests {
             received[0].url.path(),
             "/open-apis/docx/v1/documents/doc1/blocks/blk1/children/batch_delete"
         );
+        let query: std::collections::HashMap<_, _> = received[0]
+            .url
+            .query_pairs()
+            .map(|(key, value)| (key.into_owned(), value.into_owned()))
+            .collect();
+        assert_eq!(
+            query.get("document_revision_id").map(String::as_str),
+            Some("-1")
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["start_index"], 0);
+        assert_eq!(body["end_index"], 1);
     }
 }

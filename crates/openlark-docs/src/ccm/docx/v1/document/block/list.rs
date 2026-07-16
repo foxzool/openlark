@@ -85,8 +85,7 @@ impl GetDocumentBlocksRequest {
         let api_endpoint = DocxApiV1::DocumentBlockList(params.document_id.clone());
 
         // 创建API请求
-        let mut api_request: ApiRequest<GetDocumentBlocksResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetDocumentBlocksResponse> = api_endpoint.to_request();
 
         // 设置查询参数
         if let Some(page_size) = params.page_size {

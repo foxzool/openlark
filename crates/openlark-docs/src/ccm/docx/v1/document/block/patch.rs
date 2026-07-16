@@ -84,8 +84,7 @@ impl UpdateDocumentBlockRequest {
 
         let api_endpoint =
             DocxApiV1::DocumentBlockPatch(params.document_id.clone(), params.block_id.clone());
-        let mut api_request: ApiRequest<UpdateDocumentBlockResponse> =
-            ApiRequest::patch(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<UpdateDocumentBlockResponse> = api_endpoint.to_request();
         api_request = api_request.json_body(&params);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -102,7 +101,7 @@ mod tests {
     };
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：PATCH .../blocks/{block_id} → UpdateDocumentBlockResponse（block）。
@@ -111,6 +110,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("PATCH"))
             .and(path("/open-apis/docx/v1/documents/doc1/blocks/blk1"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": { "block": { "block_id": "blk1", "block_type": 1 } }
@@ -126,11 +126,18 @@ mod tests {
             .build();
 
         let resp = UpdateDocumentBlockRequest::new(config)
-            .execute(UpdateDocumentBlockParams {
-                document_id: "doc1".into(),
-                block_id: "blk1".into(),
-                update: BlockUpdateOperation::Raw(json!({})),
-            })
+            .execute_with_options(
+                UpdateDocumentBlockParams {
+                    document_id: "doc1".into(),
+                    block_id: "blk1".into(),
+                    update: BlockUpdateOperation::Raw(json!({
+                        "update_text_elements": { "elements": [] }
+                    })),
+                },
+                RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
             .await
             .expect("更新块内容应成功");
         assert_eq!(resp.block.block_id, "blk1");
@@ -141,6 +148,9 @@ mod tests {
             received[0].url.path(),
             "/open-apis/docx/v1/documents/doc1/blocks/blk1"
         );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["update_text_elements"]["elements"], json!([]));
     }
 
     #[test]

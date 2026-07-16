@@ -85,8 +85,7 @@ impl GetChatAnnouncementBlockRequest {
         let api_endpoint =
             DocxApiV1::ChatAnnouncementBlockGet(params.chat_id.clone(), params.block_id.clone());
 
-        let api_request: ApiRequest<GetChatAnnouncementBlockResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetChatAnnouncementBlockResponse> = api_endpoint.to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取群公告块的内容")
