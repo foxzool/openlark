@@ -61,15 +61,6 @@ impl CcmDriveExplorerApiOld {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        match self {
-            Self::RootFolderMeta | Self::FolderMeta(_) | Self::FolderChildren(_) => HttpMethod::Get,
-            Self::File(_) | Self::FileCopy(_) | Self::Folder(_) => HttpMethod::Post,
-            Self::FileSpreadsheets(_) | Self::FileDocs(_) => HttpMethod::Delete,
-        }
-    }
 }
 
 impl CatalogEndpoint for CcmDriveExplorerApiOld {
@@ -78,7 +69,11 @@ impl CatalogEndpoint for CcmDriveExplorerApiOld {
     }
 
     fn method(&self) -> HttpMethod {
-        CcmDriveExplorerApiOld::method(self)
+        match self {
+            Self::RootFolderMeta | Self::FolderMeta(_) | Self::FolderChildren(_) => HttpMethod::Get,
+            Self::File(_) | Self::FileCopy(_) | Self::Folder(_) => HttpMethod::Post,
+            Self::FileSpreadsheets(_) | Self::FileDocs(_) => HttpMethod::Delete,
+        }
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -157,9 +152,14 @@ impl CcmDriveExplorerApi {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for CcmDriveExplorerApi {
+    fn to_url(&self) -> String {
+        CcmDriveExplorerApi::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::RootFolderMeta
             | Self::FolderMeta(_)
@@ -169,16 +169,6 @@ impl CcmDriveExplorerApi {
             | Self::FolderChildren(_) => HttpMethod::Get,
             Self::FileCopy(_) | Self::Folder => HttpMethod::Post,
         }
-    }
-}
-
-impl CatalogEndpoint for CcmDriveExplorerApi {
-    fn to_url(&self) -> String {
-        CcmDriveExplorerApi::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        CcmDriveExplorerApi::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -227,11 +217,6 @@ impl PermissionApi {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        HttpMethod::Post
-    }
 }
 
 impl CatalogEndpoint for PermissionApi {
@@ -240,7 +225,7 @@ impl CatalogEndpoint for PermissionApi {
     }
 
     fn method(&self) -> HttpMethod {
-        PermissionApi::method(self)
+        HttpMethod::Post
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -278,11 +263,6 @@ impl PermissionApiOld {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        HttpMethod::Post
-    }
 }
 
 impl CatalogEndpoint for PermissionApiOld {
@@ -291,7 +271,7 @@ impl CatalogEndpoint for PermissionApiOld {
     }
 
     fn method(&self) -> HttpMethod {
-        PermissionApiOld::method(self)
+        HttpMethod::Post
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -656,9 +636,14 @@ impl DriveApi {
     pub fn to_request_with_url<R>(&self, url: impl Into<String>) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request_with_url(self, url)
     }
+}
 
-    /// 返回该端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for DriveApi {
+    fn to_url(&self) -> String {
+        DriveApi::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::ListFiles
             | Self::TaskCheck
@@ -729,16 +714,6 @@ impl DriveApi {
             | Self::DeleteCommentReply(_, _, _) => HttpMethod::Delete,
             Self::UserRemoveSubscription => HttpMethod::Delete,
         }
-    }
-}
-
-impl CatalogEndpoint for DriveApi {
-    fn to_url(&self) -> String {
-        DriveApi::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        DriveApi::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

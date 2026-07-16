@@ -38,8 +38,9 @@ impl DownloadFileRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<Response<Vec<u8>>> {
         validate_required!(self.file_token, "file_token 不能为空");
 
+        // 使用 catalog 提供 method + path + auth（#443）
         let api_request: ApiRequest<Vec<u8>> =
-            ApiRequest::get(&BaikeApiV1::FileDownload(self.file_token).to_url());
+            BaikeApiV1::FileDownload(self.file_token).to_request();
         Transport::request(api_request, &self.config, Some(option)).await
     }
 }

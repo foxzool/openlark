@@ -88,8 +88,9 @@ impl ListClassificationRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443 contract path-only）
         let mut api_request: ApiRequest<ListClassificationResponse> =
-            ApiRequest::get(&BaikeApiV1::ClassificationList.to_url());
+            BaikeApiV1::ClassificationList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", page_size.to_string());
         }

@@ -133,8 +133,9 @@ impl CreateDraftRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443）
         let mut api_request: ApiRequest<CreateDraftResp> =
-            ApiRequest::post(&BaikeApiV1::DraftCreate.to_url())
+            BaikeApiV1::DraftCreate.to_request()
                 .body(serde_json::to_value(&self.req)?);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());

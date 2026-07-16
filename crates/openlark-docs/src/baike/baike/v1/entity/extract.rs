@@ -78,8 +78,9 @@ impl ExtractEntityRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443）
         let api_request: ApiRequest<ExtractEntityResponse> =
-            ApiRequest::post(&BaikeApiV1::EntityExtract.to_url())
+            BaikeApiV1::EntityExtract.to_request()
                 .body(serde_json::to_value(&self.req)?);
 
         // ===== 发送请求 =====

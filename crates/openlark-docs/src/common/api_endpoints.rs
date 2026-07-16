@@ -127,16 +127,6 @@ impl CcmDocApiOld {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        match self {
-            Self::Create | Self::BatchUpdate(_) => HttpMethod::Post,
-            Self::Meta(_) | Self::SheetMeta(_) | Self::RawContent(_) | Self::Content(_) => {
-                HttpMethod::Get
-            }
-        }
-    }
 }
 
 impl CatalogEndpoint for CcmDocApiOld {
@@ -145,7 +135,12 @@ impl CatalogEndpoint for CcmDocApiOld {
     }
 
     fn method(&self) -> HttpMethod {
-        CcmDocApiOld::method(self)
+        match self {
+            Self::Create | Self::BatchUpdate(_) => HttpMethod::Post,
+            Self::Meta(_) | Self::SheetMeta(_) | Self::RawContent(_) | Self::Content(_) => {
+                HttpMethod::Get
+            }
+        }
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -176,14 +171,6 @@ impl CcmDocsApiOld {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        match self {
-            Self::SearchObject => HttpMethod::Post,
-            Self::Meta => HttpMethod::Get,
-        }
-    }
 }
 
 impl CatalogEndpoint for CcmDocsApiOld {
@@ -192,7 +179,10 @@ impl CatalogEndpoint for CcmDocsApiOld {
     }
 
     fn method(&self) -> HttpMethod {
-        CcmDocsApiOld::method(self)
+        match self {
+            Self::SearchObject => HttpMethod::Post,
+            Self::Meta => HttpMethod::Get,
+        }
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

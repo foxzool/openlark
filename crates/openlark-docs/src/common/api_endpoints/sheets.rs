@@ -432,9 +432,15 @@ impl CcmSheetApiOld {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
+
+impl CatalogEndpoint for CcmSheetApiOld {
+    fn to_url(&self) -> String {
+        CcmSheetApiOld::to_url(self)
+    }
 
     /// 返回端点的 HTTP 方法，并保持旧版 leaf 的现有请求语义。
-    pub fn method(&self) -> HttpMethod {
+    fn method(&self) -> HttpMethod {
         match self {
             Self::ValuesRange(_, _)
             | Self::ValuesBatchGet(_)
@@ -506,20 +512,6 @@ impl CcmSheetApiOld {
             | Self::ReplaceRange(_)
             | Self::FindReplace(_) => HttpMethod::Post,
         }
-    }
-}
-
-impl CatalogEndpoint for CcmSheetApiOld {
-    fn to_url(&self) -> String {
-        CcmSheetApiOld::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        CcmSheetApiOld::method(self)
-    }
-
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
     }
 }
 
@@ -706,9 +698,14 @@ impl SheetsApiV3 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for SheetsApiV3 {
+    fn to_url(&self) -> String {
+        SheetsApiV3::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::GetSpreadsheet(_)
             | Self::QuerySheets(_)
@@ -721,32 +718,23 @@ impl SheetsApiV3 {
             | Self::QueryFloatImages(_, _)
             | Self::GetFloatImage(_, _, _) => HttpMethod::Get,
             Self::CreateSpreadsheet
-            | Self::MoveDimension(_, _)
-            | Self::FindCells(_, _)
-            | Self::ReplaceCells(_, _)
             | Self::CreateFilter(_, _)
             | Self::CreateFilterView(_, _)
             | Self::CreateFilterCondition(_, _, _)
             | Self::CreateFloatImage(_, _) => HttpMethod::Post,
-            Self::UpdateFilter(_, _) | Self::UpdateFilterCondition(_, _, _, _) => HttpMethod::Put,
+            Self::MoveDimension(_, _)
+            | Self::FindCells(_, _)
+            | Self::ReplaceCells(_, _) => HttpMethod::Post,
             Self::PatchSpreadsheet(_)
             | Self::PatchFilterView(_, _, _)
             | Self::PatchFloatImage(_, _, _) => HttpMethod::Patch,
+            Self::UpdateFilter(_, _)
+            | Self::UpdateFilterCondition(_, _, _, _) => HttpMethod::Put,
             Self::DeleteFilter(_, _)
             | Self::DeleteFilterView(_, _, _)
             | Self::DeleteFilterCondition(_, _, _, _)
             | Self::DeleteFloatImage(_, _, _) => HttpMethod::Delete,
         }
-    }
-}
-
-impl CatalogEndpoint for SheetsApiV3 {
-    fn to_url(&self) -> String {
-        SheetsApiV3::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        SheetsApiV3::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

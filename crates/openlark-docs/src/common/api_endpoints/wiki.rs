@@ -23,11 +23,6 @@ impl WikiApiV1 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        HttpMethod::Post
-    }
 }
 
 impl CatalogEndpoint for WikiApiV1 {
@@ -36,7 +31,7 @@ impl CatalogEndpoint for WikiApiV1 {
     }
 
     fn method(&self) -> HttpMethod {
-        WikiApiV1::method(self)
+        HttpMethod::Post
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -129,9 +124,14 @@ impl WikiApiV2 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for WikiApiV2 {
+    fn to_url(&self) -> String {
+        WikiApiV2::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::SpaceList
             | Self::SpaceGet(_)
@@ -149,16 +149,6 @@ impl WikiApiV2 {
             Self::SpaceSettingUpdate(_) => HttpMethod::Put,
             Self::SpaceMemberDelete(_, _) => HttpMethod::Delete,
         }
-    }
-}
-
-impl CatalogEndpoint for WikiApiV2 {
-    fn to_url(&self) -> String {
-        WikiApiV2::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        WikiApiV2::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
@@ -272,9 +262,14 @@ impl WikiApi {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for WikiApi {
+    fn to_url(&self) -> String {
+        WikiApi::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::ListSpaces
             | Self::GetSpace
@@ -293,16 +288,6 @@ impl WikiApi {
             Self::UpdateSpaceSetting(_) => HttpMethod::Put,
             Self::DeleteSpaceMember(_, _) => HttpMethod::Delete,
         }
-    }
-}
-
-impl CatalogEndpoint for WikiApi {
-    fn to_url(&self) -> String {
-        WikiApi::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        WikiApi::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

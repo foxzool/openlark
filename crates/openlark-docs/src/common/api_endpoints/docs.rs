@@ -23,11 +23,6 @@ impl DocsApiV1 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        HttpMethod::Get
-    }
 }
 
 impl CatalogEndpoint for DocsApiV1 {
@@ -36,7 +31,7 @@ impl CatalogEndpoint for DocsApiV1 {
     }
 
     fn method(&self) -> HttpMethod {
-        DocsApiV1::method(self)
+        HttpMethod::Get
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

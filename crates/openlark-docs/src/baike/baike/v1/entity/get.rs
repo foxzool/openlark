@@ -113,8 +113,9 @@ impl GetEntityRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443）
         let mut api_request: ApiRequest<GetEntityResp> =
-            ApiRequest::get(&BaikeApiV1::EntityGet(self.entity_id).to_url());
+            BaikeApiV1::EntityGet(self.entity_id).to_request();
         if let Some(provider) = &self.provider {
             api_request = api_request.query("provider", provider);
         }
