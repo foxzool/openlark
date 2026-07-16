@@ -2,7 +2,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// CCM Drive Explorer API Old V2 端点枚举
 /// 对应 meta.project = ccm_drive_explorer, meta.version = old
@@ -76,9 +75,7 @@ impl CatalogEndpoint for CcmDriveExplorerApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Drive Explorer API V1 端点枚举
@@ -171,9 +168,7 @@ impl CatalogEndpoint for CcmDriveExplorerApi {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// 简单的URL编码函数，用于查询参数编码
@@ -228,9 +223,7 @@ impl CatalogEndpoint for PermissionApi {
         HttpMethod::Post
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Drive Permission API Old V2 端点枚举
@@ -274,9 +267,7 @@ impl CatalogEndpoint for PermissionApiOld {
         HttpMethod::Post
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// Drive API 端点枚举
@@ -716,7 +707,77 @@ impl CatalogEndpoint for DriveApi {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn drive_catalog_covers_every_family_and_http_method_class() {
+        assert_endpoint_semantics(
+            CcmDriveExplorerApiOld::RootFolderMeta,
+            HttpMethod::Get,
+            "/open-apis/drive/explorer/v2/root_folder/meta",
+        );
+        assert_endpoint_semantics(
+            CcmDriveExplorerApiOld::File("folder".into()),
+            HttpMethod::Post,
+            "/open-apis/drive/explorer/v2/file/folder",
+        );
+        assert_endpoint_semantics(
+            CcmDriveExplorerApiOld::FileDocs("doc".into()),
+            HttpMethod::Delete,
+            "/open-apis/drive/explorer/v2/file/docs/doc",
+        );
+
+        assert_endpoint_semantics(
+            CcmDriveExplorerApi::RootFolderMeta,
+            HttpMethod::Get,
+            "/open-apis/drive/v1/explorer/root_folder/meta",
+        );
+        assert_endpoint_semantics(
+            CcmDriveExplorerApi::Folder,
+            HttpMethod::Post,
+            "/open-apis/drive/v1/explorer/folder",
+        );
+        assert_endpoint_semantics(
+            PermissionApi::MemberPermitted,
+            HttpMethod::Post,
+            "/open-apis/drive/v1/permission/member/permitted",
+        );
+        assert_endpoint_semantics(
+            PermissionApiOld::MemberPermitted,
+            HttpMethod::Post,
+            "/open-apis/drive/v1/permission/member/permitted",
+        );
+
+        assert_endpoint_semantics(
+            DriveApi::ListFiles,
+            HttpMethod::Get,
+            "/open-apis/drive/v1/files",
+        );
+        assert_endpoint_semantics(
+            DriveApi::CreateFolder,
+            HttpMethod::Post,
+            "/open-apis/drive/v1/files/create_folder",
+        );
+        assert_endpoint_semantics(
+            DriveApi::UpdatePermissionMember("token".into(), "member".into()),
+            HttpMethod::Put,
+            "/open-apis/drive/v1/permissions/token/members/member",
+        );
+        assert_endpoint_semantics(
+            DriveApi::UpdatePublicPermission("token".into()),
+            HttpMethod::Patch,
+            "/open-apis/drive/v1/permissions/token/public",
+        );
+        assert_endpoint_semantics(
+            DriveApi::DeleteFile("token".into()),
+            HttpMethod::Delete,
+            "/open-apis/drive/v1/files/token",
+        );
     }
 }

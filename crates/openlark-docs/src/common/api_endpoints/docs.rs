@@ -35,3 +35,18 @@ impl CatalogEndpoint for DocsApiV1 {
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn docs_catalog_semantics_are_complete() {
+        assert_endpoint_semantics(
+            DocsApiV1::ContentGet,
+            HttpMethod::Get,
+            "/open-apis/docs/v1/content",
+        );
+    }
+}

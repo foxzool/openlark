@@ -5,7 +5,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Bitable API V1 端点枚举（#424 深化了请求语义：method + path + auth 在此集中）。
 #[derive(Debug, Clone, PartialEq)]
@@ -408,20 +407,13 @@ impl CatalogEndpoint for BitableApiV1 {
         }
     }
 
-    /// Bitable 端点的稳定认证要求（#439 迁移）。
-    /// 与 Base 一致，显式声明以便语义目录统一拥有认证要求。
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
-
-    // to_request 使用 trait 默认实现
+    // to_request 和 supported_access_token_types 使用 trait 默认实现
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::api::{ApiRequest, HttpMethod};
-    use openlark_core::constants::AccessTokenType;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
 
     #[test]
     fn test_bitable_api_v1_app_create() {
@@ -547,51 +539,59 @@ mod tests {
     // ========== #424 / #439: 端点目录语义测试（method + path + auth） ==========
     #[test]
     fn test_bitable_record_endpoints_semantics_424() {
-        // Create / BatchCreate -> POST
-        let ep = BitableApiV1::RecordCreate("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Post);
-        assert!(ep.to_url().contains("/records"));
-        let req: ApiRequest<()> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Post);
+        assert_endpoint_semantics(
+            BitableApiV1::RecordCreate("app".into(), "tbl".into()),
+            HttpMethod::Post,
+            "/open-apis/bitable/v1/apps/app/tables/tbl/records",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::RecordGet("app".into(), "tbl".into(), "rec".into()),
+            HttpMethod::Get,
+            "/open-apis/bitable/v1/apps/app/tables/tbl/records/rec",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::RecordUpdate("app".into(), "tbl".into(), "rec".into()),
+            HttpMethod::Put,
+            "/open-apis/bitable/v1/apps/app/tables/tbl/records/rec",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into()),
+            HttpMethod::Delete,
+            "/open-apis/bitable/v1/apps/app/tables/tbl/records/rec",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::RecordSearch("app".into(), "tbl".into()),
+            HttpMethod::Post,
+            "/open-apis/bitable/v1/apps/app/tables/tbl/records/search",
+        );
+    }
 
-        let ep = BitableApiV1::RecordBatchCreate("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Post);
-
-        // Get / List -> GET
-        let ep = BitableApiV1::RecordGet("app".into(), "tbl".into(), "rec".into());
-        assert_eq!(ep.method(), HttpMethod::Get);
-        let req: ApiRequest<()> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Get);
-
-        let ep = BitableApiV1::RecordList("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Get);
-
-        // Update -> PUT , BatchUpdate -> POST
-        let ep = BitableApiV1::RecordUpdate("app".into(), "tbl".into(), "rec".into());
-        assert_eq!(ep.method(), HttpMethod::Put);
-
-        let ep = BitableApiV1::RecordBatchUpdate("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Post);
-
-        // Delete -> DELETE , BatchDelete -> POST
-        let ep = BitableApiV1::RecordDelete("app".into(), "tbl".into(), "rec".into());
-        assert_eq!(ep.method(), HttpMethod::Delete);
-        let req: ApiRequest<()> = ep.to_request();
-        assert_eq!(req.method(), &HttpMethod::Delete);
-
-        let ep = BitableApiV1::RecordBatchDelete("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Post);
-
-        // Search -> POST (body query)
-        let ep = BitableApiV1::RecordSearch("app".into(), "tbl".into());
-        assert_eq!(ep.method(), HttpMethod::Post);
-        assert!(ep.to_url().contains("/search"));
-
-        // auth: 显式声明在 catalog 中（#439）
-        let ep = BitableApiV1::RecordCreate("a".into(), "t".into());
-        assert_eq!(
-            ep.supported_access_token_types(),
-            Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    #[test]
+    fn bitable_catalog_covers_non_record_http_method_classes() {
+        assert_endpoint_semantics(
+            BitableApiV1::AppCreate,
+            HttpMethod::Post,
+            "/open-apis/bitable/v1/apps",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::AppGet("app".into()),
+            HttpMethod::Get,
+            "/open-apis/bitable/v1/apps/app",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::AppUpdate("app".into()),
+            HttpMethod::Put,
+            "/open-apis/bitable/v1/apps/app",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::TablePatch("app".into(), "tbl".into()),
+            HttpMethod::Patch,
+            "/open-apis/bitable/v1/apps/app/tables/tbl",
+        );
+        assert_endpoint_semantics(
+            BitableApiV1::TableDelete("app".into(), "tbl".into()),
+            HttpMethod::Delete,
+            "/open-apis/bitable/v1/apps/app/tables/tbl",
         );
     }
 }

@@ -287,3 +287,60 @@ impl CatalogEndpoint for WikiApi {
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn wiki_catalog_covers_every_http_method_class() {
+        assert_endpoint_semantics(
+            WikiApiV1::NodeSearch,
+            HttpMethod::Post,
+            "/open-apis/wiki/v1/nodes/search",
+        );
+
+        assert_endpoint_semantics(
+            WikiApiV2::SpaceGet("space".into()),
+            HttpMethod::Get,
+            "/open-apis/wiki/v2/spaces/space",
+        );
+        assert_endpoint_semantics(
+            WikiApiV2::SpaceCreate,
+            HttpMethod::Post,
+            "/open-apis/wiki/v2/spaces",
+        );
+        assert_endpoint_semantics(
+            WikiApiV2::SpaceSettingUpdate("space".into()),
+            HttpMethod::Put,
+            "/open-apis/wiki/v2/spaces/space/setting",
+        );
+        assert_endpoint_semantics(
+            WikiApiV2::SpaceMemberDelete("space".into(), "member".into()),
+            HttpMethod::Delete,
+            "/open-apis/wiki/v2/spaces/space/members/member",
+        );
+
+        assert_endpoint_semantics(
+            WikiApi::GetSpace,
+            HttpMethod::Get,
+            "/open-apis/wiki/v2/spaces/get_node",
+        );
+        assert_endpoint_semantics(
+            WikiApi::CreateSpace,
+            HttpMethod::Post,
+            "/open-apis/wiki/v2/spaces",
+        );
+        assert_endpoint_semantics(
+            WikiApi::UpdateSpaceSetting("space".into()),
+            HttpMethod::Put,
+            "/open-apis/wiki/v2/spaces/space/setting",
+        );
+        assert_endpoint_semantics(
+            WikiApi::DeleteSpaceMember("space".into(), "member".into()),
+            HttpMethod::Delete,
+            "/open-apis/wiki/v2/spaces/space/members/member",
+        );
+    }
+}

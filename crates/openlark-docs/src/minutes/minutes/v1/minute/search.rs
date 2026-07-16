@@ -43,9 +43,10 @@ impl MinuteSearchRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::test_utils::tenant_test_transport;
     use serde_json::json;
     use wiremock::matchers::{header, method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use wiremock::{Mock, ResponseTemplate};
 
     #[test]
     fn builder_initializes() {
@@ -55,7 +56,7 @@ mod tests {
 
     #[tokio::test]
     async fn search_uses_catalog_request_semantics() {
-        let server = MockServer::start().await;
+        let (server, config, option) = tenant_test_transport().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/minutes/v1/minutes/search"))
             .and(header("Authorization", "Bearer test-tenant-token"))
@@ -66,19 +67,7 @@ mod tests {
             })))
             .mount(&server)
             .await;
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
-        let option = RequestOption::builder()
-            .tenant_access_token("test-tenant-token")
-            .build();
-
-        let response = MinuteSearchRequest::new(config)
+        let response = MinuteSearchRequest::new(Arc::new(config))
             .execute_with_options(json!({ "query": "周会", "page_size": 20 }), option)
             .await
             .expect("搜索妙记应成功");

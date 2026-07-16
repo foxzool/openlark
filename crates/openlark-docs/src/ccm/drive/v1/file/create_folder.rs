@@ -184,12 +184,12 @@ mod tests {
     /// 端到端：使用 catalog 语义，POST /open-apis/drive/v1/files/create_folder ，断言 method/path/auth。
     #[tokio::test]
     async fn test_create_folder_returns_data_on_success_440() {
+        use crate::common::test_utils::tenant_test_transport;
         use serde_json::json;
-        use wiremock::MockServer;
         use wiremock::matchers::{header, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
-        let server = MockServer::start().await;
+        let (server, config, option) = tenant_test_transport().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/drive/v1/files/create_folder"))
             .and(header("Authorization", "Bearer test-tenant-token"))
@@ -200,17 +200,6 @@ mod tests {
             })))
             .mount(&server)
             .await;
-
-        let config = Config::builder()
-            .app_id("ci_app_id")
-            .app_secret("ci_app_secret")
-            .base_url(server.uri())
-            .enable_token_cache(false)
-            .build();
-
-        let option = openlark_core::req_option::RequestOption::builder()
-            .tenant_access_token("test-tenant-token")
-            .build();
 
         let resp = CreateFolderRequest::new(config, "测试文件夹", "parent_token_001")
             .execute_with_options(option)

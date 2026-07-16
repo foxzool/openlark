@@ -104,3 +104,38 @@ impl CatalogEndpoint for MinutesExtraApiV1 {
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn minutes_catalog_covers_every_http_method_class() {
+        assert_endpoint_semantics(
+            MinutesApiV1::Get("minute".into()),
+            HttpMethod::Get,
+            "/open-apis/minutes/v1/minutes/minute",
+        );
+        assert_endpoint_semantics(
+            MinutesApiV1::Subscription,
+            HttpMethod::Post,
+            "/open-apis/minutes/v1/minutes/subscription",
+        );
+    }
+
+    #[cfg(feature = "minutes")]
+    #[test]
+    fn minutes_extra_catalog_covers_every_http_method_class() {
+        assert_endpoint_semantics(
+            MinutesExtraApiV1::Search,
+            HttpMethod::Post,
+            "/open-apis/minutes/v1/minutes/search",
+        );
+        assert_endpoint_semantics(
+            MinutesExtraApiV1::Artifacts("minute".into()),
+            HttpMethod::Get,
+            "/open-apis/minutes/v1/minutes/minute/artifacts",
+        );
+    }
+}

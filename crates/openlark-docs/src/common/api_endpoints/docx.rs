@@ -2,7 +2,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Docx API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -157,7 +156,35 @@ impl CatalogEndpoint for DocxApiV1 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn docx_catalog_covers_every_http_method_class() {
+        assert_endpoint_semantics(
+            DocxApiV1::DocumentGet("doc".into()),
+            HttpMethod::Get,
+            "/open-apis/docx/v1/documents/doc",
+        );
+        assert_endpoint_semantics(
+            DocxApiV1::DocumentCreate,
+            HttpMethod::Post,
+            "/open-apis/docx/v1/documents",
+        );
+        assert_endpoint_semantics(
+            DocxApiV1::DocumentBlockPatch("doc".into(), "block".into()),
+            HttpMethod::Patch,
+            "/open-apis/docx/v1/documents/doc/blocks/block",
+        );
+        assert_endpoint_semantics(
+            DocxApiV1::DocumentBlockChildrenBatchDelete("doc".into(), "block".into()),
+            HttpMethod::Delete,
+            "/open-apis/docx/v1/documents/doc/blocks/block/children/batch_delete",
+        );
     }
 }

@@ -143,3 +143,33 @@ impl CatalogEndpoint for LingoApiV1 {
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::assert_endpoint_semantics;
+
+    #[test]
+    fn lingo_catalog_covers_every_http_method_class() {
+        assert_endpoint_semantics(
+            LingoApiV1::EntityGet("entity".into()),
+            HttpMethod::Get,
+            "/open-apis/lingo/v1/entities/entity",
+        );
+        assert_endpoint_semantics(
+            LingoApiV1::EntityCreate,
+            HttpMethod::Post,
+            "/open-apis/lingo/v1/entities",
+        );
+        assert_endpoint_semantics(
+            LingoApiV1::EntityUpdate("entity".into()),
+            HttpMethod::Put,
+            "/open-apis/lingo/v1/entities/entity",
+        );
+        assert_endpoint_semantics(
+            LingoApiV1::EntityDelete("entity".into()),
+            HttpMethod::Delete,
+            "/open-apis/lingo/v1/entities/entity",
+        );
+    }
+}

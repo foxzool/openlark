@@ -115,9 +115,10 @@ impl CreateEntityRequest {
 mod tests {
     use super::*;
     use crate::baike::lingo::v1::models::{DisplayStatus, Term, UserIdType};
+    use crate::common::test_utils::tenant_test_transport;
     use serde_json::json;
     use wiremock::matchers::{header, method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use wiremock::{Mock, ResponseTemplate};
 
     #[test]
     fn test_create_lingo_entity_request_builder() {
@@ -207,7 +208,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_entity_uses_catalog_request_semantics() {
-        let server = MockServer::start().await;
+        let (server, config, option) = tenant_test_transport().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/lingo/v1/entities"))
             .and(header("Authorization", "Bearer test-tenant-token"))
@@ -219,12 +220,6 @@ mod tests {
             .mount(&server)
             .await;
 
-        let config = Config::builder()
-            .app_id("ci_app_id")
-            .app_secret("ci_app_secret")
-            .base_url(server.uri())
-            .enable_token_cache(false)
-            .build();
         let body = EntityInput {
             main_keys: vec![Term {
                 key: "测试词条".to_string(),
@@ -240,11 +235,7 @@ mod tests {
         let response = CreateEntityRequest::new(config, body)
             .repo_id("repo_123")
             .user_id_type(UserIdType::OpenId)
-            .execute_with_options(
-                RequestOption::builder()
-                    .tenant_access_token("test-tenant-token")
-                    .build(),
-            )
+            .execute_with_options(option)
             .await
             .expect("创建词条应成功");
         assert!(response.entity.is_none());

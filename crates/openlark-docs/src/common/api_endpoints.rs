@@ -73,6 +73,39 @@ pub trait CatalogEndpoint {
     }
 }
 
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::CatalogEndpoint;
+    use openlark_core::{
+        api::{ApiRequest, HttpMethod},
+        constants::AccessTokenType,
+    };
+
+    /// 同时锁定 catalog 的 path、method、auth 以及生成的请求语义。
+    pub(crate) fn assert_endpoint_semantics<E>(
+        endpoint: E,
+        expected_method: HttpMethod,
+        expected_path: &str,
+    ) where
+        E: CatalogEndpoint,
+    {
+        assert_eq!(endpoint.to_url(), expected_path);
+        assert_eq!(endpoint.method(), expected_method);
+        assert_eq!(
+            endpoint.supported_access_token_types(),
+            Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+        );
+
+        let request: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(request.method(), &expected_method);
+        assert_eq!(request.api_path(), expected_path);
+        assert_eq!(
+            request.supported_access_token_types(),
+            vec![AccessTokenType::User, AccessTokenType::Tenant]
+        );
+    }
+}
+
 pub mod base;
 pub use base::BaseApiV2;
 
@@ -146,9 +179,7 @@ impl CatalogEndpoint for CcmDocApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Docs API Old V1 端点枚举
@@ -188,9 +219,7 @@ impl CatalogEndpoint for CcmDocsApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 pub mod drive;
@@ -273,27 +302,6 @@ mod tests {
         assert_eq!(endpoint.method(), HttpMethod::Get);
         let req: ApiRequest<()> = endpoint.to_request();
         assert_eq!(req.method(), &HttpMethod::Get);
-        assert_eq!(
-            endpoint.supported_access_token_types(),
-            Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-        );
-        assert_eq!(
-            req.supported_access_token_types(),
-            vec![AccessTokenType::User, AccessTokenType::Tenant]
-        );
-    }
-
-    #[test]
-    fn test_base_api_v2_role_delete() {
-        let endpoint =
-            BaseApiV2::RoleDelete("app_token_123".to_string(), "role_id_456".to_string());
-        assert_eq!(
-            endpoint.to_url(),
-            "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
-        );
-        assert_eq!(endpoint.method(), HttpMethod::Delete);
-        let req: ApiRequest<()> = endpoint.to_request();
-        assert_eq!(req.method(), &HttpMethod::Delete);
         assert_eq!(
             endpoint.supported_access_token_types(),
             Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
