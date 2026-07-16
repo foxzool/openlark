@@ -81,12 +81,12 @@ impl CreateRoleMemberRequest {
         let api_endpoint =
             BitableApiV1::RoleMemberCreate(self.app_token.clone(), self.role_id.clone());
 
-        let mut api_request: ApiRequest<CreateRoleMemberResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&CreateRoleMemberRequestBody {
-            member_id: self.member_id,
-        })?);
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<CreateRoleMemberResponse> = api_endpoint
+            .to_request::<CreateRoleMemberResponse>()
+            .body(serde_json::to_vec(&CreateRoleMemberRequestBody {
+                member_id: self.member_id,
+            })?);
 
         // query 参数需要字符串值（open_id / user_id / ...），这里用枚举做一次映射。
         if let Some(member_id_type) = self.member_id_type {

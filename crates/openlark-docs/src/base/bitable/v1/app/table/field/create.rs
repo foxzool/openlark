@@ -210,7 +210,7 @@ impl CreateFieldRequest {
 
         // 创建API请求 - 使用类型安全的URL生成
         let mut api_request: ApiRequest<CreateFieldResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
         // 构建查询参数
         api_request = api_request.query_opt("client_token", self.client_token);

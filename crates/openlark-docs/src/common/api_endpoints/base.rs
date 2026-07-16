@@ -4,6 +4,7 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::HttpMethod;
+use openlark_core::constants::AccessTokenType;
 
 /// Base API V2 端点枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -53,5 +54,10 @@ impl CatalogEndpoint for BaseApiV2 {
         }
     }
 
-    // supported_access_token_types and to_request use trait defaults
+    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
+        // 证明 catalog 统一拥有认证要求（#438 tracer）；与 core 默认一致，但显式声明
+        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    }
+
+    // to_request 使用 trait 默认实现，会应用 supported token types
 }

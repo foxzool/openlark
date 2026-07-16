@@ -125,15 +125,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET .../roles → ListResp。
+    /// 同时断言 method、path、auth（catalog 提供）和响应（#438）。
     #[tokio::test]
     async fn test_list_roles_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/base/v2/apps/app001/roles"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "items": [], "has_more": false }
             })))
@@ -145,17 +147,28 @@ mod tests {
             .base_url(server.uri())
             .enable_token_cache(false)
             .build();
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
         let resp = List::new(config)
             .app_token("app001")
-            .execute()
+            .execute_with_options(option)
             .await
             .expect("列出角色应成功");
         assert!(resp.items.is_empty());
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "GET");
         assert_eq!(
             received[0].url.path(),
             "/open-apis/base/v2/apps/app001/roles"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
         );
     }
 
@@ -164,5 +177,12 @@ mod tests {
         let ep = BaseApiV2::RoleList("app".into());
         let req: openlark_core::api::ApiRequest<ListResp> = ep.to_request();
         assert_eq!(req.method(), &openlark_core::api::HttpMethod::Get);
+        assert_eq!(
+            req.supported_access_token_types(),
+            vec![
+                openlark_core::constants::AccessTokenType::User,
+                openlark_core::constants::AccessTokenType::Tenant
+            ]
+        );
     }
 }

@@ -102,8 +102,7 @@ impl DeleteViewRequest {
         );
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<DeleteViewResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteViewResponse> = api_endpoint.to_request();
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

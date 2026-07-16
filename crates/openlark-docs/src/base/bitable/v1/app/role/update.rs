@@ -100,14 +100,14 @@ impl UpdateAppRoleRequest {
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::RoleUpdate(self.app_token.clone(), self.role_id);
 
-        let api_request: ApiRequest<UpdateAppRoleResponse> = ApiRequest::put(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&UpdateAppRoleRequestBody {
-            role_name: self.role_name,
-            table_roles: self.table_roles,
-            block_roles: self.block_roles,
-        })?);
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<UpdateAppRoleResponse> = api_endpoint
+            .to_request::<UpdateAppRoleResponse>()
+            .body(serde_json::to_vec(&UpdateAppRoleRequestBody {
+                role_name: self.role_name,
+                table_roles: self.table_roles,
+                block_roles: self.block_roles,
+            })?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

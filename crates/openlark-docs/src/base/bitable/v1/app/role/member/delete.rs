@@ -83,8 +83,7 @@ impl DeleteRoleMemberRequest {
             self.member_id.clone(),
         );
 
-        let mut api_request: ApiRequest<DeleteRoleMemberResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<DeleteRoleMemberResponse> = api_endpoint.to_request();
 
         if let Some(member_id_type) = self.member_id_type {
             let member_id_type = match member_id_type {

@@ -116,8 +116,7 @@ impl ListFormFieldQuestionRequest {
             self.form_id.clone(),
         );
 
-        let mut api_request: ApiRequest<ListFormFieldQuestionResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListFormFieldQuestionResponse> = api_endpoint.to_request();
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());

@@ -68,8 +68,9 @@ impl GetFormRequest {
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FormGet(self.app_token, self.table_id, self.form_id);
+        // #439: method 来自 catalog
 
-        let api_request: ApiRequest<GetFormResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetFormResponse> = api_endpoint.to_request();
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response
             .data

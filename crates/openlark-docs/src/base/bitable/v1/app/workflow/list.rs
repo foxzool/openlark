@@ -92,8 +92,8 @@ impl ListWorkflowRequest {
         validate_required!(self.app_token, "app_token 不能为空");
 
         let api_endpoint = BitableApiV1::WorkflowList(self.app_token);
-        let mut api_request: ApiRequest<ListWorkflowResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<ListWorkflowResponse> = api_endpoint.to_request();
         api_request = api_request.query_opt("page_token", self.page_token);
         api_request = api_request.query_opt("page_size", self.page_size.map(|v| v.to_string()));
 

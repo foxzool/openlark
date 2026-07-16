@@ -73,8 +73,8 @@ impl ListBlockWorkflowRequest {
         validate_required!(self.app_token.trim(), "app_token 不能为空");
 
         let api_endpoint = BitableApiV1::BlockWorkflowList(self.app_token);
-        let api_request: ApiRequest<ListBlockWorkflowResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<ListBlockWorkflowResponse> = api_endpoint.to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

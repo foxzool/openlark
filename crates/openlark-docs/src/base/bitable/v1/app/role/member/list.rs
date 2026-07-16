@@ -88,8 +88,7 @@ impl ListRoleMembersRequest {
         let api_endpoint =
             BitableApiV1::RoleMemberList(self.app_token.clone(), self.role_id.clone());
 
-        let mut api_request: ApiRequest<ListRoleMembersResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListRoleMembersResponse> = api_endpoint.to_request();
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());

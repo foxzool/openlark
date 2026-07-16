@@ -72,8 +72,8 @@ impl GetAppRequest {
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::AppGet(self.app_token.clone());
 
-        // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<GetAppResponse> = ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<GetAppResponse> = api_endpoint.to_request::<GetAppResponse>();
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -100,32 +100,52 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET .../apps/{app_token} → GetAppResponse。
+    /// 端到端：GET /open-apis/bitable/v1/apps/{app_token} → GetAppResponse。
+    /// 完整断言 method、path、auth（来自 catalog #439）和响应。
     #[tokio::test]
     async fn test_get_app_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/open-apis/bitable/v1/apps/app001"))
+            .and(path("/open-apis/bitable/v1/apps/app%20token"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .and(header("X-Test-Option", "preserved"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "app": { "app_token": "app001", "name": "测试" } }
+                "code": 0, "msg": "success", "data": { "app": { "app_token": "app token", "name": "测试" } }
             })))
-            .mount(&server).await;
+            .mount(&server)
+            .await;
         let config = Config::builder()
             .app_id("ci_app_id")
             .app_secret("ci_app_secret")
             .base_url(server.uri())
             .enable_token_cache(false)
             .build();
-        GetAppRequest::new(config)
-            .app_token("app001")
-            .execute()
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .add_header("X-Test-Option", "preserved")
+            .build();
+        let resp = GetAppRequest::new(config)
+            .app_token("app token")
+            .execute_with_options(option)
             .await
             .expect("获取多维表格应成功");
+        assert_eq!(resp.app.app_token, "app token");
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
-        assert_eq!(received[0].url.path(), "/open-apis/bitable/v1/apps/app001");
+        assert_eq!(received[0].method, "GET");
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app%20token"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
+        );
     }
 }

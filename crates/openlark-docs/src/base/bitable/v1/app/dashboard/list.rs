@@ -72,8 +72,8 @@ impl ListDashboardsRequest {
         }
 
         let api_endpoint = BitableApiV1::DashboardList(self.app_token);
-        let mut api_request: ApiRequest<ListDashboardsResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<ListDashboardsResponse> = api_endpoint.to_request();
 
         api_request = api_request.query_opt("page_size", self.page_size.map(|v| v.to_string()));
         api_request = api_request.query_opt("page_token", self.page_token);

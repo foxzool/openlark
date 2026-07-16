@@ -122,14 +122,16 @@ impl PatchFormRequest {
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FormPatch(self.app_token, self.table_id, self.form_id);
 
-        let api_request: ApiRequest<PatchFormResponse> = ApiRequest::patch(&api_endpoint.to_url())
-            .body(serde_json::to_vec(&PatchFormRequestBody {
-                name: self.name,
-                description: self.description,
-                shared: self.shared,
-                shared_limit: self.shared_limit,
-                submit_limit_once: self.submit_limit_once,
-            })?);
+        let api_request: ApiRequest<PatchFormResponse> =
+            api_endpoint
+                .to_request()
+                .body(serde_json::to_vec(&PatchFormRequestBody {
+                    name: self.name,
+                    description: self.description,
+                    shared: self.shared,
+                    shared_limit: self.shared_limit,
+                    submit_limit_once: self.submit_limit_once,
+                })?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response
