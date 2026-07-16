@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required_list,
@@ -88,7 +88,7 @@ impl BatchGetTmpDownloadUrlRequest {
         }
 
         let url = format!("{}?{}", api_endpoint.to_url(), query_pairs.join("&"));
-        let request = ApiRequest::<BatchGetTmpDownloadUrlResponse>::get(url);
+        let request = api_endpoint.to_request_with_url::<BatchGetTmpDownloadUrlResponse>(url);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取")

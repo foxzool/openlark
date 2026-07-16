@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -194,7 +194,7 @@ impl CopyFileRequest {
         }
 
         let api_endpoint = DriveApi::CopyFile(self.file_token.clone());
-        let mut request = ApiRequest::<CopyFileResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<CopyFileResponse>();
 
         if let Some(user_id_type) = &self.user_id_type {
             request = request.query("user_id_type", user_id_type);

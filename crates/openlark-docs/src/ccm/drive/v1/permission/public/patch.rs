@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -178,7 +178,8 @@ impl PatchPublicPermissionRequest {
         }
 
         let api_endpoint = DriveApi::UpdatePublicPermission(self.token);
-        let request = ApiRequest::<PatchPublicPermissionResponse>::patch(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<PatchPublicPermissionResponse>()
             .query("type", self.r#type)
             .body(serialize_params(
                 &self.permission_public_request,

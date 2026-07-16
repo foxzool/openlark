@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -104,7 +104,7 @@ impl SubscribeFileRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::SubscribeFile(self.file_token.clone());
-        let mut request = ApiRequest::<SubscribeFileResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<SubscribeFileResponse>();
 
         request = request.query("file_type", &self.file_type);
         if let Some(et) = &self.event_type {

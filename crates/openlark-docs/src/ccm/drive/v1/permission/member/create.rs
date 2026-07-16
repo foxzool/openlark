@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -197,9 +197,9 @@ impl CreatePermissionMemberRequest {
 
         let api_endpoint = DriveApi::CreatePermissionMember(self.token.clone());
 
-        let mut api_request =
-            ApiRequest::<CreatePermissionMemberResponse>::post(&api_endpoint.to_url())
-                .query("type", &self.file_type);
+        let mut api_request = api_endpoint
+            .to_request::<CreatePermissionMemberResponse>()
+            .query("type", &self.file_type);
 
         if let Some(need_notification) = self.need_notification {
             api_request = api_request.query("need_notification", need_notification.to_string());

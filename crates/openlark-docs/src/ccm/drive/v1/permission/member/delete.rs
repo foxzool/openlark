@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -196,11 +196,11 @@ impl DeletePermissionMemberRequest {
             perm_type: self.perm_type,
         };
 
-        let api_request =
-            ApiRequest::<DeletePermissionMemberResponse>::delete(&api_endpoint.to_url())
-                .query("type", &self.file_type)
-                .query("member_type", &self.member_type)
-                .body(serialize_params(&body, "移除云文档协作者权限")?);
+        let api_request = api_endpoint
+            .to_request::<DeletePermissionMemberResponse>()
+            .query("type", &self.file_type)
+            .query("member_type", &self.member_type)
+            .body(serialize_params(&body, "移除云文档协作者权限")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "删除")

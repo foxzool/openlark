@@ -173,8 +173,7 @@ pub async fn list_comment_reply(
     let api_endpoint =
         DriveApi::ListCommentReplies(request.file_token.clone(), request.comment_id.clone());
 
-    let mut api_request: ApiRequest<ListCommentReplyResponse> =
-        ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<ListCommentReplyResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 

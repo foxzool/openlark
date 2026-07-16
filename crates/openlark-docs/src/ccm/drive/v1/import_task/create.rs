@@ -119,8 +119,9 @@ impl CreateImportTaskRequest {
 
         let api_endpoint = DriveApi::CreateImportTask;
 
-        let api_request: ApiRequest<CreateImportTaskResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&self, "创建导入任务")?);
+        let api_request: ApiRequest<CreateImportTaskResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self, "创建导入任务")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "创建")

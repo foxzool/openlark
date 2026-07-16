@@ -77,7 +77,7 @@ pub async fn get_subscription(
     let api_endpoint =
         DriveApi::GetFileSubscription(request.file_token.clone(), request.subscription_id.clone());
 
-    let api_request: ApiRequest<GetSubscriptionResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetSubscriptionResponse> = api_endpoint.to_request();
 
     // ========== 发送请求并返回响应 ==========
     let response = Transport::request(api_request, config, option).await?;

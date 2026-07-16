@@ -114,7 +114,7 @@ pub async fn get_comment(
 
     let api_endpoint = DriveApi::GetComment(request.file_token.clone(), request.comment_id.clone());
 
-    let mut api_request: ApiRequest<GetCommentResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<GetCommentResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 

@@ -4,9 +4,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create>
 
-use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
-};
+use openlark_core::{SDKResult, config::Config, http::Transport, validate_required};
 use serde::Serialize;
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
@@ -94,7 +92,8 @@ impl CreateFileVersionRequest {
             obj_type: self.obj_type,
         };
 
-        let request = ApiRequest::<CreateFileVersionResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<CreateFileVersionResponse>()
             .query_opt("user_id_type", self.user_id_type)
             .body(serialize_params(&payload, "创建文档版本")?);
 

@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -50,7 +50,7 @@ impl GetImportTaskRequest {
 
         let api_endpoint = DriveApi::GetImportTask(self.ticket.clone());
 
-        let api_request = ApiRequest::<GetImportTaskResponse>::get(&api_endpoint.to_url());
+        let api_request = api_endpoint.to_request::<GetImportTaskResponse>();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取")

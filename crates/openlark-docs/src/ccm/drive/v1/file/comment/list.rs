@@ -199,7 +199,7 @@ pub async fn list_comments(
     // ===== 构建请求 =====
     let api_endpoint = DriveApi::ListFileComments(request.file_token.clone());
 
-    let mut api_request: ApiRequest<ListCommentsResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<ListCommentsResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 

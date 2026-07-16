@@ -193,9 +193,9 @@ pub async fn batch_query(
 
     let api_endpoint = DriveApi::BatchQueryMetas;
 
-    let mut api_request: ApiRequest<BatchQueryMetaResponse> =
-        ApiRequest::post(&api_endpoint.to_url())
-            .body(serialize_params(&request, "获取文件元数据")?);
+    let mut api_request: ApiRequest<BatchQueryMetaResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&request, "获取文件元数据")?);
 
     if let Some(user_id_type) = &request.user_id_type {
         match user_id_type.as_str() {

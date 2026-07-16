@@ -123,13 +123,12 @@ pub async fn create_comment(
 
     let api_endpoint = DriveApi::CreateComment(request.file_token.clone());
 
-    let mut api_request: ApiRequest<Comment> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
-            &CreateCommentRequestBody {
-                reply_list: request.reply_list,
-            },
-            "添加全文评论",
-        )?);
+    let mut api_request: ApiRequest<Comment> = api_endpoint.to_request().body(serialize_params(
+        &CreateCommentRequestBody {
+            reply_list: request.reply_list,
+        },
+        "添加全文评论",
+    )?);
 
     api_request = api_request.query("file_type", &request.file_type);
 

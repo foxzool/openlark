@@ -80,7 +80,7 @@ pub async fn get_permission_public_with_options(
 
     let api_endpoint = DriveApi::GetPublicPermissionV2(request.token);
     let api_request: ApiRequest<GetPermissionPublicResponse> =
-        ApiRequest::get(&api_endpoint.to_url()).query("type", &request.r#type);
+        api_endpoint.to_request().query("type", &request.r#type);
 
     let response = Transport::request(api_request, config, Some(option)).await?;
     extract_response_data(response, "获取云文档权限设置")

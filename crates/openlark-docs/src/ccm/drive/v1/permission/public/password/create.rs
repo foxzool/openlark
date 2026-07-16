@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -76,9 +76,9 @@ impl CreatePermissionPublicPasswordRequest {
         }
 
         let api_endpoint = DriveApi::CreatePublicPassword(self.token);
-        let request =
-            ApiRequest::<CreatePermissionPublicPasswordResponse>::post(&api_endpoint.to_url())
-                .query("type", self.r#type);
+        let request = api_endpoint
+            .to_request::<CreatePermissionPublicPasswordResponse>()
+            .query("type", self.r#type);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
         extract_response_data(response, "创建")

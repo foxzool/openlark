@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -80,7 +80,8 @@ impl UploadFinishMediaRequest {
         }
 
         let api_endpoint = DriveApi::UploadMediaFinish;
-        let request = ApiRequest::<UploadFinishMediaResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadFinishMediaResponse>()
             .body(serialize_params(&self, "分片上传素材-完成上传")?);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;

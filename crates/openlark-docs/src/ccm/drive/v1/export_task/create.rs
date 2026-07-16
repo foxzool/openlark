@@ -117,8 +117,9 @@ impl CreateExportTaskRequest {
 
         let api_endpoint = DriveApi::CreateExportTask;
 
-        let api_request: ApiRequest<CreateExportTaskResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&self, "创建导出任务")?);
+        let api_request: ApiRequest<CreateExportTaskResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self, "创建导出任务")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "创建")

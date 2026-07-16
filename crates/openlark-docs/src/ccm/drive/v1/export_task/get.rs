@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     validate_required,
@@ -59,7 +59,8 @@ impl GetExportTaskRequest {
 
         let api_endpoint = DriveApi::GetExportTask(self.ticket.clone());
 
-        let api_request = ApiRequest::<GetExportTaskResponse>::get(&api_endpoint.to_url())
+        let api_request = api_endpoint
+            .to_request::<GetExportTaskResponse>()
             .query("token", &self.token);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

@@ -78,7 +78,7 @@ impl DeletePermissionPublicPasswordRequest {
 
         let api_endpoint = DriveApi::DeletePublicPassword(self.token);
         let api_request: ApiRequest<DeletePermissionPublicPasswordResponse> =
-            ApiRequest::delete(&api_endpoint.to_url()).query("type", self.r#type);
+            api_endpoint.to_request().query("type", self.r#type);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "删除")

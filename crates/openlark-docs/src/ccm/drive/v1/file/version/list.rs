@@ -5,9 +5,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/list>
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
-use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
-};
+use openlark_core::{SDKResult, config::Config, http::Transport, validate_required};
 
 use super::models::ListFileVersionsData;
 
@@ -89,7 +87,8 @@ impl ListFileVersionsRequest {
         }
 
         let api_endpoint = DriveApi::ListFileVersions(self.file_token);
-        let request = ApiRequest::<ListFileVersionsResponse>::get(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<ListFileVersionsResponse>()
             .query("page_size", self.page_size.to_string())
             .query("obj_type", self.obj_type)
             .query_opt("page_token", self.page_token)

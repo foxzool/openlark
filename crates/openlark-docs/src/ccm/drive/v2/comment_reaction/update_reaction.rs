@@ -8,6 +8,8 @@ use openlark_core::{
 };
 use std::sync::Arc;
 
+use crate::common::api_endpoints::DriveApi;
+
 /// 添加/取消表情回应请求。
 #[derive(Debug, Clone)]
 pub struct CommentReactionUpdateReactionRequest {
@@ -43,11 +45,9 @@ impl CommentReactionUpdateReactionRequest {
         option: RequestOption,
     ) -> SDKResult<serde_json::Value> {
         validate_required!(self.file_token, "file_token 不能为空");
-        let path = format!(
-            "/open-apis/drive/v2/files/{}/comments/reaction",
-            self.file_token
-        );
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
+        let req: ApiRequest<serde_json::Value> = DriveApi::UpdateCommentReaction(self.file_token)
+            .to_request()
+            .body(body);
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
             openlark_core::error::validation_error("添加/取消表情回应", "响应数据为空")

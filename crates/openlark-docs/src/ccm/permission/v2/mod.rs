@@ -13,7 +13,8 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::{api_endpoints::PermissionApiOld, api_utils::*};
+use crate::common::api_endpoints::PermissionApiOld;
+use crate::common::api_utils::*;
 
 /// 权限接口模型模块。
 pub mod models;
@@ -63,9 +64,9 @@ impl CheckMemberPermissionRequest {
         validate_required!(self.params.permission.trim(), "权限类型不能为空");
 
         let api_endpoint = PermissionApiOld::MemberPermitted;
-        let api_request: ApiRequest<CheckMemberPermissionResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "检查成员权限")?);
+        let api_request: ApiRequest<CheckMemberPermissionResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "检查成员权限")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "检查成员权限")
@@ -100,9 +101,10 @@ impl TransferOwnerRequest {
         validate_required!(self.params.member_id_type.trim(), "用户ID类型不能为空");
 
         let api_endpoint = PermissionApiOld::MemberTransfer;
-        let api_request: ApiRequest<TransferOwnerResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "转移拥有者")?);
+
+        let api_request: ApiRequest<TransferOwnerResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "转移拥有者")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "转移拥有者")
@@ -135,9 +137,11 @@ impl GetPublicPermissionRequest {
         validate_required!(self.params.obj_token.trim(), "文件Token不能为空");
 
         let api_endpoint = PermissionApiOld::Public;
-        let api_request: ApiRequest<GetPublicPermissionResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "获取公开权限设置")?);
+
+        // #440: method 来自 catalog
+        let api_request: ApiRequest<GetPublicPermissionResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "获取公开权限设置")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取公开权限设置")
@@ -152,3 +156,62 @@ pub use models::{
     GetPublicPermissionResponse, PermissionCheckResult, PublicPermission, TransferOwnerParams,
     TransferOwnerResponse, TransferResult, UserInfo,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[tokio::test]
+    async fn check_member_permission_uses_catalog_request_semantics() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/drive/v1/permission/member/permitted"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data": {
+                        "permitted": true,
+                        "permission": "view"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
+        let params = CheckMemberPermissionParams {
+            obj_token: "doc_token".to_string(),
+            permission: "view".to_string(),
+            member_id: Some("ou_test".to_string()),
+            member_id_type: Some("open_id".to_string()),
+        };
+
+        let response = CheckMemberPermissionRequest::new(config, params)
+            .execute_with_options(option)
+            .await
+            .expect("检查成员权限应成功");
+        assert!(response.data.expect("响应应包含权限结果").permitted);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["obj_token"], "doc_token");
+        assert_eq!(body["permission"], "view");
+        assert_eq!(body["member_id"], "ou_test");
+        assert_eq!(body["member_id_type"], "open_id");
+    }
+}

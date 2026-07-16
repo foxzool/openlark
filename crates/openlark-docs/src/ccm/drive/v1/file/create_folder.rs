@@ -6,7 +6,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
 };
@@ -124,7 +124,8 @@ impl CreateFolderRequest {
         }
 
         let api_endpoint = DriveApi::CreateFolder;
-        let request = ApiRequest::<CreateFolderResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<CreateFolderResponse>()
             .body(serialize_params(&self, "新建文件夹")?);
 
         let response = Transport::request(request, &self.config, Some(option)).await?;
@@ -178,5 +179,68 @@ mod tests {
         // 空字符串表示根目录
         let request = CreateFolderRequest::new(config, "test_folder", "");
         assert_eq!(request.folder_token, "");
+    }
+
+    /// 端到端：使用 catalog 语义，POST /open-apis/drive/v1/files/create_folder ，断言 method/path/auth。
+    #[tokio::test]
+    async fn test_create_folder_returns_data_on_success_440() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{header, method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/drive/v1/files/create_folder"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "token": "new_folder_token", "url": "https://example.com/folder" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
+
+        let resp = CreateFolderRequest::new(config, "测试文件夹", "parent_token_001")
+            .execute_with_options(option)
+            .await
+            .expect("新建文件夹应成功");
+        assert_eq!(resp.token, "new_folder_token");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "POST");
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/files/create_folder"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["name"], "测试文件夹");
+        assert_eq!(body["folder_token"], "parent_token_001");
+    }
+
+    #[test]
+    fn test_create_folder_url() {
+        let ep = DriveApi::CreateFolder;
+        assert!(ep.to_url().contains("create_folder"));
     }
 }

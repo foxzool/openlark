@@ -172,9 +172,8 @@ pub async fn get_file_view_records(
     }
 
     // ===== 构建请求 =====
-    let url = DriveApi::ListFileViewRecords(request.file_token.clone()).to_url();
-
-    let mut api_request: ApiRequest<GetFileViewRecordsResponse> = ApiRequest::get(&url);
+    let mut api_request: ApiRequest<GetFileViewRecordsResponse> =
+        DriveApi::ListFileViewRecords(request.file_token.clone()).to_request();
 
     api_request = api_request.query("page_size", &request.page_size.to_string());
 

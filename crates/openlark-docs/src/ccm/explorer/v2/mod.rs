@@ -110,7 +110,7 @@ impl GetRootFolderMetaRequest {
         option: RequestOption,
     ) -> SDKResult<FolderMetaResponse> {
         let api_endpoint = CcmDriveExplorerApiOld::RootFolderMeta;
-        let api_request: ApiRequest<FolderMetaResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取根文件夹元信息")
     }
@@ -145,7 +145,7 @@ impl GetFolderMetaRequest {
         validate_required!(self.folder_token.trim(), "文件夹Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FolderMeta(self.folder_token);
-        let api_request: ApiRequest<FolderMetaResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取文件夹元信息")
     }
@@ -184,7 +184,8 @@ impl CreateFileRequest {
         validate_required!(self.params.parent_type.trim(), "文件类型不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::File(self.folder_token);
-        let api_request: ApiRequest<CreateFileResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<CreateFileResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.params, "新建文件")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -221,7 +222,8 @@ impl CopyFileRequest {
         validate_required!(self.params.folder_token.trim(), "目标文件夹Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileCopy(self.file_token);
-        let api_request: ApiRequest<CopyFileResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<CopyFileResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.params, "复制文档")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
@@ -258,8 +260,7 @@ impl DeleteDocRequest {
         validate_required!(self.doc_token.trim(), "文档Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileDocs(self.doc_token);
-        let api_request: ApiRequest<DeleteFileResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "删除Doc")
@@ -295,8 +296,7 @@ impl DeleteSheetRequest {
         validate_required!(self.spreadsheet_token.trim(), "表格Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileSpreadsheets(self.spreadsheet_token);
-        let api_request: ApiRequest<DeleteFileResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "删除Sheet")
@@ -337,8 +337,9 @@ impl GetFolderChildrenRequest {
     ) -> SDKResult<GetFolderChildrenResponse> {
         validate_required!(self.folder_token.trim(), "文件夹Token不能为空");
 
-        let mut api_request: ApiRequest<DriveListFilesData> =
-            ApiRequest::get(&DriveApi::ListFiles.to_url()).query("folder_token", self.folder_token);
+        let mut api_request: ApiRequest<DriveListFilesData> = DriveApi::ListFiles
+            .to_request()
+            .query("folder_token", self.folder_token);
 
         if let Some(params) = self.params {
             api_request =
@@ -425,9 +426,9 @@ impl CreateFolderRequest {
         validate_required!(self.params.title.trim(), "文件夹标题不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::Folder(self.folder_token);
-        let api_request: ApiRequest<CreateFolderResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "新建文件夹")?);
+        let api_request: ApiRequest<CreateFolderResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "新建文件夹")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "新建文件夹")
@@ -444,3 +445,55 @@ pub use models::{
     FolderChildrenData, FolderMeta, FolderMetaResponse, GetFolderChildrenParams,
     GetFolderChildrenResponse, NewFolderInfo, UserInfo,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[tokio::test]
+    async fn get_root_folder_meta_uses_catalog_request_semantics() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/explorer/v2/root_folder/meta"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data": {
+                        "folder_token": "root_token",
+                        "title": "我的空间",
+                        "folder_type": "root",
+                        "create_time": 1,
+                        "update_time": 2,
+                        "owner": null
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
+
+        let response = GetRootFolderMetaRequest::new(config)
+            .execute_with_options(option)
+            .await
+            .expect("获取根文件夹元信息应成功");
+
+        assert_eq!(
+            response.data.expect("响应应包含根文件夹").folder_token,
+            "root_token"
+        );
+    }
+}

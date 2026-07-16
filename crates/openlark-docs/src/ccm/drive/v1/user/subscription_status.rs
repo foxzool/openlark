@@ -7,6 +7,8 @@ use openlark_core::{
 };
 use std::sync::Arc;
 
+use crate::common::api_endpoints::DriveApi;
+
 /// 查询用户云文档事件订阅状态请求。
 #[derive(Debug, Clone)]
 pub struct UserSubscriptionStatusRequest {
@@ -26,8 +28,7 @@ impl UserSubscriptionStatusRequest {
 
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
-        let path = "/open-apis/drive/v1/user/subscription_status".to_string();
-        let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
+        let req: ApiRequest<serde_json::Value> = DriveApi::UserSubscriptionStatus.to_request();
         let resp = Transport::request(req, &self.config, Some(option)).await?;
         resp.data.ok_or_else(|| {
             openlark_core::error::validation_error("查询用户云文档事件订阅状态", "响应数据为空")
