@@ -166,8 +166,10 @@ impl PatchViewRequest {
         }
 
         let api_endpoint = BitableApiV1::ViewPatch(self.app_token, self.table_id, self.view_id);
-        let api_request: ApiRequest<PatchViewResponse> =
-            ApiRequest::patch(&api_endpoint.to_url()).body(serde_json::to_vec(&self.payload)?);
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<PatchViewResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&self.payload)?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

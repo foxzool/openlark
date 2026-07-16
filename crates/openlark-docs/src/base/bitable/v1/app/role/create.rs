@@ -94,9 +94,10 @@ impl CreateAppRoleRequest {
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::RoleCreate(self.app_token.clone());
+        // #439: method 来自 catalog
 
         let api_request: ApiRequest<CreateAppRoleResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+            api_endpoint.to_request().body(serialize_params(
                 &CreateAppRoleRequestBody {
                     role_name: self.role_name,
                     table_roles: self.table_roles,

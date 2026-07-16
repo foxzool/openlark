@@ -111,11 +111,11 @@ impl CopyAppRequest {
             time_zone: self.time_zone.clone(),
         };
 
-        // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<CopyAppResponse> = ApiRequest::post(&api_endpoint.to_url())
-            .body(openlark_core::api::RequestData::Binary(serde_json::to_vec(
-                &request_body,
-            )?));
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<CopyAppResponse> =
+            api_endpoint.to_request::<CopyAppResponse>().body(
+                openlark_core::api::RequestData::Binary(serde_json::to_vec(&request_body)?),
+            );
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

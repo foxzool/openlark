@@ -137,8 +137,9 @@ impl PatchTableRequest {
         let request_body = PatchTableRequestBody { name };
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<PatchTableResponse> =
-            ApiRequest::patch(&api_endpoint.to_url()).body(serde_json::to_vec(&request_body)?);
+        let api_request: ApiRequest<PatchTableResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&request_body)?);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

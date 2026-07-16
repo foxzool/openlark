@@ -152,15 +152,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：PUT .../roles/{role_id} → UpdateResp。
+    /// 同时断言 method、path、auth（catalog 提供）和响应（#438）。
     #[tokio::test]
     async fn test_update_role_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("PUT"))
             .and(path("/open-apis/base/v2/apps/app001/roles/role001"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": {}
             })))
@@ -172,19 +174,30 @@ mod tests {
             .base_url(server.uri())
             .enable_token_cache(false)
             .build();
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
         let resp = Update::new(config)
             .app_token("app001")
             .role_id("role001")
             .role_name("新角色名")
-            .execute()
+            .execute_with_options(option)
             .await
             .expect("更新角色应成功");
         assert!(resp.role.is_none());
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "PUT");
         assert_eq!(
             received[0].url.path(),
             "/open-apis/base/v2/apps/app001/roles/role001"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
         );
     }
 
@@ -193,5 +206,12 @@ mod tests {
         let ep = BaseApiV2::RoleUpdate("app".into(), "role001".into());
         let req: openlark_core::api::ApiRequest<UpdateResp> = ep.to_request();
         assert_eq!(req.method(), &openlark_core::api::HttpMethod::Put);
+        assert_eq!(
+            req.supported_access_token_types(),
+            vec![
+                openlark_core::constants::AccessTokenType::User,
+                openlark_core::constants::AccessTokenType::Tenant
+            ]
+        );
     }
 }

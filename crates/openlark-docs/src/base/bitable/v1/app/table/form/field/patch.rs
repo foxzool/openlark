@@ -118,8 +118,9 @@ impl PatchFormFieldQuestionRequest {
             self.field_id,
         );
 
-        let api_request: ApiRequest<PatchFormFieldQuestionResponse> =
-            ApiRequest::patch(&api_endpoint.to_url()).body(serde_json::to_vec(&self.body)?);
+        let api_request: ApiRequest<PatchFormFieldQuestionResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&self.body)?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

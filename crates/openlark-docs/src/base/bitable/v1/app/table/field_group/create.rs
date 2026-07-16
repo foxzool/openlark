@@ -121,7 +121,7 @@ impl CreateFieldGroupRequest {
             field_groups: self.field_groups,
         };
         let api_request: ApiRequest<CreateFieldGroupResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response

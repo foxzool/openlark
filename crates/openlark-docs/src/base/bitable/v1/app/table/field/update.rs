@@ -170,7 +170,7 @@ impl UpdateFieldRequest {
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<UpdateFieldResponse> =
-            ApiRequest::put(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

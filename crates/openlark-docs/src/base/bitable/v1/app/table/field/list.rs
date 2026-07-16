@@ -113,10 +113,8 @@ impl ListFieldRequest {
         // 替代传统的字符串拼接方式，提供类型安全和IDE自动补全
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FieldList(self.app_token.clone(), self.table_id.clone());
-
-        // 创建API请求 - 使用类型安全的URL生成
-        let mut api_request: ApiRequest<ListFieldResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<ListFieldResponse> = api_endpoint.to_request();
 
         // 构建查询参数
         if let Some(ref view_id) = self.view_id {

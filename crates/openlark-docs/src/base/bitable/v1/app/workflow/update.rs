@@ -101,8 +101,7 @@ impl UpdateWorkflowRequest {
             openlark_core::error::serialization_error("序列化更新自动化流程请求体失败", Some(e))
         })?;
 
-        let api_request: ApiRequest<UpdateWorkflowResponse> =
-            ApiRequest::put(&api_endpoint.to_url()).body(body);
+        let api_request: ApiRequest<UpdateWorkflowResponse> = api_endpoint.to_request().body(body);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         response
