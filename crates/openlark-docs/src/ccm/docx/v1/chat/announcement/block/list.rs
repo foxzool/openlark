@@ -85,7 +85,7 @@ impl GetChatAnnouncementBlocksRequest {
         let api_endpoint = DocxApiV1::ChatAnnouncementBlockList(params.chat_id.clone());
 
         let mut api_request: ApiRequest<GetChatAnnouncementBlocksResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+            api_endpoint.to_request();
 
         if let Some(page_size) = params.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());

@@ -118,7 +118,7 @@ impl GetDocumentRequest {
         validate_required!(self.document_id, "文档ID不能为空");
 
         let api_endpoint = DocxApiV1::DocumentGet(self.document_id.clone());
-        let api_request: ApiRequest<GetDocumentResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetDocumentResponse> = api_endpoint.to_request();
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "获取")

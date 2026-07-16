@@ -104,9 +104,9 @@ impl CreateDocumentRequest {
             folder_token: self.folder_token,
         };
 
-        let api_request: ApiRequest<CreateDocumentResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&request_body, "创建文档")?);
+        let api_request: ApiRequest<CreateDocumentResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&request_body, "创建文档")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "创建")
@@ -118,7 +118,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/docx/v1/documents → CreateDocumentResponse（document）。
@@ -127,6 +127,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/docx/v1/documents"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": { "document": { "document_id": "doc1", "revision_id": 1 } }
@@ -143,7 +144,11 @@ mod tests {
 
         let resp = CreateDocumentRequest::new(config)
             .title("测试文档")
-            .execute()
+            .execute_with_options(
+                openlark_core::req_option::RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
             .await
             .expect("创建文档应成功");
         assert_eq!(resp.document.document_id, "doc1");

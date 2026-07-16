@@ -75,8 +75,7 @@ impl GetDocumentRawContentRequest {
         let api_endpoint = DocxApiV1::DocumentRawContent(params.document_id.clone());
 
         // 创建API请求
-        let mut api_request: ApiRequest<GetDocumentRawContentResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetDocumentRawContentResponse> = api_endpoint.to_request();
 
         if let Some(lang) = params.lang {
             api_request = api_request.query("lang", &lang.to_string());
@@ -93,7 +92,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET .../documents/{document_id}/raw_content → GetDocumentRawContentResponse（content）。
@@ -101,7 +100,8 @@ mod tests {
     async fn test_get_document_raw_content_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/open-apis/docx/v1/documents/doc1/raw_content"))
+            .and(path("/open-apis/docx/v1/documents/doc%201/raw_content"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": { "content": "文档纯文本内容" }
@@ -117,10 +117,15 @@ mod tests {
             .build();
 
         let resp = GetDocumentRawContentRequest::new(config)
-            .execute(GetDocumentRawContentParams {
-                document_id: "doc1".into(),
-                lang: None,
-            })
+            .execute_with_options(
+                GetDocumentRawContentParams {
+                    document_id: "doc 1".into(),
+                    lang: Some(0),
+                },
+                RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
             .await
             .expect("获取文档纯文本应成功");
         assert_eq!(resp.content, "文档纯文本内容");
@@ -129,7 +134,8 @@ mod tests {
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
-            "/open-apis/docx/v1/documents/doc1/raw_content"
+            "/open-apis/docx/v1/documents/doc%201/raw_content"
         );
+        assert_eq!(received[0].url.query(), Some("lang=0"));
     }
 }

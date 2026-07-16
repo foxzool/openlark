@@ -95,9 +95,9 @@ impl BatchUpdateChatAnnouncementBlocksRequest {
 
         let api_endpoint = DocxApiV1::ChatAnnouncementBlockBatchUpdate(params.chat_id.clone());
 
-        let api_request: ApiRequest<BatchUpdateChatAnnouncementBlocksResponse> =
-            ApiRequest::patch(&api_endpoint.to_url())
-                .body(serialize_params(&params, "批量更新群公告块的内容")?);
+        let api_request: ApiRequest<BatchUpdateChatAnnouncementBlocksResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "批量更新群公告块的内容")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
         extract_response_data(response, "批量更新群公告块的内容")

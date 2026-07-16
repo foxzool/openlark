@@ -97,8 +97,9 @@ impl CreateDocumentBlockChildrenRequest {
             params.block_id.clone(),
         );
 
-        let mut api_request: ApiRequest<CreateDocumentBlockChildrenResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建块")?);
+        let mut api_request: ApiRequest<CreateDocumentBlockChildrenResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "创建块")?);
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =

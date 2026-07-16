@@ -103,8 +103,7 @@ impl GetChatAnnouncementRequest {
         validate_required!(self.chat_id, "群聊ID不能为空");
 
         let api_endpoint = DocxApiV1::ChatAnnouncementGet(self.chat_id.clone());
-        let mut api_request: ApiRequest<GetChatAnnouncementResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetChatAnnouncementResponse> = api_endpoint.to_request();
 
         if let Some(user_id_type) = self.user_id_type {
             api_request = api_request.query("user_id_type", &user_id_type);

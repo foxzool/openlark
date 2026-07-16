@@ -91,7 +91,7 @@ impl BatchUpdateDocumentBlocksRequest {
 
         let api_endpoint = DocxApiV1::DocumentBlockBatchUpdate(params.document_id.clone());
         let mut api_request: ApiRequest<BatchUpdateDocumentBlocksResponse> =
-            ApiRequest::patch(&api_endpoint.to_url());
+            api_endpoint.to_request();
         api_request = api_request.json_body(&params);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

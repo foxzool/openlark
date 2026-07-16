@@ -98,9 +98,9 @@ impl ConvertContentToBlocksRequest {
         let api_endpoint = DocxApiV1::DocumentConvert;
 
         // 创建API请求
-        let api_request: ApiRequest<ConvertContentToBlocksResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "Markdown/HTML 内容转换为文档块")?);
+        let api_request: ApiRequest<ConvertContentToBlocksResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "Markdown/HTML 内容转换为文档块")?);
 
         // 发送请求
         let response = Transport::request(api_request, &self.config, Some(option)).await?;

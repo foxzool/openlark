@@ -86,7 +86,7 @@ impl GetDocumentBlockChildrenRequest {
             params.block_id.clone(),
         );
         let mut api_request: ApiRequest<GetDocumentBlockChildrenResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+            api_endpoint.to_request();
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =

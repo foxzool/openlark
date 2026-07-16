@@ -90,7 +90,8 @@ impl BatchDeleteChatAnnouncementBlockChildrenRequest {
         );
 
         let api_request: ApiRequest<BatchDeleteChatAnnouncementBlockChildrenResponse> =
-            ApiRequest::delete(&api_endpoint.to_url())
+            api_endpoint
+                .to_request()
                 .body(serialize_params(&params, "删除群公告中的块")?);
 
         let response = Transport::request(api_request, &self.config, Some(option)).await?;
