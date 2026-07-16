@@ -330,9 +330,15 @@ impl BitableApiV1 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 该端点的 HTTP 方法。稳定语义，method 与 path 必须在同一处变更。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for BitableApiV1 {
+    fn to_url(&self) -> String {
+        // delegate to inherent for backward compat
+        BitableApiV1::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             // App 管理
             BitableApiV1::AppCreate => HttpMethod::Post,
@@ -400,17 +406,6 @@ impl BitableApiV1 {
             BitableApiV1::RoleMemberBatchDelete(_, _) => HttpMethod::Post,
             BitableApiV1::RoleMemberList(_, _) => HttpMethod::Get,
         }
-    }
-}
-
-impl CatalogEndpoint for BitableApiV1 {
-    fn to_url(&self) -> String {
-        // delegate to inherent for backward compat
-        BitableApiV1::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        BitableApiV1::method(self)
     }
 
     /// Bitable 端点的稳定认证要求（#439 迁移）。

@@ -175,9 +175,10 @@ impl SearchEntityRequest {
         }
 
         // ===== 构建请求 =====
-        let mut api_request: ApiRequest<SearchEntityResponse> =
-            ApiRequest::post(&BaikeApiV1::EntitySearch.to_url())
-                .body(serde_json::to_value(&self.req)?);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let mut api_request: ApiRequest<SearchEntityResponse> = BaikeApiV1::EntitySearch
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", page_size.to_string());

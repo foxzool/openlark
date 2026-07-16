@@ -126,9 +126,14 @@ impl DocxApiV1 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
+}
 
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
+impl CatalogEndpoint for DocxApiV1 {
+    fn to_url(&self) -> String {
+        DocxApiV1::to_url(self)
+    }
+
+    fn method(&self) -> HttpMethod {
         match self {
             Self::ChatAnnouncementGet(_)
             | Self::ChatAnnouncementBlockList(_)
@@ -150,16 +155,6 @@ impl DocxApiV1 {
             Self::ChatAnnouncementBlockChildrenBatchDelete(_, _)
             | Self::DocumentBlockChildrenBatchDelete(_, _) => HttpMethod::Delete,
         }
-    }
-}
-
-impl CatalogEndpoint for DocxApiV1 {
-    fn to_url(&self) -> String {
-        DocxApiV1::to_url(self)
-    }
-
-    fn method(&self) -> HttpMethod {
-        DocxApiV1::method(self)
     }
 
     fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {

@@ -2,7 +2,6 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Minutes API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -48,16 +47,6 @@ impl MinutesApiV1 {
     pub fn to_request<R>(&self) -> ApiRequest<R> {
         <Self as CatalogEndpoint>::to_request(self)
     }
-
-    /// 返回端点的 HTTP 方法。
-    pub fn method(&self) -> HttpMethod {
-        match self {
-            Self::Get(_) | Self::MediaGet(_) | Self::TranscriptGet(_) | Self::StatisticsGet(_) => {
-                HttpMethod::Get
-            }
-            Self::Subscription | Self::Unsubscription => HttpMethod::Post,
-        }
-    }
 }
 
 impl CatalogEndpoint for MinutesApiV1 {
@@ -66,12 +55,15 @@ impl CatalogEndpoint for MinutesApiV1 {
     }
 
     fn method(&self) -> HttpMethod {
-        MinutesApiV1::method(self)
+        match self {
+            Self::Get(_) | Self::MediaGet(_) | Self::TranscriptGet(_) | Self::StatisticsGet(_) => {
+                HttpMethod::Get
+            }
+            Self::Subscription | Self::Unsubscription => HttpMethod::Post,
+        }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// 不扩展公开 `MinutesApiV1` 的补充端点，避免破坏下游穷举匹配。
@@ -110,7 +102,5 @@ impl CatalogEndpoint for MinutesExtraApiV1 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }

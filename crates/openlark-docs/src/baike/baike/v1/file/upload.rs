@@ -105,10 +105,11 @@ impl UploadFileRequest {
         });
 
         // ===== 构建请求并发送 =====
-        let api_request: ApiRequest<UploadFileResponse> =
-            ApiRequest::post(&BaikeApiV1::FileUpload.to_url())
-                .body(body)
-                .file_content(self.file);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let api_request: ApiRequest<UploadFileResponse> = BaikeApiV1::FileUpload
+            .to_request()
+            .body(body)
+            .file_content(self.file);
 
         let response: Response<UploadFileResponse> =
             Transport::request(api_request, &self.config, Some(option)).await?;
