@@ -1,6 +1,6 @@
 //! 获取评论列表
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/comment/list>
+//! docPath: <https://open.feishu.cn/document/task-v2/comment/list>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::comment::models::ListCommentsResponse;
@@ -17,12 +17,18 @@ use std::sync::Arc;
 pub struct ListCommentsRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务 GUID
-    task_guid: String,
+    /// 资源类型
+    resource_type: String,
+    /// 资源 ID
+    resource_id: String,
     /// 分页大小
     page_size: Option<i32>,
     /// 分页标记
     page_token: Option<String>,
+    /// 排序方向
+    direction: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl ListCommentsRequest {
@@ -30,9 +36,12 @@ impl ListCommentsRequest {
     pub fn new(config: Arc<Config>, task_guid: String) -> Self {
         Self {
             config,
-            task_guid,
+            resource_type: "task".to_string(),
+            resource_id: task_guid,
             page_size: None,
             page_token: None,
+            direction: None,
+            user_id_type: None,
         }
     }
 
@@ -48,6 +57,30 @@ impl ListCommentsRequest {
         self
     }
 
+    /// 设置资源类型。
+    pub fn resource_type(mut self, resource_type: impl Into<String>) -> Self {
+        self.resource_type = resource_type.into();
+        self
+    }
+
+    /// 设置资源 ID。
+    pub fn resource_id(mut self, resource_id: impl Into<String>) -> Self {
+        self.resource_id = resource_id.into();
+        self
+    }
+
+    /// 设置排序方向（`asc` 或 `desc`）。
+    pub fn direction(mut self, direction: impl Into<String>) -> Self {
+        self.direction = Some(direction.into());
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<ListCommentsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
@@ -60,9 +93,10 @@ impl ListCommentsRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListCommentsResponse> {
         // 验证必填字段
-        validate_required!(self.task_guid.trim(), "任务GUID不能为空");
+        validate_required!(self.resource_id.trim(), "资源ID不能为空");
+        validate_required!(self.resource_type.trim(), "资源类型不能为空");
 
-        let api_endpoint = TaskApiV2::CommentList(self.task_guid.clone());
+        let api_endpoint = TaskApiV2::CommentList;
         let mut request = ApiRequest::<ListCommentsResponse>::get(api_endpoint.to_url());
 
         // 构建查询参数
@@ -71,6 +105,14 @@ impl ListCommentsRequest {
         }
         if let Some(page_token) = &self.page_token {
             request = request.query("page_token", page_token);
+        }
+        request = request.query("resource_type", &self.resource_type);
+        request = request.query("resource_id", &self.resource_id);
+        if let Some(direction) = &self.direction {
+            request = request.query("direction", direction);
+        }
+        if let Some(user_id_type) = &self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
         }
 
         let response =
@@ -102,7 +144,7 @@ mod tests {
         let request =
             ListCommentsRequest::new(Arc::new(config), "task_123".to_string()).page_size(20);
 
-        assert_eq!(request.task_guid, "task_123");
+        assert_eq!(request.resource_id, "task_123");
         assert_eq!(request.page_size, Some(20));
     }
 }

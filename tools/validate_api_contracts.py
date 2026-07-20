@@ -35,6 +35,20 @@ from tools.api_contracts.report import write_report, write_summary
 from tools.api_contracts.rust_source import load_endpoint_constants, load_enum_endpoints, scan_api_file
 
 
+def implementation_path_candidates(expected_file: str, crate_config: dict) -> list[str]:
+    """Return the strict path plus explicitly registered legacy implementation paths."""
+    candidates = [expected_file]
+    alias = (crate_config.get("implementation_path_aliases") or {}).get(expected_file)
+    if alias:
+        candidates.append(str(alias))
+    for rewrite in crate_config.get("implementation_path_rewrites") or []:
+        source_prefix = str(rewrite.get("from", ""))
+        target_prefix = str(rewrite.get("to", ""))
+        if source_prefix and expected_file.startswith(source_prefix):
+            candidates.append(target_prefix + expected_file[len(source_prefix) :])
+    return list(dict.fromkeys(candidates))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate endpoint-level API contracts.")
     parser.add_argument("--csv", default="api_list_export.csv", help="Official API CSV path")
@@ -108,7 +122,14 @@ def validate_crate(
 
     field_checks = 0
     for api in apis:
-        rust_contract = scan_api_file(src_path, api.expected_file, constants, enum_endpoints)
+        rust_contract = next(
+            (
+                contract
+                for candidate in implementation_path_candidates(api.expected_file, crate_config)
+                if (contract := scan_api_file(src_path, candidate, constants, enum_endpoints)) is not None
+            ),
+            None,
+        )
         if rust_contract is not None:
             report.checked_apis += 1
         detail_payload = None

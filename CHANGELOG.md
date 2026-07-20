@@ -82,6 +82,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **workflow Task v2 附件/评论契约对齐**：修正 7 个仍指向旧版
+  `/tasks/{task_guid}/...` 路径的请求；附件上传改为官方
+  `/attachments/upload` multipart 表单（`resource_type` / `resource_id` / `file`），
+  评论更新改为 `PATCH /comments/{comment_id}` 与 `comment + update_fields` 嵌套请求体。
+  同步补齐资源、分页、用户 ID 类型查询参数，并按飞书 Task v2 schema 重建附件与评论响应模型。
+
 - **WebSocket 会话结果可观察（#426）**：`LarkWsClient::open` 在远端关闭或传输失败时
   通过 `Result` 返回 `ConnectionClosed` / `WsError`（此前会话几乎总是以
   `Ok(())` 结束）。新增本地 endpoint + WebSocket peer 的完整会话测试 seam。
@@ -108,6 +114,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
 
 ### Breaking
+
+- **workflow Task v2 附件/评论旧契约移除**：
+  `DeleteAttachmentRequest::new`、`GetCommentRequest::new`、
+  `UpdateCommentRequest::new`、`DeleteCommentRequest::new` 不再接收服务端已移除的
+  `task_guid` 路径参数；资源归属改由创建/列表/上传请求的 `resource_id` 表达。
+  `AttachmentInfo` / `CommentItem` 及 create/get/update/delete 响应字段改为官方 v2
+  envelope（如 `guid` / `id` / `comment` / `items`）。经导航 facade 调用时，
+  `with_task(...)` 仍为 create/list/upload 注入任务资源 ID；get/update/delete 只需传附件或评论 ID。
 
 - **client registry / FeatureLoader（#437）→ 0.18.0**：
   - 删除公开类型 `FeatureLoader`、`ServiceStatus`。

@@ -1,54 +1,51 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "🚀 OpenLark Workspace Publish Script"
 echo "===================================="
 echo ""
 
-# Configuration
-SLEEP_DURATION=30
+SLEEP_DURATION="${SLEEP_DURATION:-60}"
 DRY_RUN="${DRY_RUN:-false}"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Publish function
 publish_crate() {
     local crate=$1
+    local delay=${2:-$SLEEP_DURATION}
+    local output
+
     echo -e "${YELLOW}Publishing ${crate}...${NC}"
-    
+
     if [ "$DRY_RUN" = "true" ]; then
-        echo "  [DRY RUN] cargo publish -p ${crate} --dry-run"
-        cargo publish -p "${crate}" --dry-run 2>&1 | head -20 || true
+        cargo publish -p "$crate" --registry crates-io --dry-run
+    elif output=$(cargo publish -p "$crate" --registry crates-io 2>&1); then
+        printf '%s\n' "$output"
+        echo -e "${GREEN}✅ ${crate} published successfully${NC}"
+    elif grep -q "is already uploaded" <<<"$output"; then
+        printf '%s\n' "$output"
+        echo -e "${YELLOW}⚠️ ${crate} exact version already exists; continuing retry${NC}"
     else
-        echo "  Publishing to crates.io..."
-        if cargo publish -p "${crate}" 2>&1; then
-            echo -e "${GREEN}✅ ${crate} published successfully${NC}"
-        else
-            echo -e "${RED}❌ Failed to publish ${crate}${NC}"
-            return 1
-        fi
-        
-        echo "  Waiting ${SLEEP_DURATION}s for index propagation..."
-        sleep "${SLEEP_DURATION}"
+        printf '%s\n' "$output" >&2
+        echo -e "${RED}❌ Failed to publish ${crate}${NC}"
+        return 1
+    fi
+
+    if [ "$DRY_RUN" != "true" ] && [ "$delay" -gt 0 ]; then
+        echo "Waiting ${delay}s for index propagation..."
+        sleep "$delay"
     fi
     echo ""
 }
 
-echo "📦 Layer 1: Foundation (Protocol)"
-echo "-----------------------------------"
-publish_crate "openlark-protocol"
+PUBLISH_ORDER=(
+    # Layer 1: Core
+    "openlark-core"
 
-echo "📦 Layer 2: Core"
-echo "----------------"
-publish_crate "openlark-core"
-
-echo "📦 Layer 3: Business Crates"
-echo "---------------------------"
-BUSINESS_CRATES=(
+    # Layer 2: Business crates
     "openlark-auth"
     "openlark-security"
     "openlark-communication"
@@ -62,22 +59,31 @@ BUSINESS_CRATES=(
     "openlark-meeting"
     "openlark-helpdesk"
     "openlark-mail"
+    "openlark-bot"
     "openlark-workflow"
     "openlark-analytics"
     "openlark-user"
+
+    # Layer 3: Client
+    "openlark-client"
+
+    # Layer 4: Root crate
+    "openlark"
 )
 
-for crate in "${BUSINESS_CRATES[@]}"; do
-    publish_crate "${crate}"
+for crate in "${PUBLISH_ORDER[@]}"; do
+    case "$crate" in
+        openlark-core | openlark-client)
+            publish_crate "$crate" 30
+            ;;
+        openlark)
+            publish_crate "$crate" 0
+            ;;
+        *)
+            publish_crate "$crate" "$SLEEP_DURATION"
+            ;;
+    esac
 done
-
-echo "📦 Layer 4: Client"
-echo "------------------"
-publish_crate "openlark-client"
-
-echo "📦 Layer 5: Root Crate"
-echo "---------------------"
-publish_crate "openlark"
 
 echo -e "${GREEN}====================================${NC}"
 echo -e "${GREEN}🎉 All crates published successfully!${NC}"

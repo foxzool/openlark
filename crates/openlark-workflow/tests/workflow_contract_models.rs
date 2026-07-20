@@ -234,7 +234,8 @@ fn tasklist_request_and_response_contract() {
 #[test]
 fn comment_and_custom_field_contract() {
     let comment_request = CreateCommentBody {
-        content: "请补充发布回滚说明".to_string(),
+        content: Some("请补充发布回滚说明".to_string()),
+        ..CreateCommentBody::default()
     };
     assert_json_contract(
         &comment_request,
@@ -246,19 +247,24 @@ fn comment_and_custom_field_contract() {
     let comment_response: ListCommentsResponse = parse_contract(json!({
         "has_more": false,
         "page_token": null,
-        "total": 1,
         "items": [
             {
-                "comment_guid": "comment_1",
-                "task_guid": "task_1",
+                "id": "comment_1",
                 "content": "请补充发布回滚说明",
-                "creator": "ou_creator",
+                "creator": {
+                    "id": "ou_creator",
+                    "type": "user",
+                    "role": "editor",
+                    "name": "创建者"
+                },
+                "resource_type": "task",
+                "resource_id": "task_1",
                 "created_at": "2026-12-01T09:00:00Z",
                 "updated_at": "2026-12-01T10:00:00Z"
             }
         ]
     }));
-    assert_eq!(comment_response.items[0].comment_guid, "comment_1");
+    assert_eq!(comment_response.items[0].id.as_deref(), Some("comment_1"));
 
     let custom_field_request = CreateCustomFieldBody {
         name: "风险等级".to_string(),

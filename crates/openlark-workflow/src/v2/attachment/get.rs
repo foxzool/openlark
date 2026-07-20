@@ -1,39 +1,19 @@
 //! 获取附件
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/attachment/get>
+//! docPath: <https://open.feishu.cn/document/task-v2/attachment/get>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::v2::attachment::models::AttachmentInfo;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     validate_required,
 };
-use serde::Deserialize;
 use std::sync::Arc;
 
-/// 附件信息
-#[derive(Debug, Clone, Deserialize)]
-pub struct AttachmentInfo {
-    /// 附件 GUID
-    pub attachment_guid: String,
-    /// 任务 GUID
-    pub task_guid: String,
-    /// 文件名
-    pub file_name: String,
-    /// 文件大小（字节）
-    pub file_size: i64,
-    /// 文件类型
-    pub file_type: String,
-    /// 上传时间
-    pub created_at: String,
-    /// 上传者 ID
-    #[serde(default)]
-    pub creator_id: Option<String>,
-}
-
 /// 获取附件响应
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct GetAttachmentResponse {
     /// 附件信息
     pub attachment: AttachmentInfo,
@@ -46,6 +26,8 @@ pub struct GetAttachmentRequest {
     config: Arc<Config>,
     /// 附件 GUID
     attachment_guid: String,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl GetAttachmentRequest {
@@ -54,7 +36,14 @@ impl GetAttachmentRequest {
         Self {
             config,
             attachment_guid: attachment_guid.into(),
+            user_id_type: None,
         }
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行请求
@@ -72,7 +61,10 @@ impl GetAttachmentRequest {
         validate_required!(self.attachment_guid.trim(), "附件GUID不能为空");
 
         let api_endpoint = TaskApiV2::AttachmentGet(self.attachment_guid.clone());
-        let request = ApiRequest::<GetAttachmentResponse>::get(api_endpoint.to_url());
+        let mut request = ApiRequest::<GetAttachmentResponse>::get(api_endpoint.to_url());
+        if let Some(user_id_type) = &self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
+        }
 
         let response =
             openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;

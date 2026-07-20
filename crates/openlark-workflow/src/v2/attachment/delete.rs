@@ -1,6 +1,6 @@
 //! 删除附件
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/attachment/delete>
+//! docPath: <https://open.feishu.cn/document/task-v2/attachment/delete>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::attachment::models::DeleteAttachmentResponse;
@@ -17,18 +17,15 @@ use std::sync::Arc;
 pub struct DeleteAttachmentRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务 GUID
-    task_guid: String,
     /// 附件 GUID
     attachment_guid: String,
 }
 
 impl DeleteAttachmentRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, task_guid: String, attachment_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, attachment_guid: String) -> Self {
         Self {
             config,
-            task_guid,
             attachment_guid,
         }
     }
@@ -45,11 +42,9 @@ impl DeleteAttachmentRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DeleteAttachmentResponse> {
         // 验证必填字段
-        validate_required!(self.task_guid.trim(), "任务GUID不能为空");
         validate_required!(self.attachment_guid.trim(), "附件GUID不能为空");
 
-        let api_endpoint =
-            TaskApiV2::AttachmentDelete(self.task_guid.clone(), self.attachment_guid.clone());
+        let api_endpoint = TaskApiV2::AttachmentDelete(self.attachment_guid.clone());
         let request = ApiRequest::<DeleteAttachmentResponse>::delete(api_endpoint.to_url());
 
         let response =
@@ -78,13 +73,8 @@ mod tests {
             .app_secret("test")
             .build();
 
-        let request = DeleteAttachmentRequest::new(
-            Arc::new(config),
-            "task_123".to_string(),
-            "attachment_456".to_string(),
-        );
+        let request = DeleteAttachmentRequest::new(Arc::new(config), "attachment_456".to_string());
 
-        assert_eq!(request.task_guid, "task_123");
         assert_eq!(request.attachment_guid, "attachment_456");
     }
 }

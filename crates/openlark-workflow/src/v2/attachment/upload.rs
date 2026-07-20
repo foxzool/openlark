@@ -1,12 +1,12 @@
 //! 上传附件
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/attachment/upload>
+//! docPath: <https://open.feishu.cn/document/task-v2/attachment/upload>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::attachment::models::UploadAttachmentResponse;
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, RequestData, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     validate_required,
 };
@@ -23,6 +23,10 @@ pub struct UploadAttachmentRequest {
     file_path: String,
     /// 文件名
     file_name: Option<String>,
+    /// 资源类型
+    resource_type: String,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl UploadAttachmentRequest {
@@ -33,12 +37,26 @@ impl UploadAttachmentRequest {
             task_guid,
             file_path,
             file_name: None,
+            resource_type: "task".to_string(),
+            user_id_type: None,
         }
     }
 
     /// 设置文件名（可选，默认使用文件路径的文件名）
     pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
         self.file_name = Some(file_name.into());
+        self
+    }
+
+    /// 设置资源类型。
+    pub fn resource_type(mut self, resource_type: impl Into<String>) -> Self {
+        self.resource_type = resource_type.into();
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -57,7 +75,9 @@ impl UploadAttachmentRequest {
         validate_required!(self.task_guid.trim(), "任务GUID不能为空");
         validate_required!(self.file_path.trim(), "文件路径不能为空");
 
-        let api_endpoint = TaskApiV2::AttachmentUpload(self.task_guid.clone());
+        validate_required!(self.resource_type.trim(), "资源类型不能为空");
+
+        let api_endpoint = TaskApiV2::AttachmentUpload;
 
         // 读取文件内容
         let file_content = std::fs::read(&self.file_path).map_err(|e| {
@@ -76,14 +96,18 @@ impl UploadAttachmentRequest {
                 .to_string()
         });
 
-        // 获取文件大小
-        let file_size = file_content.len();
+        let form = serde_json::json!({
+            "resource_type": self.resource_type,
+            "resource_id": self.task_guid,
+            "__file_name": filename,
+        });
 
-        // 创建 API 请求
         let mut request = ApiRequest::<UploadAttachmentResponse>::post(api_endpoint.to_url());
-        request = request.body(RequestData::Binary(file_content));
-        request = request.header("X-File-Name", filename);
-        request = request.header("X-File-Size", file_size.to_string());
+        request = request.body(serialize_params(&form, "上传附件")?);
+        request = request.file_content(file_content);
+        if let Some(user_id_type) = &self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
+        }
 
         let response =
             openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;

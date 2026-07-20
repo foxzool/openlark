@@ -168,19 +168,19 @@ pub enum TaskApiV2 {
     /// 获取自定义字段列表
     CustomFieldList,
     /// 创建评论
-    CommentCreate(String),
+    CommentCreate,
     /// 获取评论详情
-    CommentGet(String, String),
+    CommentGet(String),
     /// 更新评论
-    CommentUpdate(String, String),
+    CommentUpdate(String),
     /// 删除评论
-    CommentDelete(String, String),
+    CommentDelete(String),
     /// 获取评论列表
-    CommentList(String),
+    CommentList,
     /// 上传附件
-    AttachmentUpload(String),
+    AttachmentUpload,
     /// 删除附件
-    AttachmentDelete(String, String),
+    AttachmentDelete(String),
 
     // 子任务相关
     /// 创建子任务
@@ -320,28 +320,22 @@ impl TaskApiV2 {
             TaskApiV2::CustomFieldList => "/open-apis/task/v2/custom_fields".to_string(),
 
             // 评论相关
-            TaskApiV2::CommentCreate(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/comments")
+            TaskApiV2::CommentCreate => "/open-apis/task/v2/comments".to_string(),
+            TaskApiV2::CommentGet(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentGet(task_guid, comment_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/comments/{comment_guid}")
+            TaskApiV2::CommentUpdate(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentUpdate(task_guid, comment_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/comments/{comment_guid}")
+            TaskApiV2::CommentDelete(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentDelete(task_guid, comment_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/comments/{comment_guid}")
-            }
-            TaskApiV2::CommentList(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/comments")
-            }
+            TaskApiV2::CommentList => "/open-apis/task/v2/comments".to_string(),
 
             // 附件相关
-            TaskApiV2::AttachmentUpload(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/attachments")
-            }
-            TaskApiV2::AttachmentDelete(task_guid, attachment_guid) => {
-                format!("/open-apis/task/v2/tasks/{task_guid}/attachments/{attachment_guid}")
+            TaskApiV2::AttachmentUpload => "/open-apis/task/v2/attachments/upload".to_string(),
+            TaskApiV2::AttachmentDelete(attachment_guid) => {
+                format!("/open-apis/task/v2/attachments/{attachment_guid}")
             }
 
             // 子任务相关
@@ -878,32 +872,32 @@ mod tests {
                 "/open-apis/task/v2/custom_fields".to_string(),
             ),
             (
-                TaskApiV2::CommentCreate("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments".to_string(),
+                TaskApiV2::CommentCreate,
+                "/open-apis/task/v2/comments".to_string(),
             ),
             (
-                TaskApiV2::CommentGet("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentGet("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentUpdate("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentUpdate("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentDelete("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentDelete("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentList("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments".to_string(),
+                TaskApiV2::CommentList,
+                "/open-apis/task/v2/comments".to_string(),
             ),
             (
-                TaskApiV2::AttachmentUpload("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/attachments".to_string(),
+                TaskApiV2::AttachmentUpload,
+                "/open-apis/task/v2/attachments/upload".to_string(),
             ),
             (
-                TaskApiV2::AttachmentDelete("t1".to_string(), "a1".to_string()),
-                "/open-apis/task/v2/tasks/t1/attachments/a1".to_string(),
+                TaskApiV2::AttachmentDelete("a1".to_string()),
+                "/open-apis/task/v2/attachments/a1".to_string(),
             ),
             (
                 TaskApiV2::SubtaskCreate("t1".to_string()),

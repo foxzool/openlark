@@ -47,6 +47,18 @@ echo "== Generate typed API coverage report =="
 python3 tools/validate_apis.py --all-crates
 
 echo
+echo "== Enforce typed API coverage release gate =="
+python3 tools/check_typed_coverage_release.py \
+  --output "${OUTPUT_DIR}/typed_coverage_release_gate.md"
+
+echo
+echo "== Validate typed API endpoint contracts =="
+python3 tools/validate_api_contracts.py \
+  --all-crates \
+  --strict endpoint \
+  --report-dir "${OUTPUT_DIR}/api_contracts"
+
+echo
 echo "== Generate crate quality status summary =="
 python3 tools/release_quality_status.py --output "${OUTPUT_DIR}/release_quality_status.md"
 
@@ -60,10 +72,14 @@ cat > "${OUTPUT_DIR}/summary.md" <<EOF
 - Public README / example compile-check green
 - Common feature combinations still expose expected root surface
 - Typed API coverage summary regenerated
+- Typed API coverage stable-release gate passed
+- Typed API endpoint contracts validated
 - Crate quality status summary regenerated
 
 ## Triggered artifacts
 
+- \`${OUTPUT_DIR}/typed_coverage_release_gate.md\`
+- \`${OUTPUT_DIR}/api_contracts/summary.md\`
 - \`${OUTPUT_DIR}/release_quality_status.md\`
 - \`reports/api_validation/summary.json\`
 - \`reports/api_validation/dashboards/core_business.json\`

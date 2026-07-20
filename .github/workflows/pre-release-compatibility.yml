@@ -15,7 +15,12 @@ on:
       - 'docs/migration-guide.md'
       - 'docs/legacy-entrypoint-migration-notes.md'
       - 'scripts/check-pre-release-compatibility.sh'
+      - 'scripts/publish-workspace.sh'
       - 'scripts/check-public-examples.sh'
+      - 'tools/api_coverage.toml'
+      - 'tools/typed_coverage_release.toml'
+      - 'tools/check_typed_coverage_release.py'
+      - 'tools/validate_api_contracts.py'
       - 'tools/validate_apis.py'
       - 'tools/release_quality_status.py'
       - 'src/lib.rs'
@@ -64,6 +69,8 @@ jobs:
           path: |
             reports/pre_release_compatibility/summary.md
             reports/pre_release_compatibility/release_quality_status.md
+            reports/pre_release_compatibility/typed_coverage_release_gate.md
+            reports/pre_release_compatibility/api_contracts/
             reports/api_validation/summary.json
             reports/api_validation/summary.md
             reports/api_validation/dashboards/core_business.json

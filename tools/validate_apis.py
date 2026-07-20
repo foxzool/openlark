@@ -270,6 +270,8 @@ class APIValidator:
         skip_old_versions: bool = True,
         with_timestamp: bool = False,
         priority_model: Optional[PriorityModel] = None,
+        implementation_path_rewrites: Optional[List[Dict[str, str]]] = None,
+        implementation_path_aliases: Optional[Dict[str, str]] = None,
     ):
         self.csv_path = csv_path
         self.src_path = Path(src_path)
@@ -277,6 +279,8 @@ class APIValidator:
         self.skip_old_versions = skip_old_versions
         self.with_timestamp = with_timestamp
         self.priority_model = priority_model
+        self.implementation_path_rewrites = implementation_path_rewrites or []
+        self.implementation_path_aliases = implementation_path_aliases or {}
         self.apis: List[APIInfo] = []
         self.implemented_files: Set[str] = set()
         self.missing_apis: List[APIInfo] = []
@@ -418,9 +422,19 @@ class APIValidator:
         """对比 CSV 和实际实现"""
         print("🔬 开始对比分析...")
 
+        matched_implementation_files: Set[str] = set()
         for api in self.apis:
-            if api.expected_file and api.expected_file in self.implemented_files:
+            implementation_file = next(
+                (
+                    candidate
+                    for candidate in self._implementation_path_candidates(api.expected_file)
+                    if candidate in self.implemented_files
+                ),
+                None,
+            )
+            if implementation_file is not None:
                 api.is_implemented = True
+                matched_implementation_files.add(implementation_file)
                 continue
 
             api.is_implemented = False
@@ -428,8 +442,7 @@ class APIValidator:
                 self.priority_model.evaluate(api)
             self.missing_apis.append(api)
 
-        expected_files = {api.expected_file for api in self.apis if api.expected_file}
-        self.extra_files = self.implemented_files - expected_files
+        self.extra_files = self.implemented_files - matched_implementation_files
         if self.priority_model is not None:
             self.missing_apis = sorted(self.missing_apis, key=self.priority_model.sort_key)
 
@@ -437,6 +450,24 @@ class APIValidator:
         print(f"   - 已实现: {len([api for api in self.apis if api.is_implemented])}")
         print(f"   - 未实现: {len(self.missing_apis)}")
         print(f"   - 额外文件: {len(self.extra_files)}")
+
+    def _implementation_path_candidates(self, expected_file: str) -> List[str]:
+        """返回 strict 路径及仓库已登记的 legacy 实现路径。"""
+        if not expected_file:
+            return []
+
+        candidates = [expected_file]
+        alias = self.implementation_path_aliases.get(expected_file)
+        if alias:
+            candidates.append(alias)
+
+        for rewrite in self.implementation_path_rewrites:
+            source_prefix = str(rewrite.get("from", ""))
+            target_prefix = str(rewrite.get("to", ""))
+            if source_prefix and expected_file.startswith(source_prefix):
+                candidates.append(target_prefix + expected_file[len(source_prefix) :])
+
+        return _dedupe_preserve_order(candidates)
 
     def generate_report(self, output_path: str) -> None:
         """生成报告"""
@@ -901,6 +932,8 @@ def main() -> int:
         filter_tags: Optional[List[str]],
         skip_old: bool,
         with_timestamp: bool,
+        implementation_path_rewrites: Optional[List[Dict[str, str]]] = None,
+        implementation_path_aliases: Optional[Dict[str, str]] = None,
     ) -> APIValidator:
         validator = APIValidator(
             csv_path,
@@ -909,6 +942,8 @@ def main() -> int:
             skip_old,
             with_timestamp,
             priority_model=priority_model,
+            implementation_path_rewrites=implementation_path_rewrites,
+            implementation_path_aliases=implementation_path_aliases,
         )
         try:
             validator.parse_csv()
@@ -1025,7 +1060,15 @@ def main() -> int:
             report_path = crate_dir / f"{crate_name}.md"
             print()
             print(f"📦 处理 {crate_name}")
-            validator = _run_validator(args.csv, src, tags, args.skip_old, args.with_timestamp)
+            validator = _run_validator(
+                args.csv,
+                src,
+                tags,
+                args.skip_old,
+                args.with_timestamp,
+                cfg.get("implementation_path_rewrites"),
+                cfg.get("implementation_path_aliases"),
+            )
             report_path.parent.mkdir(parents=True, exist_ok=True)
             validator.generate_report(str(report_path))
             stats = validator.calculate_summary()
@@ -1126,6 +1169,11 @@ def main() -> int:
             args.src = cfg.get("src")
         if args.filter is None:
             args.filter = cfg.get("biz_tags")
+        implementation_path_rewrites = cfg.get("implementation_path_rewrites")
+        implementation_path_aliases = cfg.get("implementation_path_aliases")
+    else:
+        implementation_path_rewrites = None
+        implementation_path_aliases = None
 
     if args.output is None:
         if args.crate:
@@ -1144,7 +1192,15 @@ def main() -> int:
         print(f"❌ 错误: 源码目录不存在: {args.src}")
         return 1
 
-    validator = _run_validator(args.csv, args.src, args.filter, args.skip_old, args.with_timestamp)
+    validator = _run_validator(
+        args.csv,
+        args.src,
+        args.filter,
+        args.skip_old,
+        args.with_timestamp,
+        implementation_path_rewrites,
+        implementation_path_aliases,
+    )
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     validator.generate_report(args.output)
 

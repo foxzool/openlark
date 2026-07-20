@@ -28,6 +28,10 @@ dashboard_groups = ["core_business"]
 src = "crates/openlark-cardkit/src"
 biz_tags = ["cardkit"]
 
+[crates.openlark-bot]
+src = "crates/openlark-bot/src"
+biz_tags = ["bot"]
+
 [crates.openlark-hr]
 src = "crates/openlark-hr/src"
 biz_tags = [
@@ -46,6 +50,15 @@ dashboard_groups = ["core_business"]
 src = "crates/openlark-security/src"
 biz_tags = ["acs", "security_and_compliance"]
 dashboard_groups = ["core_business"]
+implementation_path_rewrites = [
+  { from = "security_and_compliance/security_and_compliance/v1/multi_geo_entity/", to = "security/security_and_compliance/v1/multi_geo_entity/" },
+  { from = "security_and_compliance/security_and_compliance/v1/openapi_log/", to = "security/security_and_compliance/v1/openapi_logs/" },
+  { from = "security_and_compliance/security_and_compliance/v1/user_migration/", to = "security/security_and_compliance/v1/user_migrations/" },
+  { from = "security_and_compliance/security_and_compliance/v2/device_record/", to = "security/security_and_compliance/v2/device_records/" },
+]
+
+[crates.openlark-security.implementation_path_aliases]
+"security_and_compliance/security_and_compliance/v2/device_apply_record/update.rs" = "security/security_and_compliance/v2/device_apply_records/approve.rs"
 
 [crates.openlark-ai]
 src = "crates/openlark-ai/src"
@@ -63,6 +76,15 @@ biz_tags = ["admin", "directory", "app_engine", "trust_party", "tenant", "mdm", 
 src = "crates/openlark-workflow/src"
 biz_tags = ["task", "approval", "board"]
 dashboard_groups = ["core_business"]
+implementation_path_rewrites = [
+  { from = "task/task/", to = "" },
+]
+
+[crates.openlark-workflow.implementation_path_aliases]
+"task/task/v1/task/batch_delete_collaborator.rs" = "v1/task/collaborator/batch_delete.rs"
+"task/task/v1/task/batch_delete_follower.rs" = "v1/task/follower/batch_delete.rs"
+"task/task/v2/comment/patch.rs" = "v2/comment/update.rs"
+"task/task/v2/custom_field/patch.rs" = "v2/custom_field/update.rs"
 
 [crates.openlark-analytics]
 src = "crates/openlark-analytics/src"

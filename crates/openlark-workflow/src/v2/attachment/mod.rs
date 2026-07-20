@@ -41,11 +41,7 @@ impl Attachment {
 
     /// 创建删除请求。
     pub fn delete(&self, attachment_guid: impl Into<String>) -> delete::DeleteAttachmentRequest {
-        delete::DeleteAttachmentRequest::new(
-            self.config.clone(),
-            self.task_guid.clone(),
-            attachment_guid.into(),
-        )
+        delete::DeleteAttachmentRequest::new(self.config.clone(), attachment_guid.into())
     }
 
     /// 获取附件（不需要 task_guid）
@@ -55,7 +51,7 @@ impl Attachment {
 
     /// 列取附件（不需要 task_guid）
     pub fn list(&self) -> list::ListAttachmentsRequest {
-        list::ListAttachmentsRequest::new(self.config.clone())
+        list::ListAttachmentsRequest::new(self.config.clone()).task_guid(self.task_guid.clone())
     }
 }
 
@@ -66,9 +62,12 @@ pub use list::ListAttachmentsRequest;
 pub use upload::UploadAttachmentRequest;
 
 // 重新导出响应类型
-pub use get::{AttachmentInfo, GetAttachmentResponse};
+pub use get::GetAttachmentResponse;
 pub use list::{AttachmentListItem, ListAttachmentsResponse};
-pub use models::{DeleteAttachmentResponse, UploadAttachmentResponse};
+pub use models::{
+    AttachmentInfo, AttachmentResource, AttachmentUploader, DeleteAttachmentResponse,
+    UploadAttachmentResponse,
+};
 
 #[cfg(test)]
 #[allow(unused_imports)]

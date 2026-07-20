@@ -238,6 +238,86 @@ class MappingConfigTests(unittest.TestCase):
         self.assertEqual(sorted(csv_tags - mapped_tags), [])
         self.assertEqual(sorted(mapped_tags - csv_tags), [])
 
+    def test_legacy_layouts_have_explicit_implementation_path_mappings(self):
+        config = tomllib.loads(MAPPING_PATH.read_text(encoding="utf-8"))
+
+        workflow = config["crates"]["openlark-workflow"]
+        self.assertIn(
+            {"from": "task/task/", "to": ""},
+            workflow["implementation_path_rewrites"],
+        )
+        self.assertEqual(
+            workflow["implementation_path_aliases"][
+                "task/task/v2/comment/patch.rs"
+            ],
+            "v2/comment/update.rs",
+        )
+
+        security = config["crates"]["openlark-security"]
+        self.assertIn(
+            {
+                "from": "security_and_compliance/security_and_compliance/v2/device_record/",
+                "to": "security/security_and_compliance/v2/device_records/",
+            },
+            security["implementation_path_rewrites"],
+        )
+
+
+class ImplementationPathMappingTests(unittest.TestCase):
+    def _api(self, expected_file):
+        return validate_apis.APIInfo(
+            api_id="1",
+            name="测试接口",
+            biz_tag="task",
+            meta_project="task",
+            meta_version="v2",
+            meta_resource="task",
+            meta_name="get",
+            url="GET:/open-apis/task/v2/tasks/:task_id",
+            doc_path="",
+            expected_file=expected_file,
+        )
+
+    def test_prefix_rewrite_marks_legacy_file_as_implemented(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir)
+            actual = source / "v2" / "task" / "get.rs"
+            actual.parent.mkdir(parents=True)
+            actual.write_text("// implemented", encoding="utf-8")
+
+            validator = validate_apis.APIValidator(
+                csv_path="unused.csv",
+                src_path=str(source),
+                implementation_path_rewrites=[{"from": "task/task/", "to": ""}],
+            )
+            validator.apis = [self._api("task/task/v2/task/get.rs")]
+            validator.scan_implementations()
+            validator.compare()
+
+            self.assertTrue(validator.apis[0].is_implemented)
+            self.assertEqual(validator.extra_files, set())
+
+    def test_exact_alias_marks_renamed_legacy_file_as_implemented(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir)
+            actual = source / "v2" / "comment" / "update.rs"
+            actual.parent.mkdir(parents=True)
+            actual.write_text("// implemented", encoding="utf-8")
+
+            validator = validate_apis.APIValidator(
+                csv_path="unused.csv",
+                src_path=str(source),
+                implementation_path_aliases={
+                    "task/task/v2/comment/patch.rs": "v2/comment/update.rs"
+                },
+            )
+            validator.apis = [self._api("task/task/v2/comment/patch.rs")]
+            validator.scan_implementations()
+            validator.compare()
+
+            self.assertTrue(validator.apis[0].is_implemented)
+            self.assertEqual(validator.extra_files, set())
+
 
 class CSVIntegrityValidationTests(unittest.TestCase):
     CSV_HEADER = [

@@ -1,35 +1,20 @@
 //! 列取附件
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/attachment/list>
+//! docPath: <https://open.feishu.cn/document/task-v2/attachment/list>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::v2::attachment::models::AttachmentInfo;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    validate_required,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
-/// 附件列表项
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct AttachmentListItem {
-    /// 附件 GUID
-    pub attachment_guid: String,
-    /// 任务 GUID
-    pub task_guid: String,
-    /// 文件名
-    pub file_name: String,
-    /// 文件大小（字节）
-    pub file_size: i64,
-    /// 文件类型
-    pub file_type: String,
-    /// 上传时间
-    pub created_at: String,
-    /// 上传者 ID
-    #[serde(default)]
-    pub creator_id: Option<String>,
-}
+/// 附件列表项。
+pub type AttachmentListItem = AttachmentInfo;
 
 /// 列取附件响应
 #[derive(Debug, Clone, Deserialize)]
@@ -41,10 +26,6 @@ pub struct ListAttachmentsResponse {
     /// 分页标记
     #[serde(default)]
     pub page_token: Option<String>,
-
-    /// 总数
-    #[serde(default)]
-    pub total: Option<i32>,
 
     /// 附件列表
     #[serde(default)]
@@ -60,8 +41,12 @@ pub struct ListAttachmentsRequest {
     page_size: Option<i32>,
     /// 分页标记
     page_token: Option<String>,
-    /// 任务 GUID（可选，用于筛选特定任务的附件）
-    task_guid: Option<String>,
+    /// 资源类型
+    resource_type: Option<String>,
+    /// 资源 ID
+    resource_id: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl ListAttachmentsRequest {
@@ -71,7 +56,9 @@ impl ListAttachmentsRequest {
             config,
             page_size: None,
             page_token: None,
-            task_guid: None,
+            resource_type: None,
+            resource_id: None,
+            user_id_type: None,
         }
     }
 
@@ -87,9 +74,27 @@ impl ListAttachmentsRequest {
         self
     }
 
-    /// 设置任务 GUID（用于筛选特定任务的附件）
+    /// 设置任务 GUID（等价于设置资源 ID）。
     pub fn task_guid(mut self, task_guid: impl Into<String>) -> Self {
-        self.task_guid = Some(task_guid.into());
+        self.resource_id = Some(task_guid.into());
+        self
+    }
+
+    /// 设置资源类型。
+    pub fn resource_type(mut self, resource_type: impl Into<String>) -> Self {
+        self.resource_type = Some(resource_type.into());
+        self
+    }
+
+    /// 设置资源 ID。
+    pub fn resource_id(mut self, resource_id: impl Into<String>) -> Self {
+        self.resource_id = Some(resource_id.into());
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -104,6 +109,9 @@ impl ListAttachmentsRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListAttachmentsResponse> {
+        let resource_id = self.resource_id.as_deref().unwrap_or_default();
+        validate_required!(resource_id.trim(), "资源ID不能为空");
+
         let api_endpoint = TaskApiV2::AttachmentList;
         let mut request = ApiRequest::<ListAttachmentsResponse>::get(api_endpoint.to_url());
 
@@ -114,8 +122,13 @@ impl ListAttachmentsRequest {
         if let Some(page_token) = &self.page_token {
             request = request.query("page_token", page_token);
         }
-        if let Some(task_guid) = &self.task_guid {
-            request = request.query("task_guid", task_guid);
+        request = request.query("resource_id", resource_id);
+        request = request.query(
+            "resource_type",
+            self.resource_type.as_deref().unwrap_or("task"),
+        );
+        if let Some(user_id_type) = &self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
         }
 
         let response =
@@ -151,7 +164,7 @@ mod tests {
 
         assert_eq!(request.page_size, Some(20));
         assert_eq!(request.page_token, Some("next_page_token".to_string()));
-        assert_eq!(request.task_guid, Some("task_123".to_string()));
+        assert_eq!(request.resource_id, Some("task_123".to_string()));
     }
 
     #[test]

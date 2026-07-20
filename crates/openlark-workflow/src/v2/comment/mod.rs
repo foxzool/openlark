@@ -43,29 +43,17 @@ impl Comment {
 
     /// 创建获取详情请求。
     pub fn get(&self, comment_guid: impl Into<String>) -> get::GetCommentRequest {
-        get::GetCommentRequest::new(
-            self.config.clone(),
-            self.task_guid.clone(),
-            comment_guid.into(),
-        )
+        get::GetCommentRequest::new(self.config.clone(), comment_guid.into())
     }
 
     /// 创建更新请求。
     pub fn update(&self, comment_guid: impl Into<String>) -> update::UpdateCommentRequest {
-        update::UpdateCommentRequest::new(
-            self.config.clone(),
-            self.task_guid.clone(),
-            comment_guid.into(),
-        )
+        update::UpdateCommentRequest::new(self.config.clone(), comment_guid.into())
     }
 
     /// 创建删除请求。
     pub fn delete(&self, comment_guid: impl Into<String>) -> delete::DeleteCommentRequest {
-        delete::DeleteCommentRequest::new(
-            self.config.clone(),
-            self.task_guid.clone(),
-            comment_guid.into(),
-        )
+        delete::DeleteCommentRequest::new(self.config.clone(), comment_guid.into())
     }
 
     /// 创建列表请求。
@@ -83,8 +71,9 @@ pub use update::UpdateCommentRequest;
 
 // 重新导出响应类型
 pub use models::{
-    CommentItem, CreateCommentBody, CreateCommentResponse, DeleteCommentResponse,
-    GetCommentResponse, ListCommentsResponse, UpdateCommentBody, UpdateCommentResponse,
+    CommentCreator, CommentItem, CreateCommentBody, CreateCommentResponse, DeleteCommentResponse,
+    GetCommentResponse, InputComment, ListCommentsResponse, UpdateCommentBody,
+    UpdateCommentResponse,
 };
 
 #[cfg(test)]

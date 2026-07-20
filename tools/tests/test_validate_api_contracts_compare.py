@@ -271,6 +271,60 @@ class ContractCliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
 
+    def test_cli_validates_registered_legacy_implementation_path(self):
+        import tools.validate_api_contracts as cli
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            src = root / "crates" / "openlark-ai" / "src"
+            legacy_dir = src / "legacy" / "bank_card"
+            legacy_dir.mkdir(parents=True)
+            (src / "endpoints.rs").write_text(
+                'pub const BANK_CARD: &str = "/open-apis/document_ai/v1/bank_card/recognize";',
+                encoding="utf-8",
+            )
+            (legacy_dir / "recognize.rs").write_text(
+                "let req: ApiRequest<Response> = ApiRequest::post(BANK_CARD);",
+                encoding="utf-8",
+            )
+            csv_path = root / "api_list_export.csv"
+            self._write_csv(csv_path)
+            mapping_path = root / "api_coverage.toml"
+            mapping_path.write_text(
+                '[crates.openlark-ai]\n'
+                'src = "crates/openlark-ai/src"\n'
+                'biz_tags = ["ai"]\n'
+                'implementation_path_rewrites = [{ from = "ai/document_ai/v1/", to = "legacy/" }]\n',
+                encoding="utf-8",
+            )
+            report_dir = root / "reports"
+
+            original_argv = sys.argv
+            original_cwd = Path.cwd()
+            sys.argv = [
+                "validate_api_contracts.py",
+                "--crate",
+                "openlark-ai",
+                "--csv",
+                str(csv_path),
+                "--mapping",
+                str(mapping_path),
+                "--report-dir",
+                str(report_dir),
+                "--strict",
+                "endpoint",
+            ]
+            try:
+                import os
+
+                os.chdir(root)
+                exit_code = cli.main()
+            finally:
+                os.chdir(original_cwd)
+                sys.argv = original_argv
+
+        self.assertEqual(exit_code, 0)
+
     def test_cli_field_validation_report_only_returns_zero_with_findings(self):
         import tools.validate_api_contracts as cli
 
