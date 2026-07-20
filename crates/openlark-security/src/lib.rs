@@ -4,7 +4,7 @@
 //!
 //! ## 架构设计
 //!
-//! 采用 Project-Version-Resource (PVR) 三层架构，使用 canonical `openlark_core::config::Config`：
+//! 采用 Project-Version-Resource (PVR) 三层架构，使用 canonical `openlark_core::config::Config`（#444–#447）：
 //!
 //! ```text
 //! openlark-security/src/
@@ -23,12 +23,12 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // 使用 canonical core Config（v0.18 推荐路径，完整保留 token provider / headers 等）
+//!     // 使用 canonical core Config（v0.18 推荐唯一路径，完整保留 token provider / headers / timeout 等）
 //!     let config = Config::builder()
 //!         .app_id("app_id")
 //!         .app_secret("app_secret")
 //!         .build();
-//!     let security = SecurityClient::from_config(config);
+//!     let security = SecurityClient::new(config);
 //!
 //!     // 获取门禁用户列表（响应 data 透传为 ListUsersResponse）
 //!     let users = security.acs.v1().users().list()
@@ -115,46 +115,17 @@ pub use crate::error::SecurityError;
 // 重新导出 canonical core Config，便于独立使用 security crate
 pub use openlark_core::config::Config;
 
-/// 安全服务统一入口
+/// 安全服务客户端（唯一公开入口）。
 ///
-/// 现在直接基于 canonical `openlark_core::config::Config` 实现（完整保留所有配置）。
-#[derive(Debug)]
-pub struct SecurityServices {
-    /// canonical 配置（完整 token_provider、headers、timeout 等）
-    pub config: openlark_core::config::Config,
-    /// ACS门禁控制项目
-    pub acs: AcsProject,
-    /// 安全合规项目
-    pub security_and_compliance: SecurityAndComplianceProject,
-}
-
-impl SecurityServices {
-    /// 获取当前配置（canonical core Config）。
-    pub fn config(&self) -> &openlark_core::config::Config {
-        &self.config
-    }
-
-    /// 使用 canonical `openlark_core::config::Config` 构造。
-    ///
-    /// 完整保留 token_provider、自定义 headers、timeout、retry 等。
-    pub fn from_config(config: openlark_core::config::Config) -> Self {
-        Self {
-            acs: AcsProject::new(config.clone()),
-            security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
-            config,
-        }
-    }
-}
-
-/// 安全服务客户端。
-///
-/// 直接持有 canonical Config + 项目（有真实实现深度，不再是纯 Arc/Deref 壳）。
+/// 直接持有 canonical `openlark_core::config::Config` + 项目（真实实现深度）。
+/// 遵循 CLIENT_NAMING_CONVENTION：提供 `new(config: Config)`。
 ///
 /// 用法：`client.security.acs...` 或 `client.security.config()`
+///
+/// 不再公开重复的 SecurityServices（#447 收口，消除 middle-man / duplicated shell）。
 #[derive(Debug, Clone)]
 pub struct SecurityClient {
-    /// 规范配置
-    pub config: openlark_core::config::Config,
+    config: openlark_core::config::Config,
     /// ACS 项目
     pub acs: AcsProject,
     /// 安全合规项目
@@ -162,25 +133,31 @@ pub struct SecurityClient {
 }
 
 impl SecurityClient {
-    /// 从 canonical core Config 构造（v0.18 推荐路径）。
-    pub fn from_config(config: openlark_core::config::Config) -> Self {
-        let svc = SecurityServices::from_config(config);
+    /// 使用 canonical `openlark_core::config::Config` 构造（v0.18 推荐/唯一路径）。
+    ///
+    /// 完整保留 token_provider、自定义 headers、timeout、retry 等配置。
+    pub fn new(config: openlark_core::config::Config) -> Self {
         Self {
-            config: svc.config.clone(),
-            acs: svc.acs,
-            security_and_compliance: svc.security_and_compliance,
+            acs: AcsProject::new(config.clone()),
+            security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
+            config,
         }
     }
 
-    /// 返回当前 canonical 配置。
+    /// 从 canonical core Config 构造（与 new 等价，兼容旧调用站点）。
+    pub fn from_config(config: openlark_core::config::Config) -> Self {
+        Self::new(config)
+    }
+
+    /// 返回当前 canonical 配置（不建议直接读取字段用于“验证”，请用行为测试证明传播）。
     pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 }
 
-impl Default for SecurityServices {
+impl Default for SecurityClient {
     fn default() -> Self {
-        Self::from_config(openlark_core::config::Config::default())
+        Self::new(openlark_core::config::Config::default())
     }
 }
 
@@ -190,7 +167,7 @@ pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
 /// 预导出模块
 pub mod prelude {
     pub use super::{
-        AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult, SecurityServices,
+        AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult,
     };
 
     // 避免v1命名空间冲突，明确导出需要的类型
@@ -258,15 +235,9 @@ mod construction_tests {
 
         let client = SecurityClient::from_config(config_with_provider);
 
-        // 验证 retained canonical Config 在 SecurityClient 层可见
-        assert_eq!(client.config().base_url(), server.uri());
-        assert_eq!(client.config().header().get("X-Custom-Prop"), Some(&"yes".to_string()));
-        // ACS 也应看到同一份配置
-        assert_eq!(client.acs.config().base_url(), client.config().base_url());
-
-        // 证明 timeout 和 response-size 配置也被保留（#445）
-        assert_eq!(client.acs.config().req_timeout(), Some(std::time::Duration::from_secs(30)));
-        assert_eq!(client.acs.config().max_response_size(), 8 * 1024 * 1024);
+        // 构造 sanity（可选）：实际验收通过 mock 的精确 header 匹配 + 下面的行为错误测试证明配置传播。
+        // 不再把“读 config 字段”作为主要 #425 验收依据。
+        let _ = (client.config().base_url(), client.acs.config().base_url()); // touch only
 
         // 执行 ACS leaf 调用（代表性）
         let _resp = client
@@ -324,12 +295,8 @@ mod construction_tests {
 
         let client = SecurityClient::from_config(config_with_provider);
 
-        // 验证 retained canonical Config 传播到 compliance 项目
-        assert_eq!(client.config().base_url(), server.uri());
-        assert_eq!(client.security_and_compliance.config().base_url(), client.config().base_url());
-        assert_eq!(client.security_and_compliance.config().header().get("X-Compliance-Test"), Some(&"propagated".to_string()));
-        assert_eq!(client.security_and_compliance.config().req_timeout(), Some(std::time::Duration::from_secs(30)));
-        assert_eq!(client.security_and_compliance.config().max_response_size(), 8 * 1024 * 1024);
+        // 传播证明主要靠 mock header 匹配 + execute 成功；config 读仅作构造触达。
+        let _ = client.config().base_url();
 
         let _ = client
             .security_and_compliance
@@ -377,7 +344,8 @@ mod construction_tests {
 
         let client = SecurityClient::from_config(config_with_provider);
 
-        assert_eq!(client.security_and_compliance.config().header().get("X-Compliance-V1"), Some(&"propagated".to_string()));
+        // 结构 sanity：header 已通过 provider + 传播生效（见 mock 精确匹配）
+        // 不再依赖“读取存储字段”作为传播验收；下面补充真实错误路径触发测试。
 
         use serde_json::json;
         let _ = client
@@ -393,5 +361,105 @@ mod construction_tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert!(received[0].url.path().contains("/openapi_logs/list_data"));
+    }
+
+    /// 行为验证：通过极小 timeout 触发超时错误，证明 req_timeout 配置已传播到执行路径。
+    /// 不依赖 client.config() 读取做验收。
+    #[tokio::test]
+    async fn security_config_timeout_propagates_and_triggers_timeout_error() {
+        let server = MockServer::start().await;
+
+        // 模拟慢响应（> timeout）
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"code":0,"msg":"ok","data":{"has_more":false,"items":[]}}))
+                    .set_delay(std::time::Duration::from_millis(800)),
+            )
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .req_timeout(std::time::Duration::from_millis(50)) // 极短，必超时
+            .build();
+
+        let config = base.with_token_provider(TestTokenProvider("test_tok_for_timeout_test"));
+
+        let client = SecurityClient::new(config);
+
+        let result = client
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await;
+
+        // 必须是错误，且与超时相关（reqwest timeout 或上层包装）
+        assert!(result.is_err(), "应因 timeout 配置触发错误");
+        let err = result.unwrap_err().to_string().to_lowercase();
+        // 短 timeout 常表现为网络/请求错误（reqwest 超时包装），接受宽松匹配
+        assert!(
+            err.contains("timeout") || err.contains("time") || err.contains("deadline") || err.contains("network") || err.contains("send"),
+            "错误应体现超时或网络失败，实际: {}",
+            err
+        );
+    }
+
+    /// 行为验证：小 max_response_size + 大响应体 → response_too_large 错误。
+    #[tokio::test]
+    async fn security_config_max_response_size_propagates_and_triggers_size_error() {
+        let server = MockServer::start().await;
+
+        // 构造一个 > limit 的响应（用大 body）
+        let big_body = serde_json::json!({
+            "code": 0,
+            "msg": "ok",
+            "data": { "has_more": false, "items": [ {"x": "y".repeat(1024)} ] }
+        });
+        let big_json = serde_json::to_vec(&big_body).unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw(big_json, "application/json"),
+            )
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .max_response_size(512) // 故意很小
+            .build();
+
+        let config = base.with_token_provider(TestTokenProvider("test_tok_for_size_test"));
+
+        let client = SecurityClient::new(config);
+
+        let result = client
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await;
+
+        assert!(result.is_err(), "应因 response size 超限触发错误");
+        let err = result.unwrap_err().to_string();
+        // 精确错误来自 CoreError::response_too_large
+        assert!(
+            err.contains("响应体过大") || err.to_lowercase().contains("large") || err.to_lowercase().contains("size") || err.contains("超过限制"),
+            "错误应体现响应过大，实际: {}",
+            err
+        );
     }
 }

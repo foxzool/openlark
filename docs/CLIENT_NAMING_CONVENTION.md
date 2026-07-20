@@ -34,4 +34,4 @@ pub use service::WorkflowClient;  // 或 type alias
 | openlark-mail | `MailService` | `MailClient` (type alias) |
 | openlark-analytics | `AnalyticsService` | `AnalyticsClient` (type alias) |
 | openlark-user | `UserService` | `UserClient` (type alias) |
-| openlark-security | `SecurityServices` | `SecurityClient` (struct wrapper) |
+| openlark-security | (内部) | `SecurityClient` (struct, 唯一公开入口) |

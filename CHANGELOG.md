@@ -54,23 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **规范 Config 构造路径 + ACS/Compliance 迁移 + 旧壳收口（#444 / #445 / #446 / #447）**：
-  `SecurityClient` / `SecurityServices` 现直接保留并使用 `openlark_core::config::Config`
-  （完整 token_provider、headers、timeout 等不再丢失）。ACS 和 security_and_compliance
-  项目/叶子直接接收 retained canonical Config。
-  - 新增 `SecurityClient::from_config(Config)` / `SecurityServices::from_config(...)`（推荐）。
-  - 旧 `SecurityConfig` 入口临时保留（仅基础字段）。
-  - `SecurityClient` 改为直接持有 `config` + `acs` + `security_and_compliance`（移除纯 Arc/Deref 浅壳）。
-  - `client.security.config()` 现在返回 `&core::Config`。
-  - wiremock 测试覆盖 ACS 与 compliance leaf 的配置传播。
-  **v0.18 迁移建议**：从 `SecurityConfig::new(...)` 改为 `Config::builder()...` 后调用 `from_config`，
-  或直接通过根 `Client` 使用 `client.security`。
-
-- **security：移除 SecurityConfig 兼容构造与转换（#447）**：
-  `SecurityClient::new(SecurityConfig)` / `SecurityServices::new(legacy)` 及 field-by-field 转换已移除。
-  SecurityConfig 标记 deprecated，仅保留类型用于迁移参考。prelude 不再导出 SecurityConfig。
-  `SecurityClient` / `SecurityServices` 现为基于 canonical Config 的真实实现（直接持有字段，无 Arc/Deref 壳）。
-  **v0.18 破坏性变更**：旧代码需改为 `SecurityClient::from_config(core_config)` 或 root Client 路径。
-  详见上节迁移建议。
+  统一使用 `openlark_core::config::Config`（完整保留 token_provider、headers、timeout、retry 等）。
+  ACS / security_and_compliance 项目直接接收 canonical Config。
+  - 提供 `SecurityClient::new(config: Config)`（符合 CLIENT_NAMING_CONVENTION）与 `from_config`（兼容）。
+  - 仅保留 `SecurityClient` 作为公开入口（移除重复的 SecurityServices 壳与 middle-man）。
+  - `SecurityConfig` 标记 deprecated，仅作为迁移参考的数据结构；其内部 field-by-field Config 重建 + 手工 get_app_access_token 行为已完全移除。
+  - prelude 不再导出 SecurityConfig / SecurityServices。
+  - wiremock 测试同时覆盖 header/provider 传播 + 真实 timeout / max_response_size 错误路径触发（不以读取 config 字段作为验收）。
+  **v0.18 破坏性变更 + 迁移**：旧代码从 `SecurityConfig::new(...)` / `SecurityClient::from_config(legacy)` 改为：
+    `let cfg = Config::builder()... .build(); let sec = SecurityClient::new(cfg);`
+  或直接 `client.security`（root Client 路径）。
 
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
   `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行
