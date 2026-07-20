@@ -253,10 +253,10 @@ mod construction_tests {
         }
     }
 
-    /// 直接用 SecurityClient::from_config 构造，证明：
-    /// - 自定义 base_url 生效
-    /// - 自定义 header 传播
-    /// - token_provider 提供的 token 作为 Authorization
+    /// 直接用 SecurityClient::from_config 构造，证明 ACS 使用 retained canonical Config：
+    /// - 自定义 base_url、headers、token_provider 生效
+    /// - timeout、response-size 配置保持
+    /// - 代表性 ACS leaf (users.list) wiremock 测试
     #[tokio::test]
     async fn security_client_from_canonical_config_propagates_base_headers_and_token_provider() {
         let server = MockServer::start().await;
@@ -280,6 +280,8 @@ mod construction_tests {
             .base_url(server.uri())
             .allow_custom_base_url(true)
             .add_header("X-Custom-Prop", "yes")
+            .req_timeout(std::time::Duration::from_secs(30))
+            .max_response_size(8 * 1024 * 1024)
             .build();
 
         let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
@@ -291,6 +293,10 @@ mod construction_tests {
         assert_eq!(client.config().header().get("X-Custom-Prop"), Some(&"yes".to_string()));
         // ACS 也应看到同一份配置
         assert_eq!(client.acs.config().base_url(), client.config().base_url());
+
+        // 证明 timeout 和 response-size 配置也被保留（#445）
+        assert_eq!(client.acs.config().req_timeout(), Some(std::time::Duration::from_secs(30)));
+        assert_eq!(client.acs.config().max_response_size(), 8 * 1024 * 1024);
 
         // 执行 ACS leaf 调用（代表性）
         let _resp = client

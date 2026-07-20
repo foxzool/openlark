@@ -681,8 +681,8 @@ mod security_propagation_tests {
     use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    /// 通过根 Client 构造 + security leaf 执行，证明配置传播（#444）。
-    /// 使用 RequestOption 提供 token，避免触发 AuthTokenProvider 真实获取。
+    /// 通过根 Client 构造 + security.acs leaf 执行，证明 ACS 使用 retained canonical Config（#445）。
+    /// 覆盖 base_url、headers；token 通过 option 注入（root 注入 AuthProvider 但 option 优先）。
     #[tokio::test]
     async fn root_client_security_leaf_receives_base_url_headers_via_canonical_path() {
         let server = MockServer::start().await;
