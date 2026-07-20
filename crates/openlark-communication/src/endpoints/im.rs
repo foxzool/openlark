@@ -34,6 +34,10 @@ pub const IM_V1_BATCH_MESSAGES: &str = "/open-apis/im/v1/batch_messages";
 /// 话题消息相关接口
 pub const IM_V1_THREADS: &str = "/open-apis/im/v1/threads";
 
+/// IM 消息 COT v1
+/// COT（消息协作）创建/完成/事件写入
+pub const IM_V1_MESSAGE_COT: &str = "/open-apis/im/v1/message_cot";
+
 /// IM Pin 消息 v1
 /// 群内 Pin 消息管理
 pub const IM_V1_PINS: &str = "/open-apis/im/v1/pins";

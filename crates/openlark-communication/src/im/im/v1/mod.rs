@@ -7,5 +7,6 @@ pub mod chat;
 pub mod file;
 pub mod image;
 pub mod message;
+pub mod message_cot;
 pub mod pin;
 pub mod thread;
