@@ -16,6 +16,12 @@ pub struct SecurityAndComplianceProject {
     v2: SecurityAndComplianceV2Service,
 }
 
+impl Clone for SecurityAndComplianceProject {
+    fn clone(&self) -> Self {
+        Self::new(self.config.clone())
+    }
+}
+
 impl SecurityAndComplianceProject {
     /// 创建新的安全合规项目实例
     pub fn new(config: Config) -> Self {

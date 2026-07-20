@@ -53,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **规范 Config 构造路径 + ACS/Compliance 迁移 + 旧壳收口（#444 / #445 / #446 / #447）**：
+  `SecurityClient` / `SecurityServices` 现直接保留并使用 `openlark_core::config::Config`
+  （完整 token_provider、headers、timeout 等不再丢失）。ACS 和 security_and_compliance
+  项目/叶子直接接收 retained canonical Config。
+  - 新增 `SecurityClient::from_config(Config)` / `SecurityServices::from_config(...)`（推荐）。
+  - 旧 `SecurityConfig` 入口临时保留（仅基础字段）。
+  - `SecurityClient` 改为直接持有 `config` + `acs` + `security_and_compliance`（移除纯 Arc/Deref 浅壳）。
+  - `client.security.config()` 现在返回 `&core::Config`。
+  - wiremock 测试覆盖 ACS 与 compliance leaf 的配置传播。
+  **v0.18 迁移建议**：从 `SecurityConfig::new(...)` 改为 `Config::builder()...` 后调用 `from_config`，
+  或直接通过根 `Client` 使用 `client.security`。
+
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
   `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行
   `Config::validate()`（凭据 / URL / Feishu·Lark 域名白名单 / retry）以及 Client

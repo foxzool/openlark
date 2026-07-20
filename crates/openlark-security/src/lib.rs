@@ -117,10 +117,12 @@ pub use crate::error::SecurityError;
 pub use openlark_core::config::Config;
 
 /// 安全服务统一入口
+///
+/// 现在直接基于 canonical `openlark_core::config::Config` 实现（完整保留所有配置）。
 #[derive(Debug)]
 pub struct SecurityServices {
-    /// 安全配置
-    pub config: std::sync::Arc<crate::config::SecurityConfig>,
+    /// canonical 配置（完整 token_provider、headers、timeout 等）
+    pub config: openlark_core::config::Config,
     /// ACS门禁控制项目
     pub acs: AcsProject,
     /// 安全合规项目
@@ -128,91 +130,80 @@ pub struct SecurityServices {
 }
 
 impl SecurityServices {
-    /// 创建新的安全服务实例
+    /// 使用 SecurityConfig 创建（兼容旧路径）。
     ///
-    /// 内部把 `SecurityConfig` 转换为一份 `openlark_core::Config`，acs 与
-    /// security_and_compliance 都用它走 SDK 标准的 Transport 路径。
-    pub fn new(config: crate::config::SecurityConfig) -> Self {
-        let config = std::sync::Arc::new(config);
-
-        // SecurityConfig → openlark_core::Config（owned）
-        let core_config = openlark_core::config::Config::builder()
-            .app_id(&config.app_id)
-            .app_secret(&config.app_secret)
-            .base_url(&config.base_url)
+    /// 注意：此路径仅携带 app_id/secret/base_url。
+    /// 推荐直接使用 `from_config(openlark_core::config::Config)` 以获得完整配置能力。
+    pub fn new(legacy: crate::config::SecurityConfig) -> Self {
+        let core = openlark_core::config::Config::builder()
+            .app_id(&legacy.app_id)
+            .app_secret(&legacy.app_secret)
+            .base_url(&legacy.base_url)
             .build();
 
         Self {
-            acs: AcsProject::new(core_config.clone()),
-            security_and_compliance: SecurityAndComplianceProject::new(core_config),
-            config,
+            config: core.clone(),
+            acs: AcsProject::new(core.clone()),
+            security_and_compliance: SecurityAndComplianceProject::new(core),
         }
     }
 
-    /// 获取配置信息
-    pub fn config(&self) -> &crate::config::SecurityConfig {
+    /// 获取当前配置（canonical core Config）。
+    pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 
-    /// 使用 canonical `openlark_core::config::Config` 构造（新推荐路径）。
+    /// 使用 canonical `openlark_core::config::Config` 构造（推荐）。
     ///
-    /// 该路径可完整保留 token_provider、自定义 headers、timeout、retry_count、
-    /// max_response_size 等配置信息，不会因 SecurityConfig 镜像而丢失。
-    ///
-    /// 旧的 `SecurityConfig` 构造路径暂时保留，用于 expand-contract 迁移。
+    /// 完整保留 token_provider、自定义 headers、timeout、retry 等。
     pub fn from_config(config: openlark_core::config::Config) -> Self {
-        // 过渡期：为 pub config 字段合成最小 SecurityConfig，保持字段访问兼容。
-        // 真实业务逻辑全部走传入的 canonical Config（传给 Projects）。
-        let legacy = std::sync::Arc::new(crate::config::SecurityConfig::new(
-            config.app_id(),
-            config.app_secret(),
-        ).with_base_url(config.base_url()));
-
         Self {
             acs: AcsProject::new(config.clone()),
-            security_and_compliance: SecurityAndComplianceProject::new(config),
-            config: legacy,
+            security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
+            config,
         }
-    }
-
-    /// 返回底层的 canonical core 配置（推荐用于诊断与直接传递给函数式 API）。
-    pub fn core_config(&self) -> &openlark_core::config::Config {
-        // Projects 内部持有相同 Config，这里借用 acs 的即可。
-        self.acs.config()
     }
 }
 
-/// 安全服务客户端 — Arc 包装的 [`SecurityServices`]，支持零成本克隆。
+/// 安全服务客户端。
 ///
-/// 用法：`client.security.acs...`
+/// 直接持有 canonical Config + 项目（有真实实现深度，不再是纯 Arc/Deref 壳）。
+///
+/// 用法：`client.security.acs...` 或 `client.security.config()`
 #[derive(Debug, Clone)]
 pub struct SecurityClient {
-    inner: std::sync::Arc<SecurityServices>,
+    /// 规范配置
+    pub config: openlark_core::config::Config,
+    /// ACS 项目
+    pub acs: AcsProject,
+    /// 安全合规项目
+    pub security_and_compliance: SecurityAndComplianceProject,
 }
 
 impl SecurityClient {
-    /// 从安全配置创建客户端实例（旧路径，保留用于 expand-contract 迁移）。
-    pub fn new(config: crate::config::SecurityConfig) -> Self {
+    /// 从 SecurityConfig 创建（旧路径兼容）。
+    pub fn new(legacy: crate::config::SecurityConfig) -> Self {
+        let svc = SecurityServices::new(legacy);
         Self {
-            inner: std::sync::Arc::new(SecurityServices::new(config)),
+            config: svc.config.clone(),
+            acs: svc.acs,
+            security_and_compliance: svc.security_and_compliance,
         }
     }
 
-    /// 从 canonical core Config 构造 SecurityClient（新推荐路径）。
-    ///
-    /// 根 Client 内部与直接构造均应使用此路径，以确保配置不丢失。
+    /// 从 canonical core Config 构造（推荐路径）。
     pub fn from_config(config: openlark_core::config::Config) -> Self {
+        let svc = SecurityServices::from_config(config);
         Self {
-            inner: std::sync::Arc::new(SecurityServices::from_config(config)),
+            config: svc.config.clone(),
+            acs: svc.acs,
+            security_and_compliance: svc.security_and_compliance,
         }
     }
-}
 
-impl std::ops::Deref for SecurityClient {
-    type Target = SecurityServices;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+    /// 返回当前 canonical 配置。
+    pub fn config(&self) -> &openlark_core::config::Config {
+        &self.config
     }
 }
 
@@ -295,7 +286,13 @@ mod construction_tests {
 
         let client = SecurityClient::from_config(config_with_provider);
 
-        // 执行 leaf 调用
+        // 验证 retained canonical Config 在 SecurityClient 层可见
+        assert_eq!(client.config().base_url(), server.uri());
+        assert_eq!(client.config().header().get("X-Custom-Prop"), Some(&"yes".to_string()));
+        // ACS 也应看到同一份配置
+        assert_eq!(client.acs.config().base_url(), client.config().base_url());
+
+        // 执行 ACS leaf 调用（代表性）
         let _resp = client
             .acs
             .v1()
@@ -313,7 +310,7 @@ mod construction_tests {
         let req = &received[0];
         assert!(
             req.url.path() == "/open-apis/acs/v1/users" || req.url.as_str().contains("/acs/v1/users"),
-            "请求路径应指向 security leaf，实际: {}",
+            "请求路径应指向 ACS leaf，实际: {}",
             req.url
         );
     }
@@ -324,5 +321,56 @@ mod construction_tests {
         let sec_cfg = crate::config::SecurityConfig::new("a", "b").with_base_url("https://example.com");
         let _client = SecurityClient::new(sec_cfg);
         // 仅验证可构造，不发起网络
+    }
+
+    /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。
+    #[tokio::test]
+    async fn security_client_from_config_propagates_to_compliance_v2_leaf() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/security_and_compliance/v2/device_records/mine"))
+            .and(header("X-Compliance-Test", "propagated"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Compliance-Test", "propagated")
+            .build();
+
+        // 使用 NoOp 也行，因为我们不验证 Authorization（可通过 option 补充）
+        let client = SecurityClient::from_config(base);
+
+        // 访问 compliance v2 leaf，使用 option 提供 token（避免 NoOp 报错）
+        use openlark_core::req_option::RequestOption;
+        let _ = client
+            .security_and_compliance
+            .v2()
+            .device_records()
+            .mine()
+            .execute_with_options(
+                RequestOption::builder().app_access_token("test_tok").build(),
+            )
+            .await
+            .expect("compliance leaf 应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        // 验证自定义 header 到达（转小写比较）
+        let headers_str = format!("{:?}", received[0].headers);
+        assert!(
+            headers_str.to_lowercase().contains("x-compliance-test"),
+            "自定义 header 应传播，实际 headers: {}",
+            headers_str
+        );
     }
 }

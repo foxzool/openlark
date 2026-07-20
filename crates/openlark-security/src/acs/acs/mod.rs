@@ -17,6 +17,13 @@ pub struct AcsProject {
     v1: AcsV1Service,
 }
 
+impl Clone for AcsProject {
+    fn clone(&self) -> Self {
+        // 重建即可（内部只持 Config）
+        Self::new(self.config.clone())
+    }
+}
+
 impl AcsProject {
     /// 创建新的 ACS 项目实例
     pub fn new(config: Config) -> Self {
