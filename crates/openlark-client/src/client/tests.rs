@@ -709,9 +709,10 @@ mod security_propagation_tests {
             .expect("root client build");
 
         // 通过 meta 链访问 security leaf。
-        // 注意：当启用 auth feature 时，根 Client 会在内部用 AuthTokenProvider 包装用户传入的 config。
-        // 这里用 option 显式 token 是为隔离测试（避免真实 token 获取），但 base_url + 自定义 header 已通过执行传播证明 canonical path。
-        // 想要 provider 传播的端到端行为可参考 security crate 内的 TestTokenProvider + wiremock 精确匹配测试。
+        // 根 Client（auth feature）会用 AuthTokenProvider 包装 config（见 Client::with_checked_core_config）。
+        // 本测试用 option 绕过以隔离（避免真实 token 端点），但已证明 base_url + 自定义 header 经 canonical 路径传播。
+        // Provider 行为的完整 behavioral evidence 见 security crate 内的 custom TestTokenProvider + header 精确匹配测试。
+        // （最高 seam 的 provider 注入由 #413/#416 Client seam 负责；此处专注 meta 传播。）
         let _ = client
             .security
             .acs

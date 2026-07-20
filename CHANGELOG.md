@@ -53,17 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **规范 Config 构造路径 + ACS/Compliance 迁移 + 旧壳收口（#444 / #445 / #446 / #447）**：
+- **规范 Config 构造路径 + ACS/Compliance 迁移 + 旧壳最终收口（#444 / #445 / #446 / #447 + codex re-review）**：
   统一使用 `openlark_core::config::Config`（完整保留 token_provider、headers、timeout、retry 等）。
-  ACS / security_and_compliance 项目直接接收 canonical Config。
-  - 提供 `SecurityClient::new(config: Config)`（符合 CLIENT_NAMING_CONVENTION）与 `from_config`（兼容）。
-  - 仅保留 `SecurityClient` 作为公开入口（移除重复的 SecurityServices 壳与 middle-man）。
-  - `SecurityConfig` 标记 deprecated，仅作为迁移参考的数据结构；其内部 field-by-field Config 重建 + 手工 get_app_access_token 行为已完全移除。
-  - prelude 不再导出 SecurityConfig / SecurityServices。
-  - wiremock 测试同时覆盖 header/provider 传播 + 真实 timeout / max_response_size 错误路径触发（不以读取 config 字段作为验收）。
-  **v0.18 破坏性变更 + 迁移**：旧代码从 `SecurityConfig::new(...)` / `SecurityClient::from_config(legacy)` 改为：
-    `let cfg = Config::builder()... .build(); let sec = SecurityClient::new(cfg);`
-  或直接 `client.security`（root Client 路径）。
+  - `SecurityClient::new(config: Config)` 为唯一公开构造入口（符合 CLIENT_NAMING_CONVENTION）。
+  - SecurityServices 重复壳、SecurityConfig 及所有 legacy 转换已完全移除（P0 达成，无 shim）。
+  - Projects 仅通过 Client 访问（顶层 re-export 收敛，强化 single-entry）。
+  - 仅 `new` 存在；`from_config` 委托已删除。
+  - 行为证据测试：provider/header 传播 + timeout/size 错误触发；测试避免读取存储 config 字段。
+  - prelude / 文档 / CHANGELOG 统一到 canonical `new` 路径。
+  **v0.18 破坏性变更**：删除 `SecurityConfig` 后，旧代码必须：
+    `let cfg = Config::builder()... .build(); SecurityClient::new(cfg);`
+  （或 root `client.security`）。
 
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
   `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行

@@ -96,18 +96,18 @@
 // 错误处理模块
 pub mod error;
 
-// 安全服务配置
-pub mod config;
-
 // Project: acs - 访问控制系统
 pub mod acs;
 pub mod security;
 
-// 重新导出主要类型
-pub use acs::acs::{AcsProject, AcsV1Service};
+// 重新导出服务类型（Projects 通过 SecurityClient 暴露；顶层不 re-export Projects，隐藏绕过 single-entry 构造）。
 pub use security::security_and_compliance::{
-    SecurityAndComplianceProject, SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
+    SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
 };
+
+// 内部使用 Projects 类型（字段 pub 仍对外可见其完整路径）。
+use acs::acs::AcsProject;
+use security::security_and_compliance::SecurityAndComplianceProject;
 
 // 重新导出错误类型
 pub use crate::error::SecurityError;
@@ -115,14 +115,14 @@ pub use crate::error::SecurityError;
 // 重新导出 canonical core Config，便于独立使用 security crate
 pub use openlark_core::config::Config;
 
-/// 安全服务客户端（唯一公开入口）。
+/// 安全服务客户端（唯一公开入口，single-entry）。
 ///
 /// 直接持有 canonical `openlark_core::config::Config` + 项目（真实实现深度）。
-/// 遵循 CLIENT_NAMING_CONVENTION：提供 `new(config: Config)`。
+/// 遵循 CLIENT_NAMING_CONVENTION：仅提供 `new(config: Config)`。
 ///
 /// 用法：`client.security.acs...` 或 `client.security.config()`
 ///
-/// 不再公开重复的 SecurityServices（#447 收口，消除 middle-man / duplicated shell）。
+/// SecurityConfig 已完全移除（#425 / #447 最终收口）。Project 构造通过 Client 访问。
 #[derive(Debug, Clone)]
 pub struct SecurityClient {
     config: openlark_core::config::Config,
@@ -133,7 +133,7 @@ pub struct SecurityClient {
 }
 
 impl SecurityClient {
-    /// 使用 canonical `openlark_core::config::Config` 构造（v0.18 推荐/唯一路径）。
+    /// 使用 canonical `openlark_core::config::Config` 构造（v0.18 唯一推荐路径）。
     ///
     /// 完整保留 token_provider、自定义 headers、timeout、retry 等配置。
     pub fn new(config: openlark_core::config::Config) -> Self {
@@ -144,12 +144,7 @@ impl SecurityClient {
         }
     }
 
-    /// 从 canonical core Config 构造（与 new 等价，兼容旧调用站点）。
-    pub fn from_config(config: openlark_core::config::Config) -> Self {
-        Self::new(config)
-    }
-
-    /// 返回当前 canonical 配置（不建议直接读取字段用于“验证”，请用行为测试证明传播）。
+    /// 返回当前 canonical 配置（测试中避免直接读取字段作为验收；用 behavioral evidence）。
     pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
@@ -166,12 +161,10 @@ pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
 
 /// 预导出模块
 pub mod prelude {
-    pub use super::{
-        AcsProject, SecurityAndComplianceProject, SecurityClient, SecurityResult,
-    };
+    pub use super::{SecurityClient, SecurityResult};
 
-    // 避免v1命名空间冲突，明确导出需要的类型
-    pub use super::acs::acs::{AcsProject as Acs, AcsV1Service};
+    // 避免v1命名空间冲突，明确导出需要的类型（Projects 仅通过 Client 访问）。
+    pub use super::acs::acs::AcsV1Service;
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };
@@ -200,12 +193,12 @@ mod construction_tests {
         }
     }
 
-    /// 直接用 SecurityClient::from_config 构造，证明 ACS 使用 retained canonical Config：
+    /// 直接用 SecurityClient::new 构造（canonical-path），证明 ACS 使用 retained canonical Config：
     /// - 自定义 base_url、headers、token_provider 生效
     /// - timeout、response-size 配置保持
     /// - 代表性 ACS leaf (users.list) wiremock 测试
     #[tokio::test]
-    async fn security_client_from_canonical_config_propagates_base_headers_and_token_provider() {
+    async fn security_client_new_canonical_config_propagates_base_headers_and_token_provider() {
         let server = MockServer::start().await;
 
         // 精确匹配 header，证明三者都传播到了外发请求
@@ -233,11 +226,10 @@ mod construction_tests {
 
         let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
-        let client = SecurityClient::from_config(config_with_provider);
+        let client = SecurityClient::new(config_with_provider);
 
-        // 构造 sanity（可选）：实际验收通过 mock 的精确 header 匹配 + 下面的行为错误测试证明配置传播。
-        // 不再把“读 config 字段”作为主要 #425 验收依据。
-        let _ = (client.config().base_url(), client.acs.config().base_url()); // touch only
+        // 构造后直接进入执行；验收依赖 mock header 匹配 + 后续行为测试（timeout/size 错误触发）。
+        // 绝不以读取 config 字段作为传播证明（per re-review）。
 
         // 执行 ACS leaf 调用（代表性）
         let _resp = client
@@ -265,7 +257,7 @@ mod construction_tests {
     /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。
     /// 证明与 ACS 相同：base_url、headers、token_provider 完整保留。
     #[tokio::test]
-    async fn security_client_from_config_propagates_to_compliance_v2_leaf() {
+    async fn security_client_new_canonical_config_propagates_to_compliance_v2_leaf() {
         let server = MockServer::start().await;
 
         // 精确匹配 header，证明 token provider 和自定义 header 传播
@@ -293,10 +285,9 @@ mod construction_tests {
 
         let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
-        let client = SecurityClient::from_config(config_with_provider);
+        let client = SecurityClient::new(config_with_provider);
 
-        // 传播证明主要靠 mock header 匹配 + execute 成功；config 读仅作构造触达。
-        let _ = client.config().base_url();
+        // 传播证明靠 mock header 匹配 + execute 成功（不读 config 字段）。
 
         let _ = client
             .security_and_compliance
@@ -317,7 +308,7 @@ mod construction_tests {
 
     /// 代表性 compliance v1 leaf（审计日志 list_data）也应收到 retained canonical Config。
     #[tokio::test]
-    async fn security_client_from_config_propagates_to_compliance_v1_leaf() {
+    async fn security_client_new_canonical_config_propagates_to_compliance_v1_leaf() {
         let server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -342,7 +333,7 @@ mod construction_tests {
 
         let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
-        let client = SecurityClient::from_config(config_with_provider);
+        let client = SecurityClient::new(config_with_provider);
 
         // 结构 sanity：header 已通过 provider + 传播生效（见 mock 精确匹配）
         // 不再依赖“读取存储字段”作为传播验收；下面补充真实错误路径触发测试。
