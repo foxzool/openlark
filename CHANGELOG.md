@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-07-20
+
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。
 
 ### Changed
@@ -74,6 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   配置状态迁至 core `ConfigBuilder`）。校验文案以 core 规范为准（不保证与旧
   client 字符串逐字兼容）。
 
+- **升级 anyhow 1.0.102 → 1.0.103**（修复 RUSTSEC-2026-0190）：1.0.102 的
+  `Error::downcast_mut()` 在 `Error::context` 后调用时违反借用规则（UB）。patch 版本升级，
+  无 breaking。CI security-audit（cargo-deny）恢复绿。
+
 ### Fixed
 
 - **WebSocket 会话结果可观察（#426）**：`LarkWsClient::open` 在远端关闭或传输失败时
@@ -94,6 +100,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OPENLARK_*` 二次解析，改为 `check_env_config` 预检 + `Config::from_env()`。
   与 `ConfigBuilder::load_from_env` / `ClientBuilder::from_env` 共用规则；未设
   `OPENLARK_ENABLE_LOG` 时与 core 一致默认为 `true`（此前该工具函数默认为 `false`）。
+
+- **fix(platform)**: 移除 `openlark-platform` 四个 service（Admin/AppEngine/Directory/Spark）
+  facade 与 intermediate 层多余的 `#[cfg(feature = "v1")]` 门控。此前 `default`/`full`
+  feature 下 service 启用却暴露空壳 facade（四个 service 的全部 v1 API 实现被排除在标准构建外）。
+  移除后 "service 启用 = API 可达"，与 hr/communication/meeting 一致。行为补全，非 breaking：
+  仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
 
 ### Breaking
 
@@ -350,6 +362,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （v2 已实现 leaf：`doc_wiki` / `schema` / `app` / `message` / `data_source` 的 `XxxRequest::new`）。
   配合 v0.18 deprecated 清理节奏，下个 breaking 窗口删除（#350 已删恒 `Err` 的 `query`/`user`
   stub）。**非 breaking**：仅 deprecation warning，旧调用仍可编译。
+- **security：清理 12 个被 cargo-machete ignore 列表掩盖的死依赖（#467）**：
+  `anyhow`/`async-trait`/`base64`/`hmac`/`log`/`rand`/`serde_repr`/`sha2`/`thiserror`/`tracing`/`url`/`urlencoding`
+  从 `[dependencies]` 移除；清空 `[package.metadata.cargo-machete]` ignored 段；同步 `Cargo.lock` +
+  `.github/msrv/Cargo.lock`（security crate 24→11 deps）。`hmac`/`sha2`/`base64` 在 #425 删
+  `openlark-auth` 后成孤儿，其余为历史死依赖。**非 breaking**：不改公开 API。
 
 ### Breaking Changes
 
@@ -669,20 +686,16 @@ Set `.allow_custom_base_url(true)` on the builder to use a non-whitelisted base_
   from client; `OPENLARK_TIMEOUT` (seconds) now maps to `req_timeout(Some(Duration))`.
 - `openlark_core::config::ConfigSummary` + `Config::summary()` — redacts `app_secret`.
 - `openlark_core::config::ConfigInner.allow_custom_base_url` field + builder method.
-
-### Fixed
-
-- **fix(platform)**: 移除 `openlark-platform` 四个 service（Admin/AppEngine/Directory/Spark）
-  facade 与 intermediate 层多余的 `#[cfg(feature = "v1")]` 门控。此前 `default`/`full`
-  feature 下 service 启用却暴露空壳 facade（四个 service 的全部 v1 API 实现被排除在标准构建外）。
-  移除后 "service 启用 = API 可达"，与 hr/communication/meeting 一致。行为补全，非 breaking：
-  仅让原本不可达的公开 API 变为可达，不移除任何符号。`v1` feature 保留（测试依赖）。
-
-### Security
-
-- **升级 anyhow 1.0.102 → 1.0.103**（修复 RUSTSEC-2026-0190）：1.0.102 的
-  `Error::downcast_mut()` 在 `Error::context` 后调用时违反借用规则（UB）。patch 版本升级，
-  无 breaking。CI security-audit（cargo-deny）恢复绿。
+- **workflow：approval/v4 审批事件订阅（#466）**：补齐 4 个 leaf——
+  `POST/DELETE /open-apis/approval/v4/instances/subscription`（订阅/退订审批实例状态变更）、
+  `POST/DELETE /open-apis/approval/v4/tasks/subscription`（订阅/退订审批任务状态变更）。
+  `ApprovalApiV4` enum 增 4 variant（InstanceSubscribe/Unsubscribe、TaskSubscribe/Unsubscribe）。
+  每个 leaf 用 `serde_json::Value` 透传 body/response（subscription 官方文档为 SPA 动态渲染、
+  字段无法静态抓取，不臆测），配 wiremock 端到端测试断言 method/path/body。
+- **communication：im/v1 消息协作 message_cot（#454）**：补齐 3 个 leaf——
+  `POST /open-apis/im/v1/message_cot`（create）、
+  `POST /open-apis/im/v1/message_cot/complete/:cot_id`（complete，cot_id 必填路径参数）、
+  `PUT /open-apis/im/v1/message_cot`（update / COT 事件写入）。Value 透传 + wiremock 端到端。
 
 ## [0.17.0] - 2026-05-30
 
