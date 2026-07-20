@@ -20,11 +20,16 @@
 //!
 //! ```rust,no_run
 //! use openlark_security::prelude::*;
+//! use openlark_core::config::Config;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let config = SecurityConfig::new("app_id", "app_secret");
-//!     let security = SecurityServices::new(config);
+//!     // 新推荐路径：使用 canonical core Config（完整保留 token provider / headers 等）
+//!     let config = Config::builder()
+//!         .app_id("app_id")
+//!         .app_secret("app_secret")
+//!         .build();
+//!     let security = SecurityClient::from_config(config);
 //!
 //!     // 获取门禁用户列表（响应 data 透传为 ListUsersResponse）
 //!     let users = security.acs.v1().users().list()
@@ -108,6 +113,9 @@ pub use security::security_and_compliance::{
 // 重新导出错误类型
 pub use crate::error::SecurityError;
 
+// 重新导出 canonical core Config，便于独立使用 security crate
+pub use openlark_core::config::Config;
+
 /// 安全服务统一入口
 #[derive(Debug)]
 pub struct SecurityServices {
@@ -145,6 +153,33 @@ impl SecurityServices {
     pub fn config(&self) -> &crate::config::SecurityConfig {
         &self.config
     }
+
+    /// 使用 canonical `openlark_core::config::Config` 构造（新推荐路径）。
+    ///
+    /// 该路径可完整保留 token_provider、自定义 headers、timeout、retry_count、
+    /// max_response_size 等配置信息，不会因 SecurityConfig 镜像而丢失。
+    ///
+    /// 旧的 `SecurityConfig` 构造路径暂时保留，用于 expand-contract 迁移。
+    pub fn from_config(config: openlark_core::config::Config) -> Self {
+        // 过渡期：为 pub config 字段合成最小 SecurityConfig，保持字段访问兼容。
+        // 真实业务逻辑全部走传入的 canonical Config（传给 Projects）。
+        let legacy = std::sync::Arc::new(crate::config::SecurityConfig::new(
+            config.app_id(),
+            config.app_secret(),
+        ).with_base_url(config.base_url()));
+
+        Self {
+            acs: AcsProject::new(config.clone()),
+            security_and_compliance: SecurityAndComplianceProject::new(config),
+            config: legacy,
+        }
+    }
+
+    /// 返回底层的 canonical core 配置（推荐用于诊断与直接传递给函数式 API）。
+    pub fn core_config(&self) -> &openlark_core::config::Config {
+        // Projects 内部持有相同 Config，这里借用 acs 的即可。
+        self.acs.config()
+    }
 }
 
 /// 安全服务客户端 — Arc 包装的 [`SecurityServices`]，支持零成本克隆。
@@ -156,10 +191,19 @@ pub struct SecurityClient {
 }
 
 impl SecurityClient {
-    /// 从安全配置创建客户端实例。
+    /// 从安全配置创建客户端实例（旧路径，保留用于 expand-contract 迁移）。
     pub fn new(config: crate::config::SecurityConfig) -> Self {
         Self {
             inner: std::sync::Arc::new(SecurityServices::new(config)),
+        }
+    }
+
+    /// 从 canonical core Config 构造 SecurityClient（新推荐路径）。
+    ///
+    /// 根 Client 内部与直接构造均应使用此路径，以确保配置不丢失。
+    pub fn from_config(config: openlark_core::config::Config) -> Self {
+        Self {
+            inner: std::sync::Arc::new(SecurityServices::from_config(config)),
         }
     }
 }
@@ -193,4 +237,92 @@ pub mod prelude {
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };
+}
+
+#[cfg(test)]
+mod construction_tests {
+    use super::*;
+    use openlark_core::auth::{TokenProvider, TokenRequest};
+    use std::future::Future;
+    use std::pin::Pin;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    /// 测试用 TokenProvider：总是返回固定 token，用于验证 provider 传播。
+    #[derive(Debug, Clone)]
+    struct TestTokenProvider(&'static str);
+
+    impl TokenProvider for TestTokenProvider {
+        fn get_token(
+            &self,
+            _request: TokenRequest,
+        ) -> Pin<Box<dyn Future<Output = openlark_core::SDKResult<String>> + Send + '_>> {
+            let token = self.0.to_string();
+            Box::pin(async move { Ok(token) })
+        }
+    }
+
+    /// 直接用 SecurityClient::from_config 构造，证明：
+    /// - 自定义 base_url 生效
+    /// - 自定义 header 传播
+    /// - token_provider 提供的 token 作为 Authorization
+    #[tokio::test]
+    async fn security_client_from_canonical_config_propagates_base_headers_and_token_provider() {
+        let server = MockServer::start().await;
+
+        // 精确匹配 header，证明三者都传播到了外发请求
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
+            .and(header("X-Custom-Prop", "yes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Custom-Prop", "yes")
+            .build();
+
+        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+
+        let client = SecurityClient::from_config(config_with_provider);
+
+        // 执行 leaf 调用
+        let _resp = client
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await
+            .expect("wiremock 应返回成功响应");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1, "应只发一次 security leaf 请求");
+
+        // 路径匹配器 + header 匹配器已证明 base_url、自定义 header、token provider 生效。
+        // 这里再做一次宽松确认（url 里包含我们 mock 的路径即可）。
+        let req = &received[0];
+        assert!(
+            req.url.path() == "/open-apis/acs/v1/users" || req.url.as_str().contains("/acs/v1/users"),
+            "请求路径应指向 security leaf，实际: {}",
+            req.url
+        );
+    }
+
+    /// 验证旧路径仍然可用（expand-contract 期间）
+    #[test]
+    fn legacy_security_config_path_still_works() {
+        let sec_cfg = crate::config::SecurityConfig::new("a", "b").with_base_url("https://example.com");
+        let _client = SecurityClient::new(sec_cfg);
+        // 仅验证可构造，不发起网络
+    }
 }

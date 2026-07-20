@@ -673,3 +673,61 @@ fn test_communication_service_access() {
 
     let _comm = &client.communication;
 }
+
+#[cfg(feature = "security")]
+mod security_propagation_tests {
+    use super::Client;
+    use openlark_core::req_option::RequestOption;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    /// 通过根 Client 构造 + security leaf 执行，证明配置传播（#444）。
+    /// 使用 RequestOption 提供 token，避免触发 AuthTokenProvider 真实获取。
+    #[tokio::test]
+    async fn root_client_security_leaf_receives_base_url_headers_via_canonical_path() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("X-Root-Custom", "propagated"))
+            .and(header("Authorization", "Bearer supplied_via_option"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "ok",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Root-Custom", "propagated")
+            .build()
+            .expect("root client build");
+
+        // 通过 meta 链访问 security leaf，并用 option 注入 token（根 client 注入的是 AuthProvider，但 option 优先）
+        let _ = client
+            .security
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute_with_options(
+                RequestOption::builder()
+                    .app_access_token("supplied_via_option")
+                    .build(),
+            )
+            .await
+            .expect("root->security leaf 调用应成功");
+
+        let rec = server.received_requests().await.unwrap_or_default();
+        assert_eq!(rec.len(), 1);
+        assert!(
+            rec[0].url.path().contains("/acs/v1/users"),
+            "必须命中 wiremock 上的 security 端点"
+        );
+    }
+}

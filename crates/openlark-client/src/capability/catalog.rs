@@ -222,12 +222,8 @@ macro_rules! for_each_compiled_capability {
                 ty: crate::SecurityClient,
                 doc: "Security meta 调用链入口：client.security.acs... ...",
                 init: |_core_config, _base_core_config| {
-                    let security_config = openlark_security::config::SecurityConfig::new(
-                        _core_config.app_id().to_string(),
-                        _core_config.app_secret().to_string(),
-                    )
-                    .with_base_url(_core_config.base_url());
-                    openlark_security::SecurityClient::new(security_config)
+                    // 使用 canonical core Config 直传（#444），完整保留 token_provider / headers 等。
+                    openlark_security::SecurityClient::from_config(_core_config.clone())
                 },
                 name: "security",
                 description: "飞书安全服务，提供安全审计与风控相关能力",
