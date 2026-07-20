@@ -330,12 +330,15 @@ mod construction_tests {
     }
 
     /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。
+    /// 证明与 ACS 相同：base_url、headers、token_provider 完整保留。
     #[tokio::test]
     async fn security_client_from_config_propagates_to_compliance_v2_leaf() {
         let server = MockServer::start().await;
 
+        // 精确匹配 header，证明 token provider 和自定义 header 传播
         Mock::given(method("GET"))
             .and(path("/open-apis/security_and_compliance/v2/device_records/mine"))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
             .and(header("X-Compliance-Test", "propagated"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "code": 0,
@@ -351,32 +354,82 @@ mod construction_tests {
             .base_url(server.uri())
             .allow_custom_base_url(true)
             .add_header("X-Compliance-Test", "propagated")
+            .req_timeout(std::time::Duration::from_secs(30))
+            .max_response_size(8 * 1024 * 1024)
             .build();
 
-        // 使用 NoOp 也行，因为我们不验证 Authorization（可通过 option 补充）
-        let client = SecurityClient::from_config(base);
+        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
-        // 访问 compliance v2 leaf，使用 option 提供 token（避免 NoOp 报错）
-        use openlark_core::req_option::RequestOption;
+        let client = SecurityClient::from_config(config_with_provider);
+
+        // 验证 retained canonical Config 传播到 compliance 项目
+        assert_eq!(client.config().base_url(), server.uri());
+        assert_eq!(client.security_and_compliance.config().base_url(), client.config().base_url());
+        assert_eq!(client.security_and_compliance.config().header().get("X-Compliance-Test"), Some(&"propagated".to_string()));
+        assert_eq!(client.security_and_compliance.config().req_timeout(), Some(std::time::Duration::from_secs(30)));
+        assert_eq!(client.security_and_compliance.config().max_response_size(), 8 * 1024 * 1024);
+
         let _ = client
             .security_and_compliance
             .v2()
             .device_records()
             .mine()
-            .execute_with_options(
-                RequestOption::builder().app_access_token("test_tok").build(),
-            )
+            .execute()
             .await
-            .expect("compliance leaf 应成功");
+            .expect("compliance v2 leaf 应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1, "应只发一次 compliance leaf 请求");
+        assert!(
+            received[0].url.path().contains("/device_records/mine"),
+            "请求路径应指向 compliance v2 leaf"
+        );
+    }
+
+    /// 代表性 compliance v1 leaf（审计日志 list_data）也应收到 retained canonical Config。
+    #[tokio::test]
+    async fn security_client_from_config_propagates_to_compliance_v1_leaf() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/open-apis/security_and_compliance/v1/openapi_logs/list_data"))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
+            .and(header("X-Compliance-V1", "propagated"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "items": [{ "request_id": "r1" }], "has_more": false }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Compliance-V1", "propagated")
+            .build();
+
+        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+
+        let client = SecurityClient::from_config(config_with_provider);
+
+        assert_eq!(client.security_and_compliance.config().header().get("X-Compliance-V1"), Some(&"propagated".to_string()));
+
+        use serde_json::json;
+        let _ = client
+            .security_and_compliance
+            .v1()
+            .openapi_logs()
+            .list_data()
+            .body(json!({ "start_time": 1700000000, "end_time": 1700003600 }))
+            .execute()
+            .await
+            .expect("compliance v1 leaf 应成功");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
-        // 验证自定义 header 到达（转小写比较）
-        let headers_str = format!("{:?}", received[0].headers);
-        assert!(
-            headers_str.to_lowercase().contains("x-compliance-test"),
-            "自定义 header 应传播，实际 headers: {}",
-            headers_str
-        );
+        assert!(received[0].url.path().contains("/openapi_logs/list_data"));
     }
 }
