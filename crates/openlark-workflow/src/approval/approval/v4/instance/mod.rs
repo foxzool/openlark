@@ -15,6 +15,8 @@ pub mod recall;
 pub mod remind;
 pub mod search_cc;
 pub mod specified_rollback;
+pub mod subscription;
+pub mod unsubscription;
 
 // add_cc 模块显式导出
 pub use add_cc::{AddCcInstanceBodyV4, AddCcInstanceRequestV4, AddCcInstanceResponseV4};
@@ -63,3 +65,7 @@ pub use remind::{RemindInstanceBodyV4, RemindInstanceRequestV4, RemindInstanceRe
 pub use specified_rollback::{
     SpecifiedRollbackBodyV4, SpecifiedRollbackRequestV4, SpecifiedRollbackResponseV4,
 };
+// subscription 模块显式导出
+pub use subscription::SubscribeInstanceRequestV4;
+// unsubscription 模块显式导出
+pub use unsubscription::UnsubscribeInstanceRequestV4;
