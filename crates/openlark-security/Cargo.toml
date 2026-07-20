@@ -47,7 +47,6 @@ security = ["full"]
 [dependencies]
 # 核心依赖
 openlark-core = { workspace = true }
-openlark-auth = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
@@ -77,4 +76,4 @@ tempfile = { workspace = true }
 mockall = { workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "async-trait", "base64", "hmac", "log", "rand", "serde_repr", "sha2", "thiserror", "tokio", "tracing", "url", "urlencoding"]
+ignored = ["anyhow", "async-trait", "base64", "hmac", "log", "rand", "serde_repr", "sha2", "thiserror", "tracing", "url", "urlencoding"]

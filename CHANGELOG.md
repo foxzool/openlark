@@ -53,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **规范 Config 构造路径 + ACS/Compliance 迁移 + 旧壳最终收口（#444 / #445 / #446 / #447 + codex re-review）**：
+  统一使用 `openlark_core::config::Config`（完整保留 token_provider、headers、timeout、retry 等）。
+  - `SecurityClient::new(config: Config)` 为唯一公开构造入口（符合 CLIENT_NAMING_CONVENTION）。
+  - SecurityServices 重复壳、SecurityConfig 及所有 legacy 转换已完全移除（P0 达成，无 shim）。
+  - Projects 仅通过 Client 访问（顶层 re-export 收敛，强化 single-entry）。
+  - 仅 `new` 存在；`from_config` 委托已删除。
+  - 行为证据测试：provider/header 传播 + timeout/size 错误触发；测试避免读取存储 config 字段。
+  - prelude / 文档 / CHANGELOG 统一到 canonical `new` 路径。
+  **v0.18 破坏性变更**：删除 `SecurityConfig` 后，旧代码必须：
+    `let cfg = Config::builder()... .build(); SecurityClient::new(cfg);`
+  （或 root `client.security`）。
+
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
   `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行
   `Config::validate()`（凭据 / URL / Feishu·Lark 域名白名单 / retry）以及 Client

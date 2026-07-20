@@ -673,3 +673,130 @@ fn test_communication_service_access() {
 
     let _comm = &client.communication;
 }
+
+#[cfg(feature = "security")]
+mod security_propagation_tests {
+    use super::Client;
+    use openlark_core::config::Config;
+    use openlark_core::error::ErrorTrait;
+    use wiremock::matchers::{body_json, header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    async fn mount_app_token(server: &MockServer, token: &str) {
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/app_access_token/internal"))
+            .and(body_json(serde_json::json!({
+                "app_id": "root_app",
+                "app_secret": "root_secret"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "app_access_token": token,
+                "expire": 7200,
+                "tenant_access_token": "unused_tenant_token"
+            })))
+            .mount(server)
+            .await;
+    }
+
+    #[test]
+    fn documented_v018_core_config_construction_path_compiles() {
+        let config = Config::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .build();
+        let client = Client::with_core_config(config).expect("documented v0.18 path");
+        let _security = &client.security;
+    }
+
+    /// 通过根 Client 构造 + security.acs leaf 执行，证明 ACS 使用 retained canonical Config（#445）。
+    /// 覆盖 base_url、headers、根 Client 安装的 AuthTokenProvider、Authorization 与 typed response。
+    #[tokio::test]
+    async fn root_client_security_leaf_uses_installed_provider_and_returns_typed_data() {
+        let server = MockServer::start().await;
+        mount_app_token(&server, "root_provider_token").await;
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("X-Root-Custom", "propagated"))
+            .and(header("Authorization", "Bearer root_provider_token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "ok",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Root-Custom", "propagated")
+            .build()
+            .expect("root client build");
+
+        let list_resp = client
+            .security
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await
+            .expect("root->security leaf 调用应成功");
+
+        assert!(!list_resp.has_more);
+
+        let rec = server.received_requests().await.unwrap_or_default();
+        assert_eq!(rec.len(), 2, "应先取 app token，再调用 security leaf");
+        assert!(
+            rec.iter()
+                .any(|req| req.url.path() == "/open-apis/acs/v1/users"),
+            "必须命中 wiremock 上的 security 端点"
+        );
+    }
+
+    /// 最高 seam 必须保留 retry-relevant API 错误及 request ID。
+    #[tokio::test]
+    async fn root_client_security_leaf_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        mount_app_token(&server, "root_error_provider_token").await;
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("Authorization", "Bearer root_error_provider_token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 503,
+                "msg": "security service unavailable",
+                "request_id": "req-root-security-503"
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .retry_count(2)
+            .build()
+            .expect("root client build");
+
+        let err = client
+            .security
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await
+            .expect_err("503 业务错误必须向上传播");
+
+        assert!(err.is_retryable(), "503 API 错误应标记为可重试");
+        assert_eq!(err.context().request_id(), Some("req-root-security-503"));
+        assert!(err.to_string().contains("security service unavailable"));
+    }
+}

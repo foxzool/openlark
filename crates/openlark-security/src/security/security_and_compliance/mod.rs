@@ -2,9 +2,7 @@
 //!
 //! 提供设备记录管理、审计日志、合规检查等安全功能。
 //!
-//! **迁移说明（见 GitHub issue #210）**：security_and_compliance 已从
-//! `SecurityConfig` + 原始 reqwest 迁移到 `openlark_core::Config` + Transport，
-//! 与 acs 子模块一致。整个 crate 现在统一使用 core `Config`。
+//! security_and_compliance 使用 canonical `openlark_core::Config` + Transport（与 acs 一致）。
 
 use openlark_core::config::Config;
 
@@ -16,9 +14,15 @@ pub struct SecurityAndComplianceProject {
     v2: SecurityAndComplianceV2Service,
 }
 
+impl Clone for SecurityAndComplianceProject {
+    fn clone(&self) -> Self {
+        Self::new(self.config.clone())
+    }
+}
+
 impl SecurityAndComplianceProject {
-    /// 创建新的安全合规项目实例
-    pub fn new(config: Config) -> Self {
+    /// 创建新的安全合规项目实例（仅供 [`crate::SecurityClient`] 组装）。
+    pub(crate) fn new(config: Config) -> Self {
         Self {
             v1: SecurityAndComplianceV1Service::new(config.clone()),
             v2: SecurityAndComplianceV2Service::new(config.clone()),

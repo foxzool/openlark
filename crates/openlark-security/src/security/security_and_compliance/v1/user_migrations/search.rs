@@ -5,8 +5,8 @@
 //! 过滤条件在 body，调用方按飞书文档自行构造 JSON 透传。
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption,
 };
 
 /// 批量获取用户迁移状态请求。
@@ -48,8 +48,7 @@ impl SearchUserMigrationsRequest {
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("批量获取用户迁移状态", "响应数据为空"))
+        resp.into_result()
     }
 }
 

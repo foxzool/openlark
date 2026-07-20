@@ -2,11 +2,8 @@
 //!
 //! 智能门禁访问控制系统，提供用户、设备、权限和访客管理功能。
 //!
-//! **迁移说明（见 docs/superpowers/specs/2026-06-20-acs-transport-migration-design.md）**：
-//! acs 正在从 SecurityConfig + 原始 reqwest 迁移到 openlark_core::Config + Transport。
-//! Task 1 仅做边界：`AcsProject`/`AcsV1Service` 切到 `openlark_core::Config`（owned，与
-//! communication/auth 等 crate 一致），6 个资源 Service 暂时下线，在 Task 2-5 中逐个
-//! 以门面形式恢复（持 `Config`）。
+//! 访问控制系统 (ACS) 使用 canonical `openlark_core::Config`（owned）。
+//! 历史从 SecurityConfig + 原始 reqwest 的迁移已完成；现统一走 core Transport。
 
 use openlark_core::config::Config;
 
@@ -17,9 +14,16 @@ pub struct AcsProject {
     v1: AcsV1Service,
 }
 
+impl Clone for AcsProject {
+    fn clone(&self) -> Self {
+        // 重建即可（内部只持 Config）
+        Self::new(self.config.clone())
+    }
+}
+
 impl AcsProject {
-    /// 创建新的 ACS 项目实例
-    pub fn new(config: Config) -> Self {
+    /// 创建新的 ACS 项目实例（仅供 [`crate::SecurityClient`] 组装）。
+    pub(crate) fn new(config: Config) -> Self {
         Self {
             v1: AcsV1Service::new(config.clone()),
             config,
@@ -39,7 +43,7 @@ impl AcsProject {
 
 /// ACS v1 版本服务
 ///
-/// **迁移进行中**：资源 Service 在 Task 2-5 中逐个恢复。当前已恢复全部 6 个：
+/// 迁移已完成：当前提供全部 6 个资源 Service：
 /// users / user_faces / devices / rule_external / visitors / access_records
 /// （+ `client_device`、`face` 便捷方法）。
 #[derive(Debug)]

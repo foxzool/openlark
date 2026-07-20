@@ -83,6 +83,9 @@ impl ListUsersRequest {
             .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
+        if !resp.is_success() {
+            return resp.into_result();
+        }
         Ok(resp.data.unwrap_or(ListUsersResponse {
             has_more: false,
             page_token: None,

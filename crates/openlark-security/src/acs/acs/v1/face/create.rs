@@ -47,8 +47,7 @@ impl FaceCreateRequest {
             .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("创建人脸", "响应数据为空"))
+        resp.into_result()
     }
 }
 
