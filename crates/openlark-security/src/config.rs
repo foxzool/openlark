@@ -1,6 +1,15 @@
-//! 安全服务配置
+//! 安全服务配置（legacy，已在 v0.18 收缩）
+//!
+//! 仅用于向后兼容说明，请改用 core Config。
+#![allow(deprecated)]
 
-/// 安全服务配置
+/// 安全服务配置（已废弃）
+///
+/// v0.18 起请直接使用 `openlark_core::config::Config` + `SecurityClient::from_config`。
+#[deprecated(
+    since = "0.18.0",
+    note = "使用 openlark_core::config::Config 代替，并通过 SecurityClient::from_config 构造"
+)]
 #[derive(Debug, Clone)]
 pub struct SecurityConfig {
     /// 应用ID

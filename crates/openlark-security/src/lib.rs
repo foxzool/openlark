@@ -4,11 +4,10 @@
 //!
 //! ## 架构设计
 //!
-//! 采用 Project-Version-Resource (PVR) 三层架构：
+//! 采用 Project-Version-Resource (PVR) 三层架构，使用 canonical `openlark_core::config::Config`：
 //!
 //! ```text
 //! openlark-security/src/
-//! ├── config.rs         # 安全服务配置（SecurityConfig）
 //! ├── acs/              # 访问控制系统 (Project)
 //! │   └── v1/          # API版本v1 (Version)
 //! └── security_and_compliance/  # 安全合规管理 (Project)
@@ -24,7 +23,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // 新推荐路径：使用 canonical core Config（完整保留 token provider / headers 等）
+//!     // 使用 canonical core Config（v0.18 推荐路径，完整保留 token provider / headers 等）
 //!     let config = Config::builder()
 //!         .app_id("app_id")
 //!         .app_secret("app_secret")
@@ -130,30 +129,12 @@ pub struct SecurityServices {
 }
 
 impl SecurityServices {
-    /// 使用 SecurityConfig 创建（兼容旧路径）。
-    ///
-    /// 注意：此路径仅携带 app_id/secret/base_url。
-    /// 推荐直接使用 `from_config(openlark_core::config::Config)` 以获得完整配置能力。
-    pub fn new(legacy: crate::config::SecurityConfig) -> Self {
-        let core = openlark_core::config::Config::builder()
-            .app_id(&legacy.app_id)
-            .app_secret(&legacy.app_secret)
-            .base_url(&legacy.base_url)
-            .build();
-
-        Self {
-            config: core.clone(),
-            acs: AcsProject::new(core.clone()),
-            security_and_compliance: SecurityAndComplianceProject::new(core),
-        }
-    }
-
     /// 获取当前配置（canonical core Config）。
     pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 
-    /// 使用 canonical `openlark_core::config::Config` 构造（推荐）。
+    /// 使用 canonical `openlark_core::config::Config` 构造。
     ///
     /// 完整保留 token_provider、自定义 headers、timeout、retry 等。
     pub fn from_config(config: openlark_core::config::Config) -> Self {
@@ -181,17 +162,7 @@ pub struct SecurityClient {
 }
 
 impl SecurityClient {
-    /// 从 SecurityConfig 创建（旧路径兼容）。
-    pub fn new(legacy: crate::config::SecurityConfig) -> Self {
-        let svc = SecurityServices::new(legacy);
-        Self {
-            config: svc.config.clone(),
-            acs: svc.acs,
-            security_and_compliance: svc.security_and_compliance,
-        }
-    }
-
-    /// 从 canonical core Config 构造（推荐路径）。
+    /// 从 canonical core Config 构造（v0.18 推荐路径）。
     pub fn from_config(config: openlark_core::config::Config) -> Self {
         let svc = SecurityServices::from_config(config);
         Self {
@@ -209,7 +180,7 @@ impl SecurityClient {
 
 impl Default for SecurityServices {
     fn default() -> Self {
-        Self::new(crate::config::SecurityConfig::default())
+        Self::from_config(openlark_core::config::Config::default())
     }
 }
 
@@ -224,7 +195,6 @@ pub mod prelude {
 
     // 避免v1命名空间冲突，明确导出需要的类型
     pub use super::acs::acs::{AcsProject as Acs, AcsV1Service};
-    pub use super::config::SecurityConfig;
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };
@@ -319,14 +289,6 @@ mod construction_tests {
             "请求路径应指向 ACS leaf，实际: {}",
             req.url
         );
-    }
-
-    /// 验证旧路径仍然可用（expand-contract 期间）
-    #[test]
-    fn legacy_security_config_path_still_works() {
-        let sec_cfg = crate::config::SecurityConfig::new("a", "b").with_base_url("https://example.com");
-        let _client = SecurityClient::new(sec_cfg);
-        // 仅验证可构造，不发起网络
     }
 
     /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。

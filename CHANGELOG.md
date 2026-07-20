@@ -65,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **v0.18 迁移建议**：从 `SecurityConfig::new(...)` 改为 `Config::builder()...` 后调用 `from_config`，
   或直接通过根 `Client` 使用 `client.security`。
 
+- **security：移除 SecurityConfig 兼容构造与转换（#447）**：
+  `SecurityClient::new(SecurityConfig)` / `SecurityServices::new(legacy)` 及 field-by-field 转换已移除。
+  SecurityConfig 标记 deprecated，仅保留类型用于迁移参考。prelude 不再导出 SecurityConfig。
+  `SecurityClient` / `SecurityServices` 现为基于 canonical Config 的真实实现（直接持有字段，无 Arc/Deref 壳）。
+  **v0.18 破坏性变更**：旧代码需改为 `SecurityClient::from_config(core_config)` 或 root Client 路径。
+  详见上节迁移建议。
+
 - **Client 构造统一校验 seam（#416 / #413）**：`ClientBuilder::build` 与
   `Client::with_core_config` 共用私有 `with_checked_core_config`——一律执行
   `Config::validate()`（凭据 / URL / Feishu·Lark 域名白名单 / retry）以及 Client
