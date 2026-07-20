@@ -9,7 +9,9 @@ pub mod reject;
 pub mod resubmit;
 pub mod rollback;
 pub mod search;
+pub mod subscription;
 pub mod transfer;
+pub mod unsubscription;
 
 // add_sign 模块显式导出
 pub use add_sign::{AddSignTaskBodyV4, AddSignTaskRequestV4, AddSignTaskResponseV4};
@@ -36,3 +38,7 @@ pub use rollback::{RollbackTaskBodyV4, RollbackTaskRequestV4, RollbackTaskRespon
 pub use search::{SearchTaskRequestV4, SearchTaskResponseV4};
 // transfer 模块显式导出
 pub use transfer::{TransferTaskBodyV4, TransferTaskRequestV4, TransferTaskResponseV4};
+// subscription 模块显式导出
+pub use subscription::SubscribeTaskRequestV4;
+// unsubscription 模块显式导出
+pub use unsubscription::UnsubscribeTaskRequestV4;

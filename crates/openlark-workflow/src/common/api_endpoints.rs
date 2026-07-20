@@ -502,6 +502,10 @@ pub enum ApprovalApiV4 {
     InstanceRecall,
     /// 退回审批任务
     InstanceSpecifiedRollback(String),
+    /// 订阅审批实例状态变更事件
+    InstanceSubscribe,
+    /// 退订审批实例状态变更事件
+    InstanceUnsubscribe,
     /// 创建评论
     InstanceCommentCreate(String),
     /// 删除评论
@@ -532,6 +536,10 @@ pub enum ApprovalApiV4 {
     TaskSearch,
     /// 转交审批任务
     TaskTransfer,
+    /// 订阅审批任务状态变更事件
+    TaskSubscribe,
+    /// 退订审批任务状态变更事件
+    TaskUnsubscribe,
 }
 
 impl ApprovalApiV4 {
@@ -599,6 +607,9 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceSpecifiedRollback(_) => {
                 "/open-apis/approval/v4/instances/specified_rollback".to_string()
             }
+            ApprovalApiV4::InstanceSubscribe | ApprovalApiV4::InstanceUnsubscribe => {
+                "/open-apis/approval/v4/instances/subscription".to_string()
+            }
 
             // 审批实例评论相关
             ApprovalApiV4::InstanceCommentCreate(instance_id) => {
@@ -624,6 +635,9 @@ impl ApprovalApiV4 {
             ApprovalApiV4::TaskResubmit => "/open-apis/approval/v4/tasks/resubmit".to_string(),
             ApprovalApiV4::TaskSearch => "/open-apis/approval/v4/tasks/search".to_string(),
             ApprovalApiV4::TaskTransfer => "/open-apis/approval/v4/tasks/transfer".to_string(),
+            ApprovalApiV4::TaskSubscribe | ApprovalApiV4::TaskUnsubscribe => {
+                "/open-apis/approval/v4/tasks/subscription".to_string()
+            }
         }
     }
 }
