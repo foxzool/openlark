@@ -3,8 +3,8 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/access_record/list>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption,
 };
 
 /// 获取门禁记录列表请求
@@ -56,8 +56,7 @@ impl ListAccessRecordsRequest {
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("获取门禁记录列表", "响应数据为空"))
+        resp.into_result()
     }
 }
 

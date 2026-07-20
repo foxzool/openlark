@@ -3,8 +3,8 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-get>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption, validate_required,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption, validate_required,
 };
 
 /// 获取单个设备信息请求
@@ -42,8 +42,7 @@ impl GetDeviceRecordRequest {
             ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("获取设备信息", "响应数据为空"))
+        resp.into_result()
     }
 }
 

@@ -7,8 +7,8 @@
 //! 透传（字段细化见 spec，不在本次范围）。
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption,
 };
 
 /// 获取 OpenAPI 审计日志数据请求
@@ -73,8 +73,7 @@ impl ListOpenApiLogsRequest {
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("获取审计日志数据", "响应数据为空"))
+        resp.into_result()
     }
 }
 

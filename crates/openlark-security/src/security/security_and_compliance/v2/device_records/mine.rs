@@ -3,8 +3,8 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-mine>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption,
 };
 
 /// 获取我的设备认证信息请求
@@ -66,8 +66,7 @@ impl GetMyDeviceRecordsRequest {
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("获取我的设备认证信息", "响应数据为空"))
+        resp.into_result()
     }
 }
 

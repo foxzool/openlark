@@ -22,8 +22,8 @@ impl Clone for AcsProject {
 }
 
 impl AcsProject {
-    /// 创建新的 ACS 项目实例
-    pub fn new(config: Config) -> Self {
+    /// 创建新的 ACS 项目实例（仅供 [`crate::SecurityClient`] 组装）。
+    pub(crate) fn new(config: Config) -> Self {
         Self {
             v1: AcsV1Service::new(config.clone()),
             config,
@@ -43,7 +43,7 @@ impl AcsProject {
 
 /// ACS v1 版本服务
 ///
-/// **迁移进行中**：资源 Service 在 Task 2-5 中逐个恢复。当前已恢复全部 6 个：
+/// 迁移已完成：当前提供全部 6 个资源 Service：
 /// users / user_faces / devices / rule_external / visitors / access_records
 /// （+ `client_device`、`face` 便捷方法）。
 #[derive(Debug)]

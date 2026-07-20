@@ -150,11 +150,8 @@ impl SecurityClient {
     }
 }
 
-impl Default for SecurityClient {
-    fn default() -> Self {
-        Self::new(openlark_core::config::Config::default())
-    }
-}
+// Default 已移除，以避免产生空凭据 Config（违反 single-entry）。
+// 测试使用显式 new(Config::builder()...build()) 。
 
 /// 结果类型别名
 pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
@@ -174,6 +171,7 @@ pub mod prelude {
 mod construction_tests {
     use super::*;
     use openlark_core::auth::{TokenProvider, TokenRequest};
+    use openlark_core::error::ErrorTrait;
     use std::future::Future;
     use std::pin::Pin;
     use wiremock::matchers::{header, method, path};
@@ -224,7 +222,8 @@ mod construction_tests {
             .max_response_size(8 * 1024 * 1024)
             .build();
 
-        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
         let client = SecurityClient::new(config_with_provider);
 
@@ -248,7 +247,8 @@ mod construction_tests {
         // 这里再做一次宽松确认（url 里包含我们 mock 的路径即可）。
         let req = &received[0];
         assert!(
-            req.url.path() == "/open-apis/acs/v1/users" || req.url.as_str().contains("/acs/v1/users"),
+            req.url.path() == "/open-apis/acs/v1/users"
+                || req.url.as_str().contains("/acs/v1/users"),
             "请求路径应指向 ACS leaf，实际: {}",
             req.url
         );
@@ -262,7 +262,9 @@ mod construction_tests {
 
         // 精确匹配 header，证明 token provider 和自定义 header 传播
         Mock::given(method("GET"))
-            .and(path("/open-apis/security_and_compliance/v2/device_records/mine"))
+            .and(path(
+                "/open-apis/security_and_compliance/v2/device_records/mine",
+            ))
             .and(header("Authorization", "Bearer test_tok_from_provider"))
             .and(header("X-Compliance-Test", "propagated"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -283,7 +285,8 @@ mod construction_tests {
             .max_response_size(8 * 1024 * 1024)
             .build();
 
-        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
         let client = SecurityClient::new(config_with_provider);
 
@@ -312,7 +315,9 @@ mod construction_tests {
         let server = MockServer::start().await;
 
         Mock::given(method("POST"))
-            .and(path("/open-apis/security_and_compliance/v1/openapi_logs/list_data"))
+            .and(path(
+                "/open-apis/security_and_compliance/v1/openapi_logs/list_data",
+            ))
             .and(header("Authorization", "Bearer test_tok_from_provider"))
             .and(header("X-Compliance-V1", "propagated"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -331,7 +336,8 @@ mod construction_tests {
             .add_header("X-Compliance-V1", "propagated")
             .build();
 
-        let config_with_provider = base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
 
         let client = SecurityClient::new(config_with_provider);
 
@@ -354,10 +360,87 @@ mod construction_tests {
         assert!(received[0].url.path().contains("/openapi_logs/list_data"));
     }
 
+    /// Compliance v1 业务错误必须保留 retry 语义与 request ID。
+    #[tokio::test]
+    async fn compliance_v1_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/security_and_compliance/v1/openapi_logs/list_data",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 503,
+                "msg": "compliance v1 unavailable",
+                "request_id": "req-compliance-v1-503"
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .build()
+            .with_token_provider(TestTokenProvider("compliance_v1_token"));
+        let client = SecurityClient::new(config);
+
+        let err = client
+            .security_and_compliance
+            .v1()
+            .openapi_logs()
+            .list_data()
+            .body(serde_json::json!({}))
+            .execute()
+            .await
+            .expect_err("compliance v1 业务错误必须向上传播");
+
+        assert!(err.is_retryable());
+        assert_eq!(err.context().request_id(), Some("req-compliance-v1-503"));
+    }
+
+    /// Compliance v2 业务错误必须保留 retry 语义与 request ID。
+    #[tokio::test]
+    async fn compliance_v2_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/security_and_compliance/v2/device_records/mine",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 429,
+                "msg": "compliance v2 rate limited",
+                "request_id": "req-compliance-v2-429"
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .build()
+            .with_token_provider(TestTokenProvider("compliance_v2_token"));
+        let client = SecurityClient::new(config);
+
+        let err = client
+            .security_and_compliance
+            .v2()
+            .device_records()
+            .mine()
+            .execute()
+            .await
+            .expect_err("compliance v2 业务错误必须向上传播");
+
+        assert!(err.is_retryable());
+        assert_eq!(err.context().request_id(), Some("req-compliance-v2-429"));
+    }
+
     /// 行为验证：通过极小 timeout 触发超时错误，证明 req_timeout 配置已传播到执行路径。
     /// 不依赖 client.config() 读取做验收。
     #[tokio::test]
-    async fn security_config_timeout_propagates_and_triggers_timeout_error() {
+    async fn security_client_timeout_propagates_and_triggers_timeout_error() {
         let server = MockServer::start().await;
 
         // 模拟慢响应（> timeout）
@@ -383,20 +466,18 @@ mod construction_tests {
 
         let client = SecurityClient::new(config);
 
-        let result = client
-            .acs
-            .v1()
-            .users()
-            .list()
-            .execute()
-            .await;
+        let result = client.acs.v1().users().list().execute().await;
 
         // 必须是错误，且与超时相关（reqwest timeout 或上层包装）
         assert!(result.is_err(), "应因 timeout 配置触发错误");
         let err = result.unwrap_err().to_string().to_lowercase();
         // 短 timeout 常表现为网络/请求错误（reqwest 超时包装），接受宽松匹配
         assert!(
-            err.contains("timeout") || err.contains("time") || err.contains("deadline") || err.contains("network") || err.contains("send"),
+            err.contains("timeout")
+                || err.contains("time")
+                || err.contains("deadline")
+                || err.contains("network")
+                || err.contains("send"),
             "错误应体现超时或网络失败，实际: {}",
             err
         );
@@ -404,7 +485,7 @@ mod construction_tests {
 
     /// 行为验证：小 max_response_size + 大响应体 → response_too_large 错误。
     #[tokio::test]
-    async fn security_config_max_response_size_propagates_and_triggers_size_error() {
+    async fn security_client_max_response_size_propagates_and_triggers_size_error() {
         let server = MockServer::start().await;
 
         // 构造一个 > limit 的响应（用大 body）
@@ -417,10 +498,7 @@ mod construction_tests {
 
         Mock::given(method("GET"))
             .and(path("/open-apis/acs/v1/users"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_raw(big_json, "application/json"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(big_json, "application/json"))
             .mount(&server)
             .await;
 
@@ -436,19 +514,16 @@ mod construction_tests {
 
         let client = SecurityClient::new(config);
 
-        let result = client
-            .acs
-            .v1()
-            .users()
-            .list()
-            .execute()
-            .await;
+        let result = client.acs.v1().users().list().execute().await;
 
         assert!(result.is_err(), "应因 response size 超限触发错误");
         let err = result.unwrap_err().to_string();
         // 精确错误来自 CoreError::response_too_large
         assert!(
-            err.contains("响应体过大") || err.to_lowercase().contains("large") || err.to_lowercase().contains("size") || err.contains("超过限制"),
+            err.contains("响应体过大")
+                || err.to_lowercase().contains("large")
+                || err.to_lowercase().contains("size")
+                || err.contains("超过限制"),
             "错误应体现响应过大，实际: {}",
             err
         );

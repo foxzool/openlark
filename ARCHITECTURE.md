@@ -5133,27 +5133,22 @@ LARK_LOG_LEVEL=info
 
 **敏感信息保护**：
 ```rust
-use openlark_client::security::{SecurityConfig, CredentialManager};
+// v0.18+ 注意：旧 SecurityConfig / with_security_config 已移除。
+// 当前使用 openlark_core::config::Config + SecurityClient::new(config)
+// （或根 Client::with_core_config(config)）。
+// 迁移说明见 CHANGELOG。
 
-// 安全配置示例
-pub fn create_secure_client() -> SDKResult<Client> {
-    let security_config = SecurityConfig::builder()
-        .enable_https_only(true)
-        .verify_ssl_certificates(true)
-        .credential_rotation_interval(Duration::from_hours(24))
-        .enable_request_signing(true)
-        .allowed_ip_ranges(vec![
-            "203.119.0.0/16".parse().unwrap(),
-            "66.220.0.0/16".parse().unwrap(),
-        ])
+use openlark_core::config::Config;
+use openlark_client::{Client, Result};
+
+pub fn create_secure_client() -> Result<Client> {
+    let config = Config::builder()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        // 默认 base URL 使用 HTTPS；重试、超时等也由 core Config 统一配置。
         .build();
 
-    Client::builder()
-        .with_security_config(security_config)
-        .credential_manager(Box::new(
-            CredentialManager::from_secure_storage()?
-        ))
-        .build()
+    Client::with_core_config(config)
 }
 
 // 令牌安全存储

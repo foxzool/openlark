@@ -3,8 +3,8 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/delete>
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
-    error::validation_error, http::Transport, req_option::RequestOption, validate_required,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
+    req_option::RequestOption, validate_required,
 };
 
 /// 删除用户请求
@@ -39,8 +39,7 @@ impl DeleteUserRequest {
             ApiRequest::delete(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
 
         let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| validation_error("删除用户", "响应数据为空"))
+        resp.into_result()
     }
 }
 

@@ -677,20 +677,50 @@ fn test_communication_service_access() {
 #[cfg(feature = "security")]
 mod security_propagation_tests {
     use super::Client;
-    use openlark_core::req_option::RequestOption;
-    use wiremock::matchers::{header, method, path};
+    use openlark_core::config::Config;
+    use openlark_core::error::ErrorTrait;
+    use wiremock::matchers::{body_json, header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
+    async fn mount_app_token(server: &MockServer, token: &str) {
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/app_access_token/internal"))
+            .and(body_json(serde_json::json!({
+                "app_id": "root_app",
+                "app_secret": "root_secret"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "app_access_token": token,
+                "expire": 7200,
+                "tenant_access_token": "unused_tenant_token"
+            })))
+            .mount(server)
+            .await;
+    }
+
+    #[test]
+    fn documented_v018_core_config_construction_path_compiles() {
+        let config = Config::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .build();
+        let client = Client::with_core_config(config).expect("documented v0.18 path");
+        let _security = &client.security;
+    }
+
     /// 通过根 Client 构造 + security.acs leaf 执行，证明 ACS 使用 retained canonical Config（#445）。
-    /// 覆盖 base_url、headers；token 通过 option 注入（root 注入 AuthProvider 但 option 优先）。
+    /// 覆盖 base_url、headers、根 Client 安装的 AuthTokenProvider、Authorization 与 typed response。
     #[tokio::test]
-    async fn root_client_security_leaf_receives_base_url_headers_via_canonical_path() {
+    async fn root_client_security_leaf_uses_installed_provider_and_returns_typed_data() {
         let server = MockServer::start().await;
+        mount_app_token(&server, "root_provider_token").await;
 
         Mock::given(method("GET"))
             .and(path("/open-apis/acs/v1/users"))
             .and(header("X-Root-Custom", "propagated"))
-            .and(header("Authorization", "Bearer supplied_via_option"))
+            .and(header("Authorization", "Bearer root_provider_token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "code": 0,
                 "msg": "ok",
@@ -708,30 +738,65 @@ mod security_propagation_tests {
             .build()
             .expect("root client build");
 
-        // 通过 meta 链访问 security leaf。
-        // 根 Client（auth feature）会用 AuthTokenProvider 包装 config（见 Client::with_checked_core_config）。
-        // 本测试用 option 绕过以隔离（避免真实 token 端点），但已证明 base_url + 自定义 header 经 canonical 路径传播。
-        // Provider 行为的完整 behavioral evidence 见 security crate 内的 custom TestTokenProvider + header 精确匹配测试。
-        // （最高 seam 的 provider 注入由 #413/#416 Client seam 负责；此处专注 meta 传播。）
-        let _ = client
+        let list_resp = client
             .security
             .acs
             .v1()
             .users()
             .list()
-            .execute_with_options(
-                RequestOption::builder()
-                    .app_access_token("supplied_via_option")
-                    .build(),
-            )
+            .execute()
             .await
             .expect("root->security leaf 调用应成功");
 
+        assert!(!list_resp.has_more);
+
         let rec = server.received_requests().await.unwrap_or_default();
-        assert_eq!(rec.len(), 1);
+        assert_eq!(rec.len(), 2, "应先取 app token，再调用 security leaf");
         assert!(
-            rec[0].url.path().contains("/acs/v1/users"),
+            rec.iter()
+                .any(|req| req.url.path() == "/open-apis/acs/v1/users"),
             "必须命中 wiremock 上的 security 端点"
         );
+    }
+
+    /// 最高 seam 必须保留 retry-relevant API 错误及 request ID。
+    #[tokio::test]
+    async fn root_client_security_leaf_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        mount_app_token(&server, "root_error_provider_token").await;
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("Authorization", "Bearer root_error_provider_token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 503,
+                "msg": "security service unavailable",
+                "request_id": "req-root-security-503"
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .app_id("root_app")
+            .app_secret("root_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .retry_count(2)
+            .build()
+            .expect("root client build");
+
+        let err = client
+            .security
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await
+            .expect_err("503 业务错误必须向上传播");
+
+        assert!(err.is_retryable(), "503 API 错误应标记为可重试");
+        assert_eq!(err.context().request_id(), Some("req-root-security-503"));
+        assert!(err.to_string().contains("security service unavailable"));
     }
 }

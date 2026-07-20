@@ -21,8 +21,8 @@ impl Clone for SecurityAndComplianceProject {
 }
 
 impl SecurityAndComplianceProject {
-    /// 创建新的安全合规项目实例
-    pub fn new(config: Config) -> Self {
+    /// 创建新的安全合规项目实例（仅供 [`crate::SecurityClient`] 组装）。
+    pub(crate) fn new(config: Config) -> Self {
         Self {
             v1: SecurityAndComplianceV1Service::new(config.clone()),
             v2: SecurityAndComplianceV2Service::new(config.clone()),
