@@ -2,11 +2,11 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// CCM Sheet API Old V2 端点枚举
 /// 对应 meta.project = ccm_sheet, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmSheetApiOld {
     /// 操作工作表 (第一个)
     OperateSheets(String), // spreadsheet_token
@@ -518,6 +518,7 @@ impl CatalogEndpoint for CcmSheetApiOld {
 /// Sheets API v3 端点枚举
 /// 对应 meta.project = sheets, meta.version = v3
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum SheetsApiV3 {
     // =====================
     // spreadsheet
@@ -736,7 +737,23 @@ impl CatalogEndpoint for SheetsApiV3 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
+
+    #[test]
+    fn sheets_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "ccm_sheet_old_catalog_semantics",
+            catalog_semantics_snapshot::<CcmSheetApiOld>()
+        );
+        insta::assert_snapshot!(
+            "sheets_v3_catalog_semantics",
+            catalog_semantics_snapshot::<SheetsApiV3>()
+        );
     }
 }

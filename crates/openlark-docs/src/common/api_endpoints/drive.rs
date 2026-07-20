@@ -2,11 +2,11 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// CCM Drive Explorer API Old V2 端点枚举
 /// 对应 meta.project = ccm_drive_explorer, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDriveExplorerApiOld {
     /// 获取我的空间（根文件夹）元数据
     RootFolderMeta,
@@ -76,14 +76,13 @@ impl CatalogEndpoint for CcmDriveExplorerApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Drive Explorer API V1 端点枚举
 /// 对应 meta.project = ccm_drive_explorer, meta.version = v1
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDriveExplorerApi {
     /// 获取根目录元数据
     RootFolderMeta,
@@ -171,9 +170,7 @@ impl CatalogEndpoint for CcmDriveExplorerApi {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// 简单的URL编码函数，用于查询参数编码
@@ -190,6 +187,7 @@ fn simple_url_encode(input: &str) -> String {
 /// CCM Drive Permission API V1 端点枚举
 /// 对应 meta.project = permission, meta.version = v1
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum PermissionApi {
     /// 判断协作者是否有某权限
     MemberPermitted,
@@ -228,14 +226,13 @@ impl CatalogEndpoint for PermissionApi {
         HttpMethod::Post
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Drive Permission API Old V2 端点枚举
 /// 对应 meta.project = permission, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum PermissionApiOld {
     /// 判断协作者是否有某权限
     MemberPermitted,
@@ -274,13 +271,12 @@ impl CatalogEndpoint for PermissionApiOld {
         HttpMethod::Post
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// Drive API 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum DriveApi {
     // V1 APIs - 文件操作
     /// 获取文件夹中的文件清单
@@ -716,7 +712,35 @@ impl CatalogEndpoint for DriveApi {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
+
+    #[test]
+    fn drive_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "ccm_drive_explorer_old_catalog_semantics",
+            catalog_semantics_snapshot::<CcmDriveExplorerApiOld>()
+        );
+        insta::assert_snapshot!(
+            "ccm_drive_explorer_catalog_semantics",
+            catalog_semantics_snapshot::<CcmDriveExplorerApi>()
+        );
+        insta::assert_snapshot!(
+            "permission_catalog_semantics",
+            catalog_semantics_snapshot::<PermissionApi>()
+        );
+        insta::assert_snapshot!(
+            "permission_old_catalog_semantics",
+            catalog_semantics_snapshot::<PermissionApiOld>()
+        );
+        insta::assert_snapshot!(
+            "drive_catalog_semantics",
+            catalog_semantics_snapshot::<DriveApi>()
+        );
     }
 }

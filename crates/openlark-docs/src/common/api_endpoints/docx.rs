@@ -2,10 +2,10 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
-use openlark_core::constants::AccessTokenType;
 
 /// Docx API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum DocxApiV1 {
     // 群公告相关API (7个)
     /// 获取群公告基本信息
@@ -157,7 +157,16 @@ impl CatalogEndpoint for DocxApiV1 {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
+
+    #[test]
+    fn docx_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<DocxApiV1>());
     }
 }

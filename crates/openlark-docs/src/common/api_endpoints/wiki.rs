@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Wiki API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApiV1 {
     /// 搜索Wiki
     NodeSearch,
@@ -38,6 +39,7 @@ impl CatalogEndpoint for WikiApiV1 {
 
 /// Wiki API V2 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApiV2 {
     /// 获取知识空间列表
     SpaceList,
@@ -153,6 +155,7 @@ impl CatalogEndpoint for WikiApiV2 {
 
 /// Wiki API 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum WikiApi {
     // Space APIs
     /// 获取知识空间列表
@@ -286,4 +289,26 @@ impl CatalogEndpoint for WikiApi {
     }
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
+
+    #[test]
+    fn wiki_catalog_semantics_snapshots() {
+        insta::assert_snapshot!(
+            "wiki_v1_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApiV1>()
+        );
+        insta::assert_snapshot!(
+            "wiki_v2_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApiV2>()
+        );
+        insta::assert_snapshot!(
+            "wiki_catalog_semantics",
+            catalog_semantics_snapshot::<WikiApi>()
+        );
+    }
 }

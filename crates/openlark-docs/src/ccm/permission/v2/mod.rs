@@ -160,13 +160,14 @@ pub use models::{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::test_utils::tenant_test_transport;
     use serde_json::json;
     use wiremock::matchers::{header, method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use wiremock::{Mock, ResponseTemplate};
 
     #[tokio::test]
     async fn check_member_permission_uses_catalog_request_semantics() {
-        let server = MockServer::start().await;
+        let (server, config, option) = tenant_test_transport().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/drive/v1/permission/member/permitted"))
             .and(header("Authorization", "Bearer test-tenant-token"))
@@ -183,15 +184,6 @@ mod tests {
             .mount(&server)
             .await;
 
-        let config = Config::builder()
-            .app_id("ci_app_id")
-            .app_secret("ci_app_secret")
-            .base_url(server.uri())
-            .enable_token_cache(false)
-            .build();
-        let option = RequestOption::builder()
-            .tenant_access_token("test-tenant-token")
-            .build();
         let params = CheckMemberPermissionParams {
             obj_token: "doc_token".to_string(),
             permission: "view".to_string(),

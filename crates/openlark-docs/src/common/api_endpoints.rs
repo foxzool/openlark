@@ -73,6 +73,66 @@ pub trait CatalogEndpoint {
     }
 }
 
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::CatalogEndpoint;
+    use openlark_core::{
+        api::{ApiRequest, HttpMethod},
+        constants::AccessTokenType,
+    };
+    use std::fmt::Debug;
+    use strum::IntoEnumIterator;
+
+    /// 同时锁定 catalog 的 path、method、auth 以及生成的请求语义。
+    pub(crate) fn assert_endpoint_semantics<E>(
+        endpoint: E,
+        expected_method: HttpMethod,
+        expected_path: &str,
+    ) where
+        E: CatalogEndpoint,
+    {
+        assert_eq!(endpoint.to_url(), expected_path);
+        assert_eq!(endpoint.method(), expected_method);
+        assert_eq!(
+            endpoint.supported_access_token_types(),
+            Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+        );
+
+        let request: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(request.method(), &expected_method);
+        assert_eq!(request.api_path(), expected_path);
+        assert_eq!(
+            request.supported_access_token_types(),
+            vec![AccessTokenType::User, AccessTokenType::Tenant]
+        );
+    }
+
+    /// 枚举全部 catalog variant，锁定其 method/path/auth 以及生成请求的一致性。
+    pub(crate) fn catalog_semantics_snapshot<E>() -> String
+    where
+        E: CatalogEndpoint + IntoEnumIterator + Debug,
+    {
+        E::iter()
+            .map(|endpoint| {
+                let path = endpoint.to_url();
+                let method = endpoint.method();
+                let auth = endpoint.supported_access_token_types();
+                let request: ApiRequest<()> = endpoint.to_request();
+
+                assert_eq!(request.method(), &method);
+                assert_eq!(request.api_path(), path);
+                assert_eq!(
+                    request.supported_access_token_types(),
+                    auth.clone().unwrap_or_default()
+                );
+
+                format!("{endpoint:?} | {method:?} | {path} | {auth:?}")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
 pub mod base;
 pub use base::BaseApiV2;
 
@@ -88,6 +148,7 @@ pub use docx::DocxApiV1;
 /// CCM Doc API Old V1 端点枚举
 /// 对应 meta.project = ccm_doc, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDocApiOld {
     /// 创建旧版文档
     Create,
@@ -146,14 +207,13 @@ impl CatalogEndpoint for CcmDocApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 /// CCM Docs API Old V1 端点枚举
 /// 对应 meta.project = ccm_docs, meta.version = old
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum CcmDocsApiOld {
     /// 搜索云文档
     SearchObject,
@@ -188,9 +248,7 @@ impl CatalogEndpoint for CcmDocsApiOld {
         }
     }
 
-    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
-        Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-    }
+    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
 }
 
 pub mod drive;
@@ -217,8 +275,24 @@ pub const LINGO_API_V1: &str = "/open-apis/lingo/v1";
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
     use openlark_core::api::{ApiRequest, HttpMethod};
     use openlark_core::constants::AccessTokenType;
+
+    #[test]
+    fn base_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<BaseApiV2>());
+    }
+
+    #[test]
+    fn ccm_doc_old_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<CcmDocApiOld>());
+    }
+
+    #[test]
+    fn ccm_docs_old_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<CcmDocsApiOld>());
+    }
 
     // ========== BaseApiV2 Tests ==========
     #[test]
@@ -273,27 +347,6 @@ mod tests {
         assert_eq!(endpoint.method(), HttpMethod::Get);
         let req: ApiRequest<()> = endpoint.to_request();
         assert_eq!(req.method(), &HttpMethod::Get);
-        assert_eq!(
-            endpoint.supported_access_token_types(),
-            Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
-        );
-        assert_eq!(
-            req.supported_access_token_types(),
-            vec![AccessTokenType::User, AccessTokenType::Tenant]
-        );
-    }
-
-    #[test]
-    fn test_base_api_v2_role_delete() {
-        let endpoint =
-            BaseApiV2::RoleDelete("app_token_123".to_string(), "role_id_456".to_string());
-        assert_eq!(
-            endpoint.to_url(),
-            "/open-apis/base/v2/apps/app_token_123/roles/role_id_456"
-        );
-        assert_eq!(endpoint.method(), HttpMethod::Delete);
-        let req: ApiRequest<()> = endpoint.to_request();
-        assert_eq!(req.method(), &HttpMethod::Delete);
         assert_eq!(
             endpoint.supported_access_token_types(),
             Some(vec![AccessTokenType::User, AccessTokenType::Tenant])

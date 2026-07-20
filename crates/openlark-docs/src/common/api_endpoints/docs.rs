@@ -5,6 +5,7 @@ use openlark_core::api::{ApiRequest, HttpMethod};
 
 /// Docs API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 pub enum DocsApiV1 {
     /// 获取云文档内容
     ContentGet,
@@ -34,4 +35,15 @@ impl CatalogEndpoint for DocsApiV1 {
     }
 
     // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::api_endpoints::test_support::catalog_semantics_snapshot;
+
+    #[test]
+    fn docs_catalog_semantics_snapshot() {
+        insta::assert_snapshot!(catalog_semantics_snapshot::<DocsApiV1>());
+    }
 }

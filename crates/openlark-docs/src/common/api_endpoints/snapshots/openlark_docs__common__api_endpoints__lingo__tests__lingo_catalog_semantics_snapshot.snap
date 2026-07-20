@@ -1,0 +1,27 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/lingo.rs
+expression: "catalog_semantics_snapshot::<LingoApiV1>()"
+---
+DraftCreate | Post | /open-apis/lingo/v1/drafts | Some([User, Tenant])
+DraftUpdate("") | Put | /open-apis/lingo/v1/drafts/ | Some([User, Tenant])
+EntityCreate | Post | /open-apis/lingo/v1/entities | Some([User, Tenant])
+EntityUpdate("") | Put | /open-apis/lingo/v1/entities/ | Some([User, Tenant])
+EntityDelete("") | Delete | /open-apis/lingo/v1/entities/ | Some([User, Tenant])
+EntityGet("") | Get | /open-apis/lingo/v1/entities/ | Some([User, Tenant])
+EntityList | Get | /open-apis/lingo/v1/entities | Some([User, Tenant])
+EntityMatch | Post | /open-apis/baike/v1/entities/match | Some([User, Tenant])
+EntitySearch | Post | /open-apis/lingo/v1/entities/search | Some([User, Tenant])
+EntityHighlight | Post | /open-apis/lingo/v1/entities/highlight | Some([User, Tenant])
+EntityBatchGet | Post | /open-apis/lingo/v1/entities:batchGet | Some([User, Tenant])
+EntityBatchUpdate | Post | /open-apis/lingo/v1/entities:batchUpdate | Some([User, Tenant])
+EntitySearchRecommend | Post | /open-apis/lingo/v1/entities:searchRecommend | Some([User, Tenant])
+EntityExtract | Post | /open-apis/baike/v1/entities/extract | Some([User, Tenant])
+EntityHistoryGet("") | Get | /open-apis/lingo/v1/entities//history | Some([User, Tenant])
+EntityHistoryList | Get | /open-apis/lingo/v1/entityHistory | Some([User, Tenant])
+ClassificationList | Get | /open-apis/lingo/v1/classifications | Some([User, Tenant])
+RepoList | Get | /open-apis/lingo/v1/repos | Some([User, Tenant])
+FileUpload | Post | /open-apis/lingo/v1/files/upload | Some([User, Tenant])
+FileDownload("") | Get | /open-apis/lingo/v1/files//download | Some([User, Tenant])
+GenerateSummary | Post | /open-apis/lingo/v1/text:generateSummary | Some([User, Tenant])
+ExtractKeywords | Post | /open-apis/lingo/v1/text:extractKeywords | Some([User, Tenant])
+TranslateText | Post | /open-apis/lingo/v1/text:translate | Some([User, Tenant])
