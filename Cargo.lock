@@ -1824,27 +1824,15 @@ dependencies = [
 name = "openlark-security"
 version = "0.18.0"
 dependencies = [
- "anyhow",
- "async-trait",
- "base64",
  "chrono",
- "hmac",
- "log",
  "mockall",
  "openlark-core",
- "rand 0.8.6",
  "rstest",
  "serde",
  "serde_json",
- "serde_repr",
- "sha2",
  "tempfile",
- "thiserror",
  "tokio",
  "tokio-test",
- "tracing",
- "url",
- "urlencoding",
  "uuid",
  "wiremock",
 ]
