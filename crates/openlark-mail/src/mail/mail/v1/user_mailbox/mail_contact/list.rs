@@ -55,9 +55,7 @@ impl ListMailContactRequest {
         );
         let req: ApiRequest<ListMailContactResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("列出邮箱联系人", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "列出邮箱联系人").await
     }
 }
 

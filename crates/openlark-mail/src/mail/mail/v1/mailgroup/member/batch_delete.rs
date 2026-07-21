@@ -55,10 +55,7 @@ impl BatchDeleteMailGroupMemberRequest {
         );
         let req: ApiRequest<BatchDeleteMailGroupMemberResponse> = ApiRequest::delete(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("批量删除邮件组成员", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "批量删除邮件组成员").await
     }
 }
 

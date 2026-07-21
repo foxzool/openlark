@@ -1,7 +1,7 @@
 //! 获取邮件组详情
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/get>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::mailgroup::models::GetMailGroupResponse;
 use openlark_core::{
     SDKResult,
@@ -43,9 +43,13 @@ impl GetMailGroupRequest {
         let api_endpoint = MailApiV1::MailGroupGet(self.mail_group_id.clone());
         let request = ApiRequest::<GetMailGroupResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取邮件组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取邮件组",
+        )
+        .await
     }
 }
 

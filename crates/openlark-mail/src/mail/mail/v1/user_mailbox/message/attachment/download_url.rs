@@ -75,10 +75,7 @@ impl GetAttachmentDownloadUrlRequest {
         let req: ApiRequest<GetAttachmentDownloadUrlResponse> =
             ApiRequest::get(&path).query("attachment_id", self.attachment_id);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取附件下载链接", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "获取附件下载链接").await
     }
 }
 

@@ -1,7 +1,6 @@
 //! 删除邮件组别名
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete>
 
-use crate::common::api_utils::extract_response_data;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
@@ -59,8 +58,7 @@ impl DeleteMailGroupAliasRequest {
         );
         let req: ApiRequest<DeleteMailGroupAliasResponse> = ApiRequest::delete(&path);
 
-        let response = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除邮件组别名")
+        Transport::request_typed(req, &self.config, Some(option), "删除邮件组别名").await
     }
 }
 

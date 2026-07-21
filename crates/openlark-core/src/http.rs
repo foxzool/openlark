@@ -116,7 +116,9 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
     /// + 响应携带的 `request_id`，便于排障与飞书服务端对账。
     ///
     /// 与既有 `Transport::request` + `extract_response_data` 两步 idiom **行为等价**，
-    /// 仅把两步收成一次调用，供 leaf 默认走 canonical 路径（additive，不迁移任何 leaf）。
+    /// 仅把两步收成一次调用。入口本身 additive（无破坏性公开 API 变更）；leaf 正按
+    /// crate 增量迁入（#482 mail 已迁，#483-#485 其余），旧 helper
+    /// `extract_response_data` 在零剩余 caller 后由 #486 删除。
     /// 无 `data` 载荷的删除类 API 继续用 `Transport::request` + `ensure_success`，
     /// 不经本入口。
     pub async fn request_typed<R: Send>(

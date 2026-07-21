@@ -99,10 +99,7 @@ impl GetMailSendStatusRequest {
             self.mailbox_id, self.message_id
         );
         let req: ApiRequest<GetMailSendStatusResponse> = ApiRequest::get(&path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询邮件发送状态", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询邮件发送状态").await
     }
 }
 

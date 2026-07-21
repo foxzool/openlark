@@ -1,7 +1,7 @@
 //! 删除公共邮箱别名
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/delete>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::public_mailbox::alias::models::DeletePublicMailboxAliasResponse;
 use openlark_core::{
     SDKResult,
@@ -47,9 +47,13 @@ impl DeletePublicMailboxAliasRequest {
             MailApiV1::PublicMailboxAliasDelete(self.mailbox_id.clone(), self.alias_id.clone());
         let request = ApiRequest::<DeletePublicMailboxAliasResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除公共邮箱别名")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除公共邮箱别名",
+        )
+        .await
     }
 }
 

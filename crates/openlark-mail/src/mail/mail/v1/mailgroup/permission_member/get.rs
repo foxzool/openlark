@@ -73,10 +73,7 @@ impl GetMailGroupPermissionMemberRequest {
         );
         let req: ApiRequest<GetMailGroupPermissionMemberResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取邮件组权限成员", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "获取邮件组权限成员").await
     }
 }
 

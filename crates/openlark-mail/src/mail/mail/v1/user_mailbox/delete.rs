@@ -53,10 +53,7 @@ impl DeleteUserMailboxRequest {
         let path = format!("/open-apis/mail/v1/user_mailboxes/{}", self.user_mailbox_id);
         let req: ApiRequest<DeleteUserMailboxResponse> = ApiRequest::delete(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("从回收站删除用户邮箱地址", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "从回收站删除用户邮箱地址").await
     }
 }
 

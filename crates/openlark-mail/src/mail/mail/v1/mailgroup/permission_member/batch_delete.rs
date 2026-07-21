@@ -1,6 +1,6 @@
 //! 批量删除邮件组权限成员
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -80,8 +80,7 @@ impl BatchDeleteMailGroupPermissionMemberRequest {
         let req: ApiRequest<BatchDeleteMailGroupPermissionMemberResponse> =
             ApiRequest::delete(&path).body(serialize_params(&self.body, "批量删除邮件组权限成员")?);
 
-        let response = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(response, "批量删除邮件组权限成员")
+        Transport::request_typed(req, &self.config, Some(option), "批量删除邮件组权限成员").await
     }
 }
 

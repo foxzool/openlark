@@ -1,7 +1,7 @@
 //! 修改邮件组部分信息
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/patch>
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
@@ -70,8 +70,7 @@ impl PatchMailGroupRequest {
         let req: ApiRequest<PatchMailGroupResponse> =
             ApiRequest::patch(&path).body(serialize_params(&self.body, "请求")?);
 
-        let response = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(response, "修改邮件组部分信息")
+        Transport::request_typed(req, &self.config, Some(option), "修改邮件组部分信息").await
     }
 }
 
