@@ -60,14 +60,13 @@ impl QueryRequest {
 
         let api_endpoint = FeishuPeopleApiV1::CustomFieldQuery;
         let request = ApiRequest::<QueryResponse>::get(api_endpoint.to_url()).body(self.body);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取自定义字段列表响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取自定义字段列表响应数据为空",
+        )
+        .await
     }
 }
 

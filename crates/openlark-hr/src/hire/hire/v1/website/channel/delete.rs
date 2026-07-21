@@ -62,14 +62,13 @@ impl DeleteRequest {
             "/open-apis/hire/v1/websites/{}/channels/{}",
             self.website_id, self.channel_id
         ));
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "删除招聘官网推广渠道响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除招聘官网推广渠道响应数据为空",
+        )
+        .await
     }
 }
 

@@ -78,10 +78,13 @@ impl GetRequest {
         if let Some(language) = self.language {
             request = request.query("language", language.to_string());
         }
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            error::validation_error("获取面试记录附件响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取面试记录附件响应数据为空",
+        )
+        .await
     }
 }
 

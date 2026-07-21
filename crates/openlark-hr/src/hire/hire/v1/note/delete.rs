@@ -52,14 +52,7 @@ impl DeleteRequest {
         let api_endpoint = HireApiV1::NoteDelete(self.note_id);
         let request = ApiRequest::<DeleteResponse>::delete(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "删除备注响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "删除备注响应数据为空").await
     }
 }
 

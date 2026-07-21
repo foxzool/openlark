@@ -72,10 +72,13 @@ impl ListRequest {
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string());
         }
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            error::validation_error("获取终止投递原因响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取终止投递原因响应数据为空",
+        )
+        .await
     }
 }
 

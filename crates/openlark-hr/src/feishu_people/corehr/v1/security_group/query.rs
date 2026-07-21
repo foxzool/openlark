@@ -60,14 +60,13 @@ impl QueryRequest {
 
         let api_endpoint = FeishuPeopleApiV1::SecurityGroupQuery;
         let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url()).body(self.body);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询部门或地点 HRBP/属地 BP 响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询部门或地点 HRBP/属地 BP 响应数据为空",
+        )
+        .await
     }
 }
 

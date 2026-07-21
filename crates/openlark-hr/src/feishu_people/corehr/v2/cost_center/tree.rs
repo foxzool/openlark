@@ -33,13 +33,13 @@ impl CostCenterTreeRequest {
     ) -> SDKResult<serde_json::Value> {
         let path = "/open-apis/corehr/v2/cost_centers/tree".to_string();
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询指定生效日期的成本中心架构树",
-                "响应数据为空",
-            )
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询指定生效日期的成本中心架构树",
+        )
+        .await
     }
 }
 

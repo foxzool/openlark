@@ -51,9 +51,7 @@ impl Request {
         validate_required!(self.key_result_id, "key_result_id 不能为空");
         let path = OkrApiV2::KeyResultGet(self.key_result_id).to_url();
         let req: ApiRequest<GetKeyResultResponse> = ApiRequest::get(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取关键结果", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取关键结果").await
     }
 }
 

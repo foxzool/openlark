@@ -55,14 +55,13 @@ impl OfferRequest {
 
         let api_endpoint = HireApiV1::ApplicationOffer(self.application_id.clone());
         let request = ApiRequest::<OfferResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取 Offer 信息响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取 Offer 信息响应数据为空",
+        )
+        .await
     }
 }
 

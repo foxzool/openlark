@@ -50,9 +50,7 @@ impl Request {
         validate_required!(self.alignment_id, "alignment_id 不能为空");
         let path = OkrApiV2::AlignmentDelete(self.alignment_id).to_url();
         let req: ApiRequest<DeleteAlignmentResponse> = ApiRequest::delete(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除 OKR 对齐", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "删除 OKR 对齐").await
     }
 }
 

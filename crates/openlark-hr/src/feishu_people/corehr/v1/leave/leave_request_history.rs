@@ -63,13 +63,13 @@ impl LeaveRequestHistoryRequest {
             request = request.body(body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量查询员工请假记录响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量查询员工请假记录响应数据为空",
+        )
+        .await
     }
 }
 

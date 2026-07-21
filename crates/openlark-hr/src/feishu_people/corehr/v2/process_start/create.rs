@@ -64,9 +64,6 @@ impl ProcessStartRequest {
         let request =
             ApiRequest::<ProcessStartResponse>::post("/open-apis/corehr/v2/process_start")
                 .body(serde_json::to_value(&self.body)?);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("发起流程", "响应数据为空"))
+        Transport::request_typed(request, &self.config, Some(option), "发起流程").await
     }
 }

@@ -94,15 +94,13 @@ impl QueryRequest {
         let request = request.body(request_body_json);
 
         // 3. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 4. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量查询外部算薪数据记录响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量查询外部算薪数据记录响应数据为空",
+        )
+        .await
     }
 }
 

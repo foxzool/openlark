@@ -66,10 +66,7 @@ impl Request {
         })?;
         let req: ApiRequest<UpdateCycleObjectivesWeightResponse> =
             ApiRequest::put(path).body(body_val);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("修改 OKR 目标权重", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "修改 OKR 目标权重").await
     }
 }
 

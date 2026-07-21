@@ -69,14 +69,7 @@ impl RecoverRequest {
         let api_endpoint = HireApiV1::ApplicationRecover(self.application_id.clone());
         let request =
             ApiRequest::<RecoverResponse>::post(api_endpoint.to_url()).body(self.request_body);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "恢复投递响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "恢复投递响应数据为空").await
     }
 }
 

@@ -57,15 +57,13 @@ impl ListRequest {
         }
 
         // 3. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 4. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取 OKR 周期规则响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取 OKR 周期规则响应数据为空",
+        )
+        .await
     }
 }
 

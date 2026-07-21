@@ -28,10 +28,13 @@ impl EmployeeCustomOrgQuerybyidRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         let path = "/open-apis/corehr/v2/custom_org/querybyid".to_string();
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询单个人员自定义组织变更记录", "响应数据为空")
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询单个人员自定义组织变更记录",
+        )
+        .await
     }
 }
 

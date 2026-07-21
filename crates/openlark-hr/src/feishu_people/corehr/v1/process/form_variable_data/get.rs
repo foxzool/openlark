@@ -52,14 +52,13 @@ impl GetRequest {
         let api_endpoint = CorehrApiV1::ProcessFormVariableDataGet;
         let request =
             ApiRequest::<GetResponse>::get(api_endpoint.to_url().replace("{}", &self.process_id));
-        let response = Transport::request(request, &self.config, Some(_option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取流程表单数据响应为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(_option),
+            "获取流程表单数据响应为空",
+        )
+        .await
     }
 }
 

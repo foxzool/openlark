@@ -62,9 +62,6 @@ impl QueryFlowDataTemplateRequest {
             "/open-apis/corehr/v2/query_flow_data_template",
         )
         .body(serde_json::to_value(&self.body)?);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询流程数据参数模板", "响应数据为空")
-        })
+        Transport::request_typed(request, &self.config, Some(option), "查询流程数据参数模板").await
     }
 }

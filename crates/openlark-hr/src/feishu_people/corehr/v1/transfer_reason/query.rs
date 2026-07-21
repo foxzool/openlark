@@ -38,14 +38,13 @@ impl QueryRequest {
 
         let api_endpoint = CorehrApiV1::TransferReasonQuery;
         let request = ApiRequest::<QueryResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(_option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取异动原因列表响应为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(_option),
+            "获取异动原因列表响应为空",
+        )
+        .await
     }
 }
 

@@ -68,14 +68,13 @@ impl GetAccountAssetsRequest {
         if let Some(user_id_type) = self.user_id_type {
             request = request.query("user_id_type", user_id_type);
         }
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询内推账户响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询内推账户响应数据为空",
+        )
+        .await
     }
 }
 

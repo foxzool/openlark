@@ -6,7 +6,6 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    error,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
@@ -41,10 +40,13 @@ impl QueryRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryResponse> {
         let request = ApiRequest::<QueryResponse>::get("/open-apis/hire/v1/talent_objects/query");
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            error::validation_error("获取人才字段响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取人才字段响应数据为空",
+        )
+        .await
     }
 }
 

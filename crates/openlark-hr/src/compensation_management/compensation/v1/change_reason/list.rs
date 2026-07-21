@@ -41,15 +41,13 @@ impl ListRequest {
         let request = ApiRequest::<ListResponse>::get(api_endpoint.to_url());
 
         // 2. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 3. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量查询定调薪原因响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量查询定调薪原因响应数据为空",
+        )
+        .await
     }
 }
 
