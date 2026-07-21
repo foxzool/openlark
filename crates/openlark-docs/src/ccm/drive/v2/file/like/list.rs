@@ -12,7 +12,7 @@ use openlark_core::{
 /// docPath: /document/ukTMukTMukTM/uIzNzUjLyczM14iM3MTN/drive-v2/file-like/list
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取点赞者列表请求
 #[derive(Debug, Clone)]
@@ -103,8 +103,7 @@ impl ListFileLikesRequest {
             .query_opt("page_token", self.page_token)
             .query_opt("user_id_type", self.user_id_type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列表")
+        Transport::request_typed(request, &self.config, Some(option), "列表").await
     }
 }
 

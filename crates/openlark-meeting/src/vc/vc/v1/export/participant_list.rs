@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 导出参会人明细请求
 pub struct ExportParticipantListRequest {
@@ -41,8 +41,7 @@ impl ExportParticipantListRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "导出参会人明细")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "导出参会人明细")
+        Transport::request_typed(req, &self.config, Some(option), "导出参会人明细").await
     }
 }
 

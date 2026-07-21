@@ -8,8 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    contact::contact::v3::unit::models::CreateUnitResponse,
+    common::api_utils::serialize_params, contact::contact::v3::unit::models::CreateUnitResponse,
     endpoints::CONTACT_V3_UNIT,
 };
 
@@ -59,9 +58,7 @@ impl CreateUnitRequest {
         let req: ApiRequest<CreateUnitResponse> =
             ApiRequest::post(CONTACT_V3_UNIT).body(serialize_params(&body, "创建单位")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建单位")
+        Transport::request_typed(req, &self.config, Some(option), "创建单位").await
     }
 }
 

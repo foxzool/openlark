@@ -14,7 +14,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::ccm::docx::models::common_types::DocxBlock;
-use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
+use crate::common::api_endpoints::DocxApiV1;
 
 /// 获取所有子块请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,8 +98,7 @@ impl GetChatAnnouncementBlockChildrenRequest {
             api_request = api_request.query("page_token", &page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取所有子块")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取所有子块").await
     }
 }
 

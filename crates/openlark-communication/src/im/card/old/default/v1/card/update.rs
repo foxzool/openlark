@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::INTERACTIVE_V1_CARD_UPDATE,
-};
+use crate::{common::api_utils::serialize_params, endpoints::INTERACTIVE_V1_CARD_UPDATE};
 
 /// 延时更新消息卡片请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,8 +56,7 @@ impl UpdateCardRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(INTERACTIVE_V1_CARD_UPDATE)
             .body(serialize_params(&body, "延时更新消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "延时更新消息卡片")
+        Transport::request_typed(req, &self.config, Some(option), "延时更新消息卡片").await
     }
 }
 

@@ -15,7 +15,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::ccm::wiki::v2::models::WikiSpaceNode;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取知识空间节点信息请求
 pub struct GetWikiSpaceNodeRequest {
@@ -81,8 +81,13 @@ impl GetWikiSpaceNodeRequest {
         }
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识空间节点信息")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取知识空间节点信息",
+        )
+        .await
     }
 }
 

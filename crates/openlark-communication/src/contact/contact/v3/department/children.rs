@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         department::models::DepartmentListResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -122,8 +121,7 @@ impl ListDepartmentChildrenRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取子部门列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取子部门列表").await
     }
 }
 

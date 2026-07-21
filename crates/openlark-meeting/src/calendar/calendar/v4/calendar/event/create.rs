@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::CALENDAR_V4_EVENT_CREATE;
 
 /// 创建日程请求
@@ -72,8 +72,7 @@ impl CreateCalendarEventRequest {
         let req: ApiRequest<CreateCalendarEventResponse> =
             ApiRequest::post(&url).body(serialize_params(&body, "创建日程")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建日程")
+        Transport::request_typed(req, &self.config, Some(option), "创建日程").await
     }
 }
 

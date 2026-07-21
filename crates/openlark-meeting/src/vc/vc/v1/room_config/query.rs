@@ -11,8 +11,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
-
 /// 查询会议室配置请求
 
 #[derive(Debug, Clone)]
@@ -66,8 +64,7 @@ impl QueryRoomConfigRequest {
         let api_request: ApiRequest<QueryRoomConfigResponse> =
             ApiRequest::get("/open-apis/vc/v1/room_configs/query").body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询会议室配置")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询会议室配置").await
     }
 }
 

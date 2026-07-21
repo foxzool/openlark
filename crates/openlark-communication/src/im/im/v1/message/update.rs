@@ -7,10 +7,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGES,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_MESSAGES};
 
 /// 编辑消息请求体（仅支持 text/post）
 ///
@@ -96,9 +93,7 @@ impl UpdateMessageRequest {
             ApiRequest::put(format!("{}/{}", IM_V1_MESSAGES, self.message_id))
                 .body(serialize_params(&body, "编辑消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "编辑消息")
+        Transport::request_typed(req, &self.config, Some(option), "编辑消息").await
     }
 }
 

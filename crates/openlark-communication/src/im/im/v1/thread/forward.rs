@@ -8,8 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_THREADS,
+    common::api_utils::serialize_params, endpoints::IM_V1_THREADS,
     im::v1::message::models::ReceiveIdType,
 };
 
@@ -135,9 +134,7 @@ impl ForwardThreadRequest {
             req = req.query("uuid", uuid);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "转发话题")
+        Transport::request_typed(req, &self.config, Some(option), "转发话题").await
     }
 }
 

@@ -12,7 +12,7 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DocsApiV1, api_utils::*};
+use crate::common::api_endpoints::DocsApiV1;
 
 /// 获取云文档内容请求
 
@@ -98,9 +98,7 @@ pub async fn get_docs_content(
         .query("content_type", &request.content_type)
         .query_opt("lang", request.lang);
 
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取云文档内容")
+    Transport::request_typed(api_request, config, option, "获取云文档内容").await
 }
 
 #[cfg(test)]

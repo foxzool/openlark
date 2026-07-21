@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use super::models::{ListFreebusyRequestBody, ListFreebusyResponse};
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 /// 查询主日历日程忙闲信息请求
 pub struct ListFreebusyRequest {
     config: Config,
@@ -36,8 +36,7 @@ impl ListFreebusyRequest {
         let url = "/open-apis/calendar/v4/freebusy/list";
         let req: ApiRequest<ListFreebusyResponse> =
             ApiRequest::post(url).body(serialize_params(&body, "查询主日历日程忙闲信息")?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询主日历日程忙闲信息")
+        Transport::request_typed(req, &self.config, Some(option), "查询主日历日程忙闲信息").await
     }
 }
 

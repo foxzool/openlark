@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
+use crate::common::api_endpoints::DocxApiV1;
 
 /// 获取文档基本信息请求
 ///
@@ -120,8 +120,7 @@ impl GetDocumentRequest {
         let api_endpoint = DocxApiV1::DocumentGet(self.document_id.clone());
         let api_request: ApiRequest<GetDocumentResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

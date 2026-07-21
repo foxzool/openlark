@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::work_city::models::WorkCityResponse, endpoints::CONTACT_V3_WORK_CITIES,
 };
 
@@ -54,8 +53,7 @@ impl GetWorkCityRequest {
         let req: ApiRequest<WorkCityResponse> =
             ApiRequest::get(format!("{}/{}", CONTACT_V3_WORK_CITIES, self.work_city_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单个工作城市信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取单个工作城市信息").await
     }
 }
 

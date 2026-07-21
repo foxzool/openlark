@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::CalendarApiV4;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 搜索日程请求
 pub struct SearchCalendarEventRequest {
@@ -54,8 +54,7 @@ impl SearchCalendarEventRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(endpoint.to_url()).body(serialize_params(&body, "搜索日程")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索日程")
+        Transport::request_typed(req, &self.config, Some(option), "搜索日程").await
     }
 }
 

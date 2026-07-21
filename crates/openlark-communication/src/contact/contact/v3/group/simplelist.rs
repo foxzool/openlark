@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::group::models::SimpleListGroupsResponse,
     endpoints::CONTACT_V3_GROUP_SIMPLELIST,
 };
@@ -94,8 +93,7 @@ impl SimpleListGroupsRequest {
         if let Some(group_type) = self.r#type {
             req = req.query("type", group_type.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询用户组列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询用户组列表").await
     }
 }
 

@@ -202,8 +202,7 @@ impl DeletePermissionMemberRequest {
             .query("member_type", &self.member_type)
             .body(serialize_params(&body, "移除云文档协作者权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除").await
     }
 }
 

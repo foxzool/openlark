@@ -42,9 +42,7 @@ impl MinuteArtifactsRequest {
         validate_required!(self.minute_token, "minute_token 不能为空");
         let req: ApiRequest<serde_json::Value> =
             MinutesExtraApiV1::Artifacts(self.minute_token).to_request();
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取妙记AI产物", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取妙记AI产物").await
     }
 }
 

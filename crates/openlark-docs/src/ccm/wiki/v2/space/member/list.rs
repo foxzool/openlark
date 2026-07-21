@@ -15,7 +15,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::ccm::wiki::v2::models::WikiSpaceMember;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取知识空间成员列表请求
 pub struct ListWikiSpaceMembersRequest {
@@ -100,8 +100,13 @@ impl ListWikiSpaceMembersRequest {
         }
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识空间成员列表")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取知识空间成员列表",
+        )
+        .await
     }
 }
 

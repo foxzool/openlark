@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::api_endpoints::DocxApiV1;
-use crate::common::api_utils::*;
 
 /// 获取块内容请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,8 +80,7 @@ impl GetDocumentBlockRequest {
                 api_request.query("document_revision_id", &document_revision_id.to_string());
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取块的内容")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取块的内容").await
     }
 }
 

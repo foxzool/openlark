@@ -7,7 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::VC_V1_RESERVE_CONFIGS;
 
 /// 查询禁用状态变更通知请求
@@ -59,8 +58,7 @@ impl GetDisableInformRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询禁用状态变更通知")
+        Transport::request_typed(req, &self.config, Some(option), "查询禁用状态变更通知").await
     }
 }
 

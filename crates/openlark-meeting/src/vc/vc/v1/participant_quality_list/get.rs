@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 查询参会人会议质量数据请求
 pub struct GetParticipantQualityListRequest {
@@ -46,8 +45,7 @@ impl GetParticipantQualityListRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询参会人会议质量数据")
+        Transport::request_typed(req, &self.config, Some(option), "查询参会人会议质量数据").await
     }
 }
 

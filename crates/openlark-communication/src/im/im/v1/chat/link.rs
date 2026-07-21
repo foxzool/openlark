@@ -8,7 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_CHATS,
     im::v1::chat::models::{ChatLinkValidityPeriod, GetChatLinkResponse},
 };
@@ -80,8 +80,7 @@ impl GetChatLinkRequest {
             ApiRequest::post(format!("{}/{}/link", IM_V1_CHATS, self.chat_id))
                 .body(serialize_params(&body, "获取群分享链接")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群分享链接")
+        Transport::request_typed(req, &self.config, Some(option), "获取群分享链接").await
     }
 }
 

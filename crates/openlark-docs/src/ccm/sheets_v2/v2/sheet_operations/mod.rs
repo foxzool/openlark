@@ -128,8 +128,7 @@ pub async fn delete_range_with_options(
         .body(serialize_params(&params, "删除范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "删除范围")
+    Transport::request_typed(api_request, config, Some(option), "删除范围").await
 }
 
 /// 插入行列
@@ -167,8 +166,7 @@ pub async fn insert_dimension_with_options(
         .body(serialize_params(&params, "插入行列")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "插入行列")
+    Transport::request_typed(api_request, config, Some(option), "插入行列").await
 }
 
 /// 移动行列
@@ -206,8 +204,7 @@ pub async fn move_dimension_with_options(
         .body(serialize_params(&params, "移动行列")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "移动行列")
+    Transport::request_typed(api_request, config, Some(option), "移动行列").await
 }
 
 /// 替换范围
@@ -245,8 +242,7 @@ pub async fn replace_range_with_options(
         .body(serialize_params(&params, "替换范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "替换范围")
+    Transport::request_typed(api_request, config, Some(option), "替换范围").await
 }
 
 /// 查找替换
@@ -285,8 +281,7 @@ pub async fn find_replace_with_options(
         .body(serialize_params(&params, "查找替换")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查找替换")
+    Transport::request_typed(api_request, config, Some(option), "查找替换").await
 }
 
 /// 合并单元格
@@ -324,8 +319,7 @@ pub async fn merge_cells_with_options(
         .body(serialize_params(&params, "合并单元格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "合并单元格")
+    Transport::request_typed(api_request, config, Some(option), "合并单元格").await
 }
 
 /// 取消合并单元格
@@ -363,8 +357,7 @@ pub async fn unmerge_cells_with_options(
         .body(serialize_params(&params, "取消合并单元格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "取消合并单元格")
+    Transport::request_typed(api_request, config, Some(option), "取消合并单元格").await
 }
 
 // API函数已经在模块中定义，不需要重复导出

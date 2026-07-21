@@ -104,8 +104,7 @@ pub async fn create_filter_with_options(
         .body(serialize_params(&params, "创建筛选")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建筛选")
+    Transport::request_typed(api_request, config, Some(option), "创建筛选").await
 }
 
 /// 获取筛选
@@ -143,8 +142,7 @@ pub async fn get_filter_with_options(
         .body(serialize_params(&params, "获取筛选")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取筛选")
+    Transport::request_typed(api_request, config, Some(option), "获取筛选").await
 }
 
 /// 更新筛选
@@ -182,8 +180,7 @@ pub async fn update_filter_with_options(
         .body(serialize_params(&params, "更新筛选")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新筛选")
+    Transport::request_typed(api_request, config, Some(option), "更新筛选").await
 }
 
 /// 删除筛选
@@ -221,8 +218,7 @@ pub async fn delete_filter_with_options(
         .body(serialize_params(&params, "删除筛选")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "删除筛选")
+    Transport::request_typed(api_request, config, Some(option), "删除筛选").await
 }
 
 // API函数已经在模块中定义，不需要重复导出

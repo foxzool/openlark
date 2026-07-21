@@ -29,7 +29,7 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 删除回复请求。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,9 +133,7 @@ pub async fn delete_comment_reply(
     api_request = api_request.query("file_type", &request.file_type);
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "删除回复")
+    Transport::request_typed(api_request, config, option, "删除回复").await
 }
 
 #[cfg(test)]

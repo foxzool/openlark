@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
     im::v1::{chat::moderation::models::GetChatModerationResponse, message::models::UserIdType},
 };
@@ -87,8 +86,7 @@ impl GetChatModerationRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群成员发言权限")
+        Transport::request_typed(req, &self.config, Some(option), "获取群成员发言权限").await
     }
 }
 

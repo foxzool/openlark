@@ -8,10 +8,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    contact::contact::v3::user::models::UserIdType,
-    endpoints::CONTACT_V3_GROUP,
+    common::api_utils::serialize_params, common::models::EmptyData,
+    contact::contact::v3::user::models::UserIdType, endpoints::CONTACT_V3_GROUP,
 };
 
 /// 移除用户组成员请求体
@@ -110,8 +108,7 @@ impl RemoveGroupMemberRequest {
         ))
         .body(serialize_params(&body, "移除用户组成员")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "移除用户组成员")
+        Transport::request_typed(req, &self.config, Some(option), "移除用户组成员").await
     }
 }
 

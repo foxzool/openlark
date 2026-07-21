@@ -29,10 +29,13 @@ impl UserSubscriptionStatusRequest {
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         let req: ApiRequest<serde_json::Value> = DriveApi::UserSubscriptionStatus.to_request();
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询用户云文档事件订阅状态", "响应数据为空")
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询用户云文档事件订阅状态",
+        )
+        .await
     }
 }
 

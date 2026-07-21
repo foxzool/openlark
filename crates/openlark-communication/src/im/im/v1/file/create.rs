@@ -8,8 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_FILES,
+    common::api_utils::serialize_params, endpoints::IM_V1_FILES,
     im::v1::file::models::CreateFileResponse,
 };
 
@@ -129,8 +128,7 @@ impl CreateFileRequest {
             .body(serialize_params(&body, "上传文件")?)
             .file_content(file_bytes);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "上传文件")
+        Transport::request_typed(req, &self.config, Some(option), "上传文件").await
     }
 }
 

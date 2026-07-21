@@ -7,7 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 取消订阅日历请求
 pub struct UnsubscribeCalendarRequest {
@@ -47,8 +47,7 @@ impl UnsubscribeCalendarRequest {
             CALENDAR_V4_CALENDARS, self.calendar_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "取消订阅日历")
+        Transport::request_typed(req, &self.config, Some(option), "取消订阅日历").await
     }
 }
 

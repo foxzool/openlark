@@ -123,8 +123,7 @@ impl CreateImportTaskRequest {
             .to_request()
             .body(serialize_params(&self, "创建导入任务")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建").await
     }
 }
 

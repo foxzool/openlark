@@ -16,8 +16,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::*;
-
 /// 批量更新块内容请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchUpdateDocumentBlocksParams {
@@ -94,8 +92,7 @@ impl BatchUpdateDocumentBlocksRequest {
             api_endpoint.to_request();
         api_request = api_request.json_body(&params);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "批量更新块的内容")
+        Transport::request_typed(api_request, &self.config, Some(option), "批量更新块的内容").await
     }
 }
 

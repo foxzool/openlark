@@ -143,8 +143,7 @@ impl UpdateRecordRequest {
                 "更新记录",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新记录")
+        Transport::request_typed(request, &self.config, Some(option), "更新记录").await
     }
 }
 

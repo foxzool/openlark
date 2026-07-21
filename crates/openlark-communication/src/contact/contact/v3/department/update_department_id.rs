@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     contact::contact::v3::user::models::DepartmentIdType,
     endpoints::CONTACT_V3_DEPARTMENTS,
 };
@@ -112,9 +109,7 @@ impl UpdateDepartmentIdRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新部门 ID")
+        Transport::request_typed(req, &self.config, Some(option), "更新部门 ID").await
     }
 }
 

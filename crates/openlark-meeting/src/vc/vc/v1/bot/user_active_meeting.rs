@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取用户活跃会议请求。
 #[derive(Debug, Clone)]
@@ -45,8 +44,7 @@ impl GetUserActiveMeetingRequest {
             req = req.query(key, value);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户活跃会议")
+        Transport::request_typed(req, &self.config, Some(option), "获取用户活跃会议").await
     }
 }
 

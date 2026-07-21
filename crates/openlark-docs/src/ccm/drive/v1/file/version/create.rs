@@ -97,8 +97,7 @@ impl CreateFileVersionRequest {
             .query_opt("user_id_type", self.user_id_type)
             .body(serialize_params(&payload, "创建文档版本")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建版本")
+        Transport::request_typed(request, &self.config, Some(option), "创建版本").await
     }
 }
 

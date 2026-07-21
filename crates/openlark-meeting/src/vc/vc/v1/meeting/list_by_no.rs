@@ -6,8 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取与会议号关联的会议列表请求
 pub struct ListByNoMeetingRequest {
     config: Config,
@@ -45,8 +43,13 @@ impl ListByNoMeetingRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取与会议号关联的会议列表")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "获取与会议号关联的会议列表",
+        )
+        .await
     }
 }
 

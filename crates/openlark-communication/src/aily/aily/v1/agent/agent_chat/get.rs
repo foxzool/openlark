@@ -2,7 +2,6 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-chat/get>
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::AILY_V1_AGENT_CHAT;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -55,8 +54,7 @@ impl GetAgentChatRequest {
             .replace("{agent_chat_id}", &self.agent_chat_id);
 
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取会话结果")
+        Transport::request_typed(req, &self.config, Some(option), "获取会话结果").await
     }
 }
 

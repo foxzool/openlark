@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         department::models::DepartmentListResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -130,8 +129,7 @@ impl GetDepartmentParentsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取父部门信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取父部门信息").await
     }
 }
 

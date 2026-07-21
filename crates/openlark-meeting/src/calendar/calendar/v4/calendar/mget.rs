@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::{
-    common::api_endpoints::CalendarApiV4,
-    common::api_utils::{extract_response_data, serialize_params},
-};
+use crate::{common::api_endpoints::CalendarApiV4, common::api_utils::serialize_params};
 
 /// 批量查询日历信息请求
 pub struct MgetCalendarRequest {
@@ -42,8 +39,7 @@ impl MgetCalendarRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "批量查询日历信息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量查询日历信息")
+        Transport::request_typed(req, &self.config, Some(option), "批量查询日历信息").await
     }
 }
 

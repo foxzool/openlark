@@ -5,7 +5,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
@@ -49,11 +49,7 @@ impl ListRepoRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListRepoResp> {
         let api_request: ApiRequest<ListRepoResp> = LingoApiV1::RepoList.to_request();
 
-        let response: Response<ListRepoResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词库列表").await
     }
 }
 

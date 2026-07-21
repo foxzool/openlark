@@ -7,8 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取录制文件请求
 pub struct GetRecordingRequest {
     config: Config,
@@ -56,8 +54,7 @@ impl GetRecordingRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取录制文件")
+        Transport::request_typed(req, &self.config, Some(option), "获取录制文件").await
     }
 }
 

@@ -33,7 +33,7 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::ReplyInfo;
 
@@ -190,9 +190,7 @@ pub async fn list_comment_reply(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取回复信息")
+    Transport::request_typed(api_request, config, option, "获取回复信息").await
 }
 
 #[cfg(test)]

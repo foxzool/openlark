@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 停用云文档密码请求。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,8 +80,7 @@ impl DeletePermissionPublicPasswordRequest {
         let api_request: ApiRequest<DeletePermissionPublicPasswordResponse> =
             api_endpoint.to_request().query("type", self.r#type);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除").await
     }
 }
 

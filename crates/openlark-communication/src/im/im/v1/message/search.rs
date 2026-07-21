@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/search>
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::IM_V1_MESSAGES_SEARCH;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -78,8 +78,7 @@ impl SearchMessagesRequest {
             req = req.query("user_id_type", user_id_type);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索消息")
+        Transport::request_typed(req, &self.config, Some(option), "搜索消息").await
     }
 }
 

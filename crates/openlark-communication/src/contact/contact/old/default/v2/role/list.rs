@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::CONTACT_V2_ROLE_LIST};
+use crate::endpoints::CONTACT_V2_ROLE_LIST;
 
 /// 获取角色列表请求
 pub struct ListRolesRequest {
@@ -48,8 +48,7 @@ impl ListRolesRequest {
         for (k, v) in self.query {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取角色列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取角色列表").await
     }
 }
 

@@ -76,10 +76,13 @@ impl DeleteTableRequest {
         let api_request: ApiRequest<DeleteTableResponse> = api_endpoint.to_request();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除一个数据表",
+        )
+        .await
     }
 }
 

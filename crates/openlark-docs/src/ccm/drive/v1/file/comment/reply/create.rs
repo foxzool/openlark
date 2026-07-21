@@ -58,9 +58,7 @@ impl FileCommentReplyCreateRequest {
             DriveApi::CreateCommentReply(self.file_token, self.comment_id)
                 .to_request()
                 .body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("添加回复", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "添加回复").await
     }
 }
 

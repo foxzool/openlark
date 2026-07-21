@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_MESSAGES};
+use crate::endpoints::AILY_V1_MESSAGES;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -80,8 +80,7 @@ impl ListAilyMessagesRequest {
         for (k, v) in self.query {
             req = req.query(&k, &v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "列出 Aily 消息")
+        Transport::request_typed(req, &self.config, Some(option), "列出 Aily 消息").await
     }
 }
 

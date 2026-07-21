@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
+use crate::common::api_endpoints::DocxApiV1;
 
 /// 获取群公告基本信息请求
 ///
@@ -109,8 +109,7 @@ impl GetChatAnnouncementRequest {
             api_request = api_request.query("user_id_type", &user_id_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

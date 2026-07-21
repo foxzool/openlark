@@ -171,8 +171,7 @@ impl TransferOwnerRequest {
 
         api_request = api_request.body(serialize_params(&body, "转移云文档所有者")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "转移")
+        Transport::request_typed(api_request, &self.config, Some(option), "转移").await
     }
 }
 

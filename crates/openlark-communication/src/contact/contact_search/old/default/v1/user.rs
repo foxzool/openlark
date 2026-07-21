@@ -4,7 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::SEARCH_V1_USER};
+use crate::endpoints::SEARCH_V1_USER;
 
 /// 搜索用户请求
 pub struct SearchUserRequest {
@@ -68,8 +68,7 @@ impl SearchUserRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", &page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索用户")
+        Transport::request_typed(req, &self.config, Some(option), "搜索用户").await
     }
 }
 

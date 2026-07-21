@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::unit::models::ListUnitDepartmentsResponse,
     contact::contact::v3::user::models::DepartmentIdType,
     endpoints::CONTACT_V3_UNIT_LIST_DEPARTMENT,
@@ -88,8 +87,7 @@ impl ListUnitDepartmentsRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单位绑定的部门列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取单位绑定的部门列表").await
     }
 }
 

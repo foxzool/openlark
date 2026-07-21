@@ -4,7 +4,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
@@ -85,11 +85,7 @@ impl MatchEntityRequest {
             .to_request()
             .body(serde_json::to_value(&self.req)?);
 
-        let response: Response<MatchEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "精准搜索词条").await
     }
 }
 

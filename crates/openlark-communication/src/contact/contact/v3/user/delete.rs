@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    contact::contact::v3::user::models::UserIdType,
+    common::models::EmptyData, contact::contact::v3::user::models::UserIdType,
     endpoints::CONTACT_V3_USERS,
 };
 
@@ -80,8 +79,7 @@ impl DeleteUserRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除用户")
+        Transport::request_typed(req, &self.config, Some(option), "删除用户").await
     }
 }
 

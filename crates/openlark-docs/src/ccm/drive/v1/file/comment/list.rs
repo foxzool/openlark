@@ -13,7 +13,7 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::Comment;
 
@@ -231,9 +231,7 @@ pub async fn list_comments(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取云文档所有评论")
+    Transport::request_typed(api_request, config, option, "获取云文档所有评论").await
 }
 
 #[cfg(test)]

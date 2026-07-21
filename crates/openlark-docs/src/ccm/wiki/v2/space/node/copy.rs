@@ -101,8 +101,13 @@ impl CopyWikiSpaceNodeRequest {
             .body(serialize_params(&params, "创建知识空间节点副本")?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建知识空间节点副本")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "创建知识空间节点副本",
+        )
+        .await
     }
 }
 

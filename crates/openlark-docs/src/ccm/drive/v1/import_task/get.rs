@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取导入任务请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,8 +52,7 @@ impl GetImportTaskRequest {
 
         let api_request = api_endpoint.to_request::<GetImportTaskResponse>();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

@@ -8,7 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     common::models::EmptyData,
     contact::contact::v3::user::models::{DepartmentIdType, UserIdType},
     endpoints::CONTACT_V3_USERS,
@@ -138,9 +138,7 @@ impl ResurrectUserRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "恢复已删除用户")
+        Transport::request_typed(req, &self.config, Some(option), "恢复已删除用户").await
     }
 }
 

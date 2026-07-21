@@ -8,7 +8,6 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 查询导出任务结果请求
 pub struct GetExportTaskRequest {
@@ -57,8 +56,7 @@ impl GetExportTaskRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询导出任务结果")
+        Transport::request_typed(req, &self.config, Some(option), "查询导出任务结果").await
     }
 }
 

@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::MeetingRoomApi;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::meeting_room::responses::BatchGetSummaryResponse;
 
 /// 查询会议室日程主题和会议详情请求
@@ -41,8 +41,13 @@ impl BatchGetSummaryRequest {
         let req: ApiRequest<BatchGetSummaryResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "查询会议室日程主题和会议详情")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会议室日程主题和会议详情")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询会议室日程主题和会议详情",
+        )
+        .await
     }
 }
 

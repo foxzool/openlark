@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 
 /// 删除预约请求
 
@@ -70,8 +70,7 @@ impl DeleteReserveRequest {
         let api_request: ApiRequest<DeleteReserveResponse> =
             ApiRequest::delete(api_endpoint.to_url());
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除预约")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除预约").await
     }
 }
 

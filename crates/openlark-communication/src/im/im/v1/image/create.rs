@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_IMAGES,
     im::v1::image::models::{CreateImageResponse, ImageType},
 };
@@ -102,9 +101,7 @@ impl CreateImageRequest {
             .body(body)
             .file_content(image_bytes);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "上传图片")
+        Transport::request_typed(req, &self.config, Some(option), "上传图片").await
     }
 }
 

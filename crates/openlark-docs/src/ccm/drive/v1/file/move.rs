@@ -134,8 +134,7 @@ impl MoveFileRequest {
                 "移动文件或文件夹",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "移动文件或文件夹")
+        Transport::request_typed(request, &self.config, Some(option), "移动文件或文件夹").await
     }
 }
 

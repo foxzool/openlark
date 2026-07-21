@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取会议事件请求。
 #[derive(Debug, Clone)]
@@ -44,8 +43,7 @@ impl GetBotEventsRequest {
             req = req.query(key, value);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取会议事件")
+        Transport::request_typed(req, &self.config, Some(option), "获取会议事件").await
     }
 }
 

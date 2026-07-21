@@ -14,8 +14,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    contact::contact::v3::user::models::UserIdType,
+    common::api_utils::serialize_params, contact::contact::v3::user::models::UserIdType,
     endpoints::CONTACT_V3_USERS_BATCH_GET_ID,
 };
 
@@ -170,8 +169,13 @@ impl BatchGetIdRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "通过手机号或邮箱获取用户 ID")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "通过手机号或邮箱获取用户 ID",
+        )
+        .await
     }
 }
 

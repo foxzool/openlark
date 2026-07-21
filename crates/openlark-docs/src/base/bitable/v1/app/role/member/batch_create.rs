@@ -97,10 +97,13 @@ impl BatchCreateRoleMemberRequest {
                 member_list: self.member_list,
             })?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 批量新增协作者（自定义角色）",
+        )
+        .await
     }
 }
 

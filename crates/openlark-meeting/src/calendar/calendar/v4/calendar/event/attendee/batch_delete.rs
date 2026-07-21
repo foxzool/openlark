@@ -7,10 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CALENDAR_V4_CALENDARS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CALENDAR_V4_CALENDARS};
 
 /// 删除日程参与人请求
 pub struct BatchDeleteCalendarEventAttendeeRequest {
@@ -65,8 +62,7 @@ impl BatchDeleteCalendarEventAttendeeRequest {
         ))
         .body(serialize_params(&body, "删除日程参与人")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除日程参与人")
+        Transport::request_typed(req, &self.config, Some(option), "删除日程参与人").await
     }
 }
 

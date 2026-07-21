@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_FILES};
+use crate::endpoints::IM_V1_FILES;
 
 /// 下载文件请求
 ///
@@ -64,8 +64,7 @@ impl GetFileRequest {
         let req: ApiRequest<Vec<u8>> =
             ApiRequest::get(format!("{}/{}", IM_V1_FILES, self.file_key));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "下载文件")
+        Transport::request_typed(req, &self.config, Some(option), "下载文件").await
     }
 }
 

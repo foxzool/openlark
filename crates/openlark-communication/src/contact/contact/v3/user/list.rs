@@ -11,7 +11,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::user::models::{DepartmentIdType, User, UserIdType},
     endpoints::CONTACT_V3_USERS,
 };
@@ -146,8 +145,7 @@ impl ListUsersRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取用户列表").await
     }
 }
 

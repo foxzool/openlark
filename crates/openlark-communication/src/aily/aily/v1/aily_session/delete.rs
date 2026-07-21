@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/delete>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSION};
+use crate::endpoints::AILY_V1_SESSION;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -62,8 +62,7 @@ impl DeleteSessionRequest {
         let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<()> = ApiRequest::delete(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除会话")
+        Transport::request_typed(req, &self.config, Some(option), "删除会话").await
     }
 }
 

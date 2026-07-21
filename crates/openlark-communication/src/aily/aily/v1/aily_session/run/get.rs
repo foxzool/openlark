@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/get>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_RUN};
+use crate::endpoints::AILY_V1_RUN;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -75,8 +75,7 @@ impl GetRunRequest {
             .replace("{run_id}", &self.run_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取运行")
+        Transport::request_typed(req, &self.config, Some(option), "获取运行").await
     }
 }
 

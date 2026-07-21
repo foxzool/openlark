@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
+    common::api_utils::serialize_params, endpoints::IM_V1_CHATS,
     im::v1::chat::tab::models::TabIdsBody,
 };
 
@@ -64,9 +63,7 @@ impl DeleteChatTabsRequest {
         ))
         .body(serialize_params(&body, "删除会话标签页")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "删除会话标签页")
+        Transport::request_typed(req, &self.config, Some(option), "删除会话标签页").await
     }
 }
 

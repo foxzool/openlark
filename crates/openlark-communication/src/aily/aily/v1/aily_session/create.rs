@@ -7,7 +7,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSIONS};
+use crate::endpoints::AILY_V1_SESSIONS;
 
 /// 创建会话请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,8 +86,7 @@ impl CreateSessionRequest {
         let req: ApiRequest<CreateSessionBody> =
             ApiRequest::post(AILY_V1_SESSIONS).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建会话")
+        Transport::request_typed(req, &self.config, Some(option), "创建会话").await
     }
 }
 

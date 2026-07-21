@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::MeetingRoomApi;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::meeting_room::responses::CreateRoomResponse;
 
 /// 创建会议室请求
@@ -42,8 +42,7 @@ impl CreateRoomRequest {
         let req: ApiRequest<CreateRoomResponse> =
             ApiRequest::post(api_endpoint.to_url()).body(serialize_params(&body, "创建会议室")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建会议室")
+        Transport::request_typed(req, &self.config, Some(option), "创建会议室").await
     }
 }
 

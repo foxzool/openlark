@@ -45,6 +45,5 @@ pub async fn create_spreadsheet_with_options(
         .body(serialize_params(&params, "创建电子表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建电子表格")
+    Transport::request_typed(api_request, config, Some(option), "创建电子表格").await
 }

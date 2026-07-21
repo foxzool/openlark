@@ -11,7 +11,7 @@ use openlark_core::{
 };
 
 use super::models::*;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 impl ApiResponseTrait for GetSpreadsheetResponse {
     fn data_format() -> ResponseFormat {
@@ -43,6 +43,5 @@ pub async fn get_spreadsheet_with_options(
     let api_request: ApiRequest<GetSpreadsheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取电子表格信息")
+    Transport::request_typed(api_request, config, Some(option), "获取电子表格信息").await
 }

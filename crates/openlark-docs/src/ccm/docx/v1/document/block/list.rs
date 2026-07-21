@@ -15,8 +15,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::*;
-
 /// 获取文档所有块请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetDocumentBlocksParams {
@@ -100,8 +98,7 @@ impl GetDocumentBlocksRequest {
         }
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文档所有块")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取文档所有块").await
     }
 }
 

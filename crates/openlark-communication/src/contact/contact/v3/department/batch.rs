@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         department::models::BatchGetDepartmentsResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -101,8 +100,7 @@ impl BatchGetDepartmentsRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量获取部门信息")
+        Transport::request_typed(req, &self.config, Some(option), "批量获取部门信息").await
     }
 }
 

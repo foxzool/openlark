@@ -137,9 +137,7 @@ pub async fn create_comment(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "添加全文评论")
+    Transport::request_typed(api_request, config, option, "添加全文评论").await
 }
 
 #[cfg(test)]

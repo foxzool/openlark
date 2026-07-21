@@ -49,6 +49,5 @@ pub async fn find_cells_with_options(
         .to_request()
         .body(serialize_params(&params, "查找单元格")?);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查找单元格")
+    Transport::request_typed(api_request, config, Some(option), "查找单元格").await
 }

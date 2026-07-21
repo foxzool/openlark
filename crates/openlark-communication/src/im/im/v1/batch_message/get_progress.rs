@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_BATCH_MESSAGES};
+use crate::endpoints::IM_V1_BATCH_MESSAGES;
 
 /// 查询批量消息整体进度请求
 ///
@@ -68,8 +68,7 @@ impl GetBatchMessageProgressRequest {
             IM_V1_BATCH_MESSAGES, self.batch_message_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询批量消息整体进度")
+        Transport::request_typed(req, &self.config, Some(option), "查询批量消息整体进度").await
     }
 }
 

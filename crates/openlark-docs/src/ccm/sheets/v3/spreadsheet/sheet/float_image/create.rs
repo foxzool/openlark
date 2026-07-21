@@ -86,8 +86,7 @@ pub async fn create_float_image_with_options(
         .to_request()
         .body(serialize_params(&params, "创建浮动图片")?);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建浮动图片")
+    Transport::request_typed(api_request, config, Some(option), "创建浮动图片").await
 }
 
 #[cfg(test)]

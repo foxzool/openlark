@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 取消云文档事件订阅请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,8 +112,7 @@ impl DeleteSubscribeRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "订阅文件")
+        Transport::request_typed(request, &self.config, Some(option), "订阅文件").await
     }
 }
 

@@ -128,8 +128,7 @@ impl CreateFolderRequest {
             .to_request::<CreateFolderResponse>()
             .body(serialize_params(&self, "新建文件夹")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新建文件夹")
+        Transport::request_typed(request, &self.config, Some(option), "新建文件夹").await
     }
 }
 

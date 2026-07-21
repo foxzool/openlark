@@ -16,8 +16,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::*;
-
 /// 更新块内容请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateDocumentBlockParams {
@@ -87,8 +85,7 @@ impl UpdateDocumentBlockRequest {
         let mut api_request: ApiRequest<UpdateDocumentBlockResponse> = api_endpoint.to_request();
         api_request = api_request.json_body(&params);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新块的内容")
+        Transport::request_typed(api_request, &self.config, Some(option), "更新块的内容").await
     }
 }
 

@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_CHATS};
+use crate::endpoints::IM_V1_CHATS;
 
 /// 拉取会话标签页请求
 ///
@@ -52,8 +52,7 @@ impl ListChatTabsRequest {
             IM_V1_CHATS, self.chat_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "拉取会话标签页")
+        Transport::request_typed(req, &self.config, Some(option), "拉取会话标签页").await
     }
 }
 

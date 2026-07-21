@@ -132,8 +132,7 @@ impl SearchRecordRequest {
             .query_opt("page_size", self.page_size.map(|v| v.to_string()))
             .body(serialize_params(&self.body, "查询记录")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询记录")
+        Transport::request_typed(request, &self.config, Some(option), "查询记录").await
     }
 
     /// 获取所有记录（自动处理分页）。

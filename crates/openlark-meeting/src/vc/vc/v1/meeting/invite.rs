@@ -13,7 +13,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 邀请参会人请求
 #[derive(Debug, Clone)]
@@ -72,8 +72,7 @@ impl InviteMeetingRequest {
         let req: ApiRequest<InviteMeetingResponse> =
             ApiRequest::patch(api_endpoint.to_url()).body(serialize_params(&body, "邀请参会人")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "邀请参会人")
+        Transport::request_typed(req, &self.config, Some(option), "邀请参会人").await
     }
 }
 

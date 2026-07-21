@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 上传素材请求
 ///
@@ -190,8 +190,7 @@ impl UploadAllMediaRequest {
             .json_body(&meta)
             .file_content(self.file);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传")
+        Transport::request_typed(request, &self.config, Some(option), "上传").await
     }
 }
 

@@ -14,7 +14,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::super::models::WikiSpace;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取知识空间信息请求
 ///
@@ -72,8 +72,7 @@ impl GetWikiSpaceRequest {
         let api_request: ApiRequest<GetWikiSpaceResponse> = api_endpoint.to_request();
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识空间信息")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取知识空间信息").await
     }
 }
 

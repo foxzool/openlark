@@ -4,10 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGE_COT,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_MESSAGE_COT};
 
 /// COT 事件写入请求
 ///
@@ -60,9 +57,7 @@ impl UpdateMessageCotRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::put(IM_V1_MESSAGE_COT).body(serialize_params(&body, "COT 事件写入")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "COT 事件写入")
+        Transport::request_typed(req, &self.config, Some(option), "COT 事件写入").await
     }
 }
 

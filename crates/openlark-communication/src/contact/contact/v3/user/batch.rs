@@ -12,7 +12,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::user::models::{DepartmentIdType, User, UserIdType},
     endpoints::CONTACT_V3_USERS_BATCH,
 };
@@ -120,8 +119,7 @@ impl BatchGetUsersRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量获取用户信息")
+        Transport::request_typed(req, &self.config, Some(option), "批量获取用户信息").await
     }
 }
 

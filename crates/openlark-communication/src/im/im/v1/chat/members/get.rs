@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
     im::v1::chat::members::models::{ListChatMembersResponse, MemberIdType},
 };
@@ -87,8 +86,7 @@ impl GetChatMembersRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群成员列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取群成员列表").await
     }
 }
 

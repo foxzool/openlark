@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{common::api_utils::extract_response_data, endpoints::CONTACT_V3_CUSTOM_ATTRS};
+use crate::endpoints::CONTACT_V3_CUSTOM_ATTRS;
 
 /// 自定义用户字段配置（字段随文档演进，未显式建模字段使用 `extra` 透传）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,8 +105,7 @@ impl ListCustomAttrsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取企业自定义用户字段")
+        Transport::request_typed(req, &self.config, Some(option), "获取企业自定义用户字段").await
     }
 }
 

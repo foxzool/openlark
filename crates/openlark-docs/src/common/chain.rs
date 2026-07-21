@@ -812,10 +812,10 @@ impl DocsClient {
     pub async fn download_drive_file(&self, file_token: &str) -> SDKResult<Vec<u8>> {
         use crate::ccm::drive::v1::file::DownloadFileRequest;
 
-        DownloadFileRequest::new(self.config().clone(), file_token)
+        let resp = DownloadFileRequest::new(self.config().clone(), file_token)
             .execute()
-            .await?
-            .into_result()
+            .await?;
+        openlark_core::api::extract_response_data(resp, "下载 Drive 文件")
     }
 
     /// 按范围下载 Drive 文件内容。
@@ -827,11 +827,11 @@ impl DocsClient {
     ) -> SDKResult<Vec<u8>> {
         use crate::ccm::drive::v1::file::DownloadFileRequest;
 
-        DownloadFileRequest::new(self.config().clone(), file_token)
+        let resp = DownloadFileRequest::new(self.config().clone(), file_token)
             .range(range.to_string())
             .execute()
-            .await?
-            .into_result()
+            .await?;
+        openlark_core::api::extract_response_data(resp, "按范围下载 Drive 文件")
     }
 
     /// 获取指定知识空间下的所有节点，自动处理分页。

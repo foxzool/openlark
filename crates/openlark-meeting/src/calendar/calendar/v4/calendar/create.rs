@@ -94,9 +94,9 @@ impl CreateCalendarRequest {
         let api_request: ApiRequest<serde_json::Value> =
             ApiRequest::post(CALENDAR_V4_CALENDARS).body(body);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        let data: CreateCalendarResponse =
-            serde_json::from_value(response.data.unwrap_or_default())?;
+        let data: CreateCalendarResponse = serde_json::from_value(
+            Transport::request_typed(api_request, &self.config, Some(option), "创建日历").await?,
+        )?;
         Ok(data)
     }
 }

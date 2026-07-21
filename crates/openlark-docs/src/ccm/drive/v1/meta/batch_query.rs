@@ -212,9 +212,7 @@ pub async fn batch_query(
         api_request = api_request.query("user_id_type", user_id_type);
     }
 
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取文件元数据")
+    Transport::request_typed(api_request, config, option, "获取文件元数据").await
 }
 
 #[cfg(test)]

@@ -92,8 +92,13 @@ impl UpdateWikiSpaceNodeTitleRequest {
             .body(serialize_params(&params, "更新知识空间节点标题")?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新知识空间节点标题")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "更新知识空间节点标题",
+        )
+        .await
     }
 }
 

@@ -14,7 +14,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::super::models::WikiTask;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取任务结果请求
 ///
@@ -86,8 +86,7 @@ impl GetWikiTaskRequest {
 
         // 发送请求
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

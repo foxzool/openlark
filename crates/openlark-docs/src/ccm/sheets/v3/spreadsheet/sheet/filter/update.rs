@@ -68,8 +68,7 @@ pub async fn update_filter_with_options(
         .to_request()
         .body(serialize_params(&params, "更新筛选")?);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新筛选")
+    Transport::request_typed(api_request, config, Some(option), "更新筛选").await
 }
 
 #[cfg(test)]

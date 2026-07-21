@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::job_level::models::JobLevelResponse, endpoints::CONTACT_V3_JOB_LEVELS,
 };
 
@@ -53,8 +52,7 @@ impl GetJobLevelRequest {
         let req: ApiRequest<JobLevelResponse> =
             ApiRequest::get(format!("{}/{}", CONTACT_V3_JOB_LEVELS, self.job_level_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单个职级信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取单个职级信息").await
     }
 }
 

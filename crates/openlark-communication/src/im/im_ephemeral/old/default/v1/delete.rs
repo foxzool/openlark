@@ -7,10 +7,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::EPHEMERAL_V1_DELETE,
-};
+use crate::{common::api_utils::serialize_params, endpoints::EPHEMERAL_V1_DELETE};
 
 /// 删除仅特定人可见的消息卡片请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,9 +48,13 @@ impl DeleteEphemeralRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(EPHEMERAL_V1_DELETE)
             .body(serialize_params(&body, "删除仅特定人可见的消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "删除仅特定人可见的消息卡片")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "删除仅特定人可见的消息卡片",
+        )
+        .await
     }
 }
 

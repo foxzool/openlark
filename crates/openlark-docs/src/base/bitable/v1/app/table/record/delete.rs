@@ -88,15 +88,14 @@ impl DeleteRecordRequest {
         validate_required!(self.table_id.trim(), "table_id 不能为空");
         validate_required!(self.record_id.trim(), "record_id 不能为空");
 
-        use crate::common::{api_endpoints::BitableApiV1, api_utils::*};
+        use crate::common::api_endpoints::BitableApiV1;
 
         let api_endpoint =
             BitableApiV1::RecordDelete(self.app_token, self.table_id, self.record_id);
         // #424: method 来自 catalog，保持 path+method+auth locality
         let request = api_endpoint.to_request::<DeleteRecordResponse>();
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除记录")
+        Transport::request_typed(request, &self.config, Some(option), "删除记录").await
     }
 }
 

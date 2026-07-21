@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::CONTACT_V3_GROUP,
-};
+use crate::{common::models::EmptyData, endpoints::CONTACT_V3_GROUP};
 
 /// 删除用户组请求
 ///
@@ -68,8 +65,7 @@ impl DeleteGroupRequest {
         // url: DELETE:/open-apis/contact/v3/group/:group_id
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", CONTACT_V3_GROUP, self.group_id));
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除用户组")
+        Transport::request_typed(req, &self.config, Some(option), "删除用户组").await
     }
 }
 

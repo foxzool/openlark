@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::{
-    api_endpoints::VcApiV1,
-    api_utils::{extract_response_data, serialize_params},
-};
+use crate::common::{api_endpoints::VcApiV1, api_utils::serialize_params};
 
 /// 取消订阅会议变更事件请求。
 pub struct UnsubscribeMeetingRequest {
@@ -44,8 +41,7 @@ impl UnsubscribeMeetingRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(VcApiV1::MeetingUnsubscription.to_url())
                 .body(serialize_params(&body, "取消订阅会议变更事件")?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "取消订阅会议变更事件")
+        Transport::request_typed(req, &self.config, Some(option), "取消订阅会议变更事件").await
     }
 }
 

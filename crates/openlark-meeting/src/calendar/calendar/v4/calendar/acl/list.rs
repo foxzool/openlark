@@ -7,7 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 获取访问控制列表请求
 pub struct ListCalendarAclRequest {
@@ -58,8 +58,7 @@ impl ListCalendarAclRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取访问控制列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取访问控制列表").await
     }
 }
 

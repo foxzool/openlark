@@ -111,8 +111,7 @@ impl CreateWikiSpaceRequest {
             .body(serialize_params(&request_body, "创建知识空间")?);
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建知识空间")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建知识空间").await
     }
 }
 

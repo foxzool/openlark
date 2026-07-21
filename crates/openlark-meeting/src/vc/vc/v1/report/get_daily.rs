@@ -11,8 +11,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取会议报告请求
 #[derive(Debug, Clone)]
 pub struct GetDailyReportRequest {
@@ -66,8 +64,7 @@ impl GetDailyReportRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取会议报告")
+        Transport::request_typed(req, &self.config, Some(option), "获取会议报告").await
     }
 }
 

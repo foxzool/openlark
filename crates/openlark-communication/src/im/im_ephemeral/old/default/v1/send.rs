@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::EPHEMERAL_V1_SEND,
-};
+use crate::{common::api_utils::serialize_params, endpoints::EPHEMERAL_V1_SEND};
 
 /// 发送仅特定人可见的消息卡片请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,9 +52,13 @@ impl SendEphemeralRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(EPHEMERAL_V1_SEND)
             .body(serialize_params(&body, "发送仅特定人可见的消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "发送仅特定人可见的消息卡片")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "发送仅特定人可见的消息卡片",
+        )
+        .await
     }
 }
 

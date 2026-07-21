@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::CONTACT_V3_FUNCTIONAL_ROLES,
 };
 
@@ -67,9 +64,7 @@ impl UpdateFunctionalRoleRequest {
             ApiRequest::put(format!("{}/{}", CONTACT_V3_FUNCTIONAL_ROLES, self.role_id))
                 .body(serialize_params(&body, "修改角色名称")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "修改角色名称")
+        Transport::request_typed(req, &self.config, Some(option), "修改角色名称").await
     }
 }
 

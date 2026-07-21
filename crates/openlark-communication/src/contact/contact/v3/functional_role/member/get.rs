@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         functional_role::member::models::GetMemberResponse, user::models::UserIdType,
     },
@@ -99,8 +98,13 @@ impl GetRoleMemberRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询角色下某个成员的管理范围")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询角色下某个成员的管理范围",
+        )
+        .await
     }
 }
 

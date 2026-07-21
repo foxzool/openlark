@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::FloatImage;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 查询浮动图片响应体 data
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,8 +57,7 @@ pub async fn query_float_images_with_options(
         SheetsApiV3::QueryFloatImages(spreadsheet_token.to_string(), sheet_id.to_string());
     let api_request: ApiRequest<QueryFloatImagesResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查询浮动图片")
+    Transport::request_typed(api_request, config, Some(option), "查询浮动图片").await
 }
 
 #[cfg(test)]

@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_BATCH_MESSAGES,
-    im::v1::batch_message::models::BatchMessageReadUserResponse,
+    endpoints::IM_V1_BATCH_MESSAGES, im::v1::batch_message::models::BatchMessageReadUserResponse,
 };
 
 /// 查询批量消息推送和阅读人数请求
@@ -71,8 +70,13 @@ impl GetBatchMessageReadUserRequest {
             IM_V1_BATCH_MESSAGES, self.batch_message_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询批量消息推送和阅读人数")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询批量消息推送和阅读人数",
+        )
+        .await
     }
 }
 

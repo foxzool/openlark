@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_CHATS};
 
 /// 更新会话标签页请求
 ///
@@ -59,9 +56,7 @@ impl UpdateChatTabsRequest {
         ))
         .body(serialize_params(&body, "更新会话标签页")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新会话标签页")
+        Transport::request_typed(req, &self.config, Some(option), "更新会话标签页").await
     }
 }
 

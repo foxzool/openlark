@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::job_title::models::JobTitleResponse, endpoints::CONTACT_V3_JOB_TITLES,
 };
 
@@ -54,8 +53,7 @@ impl GetJobTitleRequest {
         let req: ApiRequest<JobTitleResponse> =
             ApiRequest::get(format!("{}/{}", CONTACT_V3_JOB_TITLES, self.job_title_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单个职务信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取单个职务信息").await
     }
 }
 

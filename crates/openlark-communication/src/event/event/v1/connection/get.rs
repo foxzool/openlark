@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{common::api_utils::extract_response_data, endpoints::EVENT_V1_CONNECTION};
+use crate::endpoints::EVENT_V1_CONNECTION;
 
 /// 获取长连接在线数量响应（data 业务载荷）
 ///
@@ -58,8 +58,7 @@ impl GetConnectionOnlineCountRequest {
         // url: GET:/open-apis/event/v1/connection
         let req: ApiRequest<GetConnectionOnlineCountResponse> =
             ApiRequest::get(EVENT_V1_CONNECTION);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取长连接在线数量")
+        Transport::request_typed(req, &self.config, Some(option), "获取长连接在线数量").await
     }
 }
 

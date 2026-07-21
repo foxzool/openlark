@@ -105,10 +105,7 @@ impl GetViewRequest {
         let api_request: ApiRequest<GetViewResponse> = api_endpoint.to_request();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 获取视图").await
     }
 }
 

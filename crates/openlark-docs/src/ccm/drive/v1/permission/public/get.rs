@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::PermissionPublic;
 
@@ -92,8 +92,7 @@ impl GetPublicPermissionRequest {
             .to_request::<GetPublicPermissionResponse>()
             .query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(request, &self.config, Some(option), "获取").await
     }
 }
 

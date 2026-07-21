@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::FloatImage;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 获取浮动图片响应体 data
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,8 +63,7 @@ pub async fn get_float_image_with_options(
     );
     let api_request: ApiRequest<GetFloatImageResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取浮动图片")
+    Transport::request_typed(api_request, config, Some(option), "获取浮动图片").await
 }
 
 #[cfg(test)]

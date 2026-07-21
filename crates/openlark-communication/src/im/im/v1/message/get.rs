@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES,
-    im::v1::message::models::UserIdType,
-};
+use crate::{endpoints::IM_V1_MESSAGES, im::v1::message::models::UserIdType};
 
 /// 获取指定消息的内容请求
 ///
@@ -82,8 +79,7 @@ impl GetMessageRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取指定消息的内容")
+        Transport::request_typed(req, &self.config, Some(option), "获取指定消息的内容").await
     }
 }
 

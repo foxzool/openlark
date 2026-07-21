@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 
 /// 获取预约请求
 
@@ -91,8 +91,7 @@ impl GetReserveRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取预约")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取预约").await
     }
 }
 

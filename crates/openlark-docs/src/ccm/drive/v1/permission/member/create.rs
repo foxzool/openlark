@@ -215,8 +215,7 @@ impl CreatePermissionMemberRequest {
 
         api_request = api_request.body(serialize_params(&body, "增加协作者权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "增加协作者权限")
+        Transport::request_typed(api_request, &self.config, Some(option), "增加协作者权限").await
     }
 }
 

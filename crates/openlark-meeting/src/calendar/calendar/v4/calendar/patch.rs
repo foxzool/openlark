@@ -10,7 +10,7 @@ use openlark_core::{
     req_option::RequestOption,
 };
 
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 use serde::{Deserialize, Serialize};
 
 use crate::endpoints::CALENDAR_V4_CALENDARS;
@@ -98,8 +98,7 @@ impl PatchCalendarRequest {
         let url = format!("{}/{}", CALENDAR_V4_CALENDARS, self.calendar_id);
         let api_request: ApiRequest<PatchCalendarResponse> = ApiRequest::patch(&url).body(body);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新日历信息")
+        Transport::request_typed(api_request, &self.config, Some(option), "更新日历信息").await
     }
 }
 

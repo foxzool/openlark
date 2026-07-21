@@ -14,7 +14,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::DriveApi;
-use crate::common::api_utils::*;
 
 /// 获取文件夹中的文件清单请求
 #[derive(Debug)]
@@ -247,8 +246,13 @@ impl ListFilesRequest {
         }
 
         // ========== 发送请求并返回响应 ==========
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文件夹中的文件清单")
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取文件夹中的文件清单",
+        )
+        .await
     }
 }
 

@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::user::create::UserResponse,
     contact::contact::v3::user::models::{DepartmentIdType, UserIdType},
     endpoints::CONTACT_V3_USERS,
@@ -104,9 +104,7 @@ impl UpdateUserRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新用户所有信息")
+        Transport::request_typed(req, &self.config, Some(option), "更新用户所有信息").await
     }
 }
 

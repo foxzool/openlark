@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 开始录制请求
 pub struct StartRecordingRequest {
@@ -54,8 +54,7 @@ impl StartRecordingRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::patch(api_endpoint.to_url()).body(serialize_params(&body, "开始录制")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "开始录制")
+        Transport::request_typed(req, &self.config, Some(option), "开始录制").await
     }
 }
 

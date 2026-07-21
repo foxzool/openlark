@@ -7,7 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 删除日程请求
 pub struct DeleteCalendarEventRequest {
@@ -56,8 +56,7 @@ impl DeleteCalendarEventRequest {
             CALENDAR_V4_CALENDARS, self.calendar_id, self.event_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除日程")
+        Transport::request_typed(req, &self.config, Some(option), "删除日程").await
     }
 }
 

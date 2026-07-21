@@ -7,7 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 删除访问控制请求
 pub struct DeleteCalendarAclRequest {
@@ -56,8 +56,7 @@ impl DeleteCalendarAclRequest {
             CALENDAR_V4_CALENDARS, self.calendar_id, self.acl_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除访问控制")
+        Transport::request_typed(req, &self.config, Some(option), "删除访问控制").await
     }
 }
 

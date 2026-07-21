@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/start>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILL_START};
+use crate::endpoints::AILY_V1_SKILL_START;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -99,8 +99,7 @@ impl StartSkillRequest {
             .replace("{skill_id}", &self.skill_id);
         let req: ApiRequest<StartSkillBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "调用技能")
+        Transport::request_typed(req, &self.config, Some(option), "调用技能").await
     }
 }
 

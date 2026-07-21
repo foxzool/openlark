@@ -7,10 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CALENDAR_V4_CALENDARS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CALENDAR_V4_CALENDARS};
 
 /// 添加日程参与人请求
 pub struct CreateCalendarEventAttendeeRequest {
@@ -65,8 +62,7 @@ impl CreateCalendarEventAttendeeRequest {
         ))
         .body(serialize_params(&body, "添加日程参与人")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "添加日程参与人")
+        Transport::request_typed(req, &self.config, Some(option), "添加日程参与人").await
     }
 }
 

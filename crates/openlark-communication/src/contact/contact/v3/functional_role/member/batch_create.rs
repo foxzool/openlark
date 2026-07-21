@@ -8,7 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         functional_role::member::models::BatchCreateMembersResponse, user::models::UserIdType,
     },
@@ -128,9 +128,7 @@ impl BatchCreateRoleMembersRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量添加角色成员")
+        Transport::request_typed(req, &self.config, Some(option), "批量添加角色成员").await
     }
 }
 

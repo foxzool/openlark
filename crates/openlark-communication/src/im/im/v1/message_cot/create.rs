@@ -4,10 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGE_COT,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_MESSAGE_COT};
 
 /// 创建 COT 请求
 ///
@@ -60,9 +57,7 @@ impl CreateMessageCotRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(IM_V1_MESSAGE_COT).body(serialize_params(&body, "创建 COT")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建 COT")
+        Transport::request_typed(req, &self.config, Some(option), "创建 COT").await
     }
 }
 

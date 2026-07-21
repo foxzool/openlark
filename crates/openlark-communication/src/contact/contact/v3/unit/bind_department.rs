@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     contact::contact::v3::user::models::DepartmentIdType,
     endpoints::CONTACT_V3_UNIT_BIND_DEPARTMENT,
 };
@@ -62,9 +59,7 @@ impl BindDepartmentRequest {
         let req: ApiRequest<EmptyData> = ApiRequest::post(CONTACT_V3_UNIT_BIND_DEPARTMENT)
             .body(serialize_params(&body, "建立部门与单位的绑定关系")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "建立部门与单位的绑定关系")
+        Transport::request_typed(req, &self.config, Some(option), "建立部门与单位的绑定关系").await
     }
 }
 

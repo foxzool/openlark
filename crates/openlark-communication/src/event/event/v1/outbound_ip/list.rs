@@ -4,7 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::EVENT_V1_OUTBOUND_IP};
+use crate::endpoints::EVENT_V1_OUTBOUND_IP;
 
 /// 获取事件出口 IP 请求
 pub struct ListOutboundIpRequest {
@@ -32,8 +32,7 @@ impl ListOutboundIpRequest {
     ) -> SDKResult<serde_json::Value> {
         // url: GET:/open-apis/event/v1/outbound_ip
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(EVENT_V1_OUTBOUND_IP);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取事件出口 IP")
+        Transport::request_typed(req, &self.config, Some(option), "获取事件出口 IP").await
     }
 }
 

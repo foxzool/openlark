@@ -33,10 +33,7 @@ impl MessageReactionBatchQueryRequest {
     ) -> SDKResult<serde_json::Value> {
         let path = "/open-apis/im/v1/messages/reactions/batch_query".to_string();
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("批量获取消息表情回复", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "批量获取消息表情回复").await
     }
 }
 

@@ -101,8 +101,7 @@ impl MoveWikiSpaceNodeRequest {
             .body(serialize_params(&params, "移动知识空间节点")?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "移动知识空间节点")
+        Transport::request_typed(api_request, &self.config, Some(option), "移动知识空间节点").await
     }
 }
 

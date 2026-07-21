@@ -136,8 +136,7 @@ impl SearchWikiRequest {
             .to_request()
             .body(serialize_params(&request_body, "搜索Wiki")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "搜索")
+        Transport::request_typed(api_request, &self.config, Some(option), "搜索").await
     }
 }
 

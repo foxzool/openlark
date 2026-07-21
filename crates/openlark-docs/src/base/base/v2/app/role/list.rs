@@ -13,7 +13,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
-use crate::common::api_utils::*;
 
 /// 列出自定义角色
 #[derive(Debug)]
@@ -109,8 +108,7 @@ impl List {
         api_request = api_request.query_opt("page_size", self.req.page_size.map(|v| v.to_string()));
         api_request = api_request.query_opt("page_token", self.req.page_token);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列出自定义角色")
+        Transport::request_typed(api_request, &self.config, Some(option), "列出自定义角色").await
     }
 }
 

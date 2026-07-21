@@ -6,8 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 生成 CalDAV 配置请求
 pub struct GenerateCaldavConfRequest {
     config: Config,
@@ -33,8 +31,7 @@ impl GenerateCaldavConfRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post("/open-apis/calendar/v4/settings/generate_caldav_conf");
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "生成 CalDAV 配置")
+        Transport::request_typed(req, &self.config, Some(option), "生成 CalDAV 配置").await
     }
 }
 

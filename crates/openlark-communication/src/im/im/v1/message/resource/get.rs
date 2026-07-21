@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES};
+use crate::endpoints::IM_V1_MESSAGES;
 
 /// 消息资源类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,8 +113,7 @@ impl GetMessageResourceRequest {
         ))
         .query("type", resource_type.as_str());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取消息中的资源文件")
+        Transport::request_typed(req, &self.config, Some(option), "获取消息中的资源文件").await
     }
 }
 
