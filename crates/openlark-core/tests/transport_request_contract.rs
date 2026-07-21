@@ -924,3 +924,170 @@ async fn transport_text_invalid_utf8_returns_error() {
         "got: {err}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Typed-request entry: Transport::request_typed (#479 / parent #470)
+// ---------------------------------------------------------------------------
+//
+// Canonical 入口焊合 `Transport::request` + `extract_response_data`：成功直接返回
+// typed `T`，失败经 `map_context` 附着 operation / resource / request_id。
+// 下列测试复用上方 5 种 ResponseFormat fixture，断言每种格式下入口均返回 typed 结果，
+// 外加一条业务错误失败路径断言 context 附着。
+
+#[tokio::test]
+async fn request_typed_data_success_returns_typed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/data"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(success_envelope(
+            serde_json::json!({"id": 11, "name": "typed-data"}),
+        )))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/data");
+    let data =
+        Transport::<ContractData>::request_typed(req, &config, Some(no_auth_option()), "测试-Data")
+            .await
+            .expect("Data format should decode to typed T");
+    assert_eq!(data.id, 11);
+    assert_eq!(data.name, "typed-data");
+}
+
+#[tokio::test]
+async fn request_typed_flatten_success_returns_typed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/flatten"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "msg": "ok",
+            "app_access_token": "tok-typed",
+            "expire": 7200
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/flatten");
+    let data = Transport::<FlattenToken>::request_typed(
+        req,
+        &config,
+        Some(no_auth_option()),
+        "测试-Flatten",
+    )
+    .await
+    .expect("Flatten format should decode to typed T");
+    assert_eq!(data.app_access_token, "tok-typed");
+    assert_eq!(data.expires_in, 7200);
+}
+
+#[tokio::test]
+async fn request_typed_text_success_returns_typed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/text"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("typed-text-body"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/text");
+    let data =
+        Transport::<TextBody>::request_typed(req, &config, Some(no_auth_option()), "测试-Text")
+            .await
+            .expect("Text format should decode to typed T");
+    assert_eq!(data.0, "typed-text-body");
+}
+
+#[tokio::test]
+async fn request_typed_binary_success_returns_typed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/binary"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("content-disposition", "attachment; filename=\"typed.bin\"")
+                .set_body_bytes(b"TYPED-BIN".as_slice()),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/binary");
+    let data =
+        Transport::<BinaryFile>::request_typed(req, &config, Some(no_auth_option()), "测试-Binary")
+            .await
+            .expect("Binary format should decode to typed T");
+    assert_eq!(data.file_name, "typed.bin");
+    assert_eq!(data.content, b"TYPED-BIN");
+}
+
+#[tokio::test]
+async fn request_typed_custom_success_returns_typed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/custom"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"typed-custom-bytes".as_slice()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/custom");
+    let data =
+        Transport::<CustomRaw>::request_typed(req, &config, Some(no_auth_option()), "测试-Custom")
+            .await
+            .expect("Custom format should decode to typed T");
+    assert_eq!(data.0, b"typed-custom-bytes");
+}
+
+/// 失败路径：业务错误 envelope（code≠0，data=null）→ `Transport::request` 仍返回
+/// `Ok(Response{data:None})`，`request_typed` 经 `extract_response_data` 抽取失败，
+/// 错误须附着 `operation` + `resource`(=context) + `request_id`（来自 envelope）。
+#[tokio::test]
+async fn request_typed_failure_attaches_operation_resource_request_id() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/fail"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 99991663,
+            "msg": "permission denied",
+            "request_id": "rid-typed-fail",
+            "data": null
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/fail");
+
+    let err =
+        Transport::<ContractData>::request_typed(req, &config, Some(no_auth_option()), "文本翻译")
+            .await
+            .expect_err("business error envelope must surface as extraction failure");
+
+    // 经 canonical helper 的 map_context 附着的三件诊断上下文
+    let ctx = err.ctx();
+    assert_eq!(
+        ctx.operation(),
+        Some("extract_response_data"),
+        "operation should identify the canonical extraction step"
+    );
+    assert_eq!(
+        ctx.get_context("resource"),
+        Some("文本翻译"),
+        "resource should carry caller-provided context"
+    );
+    assert_eq!(
+        ctx.request_id(),
+        Some("rid-typed-fail"),
+        "request_id from envelope must be attached for server-side reconciliation"
+    );
+}
