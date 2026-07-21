@@ -109,6 +109,26 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
         .await
     }
 
+    /// Canonical typed-request 入口（#479）：焊合 [`Transport::request`] + 抽取 typed `T`。
+    ///
+    /// 成功时直接返回 typed `T`；抽取失败时错误经 canonical helper 的 `map_context`
+    /// 机制携带 `operation`（= `extract_response_data`）+ `resource`（= `context`）
+    /// + 响应携带的 `request_id`，便于排障与飞书服务端对账。
+    ///
+    /// 与既有 `Transport::request` + `extract_response_data` 两步 idiom **行为等价**，
+    /// 仅把两步收成一次调用，供 leaf 默认走 canonical 路径（additive，不迁移任何 leaf）。
+    /// 无 `data` 载荷的删除类 API 继续用 `Transport::request` + `ensure_success`，
+    /// 不经本入口。
+    pub async fn request_typed<R: Send>(
+        req: ApiRequest<R>,
+        config: &Config,
+        option: Option<RequestOption>,
+        context: &str,
+    ) -> Result<T, CoreError> {
+        let response = Self::request(req, config, option).await?;
+        crate::api::extract_response_data(response, context)
+    }
+
     async fn do_request<R: Send>(
         mut http_req: ApiRequest<R>,
         access_token_type: AccessTokenType,
