@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **迁移**：仅走 `client.<domain>` 字段访问的代码零影响；使用 `Client::registry()` /
     prelude 导出的 trait / `registry_error()` 的代码需移除这些调用。
 
+### Changed
+
+- **security：`CoreError` 风险分类收口到 extension trait（#477, #480）**：
+  新增 `SecurityRiskClassify for CoreError`（`fn security_risk_level(&self) ->
+  SecurityRiskLevel`），成为「error kind → `SecurityRiskLevel`」的唯一来源，覆盖
+  全部 12 个 variant（+ `#[non_exhaustive]` 兜底）并配单测（含关键 `Api` code 组合）。
+  `SecurityErrorAnalyzer::analyze_security_risk` 不再自己 match `CoreError` variant
+  做分级，改调 `err.security_risk_level()`；policy（风险类型归类、升级判定）保留——
+  升级口径仍是 Business/Internal，行为未变。非破坏、additive；为 #472 后续让
+  workflow/client 复用同一分类铺路。
+
 ## [0.18.0] - 2026-07-20
 
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。
