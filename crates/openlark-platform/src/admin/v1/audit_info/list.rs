@@ -86,10 +86,7 @@ impl ListAuditInfoRequestBuilder {
 
         let api_request: ApiRequest<ListAuditInfoResponse> = ApiRequest::get(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取审计日志列表", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取审计日志列表").await
     }
 }
 

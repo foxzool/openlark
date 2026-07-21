@@ -1,7 +1,7 @@
 //! 获取工单详情
 //! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/get>
 
-use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
+use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::helpdesk::helpdesk::v1::ticket::models::GetTicketResponse;
 use openlark_core::{
     SDKResult,
@@ -40,9 +40,13 @@ impl GetTicketRequest {
         let api_endpoint = HelpdeskApiV1::TicketGet(self.ticket_id.clone());
         let request = ApiRequest::<GetTicketResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取工单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取工单",
+        )
+        .await
     }
 }
 

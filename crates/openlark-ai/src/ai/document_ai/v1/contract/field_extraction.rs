@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION;
 
 /// 合同字段提取请求体
@@ -117,8 +117,7 @@ impl ContractFieldExtractionRequest {
             ApiRequest::post(DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION)
                 .body(serialize_params(&body, "合同字段提取")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "合同字段提取")
+        Transport::request_typed(req, &self.config, Some(option), "合同字段提取").await
     }
 }
 
@@ -198,8 +197,7 @@ pub async fn contract_field_extraction_with_options(
         ApiRequest::post(DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION)
             .body(serialize_params(&body, "合同字段提取")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "合同字段提取")
+    Transport::request_typed(req, config, Some(option), "合同字段提取").await
 }
 
 #[cfg(test)]

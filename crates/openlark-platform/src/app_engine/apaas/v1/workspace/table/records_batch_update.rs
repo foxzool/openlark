@@ -89,14 +89,7 @@ impl TableRecordsBatchUpdateRequestBuilder {
         let req: ApiRequest<TableRecordsBatchUpdateResponse> =
             ApiRequest::patch(url).body(serde_json::to_value(&request)?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量更新记录响应数据为空".to_string(),
-                "服务器没有返回有效的数据".to_string(),
-            )
-        })
+        Transport::request_typed(req, &self.config, Some(option), "批量更新记录响应数据为空").await
     }
 }
 

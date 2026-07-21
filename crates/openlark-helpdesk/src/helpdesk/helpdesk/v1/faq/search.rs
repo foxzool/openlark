@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 搜索知识库查询参数
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -131,8 +130,7 @@ impl SearchFaqRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "搜索知识库")
+        Transport::request_typed(request, &self.config, Some(option), "搜索知识库").await
     }
 }
 
@@ -191,8 +189,7 @@ impl SearchFaqRequestBuilder {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "搜索知识库")
+        Transport::request_typed(request, &self.config, None, "搜索知识库").await
     }
 }
 
@@ -201,8 +198,7 @@ pub async fn search_faqs(config: &Config) -> SDKResult<SearchFaqResponse> {
     let api_endpoint = HelpdeskApiV1::FaqSearch;
     let request = ApiRequest::<SearchFaqResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "搜索知识库")
+    Transport::request_typed(request, config, None, "搜索知识库").await
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE;
 
 /// 流式语音识别请求体
@@ -104,8 +104,7 @@ impl StreamRecognizeRequest {
             ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE)
                 .body(serialize_params(&body, "流式语音识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "流式语音识别")
+        Transport::request_typed(req, &self.config, Some(option), "流式语音识别").await
     }
 }
 
@@ -221,8 +220,7 @@ pub async fn stream_recognize_with_options(
         ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_STREAM_RECOGNIZE)
             .body(serialize_params(&body, "流式语音识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "流式语音识别")
+    Transport::request_typed(req, config, Some(option), "流式语音识别").await
 }
 
 #[cfg(test)]

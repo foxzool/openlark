@@ -10,8 +10,6 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::common::api_utils::missing_response_data_error;
-
 /// 审批摘要项（v4）
 #[derive(Debug, Clone, Deserialize)]
 pub struct InstanceSummaryV4 {
@@ -145,14 +143,13 @@ impl InitiatedInstanceRequestV4 {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error(
-                "查询已发起审批列表（用户级）",
-                response.raw_response.request_id.clone(),
-            )
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询已发起审批列表（用户级）",
+        )
+        .await
     }
 }
 

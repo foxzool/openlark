@@ -45,9 +45,7 @@ impl EmployeeResurrectRequestBuilder {
         );
 
         let req: ApiRequest<EmployeeResurrectResponse> = ApiRequest::post(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("恢复离职员工", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "恢复离职员工").await
     }
 }
 

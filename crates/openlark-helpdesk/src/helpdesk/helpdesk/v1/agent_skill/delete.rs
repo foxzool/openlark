@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 删除客服技能响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,8 +60,7 @@ impl DeleteAgentSkillRequest {
             HelpdeskApiV1::AgentSkillDelete(self.agent_skill_id.clone()).to_url(),
         );
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除客服技能")
+        Transport::request_typed(req, &self.config, Some(option), "删除客服技能").await
     }
 }
 
@@ -117,8 +115,7 @@ pub async fn delete_agent_skill_with_options(
     let req: ApiRequest<DeleteAgentSkillResponse> =
         ApiRequest::delete(HelpdeskApiV1::AgentSkillDelete(agent_skill_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "删除客服技能")
+    Transport::request_typed(req, config, Some(option), "删除客服技能").await
 }
 
 #[cfg(test)]

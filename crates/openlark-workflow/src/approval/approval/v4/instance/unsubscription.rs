@@ -7,7 +7,7 @@ use std::sync::Arc;
 use openlark_core::{SDKResult, api::ApiRequest, config::Config};
 
 use crate::common::api_endpoints::ApprovalApiV4;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 退订审批实例状态变更事件请求（v4）
 ///
@@ -39,9 +39,13 @@ impl UnsubscribeInstanceRequestV4 {
         let req: ApiRequest<serde_json::Value> = ApiRequest::delete(endpoint.to_url())
             .body(serialize_params(&body, "退订审批实例状态变更")?);
 
-        let resp = openlark_core::http::Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "退订审批实例状态变更")
+        openlark_core::http::Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "退订审批实例状态变更",
+        )
+        .await
     }
 }
 

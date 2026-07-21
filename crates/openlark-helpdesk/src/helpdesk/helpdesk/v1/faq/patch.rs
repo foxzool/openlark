@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新知识库请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -109,8 +109,7 @@ impl PatchFaqRequest {
             ApiRequest::patch(HelpdeskApiV1::FaqPatch(self.id.clone()).to_url())
                 .body(serialize_params(&body, "更新知识库")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新知识库")
+        Transport::request_typed(req, &self.config, Some(option), "更新知识库").await
     }
 }
 
@@ -199,8 +198,7 @@ pub async fn patch_faq_with_options(
     let req: ApiRequest<PatchFaqResponse> = ApiRequest::patch(HelpdeskApiV1::FaqPatch(id).to_url())
         .body(serialize_params(&body, "更新知识库")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "更新知识库")
+    Transport::request_typed(req, config, Some(option), "更新知识库").await
 }
 
 #[cfg(test)]

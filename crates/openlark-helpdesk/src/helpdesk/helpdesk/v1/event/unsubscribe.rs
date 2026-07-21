@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 取消订阅服务台事件响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,8 +51,7 @@ impl EventUnsubscribeRequest {
         let request =
             ApiRequest::<EventUnsubscribeResponse>::post(HelpdeskApiV1::EventUnsubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "取消订阅服务台事件")
+        Transport::request_typed(request, &self.config, Some(option), "取消订阅服务台事件").await
     }
 }
 
@@ -74,8 +72,7 @@ impl EventUnsubscribeRequestBuilder {
         let request =
             ApiRequest::<EventUnsubscribeResponse>::post(HelpdeskApiV1::EventUnsubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "取消订阅服务台事件")
+        Transport::request_typed(request, &self.config, None, "取消订阅服务台事件").await
     }
 }
 
@@ -84,8 +81,7 @@ pub async fn unsubscribe_event(config: &Config) -> SDKResult<EventUnsubscribeRes
     let request =
         ApiRequest::<EventUnsubscribeResponse>::post(HelpdeskApiV1::EventUnsubscribe.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "取消订阅服务台事件")
+    Transport::request_typed(request, config, None, "取消订阅服务台事件").await
 }
 
 #[cfg(test)]

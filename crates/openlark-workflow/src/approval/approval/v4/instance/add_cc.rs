@@ -11,7 +11,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::common::api_utils::{missing_response_data_error, request_serialization_error};
+use crate::common::api_utils::request_serialization_error;
 
 /// 抄送审批实例请求体（用户级，v4）
 #[derive(Debug, Clone, Serialize, Default)]
@@ -107,14 +107,13 @@ impl AddCcInstanceRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error(
-                "抄送审批实例（用户级）",
-                response.raw_response.request_id.clone(),
-            )
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "抄送审批实例（用户级）",
+        )
+        .await
     }
 }
 

@@ -109,10 +109,13 @@ impl RefreshUserAccessTokenV1RequestBuilder {
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("刷新 user_access_token v1", "响应数据为空")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "刷新 user_access_token v1",
+        )
+        .await
     }
 }
 

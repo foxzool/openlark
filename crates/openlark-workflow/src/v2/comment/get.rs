@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/task-v2/comment/get>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::comment::models::GetCommentResponse;
 use openlark_core::{
     SDKResult,
@@ -59,9 +59,13 @@ impl GetCommentRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取评论")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取评论",
+        )
+        .await
     }
 }
 

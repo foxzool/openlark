@@ -11,8 +11,6 @@ use openlark_core::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::common::api_utils::missing_response_data_error;
-
 /// 审批实例任务项（用户级，v4）
 #[derive(Debug, Clone, Deserialize)]
 pub struct DetailInstanceTaskV4 {
@@ -123,14 +121,13 @@ impl DetailInstanceRequestV4 {
             request = request.query("locale", locale);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error(
-                "获取审批实例详情（用户级）",
-                response.raw_response.request_id.clone(),
-            )
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取审批实例详情（用户级）",
+        )
+        .await
     }
 }
 

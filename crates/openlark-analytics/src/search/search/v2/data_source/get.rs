@@ -64,9 +64,7 @@ impl GetDataSourceRequest {
         let path = format!("/open-apis/search/v2/data_sources/{}", self.data_source_id);
         let req: ApiRequest<GetDataSourceResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取数据源", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取数据源").await
     }
 }
 

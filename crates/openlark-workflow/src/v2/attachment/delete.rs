@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/task-v2/attachment/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::attachment::models::DeleteAttachmentResponse;
 use openlark_core::{
     SDKResult,
@@ -47,9 +47,13 @@ impl DeleteAttachmentRequest {
         let api_endpoint = TaskApiV2::AttachmentDelete(self.attachment_guid.clone());
         let request = ApiRequest::<DeleteAttachmentResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除附件")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除附件",
+        )
+        .await
     }
 }
 

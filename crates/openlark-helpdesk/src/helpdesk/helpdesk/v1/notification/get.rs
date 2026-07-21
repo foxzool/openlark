@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取指定推送通知响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,8 +79,7 @@ impl GetNotificationRequest {
         let api_endpoint = HelpdeskApiV1::NotificationGet(self.notification_id.clone());
         let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取指定推送通知")
+        Transport::request_typed(request, &self.config, Some(option), "获取指定推送通知").await
     }
 }
 
@@ -106,8 +104,7 @@ impl GetNotificationRequestBuilder {
         let api_endpoint = HelpdeskApiV1::NotificationGet(self.notification_id.clone());
         let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取指定推送通知")
+        Transport::request_typed(request, &self.config, None, "获取指定推送通知").await
     }
 }
 
@@ -119,8 +116,7 @@ pub async fn get_notification(
     let api_endpoint = HelpdeskApiV1::NotificationGet(notification_id);
     let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取指定推送通知")
+    Transport::request_typed(request, config, None, "获取指定推送通知").await
 }
 
 #[cfg(test)]

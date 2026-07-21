@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::task::models::ListTasksResponse;
 use openlark_core::{
     SDKResult,
@@ -126,9 +126,13 @@ impl ListTasksRequest {
             request = request.query("sort", sort.to_string());
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取任务列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取任务列表",
+        )
+        .await
     }
 }
 

@@ -40,9 +40,7 @@ impl AppTableGetTableListRequest {
         validate_required!(self.app_id, "app_id 不能为空");
         let path = format!("/open-apis/spark/v1/apps/{}/tables", self.app_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取数据表列表", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取数据表列表").await
     }
 }
 

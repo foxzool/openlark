@@ -55,9 +55,7 @@ impl UpdateApplicationManagementRequest {
         );
         let req: ApiRequest<UpdateApplicationManagementResponse> = ApiRequest::put(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("启停用应用", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "启停用应用").await
     }
 }
 

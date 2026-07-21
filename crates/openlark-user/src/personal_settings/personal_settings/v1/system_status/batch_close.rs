@@ -38,6 +38,11 @@ impl ApiResponseTrait for BatchCloseSystemStatusResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    /// 成功但无 `data` 字段时的空成功（batch_close 类 API，与旧 `unwrap_or` 默认值一致）。
+    fn empty_success() -> Option<Self> {
+        Some(Self { data: None })
+    }
 }
 
 impl BatchCloseSystemStatusRequest {
@@ -79,10 +84,7 @@ impl BatchCloseSystemStatusRequest {
         );
         let body = serde_json::to_value(&self.body)?;
         let req: ApiRequest<BatchCloseSystemStatusResponse> = ApiRequest::post(&path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        Ok(resp
-            .data
-            .unwrap_or(BatchCloseSystemStatusResponse { data: None }))
+        Transport::request_typed(req, &self.config, Some(option), "批量关闭系统状态").await
     }
 }
 

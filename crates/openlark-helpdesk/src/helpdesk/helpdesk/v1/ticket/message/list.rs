@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取工单消息列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,8 +76,7 @@ impl ListTicketMessageRequest {
         let api_endpoint = HelpdeskApiV1::TicketMessageList(self.ticket_id.clone());
         let request = ApiRequest::<ListTicketMessageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取工单消息列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取工单消息列表").await
     }
 }
 
@@ -100,8 +98,7 @@ impl ListTicketMessageRequestBuilder {
         let api_endpoint = HelpdeskApiV1::TicketMessageList(self.ticket_id.clone());
         let request = ApiRequest::<ListTicketMessageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取工单消息列表")
+        Transport::request_typed(request, &self.config, None, "获取工单消息列表").await
     }
 }
 
@@ -113,8 +110,7 @@ pub async fn list_ticket_messages(
     let api_endpoint = HelpdeskApiV1::TicketMessageList(ticket_id);
     let request = ApiRequest::<ListTicketMessageResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取工单消息列表")
+    Transport::request_typed(request, config, None, "获取工单消息列表").await
 }
 
 #[cfg(test)]

@@ -53,8 +53,7 @@ impl ApproveDeviceRequest {
             req = req.body(body);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.into_result()
+        Transport::request_typed(req, &self.config, Some(option), "审批设备申报").await
     }
 }
 

@@ -56,13 +56,13 @@ impl CheckApplicationVisibilityWhiteBlackListRequest {
         let req: ApiRequest<CheckApplicationVisibilityWhiteBlackListResponse> =
             ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询用户或部门是否在应用的可用或禁用名单",
-                "响应数据为空",
-            )
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询用户或部门是否在应用的可用或禁用名单",
+        )
+        .await
     }
 }
 

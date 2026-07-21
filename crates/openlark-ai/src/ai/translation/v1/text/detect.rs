@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::TRANSLATION_V1_TEXT_DETECT;
 
 /// 文本语言检测请求体
@@ -78,8 +78,7 @@ impl TextDetectRequest {
         let req: ApiRequest<TextDetectResponse> = ApiRequest::post(TRANSLATION_V1_TEXT_DETECT)
             .body(serialize_params(&body, "文本语言检测")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "文本语言检测")
+        Transport::request_typed(req, &self.config, Some(option), "文本语言检测").await
     }
 }
 
@@ -146,8 +145,7 @@ pub async fn text_detect_with_options(
     let req: ApiRequest<TextDetectResponse> =
         ApiRequest::post(TRANSLATION_V1_TEXT_DETECT).body(serialize_params(&body, "文本语言检测")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "文本语言检测")
+    Transport::request_typed(req, config, Some(option), "文本语言检测").await
 }
 
 #[cfg(test)]

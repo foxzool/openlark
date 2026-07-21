@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/complete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::task::models::CompleteTaskResponse;
 use openlark_core::{
     SDKResult,
@@ -44,9 +44,13 @@ impl CompleteTaskRequest {
         let api_endpoint = TaskApiV2::TaskComplete(self.task_guid.clone());
         let request = ApiRequest::<CompleteTaskResponse>::post(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "完成任务")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "完成任务",
+        )
+        .await
     }
 }
 

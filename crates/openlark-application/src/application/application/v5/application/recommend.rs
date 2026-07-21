@@ -49,9 +49,7 @@ impl GetRecommendedAppsRequest {
         let req: ApiRequest<GetRecommendedAppsResponse> =
             ApiRequest::get("/open-apis/application/v5/applications/recommend");
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取推荐应用", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取推荐应用").await
     }
 }
 

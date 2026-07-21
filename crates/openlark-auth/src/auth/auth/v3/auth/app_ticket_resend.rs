@@ -92,10 +92,13 @@ impl AppTicketResendRequestBuilder {
                 .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("重新获取 app_ticket", "响应数据为空")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "重新获取 app_ticket",
+        )
+        .await
     }
 }
 

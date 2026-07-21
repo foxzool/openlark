@@ -1,7 +1,7 @@
 //! 获取工单列表
 //! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket/list>
 
-use crate::common::{api_endpoints::HelpdeskApiV1, api_utils::*};
+use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::helpdesk::helpdesk::v1::ticket::models::TicketListResponse;
 use openlark_core::{
     SDKResult,
@@ -62,9 +62,13 @@ impl TicketListRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取工单列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取工单列表",
+        )
+        .await
     }
 }
 

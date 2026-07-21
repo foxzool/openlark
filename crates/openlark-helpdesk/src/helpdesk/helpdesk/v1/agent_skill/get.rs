@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取指定客服技能响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,8 +76,7 @@ impl GetAgentSkillRequest {
         let api_endpoint = HelpdeskApiV1::AgentSkillGet(self.agent_skill_id.clone());
         let request = ApiRequest::<GetAgentSkillResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取指定客服技能")
+        Transport::request_typed(request, &self.config, Some(option), "获取指定客服技能").await
     }
 }
 
@@ -103,8 +101,7 @@ impl GetAgentSkillRequestBuilder {
         let api_endpoint = HelpdeskApiV1::AgentSkillGet(self.agent_skill_id.clone());
         let request = ApiRequest::<GetAgentSkillResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取指定客服技能")
+        Transport::request_typed(request, &self.config, None, "获取指定客服技能").await
     }
 }
 
@@ -116,8 +113,7 @@ pub async fn get_agent_skill(
     let api_endpoint = HelpdeskApiV1::AgentSkillGet(agent_skill_id);
     let request = ApiRequest::<GetAgentSkillResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取指定客服技能")
+    Transport::request_typed(request, config, None, "获取指定客服技能").await
 }
 
 #[cfg(test)]

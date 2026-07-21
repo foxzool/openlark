@@ -89,9 +89,7 @@ impl RecordSearchRequestBuilder {
 
         let req: ApiRequest<RecordSearchResponse> =
             ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 

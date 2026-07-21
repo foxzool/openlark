@@ -63,10 +63,7 @@ impl SeatAssignmentListRequestBuilder {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位分配详情", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询席位分配详情").await
     }
 }
 

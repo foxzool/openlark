@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 删除客服工作日程响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,8 +56,7 @@ impl DeleteAgentScheduleRequest {
         let req: ApiRequest<DeleteAgentScheduleResponse> =
             ApiRequest::delete(HelpdeskApiV1::AgentScheduleDelete(self.agent_id.clone()).to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除客服工作日程")
+        Transport::request_typed(req, &self.config, Some(option), "删除客服工作日程").await
     }
 }
 
@@ -108,8 +106,7 @@ pub async fn delete_agent_schedule_with_options(
     let req: ApiRequest<DeleteAgentScheduleResponse> =
         ApiRequest::delete(HelpdeskApiV1::AgentScheduleDelete(agent_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "删除客服工作日程")
+    Transport::request_typed(req, config, Some(option), "删除客服工作日程").await
 }
 
 #[cfg(test)]

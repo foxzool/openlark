@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取知识库列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,8 +78,7 @@ impl ListFaqRequest {
         let api_endpoint = HelpdeskApiV1::FaqList;
         let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识库列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取知识库列表").await
     }
 }
 
@@ -101,8 +99,7 @@ impl ListFaqRequestBuilder {
         let api_endpoint = HelpdeskApiV1::FaqList;
         let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取知识库列表")
+        Transport::request_typed(request, &self.config, None, "获取知识库列表").await
     }
 }
 
@@ -111,8 +108,7 @@ pub async fn list_faqs(config: &Config) -> SDKResult<ListFaqResponse> {
     let api_endpoint = HelpdeskApiV1::FaqList;
     let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取知识库列表")
+    Transport::request_typed(request, config, None, "获取知识库列表").await
 }
 
 #[cfg(test)]

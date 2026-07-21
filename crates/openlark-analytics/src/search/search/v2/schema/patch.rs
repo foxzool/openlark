@@ -55,9 +55,7 @@ impl PatchSchemaRequest {
         let path = format!("/open-apis/search/v2/schemas/{}", self.schema_id);
         let req: ApiRequest<PatchSchemaResponse> = ApiRequest::patch(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("修改数据范式", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "修改数据范式").await
     }
 }
 

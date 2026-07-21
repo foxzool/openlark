@@ -7,10 +7,7 @@ use openlark_core::{
 };
 
 use super::models::DeleteCardElementResponse;
-use crate::common::{
-    api_utils::extract_response_data,
-    validation::{validate_card_id, validate_element_id},
-};
+use crate::common::validation::{validate_card_id, validate_element_id};
 use crate::endpoints::cardkit_v1_card_element;
 
 /// 删除组件请求体
@@ -74,8 +71,7 @@ impl DeleteCardElementRequest {
         let req: ApiRequest<DeleteCardElementResponse> =
             ApiRequest::delete(cardkit_v1_card_element(&body.card_id, &body.element_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除组件")
+        Transport::request_typed(req, &self.config, Some(option), "删除组件").await
     }
 }
 

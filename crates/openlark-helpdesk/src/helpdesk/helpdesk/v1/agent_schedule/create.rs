@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 创建客服工作日程请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -109,8 +109,7 @@ impl CreateAgentScheduleRequest {
             ApiRequest::post(HelpdeskApiV1::AgentScheduleCreate.to_url())
                 .body(serialize_params(&body, "创建客服工作日程")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建客服工作日程")
+        Transport::request_typed(req, &self.config, Some(option), "创建客服工作日程").await
     }
 }
 
@@ -214,8 +213,7 @@ pub async fn create_agent_schedule_with_options(
         ApiRequest::post(HelpdeskApiV1::AgentScheduleCreate.to_url())
             .body(serialize_params(&body, "创建客服工作日程")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "创建客服工作日程")
+    Transport::request_typed(req, config, Some(option), "创建客服工作日程").await
 }
 
 #[cfg(test)]

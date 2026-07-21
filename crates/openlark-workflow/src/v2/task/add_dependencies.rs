@@ -94,9 +94,13 @@ impl AddDependenciesRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "添加任务依赖")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "添加任务依赖")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "添加任务依赖",
+        )
+        .await
     }
 }
 

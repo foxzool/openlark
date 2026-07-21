@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取知识库图片响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,8 +64,7 @@ impl GetFaqImageRequest {
         let api_endpoint = HelpdeskApiV1::FaqImage(self.id.clone(), self.image_key.clone());
         let request = ApiRequest::<GetFaqImageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识库图片")
+        Transport::request_typed(request, &self.config, Some(option), "获取知识库图片").await
     }
 }
 
@@ -93,8 +91,7 @@ impl GetFaqImageRequestBuilder {
         let api_endpoint = HelpdeskApiV1::FaqImage(self.id.clone(), self.image_key.clone());
         let request = ApiRequest::<GetFaqImageResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取知识库图片")
+        Transport::request_typed(request, &self.config, None, "获取知识库图片").await
     }
 }
 
@@ -107,8 +104,7 @@ pub async fn get_faq_image(
     let api_endpoint = HelpdeskApiV1::FaqImage(id, image_key);
     let request = ApiRequest::<GetFaqImageResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取知识库图片")
+    Transport::request_typed(request, config, None, "获取知识库图片").await
 }
 
 #[cfg(test)]

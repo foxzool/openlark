@@ -11,7 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE;
 
 /// 语音文件识别请求体
@@ -92,8 +92,7 @@ impl FileRecognizeRequest {
             ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)
                 .body(serialize_params(&body, "语音文件识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "语音文件识别")
+        Transport::request_typed(req, &self.config, Some(option), "语音文件识别").await
     }
 }
 
@@ -191,8 +190,7 @@ pub async fn file_recognize_with_options(
         ApiRequest::post(SPEECH_TO_TEXT_V1_SPEECH_FILE_RECOGNIZE)
             .body(serialize_params(&body, "语音文件识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "语音文件识别")
+    Transport::request_typed(req, config, Some(option), "语音文件识别").await
 }
 
 #[cfg(test)]

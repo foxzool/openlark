@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取指定工单自定义字段响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,8 +73,13 @@ impl GetTicketCustomizedFieldRequest {
         let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldGet(self.id.clone());
         let request = ApiRequest::<GetTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取指定工单自定义字段")
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取指定工单自定义字段",
+        )
+        .await
     }
 }
 
@@ -97,8 +101,7 @@ impl GetTicketCustomizedFieldRequestBuilder {
         let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldGet(self.id.clone());
         let request = ApiRequest::<GetTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取指定工单自定义字段")
+        Transport::request_typed(request, &self.config, None, "获取指定工单自定义字段").await
     }
 }
 
@@ -110,8 +113,7 @@ pub async fn get_ticket_customized_field(
     let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldGet(id);
     let request = ApiRequest::<GetTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取指定工单自定义字段")
+    Transport::request_typed(request, config, None, "获取指定工单自定义字段").await
 }
 
 #[cfg(test)]

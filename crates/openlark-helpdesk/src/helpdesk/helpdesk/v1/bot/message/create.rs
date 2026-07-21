@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 通过服务台机器人发送消息请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -97,8 +97,7 @@ impl CreateBotMessageRequest {
             ApiRequest::post(HelpdeskApiV1::BotMessageCreate.to_url())
                 .body(serialize_params(&body, "通过服务台机器人发送消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "通过服务台机器人发送消息")
+        Transport::request_typed(req, &self.config, Some(option), "通过服务台机器人发送消息").await
     }
 }
 
@@ -183,8 +182,7 @@ pub async fn create_bot_message_with_options(
         ApiRequest::post(HelpdeskApiV1::BotMessageCreate.to_url())
             .body(serialize_params(&body, "通过服务台机器人发送消息")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "通过服务台机器人发送消息")
+    Transport::request_typed(req, config, Some(option), "通过服务台机器人发送消息").await
 }
 
 #[cfg(test)]

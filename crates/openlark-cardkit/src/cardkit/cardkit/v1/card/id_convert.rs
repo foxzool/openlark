@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::models::ConvertCardIdResponse;
 use crate::common::{
-    api_utils::{extract_response_data, serialize_params},
+    api_utils::serialize_params,
     validation::{validate_id_list, validate_id_type},
 };
 use crate::endpoints::CARDKIT_V1_CARD_ID_CONVERT;
@@ -80,8 +80,7 @@ impl ConvertCardIdRequest {
         let req: ApiRequest<ConvertCardIdResponse> =
             ApiRequest::post(CARDKIT_V1_CARD_ID_CONVERT).body(serialize_params(&body, "转换 ID")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "转换 ID")
+        Transport::request_typed(req, &self.config, Some(option), "转换 ID").await
     }
 }
 
@@ -157,8 +156,7 @@ pub async fn convert_with_options(
     let req: ApiRequest<ConvertCardIdResponse> =
         ApiRequest::post(CARDKIT_V1_CARD_ID_CONVERT).body(serialize_params(&body, "转换 ID")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "转换 ID")
+    Transport::request_typed(req, config, Some(option), "转换 ID").await
 }
 
 #[cfg(test)]

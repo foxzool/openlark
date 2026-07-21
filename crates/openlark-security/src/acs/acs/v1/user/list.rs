@@ -38,6 +38,15 @@ impl openlark_core::api::ApiResponseTrait for ListUsersResponse {
     fn data_format() -> openlark_core::api::ResponseFormat {
         openlark_core::api::ResponseFormat::Data
     }
+
+    /// 成功但无 `data` 字段时的空列表（与旧 `unwrap_or` 默认值一致）。
+    fn empty_success() -> Option<Self> {
+        Some(Self {
+            has_more: false,
+            page_token: None,
+            items: None,
+        })
+    }
 }
 
 impl ListUsersRequest {
@@ -82,15 +91,7 @@ impl ListUsersRequest {
             .query_opt("department_id", self.department_id.as_ref())
             .with_supported_access_token_types(vec![AccessTokenType::App]);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        if !resp.is_success() {
-            return resp.into_result();
-        }
-        Ok(resp.data.unwrap_or(ListUsersResponse {
-            has_more: false,
-            page_token: None,
-            items: None,
-        }))
+        Transport::request_typed(req, &self.config, Some(option), "获取用户列表").await
     }
 }
 

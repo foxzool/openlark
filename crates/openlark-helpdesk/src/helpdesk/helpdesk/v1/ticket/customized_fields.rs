@@ -68,10 +68,7 @@ impl GetCustomizedFieldsRequest {
         let path = HelpdeskApiV1::TicketCustomizedFields.to_url();
         let req: ApiRequest<GetCustomizedFieldsResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取服务台自定义字段", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "获取服务台自定义字段").await
     }
 }
 

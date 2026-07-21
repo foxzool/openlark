@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/task-v2/task_v2/task_subscription>
 
-use crate::common::{TaskV2Endpoint, api_utils::*};
+use crate::common::TaskV2Endpoint;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -60,9 +60,13 @@ impl TaskSubscriptionRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "订阅任务变更事件")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "订阅任务变更事件",
+        )
+        .await
     }
 }
 

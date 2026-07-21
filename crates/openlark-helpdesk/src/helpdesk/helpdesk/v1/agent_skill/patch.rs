@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新客服技能请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -102,8 +102,7 @@ impl PatchAgentSkillRequest {
             ApiRequest::patch(HelpdeskApiV1::AgentSkillPatch(self.agent_skill_id.clone()).to_url())
                 .body(serialize_params(&body, "更新客服技能")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新客服技能")
+        Transport::request_typed(req, &self.config, Some(option), "更新客服技能").await
     }
 }
 
@@ -196,8 +195,7 @@ pub async fn patch_agent_skill_with_options(
         ApiRequest::patch(HelpdeskApiV1::AgentSkillPatch(agent_skill_id).to_url())
             .body(serialize_params(&body, "更新客服技能")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "更新客服技能")
+    Transport::request_typed(req, config, Some(option), "更新客服技能").await
 }
 
 #[cfg(test)]

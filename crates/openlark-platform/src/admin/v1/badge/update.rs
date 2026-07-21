@@ -65,10 +65,7 @@ impl UpdateBadgeRequestBuilder {
         let api_request: ApiRequest<UpdateBadgeResponse> =
             ApiRequest::put(url).body(serde_json::to_value(&request_body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("修改勋章信息", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "修改勋章信息").await
     }
 }
 

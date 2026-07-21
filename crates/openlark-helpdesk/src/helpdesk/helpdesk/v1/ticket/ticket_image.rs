@@ -70,9 +70,7 @@ impl GetTicketImageRequest {
                 .query("ticket_id", self.ticket_id)
                 .query("image_key", self.image_key);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取工单内图像", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取工单内图像").await
     }
 }
 

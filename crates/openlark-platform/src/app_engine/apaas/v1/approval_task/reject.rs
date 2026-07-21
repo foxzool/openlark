@@ -62,10 +62,7 @@ impl RejectTaskRequestBuilder {
         let api_request: ApiRequest<RejectTaskResponse> =
             ApiRequest::post(url).body(serde_json::to_value(&request_body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("拒绝人工任务", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "拒绝人工任务").await
     }
 }
 

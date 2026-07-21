@@ -38,6 +38,11 @@ impl ApiResponseTrait for SetAppBadgeResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    /// 成功但无 `data` 字段时的空成功（set 类 API，与旧 `unwrap_or` 默认值一致）。
+    fn empty_success() -> Option<Self> {
+        Some(Self { data: None })
+    }
 }
 
 impl SetAppBadgeRequest {
@@ -74,8 +79,7 @@ impl SetAppBadgeRequest {
         let path = "/open-apis/application/v6/app_badge/set";
         let body = serde_json::to_value(&self.body)?;
         let req: ApiRequest<SetAppBadgeResponse> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        Ok(resp.data.unwrap_or(SetAppBadgeResponse { data: None }))
+        Transport::request_typed(req, &self.config, Some(option), "更新应用红点").await
     }
 }
 

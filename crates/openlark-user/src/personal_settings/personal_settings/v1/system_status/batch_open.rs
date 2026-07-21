@@ -56,10 +56,7 @@ impl SystemStatusBatchOpenRequest {
         );
         let req: ApiRequest<SystemStatusBatchOpenResponse> = ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("system_status batch_open", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "system_status batch_open").await
     }
 }
 

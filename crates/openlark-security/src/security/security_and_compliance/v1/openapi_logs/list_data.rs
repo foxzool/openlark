@@ -72,8 +72,7 @@ impl ListOpenApiLogsRequest {
                 .body(self.body)
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.into_result()
+        Transport::request_typed(req, &self.config, Some(option), "获取 OpenAPI 审计日志数据").await
     }
 }
 

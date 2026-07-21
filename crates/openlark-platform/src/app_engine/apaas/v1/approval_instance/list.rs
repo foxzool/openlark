@@ -76,10 +76,7 @@ impl ListInstanceRequestBuilder {
 
         let api_request: ApiRequest<ListInstanceResponse> = ApiRequest::get(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取人工任务列表", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取人工任务列表").await
     }
 }
 

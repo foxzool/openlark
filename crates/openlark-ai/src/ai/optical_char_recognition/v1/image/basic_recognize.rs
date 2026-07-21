@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE;
 
 /// OCR 基础识别请求体
@@ -123,8 +123,7 @@ impl BasicRecognizeRequest {
             ApiRequest::post(OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE)
                 .body(serialize_params(&body, "OCR 基础识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "OCR 基础识别")
+        Transport::request_typed(req, &self.config, Some(option), "OCR 基础识别").await
     }
 }
 
@@ -204,8 +203,7 @@ pub async fn basic_recognize_with_options(
         ApiRequest::post(OPTICAL_CHAR_RECOGNITION_V1_IMAGE_BASIC_RECOGNIZE)
             .body(serialize_params(&body, "OCR 基础识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "OCR 基础识别")
+    Transport::request_typed(req, config, Some(option), "OCR 基础识别").await
 }
 
 #[cfg(test)]

@@ -78,8 +78,7 @@ impl SearchTaskRequest {
             req = req.query("user_id_type", user_id_type);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索任务")
+        Transport::request_typed(req, &self.config, Some(option), "搜索任务").await
     }
 }
 

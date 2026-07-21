@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 取消推送通知审核响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,8 +60,7 @@ impl CancelApproveNotificationRequest {
             HelpdeskApiV1::NotificationCancelApprove(self.notification_id.clone()).to_url(),
         );
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "取消推送通知审核")
+        Transport::request_typed(req, &self.config, Some(option), "取消推送通知审核").await
     }
 }
 
@@ -122,8 +120,7 @@ pub async fn cancel_approve_notification_with_options(
     let req: ApiRequest<CancelApproveNotificationResponse> =
         ApiRequest::post(HelpdeskApiV1::NotificationCancelApprove(notification_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "取消推送通知审核")
+    Transport::request_typed(req, config, Some(option), "取消推送通知审核").await
 }
 
 #[cfg(test)]

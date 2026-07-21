@@ -93,9 +93,13 @@ impl CreateCommentRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建评论")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建评论",
+        )
+        .await
     }
 }
 

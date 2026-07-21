@@ -170,9 +170,7 @@ impl IdentityCreateRequestBuilder {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("录入身份信息", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "录入身份信息").await
     }
 }
 

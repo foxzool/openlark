@@ -46,9 +46,7 @@ impl SearchAppRequest {
         let path = "/open-apis/search/v2/app".to_string();
         let req: ApiRequest<SearchAppResponse> = ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("搜索应用", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "搜索应用").await
     }
 }
 

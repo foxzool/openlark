@@ -47,10 +47,7 @@ impl AgreeTaskRequestBuilder {
         );
         let api_request: ApiRequest<AgreeTaskResponse> = ApiRequest::post(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("同意人工任务", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "同意人工任务").await
     }
 }
 

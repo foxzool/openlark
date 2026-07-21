@@ -8,7 +8,7 @@ use openlark_core::{
 
 use super::models::UpdateCardElementResponse;
 use crate::common::{
-    api_utils::{extract_response_data, serialize_params},
+    api_utils::serialize_params,
     validation::{validate_card_id, validate_element_id},
 };
 use crate::endpoints::cardkit_v1_card_element;
@@ -82,8 +82,7 @@ impl UpdateCardElementRequest {
             ApiRequest::put(cardkit_v1_card_element(&body.card_id, &body.element_id))
                 .body(serialize_params(&body, "更新组件属性")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新组件属性")
+        Transport::request_typed(req, &self.config, Some(option), "更新组件属性").await
     }
 }
 

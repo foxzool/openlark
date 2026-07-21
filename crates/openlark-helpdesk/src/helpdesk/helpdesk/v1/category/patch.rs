@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新知识库分类请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -105,8 +105,7 @@ impl PatchCategoryRequest {
             ApiRequest::patch(HelpdeskApiV1::CategoryPatch(self.id.clone()).to_url())
                 .body(serialize_params(&body, "更新知识库分类")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新知识库分类")
+        Transport::request_typed(req, &self.config, Some(option), "更新知识库分类").await
     }
 }
 
@@ -208,8 +207,7 @@ pub async fn patch_category_with_options(
         ApiRequest::patch(HelpdeskApiV1::CategoryPatch(id).to_url())
             .body(serialize_params(&body, "更新知识库分类")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "更新知识库分类")
+    Transport::request_typed(req, config, Some(option), "更新知识库分类").await
 }
 
 #[cfg(test)]

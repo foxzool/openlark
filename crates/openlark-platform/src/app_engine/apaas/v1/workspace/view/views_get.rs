@@ -85,9 +85,7 @@ impl ViewsGetRequestBuilder {
         if let Some(filter) = self.filter {
             req = req.query("filter", &filter);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询视图记录", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "查询视图记录").await
     }
 }
 

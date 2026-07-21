@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_BANK_CARD_RECOGNIZE;
 
 /// 银行卡识别请求体
@@ -103,8 +103,7 @@ impl BankCardRecognizeRequest {
                 .body(serialize_params(&body, "银行卡识别")?)
                 .file_content(body.file.clone());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "银行卡识别")
+        Transport::request_typed(req, &self.config, Some(option), "银行卡识别").await
     }
 }
 
@@ -183,8 +182,7 @@ pub async fn bank_card_recognize_with_options(
             .body(serialize_params(&body, "银行卡识别")?)
             .file_content(body.file.clone());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "银行卡识别")
+    Transport::request_typed(req, config, Some(option), "银行卡识别").await
 }
 
 #[cfg(test)]

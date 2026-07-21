@@ -56,10 +56,13 @@ impl PatchApplicationContactsRangeRequest {
         );
         let req: ApiRequest<PatchApplicationContactsRangeResponse> = ApiRequest::patch(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("更新应用通讯录权限范围配置", "响应数据为空")
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "更新应用通讯录权限范围配置",
+        )
+        .await
     }
 }
 

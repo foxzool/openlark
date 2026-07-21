@@ -55,9 +55,7 @@ impl RemoveReportRuleViewRequest {
         let path = format!("/open-apis/report/v1/rules/{}/views/remove", self.rule_id);
         let req: ApiRequest<RemoveReportRuleViewResponse> = ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("移除规则看板", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "移除规则看板").await
     }
 }
 

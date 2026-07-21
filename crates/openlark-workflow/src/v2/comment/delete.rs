@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/task-v2/comment/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::comment::models::DeleteCommentResponse;
 use openlark_core::{
     SDKResult,
@@ -47,9 +47,13 @@ impl DeleteCommentRequest {
         let api_endpoint = TaskApiV2::CommentDelete(self.comment_guid.clone());
         let request = ApiRequest::<DeleteCommentResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除评论")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除评论",
+        )
+        .await
     }
 }
 
