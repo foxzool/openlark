@@ -1090,4 +1090,17 @@ async fn request_typed_failure_attaches_operation_resource_request_id() {
         Some("rid-typed-fail"),
         "request_id from envelope must be attached for server-side reconciliation"
     );
+
+    // Option C (#485)：业务错误（code≠0）保留飞书 msg，返回 Api 错误（非 Validation）；
+    // 此前 canonical 路径把业务错误当"data 缺失"丢 msg。
+    match &err {
+        CoreError::Api(api) => {
+            assert!(
+                api.message.contains("permission denied"),
+                "business envelope msg must be preserved: {}",
+                api.message
+            );
+        }
+        other => panic!("expected CoreError::Api for business error, got: {other:?}"),
+    }
 }
