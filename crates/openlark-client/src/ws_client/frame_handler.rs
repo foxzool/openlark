@@ -7,7 +7,8 @@ use log::{debug, error, trace};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
-use super::client::{ClientConfig, EventDispatcherHandler};
+use super::client::ClientConfig;
+use super::dispatcher::EventDispatcherHandler;
 use super::headers;
 
 /// 飞书 WebSocket protobuf frame method：控制帧。
