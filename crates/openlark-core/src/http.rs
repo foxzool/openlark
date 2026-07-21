@@ -164,7 +164,7 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
     }
 
     /// 执行 HTTP 请求
-    pub async fn do_send(
+    pub(crate) async fn do_send(
         raw_request: RequestBuilder,
         body: Vec<u8>,
         multi_part: bool,

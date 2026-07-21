@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **迁移**：仅走 `client.<domain>` 字段访问的代码零影响；使用 `Client::registry()` /
     prelude 导出的 trait / `registry_error()` 的代码需移除这些调用。
 
+- **core：`Transport::do_send` 收为 `pub(crate)`（#478）**：
+  全仓零外部调用者（仅 core 内 `do_request` 调用 + 一处注释引用），却以 `pub`
+  暴露在公开 API 表面。收紧后接口诚实反映「core 内部 HTTP 发送实现细节」，
+  不再误导外部消费者当作稳定入口。纯可见性变更、无行为影响；唯一外部可观察
+  效果是从公开 API 移除该函数。
+
 ### Changed
 
 - **security：`CoreError` 风险分类收口到 extension trait（#477, #480）**：
