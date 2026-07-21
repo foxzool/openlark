@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::CatalogItem;
+use crate::common::shared_models::CatalogItem;
 
 /// 获取招聘需求模板列表请求
 #[derive(Debug, Clone)]
