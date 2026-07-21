@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/create>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSETS};
+use crate::endpoints::AILY_V1_DATA_ASSETS;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -118,8 +118,7 @@ impl CreateDataAssetRequest {
         let url = AILY_V1_DATA_ASSETS.replace("{app_id}", &self.app_id);
         let req: ApiRequest<CreateDataAssetBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建数据知识")
+        Transport::request_typed(req, &self.config, Some(option), "创建数据知识").await
     }
 }
 

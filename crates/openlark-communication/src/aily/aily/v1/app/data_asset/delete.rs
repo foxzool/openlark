@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/delete>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSET};
+use crate::endpoints::AILY_V1_DATA_ASSET;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -78,8 +78,7 @@ impl DeleteDataAssetRequest {
             .replace("{data_asset_id}", &self.data_asset_id);
         let req: ApiRequest<()> = ApiRequest::delete(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除数据知识")
+        Transport::request_typed(req, &self.config, Some(option), "删除数据知识").await
     }
 }
 

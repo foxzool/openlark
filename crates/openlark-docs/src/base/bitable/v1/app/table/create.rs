@@ -163,10 +163,13 @@ impl CreateTableRequest {
             .body(serde_json::to_vec(&request_body)?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 新增一个数据表",
+        )
+        .await
     }
 }
 

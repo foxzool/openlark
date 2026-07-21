@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::VC_V1_ROOM_LEVELS;
 
 /// 删除会议室层级请求
@@ -41,8 +41,7 @@ impl DeleteRoomLevelRequest {
             ApiRequest::post(format!("{}/del", VC_V1_ROOM_LEVELS))
                 .body(serialize_params(&body, "删除会议室层级")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除会议室层级")
+        Transport::request_typed(req, &self.config, Some(option), "删除会议室层级").await
     }
 }
 

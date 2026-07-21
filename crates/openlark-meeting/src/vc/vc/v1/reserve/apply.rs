@@ -11,8 +11,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
-
 /// 预约会议请求
 
 #[derive(Debug, Clone)]
@@ -61,8 +59,7 @@ impl ApplyReserveRequest {
         let api_request: ApiRequest<ApplyReserveResponse> =
             ApiRequest::post("/open-apis/vc/v1/reserves/apply").body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "预约会议")
+        Transport::request_typed(api_request, &self.config, Some(option), "预约会议").await
     }
 }
 

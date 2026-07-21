@@ -12,7 +12,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 查询会议室列表请求
 
@@ -83,8 +82,7 @@ impl ListRoomRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询会议室列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询会议室列表").await
     }
 }
 

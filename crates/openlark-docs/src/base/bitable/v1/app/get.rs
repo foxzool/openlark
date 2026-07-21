@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use super::AppService;
 use super::models::App;
-use crate::common::api_utils::missing_response_data_error;
 
 /// 获取多维表格请求。
 #[derive(Debug, Clone)]
@@ -76,10 +75,7 @@ impl GetAppRequest {
         let api_request: ApiRequest<GetAppResponse> = api_endpoint.to_request::<GetAppResponse>();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error("获取多维表格", response.raw_response.request_id.clone())
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取多维表格").await
     }
 }
 

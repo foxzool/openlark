@@ -8,7 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         functional_role::member::models::PatchMembersScopesResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -158,9 +158,7 @@ impl PatchRoleMembersScopesRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量设置角色成员管理范围")
+        Transport::request_typed(req, &self.config, Some(option), "批量设置角色成员管理范围").await
     }
 }
 

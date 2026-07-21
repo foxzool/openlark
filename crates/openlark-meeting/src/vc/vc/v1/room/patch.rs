@@ -11,7 +11,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 use serde::{Deserialize, Serialize};
 
 /// 更新会议室请求
@@ -72,8 +72,7 @@ impl PatchRoomRequest {
         let api_request: ApiRequest<PatchRoomResponse> =
             ApiRequest::patch(api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新会议室")
+        Transport::request_typed(api_request, &self.config, Some(option), "更新会议室").await
     }
 }
 

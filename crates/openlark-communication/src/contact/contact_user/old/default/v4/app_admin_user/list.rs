@@ -4,7 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::USER_V4_APP_ADMIN_USER_LIST};
+use crate::endpoints::USER_V4_APP_ADMIN_USER_LIST;
 
 /// 查询应用管理员列表请求
 pub struct ListAppAdminUserRequest {
@@ -33,8 +33,7 @@ impl ListAppAdminUserRequest {
     ) -> SDKResult<serde_json::Value> {
         // url: GET:/open-apis/user/v4/app_admin_user/list
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(USER_V4_APP_ADMIN_USER_LIST);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询应用管理员列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询应用管理员列表").await
     }
 }
 

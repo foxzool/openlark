@@ -7,9 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    endpoints::IM_V1_MESSAGES,
+    common::api_utils::serialize_params, common::models::EmptyData, endpoints::IM_V1_MESSAGES,
 };
 
 /// 更新已发送的消息卡片请求
@@ -86,9 +84,7 @@ impl PatchMessageCardRequest {
             ApiRequest::patch(format!("{}/{}", IM_V1_MESSAGES, self.message_id))
                 .body(serialize_params(&body, "更新已发送的消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新已发送的消息卡片")
+        Transport::request_typed(req, &self.config, Some(option), "更新已发送的消息卡片").await
     }
 }
 

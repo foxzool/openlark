@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_MESSAGES,
 };
 
@@ -139,9 +136,7 @@ impl PushFollowUpRequest {
         ))
         .body(serialize_params(&body, "添加跟随气泡")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "添加跟随气泡")
+        Transport::request_typed(req, &self.config, Some(option), "添加跟随气泡").await
     }
 }
 

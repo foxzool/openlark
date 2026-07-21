@@ -125,8 +125,7 @@ impl CreateRecordRequest {
         };
         request = request.body(serialize_params(&request_body, "新增记录")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新增记录")
+        Transport::request_typed(request, &self.config, Some(option), "新增记录").await
     }
 }
 

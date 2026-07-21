@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::CalendarApiV4;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 创建访问控制请求
 pub struct CreateCalendarAclRequest {
@@ -54,8 +54,7 @@ impl CreateCalendarAclRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(endpoint.to_url()).body(serialize_params(&body, "创建访问控制")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建访问控制")
+        Transport::request_typed(req, &self.config, Some(option), "创建访问控制").await
     }
 }
 

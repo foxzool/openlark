@@ -60,6 +60,5 @@ pub async fn move_dimension_with_options(
         .body(serialize_params(&params, "移动行列")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "移动行列")
+    Transport::request_typed(api_request, config, Some(option), "移动行列").await
 }

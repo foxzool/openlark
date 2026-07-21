@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::CONTACT_V2_TASK_GET};
+use crate::endpoints::CONTACT_V2_TASK_GET;
 
 /// 查询批量任务执行状态请求
 pub struct GetBatchTaskRequest {
@@ -48,8 +48,7 @@ impl GetBatchTaskRequest {
         for (k, v) in self.query {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询批量任务执行状态")
+        Transport::request_typed(req, &self.config, Some(option), "查询批量任务执行状态").await
     }
 }
 

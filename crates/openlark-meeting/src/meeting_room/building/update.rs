@@ -53,17 +53,7 @@ impl UpdateBuildingRequest {
         let req: ApiRequest<UpdateBuildingResponse> =
             ApiRequest::post(api_endpoint.to_url()).body(serialize_params(&body, "更新建筑物")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        // 官方示例无 data 字段；成功且缺省时返回空响应。
-        if !resp.is_success() {
-            return Err(openlark_core::error::api_error(
-                resp.code() as u16,
-                "更新建筑物",
-                resp.message().to_string(),
-                resp.raw().request_id.clone(),
-            ));
-        }
-        Ok(resp.data.unwrap_or_default())
+        Transport::request_typed(req, &self.config, Some(option), "更新建筑物").await
     }
 }
 

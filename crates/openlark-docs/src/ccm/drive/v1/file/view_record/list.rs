@@ -17,7 +17,7 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取文件查看记录请求
 
@@ -199,9 +199,7 @@ pub async fn get_file_view_records(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取文件访问记录")
+    Transport::request_typed(api_request, config, option, "获取文件访问记录").await
 }
 
 #[cfg(test)]

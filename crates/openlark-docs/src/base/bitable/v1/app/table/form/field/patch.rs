@@ -122,10 +122,13 @@ impl PatchFormFieldQuestionRequest {
             .to_request()
             .body(serde_json::to_vec(&self.body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 更新表单问题",
+        )
+        .await
     }
 }
 

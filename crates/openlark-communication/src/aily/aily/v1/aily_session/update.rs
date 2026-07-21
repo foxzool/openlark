@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/update>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSION};
+use crate::endpoints::AILY_V1_SESSION;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -102,8 +102,7 @@ impl UpdateSessionRequest {
         let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<UpdateSessionBody> = ApiRequest::put(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新会话")
+        Transport::request_typed(req, &self.config, Some(option), "更新会话").await
     }
 }
 

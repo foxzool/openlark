@@ -68,8 +68,7 @@ impl CheckMemberPermissionRequest {
             .to_request()
             .body(serialize_params(&self.params, "检查成员权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "检查成员权限")
+        Transport::request_typed(api_request, &self.config, Some(option), "检查成员权限").await
     }
 }
 
@@ -106,8 +105,7 @@ impl TransferOwnerRequest {
             .to_request()
             .body(serialize_params(&self.params, "转移拥有者")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "转移拥有者")
+        Transport::request_typed(api_request, &self.config, Some(option), "转移拥有者").await
     }
 }
 
@@ -143,8 +141,7 @@ impl GetPublicPermissionRequest {
             .to_request()
             .body(serialize_params(&self.params, "获取公开权限设置")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取公开权限设置")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取公开权限设置").await
     }
 }
 

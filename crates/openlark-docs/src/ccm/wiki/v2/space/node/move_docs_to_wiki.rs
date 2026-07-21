@@ -138,8 +138,7 @@ impl MoveDocsToWikiRequest {
             .to_request()
             .body(serialize_params(&request_body, "移动云空间文档至知识空间")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "节点")
+        Transport::request_typed(api_request, &self.config, Some(option), "节点").await
     }
 }
 

@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 删除文档版本请求
 #[derive(Debug, Clone)]
@@ -85,8 +85,7 @@ impl DeleteFileVersionRequest {
             .query_opt("user_id_type", self.user_id_type);
 
         // ========== 发送请求并返回响应 ==========
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除")
+        Transport::request_typed(request, &self.config, Some(option), "删除").await
     }
 }
 

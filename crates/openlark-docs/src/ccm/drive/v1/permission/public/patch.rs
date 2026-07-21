@@ -186,8 +186,7 @@ impl PatchPublicPermissionRequest {
                 "更新云文档权限设置",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新")
+        Transport::request_typed(request, &self.config, Some(option), "更新").await
     }
 }
 

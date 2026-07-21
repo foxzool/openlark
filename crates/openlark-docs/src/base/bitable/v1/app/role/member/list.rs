@@ -97,10 +97,13 @@ impl ListRoleMembersRequest {
             api_request = api_request.query("page_token", page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 列出协作者（自定义角色）",
+        )
+        .await
     }
 }
 

@@ -174,9 +174,7 @@ pub async fn create_file_subscription(
         )?);
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "创建订阅")
+    Transport::request_typed(api_request, config, option, "创建订阅").await
 }
 
 #[cfg(test)]

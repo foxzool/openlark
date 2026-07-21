@@ -4,7 +4,7 @@
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
@@ -127,11 +127,7 @@ impl GetEntityRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<GetEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词条详情").await
     }
 }
 

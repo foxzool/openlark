@@ -5,10 +5,8 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V2_CHAT_BUTTON,
-    im::v1::message::models::UserIdType,
-    im::v2::chat_button::models::ChatButtonUpdateResponse,
+    common::api_utils::serialize_params, endpoints::IM_V2_CHAT_BUTTON,
+    im::v1::message::models::UserIdType, im::v2::chat_button::models::ChatButtonUpdateResponse,
 };
 
 /// 更新消息流卡片按钮请求
@@ -59,9 +57,7 @@ impl UpdateChatButtonRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新消息流卡片按钮")
+        Transport::request_typed(req, &self.config, Some(option), "更新消息流卡片按钮").await
     }
 }
 

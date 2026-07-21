@@ -7,10 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CALENDAR_V4_CALENDARS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CALENDAR_V4_CALENDARS};
 
 /// 订阅日程变更事件请求
 pub struct SubscriptionCalendarEventRequest {
@@ -58,8 +55,7 @@ impl SubscriptionCalendarEventRequest {
         ))
         .body(serialize_params(&body, "订阅日程变更事件")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "订阅日程变更事件")
+        Transport::request_typed(req, &self.config, Some(option), "订阅日程变更事件").await
     }
 }
 

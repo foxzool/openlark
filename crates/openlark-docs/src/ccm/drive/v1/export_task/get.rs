@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取导出任务请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,8 +63,7 @@ impl GetExportTaskRequest {
             .to_request::<GetExportTaskResponse>()
             .query("token", &self.token);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

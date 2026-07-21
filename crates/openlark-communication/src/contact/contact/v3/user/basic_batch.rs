@@ -13,8 +13,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    contact::contact::v3::user::models::UserIdType,
+    common::api_utils::serialize_params, contact::contact::v3::user::models::UserIdType,
     endpoints::CONTACT_V3_USERS_BASIC_BATCH,
 };
 
@@ -137,8 +136,7 @@ impl BasicBatchUsersRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户姓名")
+        Transport::request_typed(req, &self.config, Some(option), "获取用户姓名").await
     }
 }
 

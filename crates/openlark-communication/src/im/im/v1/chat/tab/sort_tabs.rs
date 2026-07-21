@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
+    common::api_utils::serialize_params, endpoints::IM_V1_CHATS,
     im::v1::chat::tab::models::TabIdsBody,
 };
 
@@ -65,9 +64,7 @@ impl SortChatTabsRequest {
         ))
         .body(serialize_params(&body, "会话标签页排序")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "会话标签页排序")
+        Transport::request_typed(req, &self.config, Some(option), "会话标签页排序").await
     }
 }
 

@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 刷新云文档密码请求
 #[derive(Debug, Clone)]
@@ -80,8 +80,7 @@ impl UpdatePermissionPublicPasswordRequest {
             .to_request::<UpdatePermissionPublicPasswordResponse>()
             .query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新")
+        Transport::request_typed(request, &self.config, Some(option), "更新").await
     }
 }
 

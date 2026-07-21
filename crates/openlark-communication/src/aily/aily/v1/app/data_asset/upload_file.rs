@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_UPLOAD_FILE};
+use crate::endpoints::AILY_V1_UPLOAD_FILE;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -74,8 +74,7 @@ impl UploadFileRequest {
         let url = AILY_V1_UPLOAD_FILE.replace("{app_id}", &self.app_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "上传文件用于数据知识管理")
+        Transport::request_typed(req, &self.config, Some(option), "上传文件用于数据知识管理").await
     }
 }
 

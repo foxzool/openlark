@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新禁用状态变更通知请求
 pub struct PatchDisableInformRequest {
@@ -52,8 +52,7 @@ impl PatchDisableInformRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::patch(endpoint.to_url())
             .body(serialize_params(&body, "更新禁用状态变更通知")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新禁用状态变更通知")
+        Transport::request_typed(req, &self.config, Some(option), "更新禁用状态变更通知").await
     }
 }
 

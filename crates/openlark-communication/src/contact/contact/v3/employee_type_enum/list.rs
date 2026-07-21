@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::employee_type_enum::models::ListEmployeeTypeEnumsResponse,
     endpoints::CONTACT_V3_EMPLOYEE_TYPE_ENUMS,
 };
@@ -65,8 +64,7 @@ impl ListEmployeeTypeEnumsRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询人员类型")
+        Transport::request_typed(req, &self.config, Some(option), "查询人员类型").await
     }
 }
 

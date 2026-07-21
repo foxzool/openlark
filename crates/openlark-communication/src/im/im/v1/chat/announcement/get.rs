@@ -7,7 +7,6 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
     im::v1::{
         chat::announcement::models::GetChatAnnouncementResponse, message::models::UserIdType,
@@ -79,8 +78,7 @@ impl GetChatAnnouncementRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群公告信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取群公告信息").await
     }
 }
 

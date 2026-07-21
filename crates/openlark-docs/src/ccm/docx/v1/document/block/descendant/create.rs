@@ -118,8 +118,7 @@ impl CreateDocumentBlockDescendantRequest {
                 api_request.query("document_revision_id", &document_revision_id.to_string());
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建嵌套块")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建嵌套块").await
     }
 }
 

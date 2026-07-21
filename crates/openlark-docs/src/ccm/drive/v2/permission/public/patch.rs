@@ -134,8 +134,7 @@ pub async fn update_permission_public_with_options(
         .query("type", &request.r#type)
         .body(serialize_params(&body, "更新云文档权限设置")?);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新云文档权限设置")
+    Transport::request_typed(api_request, config, Some(option), "更新云文档权限设置").await
 }
 
 #[cfg(test)]

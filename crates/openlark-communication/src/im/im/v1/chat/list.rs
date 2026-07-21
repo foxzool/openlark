@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_CHATS,
     im::v1::{chat::models::ChatSortType, message::models::UserIdType},
 };
@@ -108,8 +107,13 @@ impl ListChatsRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户或机器人所在的群列表")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "获取用户或机器人所在的群列表",
+        )
+        .await
     }
 }
 

@@ -103,10 +103,13 @@ impl UpdateWorkflowRequest {
 
         let api_request: ApiRequest<UpdateWorkflowResponse> = api_endpoint.to_request().body(body);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "更新自动化流程状态",
+        )
+        .await
     }
 }
 

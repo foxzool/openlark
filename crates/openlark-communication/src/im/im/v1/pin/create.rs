@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_PINS,
     im::v1::pin::models::{CreatePinBody, CreatePinResponse},
 };
@@ -58,9 +58,7 @@ impl CreatePinRequest {
         let req: ApiRequest<CreatePinResponse> =
             ApiRequest::post(IM_V1_PINS).body(serialize_params(&body, "Pin 消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "Pin 消息")
+        Transport::request_typed(req, &self.config, Some(option), "Pin 消息").await
     }
 }
 

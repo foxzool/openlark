@@ -11,7 +11,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 use serde::{Deserialize, Serialize};
 
 /// 获取会议详情请求
@@ -89,8 +89,7 @@ impl GetMeetingRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取会议详情")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取会议详情").await
     }
 }
 

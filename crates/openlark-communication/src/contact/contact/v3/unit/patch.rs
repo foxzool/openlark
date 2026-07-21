@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::CONTACT_V3_UNIT,
 };
 
@@ -69,9 +66,7 @@ impl PatchUnitRequest {
             ApiRequest::patch(format!("{}/{}", CONTACT_V3_UNIT, self.unit_id))
                 .body(serialize_params(&body, "修改单位信息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "修改单位信息")
+        Transport::request_typed(req, &self.config, Some(option), "修改单位信息").await
     }
 }
 

@@ -11,7 +11,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::models::PermissionPublic;
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取云文档权限设置请求。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,8 +82,7 @@ pub async fn get_permission_public_with_options(
     let api_request: ApiRequest<GetPermissionPublicResponse> =
         api_endpoint.to_request().query("type", &request.r#type);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取云文档权限设置")
+    Transport::request_typed(api_request, config, Some(option), "获取云文档权限设置").await
 }
 
 #[cfg(test)]

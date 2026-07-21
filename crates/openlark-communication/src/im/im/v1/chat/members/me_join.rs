@@ -6,9 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, common::models::EmptyData, endpoints::IM_V1_CHATS,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_CHATS};
 
 /// 用户或机器人主动加入群聊请求
 ///
@@ -52,8 +50,7 @@ impl MeJoinChatMembersRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::patch(format!("{}/{}/members/me_join", IM_V1_CHATS, self.chat_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "用户或机器人主动加入群聊")
+        Transport::request_typed(req, &self.config, Some(option), "用户或机器人主动加入群聊").await
     }
 }
 

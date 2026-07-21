@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 导出会议室预定数据请求
 pub struct ExportResourceReservationListRequest {
@@ -41,8 +41,7 @@ impl ExportResourceReservationListRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "导出会议室预定数据")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "导出会议室预定数据")
+        Transport::request_typed(req, &self.config, Some(option), "导出会议室预定数据").await
     }
 }
 

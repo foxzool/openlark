@@ -6,7 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::VC_V1_ROOM_LEVELS;
 
 /// 搜索会议室层级请求
@@ -46,8 +45,7 @@ impl SearchRoomLevelRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索会议室层级")
+        Transport::request_typed(req, &self.config, Some(option), "搜索会议室层级").await
     }
 }
 

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_APP_STATS};
+use crate::endpoints::AILY_V1_APP_STATS;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
@@ -43,8 +43,7 @@ impl ListAppStatsRequest {
             req = req.query(key, value);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询应用统计数据")
+        Transport::request_typed(req, &self.config, Some(option), "查询应用统计数据").await
     }
 }
 

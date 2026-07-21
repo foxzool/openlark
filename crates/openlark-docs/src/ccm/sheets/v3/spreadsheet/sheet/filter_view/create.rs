@@ -71,8 +71,7 @@ pub async fn create_filter_view_with_options(
         .to_request()
         .body(serialize_params(&params, "创建筛选视图")?);
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建筛选视图")
+    Transport::request_typed(api_request, config, Some(option), "创建筛选视图").await
 }
 
 #[cfg(test)]

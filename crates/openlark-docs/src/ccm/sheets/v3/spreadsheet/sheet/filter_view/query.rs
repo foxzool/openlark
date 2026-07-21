@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::FilterView;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 查询筛选视图响应体 data。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,8 +53,7 @@ pub async fn query_filter_views_with_options(
         SheetsApiV3::QueryFilterViews(spreadsheet_token.to_string(), sheet_id.to_string());
     let api_request: ApiRequest<QueryFilterViewsResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查询筛选视图")
+    Transport::request_typed(api_request, config, Some(option), "查询筛选视图").await
 }
 
 #[cfg(test)]

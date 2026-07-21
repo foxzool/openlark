@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_CHATS};
 
 /// 撤销群置顶请求
 ///
@@ -67,8 +64,7 @@ impl DeleteTopNoticeRequest {
             IM_V1_CHATS, self.chat_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "撤销群置顶")
+        Transport::request_typed(req, &self.config, Some(option), "撤销群置顶").await
     }
 }
 

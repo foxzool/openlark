@@ -12,7 +12,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取告警记录请求
 
@@ -81,8 +80,7 @@ impl ListAlertRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取告警记录")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取告警记录").await
     }
 }
 

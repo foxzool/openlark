@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::IM_V1_PINS,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_PINS};
 
 /// 移除 Pin 消息请求
 ///
@@ -67,8 +64,7 @@ impl DeletePinRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", IM_V1_PINS, self.message_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "移除 Pin 消息")
+        Transport::request_typed(req, &self.config, Some(option), "移除 Pin 消息").await
     }
 }
 

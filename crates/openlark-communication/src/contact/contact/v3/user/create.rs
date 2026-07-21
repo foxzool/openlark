@@ -15,7 +15,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::user::models::{DepartmentIdType, User, UserIdType},
     endpoints::CONTACT_V3_USERS,
 };
@@ -179,8 +179,7 @@ impl CreateUserRequest {
             req = req.query("client_token", client_token);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建用户")
+        Transport::request_typed(req, &self.config, Some(option), "创建用户").await
     }
 }
 

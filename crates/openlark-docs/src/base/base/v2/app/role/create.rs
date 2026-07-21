@@ -131,8 +131,7 @@ impl Create {
             .to_request()
             .body(serialize_params(&self.req, "新增自定义角色")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新增自定义角色")
+        Transport::request_typed(api_request, &self.config, Some(option), "新增自定义角色").await
     }
 }
 

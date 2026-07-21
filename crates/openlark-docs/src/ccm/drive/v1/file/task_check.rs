@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 查询异步任务状态请求
 #[derive(Debug, Clone, Serialize)]
@@ -54,8 +54,7 @@ impl CheckTaskStatusRequest {
             .query("task_id", &self.task_id);
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "任务检查")
+        Transport::request_typed(api_request, &self.config, Some(option), "任务检查").await
     }
 }
 

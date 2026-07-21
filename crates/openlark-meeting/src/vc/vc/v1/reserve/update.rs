@@ -11,7 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 
 /// 更新预约请求
 
@@ -73,8 +73,7 @@ impl UpdateReserveRequest {
         let api_request: ApiRequest<UpdateReserveResponse> =
             ApiRequest::put(&api_endpoint).body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新预约")
+        Transport::request_typed(api_request, &self.config, Some(option), "更新预约").await
     }
 }
 

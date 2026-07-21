@@ -173,9 +173,7 @@ pub async fn update_reply(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "更新回复的内容")
+    Transport::request_typed(api_request, config, option, "更新回复的内容").await
 }
 
 #[cfg(test)]

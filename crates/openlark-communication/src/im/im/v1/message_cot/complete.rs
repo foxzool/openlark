@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGE_COT,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_MESSAGE_COT};
 
 /// 完成 COT 请求
 ///
@@ -79,9 +76,7 @@ impl CompleteMessageCotRequest {
             ApiRequest::post(format!("{}/complete/{}", IM_V1_MESSAGE_COT, self.cot_id))
                 .body(serialize_params(&body, "完成 COT")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "完成 COT")
+        Transport::request_typed(req, &self.config, Some(option), "完成 COT").await
     }
 }
 

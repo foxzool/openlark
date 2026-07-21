@@ -84,8 +84,7 @@ impl UploadFinishRequest {
             .to_request::<UploadFinishResponse>()
             .body(serialize_params(&self, "分片上传文件-完成上传")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "分片上传文件-完成上传")
+        Transport::request_typed(request, &self.config, Some(option), "分片上传文件-完成上传").await
     }
 }
 

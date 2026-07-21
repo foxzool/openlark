@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
+    common::api_utils::serialize_params, endpoints::IM_V1_CHATS,
     im::v1::chat::menu_tree::models::ChatMenuTopLevelIdsBody,
 };
 
@@ -62,9 +61,7 @@ impl SortChatMenuTreeRequest {
             ApiRequest::post(format!("{}/{}/menu_tree/sort", IM_V1_CHATS, self.chat_id))
                 .body(serialize_params(&body, "排序群菜单")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "排序群菜单")
+        Transport::request_typed(req, &self.config, Some(option), "排序群菜单").await
     }
 }
 

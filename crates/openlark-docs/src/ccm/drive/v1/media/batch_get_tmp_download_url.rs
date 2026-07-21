@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取素材临时下载链接请求
 #[derive(Debug, Clone)]
@@ -90,8 +90,7 @@ impl BatchGetTmpDownloadUrlRequest {
         let url = format!("{}?{}", api_endpoint.to_url(), query_pairs.join("&"));
         let request = api_endpoint.to_request_with_url::<BatchGetTmpDownloadUrlResponse>(url);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(request, &self.config, Some(option), "获取").await
     }
 }
 

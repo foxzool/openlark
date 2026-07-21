@@ -97,10 +97,13 @@ impl DeleteRoleMemberRequest {
             api_request = api_request.query("member_id_type", member_id_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除协作者（自定义角色）",
+        )
+        .await
     }
 }
 

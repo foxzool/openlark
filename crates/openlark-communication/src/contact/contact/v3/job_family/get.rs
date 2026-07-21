@@ -7,9 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
-    contact::contact::v3::job_family::models::JobFamilyResponse,
-    endpoints::CONTACT_V3_JOB_FAMILIES,
+    contact::contact::v3::job_family::models::JobFamilyResponse, endpoints::CONTACT_V3_JOB_FAMILIES,
 };
 
 /// 获取单个序列信息请求
@@ -73,8 +71,7 @@ impl GetJobFamilyRequest {
             CONTACT_V3_JOB_FAMILIES, self.job_family_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单个序列信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取单个序列信息").await
     }
 }
 

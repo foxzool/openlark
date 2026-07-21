@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::CONTACT_V3_JOB_FAMILIES,
-};
+use crate::{common::models::EmptyData, endpoints::CONTACT_V3_JOB_FAMILIES};
 
 /// 删除序列请求
 pub struct DeleteJobFamilyRequest {
@@ -56,8 +53,7 @@ impl DeleteJobFamilyRequest {
             CONTACT_V3_JOB_FAMILIES, self.job_family_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除序列")
+        Transport::request_typed(req, &self.config, Some(option), "删除序列").await
     }
 }
 

@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_CHATS,
     im::v1::chat::{
         managers::models::{ChatManagersBody, ChatManagersResponse},
@@ -79,9 +79,7 @@ impl AddChatManagersRequest {
             req = req.query("member_id_type", member_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "指定群管理员")
+        Transport::request_typed(req, &self.config, Some(option), "指定群管理员").await
     }
 }
 

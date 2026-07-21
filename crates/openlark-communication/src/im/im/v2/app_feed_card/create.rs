@@ -5,8 +5,7 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V2_APP_FEED_CARD,
+    common::api_utils::serialize_params, endpoints::IM_V2_APP_FEED_CARD,
     im::v1::message::models::UserIdType,
 };
 
@@ -57,9 +56,7 @@ impl CreateAppFeedCardRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建应用消息流卡片")
+        Transport::request_typed(req, &self.config, Some(option), "创建应用消息流卡片").await
     }
 }
 

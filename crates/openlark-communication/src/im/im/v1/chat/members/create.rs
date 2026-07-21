@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_CHATS,
     im::v1::chat::members::models::{
         CreateChatMembersBody, CreateChatMembersResponse, MemberIdType, SucceedType,
@@ -90,9 +90,7 @@ impl CreateChatMembersRequest {
             req = req.query("succeed_type", succeed_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "将用户或机器人拉入群聊")
+        Transport::request_typed(req, &self.config, Some(option), "将用户或机器人拉入群聊").await
     }
 }
 

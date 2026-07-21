@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES,
-    im::v1::message::reaction::models::MessageReaction,
-};
+use crate::{endpoints::IM_V1_MESSAGES, im::v1::message::reaction::models::MessageReaction};
 
 /// 删除消息表情回复请求
 ///
@@ -80,8 +77,7 @@ impl DeleteMessageReactionRequest {
             IM_V1_MESSAGES, self.message_id, self.reaction_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除消息表情回复")
+        Transport::request_typed(req, &self.config, Some(option), "删除消息表情回复").await
     }
 }
 

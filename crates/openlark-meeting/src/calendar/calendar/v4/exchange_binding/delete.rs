@@ -8,7 +8,7 @@ use openlark_core::{
 };
 
 use super::models::DeleteExchangeBindingResponse;
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_EXCHANGE_BINDINGS};
+use crate::endpoints::CALENDAR_V4_EXCHANGE_BINDINGS;
 
 /// 解除 Exchange 账户绑定请求
 pub struct DeleteExchangeBindingRequest {
@@ -50,8 +50,7 @@ impl DeleteExchangeBindingRequest {
             CALENDAR_V4_EXCHANGE_BINDINGS, self.exchange_binding_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "解除 Exchange 账户绑定")
+        Transport::request_typed(req, &self.config, Some(option), "解除 Exchange 账户绑定").await
     }
 }
 

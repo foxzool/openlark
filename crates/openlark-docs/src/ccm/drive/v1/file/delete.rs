@@ -4,7 +4,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/delete>
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 use openlark_core::{
     SDKResult,
     api::{ApiResponseTrait, ResponseFormat},
@@ -68,8 +68,7 @@ impl DeleteFileRequest {
 
         request = request.query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除文件或文件夹")
+        Transport::request_typed(request, &self.config, Some(option), "删除文件或文件夹").await
     }
 }
 

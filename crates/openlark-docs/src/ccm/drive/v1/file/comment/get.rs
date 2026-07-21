@@ -24,7 +24,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::Comment;
 
@@ -123,9 +123,7 @@ pub async fn get_comment(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取全文评论")
+    Transport::request_typed(api_request, config, option, "获取全文评论").await
 }
 
 #[cfg(test)]

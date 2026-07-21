@@ -220,8 +220,7 @@ impl CopyFileRequest {
             "复制文件",
         )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "复制文件")
+        Transport::request_typed(request, &self.config, Some(option), "复制文件").await
     }
 }
 

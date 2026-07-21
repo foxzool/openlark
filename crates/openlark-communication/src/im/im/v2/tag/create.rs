@@ -4,10 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V2_TAGS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V2_TAGS};
 
 /// 创建标签请求
 pub struct CreateTagRequest {
@@ -41,9 +38,7 @@ impl CreateTagRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(IM_V2_TAGS).body(serialize_params(&body, "创建标签")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建标签")
+        Transport::request_typed(req, &self.config, Some(option), "创建标签").await
     }
 }
 

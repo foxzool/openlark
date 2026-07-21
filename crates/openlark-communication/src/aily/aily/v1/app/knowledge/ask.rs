@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/ask>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_KNOWLEDGE_ASK};
+use crate::endpoints::AILY_V1_KNOWLEDGE_ASK;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -103,8 +103,7 @@ impl AskKnowledgeRequest {
         let url = AILY_V1_KNOWLEDGE_ASK.replace("{app_id}", &self.app_id);
         let req: ApiRequest<AskKnowledgeBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "执行数据知识问答")
+        Transport::request_typed(req, &self.config, Some(option), "执行数据知识问答").await
     }
 }
 

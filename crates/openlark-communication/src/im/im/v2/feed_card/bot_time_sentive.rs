@@ -5,7 +5,7 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V2_FEED_CARDS,
     im::v1::message::models::UserIdType,
     im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody},
@@ -70,9 +70,7 @@ impl BotTimeSentiveRequest {
                 .query("user_id_type", user_id_type.as_str())
                 .body(serialize_params(&body, "机器人单聊即时提醒")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "机器人单聊即时提醒")
+        Transport::request_typed(req, &self.config, Some(option), "机器人单聊即时提醒").await
     }
 }
 

@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::{api_endpoints::CalendarApiV4, api_utils::extract_response_data};
+use crate::common::api_endpoints::CalendarApiV4;
 
 /// 查询主日历信息请求
 pub struct PrimaryCalendarRequest {
@@ -32,8 +32,7 @@ impl PrimaryCalendarRequest {
         let api_endpoint = CalendarApiV4::CalendarPrimaryGet;
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(api_endpoint.to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询主日历信息")
+        Transport::request_typed(req, &self.config, Some(option), "查询主日历信息").await
     }
 }
 

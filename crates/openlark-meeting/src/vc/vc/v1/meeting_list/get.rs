@@ -12,7 +12,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 查询会议明细请求
 #[derive(Debug, Clone)]
@@ -67,8 +66,7 @@ impl GetMeetingListRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会议明细")
+        Transport::request_typed(req, &self.config, Some(option), "查询会议明细").await
     }
 }
 

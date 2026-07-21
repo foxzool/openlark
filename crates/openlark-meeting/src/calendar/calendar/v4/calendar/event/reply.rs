@@ -7,10 +7,7 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::{
-    common::api_endpoints::CalendarApiV4,
-    common::api_utils::{extract_response_data, serialize_params},
-};
+use crate::{common::api_endpoints::CalendarApiV4, common::api_utils::serialize_params};
 
 /// 回复日程请求
 pub struct ReplyCalendarEventRequest {
@@ -65,8 +62,7 @@ impl ReplyCalendarEventRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(api_endpoint.to_url()).body(serialize_params(&body, "回复日程")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "回复日程")
+        Transport::request_typed(req, &self.config, Some(option), "回复日程").await
     }
 }
 

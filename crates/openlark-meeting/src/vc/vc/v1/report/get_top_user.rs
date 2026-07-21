@@ -6,8 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取 Top 用户列表请求
 pub struct GetTopUserReportRequest {
     config: Config,
@@ -45,8 +43,7 @@ impl GetTopUserReportRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取 Top 用户列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取 Top 用户列表").await
     }
 }
 

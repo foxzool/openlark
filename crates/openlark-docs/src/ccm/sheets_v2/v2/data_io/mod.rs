@@ -132,8 +132,7 @@ pub async fn read_single_range_with_options(
         .query_opt("dateTimeRenderOption", params.date_render_option.as_ref());
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "读取单个范围")
+    Transport::request_typed(api_request, config, Some(option), "读取单个范围").await
 }
 
 /// 读取多个范围
@@ -181,8 +180,7 @@ pub async fn read_multiple_ranges_with_options(
         .query_opt("dateTimeRenderOption", params.date_render_option.as_ref());
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "读取多个范围")
+    Transport::request_typed(api_request, config, Some(option), "读取多个范围").await
 }
 
 /// 写入单个范围
@@ -221,8 +219,7 @@ pub async fn write_single_range_with_options(
         .body(serialize_params(&params, "写入单个范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "写入单个范围")
+    Transport::request_typed(api_request, config, Some(option), "写入单个范围").await
 }
 
 /// 批量写入多个范围
@@ -267,8 +264,7 @@ pub async fn batch_write_ranges_with_options(
         .body(serialize_params(&params, "批量写入范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "批量写入范围")
+    Transport::request_typed(api_request, config, Some(option), "批量写入范围").await
 }
 
 /// 追加数据
@@ -306,8 +302,7 @@ pub async fn append_values_with_options(
         .body(serialize_params(&params, "追加数据")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "追加数据")
+    Transport::request_typed(api_request, config, Some(option), "追加数据").await
 }
 
 /// 插入数据
@@ -345,8 +340,7 @@ pub async fn insert_values_with_options(
         .body(serialize_params(&params, "插入数据")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "插入数据")
+    Transport::request_typed(api_request, config, Some(option), "插入数据").await
 }
 
 /// 写入图片
@@ -384,8 +378,7 @@ pub async fn values_image_with_options(
         .body(serialize_params(&params, "写入图片")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "写入图片")
+    Transport::request_typed(api_request, config, Some(option), "写入图片").await
 }
 
 // API函数已经在模块中定义，不需要重复导出

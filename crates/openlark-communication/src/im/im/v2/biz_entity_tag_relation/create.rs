@@ -7,10 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V2_BIZ_ENTITY_TAG_RELATION,
     im::v2::biz_entity_tag_relation::models::BizEntityTagRelationBody,
 };
@@ -48,9 +45,7 @@ impl CreateBizEntityTagRelationRequest {
         let req: ApiRequest<EmptyData> = ApiRequest::post(IM_V2_BIZ_ENTITY_TAG_RELATION)
             .body(serialize_params(&body, "绑定标签到群")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "绑定标签到群")
+        Transport::request_typed(req, &self.config, Some(option), "绑定标签到群").await
     }
 }
 

@@ -111,8 +111,13 @@ impl GetRootFolderMetaRequest {
     ) -> SDKResult<FolderMetaResponse> {
         let api_endpoint = CcmDriveExplorerApiOld::RootFolderMeta;
         let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取根文件夹元信息")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取根文件夹元信息",
+        )
+        .await
     }
 }
 
@@ -146,8 +151,7 @@ impl GetFolderMetaRequest {
 
         let api_endpoint = CcmDriveExplorerApiOld::FolderMeta(self.folder_token);
         let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文件夹元信息")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取文件夹元信息").await
     }
 }
 
@@ -188,8 +192,7 @@ impl CreateFileRequest {
             .to_request()
             .body(serialize_params(&self.params, "新建文件")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新建文件")
+        Transport::request_typed(api_request, &self.config, Some(option), "新建文件").await
     }
 }
 
@@ -226,8 +229,7 @@ impl CopyFileRequest {
             .to_request()
             .body(serialize_params(&self.params, "复制文档")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "复制文档")
+        Transport::request_typed(api_request, &self.config, Some(option), "复制文档").await
     }
 }
 
@@ -262,8 +264,7 @@ impl DeleteDocRequest {
         let api_endpoint = CcmDriveExplorerApiOld::FileDocs(self.doc_token);
         let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除Doc")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除Doc").await
     }
 }
 
@@ -298,8 +299,7 @@ impl DeleteSheetRequest {
         let api_endpoint = CcmDriveExplorerApiOld::FileSpreadsheets(self.spreadsheet_token);
         let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除Sheet")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除Sheet").await
     }
 }
 
@@ -350,8 +350,9 @@ impl GetFolderChildrenRequest {
             }
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        let data: DriveListFilesData = extract_response_data(response, "获取文件夹子项")?;
+        let data: DriveListFilesData =
+            Transport::request_typed(api_request, &self.config, Some(option), "获取文件夹子项")
+                .await?;
 
         let items = data
             .files
@@ -430,8 +431,7 @@ impl CreateFolderRequest {
             .to_request()
             .body(serialize_params(&self.params, "新建文件夹")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新建文件夹")
+        Transport::request_typed(api_request, &self.config, Some(option), "新建文件夹").await
     }
 }
 

@@ -2,7 +2,6 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/aily-v1/agent-agent_chat_session/delete>
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::AILY_V1_AGENT_SESSION;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -55,8 +54,7 @@ impl DeleteAgentChatSessionRequest {
             .replace("{agent_chat_session_id}", &self.agent_chat_session_id);
 
         let req: ApiRequest<()> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除会话")
+        Transport::request_typed(req, &self.config, Some(option), "删除会话").await
     }
 }
 

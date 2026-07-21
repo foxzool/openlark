@@ -10,7 +10,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         department::models::DepartmentResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -147,8 +147,7 @@ impl CreateDepartmentRequest {
             req = req.query("client_token", client_token);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建部门")
+        Transport::request_typed(req, &self.config, Some(option), "创建部门").await
     }
 }
 

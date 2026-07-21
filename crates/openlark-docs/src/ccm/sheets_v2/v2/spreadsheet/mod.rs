@@ -96,8 +96,7 @@ pub async fn get_spreadsheet_with_options(
         .query_opt("include_sheet", params.include_sheet.map(|v| v.to_string()));
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取表格信息")
+    Transport::request_typed(api_request, config, Some(option), "获取表格信息").await
 }
 
 /// 创建表格
@@ -132,8 +131,7 @@ pub async fn create_spreadsheet_with_options(
         .body(serialize_params(&params, "创建表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建表格")
+    Transport::request_typed(api_request, config, Some(option), "创建表格").await
 }
 
 /// 更新表格
@@ -171,8 +169,7 @@ pub async fn update_spreadsheet_with_options(
         .body(serialize_params(&params, "更新表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新表格")
+    Transport::request_typed(api_request, config, Some(option), "更新表格").await
 }
 
 // API函数已经在模块中定义，不需要重复导出

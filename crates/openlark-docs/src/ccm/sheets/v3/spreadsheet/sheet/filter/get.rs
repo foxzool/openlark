@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::SheetFilterInfo;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 获取筛选响应体 data
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,8 +56,7 @@ pub async fn get_filter_with_options(
     let api_endpoint = SheetsApiV3::GetFilter(spreadsheet_token.to_string(), sheet_id.to_string());
     let api_request: ApiRequest<GetFilterResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取筛选")
+    Transport::request_typed(api_request, config, Some(option), "获取筛选").await
 }
 
 #[cfg(test)]

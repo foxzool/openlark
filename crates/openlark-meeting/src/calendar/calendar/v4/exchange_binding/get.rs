@@ -8,7 +8,6 @@ use openlark_core::{
 };
 
 use super::models::GetExchangeBindingResponse;
-use crate::common::api_utils::extract_response_data;
 /// 查询 Exchange 账户的绑定状态请求
 pub struct GetExchangeBindingRequest {
     config: Config,
@@ -49,8 +48,13 @@ impl GetExchangeBindingRequest {
             self.exchange_binding_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询 Exchange 账户的绑定状态")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "查询 Exchange 账户的绑定状态",
+        )
+        .await
     }
 }
 

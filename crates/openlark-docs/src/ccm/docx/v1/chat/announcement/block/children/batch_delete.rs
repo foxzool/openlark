@@ -94,8 +94,7 @@ impl BatchDeleteChatAnnouncementBlockChildrenRequest {
                 .to_request()
                 .body(serialize_params(&params, "删除群公告中的块")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除群公告中的块")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除群公告中的块").await
     }
 }
 

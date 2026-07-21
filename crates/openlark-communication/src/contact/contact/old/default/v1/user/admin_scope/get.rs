@@ -4,7 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{common::api_utils::extract_response_data, endpoints::CONTACT_V1_USER_ADMIN_SCOPE_GET};
+use crate::endpoints::CONTACT_V1_USER_ADMIN_SCOPE_GET;
 
 /// 获取应用管理员管理范围
 pub struct GetAdminScopeRequest {
@@ -33,8 +33,7 @@ impl GetAdminScopeRequest {
     ) -> SDKResult<serde_json::Value> {
         // url: GET:/open-apis/contact/v1/user/admin_scope/get
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(CONTACT_V1_USER_ADMIN_SCOPE_GET);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取应用管理员管理范围")
+        Transport::request_typed(req, &self.config, Some(option), "获取应用管理员管理范围").await
     }
 }
 

@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::group::models::MemberBelongGroupsResponse,
     contact::contact::v3::user::models::UserIdType, endpoints::CONTACT_V3_GROUP_MEMBER_BELONG,
 };
@@ -127,8 +126,7 @@ impl MemberBelongGroupsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询用户所属用户组")
+        Transport::request_typed(req, &self.config, Some(option), "查询用户所属用户组").await
     }
 }
 

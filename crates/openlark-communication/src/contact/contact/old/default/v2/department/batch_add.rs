@@ -4,10 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CONTACT_V2_DEPARTMENT_BATCH_ADD,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CONTACT_V2_DEPARTMENT_BATCH_ADD};
 
 /// 批量新增部门请求
 pub struct BatchAddDepartmentsRequest {
@@ -39,9 +36,7 @@ impl BatchAddDepartmentsRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(CONTACT_V2_DEPARTMENT_BATCH_ADD)
             .body(serialize_params(&params, "批量新增部门")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量新增部门")
+        Transport::request_typed(req, &self.config, Some(option), "批量新增部门").await
     }
 }
 

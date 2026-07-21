@@ -8,7 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::employee_type_enum::models::{EmployeeTypeEnumResponse, I18nContent},
     endpoints::CONTACT_V3_EMPLOYEE_TYPE_ENUMS,
 };
@@ -78,9 +78,7 @@ impl UpdateEmployeeTypeEnumRequest {
         ))
         .body(serialize_params(&body, "更新人员类型")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新人员类型")
+        Transport::request_typed(req, &self.config, Some(option), "更新人员类型").await
     }
 }
 

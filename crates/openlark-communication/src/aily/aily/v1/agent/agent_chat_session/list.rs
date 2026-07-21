@@ -4,7 +4,6 @@
 
 use std::collections::HashMap;
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::AILY_V1_AGENT_SESSIONS;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -57,8 +56,7 @@ impl ListAgentChatSessionRequest {
             req = req.query(key, value);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会话列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询会话列表").await
     }
 }
 

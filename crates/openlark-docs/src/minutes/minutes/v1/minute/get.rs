@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::MinutesApiV1, api_utils::*};
+use crate::common::api_endpoints::MinutesApiV1;
 
 /// 获取妙记信息请求。
 #[derive(Debug, Clone)]
@@ -84,8 +84,7 @@ impl GetMinuteRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

@@ -13,7 +13,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::moments::MOMENTS_V1_POST_GET;
 
 /// 查询帖子信息响应 data
@@ -115,8 +114,7 @@ impl GetPostRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", &user_id_type);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询帖子信息")
+        Transport::request_typed(req, &self.config, Some(option), "查询帖子信息").await
     }
 }
 

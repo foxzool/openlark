@@ -11,8 +11,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::*;
-
 /// 表单问题项
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FormFieldQuestion {
@@ -125,8 +123,7 @@ impl ListFormFieldQuestionRequest {
             api_request = api_request.query("page_token", page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列出表单问题")
+        Transport::request_typed(api_request, &self.config, Some(option), "列出表单问题").await
     }
 }
 

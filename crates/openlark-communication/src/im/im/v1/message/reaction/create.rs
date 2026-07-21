@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_MESSAGES,
     im::v1::message::reaction::models::{CreateMessageReactionBody, MessageReaction},
 };
@@ -75,9 +75,7 @@ impl CreateMessageReactionRequest {
             ApiRequest::post(format!("{}/{}/reactions", IM_V1_MESSAGES, self.message_id))
                 .body(serialize_params(&body, "添加消息表情回复")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "添加消息表情回复")
+        Transport::request_typed(req, &self.config, Some(option), "添加消息表情回复").await
     }
 }
 

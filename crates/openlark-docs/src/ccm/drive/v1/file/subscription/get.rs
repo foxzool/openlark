@@ -21,7 +21,7 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::Subscription;
 
@@ -80,9 +80,7 @@ pub async fn get_subscription(
     let api_request: ApiRequest<GetSubscriptionResponse> = api_endpoint.to_request();
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取订阅状态")
+    Transport::request_typed(api_request, config, option, "获取订阅状态").await
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         department::models::DepartmentResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -104,9 +104,7 @@ impl PatchDepartmentRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "修改部门部分信息")
+        Transport::request_typed(req, &self.config, Some(option), "修改部门部分信息").await
     }
 }
 

@@ -10,7 +10,6 @@ use openlark_core::{
     req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use serde::{Deserialize, Serialize};
 
 use crate::endpoints::CALENDAR_V4_CALENDARS;
@@ -100,8 +99,7 @@ impl ListCalendarRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询日历列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询日历列表").await
     }
 }
 

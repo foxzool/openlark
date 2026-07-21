@@ -7,8 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取重复日程实例请求
 pub struct InstancesCalendarEventRequest {
     config: Config,
@@ -67,8 +65,7 @@ impl InstancesCalendarEventRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取重复日程实例")
+        Transport::request_typed(req, &self.config, Some(option), "获取重复日程实例").await
     }
 }
 

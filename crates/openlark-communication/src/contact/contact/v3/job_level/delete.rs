@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::CONTACT_V3_JOB_LEVELS,
-};
+use crate::{common::models::EmptyData, endpoints::CONTACT_V3_JOB_LEVELS};
 
 /// 删除职级请求
 pub struct DeleteJobLevelRequest {
@@ -53,8 +50,7 @@ impl DeleteJobLevelRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", CONTACT_V3_JOB_LEVELS, self.job_level_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除职级")
+        Transport::request_typed(req, &self.config, Some(option), "删除职级").await
     }
 }
 

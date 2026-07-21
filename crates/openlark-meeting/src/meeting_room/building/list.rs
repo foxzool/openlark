@@ -6,7 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::MEETING_ROOM;
 use crate::meeting_room::responses::ListBuildingResponse;
 
@@ -50,8 +49,7 @@ impl ListBuildingRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取建筑物列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取建筑物列表").await
     }
 }
 

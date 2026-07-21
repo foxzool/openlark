@@ -163,8 +163,7 @@ impl CreateFileShortcutRequest {
 
         request = request.body(serialize_params(&self, "创建文件快捷方式")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建文件快捷方式")
+        Transport::request_typed(request, &self.config, Some(option), "创建文件快捷方式").await
     }
 }
 

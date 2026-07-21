@@ -7,8 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 获取活跃会议请求
 pub struct GetActiveMeetingRequest {
     config: Config,
@@ -59,8 +57,7 @@ impl GetActiveMeetingRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取活跃会议")
+        Transport::request_typed(req, &self.config, Some(option), "获取活跃会议").await
     }
 }
 

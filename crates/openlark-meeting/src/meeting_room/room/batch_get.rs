@@ -6,7 +6,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::MEETING_ROOM;
 use crate::meeting_room::responses::BatchGetRoomResponse;
 
@@ -49,8 +48,7 @@ impl BatchGetRoomRequest {
         for (k, v) in self.query_params {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会议室详情")
+        Transport::request_typed(req, &self.config, Some(option), "查询会议室详情").await
     }
 }
 

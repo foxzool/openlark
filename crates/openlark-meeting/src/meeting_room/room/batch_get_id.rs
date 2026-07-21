@@ -6,8 +6,8 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
+use crate::endpoints::MEETING_ROOM;
 use crate::meeting_room::responses::BatchGetRoomIdResponse;
-use crate::{common::api_utils::extract_response_data, endpoints::MEETING_ROOM};
 
 /// 查询会议室ID请求
 pub struct BatchGetRoomIdRequest {
@@ -48,8 +48,7 @@ impl BatchGetRoomIdRequest {
         for (k, v) in self.query_params {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会议室ID")
+        Transport::request_typed(req, &self.config, Some(option), "查询会议室ID").await
     }
 }
 

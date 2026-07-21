@@ -7,8 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    contact::contact::v3::user::models::DepartmentIdType,
+    common::models::EmptyData, contact::contact::v3::user::models::DepartmentIdType,
     endpoints::CONTACT_V3_DEPARTMENTS,
 };
 
@@ -81,8 +80,7 @@ impl DeleteDepartmentRequest {
         if let Some(department_id_type) = self.department_id_type {
             req = req.query("department_id_type", department_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除部门")
+        Transport::request_typed(req, &self.config, Some(option), "删除部门").await
     }
 }
 

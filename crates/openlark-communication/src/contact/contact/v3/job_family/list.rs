@@ -5,7 +5,6 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::job_family::models::ListJobFamiliesResponse,
     endpoints::CONTACT_V3_JOB_FAMILIES,
 };
@@ -94,8 +93,7 @@ impl ListJobFamiliesRequest {
         if let Some(name) = self.name {
             req = req.query("name", name);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取租户序列列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取租户序列列表").await
     }
 }
 

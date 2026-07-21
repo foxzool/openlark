@@ -7,8 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 删除请假日程请求
 pub struct DeleteTimeoffEventRequest {
     config: Config,
@@ -47,8 +45,7 @@ impl DeleteTimeoffEventRequest {
             self.timeoff_event_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除请假日程")
+        Transport::request_typed(req, &self.config, Some(option), "删除请假日程").await
     }
 }
 

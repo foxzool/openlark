@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES,
-    im::v1::message::models::UserIdType,
-};
+use crate::{endpoints::IM_V1_MESSAGES, im::v1::message::models::UserIdType};
 
 /// 查询消息已读信息请求
 ///
@@ -110,8 +107,7 @@ impl ReadMessageUsersRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询消息已读信息")
+        Transport::request_typed(req, &self.config, Some(option), "查询消息已读信息").await
     }
 }
 

@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V2_TAGS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V2_TAGS};
 
 /// 修改标签请求
 pub struct PatchTagRequest {
@@ -58,9 +55,7 @@ impl PatchTagRequest {
             ApiRequest::patch(format!("{}/{}", IM_V2_TAGS, self.tag_id))
                 .body(serialize_params(&body, "修改标签")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "修改标签")
+        Transport::request_typed(req, &self.config, Some(option), "修改标签").await
     }
 }
 

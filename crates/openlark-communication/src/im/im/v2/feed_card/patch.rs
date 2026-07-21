@@ -7,7 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V2_FEED_CARDS,
     im::v1::message::models::UserIdType,
     im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody},
@@ -82,9 +82,7 @@ impl PatchFeedCardRequest {
                 .query("user_id_type", user_id_type.as_str())
                 .body(serialize_params(&body, "即时提醒")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "即时提醒")
+        Transport::request_typed(req, &self.config, Some(option), "即时提醒").await
     }
 }
 

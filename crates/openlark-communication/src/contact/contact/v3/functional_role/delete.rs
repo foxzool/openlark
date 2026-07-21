@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::CONTACT_V3_FUNCTIONAL_ROLES,
-};
+use crate::{common::models::EmptyData, endpoints::CONTACT_V3_FUNCTIONAL_ROLES};
 
 /// 删除角色请求
 pub struct DeleteFunctionalRoleRequest {
@@ -52,8 +49,7 @@ impl DeleteFunctionalRoleRequest {
         // url: DELETE:/open-apis/contact/v3/functional_roles/:role_id
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", CONTACT_V3_FUNCTIONAL_ROLES, self.role_id));
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除角色")
+        Transport::request_typed(req, &self.config, Some(option), "删除角色").await
     }
 }
 

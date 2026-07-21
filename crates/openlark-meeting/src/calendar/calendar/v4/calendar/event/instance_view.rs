@@ -7,8 +7,6 @@ use openlark_core::{
     validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
-
 /// 查询日程视图请求
 pub struct InstanceViewCalendarEventRequest {
     config: Config,
@@ -58,8 +56,7 @@ impl InstanceViewCalendarEventRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询日程视图")
+        Transport::request_typed(req, &self.config, Some(option), "查询日程视图").await
     }
 }
 

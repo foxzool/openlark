@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 取消订阅日历变更事件请求
 pub struct UnsubscriptionCalendarRequest {
@@ -40,8 +40,7 @@ impl UnsubscriptionCalendarRequest {
             ApiRequest::post("/open-apis/calendar/v4/calendars/unsubscription")
                 .body(serialize_params(&body, "取消订阅日历变更事件")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "取消订阅日历变更事件")
+        Transport::request_typed(req, &self.config, Some(option), "取消订阅日历变更事件").await
     }
 }
 

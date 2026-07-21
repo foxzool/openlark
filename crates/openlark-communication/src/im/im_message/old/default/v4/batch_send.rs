@@ -4,7 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 const IM_MESSAGE_V4_BATCH_SEND: &str = "/open-apis/message/v4/batch_send/";
 
@@ -40,9 +40,7 @@ impl BatchSendMessagesRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(IM_MESSAGE_V4_BATCH_SEND)
             .body(serialize_params(&body, "批量发送消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量发送消息")
+        Transport::request_typed(req, &self.config, Some(option), "批量发送消息").await
     }
 }
 

@@ -48,10 +48,7 @@ impl CommentReactionUpdateReactionRequest {
         let req: ApiRequest<serde_json::Value> = DriveApi::UpdateCommentReaction(self.file_token)
             .to_request()
             .body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("添加/取消表情回应", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "添加/取消表情回应").await
     }
 }
 

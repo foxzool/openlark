@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::PermissionMemberItem;
 
@@ -110,8 +110,7 @@ impl ListPermissionMembersRequest {
             api_request = api_request.query("perm_type", perm_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "列表").await
     }
 }
 

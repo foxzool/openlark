@@ -4,7 +4,6 @@
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/get
 /// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/get>
 use crate::common::api_endpoints::DocxApiV1;
-use crate::common::api_utils::*;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -99,8 +98,7 @@ impl GetDocumentBlockChildrenRequest {
             api_request = api_request.query("page_token", &page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取所有子块")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取所有子块").await
     }
 }
 

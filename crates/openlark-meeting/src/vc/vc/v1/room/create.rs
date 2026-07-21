@@ -12,7 +12,6 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 创建会议室请求
 #[derive(Debug, Clone)]
@@ -58,8 +57,7 @@ impl CreateRoomRequest {
         let api_request: ApiRequest<CreateRoomResponse> =
             ApiRequest::post(api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建会议室")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建会议室").await
     }
 }
 

@@ -4,7 +4,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/get>
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 use openlark_core::{SDKResult, config::Config, http::Transport, validate_required};
 
 use super::models::FileVersionInfo;
@@ -77,8 +77,7 @@ impl GetFileVersionRequest {
             .query("obj_type", self.obj_type)
             .query_opt("user_id_type", self.user_id_type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(request, &self.config, Some(option), "获取").await
     }
 }
 

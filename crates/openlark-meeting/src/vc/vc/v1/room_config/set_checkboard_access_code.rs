@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 创建签到板部署码请求
 pub struct SetCheckboardAccessCodeRequest {
@@ -40,8 +40,7 @@ impl SetCheckboardAccessCodeRequest {
             ApiRequest::post("/open-apis/vc/v1/room_configs/set_checkboard_access_code")
                 .body(serialize_params(&body, "创建签到板部署码")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建签到板部署码")
+        Transport::request_typed(req, &self.config, Some(option), "创建签到板部署码").await
     }
 }
 

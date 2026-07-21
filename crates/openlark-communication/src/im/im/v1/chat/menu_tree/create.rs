@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_CHATS};
 
 /// 添加群菜单请求
 ///
@@ -57,9 +54,7 @@ impl CreateChatMenuTreeRequest {
             ApiRequest::post(format!("{}/{}/menu_tree", IM_V1_CHATS, self.chat_id))
                 .body(serialize_params(&body, "添加群菜单")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "添加群菜单")
+        Transport::request_typed(req, &self.config, Some(option), "添加群菜单").await
     }
 }
 

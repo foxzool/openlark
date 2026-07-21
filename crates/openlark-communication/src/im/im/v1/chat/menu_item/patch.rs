@@ -6,10 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_CHATS};
 
 /// 修改群菜单元信息请求
 ///
@@ -68,9 +65,7 @@ impl PatchChatMenuItemRequest {
         ))
         .body(serialize_params(&body, "修改群菜单元信息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "修改群菜单元信息")
+        Transport::request_typed(req, &self.config, Some(option), "修改群菜单元信息").await
     }
 }
 

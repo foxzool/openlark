@@ -5,8 +5,7 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
+    common::api_utils::serialize_params, endpoints::IM_V1_CHATS,
     im::v1::message::models::UserIdType,
 };
 
@@ -103,9 +102,7 @@ impl CreateChatRequest {
             req = req.query("uuid", uuid);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建群")
+        Transport::request_typed(req, &self.config, Some(option), "创建群").await
     }
 }
 

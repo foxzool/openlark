@@ -11,8 +11,6 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
-
 /// 下载导出文件请求
 
 #[derive(Debug, Clone)]
@@ -70,8 +68,7 @@ impl DownloadExportRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "下载导出文件")
+        Transport::request_typed(api_request, &self.config, Some(option), "下载导出文件").await
     }
 }
 

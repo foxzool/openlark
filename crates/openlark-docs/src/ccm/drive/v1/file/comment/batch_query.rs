@@ -172,9 +172,7 @@ pub async fn batch_query_comment(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "批量获取评论")
+    Transport::request_typed(api_request, config, option, "批量获取评论").await
 }
 
 #[cfg(test)]

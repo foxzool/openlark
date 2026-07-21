@@ -4,10 +4,7 @@
 
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::extract_response_data,
-    contact::contact::v3::unit::models::ListUnitsResponse, endpoints::CONTACT_V3_UNIT,
-};
+use crate::{contact::contact::v3::unit::models::ListUnitsResponse, endpoints::CONTACT_V3_UNIT};
 
 /// 获取单位列表请求
 ///
@@ -61,8 +58,7 @@ impl ListUnitsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单位列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取单位列表").await
     }
 }
 

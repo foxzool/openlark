@@ -7,10 +7,7 @@ use openlark_core::{
 };
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_CHATS,
     im::v1::{chat::moderation::models::UpdateChatModerationBody, message::models::UserIdType},
 };
@@ -71,9 +68,7 @@ impl UpdateChatModerationRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新群发言权限")
+        Transport::request_typed(req, &self.config, Some(option), "更新群发言权限").await
     }
 }
 

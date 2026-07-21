@@ -97,10 +97,13 @@ impl BatchCreateTableRequest {
         api_request = api_request.query_opt("user_id_type", self.user_id_type);
         api_request = api_request.query_opt("client_token", self.client_token);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 批量新增数据表",
+        )
+        .await
     }
 }
 

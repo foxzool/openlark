@@ -13,7 +13,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 判断用户云文档权限请求
 #[derive(Debug, Clone)]
@@ -86,8 +86,7 @@ impl AuthPermissionMemberRequest {
             .query("type", &self.file_type)
             .query("action", &self.action);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "授权")
+        Transport::request_typed(api_request, &self.config, Some(option), "授权").await
     }
 }
 

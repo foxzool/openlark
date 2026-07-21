@@ -121,8 +121,7 @@ impl UploadPrepareRequest {
             .to_request::<UploadPrepareResponse>()
             .body(serialize_params(&self, "分片上传文件-预上传")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "分片上传文件-预上传")
+        Transport::request_typed(request, &self.config, Some(option), "分片上传文件-预上传").await
     }
 }
 

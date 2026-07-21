@@ -12,7 +12,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use super::Condition;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 获取筛选条件响应体 data。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,8 +63,7 @@ pub async fn get_filter_condition_with_options(
     );
     let api_request: ApiRequest<GetFilterConditionResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取筛选条件")
+    Transport::request_typed(api_request, config, Some(option), "获取筛选条件").await
 }
 
 #[cfg(test)]

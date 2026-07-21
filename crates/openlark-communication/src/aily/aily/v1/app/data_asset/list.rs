@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSETS};
+use crate::endpoints::AILY_V1_DATA_ASSETS;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
@@ -83,8 +83,7 @@ impl ListDataAssetsRequest {
         for (k, v) in self.query {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询数据知识列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询数据知识列表").await
     }
 }
 

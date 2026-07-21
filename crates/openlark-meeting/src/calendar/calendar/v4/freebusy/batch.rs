@@ -7,10 +7,7 @@ use openlark_core::{
 };
 
 use super::models::{BatchFreebusyRequestBody, BatchFreebusyResponse};
-use crate::{
-    common::api_endpoints::CalendarApiV4,
-    common::api_utils::{extract_response_data, serialize_params},
-};
+use crate::{common::api_endpoints::CalendarApiV4, common::api_utils::serialize_params};
 
 /// 批量查询主日历日程忙闲信息请求
 pub struct BatchFreebusyRequest {
@@ -42,8 +39,13 @@ impl BatchFreebusyRequest {
         let req: ApiRequest<BatchFreebusyResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "批量查询主日历日程忙闲信息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量查询主日历日程忙闲信息")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "批量查询主日历日程忙闲信息",
+        )
+        .await
     }
 }
 

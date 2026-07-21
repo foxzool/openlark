@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/aily-v1/agent-chat/create>
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::AILY_V1_AGENT_CHATS;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -57,8 +57,7 @@ impl CreateAgentChatRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post(&url).body(serialize_params(&body, "发起智能体会话")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "发起智能体会话")
+        Transport::request_typed(req, &self.config, Some(option), "发起智能体会话").await
     }
 }
 
