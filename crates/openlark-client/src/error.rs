@@ -3,7 +3,6 @@
 //! 基于 openlark-core 的现代化错误处理系统
 //! 直接使用 CoreError，提供类型安全和用户友好的错误管理
 
-use crate::registry::RegistryError;
 use openlark_core::error::{
     ApiError, CoreError, ErrorCategory, ErrorCode, ErrorContext, ErrorTrait, ErrorType,
 };
@@ -148,11 +147,6 @@ pub fn internal_error(message: impl Into<String>) -> Error {
     openlark_core::error::api_error(500, "internal", message, None::<String>)
 }
 
-/// 创建注册表错误
-pub fn registry_error(err: RegistryError) -> Error {
-    internal_error(format!("服务注册表错误: {err}"))
-}
-
 // ============================================================================
 // 错误扩展功能
 // ============================================================================
@@ -271,13 +265,6 @@ impl ClientErrorExt for Error {
 
 // 注意: 不能为外部类型实现 From，因为这些类型由 CoreError 定义在 openlark-core 中
 // 请使用对应的函数来进行错误转换
-
-// 从注册表错误转换
-impl From<RegistryError> for Error {
-    fn from(err: RegistryError) -> Self {
-        registry_error(err)
-    }
-}
 
 // ============================================================================
 // 便利函数
@@ -641,15 +628,6 @@ mod tests {
         assert!(!error.to_string().is_empty());
         let error2 = from_feishu_response(400, "/api/test", "参数错误", None);
         assert!(!error2.to_string().is_empty());
-    }
-
-    #[test]
-    fn test_registry_error_conversion() {
-        let registry_err = crate::registry::RegistryError::ServiceNotFound {
-            name: "test".to_string(),
-        };
-        let error: Error = registry_err.into();
-        assert!(!error.is_user_error());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 macro_rules! declare_client {
-    // `*`：允许零业务域（仅 config/registry）；catalog 全量生成时通常为多项
+    // `*`：允许零业务域（仅 config）；catalog 全量生成时通常为多项
     ($(
         {
             feature: $feature:literal,
@@ -37,8 +37,6 @@ macro_rules! declare_client {
         /// ```
         #[derive(Clone)]
         pub struct Client {
-            /// 服务注册表
-            registry: std::sync::Arc<crate::DefaultServiceRegistry>,
             /// 统一配置（Arc 零拷贝共享，供所有 meta client 复用）
             config: openlark_core::config::Config,
 
@@ -53,7 +51,6 @@ macro_rules! declare_client {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 f.debug_struct("Client")
                     .field("config", &"<CoreConfig>")
-                    .field("registry", &"<Registry>")
                     $(
                         .field(stringify!($field), &cfg!(feature = $feature))
                     )*
@@ -63,7 +60,6 @@ macro_rules! declare_client {
 
         impl Client {
             fn from_parts(
-                registry: std::sync::Arc<crate::DefaultServiceRegistry>,
                 _base_core_config: openlark_core::config::Config,
                 core_config: openlark_core::config::Config,
             ) -> crate::Result<Self> {
@@ -80,7 +76,6 @@ macro_rules! declare_client {
 
                 Ok(Self {
                     config: core_config.clone(),
-                    registry,
                     $(
                         #[cfg(feature = $feature)]
                         $field,

@@ -16,12 +16,10 @@
 - **条件编译**: 只编译需要的服务，优化二进制大小
 - **类型安全**: 编译时类型检查，避免运行时错误
 - **向后兼容**: 提供兼容现有代码的迁移路径
-- **服务元信息**: 编译期注册服务元信息用于可观测性
 
 ### 🎯 **核心功能**
 
 - **1,000+ API 支持**: 覆盖飞书开放平台主要功能
-- **服务元信息**: 启动时注册已编译服务元信息（用于可观测/依赖展示）
 - **错误处理**: 企业级错误处理和恢复机制
 - **性能优化**: 共享配置和内存优化
 - **构建器模式**: 流畅的 API 配置体验
@@ -73,8 +71,10 @@ openlark = { version = "0.18.0", features = ["essential"] }
 
 - canonical 高级入口：`openlark_client::Client` / `ClientBuilder`
 - canonical 调用方式：`client.auth`、`client.communication`、`client.docs`、`client.hr`
-- 保留在本 crate 的高级能力：`ServiceRegistry`（metadata-only 诊断）、traits
 - 非默认推荐场景：普通业务应用直接把 `openlark-client` 当作根入口
+
+> #471 移除了 speculative 的 `ServiceRegistry` / traits / lazy 半边（零外部消费者）。
+> 本 crate 现只保留 `Client` 的 meta 链式字段访问；不再提供 metadata-only registry。
 
 ## 🧩 meta 调用链（按 CSV 映射）
 
@@ -159,7 +159,7 @@ fn main() -> Result<()> {
 }
 ```
 
-### 服务发现
+### 配置访问
 
 ```rust,no_run
 use openlark_client::prelude::*;
@@ -167,15 +167,9 @@ use openlark_client::prelude::*;
 fn main() -> Result<()> {
     let client = Client::from_env()?;
 
-    // 列出已注册的服务元数据
-    for entry in client.registry().list_services() {
-        println!("可用服务: {}", entry.metadata.name);
-    }
-
-    // 检查特定服务是否已启用（元信息层面）
-    if client.registry().has_service("docs") {
-        println!("文档服务已启用");
-    }
+    // 统一配置入口（inherent 方法）
+    let _cfg = client.config();
+    assert!(client.is_configured());
 
     Ok(())
 }
@@ -183,51 +177,38 @@ fn main() -> Result<()> {
 
 ## 🔄 迁移指南
 
-### 从现有 LarkClient 迁移
+### 从 0.18 的 registry / traits 迁移（0.19 breaking）
 
-1. **新代码**（推荐）:
-   ```rust,no_run
-   use openlark_client::prelude::*;
-   fn main() -> Result<()> {
-       let _client = Client::builder()
-           .app_id("app_id")
-           .app_secret("app_secret")
-           .build()?;
-       Ok(())
-   }
-   ```
+#471 移除了零外部消费者的 speculative 表面。如果你曾使用这些 API：
 
-2. **服务访问更新**:
-   ```rust
-   // 旧方式：依赖 openlark-client 内部的服务包装层（已移除）
-   // 新方式：直接使用 meta 单入口（字段链式）访问业务 crate 的能力
-   // - 文档：client.docs...
-   // - 通讯：client.communication...
-   // - 认证：client.auth...
-   ```
+```rust,ignore
+// 已移除（0.19）—— 改用下述等价方式
+let _ = client.registry();                 // metadata-only 诊断：已删
+let _ = client.handle_error(...);          // ClientErrorHandling trait：改用 client.execute_with_context(op, fut).await
+use openlark_client::LarkClient;           // trait：改用 Client 固有方法 client.config() / client.is_configured()
+```
+
+仅走 `client.<domain>` 字段访问的代码**零影响**。
 
 ## 🏗️ 架构设计
 
-### 服务注册表模式
+### 能力目录（capability catalog）
 
 ```mermaid
 graph TD
-    A[Client] --> B[DefaultServiceRegistry]
-    A --> C[meta clients<br/>docs/communication/auth/...]
-    D[registry::bootstrap] --> B
-    E[Cargo features] --> D
+    A[Client] --> B[config: CoreConfig]
+    A --> C[meta 字段<br/>docs/communication/auth/...]
+    D[Cargo features] --> E[capability catalog]
+    E -->|生成 Client 字段| C
 ```
 
 **说明**：
-- **编译期**: Cargo features 决定哪些 meta client 字段被编译进 Client
-- **启动期**: `registry::bootstrap` 调用 capability catalog 注册元信息到 DefaultServiceRegistry
-- **运行期**: Registry 仅提供不可变元信息查询（listing / lookup / presence / 依赖图），不管理实例或生命周期
-
-### 核心 Trait
-
-- **`LarkClient`** (`src/traits/client.rs`): 客户端统一接口
-- **`ServiceTrait`** (`src/traits/service.rs`): 服务基础约定
-- **`ServiceLifecycle`** (`src/traits/service.rs`): 服务生命周期约定
+- **编译期**: Cargo features 决定哪些 meta client 字段被 `capability` catalog 编译进 `Client`。
+  catalog 是 Client 字段的单一事实来源（`feature`/`field`/`ty`/`doc`/`init`）。
+- **编译期保证**: 字段标识符唯一、禁用 feature 不产 Client 字段，由
+  `openlark-capability-unique` trybuild crate（workspace 成员）覆盖。
+- **运行期**: `Client` 只暴露 meta 链式字段访问与配置；不再有 registry / lifecycle trait
+  （#471 移除零消费者的 speculative 半边）。
 
 ## 🧪 测试
 

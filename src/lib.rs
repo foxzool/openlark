@@ -111,7 +111,8 @@ pub use openlark_cardkit as cardkit;
 /// 面向 `openlark` 用户的统一预导出。
 ///
 /// 该模块只导出"创建客户端 + 顶层业务入口"所需的稳定公共类型。
-/// registry / feature loader / traits 等高级客户端层能力保留在 `openlark-client`。
+///（历史上 registry / feature loader / traits 等 speculative 半边曾位于
+/// `openlark-client`，#471 / 0.19 已移除——零外部消费者。）
 pub mod prelude {
     pub use crate::SDKResult;
     pub use crate::{Client, ClientBuilder, CoreConfig, Error, Result};

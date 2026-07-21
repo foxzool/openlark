@@ -1,4 +1,4 @@
-use super::{Client, ClientBuilder, ClientErrorHandling};
+use super::{Client, ClientBuilder};
 use crate::Result;
 use openlark_core::error::ErrorTrait;
 use std::time::Duration;
@@ -422,17 +422,21 @@ fn test_workflow_task_v2_chain_exists() {
         .user_id_type("open_id");
 }
 
-#[test]
-fn test_client_error_handling() {
+/// `execute_with_context` 是 `ClientErrorHandling` trait（#471 已移除）后保留的等价
+/// inherent 方法：为异步操作结果附加 `operation` / `component` 上下文。
+#[tokio::test]
+async fn test_execute_with_context_attaches_operation_context() {
     let client = Client::builder()
         .app_id("test_app_id")
         .app_secret("test_app_secret")
         .build()
         .unwrap();
 
-    let error_result: Result<i32> =
-        Err(crate::error::validation_error("field", "validation failed"));
-    let result = client.handle_error(error_result, "test_operation");
+    let result = client
+        .execute_with_context("test_operation", async {
+            Err::<i32, _>(crate::error::network_error("async error"))
+        })
+        .await;
 
     assert!(result.is_err());
     if let Err(error) = result {
@@ -441,29 +445,6 @@ fn test_client_error_handling() {
             error.context().get_context("operation"),
             Some("test_operation")
         );
-        assert_eq!(error.context().get_context("component"), Some("Client"));
-    }
-}
-
-#[tokio::test]
-async fn test_async_error_handling() {
-    let client = Client::builder()
-        .app_id("test_app_id")
-        .app_secret("test_app_secret")
-        .build()
-        .unwrap();
-
-    let result = client
-        .handle_async_error(
-            async { Err::<i32, _>(crate::error::network_error("async error")) },
-            "async_test",
-        )
-        .await;
-
-    assert!(result.is_err());
-    if let Err(error) = result {
-        assert!(error.context().has_context("operation"));
-        assert_eq!(error.context().get_context("operation"), Some("async_test"));
         assert_eq!(error.context().get_context("component"), Some("Client"));
     }
 }

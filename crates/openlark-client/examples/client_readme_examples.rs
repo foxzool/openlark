@@ -45,20 +45,6 @@ fn service_access_example() -> Result<()> {
     Ok(())
 }
 
-fn registry_example() -> Result<()> {
-    let client = Client::builder()
-        .app_id("your_app_id")
-        .app_secret("your_app_secret")
-        .build()?;
-
-    for entry in client.registry().list_services() {
-        let _ = &entry.metadata.name;
-    }
-
-    let _docs_enabled = client.registry().has_service("docs");
-    Ok(())
-}
-
 fn main() -> Result<()> {
     builder_example()?;
     if std::env::var_os("OPENLARK_APP_ID").is_some()
@@ -68,6 +54,5 @@ fn main() -> Result<()> {
     }
     core_config_example()?;
     service_access_example()?;
-    registry_example()?;
     Ok(())
 }

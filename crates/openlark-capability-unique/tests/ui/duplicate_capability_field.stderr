@@ -10,8 +10,8 @@ error[E0428]: the name `auth` is defined multiple times
   ::: tests/ui/duplicate_capability_field.rs:8:5
    |
  8 | /     assert_capability_catalog_unique! {
- 9 | |         { field: auth, name: "auth" },
-10 | |         { field: auth, name: "auth" },
+ 9 | |         { feature: "auth", field: auth },
+10 | |         { feature: "auth", field: auth },
 11 | |     }
    | |_____- in this macro invocation
    |
