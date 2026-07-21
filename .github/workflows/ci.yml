@@ -121,6 +121,8 @@ jobs:
         run: bash tools/check_no_dead_code_allows.sh
       - name: Check Transport/reqwest boundary
         run: bash tools/check_reqwest_boundary.sh
+      - name: Check no handwritten response extraction (drift guard #470/#486)
+        run: python3 tools/check_no_handwritten_extraction.py
       - name: Run clippy (no default features)
         run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 

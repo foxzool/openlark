@@ -815,7 +815,7 @@ impl DocsClient {
         let resp = DownloadFileRequest::new(self.config().clone(), file_token)
             .execute()
             .await?;
-        openlark_core::api::extract_response_data(resp, "下载 Drive 文件")
+        resp.decode("下载 Drive 文件")
     }
 
     /// 按范围下载 Drive 文件内容。
@@ -831,7 +831,7 @@ impl DocsClient {
             .range(range.to_string())
             .execute()
             .await?;
-        openlark_core::api::extract_response_data(resp, "按范围下载 Drive 文件")
+        resp.decode("按范围下载 Drive 文件")
     }
 
     /// 获取指定知识空间下的所有节点，自动处理分页。
