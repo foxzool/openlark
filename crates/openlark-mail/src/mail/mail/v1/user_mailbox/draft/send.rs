@@ -57,9 +57,7 @@ impl UserMailboxDraftSendRequest {
             self.user_mailbox_id, self.draft_id
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("发送草稿", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "发送草稿").await
     }
 }
 

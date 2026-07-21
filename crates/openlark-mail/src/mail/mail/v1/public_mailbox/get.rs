@@ -1,7 +1,7 @@
 //! 获取公共邮箱详情
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/get>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::public_mailbox::models::GetPublicMailboxResponse;
 use openlark_core::{
     SDKResult,
@@ -40,9 +40,13 @@ impl GetPublicMailboxRequest {
         let api_endpoint = MailApiV1::PublicMailboxGet(self.mailbox_id.clone());
         let request = ApiRequest::<GetPublicMailboxResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取公共邮箱")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取公共邮箱",
+        )
+        .await
     }
 }
 

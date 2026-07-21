@@ -61,9 +61,7 @@ impl UpdateMailboxRuleRequest {
         );
         let req: ApiRequest<UpdateMailboxRuleResponse> = ApiRequest::put(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("更新收信规则", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "更新收信规则").await
     }
 }
 

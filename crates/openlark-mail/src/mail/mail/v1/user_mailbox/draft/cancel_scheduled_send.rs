@@ -70,9 +70,7 @@ impl CancelScheduledSendRequest {
             self.mailbox_id, self.message_id
         );
         let req: ApiRequest<CancelScheduledSendResponse> = ApiRequest::post(&path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("取消定时发送", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "取消定时发送").await
     }
 }
 

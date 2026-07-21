@@ -1,7 +1,6 @@
 //! 删除邮件组权限成员
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete>
 
-use crate::common::api_utils::extract_response_data;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
@@ -53,8 +52,7 @@ impl DeleteMailGroupPermissionMemberRequest {
         );
         let req: ApiRequest<DeleteMailGroupPermissionMemberResponse> = ApiRequest::delete(&path);
 
-        let response = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除邮件组权限成员")
+        Transport::request_typed(req, &self.config, Some(option), "删除邮件组权限成员").await
     }
 }
 

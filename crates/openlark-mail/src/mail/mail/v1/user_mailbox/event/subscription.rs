@@ -55,9 +55,7 @@ impl GetMailboxEventSubscriptionRequest {
         );
         let req: ApiRequest<GetMailboxEventSubscriptionResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("获取订阅状态", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "获取订阅状态").await
     }
 }
 

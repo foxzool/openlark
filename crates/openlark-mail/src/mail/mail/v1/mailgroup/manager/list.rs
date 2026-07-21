@@ -72,10 +72,7 @@ impl ListMailGroupManagerRequest {
         );
         let req: ApiRequest<ListMailGroupManagerResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("批量获取邮件组管理员", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "批量获取邮件组管理员").await
     }
 }
 

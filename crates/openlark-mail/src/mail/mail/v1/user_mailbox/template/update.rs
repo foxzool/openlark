@@ -57,9 +57,7 @@ impl UserMailboxTemplateUpdateRequest {
             self.user_mailbox_id, self.template_id
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::put(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("更新邮件模板", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "更新邮件模板").await
     }
 }
 

@@ -89,9 +89,7 @@ impl CreateMailGroupMemberRequest {
         let req: ApiRequest<CreateMailGroupMemberResponse> =
             ApiRequest::post(&path).body(serialize_params(&self.body, "创建邮件组成员")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("创建邮件组成员", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "创建邮件组成员").await
     }
 }
 

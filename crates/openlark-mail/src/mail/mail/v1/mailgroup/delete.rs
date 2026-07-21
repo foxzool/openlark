@@ -1,7 +1,7 @@
 //! 删除邮件组
 //! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/delete>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::mailgroup::models::DeleteMailGroupResponse;
 use openlark_core::{
     SDKResult,
@@ -43,9 +43,13 @@ impl DeleteMailGroupRequest {
         let api_endpoint = MailApiV1::MailGroupDelete(self.mail_group_id.clone());
         let request = ApiRequest::<DeleteMailGroupResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除邮件组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除邮件组",
+        )
+        .await
     }
 }
 
