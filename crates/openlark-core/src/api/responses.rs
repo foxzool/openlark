@@ -254,6 +254,36 @@ impl<T> Response<T> {
             ))
         }
     }
+
+    /// Canonical finisher：从 `Response<T>` 抽取 typed `T`（#486 起 `extract_response_data`
+    /// 自由函数收敛到此方法）。
+    ///
+    /// `data` 存在则返回；缺失时区分两种失败（#470 user story 12：业务错误不再被误报为空成功）：
+    /// - 业务错误（`code != 0`）：`api_error` 保留飞书 `code` / `msg`；
+    /// - `code == 0` 缺 `data`：`validation_error`（真正抽取失败）。
+    ///
+    /// 两种失败都经 `map_context` 附 `operation=extract_response_data` +
+    /// `resource=<context>` + 响应 `request_id`。供 `Transport::request_typed`（核心）
+    /// 与持有 `Response<T>` 的 facade 组合层收尾用；leaf 不应直接调用（走 request_typed）。
+    pub fn decode(self, context: &str) -> Result<T, crate::error::CoreError> {
+        if let Some(data) = self.data {
+            return Ok(data);
+        }
+        let raw = self.raw_response;
+        let request_id = raw.request_id.clone();
+        let err = if raw.code != 0 {
+            crate::error::api_error(raw.code as u16, "response", raw.msg, request_id.clone())
+        } else {
+            crate::error::validation_error("response.data", "服务器没有返回有效的数据")
+        };
+        Err(err.map_context(|ctx| {
+            ctx.set_operation("extract_response_data")
+                .add_context("resource", context);
+            if let Some(req_id) = request_id.as_ref().filter(|r| !r.trim().is_empty()) {
+                ctx.set_request_id(req_id);
+            }
+        }))
+    }
 }
 
 // 为常见类型实现 ApiResponseTrait
@@ -373,5 +403,47 @@ mod tests {
         assert_eq!(parsed.raw_response.code, 400);
         assert_eq!(parsed.raw_response.msg, "Bad Request");
         assert!(!parsed.is_success());
+    }
+
+    // Response::decode（#486：extract_response_data 收敛到此方法）
+
+    #[test]
+    fn decode_returns_data_on_success() {
+        let response: Response<String> = Response {
+            data: Some("x".to_string()),
+            raw_response: RawResponse::success(),
+        };
+        assert_eq!(response.decode("测试").unwrap(), "x");
+    }
+
+    #[test]
+    fn decode_missing_data_is_validation_error_with_context() {
+        let response: Response<String> = Response {
+            data: None,
+            raw_response: RawResponse::success(),
+        };
+        let err = response.decode("测试").expect_err("缺 data 应报错");
+        let ctx = err.ctx();
+        assert_eq!(ctx.operation(), Some("extract_response_data"));
+        assert_eq!(ctx.get_context("resource"), Some("测试"));
+    }
+
+    #[test]
+    fn decode_business_error_is_api_error_preserving_msg() {
+        let response: Response<String> = Response {
+            data: None,
+            raw_response: RawResponse {
+                code: 99991663,
+                msg: "permission denied".to_string(),
+                request_id: Some("rid-x".to_string()),
+                ..RawResponse::success()
+            },
+        };
+        let err = response.decode("测试").expect_err("业务错误应报错");
+        assert_eq!(err.ctx().request_id(), Some("rid-x"));
+        match err {
+            crate::error::CoreError::Api(api) => assert!(api.message.contains("permission denied")),
+            other => panic!("expected Api for business error, got: {other:?}"),
+        }
     }
 }

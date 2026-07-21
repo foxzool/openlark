@@ -1,10 +1,10 @@
 //! API 工具函数（re-export core canonical + validate_required_field）。
 //!
-//! serialize_params / extract_response_data / ensure_success 已下沉到
+//! serialize_params / ensure_success 已下沉到
 //! `openlark_core::api`（#330）；保留 meeting 域的 validate_required_field（会议叶子复用）。
 use openlark_core::{SDKResult, error};
 
-pub use openlark_core::api::{ensure_success, extract_response_data, serialize_params};
+pub use openlark_core::api::{ensure_success, serialize_params};
 
 /// 标准化必填字段校验。
 pub fn validate_required_field<T: AsRef<str>>(
