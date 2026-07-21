@@ -40,7 +40,6 @@
 - ✅ 功能标志(Feature flags)按需编译
 - ✅ HTTP 客户端和基础认证管理
 - ✅ 请求/响应序列化和基础验证
-- ✅ ServiceLifecycle trait（服务生命周期管理：`crates/openlark-client/src/traits/service.rs`）
 - ✅ RetryPolicy（重试策略配置：`crates/openlark-core/src/error/core.rs`）
 - ✅ 基础可观测性（OperationTracker/HttpTracker：`crates/openlark-core/src/observability.rs`）
 
@@ -457,16 +456,16 @@ impl ClientBuilder {
 
 #### 6.1.2 业务入口与编译能力诊断（0.18）
 
-> **现行模型**（#423 / #434–#437）：业务经 `Client` 的 **meta 字段链**访问；
-> `registry` 仅为编译期 capability catalog 的 **metadata-only 诊断**，不提供
-> 方法式 `client.auth()`、运行时注册、热加载或 `ServiceStatus`。
-> 详见 §7.2.1 与 `docs/migration-guide.md` 0.18 节。
+> **现行模型**（#434–#437 / #471）：业务经 `Client` 的 **meta 字段链**访问。
+> `registry` / `traits` / `lazy` 等诊断半边曾位于 `openlark-client`，因零外部消费者
+> 已于 **0.19（#471）整体移除**；能力是否编译改由 Cargo feature +
+> `openlark-capability-unique` trybuild（编译期）判断，不再有 runtime registry。
+> 迁移见 `docs/migration-guide.md`。
 
 ```rust
-// Client 挂载 feature-gated 字段（由 capability catalog 生成）
+// Client 挂载 feature-gated 字段（由 capability catalog 生成；无 registry 字段）
 pub struct Client {
     config: Config,
-    registry: Arc<DefaultServiceRegistry>,
     #[cfg(feature = "auth")]
     pub auth: AuthClient,
     #[cfg(feature = "communication")]
@@ -476,19 +475,16 @@ pub struct Client {
     // ... 其余业务域同理
 }
 
-// 业务调用：字段链，不是 registry 取实例
+// 业务调用：字段链（唯一入口）
 #[cfg(feature = "docs")]
 let _ = &client.docs;
-
-// 诊断：是否编译了某能力（与 Cargo feature 一致）
-if client.registry().has_service("docs") { /* ... */ }
-for entry in client.registry().list_services() {
-    // 稳定顺序：priority 升序，同 priority 按 name
-    println!("{}", entry.metadata.name);
-}
 ```
 
-#### 6.1.3 能力元数据（无 lifecycle）
+#### 6.1.3 [已删除/历史文档] 能力元数据（0.19 #471 移除）
+
+> **已移除**：整个 registry 半边（`ServiceMetadata` / `ServiceEntry` /
+> `Client::registry()`）于 0.19（#471）删除（零外部消费者）。下方为 0.18 历史形态，
+> 仅作记录；现行能力诊断走 Cargo feature + trybuild（编译期）。
 
 构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register。
 文档示例也从 registry 读取 catalog 投影，不复制名称与描述字面量：
@@ -1178,9 +1174,8 @@ impl Config {
 编译时功能标志通过 capability catalog 控制 Client 上的 meta 字段是否出现（0.18 现行模型）：
 
 ```rust
-// Client 上的业务字段由 catalog 宏 + cfg(feature) 生成（非方法式访问器）
+// Client 上的业务字段由 catalog 宏 + cfg(feature) 生成（非方法式访问器；无 registry 字段）
 pub struct Client {
-    registry: Arc<DefaultServiceRegistry>,
     config: openlark_core::config::Config,
 
     #[cfg(feature = "auth")]
@@ -1195,7 +1190,6 @@ pub struct Client {
 // 用法：字段访问（启用对应 feature 方可编译）
 #[cfg(feature = "docs")]
 let _ = &client.docs;
-if client.registry().has_service("docs") { /* 诊断 */ }
 ```
 
 旧的 `fn communication(&self)` / `require_feature!` 宏访问器模式已在 0.18 废弃，详见 §6.1.2 与 crates/openlark-client/AGENTS.md。
@@ -1215,31 +1209,23 @@ impl Client {
         let result = f.await;
         with_operation_context(result, operation, "Client")
     }
-
-    /// 处理错误并添加客户端上下文
-    pub fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T> {
-        with_operation_context(result, operation, "Client")
-    }
 }
 
-// 错误上下文扩展
-pub trait ClientErrorHandling {
-    fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T>;
-    async fn handle_async_error<T, F>(&self, f: F, operation: &str) -> Result<T>
-    where
-        F: std::future::Future<Output = Result<T>>;
-}
+// 注：`handle_error` 方法与 `ClientErrorHandling` trait（含 `handle_async_error`）
+// 已于 0.19（#471）移除——零消费者的 speculative 表面。等价能力用上面的
+// `execute_with_context`（inherent 方法）。
 ```
 
 ### 7.2 服务注册机制
 
-#### 7.2.1 ServiceRegistry（0.18：metadata-only 诊断）
+#### 7.2.1 [已删除/历史文档] ServiceRegistry（0.19 #471 移除）
 
-> **0.18 现行行为**（#423 / #434–#437）：`Client::registry()` 是编译能力诊断 seam，
-> **不是**服务容器。条目由 capability catalog 在 Client 构造期写入；公开 API 只读
-> （`has_service` / `get_service` / `list_services` / `get_dependency_graph`）。
-> 已删除：`FeatureLoader`、`ServiceStatus`、typed-instance、`update_service_status`、
-> 公开 `register_service`。迁移见 `docs/migration-guide.md` 0.18 节。
+> **已移除**（#471）：`Client::registry()` / `DefaultServiceRegistry` /
+> `ServiceMetadata` / `ServiceEntry` / `ServiceRegistry` trait 全部删除——零外部消费者。
+> 下方为 0.18 形态，仅作历史记录；现行能力诊断走 Cargo feature + trybuild（编译期）。
+> 0.18 之前的删除项（`FeatureLoader`、`ServiceStatus`、typed-instance、
+> `update_service_status`、公开 `register_service`）仍记录于此。迁移见
+> `docs/migration-guide.md`。
 
 ```rust
 // 现行形状（简化）
@@ -5866,7 +5852,7 @@ impl Service for CustomNotificationService {
 }
 
 // [0.18 已删除] client.register_service(...) — 无运行时服务容器。
-// 业务能力经 client.<domain> meta 链访问；诊断用 client.registry().has_service。
+// 业务能力经 client.<domain> meta 链访问（0.19 #471 起 registry 已整体移除）。
 let client = Client::builder().from_env()?.build()?;
 #[cfg(feature = "docs")]
 let _docs = &client.docs;
