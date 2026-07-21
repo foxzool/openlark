@@ -8,6 +8,8 @@
 //! 也不在 select 关键路径上 `send().await` 阻塞 Ping/心跳。
 //! （outbox 与 worker 队列均有界；两者皆满时才返回错误，避免无界内存。）
 
+mod types;
+
 use std::collections::{HashMap, VecDeque};
 use std::panic::AssertUnwindSafe;
 use std::time::Duration;
@@ -25,14 +27,14 @@ use tokio::time::{Instant, Interval};
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::protocol::Message};
 
-use super::client::{
-    ClientConfig, EventDispatcherHandler, InvalidStateKind, WsClientError, WsClientResult,
-    WsCloseReason,
-};
+use super::client::ClientConfig;
+use super::dispatcher::EventDispatcherHandler;
 use super::frame_handler::{
     ControlFrameEffect, ControlFrameError, FRAME_METHOD_CONTROL, FRAME_METHOD_DATA, FrameHandler,
 };
 use super::package::{self, FramePackageBuffer};
+
+pub use types::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
 
 /// 串行 handler 队列容量（worker 侧有界缓冲）。
 const HANDLER_QUEUE_CAP: usize = 64;
