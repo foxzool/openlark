@@ -33,10 +33,13 @@ impl EmployeeCustomOrgDelRequest {
     ) -> SDKResult<serde_json::Value> {
         let path = "/open-apis/corehr/v2/custom_org/del".to_string();
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("删除人员自定义组织变更记录", "响应数据为空")
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "删除人员自定义组织变更记录",
+        )
+        .await
     }
 }
 

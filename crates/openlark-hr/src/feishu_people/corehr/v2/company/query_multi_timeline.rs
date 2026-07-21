@@ -64,9 +64,12 @@ impl QueryMultiTimelineRequest {
             "/open-apis/corehr/v2/companies/query_multi_timeline",
         )
         .body(serde_json::to_value(&self.body)?);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询指定时间范围公司版本", "响应数据为空")
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询指定时间范围公司版本",
+        )
+        .await
     }
 }

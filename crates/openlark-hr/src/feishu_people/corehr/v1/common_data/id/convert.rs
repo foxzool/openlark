@@ -54,14 +54,7 @@ impl ConvertRequest {
         validate_required!(endpoint_url.as_str(), "API 端点不能为空");
 
         let request = ApiRequest::<ConvertResponse>::post(endpoint_url).body(self.request_body);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "ID 转换响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "ID 转换响应数据为空").await
     }
 }
 

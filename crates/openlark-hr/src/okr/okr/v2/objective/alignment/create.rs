@@ -65,10 +65,7 @@ impl Request {
         })?;
         let req: ApiRequest<CreateObjectiveAlignmentResponse> =
             ApiRequest::post(path).body(body_val);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("创建目标对齐关系", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "创建目标对齐关系").await
     }
 }
 

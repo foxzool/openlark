@@ -55,14 +55,13 @@ impl CreateByAttachmentRequest {
         let request = ApiRequest::<CreateByAttachmentResponse>::post(format!(
             "/open-apis/hire/v1/websites/{website_id}/deliveries/create_by_attachment"
         ));
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "根据简历附件创建招聘官网投递任务响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "根据简历附件创建招聘官网投递任务响应数据为空",
+        )
+        .await
     }
 }
 

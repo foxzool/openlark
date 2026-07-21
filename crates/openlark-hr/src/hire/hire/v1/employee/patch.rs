@@ -67,13 +67,13 @@ impl PatchRequest {
             request = request.body(request_body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "更新员工状态响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新员工状态响应数据为空",
+        )
+        .await
     }
 }
 

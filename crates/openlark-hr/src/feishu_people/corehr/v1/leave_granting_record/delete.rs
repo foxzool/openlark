@@ -52,14 +52,13 @@ impl DeleteRequest {
 
         let api_endpoint = FeishuPeopleApiV1::LeaveGrantingRecordDelete(self.record_id);
         let request = ApiRequest::<DeleteResponse>::delete(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "删除假期发放记录响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除假期发放记录响应数据为空",
+        )
+        .await
     }
 }
 

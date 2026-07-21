@@ -38,14 +38,13 @@ impl CreateRequest {
 
         let api_endpoint = CompensationApiV1::ArchiveCreate;
         let request = ApiRequest::<CreateResponse>::post(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "创建薪资档案响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建薪资档案响应数据为空",
+        )
+        .await
     }
 }
 

@@ -56,14 +56,13 @@ impl DeleteRequest {
         validate_required!(endpoint_url.as_str(), "API 端点不能为空");
 
         let request = ApiRequest::<DeleteResponse>::delete(endpoint_url);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "删除国家证件类型响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除国家证件类型响应数据为空",
+        )
+        .await
     }
 }
 

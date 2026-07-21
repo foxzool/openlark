@@ -49,14 +49,7 @@ impl UploadRequest {
             request = request.body(serde_json::json!({ "file": file }));
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "上传文件响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "上传文件响应数据为空").await
     }
 }
 

@@ -63,14 +63,13 @@ impl GetRequest {
         let request = ApiRequest::<GetResponse>::get(format!(
             "/open-apis/hire/v1/websites/{website_id}/delivery_tasks/{delivery_task_id}"
         ));
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取招聘官网投递任务结果响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取招聘官网投递任务结果响应数据为空",
+        )
+        .await
     }
 }
 

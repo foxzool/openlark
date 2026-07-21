@@ -55,14 +55,13 @@ impl GetRequest {
 
         let api_endpoint = HireApiV1::ReferralWebsiteJobPostGet(self.job_post_id);
         let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取内推官网下职位广告详情响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取内推官网下职位广告详情响应数据为空",
+        )
+        .await
     }
 }
 

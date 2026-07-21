@@ -53,14 +53,13 @@ impl GetRequest {
 
         let api_endpoint = HireApiV2::InterviewRecordGet(self.interview_record_id);
         let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取面试评价详细信息（新版）响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取面试评价详细信息（新版）响应数据为空",
+        )
+        .await
     }
 }
 

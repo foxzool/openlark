@@ -61,9 +61,6 @@ impl EditProbationRequest {
         let request =
             ApiRequest::<EditProbationResponse>::post("/open-apis/corehr/v2/probation/edit")
                 .body(serde_json::to_value(&self.body)?);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("编辑试用期", "响应数据为空"))
+        Transport::request_typed(request, &self.config, Some(option), "编辑试用期").await
     }
 }

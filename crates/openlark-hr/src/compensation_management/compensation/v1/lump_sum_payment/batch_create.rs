@@ -38,14 +38,13 @@ impl BatchCreateRequest {
 
         let api_endpoint = CompensationApiV1::LumpSumPaymentBatchCreate;
         let request = ApiRequest::<BatchCreateResponse>::post(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量创建一次性支付记录响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量创建一次性支付记录响应数据为空",
+        )
+        .await
     }
 }
 
