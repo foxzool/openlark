@@ -450,16 +450,13 @@ pub struct SecurityErrorAnalyzer;
 
 impl SecurityErrorAnalyzer {
     /// 分析安全错误的潜在风险
+    ///
+    /// 风险等级（`CoreError` variant → `SecurityRiskLevel`）已委托给
+    /// `SecurityRiskClassify` trait 的唯一来源；本函数只保留「拿到等级后做什么」
+    /// 的 policy：风险类型归类、是否升级、采取什么行动——不再自己 match
+    /// `CoreError` variant 做分级。
     pub fn analyze_security_risk(error: &SecurityError) -> SecurityRiskAssessment {
-        let risk_level = match error {
-            CoreError::Authentication { .. } if error.is_permission_error() => {
-                SecurityRiskLevel::High
-            }
-            CoreError::Business { .. } => SecurityRiskLevel::Critical,
-            CoreError::Internal { .. } => SecurityRiskLevel::High,
-            CoreError::Validation { .. } => SecurityRiskLevel::Medium,
-            _ => SecurityRiskLevel::Low,
-        };
+        let risk_level = error.security_risk_level();
 
         let risk_type = if error.is_permission_error() {
             SecurityRiskType::AccessControl
@@ -475,6 +472,9 @@ impl SecurityErrorAnalyzer {
             risk_level,
             risk_type,
             immediate_action: SecurityAction::LogAndMonitor,
+            // 升级策略沿用既有口径：仅 Business/Internal 升级为可处置事件。
+            // 注意权限缺失虽归 High，但原策略把它当作「仅监控」的访问控制事件、
+            // 不升级——本重构只收口分级（走 trait），不改这条 policy。
             escalation_required: matches!(
                 error,
                 CoreError::Business { .. } | CoreError::Internal { .. }
@@ -510,6 +510,52 @@ pub enum SecurityRiskLevel {
     High,
     /// 严重风险
     Critical,
+}
+
+/// 安全风险分类 extension trait（#472 / #477）。
+///
+/// 把「`CoreError` variant → `SecurityRiskLevel`」的分类表收敛为唯一来源：
+/// core 可以自由演化 variant，分类逻辑只在这一处 match。依赖方向正确——
+/// security 依赖 core，core 不依赖业务风险概念。
+///
+/// `CoreError` 标了 `#[non_exhaustive]`，外部 match 必须有 `_` 兜底；
+/// 这里对每个已知 variant 显式分类，`_` 只给未来新 variant 一个保守默认，
+/// 以便新增 variant 时维护者能在此处看到并补上分类。
+pub trait SecurityRiskClassify {
+    /// 按错误 kind 判定安全风险等级
+    fn security_risk_level(&self) -> SecurityRiskLevel;
+}
+
+impl SecurityRiskClassify for CoreError {
+    fn security_risk_level(&self) -> SecurityRiskLevel {
+        match self {
+            // 权限缺失：潜在越权访问，高风险（复用 SecurityErrorExt::is_permission_error，
+            // 避免与 is_permission_error 重复 PermissionMissing 判定）
+            CoreError::Authentication { .. } if self.is_permission_error() => {
+                SecurityRiskLevel::High
+            }
+            // 业务/合规违例：可审计的严重事件
+            CoreError::Business { .. } => SecurityRiskLevel::Critical,
+            // 内部错误：可能暴露系统状态或被利用，高风险
+            CoreError::Internal { .. } => SecurityRiskLevel::High,
+            // 输入校验失败：可能是探测/注入尝试，中风险
+            CoreError::Validation { .. } => SecurityRiskLevel::Medium,
+            // 非权限类的认证错误（token 失效等）：当前归类为 Low
+            CoreError::Authentication { .. } => SecurityRiskLevel::Low,
+            // 运维/基础设施类错误：不构成安全或合规风险
+            CoreError::Network(_)
+            | CoreError::Api(_)
+            | CoreError::Configuration { .. }
+            | CoreError::Serialization { .. }
+            | CoreError::Timeout { .. }
+            | CoreError::RateLimit { .. }
+            | CoreError::ServiceUnavailable { .. }
+            | CoreError::ResponseTooLarge { .. } => SecurityRiskLevel::Low,
+            // CoreError 标 #[non_exhaustive]：未来新增 variant 的保守默认，
+            // 新增 variant 时维护者应在此显式补分类。
+            _ => SecurityRiskLevel::Low,
+        }
+    }
 }
 
 /// 安全风险类型
@@ -598,5 +644,129 @@ mod tests {
         let error = SecurityErrorBuilder::access_denied("secure_area", "no_clearance");
         let assessment = SecurityErrorAnalyzer::analyze_security_risk(&error);
         assert!(matches!(assessment.risk_level, SecurityRiskLevel::High));
+    }
+
+    #[test]
+    fn analyze_security_risk_preserves_escalation_policy() {
+        // 分级走 trait（security_risk_level），但升级策略保留既有口径：
+        // 仅 Business/Internal 升级为可处置事件。权限缺失虽归 High，
+        // 仍按原策略只监控、不升级（本重构不改 policy）。
+        let business = SecurityErrorAnalyzer::analyze_security_risk(&business_error("合规违例"));
+        assert!(matches!(business.risk_level, SecurityRiskLevel::Critical));
+        assert!(business.escalation_required);
+
+        let internal = SecurityErrorAnalyzer::analyze_security_risk(
+            &SecurityErrorBuilder::audit_log_failed("access_log", "disk full"),
+        );
+        assert!(matches!(internal.risk_level, SecurityRiskLevel::High));
+        assert!(internal.escalation_required);
+
+        let permission =
+            SecurityErrorAnalyzer::analyze_security_risk(&permission_missing_error(&["x"]));
+        assert!(matches!(permission.risk_level, SecurityRiskLevel::High));
+        assert!(
+            !permission.escalation_required,
+            "权限缺失按原策略不升级（仅监控）"
+        );
+
+        let network = SecurityErrorAnalyzer::analyze_security_risk(&network_error_with_details(
+            "net", None, None,
+        ));
+        assert!(matches!(network.risk_level, SecurityRiskLevel::Low));
+        assert!(!network.escalation_required);
+    }
+
+    // ===== #477: SecurityRiskClassify for CoreError 分类表 =====
+    // 分类表 = variant → SecurityRiskLevel 的唯一来源（trait impl）。
+    // 这里只断言外部行为（每个 variant → 预期等级），不耦合 impl 的 match 结构。
+
+    #[test]
+    fn security_risk_level_business_is_critical() {
+        let err = business_error("合规检查失败");
+        assert!(matches!(
+            err.security_risk_level(),
+            SecurityRiskLevel::Critical
+        ));
+    }
+
+    #[test]
+    fn security_risk_level_permission_denied_is_high() {
+        let err = permission_missing_error(&["security:access"]);
+        assert!(matches!(err.security_risk_level(), SecurityRiskLevel::High));
+    }
+
+    #[test]
+    fn security_risk_level_internal_is_high() {
+        let err = SecurityErrorBuilder::audit_log_failed("access_log", "disk full");
+        assert!(matches!(err.security_risk_level(), SecurityRiskLevel::High));
+    }
+
+    #[test]
+    fn security_risk_level_validation_is_medium() {
+        let err = validation_error("device_id", "设备未找到");
+        assert!(matches!(
+            err.security_risk_level(),
+            SecurityRiskLevel::Medium
+        ));
+    }
+
+    #[test]
+    fn security_risk_level_non_permission_auth_is_low() {
+        // 认证失败但非权限缺失（如 token 无效）→ Low
+        let err = authentication_error("token invalid");
+        assert!(matches!(err.security_risk_level(), SecurityRiskLevel::Low));
+    }
+
+    #[test]
+    fn security_risk_level_operational_variants_are_low() {
+        // 运维/基础设施类错误，不构成安全或合规风险 → Low
+        let cases: [CoreError; 7] = [
+            network_error_with_details("net", None, None),
+            configuration_error("cfg"),
+            CoreError::Serialization {
+                message: "s".into(),
+                source: None,
+                code: ErrorCode::SerializationError,
+                ctx: Box::new(ErrorContext::new()),
+            },
+            SecurityErrorBuilder::security_check_timeout("check", Duration::from_secs(1)),
+            rate_limit_error(10, Duration::from_secs(60), None),
+            SecurityErrorBuilder::device_temporarily_unavailable("dev", None),
+            CoreError::ResponseTooLarge {
+                limit: 1024,
+                actual: 2048,
+                ctx: Box::new(ErrorContext::new()),
+            },
+        ];
+        for err in cases {
+            assert!(
+                matches!(err.security_risk_level(), SecurityRiskLevel::Low),
+                "expected Low for {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn security_risk_level_api_is_low_regardless_of_code() {
+        // Api 错误目前不按 ApiError.code 细分，统一 Low（忠实于既有分类）。
+        // 未来若要让 403/401 类 Api 升级为 High，只改这一处 impl 即可。
+        for api_code in [
+            ErrorCode::PermissionMissing,
+            ErrorCode::InternalError,
+            ErrorCode::TooManyRequests,
+        ] {
+            let err = CoreError::Api(Box::new(ApiError {
+                status: 500,
+                endpoint: "security".into(),
+                message: "m".into(),
+                source: None,
+                code: api_code,
+                ctx: Box::new(ErrorContext::new()),
+            }));
+            assert!(
+                matches!(err.security_risk_level(), SecurityRiskLevel::Low),
+                "Api({api_code:?}) expected Low"
+            );
+        }
     }
 }
