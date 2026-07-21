@@ -111,9 +111,7 @@ impl StartServiceRequest {
             ApiRequest::post(HelpdeskApiV1::TicketStartService.to_url())
                 .body(serialize_params(&self.body, "创建服务台对话")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("创建服务台对话", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "创建服务台对话").await
     }
 }
 

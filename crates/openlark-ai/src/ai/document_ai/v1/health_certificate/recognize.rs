@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_HEALTH_CERTIFICATE_RECOGNIZE;
 
 /// 健康证识别请求体
@@ -97,8 +97,7 @@ impl HealthCertificateRecognizeRequest {
             ApiRequest::post(DOCUMENT_AI_HEALTH_CERTIFICATE_RECOGNIZE)
                 .body(serialize_params(&body, "健康证识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "健康证识别")
+        Transport::request_typed(req, &self.config, Some(option), "健康证识别").await
     }
 }
 
@@ -178,8 +177,7 @@ pub async fn health_certificate_recognize_with_options(
         ApiRequest::post(DOCUMENT_AI_HEALTH_CERTIFICATE_RECOGNIZE)
             .body(serialize_params(&body, "健康证识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "健康证识别")
+    Transport::request_typed(req, config, Some(option), "健康证识别").await
 }
 
 #[cfg(test)]

@@ -52,10 +52,7 @@ impl AppEnumGetEnumDetailRequest {
             self.app_id, self.enum_name
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取自定义枚举详细信息", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "获取自定义枚举详细信息").await
     }
 }
 

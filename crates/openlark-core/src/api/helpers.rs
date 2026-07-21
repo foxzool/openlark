@@ -6,7 +6,7 @@
 
 use crate::SDKResult;
 use crate::api::Response;
-use crate::error::validation_error;
+use crate::error::{api_error, validation_error};
 
 /// 标准化参数序列化。
 ///
@@ -25,19 +25,31 @@ pub fn serialize_params<T: serde::Serialize>(
 
 /// 标准化响应数据提取。
 ///
-/// 响应 `data` 为空时返回 `validation_error`，附加 `operation=extract_response_data` +
+/// 响应 `data` 为空时，区分两种失败（#470 user story 12：业务错误不再被误报为空成功）：
+/// - 业务错误（`code != 0`）：返回 `api_error` 保留飞书 `code` / `msg`；
+/// - `code == 0` 但缺 `data`：返回 `validation_error`（真正抽取失败）。
+///
+/// 两种失败都经 `map_context` 附加 `operation=extract_response_data` +
 /// `resource=<context>` + 响应携带的 `request_id`。
 pub fn extract_response_data<T>(response: Response<T>, context: &str) -> SDKResult<T> {
-    let request_id = response.raw_response.request_id.clone();
-    response.data.ok_or_else(|| {
-        validation_error("response.data", "服务器没有返回有效的数据").map_context(|ctx| {
-            ctx.set_operation("extract_response_data")
-                .add_context("resource", context);
-            if let Some(req_id) = request_id.as_ref().filter(|r| !r.trim().is_empty()) {
-                ctx.set_request_id(req_id);
-            }
-        })
-    })
+    if let Some(data) = response.data {
+        return Ok(data);
+    }
+
+    let raw = response.raw_response;
+    let request_id = raw.request_id.clone();
+    let err = if raw.code != 0 {
+        api_error(raw.code as u16, "response", raw.msg, request_id.clone())
+    } else {
+        validation_error("response.data", "服务器没有返回有效的数据")
+    };
+    Err(err.map_context(|ctx| {
+        ctx.set_operation("extract_response_data")
+            .add_context("resource", context);
+        if let Some(req_id) = request_id.as_ref().filter(|r| !r.trim().is_empty()) {
+            ctx.set_request_id(req_id);
+        }
+    }))
 }
 
 /// 无 data 接口：仅用 `code==0` 判断成功。

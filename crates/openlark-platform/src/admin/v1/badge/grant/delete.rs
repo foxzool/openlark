@@ -55,10 +55,7 @@ impl DeleteBadgeGrantRequestBuilder {
         );
         let api_request: ApiRequest<DeleteBadgeGrantResponse> = ApiRequest::delete(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("删除勋章授予名单", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "删除勋章授予名单").await
     }
 }
 

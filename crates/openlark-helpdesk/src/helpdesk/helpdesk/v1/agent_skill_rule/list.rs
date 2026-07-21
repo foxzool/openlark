@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取客服技能规则列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,8 +72,7 @@ impl ListAgentSkillRuleRequest {
         let api_endpoint = HelpdeskApiV1::AgentSkillRuleList;
         let request = ApiRequest::<ListAgentSkillRuleResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取客服技能规则列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取客服技能规则列表").await
     }
 }
 
@@ -95,8 +93,7 @@ impl ListAgentSkillRuleRequestBuilder {
         let api_endpoint = HelpdeskApiV1::AgentSkillRuleList;
         let request = ApiRequest::<ListAgentSkillRuleResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取客服技能规则列表")
+        Transport::request_typed(request, &self.config, None, "获取客服技能规则列表").await
     }
 }
 
@@ -105,8 +102,7 @@ pub async fn list_agent_skill_rules(config: &Config) -> SDKResult<ListAgentSkill
     let api_endpoint = HelpdeskApiV1::AgentSkillRuleList;
     let request = ApiRequest::<ListAgentSkillRuleResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取客服技能规则列表")
+    Transport::request_typed(request, config, None, "获取客服技能规则列表").await
 }
 
 #[cfg(test)]

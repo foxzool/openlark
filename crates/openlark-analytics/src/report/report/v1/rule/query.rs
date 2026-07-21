@@ -49,9 +49,7 @@ impl QueryReportRuleRequest {
         let path = "/open-apis/report/v1/rules/query".to_string();
         let req: ApiRequest<QueryReportRuleResponse> = ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询规则", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "查询规则").await
     }
 }
 

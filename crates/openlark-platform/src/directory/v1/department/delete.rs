@@ -42,9 +42,7 @@ impl DepartmentDeleteRequestBuilder {
         let url = format!("/open-apis/directory/v1/departments/{}", self.department_id);
 
         let req: ApiRequest<DepartmentDeleteResponse> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除部门", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "删除部门").await
     }
 }
 

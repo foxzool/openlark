@@ -6,7 +6,7 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 应用运营数据查询端点。
 pub const TENANT_APP_METRICS_QUERY: &str = "/open-apis/apaas/v1/tenant_app_metrics/query";
@@ -45,8 +45,7 @@ impl TenantAppMetricsQueryRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(TENANT_APP_METRICS_QUERY)
             .body(serialize_params(&body, "获取应用运营数据")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取应用运营数据")
+        Transport::request_typed(req, &self.config, Some(option), "获取应用运营数据").await
     }
 }
 

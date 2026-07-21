@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取工单自定义字段列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,8 +72,13 @@ impl ListTicketCustomizedFieldRequest {
         let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldList;
         let request = ApiRequest::<ListTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取工单自定义字段列表")
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取工单自定义字段列表",
+        )
+        .await
     }
 }
 
@@ -95,8 +99,7 @@ impl ListTicketCustomizedFieldRequestBuilder {
         let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldList;
         let request = ApiRequest::<ListTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取工单自定义字段列表")
+        Transport::request_typed(request, &self.config, None, "获取工单自定义字段列表").await
     }
 }
 
@@ -107,8 +110,7 @@ pub async fn list_ticket_customized_fields(
     let api_endpoint = HelpdeskApiV1::TicketCustomizedFieldList;
     let request = ApiRequest::<ListTicketCustomizedFieldResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取工单自定义字段列表")
+    Transport::request_typed(request, config, None, "获取工单自定义字段列表").await
 }
 
 #[cfg(test)]

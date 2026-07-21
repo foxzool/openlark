@@ -101,9 +101,13 @@ impl UpdateTicketRequest {
 
         request = request.body(serialize_params(&self.body, "更新工单")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新工单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新工单",
+        )
+        .await
     }
 }
 

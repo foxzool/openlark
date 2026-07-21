@@ -49,10 +49,7 @@ impl CreateBadgeImageRequestBuilder {
             ApiRequest::post("/open-apis/admin/v1/badge_images")
                 .body(serde_json::to_value(&request_body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("上传勋章图片", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "上传勋章图片").await
     }
 }
 

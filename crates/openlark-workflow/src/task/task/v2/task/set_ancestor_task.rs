@@ -74,9 +74,13 @@ impl SetAncestorTaskRequest {
         let mut request = ApiRequest::<SetAncestorTaskResponse>::post(api_endpoint.to_url());
         request = request.body(serialize_params(&self.body, "设置父任务")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "设置父任务")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "设置父任务",
+        )
+        .await
     }
 }
 

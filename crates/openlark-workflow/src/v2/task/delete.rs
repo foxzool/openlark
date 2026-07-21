@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::task::models::DeleteTaskResponse;
 use openlark_core::{
     SDKResult,
@@ -44,9 +44,13 @@ impl DeleteTaskRequest {
         let api_endpoint = TaskApiV2::TaskDelete(self.task_guid.clone());
         let request = ApiRequest::<DeleteTaskResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除任务")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除任务",
+        )
+        .await
     }
 }
 

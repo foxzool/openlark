@@ -4,8 +4,7 @@
 //! docPath:
 
 use crate::common::{
-    api_utils::{extract_response_data, serialize_params},
-    constants::endpoints::SPARK_V1_DIRECTORY_USER_ID_CONVERT,
+    api_utils::serialize_params, constants::endpoints::SPARK_V1_DIRECTORY_USER_ID_CONVERT,
 };
 use openlark_core::{
     SDKResult,
@@ -85,8 +84,7 @@ impl DirectoryUserIdConvertRequestBuilder {
         let req: ApiRequest<DirectoryUserIdConvertResponse> =
             ApiRequest::post(SPARK_V1_DIRECTORY_USER_ID_CONVERT)
                 .body(serialize_params(&request, "转换妙搭和飞书用户 ID")?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "转换妙搭和飞书用户 ID")
+        Transport::request_typed(req, &self.config, Some(option), "转换妙搭和飞书用户 ID").await
     }
 }
 

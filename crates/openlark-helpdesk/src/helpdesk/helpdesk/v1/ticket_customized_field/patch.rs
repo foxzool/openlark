@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新工单自定义字段请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -90,8 +90,7 @@ impl PatchTicketCustomizedFieldRequest {
             ApiRequest::patch(HelpdeskApiV1::TicketCustomizedFieldPatch(self.id.clone()).to_url())
                 .body(serialize_params(&body, "更新工单自定义字段")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新工单自定义字段")
+        Transport::request_typed(req, &self.config, Some(option), "更新工单自定义字段").await
     }
 }
 
@@ -175,8 +174,7 @@ pub async fn patch_ticket_customized_field_with_options(
         ApiRequest::patch(HelpdeskApiV1::TicketCustomizedFieldPatch(id).to_url())
             .body(serialize_params(&body, "更新工单自定义字段")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "更新工单自定义字段")
+    Transport::request_typed(req, config, Some(option), "更新工单自定义字段").await
 }
 
 #[cfg(test)]

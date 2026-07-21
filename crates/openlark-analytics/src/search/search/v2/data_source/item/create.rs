@@ -58,10 +58,7 @@ impl CreateDataSourceItemRequest {
         );
         let req: ApiRequest<CreateDataSourceItemResponse> = ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("为指定数据项创建索引", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "为指定数据项创建索引").await
     }
 }
 

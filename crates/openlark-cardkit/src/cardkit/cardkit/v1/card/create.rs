@@ -7,10 +7,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CARDKIT_V1_CARDS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CARDKIT_V1_CARDS};
 
 /// 创建卡片实体请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,8 +105,7 @@ impl CreateCardRequest {
         let req: ApiRequest<CreateCardResponse> =
             ApiRequest::post(CARDKIT_V1_CARDS).body(serialize_params(&body, "创建卡片实体")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建卡片实体")
+        Transport::request_typed(req, &self.config, Some(option), "创建卡片实体").await
     }
 }
 
@@ -196,8 +192,7 @@ pub async fn create_with_options(
     let req: ApiRequest<CreateCardResponse> =
         ApiRequest::post(CARDKIT_V1_CARDS).body(serialize_params(&body, "创建卡片实体")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "创建卡片实体")
+    Transport::request_typed(req, config, Some(option), "创建卡片实体").await
 }
 
 #[cfg(test)]

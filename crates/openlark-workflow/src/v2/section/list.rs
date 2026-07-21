@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::section::models::ListSectionsResponse;
 use openlark_core::{
     SDKResult,
@@ -66,9 +66,13 @@ impl ListSectionsRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取分组列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取分组列表",
+        )
+        .await
     }
 }
 

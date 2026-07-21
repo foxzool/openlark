@@ -43,10 +43,7 @@ impl GetBadgeRequestBuilder {
         let api_request: ApiRequest<GetBadgeResponse> =
             ApiRequest::get(format!("/open-apis/admin/v1/badges/{}", self.badge_id));
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("获取勋章详情", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取勋章详情").await
     }
 }
 

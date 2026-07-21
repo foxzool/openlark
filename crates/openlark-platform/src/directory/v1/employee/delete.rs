@@ -42,9 +42,7 @@ impl EmployeeDeleteRequestBuilder {
         let url = format!("/open-apis/directory/v1/employees/{}", self.employee_id);
 
         let req: ApiRequest<EmployeeDeleteResponse> = ApiRequest::delete(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("离职员工", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "离职员工").await
     }
 }
 

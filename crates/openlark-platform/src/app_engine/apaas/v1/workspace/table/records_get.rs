@@ -100,9 +100,7 @@ impl TableRecordsGetRequestBuilder {
         if let Some(order_by) = self.order_by {
             req = req.query("order_by", &order_by);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询数据表记录", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "查询数据表记录").await
     }
 }
 

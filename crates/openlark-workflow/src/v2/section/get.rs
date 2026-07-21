@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/get>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::section::models::GetSectionResponse;
 use openlark_core::{
     SDKResult,
@@ -47,9 +47,13 @@ impl GetSectionRequest {
         let api_endpoint = TaskApiV2::SectionGet(self.section_guid.clone());
         let request = ApiRequest::<GetSectionResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取分组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取分组",
+        )
+        .await
     }
 }
 

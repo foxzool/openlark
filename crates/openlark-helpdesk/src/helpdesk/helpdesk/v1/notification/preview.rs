@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 预览推送通知响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,8 +60,7 @@ impl PreviewNotificationRequest {
             HelpdeskApiV1::NotificationPreview(self.notification_id.clone()).to_url(),
         );
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "预览推送通知")
+        Transport::request_typed(req, &self.config, Some(option), "预览推送通知").await
     }
 }
 
@@ -117,8 +115,7 @@ pub async fn preview_notification_with_options(
     let req: ApiRequest<PreviewNotificationResponse> =
         ApiRequest::post(HelpdeskApiV1::NotificationPreview(notification_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "预览推送通知")
+    Transport::request_typed(req, config, Some(option), "预览推送通知").await
 }
 
 #[cfg(test)]

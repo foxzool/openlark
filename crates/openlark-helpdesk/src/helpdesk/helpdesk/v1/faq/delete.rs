@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 删除知识库响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,8 +53,7 @@ impl DeleteFaqRequest {
         let req: ApiRequest<DeleteFaqResponse> =
             ApiRequest::delete(HelpdeskApiV1::FaqDelete(self.id.clone()).to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除知识库")
+        Transport::request_typed(req, &self.config, Some(option), "删除知识库").await
     }
 }
 
@@ -102,8 +100,7 @@ pub async fn delete_faq_with_options(
     let req: ApiRequest<DeleteFaqResponse> =
         ApiRequest::delete(HelpdeskApiV1::FaqDelete(id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "删除知识库")
+    Transport::request_typed(req, config, Some(option), "删除知识库").await
 }
 
 #[cfg(test)]

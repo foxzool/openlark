@@ -62,9 +62,13 @@ impl CreateSectionRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建分组")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建分组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建分组",
+        )
+        .await
     }
 }
 

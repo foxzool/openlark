@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 创建知识库分类请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -98,8 +98,7 @@ impl CreateCategoryRequest {
             ApiRequest::post(HelpdeskApiV1::CategoryCreate.to_url())
                 .body(serialize_params(&body, "创建知识库分类")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建知识库分类")
+        Transport::request_typed(req, &self.config, Some(option), "创建知识库分类").await
     }
 }
 
@@ -191,8 +190,7 @@ pub async fn create_category_with_options(
         ApiRequest::post(HelpdeskApiV1::CategoryCreate.to_url())
             .body(serialize_params(&body, "创建知识库分类")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "创建知识库分类")
+    Transport::request_typed(req, config, Some(option), "创建知识库分类").await
 }
 
 #[cfg(test)]

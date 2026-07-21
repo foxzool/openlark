@@ -109,9 +109,13 @@ impl UploadAttachmentRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传附件")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "上传附件",
+        )
+        .await
     }
 }
 

@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::TRANSLATION_V1_TEXT_TRANSLATE;
 
 /// 文本翻译请求体
@@ -96,8 +96,7 @@ impl TextTranslateRequest {
             ApiRequest::post(TRANSLATION_V1_TEXT_TRANSLATE)
                 .body(serialize_params(&body, "文本翻译")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "文本翻译")
+        Transport::request_typed(req, &self.config, Some(option), "文本翻译").await
     }
 }
 
@@ -191,8 +190,7 @@ pub async fn text_translate_with_options(
     let req: ApiRequest<TextTranslateResponse> =
         ApiRequest::post(TRANSLATION_V1_TEXT_TRANSLATE).body(serialize_params(&body, "文本翻译")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "文本翻译")
+    Transport::request_typed(req, config, Some(option), "文本翻译").await
 }
 
 #[cfg(test)]

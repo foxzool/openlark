@@ -8,10 +8,7 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        validation::validate_card_id,
-    },
+    common::{api_utils::serialize_params, validation::validate_card_id},
     endpoints::cardkit_v1_card_settings,
 };
 
@@ -89,8 +86,7 @@ impl UpdateCardSettingsRequest {
         let req: ApiRequest<UpdateCardSettingsResponse> =
             ApiRequest::patch(url).body(serialize_params(&body, "更新卡片实体配置")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新卡片实体配置")
+        Transport::request_typed(req, &self.config, Some(option), "更新卡片实体配置").await
     }
 }
 

@@ -70,9 +70,13 @@ impl RemoveCustomFieldRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "将自定义字段移出资源")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "将自定义字段移出资源")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "将自定义字段移出资源",
+        )
+        .await
     }
 }
 

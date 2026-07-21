@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/get>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::custom_field::models::GetCustomFieldResponse;
 use openlark_core::{
     SDKResult,
@@ -44,9 +44,13 @@ impl GetCustomFieldRequest {
         let api_endpoint = TaskApiV2::CustomFieldGet(self.field_guid.clone());
         let request = ApiRequest::<GetCustomFieldResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取自定义字段")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取自定义字段",
+        )
+        .await
     }
 }
 

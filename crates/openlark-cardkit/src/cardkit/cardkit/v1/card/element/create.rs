@@ -7,10 +7,7 @@ use openlark_core::{
 };
 
 use super::models::CreateCardElementResponse;
-use crate::common::{
-    api_utils::{extract_response_data, serialize_params},
-    validation::validate_card_id,
-};
+use crate::common::{api_utils::serialize_params, validation::validate_card_id};
 use crate::endpoints::cardkit_v1_card_elements;
 
 /// 新增组件请求体（结构以官方文档为准）
@@ -69,8 +66,7 @@ impl CreateCardElementRequest {
             ApiRequest::post(cardkit_v1_card_elements(&body.card_id))
                 .body(serialize_params(&body, "新增组件")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "新增组件")
+        Transport::request_typed(req, &self.config, Some(option), "新增组件").await
     }
 }
 
@@ -138,8 +134,7 @@ pub async fn create_with_options(
         ApiRequest::post(cardkit_v1_card_elements(&body.card_id))
             .body(serialize_params(&body, "新增组件")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "新增组件")
+    Transport::request_typed(req, config, Some(option), "新增组件").await
 }
 
 #[cfg(test)]

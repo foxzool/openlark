@@ -33,9 +33,7 @@ impl AppAvatarUploadCreateRequest {
     ) -> SDKResult<serde_json::Value> {
         let path = "/open-apis/application/v7/app_avatar/upload".to_string();
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("上传应用图标", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "上传应用图标").await
     }
 }
 

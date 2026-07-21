@@ -10,7 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_RESUME_PARSE;
 
 /// 简历解析请求体
@@ -191,8 +191,7 @@ impl ResumeParseRequest {
         let req: ApiRequest<ResumeParseResponse> =
             ApiRequest::post(DOCUMENT_AI_RESUME_PARSE).body(serialize_params(&body, "简历解析")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "简历解析")
+        Transport::request_typed(req, &self.config, Some(option), "简历解析").await
     }
 }
 
@@ -271,8 +270,7 @@ pub async fn resume_parse_with_options(
     let req: ApiRequest<ResumeParseResponse> =
         ApiRequest::post(DOCUMENT_AI_RESUME_PARSE).body(serialize_params(&body, "简历解析")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "简历解析")
+    Transport::request_typed(req, config, Some(option), "简历解析").await
 }
 
 #[cfg(test)]

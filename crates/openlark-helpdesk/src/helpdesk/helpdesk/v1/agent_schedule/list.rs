@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取客服工作日程列表查询参数
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -133,8 +132,7 @@ impl ListAgentScheduleRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取客服工作日程列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取客服工作日程列表").await
     }
 }
 
@@ -181,8 +179,7 @@ impl ListAgentScheduleRequestBuilder {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取客服工作日程列表")
+        Transport::request_typed(request, &self.config, None, "获取客服工作日程列表").await
     }
 }
 
@@ -191,8 +188,7 @@ pub async fn list_agent_schedules(config: &Config) -> SDKResult<ListAgentSchedul
     let api_endpoint = HelpdeskApiV1::AgentScheduleList;
     let request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取客服工作日程列表")
+    Transport::request_typed(request, config, None, "获取客服工作日程列表").await
 }
 
 #[cfg(test)]

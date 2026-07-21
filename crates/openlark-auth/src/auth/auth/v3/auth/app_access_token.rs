@@ -109,10 +109,13 @@ impl AppAccessTokenRequestBuilder {
                 .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取商店应用 access_token", "响应数据为空")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取商店应用 access_token",
+        )
+        .await
     }
 }
 

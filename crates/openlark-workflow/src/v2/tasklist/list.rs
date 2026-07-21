@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::tasklist::models::ListTasklistsResponse;
 use openlark_core::{
     SDKResult,
@@ -66,9 +66,13 @@ impl ListTasklistsRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取任务清单列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取任务清单列表",
+        )
+        .await
     }
 }
 

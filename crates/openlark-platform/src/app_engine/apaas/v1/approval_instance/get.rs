@@ -49,10 +49,7 @@ impl GetInstanceRequestBuilder {
         );
         let api_request: ApiRequest<GetInstanceResponse> = ApiRequest::get(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取人工任务详情", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取人工任务详情").await
     }
 }
 

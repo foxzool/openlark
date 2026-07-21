@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/get>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::tasklist::activity_subscription::models::GetActivitySubscriptionResponse;
 use openlark_core::{
     SDKResult,
@@ -58,9 +58,13 @@ impl GetActivitySubscriptionRequest {
         );
         let request = ApiRequest::<GetActivitySubscriptionResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取动态订阅")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取动态订阅",
+        )
+        .await
     }
 }
 

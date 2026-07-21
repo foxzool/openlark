@@ -88,9 +88,13 @@ impl AddTasklistRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "任务加入清单")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "任务加入清单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "任务加入清单",
+        )
+        .await
     }
 }
 

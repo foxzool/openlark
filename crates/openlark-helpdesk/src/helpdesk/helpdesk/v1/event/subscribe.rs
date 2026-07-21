@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 订阅服务台事件响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,8 +51,7 @@ impl EventSubscribeRequest {
         let request =
             ApiRequest::<EventSubscribeResponse>::post(HelpdeskApiV1::EventSubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "订阅服务台事件")
+        Transport::request_typed(request, &self.config, Some(option), "订阅服务台事件").await
     }
 }
 
@@ -74,8 +72,7 @@ impl EventSubscribeRequestBuilder {
         let request =
             ApiRequest::<EventSubscribeResponse>::post(HelpdeskApiV1::EventSubscribe.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "订阅服务台事件")
+        Transport::request_typed(request, &self.config, None, "订阅服务台事件").await
     }
 }
 
@@ -84,8 +81,7 @@ pub async fn subscribe_event(config: &Config) -> SDKResult<EventSubscribeRespons
     let request =
         ApiRequest::<EventSubscribeResponse>::post(HelpdeskApiV1::EventSubscribe.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "订阅服务台事件")
+    Transport::request_typed(request, config, None, "订阅服务台事件").await
 }
 
 #[cfg(test)]

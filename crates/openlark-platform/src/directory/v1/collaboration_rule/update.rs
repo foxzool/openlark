@@ -93,10 +93,7 @@ impl CollaborationRuleUpdateRequestBuilder {
         let mut api_request = ApiRequest::<CollaborationRuleUpdateResponse>::put(&url);
         api_request = api_request.body(request);
 
-        let resp = Transport::request(api_request, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("更新可搜可见规则", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "更新可搜可见规则").await
     }
 }
 

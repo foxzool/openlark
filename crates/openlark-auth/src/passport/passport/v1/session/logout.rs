@@ -45,10 +45,7 @@ impl LogoutRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<LogoutResponse> {
         let req: ApiRequest<LogoutResponse> = ApiRequest::post(PassportApiV1::SessionLogout.path());
 
-        let response = Transport::request(req, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("logout", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "logout").await
     }
 }
 

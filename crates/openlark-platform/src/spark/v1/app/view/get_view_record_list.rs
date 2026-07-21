@@ -52,10 +52,7 @@ impl AppViewGetViewRecordListRequest {
             self.app_id, self.view_name
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(path);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询视图数据记录", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询视图数据记录").await
     }
 }
 

@@ -57,10 +57,7 @@ impl AppTableBatchUpdateTableRecordsRequest {
             self.app_id, self.table_name
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::patch(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("批量更新数据表中的记录", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "批量更新数据表中的记录").await
     }
 }
 

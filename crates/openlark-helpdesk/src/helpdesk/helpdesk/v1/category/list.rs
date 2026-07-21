@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取知识库分类列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,8 +75,7 @@ impl ListCategoryRequest {
         let api_endpoint = HelpdeskApiV1::CategoryList;
         let request = ApiRequest::<ListCategoryResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识库分类列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取知识库分类列表").await
     }
 }
 
@@ -98,8 +96,7 @@ impl ListCategoryRequestBuilder {
         let api_endpoint = HelpdeskApiV1::CategoryList;
         let request = ApiRequest::<ListCategoryResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取知识库分类列表")
+        Transport::request_typed(request, &self.config, None, "获取知识库分类列表").await
     }
 }
 
@@ -108,8 +105,7 @@ pub async fn list_categories(config: &Config) -> SDKResult<ListCategoryResponse>
     let api_endpoint = HelpdeskApiV1::CategoryList;
     let request = ApiRequest::<ListCategoryResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取知识库分类列表")
+    Transport::request_typed(request, config, None, "获取知识库分类列表").await
 }
 
 #[cfg(test)]

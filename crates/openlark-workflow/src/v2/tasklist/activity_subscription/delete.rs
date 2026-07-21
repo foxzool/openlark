@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::tasklist::activity_subscription::models::DeleteActivitySubscriptionResponse;
 use openlark_core::{
     SDKResult,
@@ -59,9 +59,13 @@ impl DeleteActivitySubscriptionRequest {
         let request =
             ApiRequest::<DeleteActivitySubscriptionResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除动态订阅")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除动态订阅",
+        )
+        .await
     }
 }
 

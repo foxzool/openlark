@@ -71,8 +71,7 @@ impl CreateRuleExternalRequest {
                 .body(wrapped)
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.into_result()
+        Transport::request_typed(req, &self.config, Some(option), "创建或更新权限组").await
     }
 }
 

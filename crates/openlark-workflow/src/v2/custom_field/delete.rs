@@ -2,7 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::custom_field::models::DeleteCustomFieldResponse;
 use openlark_core::{
     SDKResult,
@@ -44,9 +44,13 @@ impl DeleteCustomFieldRequest {
         let api_endpoint = TaskApiV2::CustomFieldDelete(self.field_guid.clone());
         let request = ApiRequest::<DeleteCustomFieldResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除自定义字段")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除自定义字段",
+        )
+        .await
     }
 }
 

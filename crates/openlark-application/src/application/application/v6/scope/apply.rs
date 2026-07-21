@@ -38,6 +38,11 @@ impl ApiResponseTrait for ApplyScopeResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    /// 成功但无 `data` 字段时的空成功（apply 类 API，与旧 `unwrap_or` 默认值一致）。
+    fn empty_success() -> Option<Self> {
+        Some(Self { data: None })
+    }
 }
 
 impl ApplyScopeRequest {
@@ -62,8 +67,7 @@ impl ApplyScopeRequest {
         let path = "/open-apis/application/v6/scopes/apply";
         let body = serde_json::to_value(&self.body)?;
         let req: ApiRequest<ApplyScopeResponse> = ApiRequest::post(path).body(body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        Ok(resp.data.unwrap_or(ApplyScopeResponse { data: None }))
+        Transport::request_typed(req, &self.config, Some(option), "向管理员申请授权").await
     }
 }
 

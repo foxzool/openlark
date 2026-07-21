@@ -100,9 +100,13 @@ impl CreateCustomFieldOptionRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建自定义字段选项")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建自定义字段选项")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建自定义字段选项",
+        )
+        .await
     }
 }
 

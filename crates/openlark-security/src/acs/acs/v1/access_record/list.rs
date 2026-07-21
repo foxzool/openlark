@@ -55,8 +55,7 @@ impl ListAccessRecordsRequest {
                 .query_opt("page_token", self.page_token.as_ref())
                 .with_supported_access_token_types(vec![AccessTokenType::App]);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.into_result()
+        Transport::request_typed(req, &self.config, Some(option), "获取门禁记录列表").await
     }
 }
 
