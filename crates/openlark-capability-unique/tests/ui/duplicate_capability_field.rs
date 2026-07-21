@@ -6,7 +6,7 @@ mod production_unique;
 
 fn main() {
     assert_capability_catalog_unique! {
-        { field: auth, name: "auth" },
-        { field: auth, name: "auth" },
+        { feature: "auth", field: auth },
+        { feature: "auth", field: auth },
     }
 }

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (Breaking — 目标 0.19)
+
+- **client：删除 speculative registry / traits / lazy 接口层（#471）**：
+  移除零外部消费者的公开表面；client crate 只保留 capability catalog 的
+  Client-construction 半边，不再维护 registry 诊断半边。
+  - **删除**：`registry/`（`DefaultServiceRegistry` / `ServiceRegistry` /
+    `ServiceEntry` / `ServiceMetadata` / `RegistryError` / `RegistryResult`）、
+    `traits/`（`LarkClient` / `ServiceTrait` / `ServiceLifecycle`）、
+    `lazy.rs`（`LazyService` / `LazyClientTrait`）、`client/error_handling.rs`
+    （`ClientErrorHandling` trait）、`Client::registry()`、`error::registry_error()`、
+    `From<RegistryError>`、catalog 的 5 个诊断字段
+    （name/description/dependencies/provides/priority）、
+    `expected_capability_names_from_features` oracle。
+  - **保留**：catalog 的 Client 字段投影（`feature`/`field`/`ty`/`doc`/`init`）+
+    `openlark-capability-unique` trybuild crate（字段唯一 / feature↔field 不漂移 /
+    禁用 feature 不产字段，均编译期保证）。`mismatch_capability_name` UI 用例替换为
+    `mismatch_feature_field`——`name` 字段移除后，漂移检查从 name↔field 升级为
+    feature↔field（后者有 runtime 后果：字段被错误门控；#471 review P1）。
+  - 4 个 tautological `catalog_contract_*` 测试（~430 行，单源 catalog 断言自身）
+    替换为 1 个接线测试（`with_checked_core_config` 跑通 + 字段数 == feature 数）
+    + 既有的 Client 公开字段顺序锁（#423，非 tautological）。
+  - **迁移**：仅走 `client.<domain>` 字段访问的代码零影响；使用 `Client::registry()` /
+    prelude 导出的 trait / `registry_error()` 的代码需移除这些调用。
+
 ## [0.18.0] - 2026-07-20
 
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。

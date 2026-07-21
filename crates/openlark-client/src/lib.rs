@@ -12,9 +12,8 @@
 //! - 运行时入口优先使用 [`Client`] / [`ClientBuilder`]
 //! - 导入优先使用 `openlark_client::prelude::*`
 //! - 业务调用优先从 `client.<domain>` 字段链开始
-//! - `ServiceRegistry` 与 traits 等顶层导出属于高级客户端层能力，不是普通用户默认入口
 //!
-//! 也就是说：如果你不需要这些高级能力，优先回到根 crate `openlark`。
+//! 普通用户请优先使用根 crate `openlark`；本 crate 保留为高级入口。
 //!
 //! ## 核心特性
 //!
@@ -23,7 +22,7 @@
 //! - **🔒 类型安全**: 完全编译时验证的 API 调用
 //! - **🚀 异步优先**: 完全异步的客户端实现
 //! - **🏗️ 现代构建器**: 流畅的构建器模式 API
-//! - **🔍 能力诊断**: 编译期能力 catalog + 只读 registry 元数据查询
+//! - **🔍 能力诊断**: 编译期能力 catalog（字段唯一 / 禁用 feature 不产字段，trybuild 保证）
 //! - **🛡️ 企业级**: 基于 CoreError 的高级错误处理、重试和监控支持
 //! - **🌐 中文优先**: 100% 中文错误消息和文档，专为中国开发者优化
 //!
@@ -139,28 +138,6 @@
 //!
 //! ## 高级用法
 //!
-//! ### 编译能力诊断（metadata-only）
-//!
-//! ```rust,no_run
-//! use openlark_client::prelude::*;
-//!
-//! fn main() -> Result<()> {
-//! let client = Client::from_env()?;
-//! let registry = client.registry();
-//!
-//! // 列出当前 feature 组合下已编译的能力
-//! for entry in registry.list_services() {
-//!     println!("可用服务: {}", entry.metadata.name);
-//! }
-//!
-//! // 检查特定服务是否可用
-//! if registry.has_service("communication") {
-//!     println!("通讯服务可用");
-//! }
-//! Ok(())
-//! }
-//! ```
-//!
 //! ### 自定义配置
 //!
 //! ```rust,no_run
@@ -238,18 +215,10 @@
 //! ```
 
 // 核心模块
-/// 编译期能力目录（Client 字段 + registry 元数据统一声明，#434–#437）
+/// 编译期能力目录（Client 字段统一声明，#434–#437 / #471）
 pub(crate) mod capability;
 pub mod client;
 pub mod error;
-pub mod registry;
-pub mod traits;
-
-/// 延迟初始化工具模块
-///
-/// 提供 `LazyService` 包装器，用于延迟初始化服务实例。
-/// 这在客户端构造时不想立即初始化所有服务时很有用。
-pub mod lazy;
 
 #[cfg(test)]
 mod test_utils;
@@ -293,18 +262,11 @@ pub use error::{
     internal_error,            // 内部错误
     network_error,             // 网络错误
     rate_limit_error,          // 限流错误
-    registry_error,            // 注册表错误
     serialization_error,       // 序列化错误
     service_unavailable_error, // 服务不可用错误
     timeout_error,             // 超时错误
     validation_error,          // 验证错误
 };
-
-// 服务注册（metadata-only 诊断；无 typed instance / lifecycle）
-pub use registry::{DefaultServiceRegistry, ServiceEntry, ServiceMetadata, ServiceRegistry};
-
-// 客户端特征
-pub use traits::{LarkClient, ServiceLifecycle};
 
 // 注意：legacy_client 已在 v0.15.0 中移除
 // 请使用 `Client` 与 `ClientBuilder`
@@ -432,7 +394,6 @@ pub mod prelude {
         internal_error,            // 内部错误
         network_error,             // 网络错误
         rate_limit_error,          // 限流错误
-        registry_error,            // 注册表错误
         serialization_error,       // 序列化错误
         service_unavailable_error, // 服务不可用错误
         timeout_error,             // 超时错误
@@ -441,18 +402,6 @@ pub mod prelude {
 
     // Core 错误系统类型
     pub use openlark_core::error::{CoreError, ErrorCode, ErrorSeverity, ErrorTrait, ErrorType};
-
-    // ============================================================================
-    // 客户端特征
-    // ============================================================================
-
-    // 服务特征
-    #[doc(hidden)]
-    pub use crate::traits::{LarkClient, ServiceLifecycle, ServiceTrait};
-
-    // 服务注册（诊断）
-    #[doc(hidden)]
-    pub use crate::ServiceRegistry;
 
     // meta 风格链式入口（字段链式）
     #[cfg(feature = "cardkit")]

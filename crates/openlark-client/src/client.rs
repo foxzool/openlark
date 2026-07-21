@@ -7,28 +7,17 @@ mod macros;
 
 mod builder;
 #[cfg(test)]
-#[macro_use]
-mod catalog_contract_support;
-#[cfg(test)]
-mod catalog_contract_foundational;
-#[cfg(test)]
-mod catalog_contract_listing;
-#[cfg(test)]
-mod catalog_contract_remaining;
-mod error_handling;
+mod catalog_wiring_tests;
 #[cfg(test)]
 mod tests;
 
 pub use builder::ClientBuilder;
-pub use error_handling::ClientErrorHandling;
 
 use crate::{
-    DefaultServiceRegistry, Result,
+    Result,
     error::{with_context, with_operation_context},
-    traits::LarkClient,
     validation_error,
 };
-use std::sync::Arc;
 
 /// 🔐 认证 meta 入口：`client.auth.app / client.auth.user / client.auth.oauth`
 #[cfg(feature = "auth")]
@@ -53,23 +42,17 @@ impl AuthClient {
     }
 }
 
-// 全部业务域由 capability catalog 生成（#434–#436）。
+// 全部业务域由 capability catalog 生成（#434–#437 / #471）。
 // 命名：本宏是「由 catalog 条目生成 declare_client!」，不是「声明 catalog 本身」。
-// 死匹配（name/description/...）：统一条目同时含构造与诊断字段，本侧只消费构造字段；
-// 与 generate_catalog_registry! 对称，是双投影的固有成本，而非重复逻辑。
+// 字段唯一性检查在 capability 模块内独立执行（`catalog.rs` 的
+// `for_each_compiled_capability!(assert_catalog_fields_unique)`），不在此耦合。
 macro_rules! append_catalog_entries {
     ($({
         feature: $c_feature:literal,
         field: $c_field:ident,
         ty: $c_ty:ty,
         doc: $c_doc:literal,
-        init: |$c_core:ident, $c_base:ident| $c_init:block,
-        // 诊断字段：由 registry 投影消费；此处仅匹配统一条目形状
-        name: $_name:literal,
-        description: $_description:literal,
-        dependencies: [$( $_dep:literal ),* $(,)?],
-        provides: [$( $_cap:literal ),* $(,)?],
-        priority: $_priority:literal $(,)?
+        init: |$c_core:ident, $c_base:ident| $c_init:block $(,)?
     }),* $(,)?) => {
         declare_client! {
             $(
@@ -121,11 +104,6 @@ impl Client {
         &self.config
     }
 
-    /// 📋 获取服务注册表
-    pub fn registry(&self) -> &DefaultServiceRegistry {
-        &self.registry
-    }
-
     /// 🔧 获取底层 core 配置
     ///
     /// 与 [`Self::config`] 返回同一份配置。保留此别名是为了向后兼容。
@@ -150,7 +128,7 @@ impl Client {
     /// 🆕 使用统一 CoreConfig 创建客户端
     ///
     /// 与 [`ClientBuilder::build`] 共用私有构造 seam：`Config::validate`（含域名白名单）
-    /// + Client 零超时规则 + registry / token provider 装配。
+    /// + Client 零超时规则 + token provider 装配。
     pub fn with_core_config(config: openlark_core::config::Config) -> Result<Self> {
         Self::with_checked_core_config(config, "Client::with_core_config")
     }
@@ -161,9 +139,8 @@ impl Client {
     /// 1. [`openlark_core::config::Config::validate`]（凭据 / URL / 白名单 / retry）
     /// 2. Client 特有：拒绝 `req_timeout == Some(Duration::ZERO)`（`None` 允许）
     /// 3. 校验错误附加 `operation` context
-    /// 4. registry 初始化（失败时保留 operation + `service_loading`）
-    /// 5. token provider 注入
-    /// 6. 组装 [`Client`]
+    /// 4. token provider 注入
+    /// 5. 组装 [`Client`]（catalog 生成全部业务域字段）
     pub(crate) fn with_checked_core_config(
         base_core_config: openlark_core::config::Config,
         operation: &str,
@@ -182,14 +159,6 @@ impl Client {
             );
         }
 
-        let mut registry = DefaultServiceRegistry::new();
-
-        if let Err(err) = crate::registry::bootstrap::register_compiled_services(&mut registry) {
-            return with_operation_context(Err(err), operation, "service_loading");
-        }
-
-        let registry = Arc::new(registry);
-
         #[cfg(feature = "auth")]
         let core_config = {
             use openlark_auth::AuthTokenProvider;
@@ -199,7 +168,7 @@ impl Client {
         #[cfg(not(feature = "auth"))]
         let core_config = base_core_config.clone();
 
-        Self::from_parts(registry, base_core_config, core_config)
+        Self::from_parts(base_core_config, core_config)
     }
 
     /// 🔧 执行带有错误上下文的操作
@@ -209,15 +178,5 @@ impl Client {
     {
         let result = f.await;
         with_operation_context(result, operation, "Client")
-    }
-}
-
-impl LarkClient for Client {
-    fn config(&self) -> &openlark_core::config::Config {
-        &self.config
-    }
-
-    fn is_configured(&self) -> bool {
-        self.is_configured()
     }
 }

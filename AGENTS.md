@@ -15,7 +15,7 @@ OpenLark 是为飞书（Feishu/Lark）开放平台构建的企业级 Rust SDK，
 .
 ├── crates/                    # 18 个业务模块 crates
 │   ├── openlark-core/        # 核心基础设施（HTTP、错误处理）
-│   ├── openlark-client/      # 高级客户端和服务注册表
+│   ├── openlark-client/      # 高级客户端（meta 链式入口）
 │   ├── openlark-protocol/    # WebSocket 协议
 │   ├── openlark-auth/        # 认证服务
 │   ├── openlark-communication/  # IM 消息和联系人
@@ -37,7 +37,6 @@ OpenLark 是为飞书（Feishu/Lark）开放平台构建的企业级 Rust SDK，
 | 添加新 API | `crates/openlark-*/src/**/v*/` | 按业务模块和版本组织 |
 | 错误处理 | `crates/openlark-core/src/error/` | CoreError 企业级错误系统 |
 | HTTP 客户端 | `crates/openlark-core/src/http.rs` | 共享 reqwest 配置 |
-| 服务注册 | `crates/openlark-client/src/` | ServiceRegistry 模式 |
 | 模型定义 | `*/models.rs` 或 `*/models/` | Serde 序列化结构体 |
 | Feature flags | `Cargo.toml` `[features]` | 50+ 功能标志 |
 

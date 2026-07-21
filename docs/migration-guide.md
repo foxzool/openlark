@@ -18,6 +18,11 @@
 
 ## 1. registry / FeatureLoader 迁移
 
+> ⚠️ **0.19（#471）已移除整个 registry 半边**：`Client::registry()` / `ServiceRegistry` /
+> `ServiceMetadata` / 相关 trait 全部删除（零外部消费者）。下方「推荐诊断写法」仅适用
+> 于 **0.18.x**；0.19 起能力是否编译改由 **Cargo feature** 与 `openlark-capability-unique`
+> trybuild（编译期）判断，不再有 runtime registry。迁移到 0.19 时删除所有 `client.registry()` 调用即可。
+
 ### 已删除（严重正确性例外，0.18 直接移除）
 
 | 旧 API | 替代 |
