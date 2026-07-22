@@ -63,9 +63,7 @@ impl UpdateRequest {
         validate_required_list!(self.field_ids, 50, "field_ids 不能为空且不能超过 50 个");
 
         // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::UserStatsViewUpdate
-            .to_url()
-            .replace("{}", &self.view_id);
+        let api_endpoint = AttendanceApiV1::UserStatsViewUpdate(self.view_id.clone()).to_url();
         let request = ApiRequest::<UpdateResponse>::put(&api_endpoint);
 
         // 3. 构建请求体

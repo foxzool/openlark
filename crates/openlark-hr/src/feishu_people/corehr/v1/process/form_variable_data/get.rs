@@ -49,9 +49,8 @@ impl GetRequest {
 
         validate_required!(self.process_id.trim(), "process_id 不能为空");
 
-        let api_endpoint = CorehrApiV1::ProcessFormVariableDataGet;
-        let request =
-            ApiRequest::<GetResponse>::get(api_endpoint.to_url().replace("{}", &self.process_id));
+        let api_endpoint = CorehrApiV1::ProcessFormVariableDataGet(self.process_id.clone());
+        let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url());
         Transport::request_typed(
             request,
             &self.config,
