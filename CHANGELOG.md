@@ -51,16 +51,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 先例为 ADR-0001 docs crate 砍 5 个 config-holder 子客户端（#365）；HR 不在原
     ADR scope，本次把同判据延伸到 HR。
 
-### Changed
+- **security：删除零消费者的风险评估装置（OpenSpec `2026-07-22-drop-security-risk-apparatus`）**：
+  `SecurityErrorExt` / `SecurityEvent` / `SecurityErrorAnalyzer` +
+  `analyze_security_risk` / `SecurityRiskAssessment` / `SecurityRiskLevel` /
+  `SecurityRiskType` / `SecurityAction` / `ComplianceImpact` 全仓零生产调用者
+  （仅 `error.rs` 自身测试使用），且不在 `lib.rs` / `prelude` re-export、无文档/示例
+  指向。OpenLark 是库、无内建 telemetry/escalation sink，风险评估的唯一可能消费者是
+  下游应用——零下游需求；保留即维护一条通往虚无的 hypothetical seam。整块删除。
+  - **例外跳过废弃周期**（`PUBLIC_API_STABILITY_POLICY` line 141）：零消费者 + 非主推面
+    → 废弃周期无对象可警告；先例 ADR-0001（v0.18 砍 pub 导航壳 + 迁移表）。连带移除
+    `uuid` 依赖（仅 `SecurityEvent` 使用）。
+  - **迁移**：以上类型从未在 prelude/示例主推；使用 `openlark_security::error::*` 中这些
+    类型的代码需移除。`SecurityError` 别名 / `SecurityResult` / `SecurityClient` / ACS
+    与安全合规叶子路径不受影响。
+  - **注**：#477/#480 新增的 `SecurityRiskClassify` trait 同属 unreleased 且一并删除，
+    对 0.19 消费者净零（从未发布）；原 `### Changed` 新增条目已随之移除。
 
-- **security：`CoreError` 风险分类收口到 extension trait（#477, #480）**：
-  新增 `SecurityRiskClassify for CoreError`（`fn security_risk_level(&self) ->
-  SecurityRiskLevel`），成为「error kind → `SecurityRiskLevel`」的唯一来源，覆盖
-  全部 12 个 variant（+ `#[non_exhaustive]` 兜底）并配单测（含关键 `Api` code 组合）。
-  `SecurityErrorAnalyzer::analyze_security_risk` 不再自己 match `CoreError` variant
-  做分级，改调 `err.security_risk_level()`；policy（风险类型归类、升级判定）保留——
-  升级口径仍是 Business/Internal，行为未变。非破坏、additive；为 #472 后续让
-  workflow/client 复用同一分类铺路。
+### Changed
 
 - **hr：域无关 HR 原语提升到 crate root（#473）**：
   `I18nText` / `FlexibleText` / `IdNameObject` / `CodeNameObject` /

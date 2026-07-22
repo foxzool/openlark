@@ -1833,7 +1833,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-test",
- "uuid",
  "wiremock",
 ]
 

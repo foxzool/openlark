@@ -52,9 +52,6 @@ serde_json = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 
-# 工具依赖
-uuid = { workspace = true }
-
 
 [dev-dependencies]
 tokio-test = "0.4"
