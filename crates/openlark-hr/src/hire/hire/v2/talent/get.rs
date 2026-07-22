@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::{AttachmentMeta, I18nText};
+use crate::common::shared_models::I18nText;
+use crate::hire::hire::common_models::AttachmentMeta;
 
 /// 获取人才详情请求
 #[derive(Debug, Clone)]

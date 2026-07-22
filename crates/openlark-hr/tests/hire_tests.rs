@@ -489,7 +489,7 @@ mod serialization_tests {
         interview_record::get::GetResponse {
             id: Some("ir_001".to_string()),
             conclusion: Some(1),
-            interviewer: Some(openlark_hr::hire::hire::common_models::IdNameObject {
+            interviewer: Some(openlark_hr::common::shared_models::IdNameObject {
                 id: Some("ou_interviewer".to_string()),
                 ..Default::default()
             }),
@@ -2009,10 +2009,10 @@ mod serialization_tests {
         test_interview_feedback_form_list_response_serialization,
         interview_feedback_form::list::ListResponse,
         interview_feedback_form::list::ListResponse {
-            items: vec![openlark_hr::hire::hire::common_models::CatalogItem {
+            items: vec![openlark_hr::common::shared_models::CatalogItem {
                 id: Some("form_1".to_string()),
-                title: Some(openlark_hr::hire::hire::common_models::FlexibleText::I18n(
-                    openlark_hr::hire::hire::common_models::I18nText {
+                title: Some(openlark_hr::common::shared_models::FlexibleText::I18n(
+                    openlark_hr::common::shared_models::I18nText {
                         zh_cn: Some("通用评价表".to_string()),
                         en_us: Some("Default Form".to_string()),
                         extra: Default::default(),
@@ -2243,9 +2243,9 @@ mod serialization_tests {
         test_job_type_list_response_serialization,
         job_type::list::ListResponse,
         job_type::list::ListResponse {
-            items: vec![openlark_hr::hire::hire::common_models::CatalogItem {
+            items: vec![openlark_hr::common::shared_models::CatalogItem {
                 id: Some("type_1".to_string()),
-                name: Some(openlark_hr::hire::hire::common_models::FlexibleText::Plain(
+                name: Some(openlark_hr::common::shared_models::FlexibleText::Plain(
                     "研发".to_string(),
                 )),
                 ..Default::default()

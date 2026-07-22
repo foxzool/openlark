@@ -72,7 +72,7 @@ pub struct OfferApplicationFormSummary {
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 名称。
-    pub name: Option<crate::hire::hire::common_models::I18nText>,
+    pub name: Option<crate::common::shared_models::I18nText>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `create_time` 字段。
     pub create_time: Option<String>,

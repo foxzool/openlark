@@ -48,6 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   升级口径仍是 Business/Internal，行为未变。非破坏、additive；为 #472 后续让
   workflow/client 复用同一分类铺路。
 
+- **hr：域无关 HR 原语提升到 crate root（#473）**：
+  `I18nText` / `FlexibleText` / `IdNameObject` / `CodeNameObject` /
+  `PaginatedResponse<T>` / `CatalogItem` / `LocalizedLabel` 这 7 个域无关原语
+  从 `hire::hire::common_models`（1270 行）迁至新模块 `common::shared_models`
+  （crate root），canonical 路径改为 `openlark_hr::common::shared_models::*`。
+  `hire` 反过来从此处 import；6 个兄弟域（attendance/corehr/payroll/performance/
+  compensation/ehr）按需 opt-in 即可获得 typed i18n，不再侧向伸手进 hire 子树或
+  退回 `serde_json::Value`。先例为 `okr::okr::v2::common::models` 跨叶消重（#336）。
+  - **非破坏**：序列化形状逐字不变；`hire::hire::common_models` 经 `#[deprecated]`
+    按名再导出这 7 个类型，保留一个过渡周期——既有全路径 import 仍可解析，仅多一条
+    deprecation 提示。下个 breaking 窗口（0.19）删除该 alias。
+
 ## [0.18.0] - 2026-07-20
 
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。

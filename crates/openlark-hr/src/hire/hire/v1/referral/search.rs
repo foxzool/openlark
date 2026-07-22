@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::IdNameObject;
+use crate::common::shared_models::IdNameObject;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 struct SearchRequestBody {

@@ -1,129 +1,27 @@
-//! Hire 业务域通用响应模型。
+//! Hire 业务域专属响应模型。
 //!
-//! 用于承接第一批 typed response 收敛中反复出现的 i18n、分页、引用对象、
-//! 金额与附件元数据等结构，避免在每个 API 文件里重复定义。
+//! 域无关的 HR 原语（`I18nText` / `FlexibleText` / `IdNameObject` /
+//! `CodeNameObject` / `PaginatedResponse` / `CatalogItem` / `LocalizedLabel`）
+//! 已迁至 crate root：[`crate::common::shared_models`]。本模块保留 hire 专属
+//! 摘要类型（职位 / 投递 / 面试 / offer / 生态 / 猎头 等），并经 deprecated
+//! re-export 再导出已迁移的原语，为既有全路径 import 留一个过渡周期（#473）。
 
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// 国际化文本。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct I18nText {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `zh_cn` 字段。
-    pub zh_cn: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `en_us` 字段。
-    pub en_us: Option<String>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
-
-/// 可兼容普通字符串或多语言对象的文本字段。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(untagged)]
-pub enum FlexibleText {
-    /// `Plain` 变体。
-    Plain(String),
-    /// `I18n` 变体。
-    I18n(I18nText),
-}
-
-impl FlexibleText {
-    /// 提供 `zh_cn_or_plain` 能力。
-    pub fn zh_cn_or_plain(&self) -> Option<&str> {
-        match self {
-            Self::Plain(value) => Some(value.as_str()),
-            Self::I18n(value) => value.zh_cn.as_deref().or(value.en_us.as_deref()),
-        }
-    }
-}
-
-/// 常见的 ID + 名称引用对象。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct IdNameObject {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 标识。
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 名称。
-    pub name: Option<I18nText>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
-
-/// 带 code + name 的区域对象。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CodeNameObject {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `code` 字段。
-    pub code: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 名称。
-    pub name: Option<I18nText>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
-
-/// 通用分页响应壳。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct PaginatedResponse<T> {
-    #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<T>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 下一页分页标记。
-    pub page_token: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 是否还有更多结果。
-    pub has_more: Option<bool>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
-
-/// 末尾长尾接口常见的目录/模板类对象。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CatalogItem {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 标识。
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `code` 字段。
-    pub code: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 名称。
-    pub name: Option<FlexibleText>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 标题。
-    pub title: Option<FlexibleText>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `i18n_name` 字段。
-    pub i18n_name: Option<I18nText>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `description` 字段。
-    pub description: Option<FlexibleText>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `status` 字段。
-    pub status: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `active_status` 字段。
-    pub active_status: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `version` 字段。
-    pub version: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `parent_id` 字段。
-    pub parent_id: Option<String>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
+// 向后兼容 re-export：这 7 个域无关原语已迁至 crate root
+// （`crate::common::shared_models`），此处按名再导出保留一个过渡周期，将在下个
+// breaking 版本移除（#473）。功能上保证既有全路径 import 仍可解析（不破坏编译）。
+// 注意：rustc 当前不会为 `pub use` 重导出在消费端触发 deprecation 告警——这里的
+// `#[deprecated]` 主要作 rustdoc 标记 + 未来 Rust 版本转发兼容；alias 的实际移除
+// 以下个 breaking 窗口的 grep（`common_models::(I18nText|FlexibleText|...)`）为准。
+#[deprecated(note = "用 crate::common::shared_models，将在下个 breaking 版本移除")]
+pub use crate::common::shared_models::{
+    CatalogItem, CodeNameObject, FlexibleText, I18nText, IdNameObject, LocalizedLabel,
+    PaginatedResponse,
+};
 
 /// 面试任务摘要。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -145,7 +43,7 @@ pub struct InterviewTaskSummary {
     pub status: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `interviewer` 字段。
-    pub interviewer: Option<IdNameObject>,
+    pub interviewer: Option<crate::common::shared_models::IdNameObject>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -165,7 +63,7 @@ pub struct TalentOperationLogEntry {
     pub application_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `operator` 字段。
-    pub operator: Option<IdNameObject>,
+    pub operator: Option<crate::common::shared_models::IdNameObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `operation_type` 字段。
     pub operation_type: Option<String>,
@@ -375,20 +273,6 @@ pub struct HireAttachment {
     pub extra: HashMap<String, Value>,
 }
 
-/// `zh_name` / `en_name` 形式的双语文本。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct LocalizedLabel {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `zh_name` 字段。
-    pub zh_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `en_name` 字段。
-    pub en_name: Option<String>,
-    #[serde(default, flatten)]
-    /// 扩展字段。
-    pub extra: HashMap<String, Value>,
-}
-
 /// 投递所关联的职位摘要。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ApplicationJobInfo {
@@ -483,7 +367,7 @@ pub struct ApplicationInterviewRecord {
     pub status: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `interviewer` 字段。
-    pub interviewer: Option<IdNameObject>,
+    pub interviewer: Option<crate::common::shared_models::IdNameObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 分数。
     pub score: Option<ScoreInfo>,
