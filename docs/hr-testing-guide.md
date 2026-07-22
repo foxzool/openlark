@@ -108,48 +108,53 @@ mod create_employee_builder_tests {
 以下展示一个结合 `rstest` 和 `wiremock` 的完整测试示例。
 
 ```rust
+use openlark_core::config::Config;
+use openlark_hr::feishu_people::corehr::v1::employee::batch_get::BatchGetRequest;
 use rstest::*;
-use wiremock::{MockServer, Mock, ResponseTemplate};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 use wiremock::matchers::{method, path};
-use open_lark::prelude::*;
-use open_lark::service::hr::corehr::v1::employee::*;
 
 #[tokio::test]
-async fn test_get_employee_integration() {
+async fn test_batch_get_employee_integration() {
     // 1. 启动 Mock Server
     let mock_server = MockServer::start().await;
-    
-    // 2. 配置预期行为
+
+    // 2. 配置预期行为：POST /open-apis/corehr/v1/employees/batch_get
     let response_body = serde_json::json!({
         "code": 0,
         "msg": "success",
         "data": {
-            "employee": {
+            "items": [{
                 "employee_id": "emp_123",
                 "name": "Test User"
-            }
+            }]
         }
     });
-    
-    Mock::given(method("GET"))
-        .and(path("/open-apis/corehr/v1/employees/emp_123"))
+
+    Mock::given(method("POST"))
+        .and(path("/open-apis/corehr/v1/employees/batch_get"))
         .respond_with(ResponseTemplate::new(200).set_body_json(response_body))
         .mount(&mock_server)
         .await;
 
-    // 3. 构造 Client 并执行
+    // 3. 构造 HrClient 并执行
+    //    HR 域 config-holder facade 已删（#474）：直达 Config 构造 leaf 请求
     let config = Config::builder()
         .app_id("id")
         .app_secret("secret")
         .base_url(mock_server.uri())
         .build();
-    let client = Client::with_core_config(config).unwrap();
-    
-    let resp = client.hr.corehr.v1().employee().get("emp_123").execute().await.unwrap();
-    
+    let client = openlark_hr::HrClient::new(config);
+
+    let resp = BatchGetRequest::new(client.config().clone())
+        .employee_ids(vec!["emp_123".to_string()])
+        .execute()
+        .await
+        .unwrap();
+
     // 4. 断言结果
-    assert_eq!(resp.employee.employee_id, "emp_123");
-    assert_eq!(resp.employee.name, "Test User");
+    assert_eq!(resp.items[0].employee_id, "emp_123");
+    assert_eq!(resp.items[0].name, "Test User");
 }
 
 #[rstest]

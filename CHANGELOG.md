@@ -37,6 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   不再误导外部消费者当作稳定入口。纯可见性变更、无行为影响；唯一外部可观察
   效果是从公开 API 移除该函数。
 
+- **hr：删除 7 个 dead config-holder facade（#474）**：
+  `Hire` / `Attendance` / `Corehr` / `Payroll` / `Performance` /
+  `CompensationManagement` / `Ehr` 是纯 config holder（仅 `new()` + `config()`），
+  命中 ADR-0001 五项判据的 0 项（无 feature 门控 / 无版本路由 / 无路径绑定 / 无扇出 /
+  无真 helper）。删除 7 struct + `HrClient` 的 7 个 pub 字段 + 7 次 `config.clone()`
+  样板。`Okr` 保留（有 `v2()` 真路由）。HR 全域统一为 config-direct 直路径
+  （`client.hr.config()` 构造 leaf），消除「这个域用 fluent 还是直路径？」的歧义。
+  - **迁移**：`client.hr.attendance` / `.corehr` / `.hire` 等字段访问改为
+    `client.hr.config()` 直达 `Config` 构造 leaf 请求（lib.rs 文档的 canonical 写法）；
+    仅走这些字段的 `.config()` 的代码改为 `client.hr.config()`。`client.hr.okr.v2()`
+    不受影响。
+  - 先例为 ADR-0001 docs crate 砍 5 个 config-holder 子客户端（#365）；HR 不在原
+    ADR scope，本次把同判据延伸到 HR。
+
 ### Changed
 
 - **security：`CoreError` 风险分类收口到 extension trait（#477, #480）**：
