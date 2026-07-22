@@ -69,42 +69,18 @@ pub mod prelude {
 use openlark_core::config::Config;
 use std::sync::Arc;
 
-/// HRClient：统一入口，提供 project-version-resource 链式访问
+/// HRClient：统一入口。
+///
+/// - `config()` 直达底层 `Config`，用于构造各域 leaf 请求
+///   （attendance/corehr/payroll/performance/compensation/hire/ehr）。
+/// - `okr` 保留 fluent v2 路由（`client.okr.v2()`）。
 #[derive(Debug, Clone)]
 pub struct HrClient {
     config: Arc<Config>,
 
-    #[cfg(feature = "attendance")]
-    /// 考勤入口。
-    pub attendance: attendance::Attendance,
-
-    #[cfg(feature = "corehr")]
-    /// 核心人力入口。
-    pub corehr: feishu_people::Corehr,
-
-    #[cfg(feature = "compensation")]
-    /// 薪酬管理入口。
-    pub compensation: compensation_management::CompensationManagement,
-
-    #[cfg(feature = "payroll")]
-    /// 薪资入口。
-    pub payroll: payroll::Payroll,
-
-    #[cfg(feature = "performance")]
-    /// 绩效入口。
-    pub performance: performance::Performance,
-
     #[cfg(feature = "okr")]
     /// OKR 入口。
     pub okr: okr::Okr,
-
-    #[cfg(feature = "hire")]
-    /// 招聘入口。
-    pub hire: hire::Hire,
-
-    #[cfg(feature = "ehr")]
-    /// 员工档案入口。
-    pub ehr: ehr::Ehr,
 }
 
 impl HrClient {
@@ -112,22 +88,8 @@ impl HrClient {
     pub fn new(config: Config) -> Self {
         let config = Arc::new(config);
         Self {
-            #[cfg(feature = "attendance")]
-            attendance: attendance::Attendance::new((*config).clone()),
-            #[cfg(feature = "corehr")]
-            corehr: feishu_people::Corehr::new((*config).clone()),
-            #[cfg(feature = "compensation")]
-            compensation: compensation_management::CompensationManagement::new((*config).clone()),
-            #[cfg(feature = "payroll")]
-            payroll: payroll::Payroll::new((*config).clone()),
-            #[cfg(feature = "performance")]
-            performance: performance::Performance::new((*config).clone()),
             #[cfg(feature = "okr")]
             okr: okr::Okr::new((*config).clone()),
-            #[cfg(feature = "hire")]
-            hire: hire::Hire::new((*config).clone()),
-            #[cfg(feature = "ehr")]
-            ehr: ehr::Ehr::new((*config).clone()),
             config,
         }
     }
@@ -166,77 +128,11 @@ mod tests {
         assert!(cloned.config().app_id() == "test_app");
     }
 
-    #[cfg(feature = "attendance")]
-    #[test]
-    fn test_hr_client_attendance_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.attendance.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "attendance")]
-    #[test]
-    #[allow(deprecated)]
-    fn test_hr_client_attendance_method() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        let attendance = client.attendance.clone();
-        assert_eq!(attendance.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "corehr")]
-    #[test]
-    fn test_hr_client_corehr_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.corehr.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "compensation")]
-    #[test]
-    fn test_hr_client_compensation_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.compensation.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "payroll")]
-    #[test]
-    fn test_hr_client_payroll_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.payroll.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "performance")]
-    #[test]
-    fn test_hr_client_performance_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.performance.config().app_id(), "test_app");
-    }
-
     #[cfg(feature = "okr")]
     #[test]
     fn test_hr_client_okr_field() {
         let config = create_test_config();
         let client = HrClient::new(config);
         assert_eq!(client.okr.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "hire")]
-    #[test]
-    fn test_hr_client_hire_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.hire.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "ehr")]
-    #[test]
-    fn test_hr_client_ehr_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.ehr.config().app_id(), "test_app");
     }
 }

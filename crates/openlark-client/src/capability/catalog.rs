@@ -55,7 +55,7 @@ macro_rules! for_each_compiled_capability {
                 feature: "hr",
                 field: hr,
                 ty: openlark_hr::HrClient,
-                doc: "HR meta 调用链入口：client.hr.attendance / client.hr.corehr / client.hr.hire ...",
+                doc: "HR 入口：client.hr.config() 直达 leaf 构造 Request（7 域 config-holder facade 已砍，#474），client.hr.okr.v2() 保留 fluent",
                 init: |_core_config, _base_core_config| {
                     openlark_hr::HrClient::new(_core_config.clone())
                 },
