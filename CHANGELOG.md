@@ -67,6 +67,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **注**：#477/#480 新增的 `SecurityRiskClassify` trait 同属 unreleased 且一并删除，
     对 0.19 消费者净零（从未发布）；原 `### Changed` 新增条目已随之移除。
 
+- **hr：端点枚举 path-param 统一为 variant 携带（OpenSpec `2026-07-22-unify-hr-endpoint-path-params`）**：
+  `api_endpoints.rs` 6 个端点从 Convention B（unit variant + URL 字面 `{}` + 叶子
+  `.to_url().replace("{}", id)`）统一到 Convention A（`Variant(param) =>
+  format!("/.../{param}")`，参数编译期检查）：`AttendanceApiV1::{UserFlowGet,
+  FileDownload, LeaveAccrualRecordPatch, LeaveEmployExpireRecordGet, UserStatsViewUpdate}`
+  + `FeishuPeopleApiV1::ProcessFormVariableDataGet`。B 丢类型安全、`{}` 是魔法串、
+  叶子可能忘记 `.replace` 致坏 URL 静默发出；A 让缺参成编译期错误。
+  - **行为逐字不变**：URL 字符串前后相同，6 个 wiremock e2e 测试不变即过。
+  - **例外跳过废弃周期**（policy line 141 + ADR-0001 先例）：pub variant 形态 unit→tuple
+    是 breaking，但 0 外部消费者（外部用 leaf builder）+ 行为保持 → 废弃周期无对象。
+  - **迁移**：直接构造这些 variant（如 `AttendanceApiV1::UserFlowGet`）的代码需改为传参
+    （`UserFlowGet(id)`）；走 leaf builder 的代码零影响。
+  - **非目标**：不做全量 macro 深化（532 arm）或不采纳 `API_PATH_PREFIX`（另案）。
+
 ### Changed
 
 - **hr：域无关 HR 原语提升到 crate root（#473）**：

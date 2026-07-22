@@ -43,9 +43,7 @@ impl DownloadRequest {
         validate_required!(self.photo_id.trim(), "photo_id");
 
         // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::FileDownload
-            .to_url()
-            .replace("{}", &self.photo_id);
+        let api_endpoint = AttendanceApiV1::FileDownload(self.photo_id.clone()).to_url();
         let request = ApiRequest::<DownloadResponse>::get(&api_endpoint);
         // 3. 发送请求
         Transport::request_typed(

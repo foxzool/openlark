@@ -88,9 +88,7 @@ impl GetRequest {
 
         // 1. 构建端点
         let record_key = format!("{}-{}", self.expire_time_start, self.expire_time_end);
-        let api_endpoint = AttendanceApiV1::LeaveEmployExpireRecordGet
-            .to_url()
-            .replace("{}", &record_key);
+        let api_endpoint = AttendanceApiV1::LeaveEmployExpireRecordGet(record_key).to_url();
         let mut request = ApiRequest::<GetResponse>::get(&api_endpoint);
 
         // 2. 添加查询参数

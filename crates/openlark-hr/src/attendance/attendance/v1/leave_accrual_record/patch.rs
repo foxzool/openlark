@@ -49,9 +49,8 @@ impl PatchRequest {
         validate_required!(self.record_id.trim(), "record_id");
 
         // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::LeaveAccrualRecordPatch
-            .to_url()
-            .replace("{}", &self.record_id);
+        let api_endpoint =
+            AttendanceApiV1::LeaveAccrualRecordPatch(self.record_id.clone()).to_url();
         let request = ApiRequest::<PatchResponse>::patch(&api_endpoint);
 
         // 3. 构建请求体

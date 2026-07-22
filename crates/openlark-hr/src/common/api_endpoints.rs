@@ -88,7 +88,7 @@ pub enum AttendanceApiV1 {
     /// 删除打卡流水
     UserFlowBatchDel,
     /// 获取打卡流水
-    UserFlowGet,
+    UserFlowGet(String),
     /// 批量查询打卡流水
     UserFlowQuery,
 
@@ -116,7 +116,7 @@ pub enum AttendanceApiV1 {
     /// 上传用户人脸识别照片
     FileUpload,
     /// 下载用户人脸识别照片
-    FileDownload,
+    FileDownload(String),
 
     // === archive_rule 资源 (4个) ===
     /// 查询所有归档规则
@@ -130,11 +130,11 @@ pub enum AttendanceApiV1 {
 
     // === leave_accrual_record 资源 (1个) ===
     /// 修改发放记录
-    LeaveAccrualRecordPatch,
+    LeaveAccrualRecordPatch(String),
 
     // === leave_employ_expire_record 资源 (1个) ===
     /// 通过过期时间获取发放记录
-    LeaveEmployExpireRecordGet,
+    LeaveEmployExpireRecordGet(String),
 
     // === user_stats_data 资源 (1个) ===
     /// 查询用户统计数据
@@ -148,7 +148,7 @@ pub enum AttendanceApiV1 {
     /// 查询用户统计视图
     UserStatsViewQuery,
     /// 更新用户统计视图
-    UserStatsViewUpdate,
+    UserStatsViewUpdate(String),
 
     // === approval_info 资源 (1个) ===
     /// 通知审批状态更新
@@ -205,7 +205,9 @@ impl AttendanceApiV1 {
             AttendanceApiV1::UserFlowBatchDel => {
                 "/open-apis/attendance/v1/user_flows/batch_del".to_string()
             }
-            AttendanceApiV1::UserFlowGet => "/open-apis/attendance/v1/user_flows/{}".to_string(),
+            AttendanceApiV1::UserFlowGet(user_flow_id) => {
+                format!("/open-apis/attendance/v1/user_flows/{user_flow_id}")
+            }
             AttendanceApiV1::UserFlowQuery => {
                 "/open-apis/attendance/v1/user_flows/query".to_string()
             }
@@ -239,8 +241,8 @@ impl AttendanceApiV1 {
 
             // file
             AttendanceApiV1::FileUpload => "/open-apis/attendance/v1/files/upload".to_string(),
-            AttendanceApiV1::FileDownload => {
-                "/open-apis/attendance/v1/files/{}/download".to_string()
+            AttendanceApiV1::FileDownload(photo_id) => {
+                format!("/open-apis/attendance/v1/files/{photo_id}/download")
             }
 
             // archive_rule
@@ -256,13 +258,13 @@ impl AttendanceApiV1 {
             }
 
             // leave_accrual_record
-            AttendanceApiV1::LeaveAccrualRecordPatch => {
-                "/open-apis/attendance/v1/leave_accrual_record/{}".to_string()
+            AttendanceApiV1::LeaveAccrualRecordPatch(record_id) => {
+                format!("/open-apis/attendance/v1/leave_accrual_record/{record_id}")
             }
 
             // leave_employ_expire_record
-            AttendanceApiV1::LeaveEmployExpireRecordGet => {
-                "/open-apis/attendance/v1/leave_employ_expire_records/{}".to_string()
+            AttendanceApiV1::LeaveEmployExpireRecordGet(record_key) => {
+                format!("/open-apis/attendance/v1/leave_employ_expire_records/{record_key}")
             }
 
             // user_stats_data
@@ -279,8 +281,8 @@ impl AttendanceApiV1 {
             AttendanceApiV1::UserStatsViewQuery => {
                 "/open-apis/attendance/v1/user_stats_views/query".to_string()
             }
-            AttendanceApiV1::UserStatsViewUpdate => {
-                "/open-apis/attendance/v1/user_stats_views/{}".to_string()
+            AttendanceApiV1::UserStatsViewUpdate(view_id) => {
+                format!("/open-apis/attendance/v1/user_stats_views/{view_id}")
             }
 
             // approval_info
@@ -2535,7 +2537,7 @@ pub enum FeishuPeopleApiV1 {
     /// `PreHirePatch` 变体。
     PreHirePatch(String),
     /// 获取流程表单数据
-    ProcessFormVariableDataGet,
+    ProcessFormVariableDataGet(String),
     /// 查询异动原因
     TransferReasonQuery,
     /// 查询异动类型
@@ -3069,8 +3071,8 @@ impl FeishuPeopleApiV1 {
             FeishuPeopleApiV1::PreHirePatch(pre_hire_id) => {
                 format!("/open-apis/corehr/v1/pre_hires/{pre_hire_id}")
             }
-            FeishuPeopleApiV1::ProcessFormVariableDataGet => {
-                "/open-apis/corehr/v1/processes/{}/form_variable_data".to_string()
+            FeishuPeopleApiV1::ProcessFormVariableDataGet(process_id) => {
+                format!("/open-apis/corehr/v1/processes/{process_id}/form_variable_data")
             }
             FeishuPeopleApiV1::TransferReasonQuery => {
                 "/open-apis/corehr/v1/transfer_reasons/query".to_string()

@@ -62,9 +62,7 @@ impl GetUserFlowRequest {
         validate_required!(self.user_flow_id.trim(), "打卡流水 ID 不能为空");
 
         // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::UserFlowGet
-            .to_url()
-            .replace("{}", &self.user_flow_id);
+        let api_endpoint = AttendanceApiV1::UserFlowGet(self.user_flow_id.clone()).to_url();
         let mut request = ApiRequest::<GetUserFlowResponse>::get(&api_endpoint);
 
         // 3. 添加查询参数（可选）
