@@ -45,7 +45,7 @@ use std::sync::Arc;
 
 use crate::common::{
     api_endpoints::{ProjectApiV1},  // 根据实际 crate 调整
-    api_utils::{extract_response_data, serialize_params},
+    api_utils::serialize_params,
 };
 
 // ============================================================================
@@ -159,11 +159,8 @@ impl {Name}Request {
             api_request = api_request.query("{query_key}", query);
         }
 
-        // 5. 发送请求（关键：必须透传 option）
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-
-        // 6. 提取响应数据
-        extract_response_data(response, "{API 中文名称}")
+        // 5. 发送请求并抽取 typed 响应（关键：必须透传 option；统一走 request_typed）
+        Transport::request_typed(api_request, &self.config, Some(option), "{API 中文名称}").await
     }
 }
 
@@ -205,7 +202,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::{IM_V1_MESSAGES},  // 常量端点
 };
 
@@ -256,9 +253,8 @@ impl {Name}Request {
             req = req.query("{query_key}", query);
         }
 
-        // 关键：透传 option
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "{API 中文名称}")
+        // 关键：透传 option；统一走 request_typed
+        Transport::request_typed(req, &self.config, Some(option), "{API 中文名称}").await
     }
 }
 ```
@@ -352,9 +348,8 @@ pub async fn execute_with_options(
     let req: ApiRequest<CreateMessageResponse> = ApiRequest::post(IM_V1_MESSAGES)
         .body(serialize_params(&body, "发送消息")?);
 
-    // ✅ 正确：透传 option 到 Transport
-    let resp = Transport::request(req, &self.config, Some(option)).await?;
-    extract_response_data(resp, "发送消息")
+    // ✅ 正确：透传 option 到 Transport；统一走 request_typed
+    Transport::request_typed(req, &self.config, Some(option), "发送消息").await
 }
 ```
 
@@ -679,7 +674,7 @@ async fn test_api_with_user_access_token() {
 - [ ] **端点使用**: 使用常量或 enum，禁止硬编码 URL
 - [ ] **execute 方法**: 提供 `execute()` 和 `execute_with_options()` 两个方法
 - [ ] **RequestOption 透传**: `Transport::request(..., Some(option))`
-- [ ] **错误处理**: 使用 `extract_response_data` 提取响应
+- [ ] **错误处理**: 统一走 `Transport::request_typed(.., "中文名")` 抽取 typed 响应
 
 ### 7.2 导出检查点
 
@@ -723,7 +718,7 @@ use std::sync::Arc;
 // 工具导入
 use crate::common::{
     api_endpoints::{ProjectApiV1},
-    api_utils::{extract_response_data, serialize_params},
+    api_utils::serialize_params,
 };
 ```
 
