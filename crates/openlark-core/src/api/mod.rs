@@ -395,12 +395,10 @@ pub type ApiResponse<R> = Response<R>;
 pub mod helpers;
 pub mod prelude;
 pub mod responses;
-pub mod traits;
 
 // 重新导出
 
 pub use helpers::{ensure_success, serialize_params};
-pub use traits::{AsyncApiClient, SyncApiClient};
 
 // 测试
 

@@ -37,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   不再误导外部消费者当作稳定入口。纯可见性变更、无行为影响；唯一外部可观察
   效果是从公开 API 移除该函数。
 
+- **core：删除 `AsyncApiClient` / `SyncApiClient` 死 trait seam（#504）**：
+  `openlark-core::api::traits`（`AsyncApiClient` / `SyncApiClient` 两个 trait）
+  全仓零 adapter、零调用方——没有 `impl`、没有泛型消费者、没有注入点。每个
+  leaf 直接调 `Transport::request_typed`，不存在需要 client trait 抽象的第二条
+  执行路径。整模块删除（含仅此一处需要的 `#![allow(async_fn_in_trait)]`）+
+  `api::mod` 的 `pub use` + `api::prelude` glob（连带清除 crate 根 `prelude`
+  的 re-export）。`Transport` 成为无歧义的唯一执行 module。
+  - **不走废弃周期**：废弃周期唯一目的是预先警告下游调用方，而这两个 trait 全仓
+    零消费者（无 `impl` / 无注入点）→ 无对象可警告；且本条目属未发布的 0.19 窗口
+    （无已发布兼容性需保留）。先例：#471 删 speculative trait seam（同为零消费者
+    直删、未援引例外条款）+ ADR-0001。
+  - **迁移**：以上 trait 从未在 README / 示例 / 文档主推（仅经 `api::prelude`
+    glob 暴露，无主推用法）；`use ...AsyncApiClient` / `impl AsyncApiClient`
+    的代码需移除（仓内零引用）。`Transport::request_typed` / leaf builder /
+    `api::prelude` 其余类型不受影响。
+
 - **hr：删除 7 个 dead config-holder facade（#474）**：
   `Hire` / `Attendance` / `Corehr` / `Payroll` / `Performance` /
   `CompensationManagement` / `Ehr` 是纯 config holder（仅 `new()` + `config()`），
