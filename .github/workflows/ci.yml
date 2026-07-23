@@ -71,12 +71,26 @@ jobs:
             --all-crates \
             --strict endpoint \
             --report-dir "$RUNNER_TEMP/api_contracts"
+      - name: Validate access-token types (security + auth regression gate, #511)
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-security \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens/security"
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-auth \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens/auth"
       - name: Upload API contract reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: api-contracts
-          path: ${{ runner.temp }}/api_contracts
+          path: |
+            ${{ runner.temp }}/api_contracts
+            ${{ runner.temp }}/api_contract_tokens
           retention-days: 14
 
   lint:

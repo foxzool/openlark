@@ -48,7 +48,7 @@ impl CreateDeviceRecordRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post("/open-apis/security_and_compliance/v2/device_records")
                 .body(body)
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "新增设备记录").await
     }

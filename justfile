@@ -50,6 +50,11 @@ api-contracts:
   @echo "🔍 Validating typed API endpoint contracts..."
   python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 
+# Validate access-token types against official docs (#511 regression gate; default: openlark-security)
+api-contract-tokens CRATE="openlark-security":
+  @echo "🔍 Validating typed API access-token types against official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --tokens --strict tokens --report-dir reports/api_contract_tokens
+
 # Validate request/response fields against current official docs for one crate
 api-contract-fields CRATE="openlark-ai" MAX="5":
   @echo "🔍 Validating typed API fields against current official docs..."

@@ -49,7 +49,7 @@ impl GetRuleExternalRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::get("/open-apis/acs/v1/rule_external")
             .query("device_id", &self.device_id)
             .query_opt("user_id_type", self.user_id_type.as_ref())
-            .with_supported_access_token_types(vec![AccessTokenType::App]);
+            .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取权限组信息").await
     }

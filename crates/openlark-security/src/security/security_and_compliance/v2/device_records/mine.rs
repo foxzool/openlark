@@ -63,7 +63,7 @@ impl GetMyDeviceRecordsRequest {
                 .query_opt("page_size", self.page_size.map(|v| v.to_string()))
                 .query_opt("page_token", self.page_token.as_ref())
                 .query_opt("status", self.status.as_ref())
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取我的设备认证信息").await
     }

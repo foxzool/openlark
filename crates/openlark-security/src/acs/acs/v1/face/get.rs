@@ -36,7 +36,7 @@ impl FaceGetRequest {
 
         let path = format!("/open-apis/acs/v1/faces/{}", self.face_id);
         let req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取人脸信息").await
     }

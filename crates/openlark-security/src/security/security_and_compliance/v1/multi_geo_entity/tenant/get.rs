@@ -53,7 +53,10 @@ impl ListMultiGeoEntityTenantsRequest {
             ApiRequest::get("/open-apis/security_and_compliance/v1/multi_geo_entity/tenant")
                 .query_opt("page_size", self.page_size.map(|v| v.to_string()))
                 .query_opt("page_token", self.page_token.as_ref())
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![
+                    AccessTokenType::Tenant,
+                    AccessTokenType::User,
+                ]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取地理位置列表").await
     }

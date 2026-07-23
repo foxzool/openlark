@@ -76,7 +76,7 @@ impl BindDeviceToRuleRequest {
                         validation_error("设备绑定权限组", format!("序列化失败: {e}"))
                     })?,
                 )
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "设备绑定权限组").await
     }

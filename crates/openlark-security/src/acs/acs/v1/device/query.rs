@@ -36,7 +36,7 @@ impl QueryDeviceRequest {
 
         let path = format!("/open-apis/acs/v1/devices/{}/query", self.device_id);
         let req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "查询设备信息").await
     }

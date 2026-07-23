@@ -33,7 +33,7 @@ python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 - `reports/api_contracts/crates/<crate>.md`
 - `reports/api_contracts/crates/<crate>.json`
 
-CI 当前只启用这一层 strict gate。
+CI 启用本层（全仓离线 endpoint）与 token 层（`openlark-security`，见 §1.4）两个 strict gate。
 
 ### 1.2 Endpoint live 校验
 
@@ -125,8 +125,16 @@ oracle 取值（优先级递减）：
 - 官方未标注 → `UNVERIFIED`（无法核对，不阻塞）。
 - 实现文件缺失 → `WARN`。
 - 存在交集（SDK 至少能选出一种官方接受的 token）→ 无 finding。
+- 声明 `None`（自行管理鉴权、bypass token cache）但源码手动注入
+  `Authorization: Bearer <self.token_field>` 的端点（如 OIDC `authen/v1/user_info/get`），
+  按实际注入的 token 类型核对，而非 `none_access_token`——避免把「手动注入 user token」
+  误判为 disjoint `ERROR`。真正无鉴权（声明 `None` 且无手动注入）对要求 token 的文档仍报 `ERROR`。
 
-与 live 校验一致，该维度访问网络、用于人工抽样与 API 变动排查；CI 接入见 #515。
+与 live 校验一致，该维度访问网络。CI 对 `openlark-security` 与 `openlark-auth` 启用
+`--strict tokens`，作为 [#511](https://github.com/foxzool/openlark/issues/511) acs /
+security_and_compliance 误配的回归 gate（与 endpoint strict gate 同级；auth 覆盖 OIDC token
+端点）。全仓 live 核对因每个接口都要抓取详情 payload、调用量过大，未纳入 CI；其他 crate 用
+`just api-contract-tokens <crate>` 人工抽样。
 
 ## 2. 单 crate 使用
 

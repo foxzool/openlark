@@ -106,7 +106,7 @@ impl ListDeviceRecordsRequest {
                     self.personal_device.map(|v| v.to_string()),
                 )
                 .query_opt("compliance_status", self.compliance_status.as_ref())
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "查询设备信息列表").await
     }

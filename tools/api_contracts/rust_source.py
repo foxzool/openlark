@@ -623,6 +623,34 @@ def extract_access_token_types(text: str) -> tuple[str, ...]:
     return types or DEFAULT_ACCESS_TOKEN_TYPES
 
 
+# 手动注入 ``Authorization: Bearer <self.field>`` 的 struct 字段 → 飞书凭证名。
+# 声明 ``AccessTokenType::None`` 的端点（如 OIDC userinfo）自行管理鉴权：从 struct
+# 字段取 token 并手设 Authorization header，bypass token cache。
+_MANUAL_TOKEN_FIELD_TO_FEISHU: dict[str, str] = {
+    "user_access_token": "user_access_token",
+    "tenant_access_token": "tenant_access_token",
+    "app_access_token": "app_access_token",
+}
+
+
+def extract_manual_auth_token(text: str) -> str:
+    """检测 request 是否手动注入 ``Authorization: Bearer <self.token_field>``。
+
+    用于声明 ``AccessTokenType::None``（bypass token cache）的端点：它们的实际 token
+    由 struct 字段提供并手设 header，validator 据此把 ``none_access_token`` 替换为该
+    实际类型核对，避免误报 disjoint ERROR（#515 的 auth/user_info 误报根因）。
+
+    匹配 ``format!("Bearer ...", self.<field>)`` 形态；未检测到返回空串。
+    """
+    for field, feishu_name in _MANUAL_TOKEN_FIELD_TO_FEISHU.items():
+        if re.search(
+            r'format!\(\s*"Bearer\b[^"]*"\s*,\s*self\.' + field + r"\b",
+            text,
+        ):
+            return feishu_name
+    return ""
+
+
 def has_flatten_value_passthrough(text: str) -> bool:
     """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
 
@@ -892,4 +920,5 @@ def scan_api_file(
         response_fields=extract_rust_response_fields(text),
         has_flatten_value_passthrough=has_flatten_value_passthrough(text),
         access_token_types=access_token_types,
+        manual_auth_token=extract_manual_auth_token(text),
     )

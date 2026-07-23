@@ -47,8 +47,8 @@ impl PatchUserRequest {
         validate_required!(self.user_id, "user_id 不能为空");
 
         let path = format!("/open-apis/acs/v1/users/{}", self.user_id);
-        let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::patch(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+        let mut req: ApiRequest<serde_json::Value> = ApiRequest::patch(&path)
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
         if let Some(body) = self.body {
             req = req.body(body);
         }

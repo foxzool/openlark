@@ -663,9 +663,11 @@ mod security_propagation_tests {
     use wiremock::matchers::{body_json, header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    async fn mount_app_token(server: &MockServer, token: &str) {
+    /// acs 用户/设备类接口按飞书文档要求 tenant_access_token（#511/#515），
+    /// 故 security leaf 走 tenant_access_token/internal 取证。
+    async fn mount_tenant_token(server: &MockServer, token: &str) {
         Mock::given(method("POST"))
-            .and(path("/open-apis/auth/v3/app_access_token/internal"))
+            .and(path("/open-apis/auth/v3/tenant_access_token/internal"))
             .and(body_json(serde_json::json!({
                 "app_id": "root_app",
                 "app_secret": "root_secret"
@@ -673,9 +675,8 @@ mod security_propagation_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "code": 0,
                 "msg": "success",
-                "app_access_token": token,
-                "expire": 7200,
-                "tenant_access_token": "unused_tenant_token"
+                "tenant_access_token": token,
+                "expire": 7200
             })))
             .mount(server)
             .await;
@@ -696,7 +697,7 @@ mod security_propagation_tests {
     #[tokio::test]
     async fn root_client_security_leaf_uses_installed_provider_and_returns_typed_data() {
         let server = MockServer::start().await;
-        mount_app_token(&server, "root_provider_token").await;
+        mount_tenant_token(&server, "root_provider_token").await;
 
         Mock::given(method("GET"))
             .and(path("/open-apis/acs/v1/users"))
@@ -732,7 +733,7 @@ mod security_propagation_tests {
         assert!(!list_resp.has_more);
 
         let rec = server.received_requests().await.unwrap_or_default();
-        assert_eq!(rec.len(), 2, "应先取 app token，再调用 security leaf");
+        assert_eq!(rec.len(), 2, "应先取 tenant token，再调用 security leaf");
         assert!(
             rec.iter()
                 .any(|req| req.url.path() == "/open-apis/acs/v1/users"),
@@ -744,7 +745,7 @@ mod security_propagation_tests {
     #[tokio::test]
     async fn root_client_security_leaf_preserves_retryable_error_and_request_id() {
         let server = MockServer::start().await;
-        mount_app_token(&server, "root_error_provider_token").await;
+        mount_tenant_token(&server, "root_error_provider_token").await;
 
         Mock::given(method("GET"))
             .and(path("/open-apis/acs/v1/users"))

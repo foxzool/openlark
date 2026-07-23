@@ -70,7 +70,7 @@ impl ListOpenApiLogsRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post("/open-apis/security_and_compliance/v1/openapi_logs/list_data")
                 .body(self.body)
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取 OpenAPI 审计日志数据").await
     }

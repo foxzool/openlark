@@ -252,6 +252,10 @@ def compare_access_token_types(
             )
         ]
     rust_tokens = set(rust_contract.access_token_types)
+    # 声明 None（自行管理鉴权，bypass token cache）但手动注入 token 的端点（如 OIDC
+    # userinfo）：用实际注入的 token 类型替代 none 做比对，避免误报 disjoint ERROR。
+    if rust_tokens == {"none_access_token"} and rust_contract.manual_auth_token:
+        rust_tokens = {rust_contract.manual_auth_token}
     if rust_tokens & set(official_tokens):
         return []
     return [

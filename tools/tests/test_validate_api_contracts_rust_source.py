@@ -6,6 +6,7 @@ from tools.api_contracts.rust_source import (
     EndpointResolver,
     extract_access_token_types,
     extract_endpoint_calls,
+    extract_manual_auth_token,
     extract_rust_response_fields,
     extract_rust_fields,
     load_endpoint_constants,
@@ -349,6 +350,48 @@ class ExtractAccessTokensTests(unittest.TestCase):
             / "crates/openlark-auth/src/auth/auth/v3/auth/tenant_access_token_internal.rs"
         ).read_text(encoding="utf-8")
         self.assertEqual(extract_access_token_types(source), ("none_access_token",))
+
+
+class ExtractManualAuthTokenTests(unittest.TestCase):
+    """token 契约：识别声明 None 但手动注入 ``Authorization: Bearer`` 的端点（OIDC userinfo）。
+
+    声明 ``AccessTokenType::None`` 表示自行管理鉴权（bypass token cache）。validator 据此
+    把 ``none_access_token`` 替换为实际注入的 token 类型，避免误报 disjoint ERROR（#515）。
+    """
+
+    def test_detects_manual_user_token_bearer_injection(self):
+        source = (
+            "ApiRequest::get(&path)"
+            '.header("Authorization", format!("Bearer {}", self.user_access_token))'
+            ".with_supported_access_token_types(vec![AccessTokenType::None]);"
+        )
+        self.assertEqual(extract_manual_auth_token(source), "user_access_token")
+
+    def test_detects_multiline_header_injection(self):
+        # 真实 userinfo 写法：header 调用跨多行
+        source = (
+            "ApiRequest::get(api_endpoint.path())\n"
+            "    .header(\n"
+            '        "Authorization",\n'
+            '        format!("Bearer {}", self.user_access_token),\n'
+            "    )\n"
+            "    .with_supported_access_token_types(vec![AccessTokenType::None]);"
+        )
+        self.assertEqual(extract_manual_auth_token(source), "user_access_token")
+
+    def test_no_bearer_injection_returns_empty(self):
+        # 真正无鉴权的 token 签发端点（tenant_access_token_internal）：声明 None 但不注入 Bearer
+        source = (
+            "ApiRequest::post(path)"
+            ".with_supported_access_token_types(vec![AccessTokenType::None]);"
+        )
+        self.assertEqual(extract_manual_auth_token(source), "")
+
+    def test_real_userinfo_source_detected(self):
+        source = (
+            REPO_ROOT / "crates/openlark-auth/src/auth/authen/v1/user_info/get.rs"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(extract_manual_auth_token(source), "user_access_token")
 
 
 if __name__ == "__main__":

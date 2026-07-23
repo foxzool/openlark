@@ -38,7 +38,7 @@ impl GetUserRequest {
 
         let path = format!("/open-apis/acs/v1/users/{}", self.user_id);
         let req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取单个用户信息").await
     }
