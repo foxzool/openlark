@@ -79,6 +79,11 @@ class RustApiContract:
     # Rust 侧声明的有效 token 类型（飞书凭证名）。未显式调用
     # .with_supported_access_token_types(...) 时取 DEFAULT_ACCESS_TOKEN_TYPES。
     access_token_types: tuple[str, ...] = DEFAULT_ACCESS_TOKEN_TYPES
+    # 声明 None（自行管理鉴权，bypass token cache）但手动注入
+    # ``Authorization: Bearer <self.token_field>`` 时，实际注入的 token 凭证名
+    # （如 OIDC userinfo 注入 user_access_token）。compare 据此把 none_access_token
+    # 替换为该类型核对，避免误报 disjoint ERROR。未检测到注入时为空串。
+    manual_auth_token: str = ""
 
 
 @dataclass(frozen=True)

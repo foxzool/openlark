@@ -580,5 +580,44 @@ class BootstrapOracleTests(unittest.TestCase):
         self.assertEqual(findings, [])
 
 
+class ManualAuthTokenReconciliationTests(unittest.TestCase):
+    """声明 None 但手动注入 token（OIDC userinfo）的端点：按实际注入类型核对，不误报 ERROR（#515）。"""
+
+    def _api(self):
+        return ApiIdentity(
+            api_id="authen/v1/user_info/get",
+            name="获取用户信息",
+            biz_tag="auth",
+            meta_project="auth",
+            meta_version="v1",
+            meta_resource="user_info",
+            meta_name="get",
+            url="",
+            doc_path="",
+            expected_file="auth/authen/v1/user_info/get.rs",
+        )
+
+    def test_none_declared_with_manual_user_token_matches_user_doc(self):
+        # 声明 None + 手动注入 user_access_token ↔ 文档 user_access_token → 无 finding
+        contract = RustApiContract(
+            rel_path="auth/authen/v1/user_info/get.rs",
+            access_token_types=("none_access_token",),
+            manual_auth_token="user_access_token",
+        )
+        self.assertEqual(
+            compare_access_token_types(self._api(), ("user_access_token",), contract),
+            [],
+        )
+
+    def test_none_declared_without_manual_injection_still_errors(self):
+        # 真正无鉴权（None、无手动注入）对要求 user 的文档仍报 ERROR
+        contract = RustApiContract(
+            rel_path="x.rs",
+            access_token_types=("none_access_token",),
+        )
+        findings = compare_access_token_types(self._api(), ("user_access_token",), contract)
+        self.assertTrue(any(f.code == "E_ACCESS_TOKEN_TYPE_MISMATCH" for f in findings))
+
+
 if __name__ == "__main__":
     unittest.main()
