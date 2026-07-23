@@ -44,7 +44,7 @@ impl CreateVisitorRequest {
 
         let req: ApiRequest<serde_json::Value> = ApiRequest::post("/open-apis/acs/v1/visitors")
             .body(body)
-            .with_supported_access_token_types(vec![AccessTokenType::App]);
+            .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "添加访客").await
     }

@@ -40,7 +40,7 @@ impl DeleteRuleExternalRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::delete("/open-apis/acs/v1/rule_external")
                 .query("rule_id", &self.rule_id)
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "删除权限组").await
     }

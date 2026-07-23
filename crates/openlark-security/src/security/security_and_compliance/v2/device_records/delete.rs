@@ -38,8 +38,8 @@ impl DeleteDeviceRecordRequest {
             "/open-apis/security_and_compliance/v2/device_records/{}",
             self.device_record_id
         );
-        let req: ApiRequest<serde_json::Value> =
-            ApiRequest::delete(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+        let req: ApiRequest<serde_json::Value> = ApiRequest::delete(&path)
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "删除设备").await
     }

@@ -53,7 +53,7 @@ impl ListAccessRecordsRequest {
             ApiRequest::get("/open-apis/acs/v1/access_records")
                 .query_opt("page_size", self.page_size.map(|v| v.to_string()))
                 .query_opt("page_token", self.page_token.as_ref())
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取门禁记录列表").await
     }

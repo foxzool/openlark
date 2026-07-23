@@ -44,7 +44,7 @@ impl CreateDeviceRequest {
 
         let req: ApiRequest<serde_json::Value> = ApiRequest::post("/open-apis/acs/v1/devices")
             .body(body)
-            .with_supported_access_token_types(vec![AccessTokenType::App]);
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "新增设备").await
     }

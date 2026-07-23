@@ -48,7 +48,7 @@ impl UpdateDeviceRequest {
 
         let path = format!("/open-apis/acs/v1/devices/{}", self.device_id);
         let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::put(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+            ApiRequest::put(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
         if let Some(body) = self.body {
             req = req.body(body);
         }

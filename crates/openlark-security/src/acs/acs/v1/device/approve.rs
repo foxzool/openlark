@@ -47,8 +47,8 @@ impl ApproveDeviceRequest {
         validate_required!(self.device_id, "device_id 不能为空");
 
         let path = format!("/open-apis/acs/v1/devices/{}/approve", self.device_id);
-        let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::post(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+        let mut req: ApiRequest<serde_json::Value> = ApiRequest::post(&path)
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
         if let Some(body) = self.body {
             req = req.body(body);
         }

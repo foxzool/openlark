@@ -36,7 +36,7 @@ impl GetUserMigrationRequest {
             "/open-apis/security_and_compliance/v1/user_migrations/{}",
             self.migration_id
         ))
-        .with_supported_access_token_types(vec![AccessTokenType::App]);
+        .with_supported_access_token_types(vec![AccessTokenType::Tenant, AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取单个用户迁移状态").await
     }

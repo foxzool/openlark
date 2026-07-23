@@ -45,7 +45,8 @@
 //!
 //! ### acs (v1) - 访问控制系统
 //!
-//! 所有端点走 `openlark_core::Transport` + App access token，返回响应 `data` 字段内容。
+//! 所有端点走 `openlark_core::Transport`，token 类型按飞书文档 Authorization 标注
+//! （用户/设备/记录类 `tenant_access_token`，权限组/访客类 `user_access_token`），返回响应 `data` 字段内容。
 //! 各 Service 是门面，方法返回 `*Request` 构建器（`.execute()` 发请求）。
 //!
 //! #### 用户管理 (users)
@@ -256,15 +257,18 @@ mod construction_tests {
 
     /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。
     /// 证明与 ACS 相同：base_url、headers、token_provider 完整保留。
+    ///
+    /// 用 `device_records().list()`（tenant_access_token）而非 `mine()`：后者按飞书文档要求
+    /// user_access_token（#515），而本测试的 token provider 只供 tenant/app 凭证、不设
+    /// `option.user_access_token`，User 类 leaf 会在 `validate()` 直接被拒（http.rs:361）。
+    /// 本测试验证的是 config 传播，与具体 leaf 无关，故选 tenant 类代表 leaf。
     #[tokio::test]
     async fn security_client_new_canonical_config_propagates_to_compliance_v2_leaf() {
         let server = MockServer::start().await;
 
         // 精确匹配 header，证明 token provider 和自定义 header 传播
         Mock::given(method("GET"))
-            .and(path(
-                "/open-apis/security_and_compliance/v2/device_records/mine",
-            ))
+            .and(path("/open-apis/security_and_compliance/v2/device_records"))
             .and(header("Authorization", "Bearer test_tok_from_provider"))
             .and(header("X-Compliance-Test", "propagated"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -296,7 +300,7 @@ mod construction_tests {
             .security_and_compliance
             .v2()
             .device_records()
-            .mine()
+            .list()
             .execute()
             .await
             .expect("compliance v2 leaf 应成功");
@@ -304,7 +308,7 @@ mod construction_tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1, "应只发一次 compliance leaf 请求");
         assert!(
-            received[0].url.path().contains("/device_records/mine"),
+            received[0].url.path().contains("/device_records"),
             "请求路径应指向 compliance v2 leaf"
         );
     }
@@ -400,13 +404,12 @@ mod construction_tests {
     }
 
     /// Compliance v2 业务错误必须保留 retry 语义与 request ID。
+    /// 同上用 `list()`（tenant）而非 `mine()`（user，#515）：测试只配 tenant/app 凭证。
     #[tokio::test]
     async fn compliance_v2_preserves_retryable_error_and_request_id() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path(
-                "/open-apis/security_and_compliance/v2/device_records/mine",
-            ))
+            .and(path("/open-apis/security_and_compliance/v2/device_records"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "code": 429,
                 "msg": "compliance v2 rate limited",
@@ -428,7 +431,7 @@ mod construction_tests {
             .security_and_compliance
             .v2()
             .device_records()
-            .mine()
+            .list()
             .execute()
             .await
             .expect_err("compliance v2 业务错误必须向上传播");

@@ -69,7 +69,7 @@ impl CreateRuleExternalRequest {
                 .query("rule_id", &self.rule_id)
                 .query_opt("user_id_type", self.user_id_type.as_ref())
                 .body(wrapped)
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![AccessTokenType::User]);
 
         Transport::request_typed(req, &self.config, Some(option), "创建或更新权限组").await
     }

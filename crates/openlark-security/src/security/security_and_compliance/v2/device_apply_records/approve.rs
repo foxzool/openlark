@@ -96,7 +96,7 @@ impl ApproveDeviceApplyRecordRequest {
                 serde_json::to_value(&self.body)
                     .map_err(|e| validation_error("审批设备申报", format!("序列化失败: {e}")))?,
             )
-            .with_supported_access_token_types(vec![AccessTokenType::App]);
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "审批设备申报").await
     }

@@ -45,7 +45,10 @@ impl SearchUserMigrationsRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post("/open-apis/security_and_compliance/v1/user_migrations/search")
                 .body(self.body)
-                .with_supported_access_token_types(vec![AccessTokenType::App]);
+                .with_supported_access_token_types(vec![
+                    AccessTokenType::Tenant,
+                    AccessTokenType::User,
+                ]);
 
         Transport::request_typed(req, &self.config, Some(option), "批量获取用户迁移状态").await
     }

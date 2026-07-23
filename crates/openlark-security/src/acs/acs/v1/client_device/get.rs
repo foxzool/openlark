@@ -36,7 +36,7 @@ impl GetClientDeviceRequest {
 
         let path = format!("/open-apis/acs/v1/client_devices/{}", self.device_id);
         let req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::App]);
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取客户端设备认证信息").await
     }
