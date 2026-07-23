@@ -69,7 +69,7 @@ allowed-tools: Read, Grep, Glob, Bash
 - 列表字段是否校验非空与长度上限（如 `validate_required_list!`）
 
 **🟡 Token 类型与 Config 形态：**
-- 应用级接口（文档要求 `tenant_access_token`/`app_access_token`）是否显式 `.with_supported_access_token_types(vec![AccessTokenType::App])`——`ApiRequest` 默认 `[User, Tenant]`，漏设会导致飞书拒绝。
+- token 类型是否与接口文档「请求头 → Authorization」标注一致——`ApiRequest` 默认 `[User, Tenant]`；仅当文档要求 `app_access_token`（→ `App`）等非默认凭证时才显式 `.with_supported_access_token_types(...)`。注意 `App` = `app_access_token` ≠ `tenant_access_token`（→ `Tenant`），不要把要求 `tenant_access_token` 的接口设成 `App`（详见 #511）。
 - `Request`/`Service` 是否用 owned `Config`（非 `Arc<Config>`）——新代码与重构以 owned 为准（`openlark-docs` 历史用 `Arc` 属例外）。
 
 **🟡 `RequestOption`（单数）vs `RequestOptions`（复数）切勿混用：**

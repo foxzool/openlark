@@ -51,7 +51,7 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 
 3. **禁止绕过 `Transport`**：业务 crate（除 `openlark-core`）**不得** `reqwest::Client::new()` 或自建 HTTP client、不得手工塞 `Authorization` 头、不得手工取 token。全部走 `openlark_core::http::Transport::request`。`Service`/`Request` 只持 `Config`，不持任何 HTTP client 字段。
 
-4. **Token 类型必须显式声明**（应用级接口尤其重要）：`ApiRequest` 默认 `supported_access_token_types = [User, Tenant]`。应用级接口（如 acs）**必须** `.with_supported_access_token_types(vec![AccessTokenType::App])`，否则 Transport 解析到 Tenant/User token 被飞书拒绝。判断方法：接口文档要求 `tenant_access_token` 的 → App token。
+4. **Token 类型按接口文档「请求头 → Authorization」逐接口选择**：`ApiRequest` 默认 `supported_access_token_types = [User, Tenant]`（覆盖飞书大多数接口）。仅当接口文档 Authorization 标注的凭证类型不在默认集内时，才用 `.with_supported_access_token_types(...)` 显式声明。**判断方法：以每个接口官方文档「请求头 → Authorization」标注为准——要求 `tenant_access_token` → `AccessTokenType::Tenant`；要求 `user_access_token` → `User`；要求 `app_access_token` → `App`。不存在「应用级接口 → App」的通则**（`App` = `app_access_token`，与 `tenant_access_token` 是不同凭证；把要求 `tenant_access_token` 的接口设成 `App` 会被飞书鉴权拒绝，证据见 #511）。
 
 5. **端点路径用常量/enum**（禁止手写 `"/open-apis/..."` 字符串字面量散落），**必填校验统一用 `validate_required!`/`validate_required_list!`**，**每个 Request 必须提供 `execute_with_options(..., RequestOption)` 并把 option 透传到 `Transport::request(..., Some(option))`**。
 
@@ -235,8 +235,9 @@ impl {Name}Request {
     ) -> SDKResult<serde_json::Value> {
         validate_required!(body.<必填字段>, "<字段> 不能为空"); // 见核心契约 5
         // 端点必须复用 crate 的 endpoints 常量或 enum（禁止手写 "/open-apis/..."）
-        let req: ApiRequest<serde_json::Value> = ApiRequest::post({ENDPOINT_CONST_OR_ENUM})
-            .with_supported_access_token_types(vec![AccessTokenType::App]); // 见核心契约 4（按需）
+        // 默认 [User, Tenant] 已覆盖大多数接口；仅当接口文档 Authorization 要求 app_access_token
+        // 等非默认凭证时，才 .with_supported_access_token_types(vec![...]) 显式声明（见核心契约 4）。
+        let req: ApiRequest<serde_json::Value> = ApiRequest::post({ENDPOINT_CONST_OR_ENUM});
         let resp = Transport::request(req, &self.config, Some(option)).await?; // 见核心契约 3
         // resp.data: Option<serde_json::Value>，R 是 data 内容（见核心契约 2）
         resp.data.ok_or_else(|| openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据"))
@@ -251,7 +252,7 @@ impl {Name}Request {
 - [ ] **核心契约 1**：`config: Config`（owned），未用 `Arc<Config>`
 - [ ] **核心契约 2**：`R` 是响应 data 内容类型，未在外面再包 `XxxResponse{data}`
 - [ ] **核心契约 3**：无 `reqwest::Client::new()` / 手工 token，全走 `Transport::request`
-- [ ] **核心契约 4**：应用级接口已加 `.with_supported_access_token_types([App])`
+- [ ] **核心契约 4**：token 类型与接口文档「请求头 → Authorization」标注一致（默认 `[User, Tenant]`；仅当文档要求 `app_access_token` 等非默认凭证时才 `.with_supported_access_token_types([...])`）
 - [ ] **核心契约 5**：端点用常量/enum（禁手写 URL）；必填字段用 `validate_required!`
 - [ ] `execute_with_options(..., RequestOption)` 已提供并透传到 Transport
 - [ ] `mod.rs` 已导出；`service.rs`/链式入口已补
