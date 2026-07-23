@@ -5,11 +5,13 @@ from pathlib import Path
 
 from tools.api_contracts.official import (
     expected_file_path,
+    extract_access_token_types_from_detail_payload,
     extract_endpoint_from_detail_payload,
     extract_request_fields_from_detail_payload,
     extract_response_fields_from_detail_payload,
     load_api_identities,
     normalize_endpoint_path,
+    parse_access_token_types_from_markdown,
     split_method_path,
 )
 
@@ -181,6 +183,96 @@ class OfficialContractTests(unittest.TestCase):
         self.assertEqual(len(identities), 1)
         self.assertEqual(identities[0].expected_file, "ai/document_ai/v1/bank_card/recognize.rs")
         self.assertEqual(identities[0].full_path, "/document/uAjLw4CM/mock")
+
+
+class AccessTokenDetailPayloadTests(unittest.TestCase):
+    """token oracle：从 detail payload 解析 security.supportedAccessToken。"""
+
+    @staticmethod
+    def _detail_payload(tokens):
+        security = {}
+        if tokens is not None:
+            security["supportedAccessToken"] = tokens
+        return {"data": {"schema": {"apiSchema": {"security": security}}}}
+
+    def test_returns_supported_access_token_list(self):
+        tokens = extract_access_token_types_from_detail_payload(
+            self._detail_payload(["tenant_access_token", "user_access_token"])
+        )
+        self.assertEqual(tokens, ("tenant_access_token", "user_access_token"))
+
+    def test_single_tenant_token(self):
+        self.assertEqual(
+            extract_access_token_types_from_detail_payload(
+                self._detail_payload(["tenant_access_token"])
+            ),
+            ("tenant_access_token",),
+        )
+
+    def test_missing_security_returns_empty(self):
+        # 飞书未标注 supportedAccessToken（token 端点等）→ 空，调用方降级 UNVERIFIED
+        self.assertEqual(extract_access_token_types_from_detail_payload({}), ())
+        self.assertEqual(
+            extract_access_token_types_from_detail_payload(
+                {"data": {"schema": {"apiSchema": {}}}}
+            ),
+            (),
+        )
+        self.assertEqual(
+            extract_access_token_types_from_detail_payload(
+                {"data": {"schema": {"apiSchema": {"security": {}}}}}
+            ),
+            (),
+        )
+
+    def test_non_list_supported_access_token_returns_empty(self):
+        self.assertEqual(
+            extract_access_token_types_from_detail_payload(
+                {"data": {"schema": {"apiSchema": {"security": {
+                    "supportedAccessToken": "tenant_access_token",
+                }}}}}
+            ),
+            (),
+        )
+
+    def test_filters_non_string_entries(self):
+        tokens = extract_access_token_types_from_detail_payload(
+            self._detail_payload(["tenant_access_token", 42, None, "user_access_token"])
+        )
+        self.assertEqual(tokens, ("tenant_access_token", "user_access_token"))
+
+
+class AccessTokenMarkdownTests(unittest.TestCase):
+    """token oracle 回退：从 .md 源 Authorization 行解析（server-docs 页 JSON 缺标注时）。"""
+
+    def test_tenant_only_header_row(self):
+        # acs user/get 的 .md 源 Authorization 行
+        md = (
+            "Authorization | string | 是 | `tenant_access_token`<br>"
+            "**值格式**：\"Bearer `access_token`\"<br>"
+            "**示例值**：\"Bearer t-7f1bcd13fc57d46bac21793a18e560\""
+        )
+        self.assertEqual(parse_access_token_types_from_markdown(md), ("tenant_access_token",))
+
+    def test_multi_token_header_row(self):
+        md = "Authorization | string | 是 | `tenant_access_token`、`user_access_token`"
+        self.assertEqual(
+            parse_access_token_types_from_markdown(md),
+            ("tenant_access_token", "user_access_token"),
+        )
+
+    def test_user_only(self):
+        md = "Authorization | string | 是 | `user_access_token`，示例值 \"Bearer u-xxx\""
+        self.assertEqual(parse_access_token_types_from_markdown(md), ("user_access_token",))
+
+    def test_no_authorization_row_returns_empty(self):
+        self.assertEqual(parse_access_token_types_from_markdown("正文无表头\n其他内容"), ())
+        self.assertEqual(parse_access_token_types_from_markdown(""), ())
+
+    def test_ignores_prose_mentions(self):
+        # 正文提到 tenant_access_token 但不在 Authorization 表头行 → 不采集
+        md = "本接口需要调用方持有 tenant_access_token。\n其他说明 user_access_token。"
+        self.assertEqual(parse_access_token_types_from_markdown(md), ())
 
 
 if __name__ == "__main__":

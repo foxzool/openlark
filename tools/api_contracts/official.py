@@ -16,6 +16,15 @@ from .models import ApiIdentity, OfficialField
 
 
 DOC_DETAIL_URL = "https://open.feishu.cn/document_portal/v1/document/get_detail"
+DOC_MARKDOWN_BASE_URL = "https://open.feishu.cn"
+
+# security.supportedAccessToken 与 .md Authorization 行里合法的 token 凭证名。
+_KNOWN_ACCESS_TOKENS = {
+    "tenant_access_token",
+    "user_access_token",
+    "app_access_token",
+    "none_access_token",
+}
 
 
 def camel_to_snake(name: str) -> str:
@@ -163,6 +172,66 @@ def extract_request_fields_from_detail_payload(payload: dict[str, Any]) -> tuple
                 source="official_api_schema",
             )
     return tuple(fields.values())
+
+
+def extract_access_token_types_from_detail_payload(payload: dict[str, Any]) -> tuple[str, ...]:
+    """从 detail payload 解析官方文档标注的可接受 token 类型。
+
+    oracle 路径：``data.schema.apiSchema.security.supportedAccessToken``
+    （如 ``["tenant_access_token", "user_access_token"]``，见
+    ``tools/schema_cache/SCHEMA_FINDINGS.md``）。未标注时返回空元组，调用方据此
+    降级为 UNVERIFIED（无法核对），而非误报为不匹配。
+    """
+    api_schema = extract_api_schema(payload)
+    security = api_schema.get("security") if isinstance(api_schema, dict) else {}
+    if not isinstance(security, dict):
+        return ()
+    tokens = security.get("supportedAccessToken")
+    if not isinstance(tokens, list):
+        return ()
+    return tuple(str(token) for token in tokens if isinstance(token, str))
+
+
+def fetch_doc_markdown(api: ApiIdentity, timeout: int) -> str:
+    """抓取飞书文档 ``.md`` 源（SPA 页正文的真实来源，见 api-spec-accuracy-audit）。
+
+    部分 ``server-docs`` 风格页（如 acs ``user/get``、``user/list``）的 detail payload
+    不含 ``security.supportedAccessToken``，但其 ``.md`` 源的请求头 Authorization 行
+    仍标注了凭证类型——作为 token oracle 的回退来源。失败/无 fullPath 返回空串。
+    """
+    full_path = detail_full_path(api)
+    if not full_path:
+        return ""
+    url = DOC_MARKDOWN_BASE_URL + "/document" + full_path + ".md"
+    try:
+        request = urllib.request.Request(
+            url,
+            headers={"User-Agent": "openlark-api-contract-validator/1.0"},
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read().decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001 - 回退来源，失败即视作无标注。
+        return ""
+
+
+def parse_access_token_types_from_markdown(text: str) -> tuple[str, ...]:
+    """从 ``.md`` 源的「请求头 Authorization」表头行解析可接受 token 类型。
+
+    仅采集以 ``Authorization`` 开头的表头行内反引号包裹的 ``*_access_token`` 凭证名
+    （如 ``Authorization | string | 是 | `tenant_access_token`、`user_access_token```），
+    忽略正文里的散文提及。按出现顺序去重。
+    """
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("Authorization"):
+            continue
+        for token in re.findall(r"`([a-z_]+_access_token)`", stripped):
+            if token in _KNOWN_ACCESS_TOKENS and token not in seen:
+                seen.add(token)
+                tokens.append(token)
+    return tuple(tokens)
 
 
 def extract_response_fields_from_detail_payload(payload: dict[str, Any]) -> tuple[OfficialField, ...]:

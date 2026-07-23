@@ -18,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.api_contracts.compare import (
+    compare_access_token_types,
     compare_endpoint,
     compare_request_fields,
     compare_response_fields,
@@ -25,11 +26,14 @@ from tools.api_contracts.compare import (
 )
 from tools.api_contracts.models import ContractReport
 from tools.api_contracts.official import (
+    extract_access_token_types_from_detail_payload,
     extract_endpoint_from_detail_payload,
     extract_request_fields_from_detail_payload,
     extract_response_fields_from_detail_payload,
     fetch_detail_payload,
+    fetch_doc_markdown,
     load_api_identities,
+    parse_access_token_types_from_markdown,
 )
 from tools.api_contracts.report import write_report, write_summary
 from tools.api_contracts.rust_source import load_endpoint_constants, load_enum_endpoints, scan_api_file
@@ -73,6 +77,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fetch official detail pages for request body field validation",
     )
+    parser.add_argument(
+        "--tokens",
+        action="store_true",
+        help=(
+            "Verify Rust supported_access_token_types against the official "
+            "security.supportedAccessToken annotation (always fetches detail payloads)"
+        ),
+    )
     parser.add_argument("--field-timeout", type=int, default=20, help="Official detail fetch timeout in seconds")
     parser.add_argument("--field-retries", type=int, default=1, help="Official detail fetch retries")
     parser.add_argument(
@@ -84,7 +96,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--strict",
         default="",
-        help="Comma-separated strict categories. Supported values: endpoint, fields",
+        help="Comma-separated strict categories. Supported values: endpoint, fields, tokens",
     )
     return parser.parse_args()
 
@@ -112,6 +124,7 @@ def validate_crate(
     field_timeout: int = 20,
     field_retries: int = 1,
     max_field_apis: int = 0,
+    tokens: bool = False,
 ) -> ContractReport:
     src_path = Path(crate_config["src"])
     biz_tags = list(crate_config.get("biz_tags") or [])
@@ -135,7 +148,7 @@ def validate_crate(
         detail_payload = None
         endpoint_api = api
         should_check_fields = fields and (not max_field_apis or field_checks < max_field_apis)
-        if live_endpoints or should_check_fields:
+        if live_endpoints or should_check_fields or tokens:
             try:
                 detail_payload = fetch_detail_payload(api, timeout=field_timeout, retries=field_retries)
             except Exception as exc:  # noqa: BLE001 - report and keep validating the remaining APIs.
@@ -164,6 +177,18 @@ def validate_crate(
 
         for item in compare_endpoint(endpoint_api, rust_contract):
             report.add(item)
+
+        if tokens:
+            # oracle：优先用 detail payload 的 security.supportedAccessToken；
+            # JSON 缺标注时（部分 server-docs 页）回退到 .md 源的 Authorization 行。
+            official_tokens = ()
+            if detail_payload is not None:
+                official_tokens = extract_access_token_types_from_detail_payload(detail_payload)
+            if not official_tokens:
+                markdown = fetch_doc_markdown(api, timeout=field_timeout)
+                official_tokens = parse_access_token_types_from_markdown(markdown)
+            for item in compare_access_token_types(api, official_tokens, rust_contract):
+                report.add(item)
 
         if should_check_fields and detail_payload is not None:
             field_checks += 1
@@ -218,6 +243,7 @@ def main() -> int:
             field_timeout=args.field_timeout,
             field_retries=args.field_retries,
             max_field_apis=args.max_field_apis,
+            tokens=args.tokens,
         )
         for crate_name in crate_names
     ]
@@ -232,7 +258,7 @@ def main() -> int:
     )
 
     strict_categories = {item.strip() for item in args.strict.split(",") if item.strip()}
-    if ("endpoint" in strict_categories or "fields" in strict_categories) and total_errors:
+    if strict_categories & {"endpoint", "fields", "tokens"} and total_errors:
         return 1
     return 0
 

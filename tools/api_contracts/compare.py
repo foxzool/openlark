@@ -221,6 +221,51 @@ def compare_response_fields(
     return findings
 
 
+def compare_access_token_types(
+    api: ApiIdentity,
+    official_tokens: tuple[str, ...],
+    rust_contract: RustApiContract | None,
+) -> list[ContractFinding]:
+    """核对 Rust 声明的 token 类型与官方文档 ``security.supportedAccessToken``。
+
+    - Rust 集合与官方集合**不相交** → ERROR（运行时注入的 token 必被飞书拒绝）。
+    - 官方未标注 ``supportedAccessToken`` → UNVERIFIED（无法核对，不阻塞）。
+    - 实现文件缺失 → WARN。
+    - 否则（存在交集，即 SDK 至少能选出一种官方接受的 token）→ 无 finding。
+    """
+    if rust_contract is None:
+        return [
+            finding(
+                "WARN",
+                "W_IMPLEMENTATION_FILE_MISSING",
+                "Expected implementation file does not exist.",
+                api,
+            )
+        ]
+    if not official_tokens:
+        return [
+            finding(
+                "UNVERIFIED",
+                "U_ACCESS_TOKEN_UNANNOTATED",
+                "Official doc did not expose supportedAccessToken; token type cannot be verified.",
+                api,
+            )
+        ]
+    rust_tokens = set(rust_contract.access_token_types)
+    if rust_tokens & set(official_tokens):
+        return []
+    return [
+        finding(
+            "ERROR",
+            "E_ACCESS_TOKEN_TYPE_MISMATCH",
+            "All Rust supported access token types are rejected by the official doc.",
+            api,
+            official=", ".join(official_tokens),
+            rust=", ".join(sorted(rust_tokens)) or "<none>",
+        )
+    ]
+
+
 def official_field_text(field: OfficialField) -> str:
     required = "required" if field.required else "optional"
     suffix = f" {field.field_type}" if field.field_type else ""
