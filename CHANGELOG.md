@@ -144,6 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     按名再导出这 7 个类型，保留一个过渡周期——既有全路径 import 仍可解析，仅多一条
     deprecation 提示。下个 breaking 窗口（0.19）删除该 alias。
 
+- **docs：API 实现模板修正 `extract_response_data` → `Transport::request_typed` doc-drift（#507）**：
+  `docs/api-implementation-template.md` 仍教人 import + 调用 #486 已删的自由函数
+  `extract_response_data`（模板早已坏）。改为展示真实 leaf 形态
+  `Transport::request_typed(req, &config, Some(option), "中文名")`（与 `okr/objective/get`、
+  `tasklist` 等现网 leaf 一致），删掉对应 import 与检查点项。`error-context-policy.md`
+  引用的 operation *字符串* `"extract_response_data"`（由 `Response::decode` 经
+  `set_operation` 发出）准确，不动。纯文档，无代码/rustdoc 改动。
+
 ## [0.18.0] - 2026-07-20
 
 > WebSocket 公开 API 破坏性变更随 **0.18.0** workspace 版本一并发出（见下 Breaking）。
