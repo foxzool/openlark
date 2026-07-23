@@ -57,9 +57,9 @@ openlark 公开模块中的分析/扩展装置（trait + analyzer + assessment /
 
 #### Scenario: 活面与真实 API 路径不受影响
 - **WHEN** 变更后构造 `SecurityClient::new(config)` 并调用 ACS / 安全合规叶子（如 `client.acs.v1().users().list()`）
-- **THEN** 编译通过、行为不变；`SecurityError = CoreError` 别名、`SecurityResult`、`SecurityErrorBuilder`、`map_feishu_security_error` 仍可达
+- **THEN** 编译通过、行为不变；`SecurityError = CoreError` 别名、`SecurityResult` 仍可达（`SecurityErrorBuilder` / `map_feishu_security_error` 为 0 消费者死代码，#500 删除）
 
 #### Scenario: security crate 编译与测试通过
 - **WHEN** 运行 `cargo build -p openlark-security --all-features` 与 `cargo test -p openlark-security --all-features`
-- **THEN** 均通过；4 个改写的 builder/mapper 测试以直接断 `CoreError` variant 形式通过
+- **THEN** 均通过（`SecurityErrorBuilder` / `map_feishu_security_error` 及其 4 个测试经 #500 删除；leaf 错误经 `Transport::request_typed → decode → CoreError` 构造，不走领域 builder）
 

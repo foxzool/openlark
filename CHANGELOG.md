@@ -130,6 +130,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     （`UserFlowGet(id)`）；走 leaf builder 的代码零影响。
   - **非目标**：不做全量 macro 深化（532 arm）或不采纳 `API_PATH_PREFIX`（另案）。
 
+- **security：删除 `SecurityErrorBuilder` / `map_feishu_security_error` 0 消费者死代码（#500）**：
+  `openlark-security/src/error.rs` 里两块 pub-but-undocumented 死代码——
+  `SecurityErrorBuilder`（~20 个 domain 味错误构造器）与 `map_feishu_security_error`
+  （飞书码映射）——全仓 0 外部调用者（仅 error.rs 自身测试互调），不在 `lib.rs` /
+  `prelude` re-export、无文档/示例。security 叶子经 `Transport::request_typed →
+  Response::decode → CoreError` 构造错误，复用 core 通用构造器，不走领域 builder。
+  删除二者 + 4 个专属测试；`SecurityError = CoreError` 别名与 `SecurityResult` 保留
+  （re-export 不变）。`dead-code-lint-hygiene` spec 的活面场景同步修正（#500 落实其
+  「零消费者 pub 面 SHALL 删除」requirement）。
+  - **不走废弃周期**（policy line 141 + ADR-0001 先例）：0 消费者 + 未文档化 + 非主推面
+    （不在 prelude re-export）→ 废弃周期无对象可警告；且属未发布 0.19 窗口。先例：
+    #504 / #505 / #506（同型零消费者 seam 直删）+ #471。
+  - **迁移**：`use ...SecurityErrorBuilder` / `map_feishu_security_error(...)` 的代码需
+    改用 core 通用构造器（`openlark_core::error::validation_error` 等）；仓内零引用。
+
 ### Changed
 
 - **hr：域无关 HR 原语提升到 crate root（#473）**：
