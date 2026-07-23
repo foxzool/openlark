@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use openlark_auth::auth::auth::v3::*;
 use openlark_core::{
-    api::responses::{RawResponse, Response},
+    api::responses::RawResponse,
     config::Config,
     error::{CoreError, ErrorTrait, timeout_error},
 };
@@ -85,45 +85,6 @@ mod validation_tests {
         assert_eq!(raw.msg, "invalid app credentials");
         assert_eq!(raw.request_id.as_deref(), Some("req_123"));
         assert!(!raw.is_success());
-    }
-
-    #[test]
-    fn test_validation_api_error_response_into_result_returns_api_error() {
-        let response = Response::<serde_json::Value>::new(
-            None,
-            RawResponse {
-                code: 400,
-                msg: "bad request".to_string(),
-                request_id: Some("req_bad".to_string()),
-                data: None,
-                error: None,
-            },
-        );
-
-        let result = response.into_result();
-        assert!(matches!(result, Err(CoreError::Api(_))));
-
-        let err = result.expect_err("应返回 API 错误");
-        assert!(err.to_string().contains("bad request"));
-    }
-
-    #[test]
-    fn test_validation_success_response_without_data_returns_api_error() {
-        let response = Response::<serde_json::Value>::new(
-            None,
-            RawResponse {
-                code: 0,
-                msg: "ok".to_string(),
-                request_id: Some("req_empty_data".to_string()),
-                data: None,
-                error: None,
-            },
-        );
-
-        let result = response.into_result();
-        assert!(matches!(result, Err(CoreError::Api(_))));
-        let err = result.expect_err("应返回 API 错误");
-        assert!(err.to_string().contains("响应数据为空"));
     }
 
     #[tokio::test]

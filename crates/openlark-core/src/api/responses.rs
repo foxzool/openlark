@@ -229,32 +229,6 @@ impl<T> Response<T> {
         &self.raw_response
     }
 
-    /// 转换为结果类型
-    pub fn into_result(self) -> Result<T, crate::error::CoreError> {
-        let is_success = self.is_success();
-        let code = self.raw_response.code;
-        let request_id = self.raw_response.request_id.clone();
-
-        if is_success {
-            match self.data {
-                Some(data) => Ok(data),
-                None => Err(crate::error::api_error(
-                    code as u16,
-                    "response",
-                    "响应数据为空",
-                    request_id,
-                )),
-            }
-        } else {
-            Err(crate::error::api_error(
-                code as u16,
-                "response",
-                self.raw_response.msg.clone(),
-                request_id,
-            ))
-        }
-    }
-
     /// Canonical finisher：从 `Response<T>` 抽取 typed `T`（#486 起 `extract_response_data`
     /// 自由函数收敛到此方法）。
     ///

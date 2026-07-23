@@ -53,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     的代码需移除（仓内零引用）。`Transport::request_typed` / leaf builder /
     `api::prelude` 其余类型不受影响。
 
+- **core：`Response::into_result` 删除，`decode` 收为唯一 finisher（#505）**：
+  自 #486（`extract_response_data` 自由函数收敛为 `Response::decode`）起，
+  `into_result` 生产零调用——仅 2 个错位的 `openlark-auth` 测试调用，且其一断言
+  旧的「成功（code=0）无 data 误报为 api 错误」行为（#470 user-story-12 刻意修掉）。
+  删除即收口二者在「成功 code=0 但无 data」上的设计分歧（`into_result` 返 `Api`、
+  `decode` 返 `Validation`——后者才是真正的抽取失败语义）。`Response<T>` 只剩唯一
+  finisher，正确行为由核心 `decode_*` 测试单点覆盖（auth crate 不再重复）。
+  - **不走废弃周期**：零消费者公开方法 → 废弃周期无对象可警告；且属未发布 0.19 窗口。
+    先例：#504（同型零消费者 seam 直删）+ #471。
+  - **迁移**：`response.into_result()` 改为 `response.decode(context)`。leaf 请求走
+    `Transport::request_typed`，不直接调 finisher，不受影响。
+
 - **hr：删除 7 个 dead config-holder facade（#474）**：
   `Hire` / `Attendance` / `Corehr` / `Payroll` / `Performance` /
   `CompensationManagement` / `Ehr` 是纯 config holder（仅 `new()` + `config()`），
