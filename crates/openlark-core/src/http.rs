@@ -115,9 +115,10 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
     /// 机制携带 `operation`（= `extract_response_data`）+ `resource`（= `context`）
     /// + 响应携带的 `request_id`，便于排障与飞书服务端对账。
     ///
-    /// 全部 leaf 已迁入本入口（#482 mail / #483 HR / #484 communication+meeting+docs /
-    /// #485 其余）。无 `data` 载荷的删除类 API 继续用 `Transport::request` +
-    /// `ensure_success`，不经本入口。
+    /// 全部 leaf 已迁入本入口，含删除/空成功类 API（由响应类型的 [`ApiResponseTrait`] 声明
+    /// 解码策略）。兄弟入口 [`Transport::request`] 仅留给需要原始 `Response<T>` 的下载 /
+    /// 自定义抽取路径（按 Content-Disposition 取文件名、size 上限校验、对外返回
+    /// `Response<Vec<u8>>`），不再经 `ensure_success`（#470 后零消费者，随 #506 删除）。
     pub async fn request_typed<R: Send>(
         req: ApiRequest<R>,
         config: &Config,

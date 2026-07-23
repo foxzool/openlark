@@ -5,7 +5,6 @@
 //! （caller 传入的 context）/ `request_id`（响应携带时）结构化诊断上下文。
 
 use crate::SDKResult;
-use crate::api::Response;
 use crate::error::validation_error;
 
 /// 标准化参数序列化。
@@ -21,24 +20,6 @@ pub fn serialize_params<T: serde::Serialize>(
                 .add_context("resource", context);
         })
     })
-}
-
-/// 无 data 接口：仅用 `code==0` 判断成功。
-///
-/// 用于响应不含 `data` 字段的 API。失败时附加 `operation=ensure_success` + `resource=<context>`。
-pub fn ensure_success(response: Response<serde_json::Value>, context: &str) -> SDKResult<()> {
-    if response.raw_response.is_success() {
-        Ok(())
-    } else {
-        Err(
-            validation_error("response.code", response.raw_response.msg.to_string()).map_context(
-                |ctx| {
-                    ctx.set_operation("ensure_success")
-                        .add_context("resource", context);
-                },
-            ),
-        )
-    }
 }
 
 #[cfg(test)]

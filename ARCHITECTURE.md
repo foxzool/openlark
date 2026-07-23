@@ -694,6 +694,8 @@ impl MultipartBuilder {
 
 类型安全的响应处理系统：
 
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
+
 ```rust
 use openlark_core::api::{Response, RawResponse};
 
@@ -745,6 +747,8 @@ impl<T> Response<T> {
 #### 6.3.2 类型安全转换
 
 强类型的API响应处理：
+
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
 
 ```rust
 // API响应特征
@@ -1729,6 +1733,8 @@ impl GracefulShutdownManager {
 #### 7.4.1 AsyncLarkClient trait
 
 异步客户端接口定义：
+
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
 
 ```rust
 // 异步客户端特征
@@ -2840,6 +2846,8 @@ impl Default for RawResponse {
 #### 8.3.2 Response<T>类型安全包装
 
 类型安全的响应包装器：
+
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
 
 ```rust
 // 类型安全的响应包装

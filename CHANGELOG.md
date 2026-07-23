@@ -65,6 +65,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **迁移**：`response.into_result()` 改为 `response.decode(context)`。leaf 请求走
     `Transport::request_typed`，不直接调 finisher，不受影响。
 
+- **core：退役死 helper `ensure_success` + 修正 `request_typed` doc + #505 遗留清理（#506）**：
+  `ensure_success`（无 `data` 接口的 `code==0` 成功判断 helper）自 #470 leaf 全量迁入
+  `Transport::request_typed` 后生产零调用——删除/空成功类 API 改由响应类型的
+  `ApiResponseTrait` 声明解码策略，经 `request_typed` / `Response::decode` 收口，不再走
+  `request` + `ensure_success`。core 删 `api::helpers::ensure_success` + `api` 模块
+  re-export 会让 9 个业务 crate 的 `common::api_utils` re-export shim 断编译，故 core
+  删除与 9 shim 更新（workflow / communication / application / helpdesk / mail / docs /
+  platform / meeting / cardkit，去 `ensure_success` re-export + 模块 doc 同步）于本条
+  原子落绿。同步重写 `Transport::request_typed` doc 为「双入口分工」叙述（删除/空成功类
+  API 走 `request_typed`；`Transport::request` 仅留给需要原始 `Response<T>` 的下载 / 自定义
+  抽取路径），删除旧 doc「删除类 API 用 `request` + `ensure_success`」的谎言。
+  - **不走废弃周期**：零消费者 helper（全仓 0 调用方）→ 废弃周期无对象可警告；且属未发布
+    0.19 窗口。先例：#505（`into_result` 同型零消费者直删）。
+  - **#505 遗留清理**：`tests/unit/auth/auth_validation_tests.rs`（未接线的死副本）删 2 个
+    引用已删 `into_result` 的冗余测试 + 去 `Response` import（镜像 live 文件
+    `crates/openlark-auth/tests/auth_validation_tests.rs`；整棵 `tests/unit/` 死树处置另案）；
+    `ARCHITECTURE.md` 4 处 `into_result` 设计示意伪代码标注历史叙述。
+  - **迁移**：`ensure_success` 从未在 README / 示例主推（仅经 `common::api_utils` re-export
+    暴露）；使用 `crate::common::api_utils::ensure_success` 的代码需改走
+    `Transport::request_typed`（由响应类型声明解码策略）。`serialize_params` 不受影响。
+
 - **hr：删除 7 个 dead config-holder facade（#474）**：
   `Hire` / `Attendance` / `Corehr` / `Payroll` / `Performance` /
   `CompensationManagement` / `Ehr` 是纯 config holder（仅 `new()` + `config()`），

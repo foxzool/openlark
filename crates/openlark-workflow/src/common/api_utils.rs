@@ -1,13 +1,13 @@
 /// API通用工具函数（re-export core canonical + 本域 error 构造器）。
 ///
-/// `serialize_params` / `ensure_success` 已下沉到
+/// `serialize_params` 已下沉到
 /// `openlark_core::api`（#330），本模块 re-export canonical copy；保留 workflow 域专用的
 /// 标准 error 构造器（`missing_response_data_error` / `request_serialization_error`），
 /// 多处审批任务叶子直接复用其错误形状。
 use openlark_core::error;
 
 // canonical HTTP 管道 helper（#330 下沉到 core）
-pub use openlark_core::api::{ensure_success, serialize_params};
+pub use openlark_core::api::serialize_params;
 
 const ERROR_COMPONENT: &str = "openlark-workflow";
 
