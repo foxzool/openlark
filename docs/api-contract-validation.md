@@ -130,10 +130,11 @@ oracle 取值（优先级递减）：
   按实际注入的 token 类型核对，而非 `none_access_token`——避免把「手动注入 user token」
   误判为 disjoint `ERROR`。真正无鉴权（声明 `None` 且无手动注入）对要求 token 的文档仍报 `ERROR`。
 
-与 live 校验一致，该维度访问网络。CI 对 `openlark-security` 启用 `--strict tokens`，作为
-[#511](https://github.com/foxzool/openlark/issues/511) acs / security_and_compliance 误配的回归
-gate（与 endpoint strict gate 同级）。全仓 live 核对因每个接口都要抓取详情 payload、调用量过大，
-未纳入 CI；其他 crate 用 `just api-contract-tokens <crate>` 人工抽样。
+与 live 校验一致，该维度访问网络。CI 对 `openlark-security` 与 `openlark-auth` 启用
+`--strict tokens`，作为 [#511](https://github.com/foxzool/openlark/issues/511) acs /
+security_and_compliance 误配的回归 gate（与 endpoint strict gate 同级；auth 覆盖 OIDC token
+端点）。全仓 live 核对因每个接口都要抓取详情 payload、调用量过大，未纳入 CI；其他 crate 用
+`just api-contract-tokens <crate>` 人工抽样。
 
 ## 2. 单 crate 使用
 
