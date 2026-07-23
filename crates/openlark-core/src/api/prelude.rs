@@ -4,5 +4,4 @@
 pub use super::{
     ApiRequest, ApiResponse, ApiResponseTrait, BaseResponse, ErrorInfo, HttpMethod, RawResponse,
     RequestData, Response, ResponseFormat,
-    traits::{AsyncApiClient, SyncApiClient},
 };
