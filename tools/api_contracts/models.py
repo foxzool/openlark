@@ -8,6 +8,11 @@ from typing import Any
 
 _HTTP_METHODS = {"GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE"}
 
+# ApiRequest 未显式声明 supported_access_token_types 时的默认取值
+# （见 crates/openlark-core/src/api/mod.rs: supported_access_token_types() 的默认分支）。
+# 使用飞书凭证名，以便与官方文档 security.supportedAccessToken 直接比对。
+DEFAULT_ACCESS_TOKEN_TYPES: tuple[str, ...] = ("user_access_token", "tenant_access_token")
+
 
 def _split_official_url(value: str) -> tuple[str, str]:
     method, _, path = value.partition(":")
@@ -71,6 +76,9 @@ class RustApiContract:
     # request struct 含 #[serde(flatten)] 字段时，视为该 API 透传所有官方 optional
     # request 字段（透传 Value 或 typed 枚举，非 correctness bug）。
     has_flatten_value_passthrough: bool = False
+    # Rust 侧声明的有效 token 类型（飞书凭证名）。未显式调用
+    # .with_supported_access_token_types(...) 时取 DEFAULT_ACCESS_TOKEN_TYPES。
+    access_token_types: tuple[str, ...] = DEFAULT_ACCESS_TOKEN_TYPES
 
 
 @dataclass(frozen=True)

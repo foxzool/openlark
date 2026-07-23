@@ -4,8 +4,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.api_contracts.compare import compare_endpoint, compare_request_fields, compare_response_fields
-from tools.api_contracts.models import ApiIdentity, OfficialField, RustApiContract, RustEndpointCall, RustField
+from tools.api_contracts.compare import (
+    compare_access_token_types,
+    compare_endpoint,
+    compare_request_fields,
+    compare_response_fields,
+)
+from tools.api_contracts.models import (
+    DEFAULT_ACCESS_TOKEN_TYPES,
+    ApiIdentity,
+    OfficialField,
+    RustApiContract,
+    RustEndpointCall,
+    RustField,
+)
 
 
 class ContractCompareTests(unittest.TestCase):
@@ -448,6 +460,124 @@ class ContractCliTests(unittest.TestCase):
                     "fullPath": "/document/mock",
                 }
             )
+
+
+class AccessTokenCompareTests(unittest.TestCase):
+    """token 类型契约核对：compare_access_token_types 的判定规则。"""
+
+    def _api(self, api_id: str = "acs/v1/user/get") -> ApiIdentity:
+        return ApiIdentity(
+            api_id=api_id,
+            name=api_id,
+            biz_tag="acs",
+            meta_project="acs",
+            meta_version="v1",
+            meta_resource="user",
+            meta_name="get",
+            url="GET:/open-apis/acs/v1/users/:user_id",
+            doc_path="",
+            expected_file="acs/acs/v1/user/get.rs",
+        )
+
+    def _contract(self, types: tuple[str, ...]) -> RustApiContract:
+        return RustApiContract(rel_path="acs/acs/v1/user/get.rs", access_token_types=types)
+
+    def test_disjoint_returns_error(self):
+        # Rust 声明 App，飞书只要 tenant → 必然鉴权失败
+        findings = compare_access_token_types(
+            self._api(), ("tenant_access_token",), self._contract(("app_access_token",))
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].severity, "ERROR")
+        self.assertEqual(findings[0].code, "E_ACCESS_TOKEN_TYPE_MISMATCH")
+
+    def test_overlap_returns_no_finding(self):
+        findings = compare_access_token_types(
+            self._api(),
+            ("tenant_access_token", "user_access_token"),
+            self._contract(("tenant_access_token",)),
+        )
+        self.assertEqual(findings, [])
+
+    def test_default_tokens_against_tenant_only_is_ok(self):
+        # 宽松默认 [User,Tenant] 对 tenant-only 接口不应误报（交集含 tenant）
+        findings = compare_access_token_types(
+            self._api(),
+            ("tenant_access_token",),
+            self._contract(DEFAULT_ACCESS_TOKEN_TYPES),
+        )
+        self.assertEqual(findings, [])
+
+    def test_official_unannotated_returns_unverified(self):
+        findings = compare_access_token_types(
+            self._api(), (), self._contract(("app_access_token",))
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].severity, "UNVERIFIED")
+        self.assertEqual(findings[0].code, "U_ACCESS_TOKEN_UNANNOTATED")
+
+    def test_missing_implementation_returns_warn(self):
+        findings = compare_access_token_types(self._api(), ("tenant_access_token",), None)
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].severity, "WARN")
+        self.assertEqual(findings[0].code, "W_IMPLEMENTATION_FILE_MISSING")
+
+
+class BootstrapOracleTests(unittest.TestCase):
+    """工具有效性验证：必须检出 #511 已核实的 4 个 token 误配。"""
+
+    def _api(self, api_id: str) -> ApiIdentity:
+        return ApiIdentity(
+            api_id=api_id,
+            name=api_id,
+            biz_tag="acs",
+            meta_project="",
+            meta_version="",
+            meta_resource="",
+            meta_name="",
+            url="",
+            doc_path="",
+            expected_file=api_id,
+        )
+
+    def _assert_error(self, api_id: str, official: list[str], rust: str):
+        findings = compare_access_token_types(
+            self._api(api_id),
+            tuple(official),
+            RustApiContract(rel_path=api_id, access_token_types=(rust,)),
+        )
+        errors = [f for f in findings if f.severity == "ERROR"]
+        self.assertTrue(
+            errors,
+            f"期望检出 ERROR（{api_id}: Rust={rust} vs 飞书={official}），实际={findings}",
+        )
+
+    def test_acs_device_bind_should_be_user_not_app(self):
+        self._assert_error(
+            "acs/v1/rule_external/device_bind", ["user_access_token"], "app_access_token"
+        )
+
+    def test_acs_user_get_should_be_tenant_not_app(self):
+        self._assert_error("acs/v1/user/get", ["tenant_access_token"], "app_access_token")
+
+    def test_acs_user_list_should_be_tenant_not_app(self):
+        self._assert_error("acs/v1/user/list", ["tenant_access_token"], "app_access_token")
+
+    def test_security_user_migrations_get_should_be_tenant_or_user(self):
+        self._assert_error(
+            "security_and_compliance/v1/user_migrations/get",
+            ["tenant_access_token", "user_access_token"],
+            "app_access_token",
+        )
+
+    def test_after_fix_no_error(self):
+        # 反向验证：修正后（device_bind→User）不再报错
+        findings = compare_access_token_types(
+            self._api("acs/v1/rule_external/device_bind"),
+            ("user_access_token",),
+            RustApiContract(rel_path="device_bind", access_token_types=("user_access_token",)),
+        )
+        self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

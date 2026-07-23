@@ -7,11 +7,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .models import RustApiContract, RustEndpointCall, RustField
+from .models import DEFAULT_ACCESS_TOKEN_TYPES, RustApiContract, RustEndpointCall, RustField
 
 
 REQUEST_STRUCT_SUFFIXES = ("Body", "Query", "Params", "RequestBody")
 RESPONSE_STRUCT_SUFFIXES = ("Response", "Result", "Resp")
+
+# AccessTokenType 枚举变体 → 飞书凭证名（与 constants.rs 的 as_str/Display 一致）。
+# 用于把 Rust 声明的 token 类型翻译成可与官方 supportedAccessToken 直接比对的形态。
+_ACCESS_TOKEN_VARIANT_TO_FEISHU: dict[str, str] = {
+    "None": "none_access_token",
+    "App": "app_access_token",
+    "Tenant": "tenant_access_token",
+    "User": "user_access_token",
+}
 
 
 @dataclass(frozen=True)
@@ -592,6 +601,28 @@ def extract_rust_fields(text: str) -> tuple[RustField, ...]:
     )
 
 
+def extract_access_token_types(text: str) -> tuple[str, ...]:
+    """解析 ``.with_supported_access_token_types(vec![...])`` 声明的 token 类型。
+
+    未找到调用、或调用内无已知变体时，回落到 ``DEFAULT_ACCESS_TOKEN_TYPES``
+    （与 ``ApiRequest`` 运行时默认一致）。变体翻译见 ``_ACCESS_TOKEN_VARIANT_TO_FEISHU``。
+    """
+    match = re.search(
+        r"\.with_supported_access_token_types\s*\(\s*vec!\s*\[([^\]]*)\]",
+        text,
+        re.DOTALL,
+    )
+    if not match:
+        return DEFAULT_ACCESS_TOKEN_TYPES
+    variants = re.findall(r"AccessTokenType::([A-Za-z]+)", match.group(1))
+    types = tuple(
+        _ACCESS_TOKEN_VARIANT_TO_FEISHU[variant]
+        for variant in variants
+        if variant in _ACCESS_TOKEN_VARIANT_TO_FEISHU
+    )
+    return types or DEFAULT_ACCESS_TOKEN_TYPES
+
+
 def has_flatten_value_passthrough(text: str) -> bool:
     """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
 
@@ -853,10 +884,12 @@ def scan_api_file(
         constants or load_endpoint_constants(crate_src),
         enum_endpoints or load_enum_endpoints(crate_src),
     )
+    access_token_types = extract_access_token_types(text)
     return RustApiContract(
         rel_path=expected_file,
         endpoint_calls=extract_endpoint_calls(text, resolver),
         fields=extract_rust_fields(text),
         response_fields=extract_rust_response_fields(text),
         has_flatten_value_passthrough=has_flatten_value_passthrough(text),
+        access_token_types=access_token_types,
     )

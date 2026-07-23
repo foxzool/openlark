@@ -97,6 +97,37 @@ python3 tools/validate_api_contracts.py \
   --strict fields
 ```
 
+### 1.4 Token 类型 live 校验
+
+核对 Rust 实现里 `.with_supported_access_token_types(...)` 声明的 token 类型，是否被
+飞书官方文档「请求头 → Authorization」接受。这是 [#511](https://github.com/foxzool/openlark/issues/511)
+acs / security_and_compliance 批量误配（误设 `App`/`app_access_token`）的防回归手段。
+
+```bash
+python3 tools/validate_api_contracts.py \
+  --crate openlark-security \
+  --tokens \
+  --strict tokens \
+  --report-dir /tmp/openlark-api-contracts-tokens
+```
+
+oracle 取值（优先级递减）：
+
+1. 官网详情 payload 的 `schema.apiSchema.security.supportedAccessToken`（结构化，多数页面）。
+2. 部分 `server-docs` 风格页（如 acs `user/get`、`user/list`）的 detail payload 不含该字段，
+   回退到抓取文档 `.md` 源的「请求头 Authorization」行（SPA 页正文来源，见
+   `docs/api-spec-accuracy-audit.md` 的核对方法节）。注意：该回退对每个 detail payload 缺标注
+   的接口会多一次 `.md` HTTP 抓取，全量核对时网络调用量会相应放大。
+
+判定规则（被测对象 = Rust 声明的有效 token 集合，未显式声明时取默认 `[User, Tenant]`）：
+
+- Rust 集合与官方集合**不相交** → `ERROR`（运行时注入的 token 必被飞书拒绝）。
+- 官方未标注 → `UNVERIFIED`（无法核对，不阻塞）。
+- 实现文件缺失 → `WARN`。
+- 存在交集（SDK 至少能选出一种官方接受的 token）→ 无 finding。
+
+与 live 校验一致，该维度访问网络、用于人工抽样与 API 变动排查；CI 接入见 #515。
+
 ## 2. 单 crate 使用
 
 只验证一个 crate 的 endpoint：
@@ -138,6 +169,8 @@ python3 tools/validate_api_contracts.py \
 | `W_OPTIONAL_REQUEST_FIELD_MISSING` | 官网 optional request field 在 Rust 请求结构体中缺失 |
 | `W_REQUIRED_REQUEST_FIELD_OPTIONAL` | 官网 required 字段在 Rust 中建模为 `Option<T>` |
 | `W_RESPONSE_FIELD_MISSING` | 官网 response `data` 字段在 Rust 响应模型中缺失 |
+| `E_ACCESS_TOKEN_TYPE_MISMATCH` | Rust 声明的 token 类型全被官方文档拒绝（不相交，鉴权必失败） |
+| `U_ACCESS_TOKEN_UNANNOTATED` | 官方文档未标注 `supportedAccessToken`/Authorization，token 类型无法核对 |
 | `U_OFFICIAL_DETAIL_FETCH_FAILED` | live 模式无法获取官网详情 payload |
 
 ## 4. 当前已知验证证据

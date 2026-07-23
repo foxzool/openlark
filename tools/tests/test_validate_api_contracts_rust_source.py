@@ -4,6 +4,7 @@ from pathlib import Path
 
 from tools.api_contracts.rust_source import (
     EndpointResolver,
+    extract_access_token_types,
     extract_endpoint_calls,
     extract_rust_response_fields,
     extract_rust_fields,
@@ -11,6 +12,8 @@ from tools.api_contracts.rust_source import (
     resolve_format_expression,
     scan_api_file,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class RustSourceContractTests(unittest.TestCase):
@@ -293,6 +296,59 @@ class RustSourceContractTests(unittest.TestCase):
         self.assertIsNotNone(contract)
         assert contract is not None
         self.assertTrue(contract.has_flatten_value_passthrough)
+
+
+class ExtractAccessTokensTests(unittest.TestCase):
+    """token 契约：解析 .with_supported_access_token_types 声明（未声明回落默认）。"""
+
+    def test_explicit_single_app(self):
+        source = (
+            "let req = ApiRequest::get(&path)"
+            ".with_supported_access_token_types(vec![AccessTokenType::App]);"
+        )
+        self.assertEqual(extract_access_token_types(source), ("app_access_token",))
+
+    def test_explicit_none(self):
+        source = ".with_supported_access_token_types(vec![AccessTokenType::None]);"
+        self.assertEqual(extract_access_token_types(source), ("none_access_token",))
+
+    def test_explicit_multiple_variants(self):
+        source = (
+            ".with_supported_access_token_types("
+            "vec![AccessTokenType::User, AccessTokenType::Tenant]);"
+        )
+        self.assertEqual(
+            extract_access_token_types(source),
+            ("user_access_token", "tenant_access_token"),
+        )
+
+    def test_multiline_vec_literal(self):
+        source = (
+            ".with_supported_access_token_types(vec![\n"
+            "    AccessTokenType::User,\n"
+            "    AccessTokenType::Tenant,\n"
+            "]);"
+        )
+        self.assertEqual(
+            extract_access_token_types(source),
+            ("user_access_token", "tenant_access_token"),
+        )
+
+    def test_no_call_returns_default(self):
+        # ApiRequest 默认 supported_access_token_types = [User, Tenant]（见 api/mod.rs）
+        self.assertEqual(
+            extract_access_token_types("let req = ApiRequest::get(&path);"),
+            ("user_access_token", "tenant_access_token"),
+        )
+
+    def test_real_auth_token_endpoint_declares_none(self):
+        # 锁定提取器对真实 .rs 源码的解析能力。选用 #512 明确不动（保持 App/None）
+        # 的 auth/v3 token 端点，避免被 #515 的 acs/security 修正连带改坏。
+        source = (
+            REPO_ROOT
+            / "crates/openlark-auth/src/auth/auth/v3/auth/tenant_access_token_internal.rs"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(extract_access_token_types(source), ("none_access_token",))
 
 
 if __name__ == "__main__":
