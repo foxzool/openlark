@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   → `DelReportRequest::new(config, month, operator_id, archive_rule_id).user_ids(..)`；
   `DelReportResponse { success, deleted_count }` → `DelReportResponse {}`（官网 `data` 为空对象）。
 
+- **hr/attendance：`archive_rule/upload_report` 请求/响应字段对齐飞书官网 schema（#529，parent #526）**：
+  原请求体发 `archive_rule_id`/`reports`（嵌套 `employee_id`/`stat_date`(i64 时间戳)/`field_data`/`field_id`）、
+  响应 `success`/`inserted_count`/`updated_count`/`failed_count`/`failed_employee_ids`，与飞书官网当前 schema
+  不符，真实调用被拒。对齐官网（详情接口 `apiSchema`）：请求体必填 `month`/`operator_id`/`archive_rule_id`
+  + 嵌套 `archive_report_datas: [{ member_id, start_time, end_time, field_datas: [{ code, value }] }]`
+  （⚠️ 原 `stat_date` 是 i64 时间戳，官网实为 `start_time`/`end_time` 的 `yyyyMMdd` 字符串），
+  响应改 `invalid_code`/`invalid_member_id`。
+  **迁移**：`UploadReportRequest::new(config, archive_rule_id, reports)`
+  → `new(config, month, operator_id, archive_rule_id).archive_report_datas(..)`；
+  `ReportData`/`FieldData` → `ArchiveReportData`/`ArchiveFieldData`
+  （`employee_id`→`member_id`、`stat_date`→`start_time`/`end_time`、`field_id`→`code`）；
+  `UploadReportResponse { success, inserted_count, ... }` → `{ invalid_code, invalid_member_id }`。
+
 - **core：删除 `auth::app_ticket::apply_app_ticket`（ADR-0002）**：
   全仓零外部调用者（仅 core 内 `http.rs::do_request` 触发 app_ticket 恢复时调用），
   却以 `pub` 暴露在公开 API 表面。鉴权 concern 浓缩进 `auth/` 时一并收口：恢复逻辑
