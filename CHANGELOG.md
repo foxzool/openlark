@@ -147,6 +147,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **process：退役 OpenSpec 工作流**：移除 `openspec/` 目录（24 capability specs + 39 archived changes + `config.yaml`，359 文件 / 15.5k 行）。审计确认 23/24 specs 的不变式已被 CI 机械化强制（ci.yml：cargo doc / clippy×3 / machete / token-contract / api-contracts / reqwest-boundary / dead-code-allows / missing-docs；`service-registry-validation.yml`；`workspace.lints`）或属已完成的历史记录（git + CHANGELOG 保留）；唯一无 CI 门禁的 `workspace-dependency-policy` 迁移为 AGENTS.md NOTES 一条 bullet；stale 的 `no-unused-deprecated`（断言 auth 保留已删的 deprecated 方法）直接删。OpenSpec 无 CI 强制、近期工作（#504–#507 / #513 / #500）已改走直 PR + CHANGELOG，保留只会持续漂移（如 `dead-code-lint-hygiene` stale scenario、AGENTS.md 断链）。**非破坏**：纯 process/文档，无 Rust 公开 API 改动。
+
 - **hr：域无关 HR 原语提升到 crate root（#473）**：
   `I18nText` / `FlexibleText` / `IdNameObject` / `CodeNameObject` /
   `PaginatedResponse<T>` / `CatalogItem` / `LocalizedLabel` 这 7 个域无关原语
