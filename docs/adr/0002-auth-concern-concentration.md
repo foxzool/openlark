@@ -44,7 +44,7 @@
 
 | # | 子决策 | 结论 |
 |---|--------|------|
-| 1 | resend 出口 | **UnifiedRequestBuilder bootstrap 旁路**——resend 作为 None-token bootstrap 经标准构建路径（header/tracing/timeout 都有），但**不经** validate/determine/recovery → 构造上无递归，关掉 ad-hoc reqwest 出口 |
+| 1 | resend 出口 | **UnifiedRequestBuilder bootstrap 旁路**——resend 作为 None-token bootstrap 经标准构建路径（header/timeout 都有；tracing span 当前仍在 Transport 层、bootstrap 旁路不经 `info_span`），但**不经** validate/determine/recovery → 构造上无递归，关掉 ad-hoc reqwest 出口。将来给请求链路加 tracing/retry 时 resend 自动覆盖（见理由 2） |
 | 2 | 恢复触发边界 | **α-delegate**——`do_request` 调 `auth::recover_app_ticket_if_needed(&resp, config)`；条件（code==10012）+ 动作 + 出口全在 auth，Transport 按名委托 |
 | 3 | `validate()` 拆分 | auth 授权三块（`L336-366`）→ `auth/policy.rs`；Config 校验（`app_id`/`app_secret`，`L325-334`）+ 禁用 header 校验（`L368-379`）**留 Transport**（它们是 config/request 卫生，非鉴权） |
 | 4 | 获取环节归位 | `AuthHandler` 从 `request_execution/auth_handler.rs` 搬到 `auth/acquisition.rs` |

@@ -170,6 +170,7 @@ pub(crate) fn validate_authorization(
 }
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
     use crate::constants::AppType;
@@ -240,5 +241,284 @@ mod tests {
             ..Default::default()
         };
         assert!(validate_authorization(&cfg, &option, AccessTokenType::App).is_ok());
+    }
+
+    // --- determine_token_type / validate_token_type 测试（从 http.rs 迁入；ADR-0002「测试跟着搬」）---
+
+    #[test]
+    fn test_validate_token_type_empty_list_no_panic() {
+        let empty_types: Vec<AccessTokenType> = vec![];
+        let option = RequestOption::default();
+
+        // 空列表不应 panic，且不做额外校验。
+        let result = validate_token_type(&empty_types, &option);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_token_type_non_empty_list_returns_ok() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let option = RequestOption::default();
+
+        // 列表非空时应进行校验（当前仅对 Tenant/App 的 token 冲突做约束）
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_token_type_tenant_with_user_token() {
+        let types = vec![AccessTokenType::Tenant];
+        let option = RequestOption {
+            user_access_token: Some("user_token".to_string()),
+            ..Default::default()
+        };
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_token_type_app_with_tenant_token() {
+        let types = vec![AccessTokenType::App];
+        let option = RequestOption {
+            tenant_access_token: Some("tenant_token".to_string()),
+            ..Default::default()
+        };
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_token_type_valid_combinations() {
+        let types = vec![AccessTokenType::User];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_determine_token_type_no_cache_user() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::User);
+    }
+
+    #[test]
+    fn test_determine_token_type_no_cache_tenant() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let option = RequestOption {
+            tenant_access_token: Some("tenant_token".to_string()),
+            ..Default::default()
+        };
+
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_no_cache_app() {
+        let types = vec![AccessTokenType::App, AccessTokenType::Tenant];
+        let option = RequestOption {
+            app_access_token: Some("app_token".to_string()),
+            ..Default::default()
+        };
+
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::App);
+    }
+
+    #[test]
+    fn test_determine_token_type_no_cache_none() {
+        let types = vec![AccessTokenType::None];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::None);
+    }
+
+    #[test]
+    fn test_determine_token_type_with_cache_defaults_to_tenant() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_with_cache_tenant_key() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let mut option = RequestOption::default();
+        option.tenant_key = Some("tenant_key".to_string());
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_with_cache_user_access_token() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::User);
+    }
+
+    #[test]
+    fn test_determine_token_type_first_is_tenant() {
+        let types = vec![AccessTokenType::Tenant, AccessTokenType::User];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_no_tenant_in_list() {
+        let types = vec![AccessTokenType::User, AccessTokenType::App];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        // Should use first type when no Tenant type is available
+        assert_eq!(token_type, AccessTokenType::User);
+    }
+
+    #[test]
+    fn test_validate_token_type_edge_case_single_element() {
+        let types = vec![AccessTokenType::None];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_token_type_non_empty_list_ok() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let option = RequestOption::default();
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_determine_token_type_priority_with_multiple_tokens() {
+        let types = vec![
+            AccessTokenType::User,
+            AccessTokenType::Tenant,
+            AccessTokenType::App,
+        ];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+        option.tenant_key = Some("tenant_key".to_string());
+
+        // User token should take priority when present
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::User);
+    }
+
+    #[test]
+    fn test_determine_token_type_tenant_key_without_tenant_type() {
+        let types = vec![AccessTokenType::User, AccessTokenType::App];
+        let mut option = RequestOption::default();
+        option.tenant_key = Some("tenant_key".to_string());
+
+        // Should default to first type when Tenant not available
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::User);
+    }
+
+    #[test]
+    fn test_determine_token_type_user_token_without_user_type() {
+        let types = vec![AccessTokenType::Tenant, AccessTokenType::App];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string());
+
+        // Should use Tenant when User type not available
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_cache_disabled_fallback_priority() {
+        let types = vec![
+            AccessTokenType::User,
+            AccessTokenType::Tenant,
+            AccessTokenType::App,
+        ];
+        let mut option = RequestOption::default();
+        option.tenant_access_token = Some("tenant_token".to_string());
+        option.app_access_token = Some("app_token".to_string());
+
+        // Tenant should be chosen over App when cache disabled
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::Tenant);
+    }
+
+    #[test]
+    fn test_determine_token_type_cache_disabled_all_empty() {
+        let types = vec![AccessTokenType::User, AccessTokenType::Tenant];
+        let option = RequestOption::default();
+
+        // Should return None when no tokens provided and cache disabled
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::None);
+    }
+
+    #[test]
+    fn test_determine_token_type_empty_types_list_no_panic() {
+        let types: Vec<AccessTokenType> = vec![];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::None);
+    }
+
+    #[test]
+    fn test_determine_token_type_empty_types_list_no_cache() {
+        // When cache is disabled, empty types list works fine
+        let types: Vec<AccessTokenType> = vec![];
+        let option = RequestOption::default();
+
+        // This works because cache-disabled path returns None without accessing types[0]
+        let token_type = determine_token_type(&types, &option, false);
+        assert_eq!(token_type, AccessTokenType::None);
+    }
+
+    #[test]
+    fn test_determine_token_type_single_app_type() {
+        let types = vec![AccessTokenType::App];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::App);
+    }
+
+    #[test]
+    fn test_determine_token_type_single_none_type() {
+        let types = vec![AccessTokenType::None];
+        let option = RequestOption::default();
+
+        let token_type = determine_token_type(&types, &option, true);
+        assert_eq!(token_type, AccessTokenType::None);
+    }
+
+    #[test]
+    fn test_validate_token_type_with_mismatched_tokens_simulation() {
+        // types 与 option 中显式 token 类型不匹配时，应返回错误（避免静默放过错误 token）。
+        let types = vec![AccessTokenType::Tenant];
+        let mut option = RequestOption::default();
+        option.user_access_token = Some("user_token".to_string()); // Mismatch!
+
+        let result = validate_token_type(&types, &option);
+        assert!(result.is_err());
     }
 }

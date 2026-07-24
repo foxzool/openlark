@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   全仓零外部调用者（仅 core 内 `http.rs::do_request` 触发 app_ticket 恢复时调用），
   却以 `pub` 暴露在公开 API 表面。鉴权 concern 浓缩进 `auth/` 时一并收口：恢复逻辑
   改为 `auth::app_ticket::recover_app_ticket_if_needed`（条件 `code==10012` + 动作）
-  + `resend_app_ticket`（`UnifiedRequestBuilder` bootstrap 旁路），两者均 `pub(crate)`。
+  + `resend_app_ticket`（`UnifiedRequestBuilder` bootstrap 旁路），两者均 `pub(crate)`；
+  `pub mod app_ticket` 一并收紧为 `pub(crate)`（删 `apply_app_ticket` 后模块无 pub 项，
+  mod 路径不再对外可达，零实际影响）。
   **行为改进**：resend 不再走绕过 `UnifiedRequestBuilder` 的 ad-hoc `config.http_client().post()`
   路径，拿到标准 header/timeout；`Transport::do_request` 按名委托恢复、不再编码业务错误码。
   迁移：无外部消费者；曾直接调 `apply_app_ticket(config)` 的代码改由 `Transport::request`
