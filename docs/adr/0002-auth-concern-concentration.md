@@ -4,7 +4,7 @@
 - **日期**: 2026-07-24
 - **决策者**: 架构评审 + 用户 grilling 共识
 - **来源**: 架构评审候选 #1（auth 策略泄漏到 Transport seam 之外）
-- **breaking 窗口**: 无。纯 `openlark-core` 内部移动，零公开 API 破坏。
+- **breaking 窗口**: 目标 0.19（一项）。`auth::app_ticket::apply_app_ticket`（`pub`，全仓零外部消费者——仅 core 内 `do_request` 调用）随恢复收口删除；新 `recover_app_ticket_if_needed` / `resend_app_ticket` 为 `pub(crate)`。余皆 `openlark-core` 内部移动（`AuthHandler` + 决策函数原为 `pub(crate)`，搬迁不改可见性），无其他公开 API 影响。
 
 ## 背景
 
@@ -103,4 +103,21 @@
 
 ## 执行记录
 
-_（待实施后填写：各阶段 PR / commit、CI 三元组 + doc + machete + msrv 验证结果）_
+ADR-0002 各阶段已落地（branch `refactor/0002-auth-concern-concentration`，TDD）：
+
+| 阶段 | commit | 产出 |
+|------|--------|------|
+| A | `a22fca034` | `determine_token_type` / `validate_token_type` + `validate_authorization` → `auth/policy.rs`；`validate()` 瘦身委托 |
+| B | `38af4a525` | `AuthHandler` → `auth/acquisition.rs`（`pub(crate)`，零公开 API 影响） |
+| C+D | `7ef45c983` | `recover_app_ticket_if_needed` + `resend_app_ticket`（`UnifiedRequestBuilder` bootstrap）；`do_request` α-delegate；删 `apply_app_ticket`（red→green TDD） |
+| E | 本提交 | `ARCHITECTURE.md` 「Transport HTTP 边界」措辞修正 + CHANGELOG breaking 条目 |
+
+验证（本地全绿）：
+- `cargo test --workspace --all-features`（407 core lib + 32 contract + 全仓千余测试，0 failed）；
+- `cargo fmt --check`（workspace）；
+- `cargo clippy --workspace --all-targets --all-features -- -Dwarnings` 与 `--no-default-features` 两模式均 clean；
+- `RUSTDOCFLAGS="-D rustdoc::broken_intra_doc_links" cargo doc --workspace --all-features`（无断链，含新增 `[crate::auth::AuthHandler]` 链接）；
+- `cargo machete`（无遗留 unused dep）。
+- msrv 未单独跑：无依赖变更、lockfile 未动，不触发 msrv 门控。
+
+**Breaking（目标 0.19）**：`auth::app_ticket::apply_app_ticket`（`pub`，零外部消费者）删除；新恢复函数 `pub(crate)`。余皆 `openlark-core` 内部移动。

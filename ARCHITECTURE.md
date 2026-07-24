@@ -109,6 +109,8 @@
 > 架构约定：`openlark_core::http::Transport<T>` 是 OpenLark 的**唯一 HTTP 出口**。
 > 业务 crate 经 `Transport` 抽象发请求，**不在各自 `Cargo.toml` 声明 reqwest 依赖、不在源码使用 reqwest 类型**。
 > 此边界由 `tools/check_reqwest_boundary.sh` 机器检验（`just reqwest-boundary` / CI lint job），防止分层泄漏复发（见 issue #270）。
+>
+> **作用域澄清**：守卫只检**业务 crate** 的 `Cargo.toml`（`openlark-core` 在白名单——它是 Transport 抽象本体，合法碰 reqwest）。「唯一出口」对业务 crate 由 `Transport::request` 收口；core 内部的副作用请求（如 app_ticket resend）经 **ADR-0002** 收口走 `UnifiedRequestBuilder` bootstrap 旁路（`auth::app_ticket::resend_app_ticket`），不再有 ad-hoc `config.http_client().post()` 路径。
 
 **调用路径**（仅 core 碰 reqwest）：
 
