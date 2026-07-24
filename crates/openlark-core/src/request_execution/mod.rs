@@ -1,17 +1,16 @@
 //! 深 request-execution module（#422）：
 //! 在 `Transport::request` 背后协调 token、构造、认证、multipart 与响应解码。
-//! 仅 `AuthHandler`（生产/测试 TokenProvider 双 adapter）与 multipart 组合规则保留为子模块。
+//! 认证获取委托 [`crate::auth::AuthHandler`]（ADR-0002 迁出本模块）；multipart 组合规则保留为子模块。
 
-mod auth_handler;
 mod decode;
 mod multipart_builder;
 
-pub use auth_handler::AuthHandler;
 pub use decode::ResponseDecoder;
 pub use multipart_builder::MultipartBuilder;
 
 use crate::{
     api::{ApiRequest, RequestData},
+    auth::AuthHandler,
     config::Config,
     constants::{AccessTokenType, CUSTOM_REQUEST_ID, USER_AGENT_HEADER},
     error::CoreError,
