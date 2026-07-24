@@ -157,6 +157,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **迁移**：`use ...SecurityErrorBuilder` / `map_feishu_security_error(...)` 的代码需
     改用 core 通用构造器（`openlark_core::error::validation_error` 等）；仓内零引用。
 
+- **client：ws 端点发现收口到 core `Transport`，`WsClientError` variant 收并（ADR-0003）**：
+  ws_client 建连前的端点发现 POST 此前手搓一条绕过 `Transport` 的 reqwest 出口（自建
+  client + 手解析 code/msg/data 信封 + 自带错误映射），是 ADR-0002 刚从 auth 拔掉的
+  `fetch_token_via_http` 同形残留。收口到 `Transport::request_typed`（None-token
+  bootstrap）：自动获得 tracing span / feishu_code 映射 / request_id；显式声明 `[None]`
+  token 类型，避免默认路径拉取并附加多余 access token。WebSocket 升级（tungstenite）
+  作为合理第二传输，保持独立。
+  - **`WsClientError` 变更**：移除 `ServerError{code,message}` / `ClientError{code,message}`
+    两 variant（端点发现独占、零外部消费者）；`RequestError` 负载由 `reqwest::Error`
+    换为 `CoreError`（透传 request_id，旧 variant 不带）。`UnexpectedResponse` 与全部
+    WS 会话 variant（`ConnectionClosed` / `WsError` / `HandlerPanicked` / `BacklogFull` /
+    `InvalidStateTransition` / `ProstError` / `MalformedControlFrame` / `InvalidFrameMethod`）不动。
+  - **删除**：端点发现的私有信封类型、`map_ws_api_error`（magic `1000040343` 拆分）、
+    `extract_endpoint_response`（被 `Transport` 的 `RawResponse` + `Response::decode` 吸收）；
+    openlark-client 不再直接依赖 `reqwest`（`cargo machete` 清点；仍作 core 传递依赖存在，
+    `Cargo.lock` 与 msrv pinned lockfile 已同步）。
+  - **行为改进**：端点业务错误（code!=0）现带 `request_id`（从 `X-Tt-Logid` 头提取）；
+    端点 POST 与所有 Transport 响应一致地受 `Config::max_response_size` 守护（旧手搓路径
+    无此守护；默认 100MB 对真实用户无影响，仅影响把上限设到小于端点 bootstrap 响应 ~200
+    字节的极端值）。`full_session_oversized_frame_is_rejected` 的测试上限从 64 抬到 512
+    （须大于端点 bootstrap 响应、仍远小于 4096 测试帧，测试意图不变）。
+  - **不走废弃周期**（ADR-0001 / #504 先例）：被删 variant 零外部消费者 + 未发布 0.19 窗口。
+  - **迁移**：`match` `WsClientError::ServerError` / `ClientError` /
+    `RequestError(reqwest::Error)` 的代码改为 `RequestError(CoreError)`（仓内零引用）。
+
 ### Changed
 
 - **process：退役 OpenSpec 工作流**：移除 `openspec/` 目录（24 capability specs + 39 archived changes + `config.yaml`，359 文件 / 15.5k 行）。审计确认 23/24 specs 的不变式已被 CI 机械化强制（ci.yml：cargo doc / clippy×3 / machete / token-contract / api-contracts / reqwest-boundary / dead-code-allows / missing-docs；`service-registry-validation.yml`；`workspace.lints`）或属已完成的历史记录（git + CHANGELOG 保留）；唯一无 CI 门禁的 `workspace-dependency-policy` 迁移为 AGENTS.md NOTES 一条 bullet；stale 的 `no-unused-deprecated`（断言 auth 保留已删的 deprecated 方法）直接删。OpenSpec 无 CI 强制、近期工作（#504–#507 / #513 / #500）已改走直 PR + CHANGELOG，保留只会持续漂移（如 `dead-code-lint-hygiene` stale scenario、AGENTS.md 断链）。**非破坏**：纯 process/文档，无 Rust 公开 API 改动。

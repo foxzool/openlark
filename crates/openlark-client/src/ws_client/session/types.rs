@@ -15,28 +15,12 @@ pub enum WsClientError {
     #[error("unexpected response")]
     /// 返回体缺少预期字段。
     UnexpectedResponse,
-    #[error("Request error: {0}")]
-    /// 端点查询 HTTP 请求失败。
-    RequestError(#[from] reqwest::Error),
+    #[error("ws endpoint request error: {0}")]
+    /// 端点发现经 core Transport 返回的错误（传输失败或飞书业务码），透传 CoreError（含 request_id）。
+    RequestError(#[from] openlark_core::error::CoreError),
     #[error("Url parse error: {0}")]
     /// WebSocket 地址解析失败。
     UrlParseError(#[from] url::ParseError),
-    #[error("Server error: {code}, {message}")]
-    /// 服务端返回业务错误。
-    ServerError {
-        /// 服务端错误码。
-        code: i32,
-        /// 服务端错误描述。
-        message: String,
-    },
-    #[error("Client error: {code}, {message}")]
-    /// 客户端侧参数或状态错误。
-    ClientError {
-        /// 客户端错误码。
-        code: i32,
-        /// 客户端错误描述。
-        message: String,
-    },
     #[error("connection closed")]
     /// 连接被关闭。
     ConnectionClosed {

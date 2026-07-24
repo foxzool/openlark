@@ -1641,7 +1641,6 @@ dependencies = [
  "openlark-user",
  "openlark-workflow",
  "prost 0.13.5",
- "reqwest",
  "rstest",
  "serde",
  "serde_json",

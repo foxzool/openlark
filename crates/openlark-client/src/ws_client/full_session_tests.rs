@@ -669,8 +669,9 @@ async fn full_session_invalid_frame_method_is_session_error() {
 /// 超大帧受 `max_response_size` 限制，会话以传输错误结束（US 10）。
 #[tokio::test]
 async fn full_session_oversized_frame_is_rejected() {
-    // 极小上限，使 peer 发送的大 Binary 触发 tungstenite max frame/message size
-    const TINY_MAX: usize = 64;
+    // 上限须大于端点发现 bootstrap 响应（~200 字节：ADR-0003 起端点 POST 经 Transport，
+    // 其响应与所有 Transport 响应一样受 max_response_size 守护），又远小于下方 4096 测试帧。
+    const TINY_MAX: usize = 512;
     let (open_result, ()) = run_session_with_config(
         LocalSessionHarness::start().await,
         EventDispatcherHandler::builder().build(),
@@ -1398,4 +1399,80 @@ fn local_endpoint_client_config_shape_matches_production() {
         br#"{"ReconnectCount":1,"ReconnectInterval":1,"ReconnectNonce":0,"PingInterval":3600}"#;
     let cfg: ClientConfig = serde_json::from_slice(raw).expect("ClientConfig shape");
     assert_eq!(cfg.ping_interval, 3600);
+}
+
+// === 端点发现收口到 Transport（ADR-0003）：open-seam 行为测试 ===
+//
+// 端点错误在 WS 连接前发生，故这些用例不启动 WS peer，直接断言 `open()` 返回值。
+
+/// 端点发现错误用 config：复用 LocalSessionHarness 的构建规则，但不绑 WS listener。
+fn endpoint_only_config(mock_server: &MockServer) -> Config {
+    Config::builder()
+        .app_id("test_app_id")
+        .app_secret("test_app_secret")
+        .base_url(mock_server.uri())
+        .allow_custom_base_url(true)
+        .req_timeout(Duration::from_secs(5))
+        .build()
+}
+
+/// code!=0 的飞书业务错误经 Transport 解码为 `CoreError::Api`，`?` 落入
+/// `WsClientError::RequestError`；从 `X-Tt-Logid` 头提取的 request_id 必须保住。
+#[tokio::test]
+async fn open_endpoint_business_error_wraps_core_error_with_request_id() {
+    let mock_server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/callback/ws/endpoint"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("X-Tt-Logid", "rid-524")
+                .set_body_json(json!({
+                    "code": 1000040343,
+                    "msg": "no available endpoint",
+                    "data": null,
+                })),
+        )
+        .mount(&mock_server)
+        .await;
+
+    let config = Arc::new(endpoint_only_config(&mock_server));
+    let result = LarkWsClient::open(config, EventDispatcherHandler::builder().build()).await;
+
+    match result {
+        Err(WsClientError::RequestError(core)) => {
+            assert_eq!(
+                core.ctx().request_id(),
+                Some("rid-524"),
+                "端点业务错误必须保住从 X-Tt-Logid 提取的 request_id"
+            );
+            assert!(
+                matches!(core, openlark_core::error::CoreError::Api(_)),
+                "code!=0 应解码为 CoreError::Api，got: {core:?}"
+            );
+        }
+        other => panic!("expected RequestError(CoreError::Api), got: {other:?}"),
+    }
+}
+
+/// code:0 但 data 缺 `URL` 字段：`EndPointResponse.url = None` → `open_with` 报 `UnexpectedResponse`。
+#[tokio::test]
+async fn open_endpoint_success_without_url_is_unexpected_response() {
+    let mock_server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/callback/ws/endpoint"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code": 0,
+            "msg": "success",
+            "data": { "ClientConfig": { "PingInterval": 3600 } },
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let config = Arc::new(endpoint_only_config(&mock_server));
+    let result = LarkWsClient::open(config, EventDispatcherHandler::builder().build()).await;
+
+    match result {
+        Err(WsClientError::UnexpectedResponse) => {}
+        other => panic!("expected UnexpectedResponse for missing URL, got: {other:?}"),
+    }
 }

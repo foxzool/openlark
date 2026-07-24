@@ -5,8 +5,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use log::{debug, info};
-use reqwest::Client;
+use log::info;
+use openlark_core::api::{ApiRequest, ApiResponseTrait};
+use openlark_core::constants::AccessTokenType;
+use openlark_core::http::Transport;
 use serde::Deserialize;
 use serde_json::json;
 use tokio_tungstenite::connect_async_with_config;
@@ -14,41 +16,6 @@ use url::Url;
 
 use super::dispatcher::EventDispatcherHandler;
 use super::session::{Session, SessionOptions, WsClientError, WsClientResult};
-
-/// WebSocket endpoint API 专用响应结构（顶层 code/msg/data）
-#[derive(Debug, Deserialize)]
-struct WsEndpointApiResponse<T> {
-    #[serde(default)]
-    code: i32,
-    #[serde(default)]
-    msg: String,
-    data: Option<T>,
-}
-
-fn map_ws_api_error(code: i32, message: String) -> WsClientError {
-    match code {
-        1 | 1000040343 => WsClientError::ServerError { code, message },
-        _ => WsClientError::ClientError { code, message },
-    }
-}
-
-fn extract_endpoint_response(
-    resp: WsEndpointApiResponse<EndPointResponse>,
-) -> WsClientResult<EndPointResponse> {
-    if resp.code != 0 {
-        return Err(map_ws_api_error(resp.code, resp.msg));
-    }
-
-    let end_point = resp.data.ok_or(WsClientError::UnexpectedResponse)?;
-    if end_point.url.as_ref().is_none_or(|url| url.is_empty()) {
-        return Err(WsClientError::ServerError {
-            code: 500,
-            message: "No available endpoint".to_string(),
-        });
-    }
-
-    Ok(end_point)
-}
 
 const END_POINT_URL: &str = "/callback/ws/endpoint";
 
@@ -107,35 +74,25 @@ impl LarkWsClient {
             .await
     }
 
-    /// 获取连接配置
+    /// 获取连接配置：经 core `Transport` 发起端点发现 POST（None-token bootstrap，ADR-0003）。
+    ///
+    /// 收口 ws_client 唯一的 HTTP 出口：自动获得 tracing span / feishu_code 映射 / request_id。
+    /// 声明 `[None]` token 类型，避免默认路径拉取并附加多余 access token。缺字段（URL /
+    /// client_config / service_id）由 `open_with` 统一报 `UnexpectedResponse`；code!=0 的飞书
+    /// 业务错误经 `?` 落入 `WsClientError::RequestError(CoreError)`，透传 request_id。
     async fn get_conn_url(
         config: &Arc<openlark_core::config::Config>,
     ) -> WsClientResult<EndPointResponse> {
-        let body = json!({
-            "AppID": config.app_id(),
-            "AppSecret": config.app_secret()
-        });
-
-        let mut http_builder = Client::builder();
-        if let Some(timeout) = config.req_timeout() {
-            http_builder = http_builder.timeout(timeout);
-        }
-        let http_client = http_builder.build()?;
-
-        let base_url = config.base_url().trim_end_matches('/');
-        let req = http_client
-            .post(format!("{base_url}{END_POINT_URL}"))
+        let req = ApiRequest::<()>::post(END_POINT_URL)
+            .with_supported_access_token_types(vec![AccessTokenType::None])
             .header("locale", "zh")
-            .json(&body)
-            .send()
-            .await?;
-
-        let resp = req
-            .json::<WsEndpointApiResponse<EndPointResponse>>()
-            .await?;
-        debug!("{:?}", resp.data);
-
-        extract_endpoint_response(resp)
+            .body(json!({
+                "AppID": config.app_id(),
+                "AppSecret": config.app_secret(),
+            }));
+        let end_point =
+            Transport::<EndPointResponse>::request_typed(req, config, None, "ws endpoint").await?;
+        Ok(end_point)
     }
 }
 
@@ -148,6 +105,9 @@ pub(crate) struct EndPointResponse {
     pub client_config: Option<ClientConfig>,
 }
 
+// 标准 code/msg/data 信封的 data 字段即本类型；默认 Data 解码路径（ADR-0003）。
+impl ApiResponseTrait for EndPointResponse {}
+
 /// 服务端下发的 WebSocket 客户端配置（crate 内部）。
 ///
 /// 会话仅消费 `PingInterval`。endpoint/pong JSON 中可能还带 `Reconnect*` 字段，
@@ -156,52 +116,4 @@ pub(crate) struct EndPointResponse {
 pub(crate) struct ClientConfig {
     #[serde(rename = "PingInterval")]
     pub(crate) ping_interval: i32,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        WsClientError, WsEndpointApiResponse, extract_endpoint_response, map_ws_api_error,
-    };
-
-    #[test]
-    fn test_ws_endpoint_error_response_not_treated_as_success() {
-        let payload = r#"{"code":400,"msg":"Bad Request"}"#;
-        let parsed = serde_json::from_str::<WsEndpointApiResponse<serde_json::Value>>(payload)
-            .expect("endpoint response should deserialize");
-
-        assert_eq!(parsed.code, 400);
-        assert_eq!(parsed.msg, "Bad Request");
-        assert!(parsed.data.is_none());
-
-        let mapped = map_ws_api_error(parsed.code, parsed.msg);
-        assert!(matches!(
-            mapped,
-            WsClientError::ClientError { code: 400, .. }
-        ));
-    }
-
-    #[test]
-    fn test_ws_endpoint_success_without_data_returns_unexpected_response() {
-        let resp = WsEndpointApiResponse::<super::EndPointResponse> {
-            code: 0,
-            msg: "success".to_string(),
-            data: None,
-        };
-
-        let result = extract_endpoint_response(resp);
-        assert!(matches!(result, Err(WsClientError::UnexpectedResponse)));
-    }
-
-    #[test]
-    fn test_ws_endpoint_server_error_mapping_is_preserved() {
-        let mapped = map_ws_api_error(1000040343, "No available endpoint".to_string());
-        assert!(matches!(
-            mapped,
-            WsClientError::ServerError {
-                code: 1000040343,
-                ..
-            }
-        ));
-    }
 }

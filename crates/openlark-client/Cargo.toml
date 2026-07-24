@@ -29,7 +29,6 @@ futures-util = { workspace = true, optional = true }
 lark-websocket-protobuf = { workspace = true, optional = true }
 url = { workspace = true }
 prost = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 # P0 Phase 1 业务模块依赖
@@ -79,7 +78,7 @@ analytics = ["auth", "dep:openlark-analytics"]
 user = ["auth", "dep:openlark-user"]
 
 # === 技术特性 ===
-websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "prost", "reqwest", "log"]
+websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "prost", "log"]
 
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
