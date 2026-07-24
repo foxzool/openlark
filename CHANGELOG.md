@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ProcessResponse { success, approval_instance_id }`
   → `ProcessResponse { approval_info: ApprovalInfo { approval_id, approval_type, status } }`。
 
+- **hr/attendance：`archive_rule/del_report` 请求/响应字段对齐飞书官网 schema（#528，parent #526）**：
+  原请求体发 `archive_rule_id`/`employee_ids`/`stat_dates`、响应 `success`/`deleted_count`，
+  与飞书官网当前 schema 不符，真实调用被拒（缺必填 `month`/`operator_id`）。本地 wiremock 测试
+  因 mock 抄自错误实现而全绿，掩盖了 drift。对齐官网（详情接口 `apiSchema`）：请求体必填
+  `month`/`operator_id`/`archive_rule_id`（可选 `user_ids`），响应 `data` 为空对象
+  （删臆测的 `success`/`deleted_count`）。
+  **迁移**：`DelReportRequest::new(config, archive_rule_id, employee_ids, stat_dates)`
+  → `DelReportRequest::new(config, month, operator_id, archive_rule_id).user_ids(..)`；
+  `DelReportResponse { success, deleted_count }` → `DelReportResponse {}`（官网 `data` 为空对象）。
+
 - **core：删除 `auth::app_ticket::apply_app_ticket`（ADR-0002）**：
   全仓零外部调用者（仅 core 内 `http.rs::do_request` 触发 app_ticket 恢复时调用），
   却以 `pub` 暴露在公开 API 表面。鉴权 concern 浓缩进 `auth/` 时一并收口：恢复逻辑
