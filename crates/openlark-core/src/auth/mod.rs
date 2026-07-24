@@ -5,6 +5,7 @@
 
 pub(crate) mod acquisition;
 pub mod app_ticket;
+pub(crate) mod policy;
 pub mod token_provider;
 
 // Re-export commonly used types

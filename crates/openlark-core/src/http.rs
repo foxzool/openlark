@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::marker::PhantomData;
 
 use reqwest::RequestBuilder;
 use tracing::debug;
@@ -73,9 +73,12 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
             }
 
             let result: Result<_, _> = async {
-                validate_token_type(&token_types, &option)?;
-                let access_token_type =
-                    determine_token_type(&token_types, &option, config.enable_token_cache);
+                crate::auth::policy::validate_token_type(&token_types, &option)?;
+                let access_token_type = crate::auth::policy::determine_token_type(
+                    &token_types,
+                    &option,
+                    config.enable_token_cache,
+                );
                 validate(config, &option, access_token_type)?;
 
                 Self::do_request(req, access_token_type, config, option).await
@@ -207,116 +210,6 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
     }
 }
 
-fn validate_token_type(
-    access_token_types: &[AccessTokenType],
-    option: &RequestOption,
-) -> Result<(), CoreError> {
-    // 未指定可用 token 类型时，不做额外校验。
-    // 旧实现误将“非空”作为提前返回条件，并在空列表时访问 [0] 导致 panic。
-    if access_token_types.is_empty() {
-        return Ok(());
-    }
-
-    let access_token_type = access_token_types[0];
-
-    if access_token_type == AccessTokenType::Tenant && option.user_access_token.is_some() {
-        return Err(crate::error::validation_error(
-            "access_token_type",
-            "tenant token type not match user access token",
-        ));
-    }
-
-    if access_token_type == AccessTokenType::App && option.tenant_access_token.is_some() {
-        return Err(crate::error::validation_error(
-            "access_token_type",
-            "user token type not match tenant access token",
-        ));
-    }
-
-    Ok(())
-}
-
-fn determine_token_type(
-    access_token_types: &[AccessTokenType],
-    option: &RequestOption,
-    enable_token_cache: bool,
-) -> AccessTokenType {
-    if !enable_token_cache {
-        if !access_token_types.is_empty() {
-            for access_token_type in access_token_types.iter() {
-                match access_token_type {
-                    AccessTokenType::User => {
-                        if option.user_access_token.is_some() {
-                            return AccessTokenType::User;
-                        }
-                    }
-                    AccessTokenType::Tenant => {
-                        if option.tenant_access_token.is_some() || option.tenant_key.is_some() {
-                            return AccessTokenType::Tenant;
-                        }
-                    }
-                    AccessTokenType::App => {
-                        if option.app_access_token.is_some() {
-                            return AccessTokenType::App;
-                        }
-                    }
-                    AccessTokenType::None => {}
-                }
-            }
-
-            return AccessTokenType::None;
-        }
-
-        if option.user_access_token.is_some() {
-            return AccessTokenType::User;
-        }
-        if option.tenant_access_token.is_some() {
-            return AccessTokenType::Tenant;
-        }
-        if option.app_access_token.is_some() {
-            return AccessTokenType::App;
-        }
-
-        return AccessTokenType::None;
-    }
-
-    // 缓存开启但未指定 token 类型时，退回到“按显式传入的 token”推断，避免空列表 panic。
-    if access_token_types.is_empty() {
-        if option.user_access_token.is_some() {
-            return AccessTokenType::User;
-        }
-        if option.tenant_access_token.is_some() || option.tenant_key.is_some() {
-            return AccessTokenType::Tenant;
-        }
-        if option.app_access_token.is_some() {
-            return AccessTokenType::App;
-        }
-        return AccessTokenType::None;
-    }
-
-    let mut accessible_token_type_set: HashSet<AccessTokenType> = HashSet::new();
-    let mut access_token_type = access_token_types[0];
-
-    for t in access_token_types {
-        if *t == AccessTokenType::Tenant {
-            access_token_type = *t; // 默认值
-        }
-        accessible_token_type_set.insert(*t);
-    }
-
-    if option.tenant_key.is_some() && accessible_token_type_set.contains(&AccessTokenType::Tenant) {
-        access_token_type = AccessTokenType::Tenant;
-    }
-
-    if option.user_access_token.is_some()
-        && accessible_token_type_set.contains(&AccessTokenType::User)
-    {
-        access_token_type = AccessTokenType::User;
-    }
-
-    access_token_type
-}
-
 fn validate(
     config: &Config,
     option: &RequestOption,
@@ -333,37 +226,7 @@ fn validate(
         ));
     }
 
-    if !config.enable_token_cache {
-        if access_token_type == AccessTokenType::None {
-            return Ok(());
-        }
-        if option.user_access_token.is_none()
-            && option.tenant_access_token.is_none()
-            && option.app_access_token.is_none()
-        {
-            return Err(crate::error::validation_error(
-                "access_token",
-                "accessToken is empty",
-            ));
-        }
-    }
-
-    if config.app_type == AppType::Marketplace
-        && access_token_type == AccessTokenType::Tenant
-        && option.tenant_key.is_none()
-    {
-        return Err(crate::error::validation_error(
-            "access_token",
-            "accessToken is empty",
-        ));
-    }
-
-    if access_token_type == AccessTokenType::User && option.user_access_token.is_none() {
-        return Err(crate::error::validation_error(
-            "user_access_token",
-            "user access token is empty",
-        ));
-    }
+    crate::auth::policy::validate_authorization(config, option, access_token_type)?;
 
     if option.header.contains_key(HTTP_HEADER_KEY_REQUEST_ID) {
         return Err(crate::error::validation_error(
@@ -387,9 +250,10 @@ mod test {
     use std::collections::HashMap;
 
     use crate::{
+        auth::policy::{determine_token_type, validate_token_type},
         config::Config,
         constants::{AccessTokenType, AppType, HTTP_HEADER_KEY_REQUEST_ID, HTTP_HEADER_REQUEST_ID},
-        http::{determine_token_type, validate, validate_token_type},
+        http::validate,
         req_option::RequestOption,
     };
 
