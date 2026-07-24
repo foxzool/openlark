@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Breaking — 目标 0.19)
 
+- **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
+  原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
+  `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝
+  （必填字段缺失 / 字段名错误）。本地 wiremock 测试因 mock 抄自错误实现而全绿，掩盖了 drift。
+  对齐官网（详情接口 `apiSchema`）：请求体必填 `approval_id`/`approval_type`/`status`
+  （删臆测的 `comment`），响应改嵌套 `approval_info: { approval_id, approval_type, status }`。
+  **迁移**：`ProcessRequest::new(config, approval_instance_id, result)` + `.comment(..)`
+  → `ProcessRequest::new(config, approval_id, approval_type, status)`；
+  `ProcessResponse { success, approval_instance_id }`
+  → `ProcessResponse { approval_info: ApprovalInfo { approval_id, approval_type, status } }`。
+
 - **core：删除 `auth::app_ticket::apply_app_ticket`（ADR-0002）**：
   全仓零外部调用者（仅 core 内 `http.rs::do_request` 触发 app_ticket 恢复时调用），
   却以 `pub` 暴露在公开 API 表面。鉴权 concern 浓缩进 `auth/` 时一并收口：恢复逻辑

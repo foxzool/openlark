@@ -203,9 +203,9 @@ mod builder_tests {
         approval_info::process::ProcessRequest::new(
             test_config("https://open.feishu.cn"),
             "ins_1".to_string(),
-            1,
+            "remedy".to_string(),
+            4,
         )
-        .comment("通过".to_string())
     );
 
     smoke_builder!(
@@ -846,8 +846,11 @@ mod serialization_tests {
         test_process_approval_response_serialization,
         approval_info::process::ProcessResponse,
         approval_info::process::ProcessResponse {
-            success: true,
-            approval_instance_id: "ins_1".to_string(),
+            approval_info: approval_info::process::ApprovalInfo {
+                approval_id: "ins_1".to_string(),
+                approval_type: "remedy".to_string(),
+                status: 0,
+            },
         }
     );
 
