@@ -8,7 +8,6 @@ use crate::{
     SDKResult,
     api::ApiResponseTrait,
     api::{ApiRequest, Response},
-    auth::app_ticket::apply_app_ticket,
     config::Config,
     constants::*,
     error::CoreError,
@@ -160,9 +159,12 @@ impl<T: ApiResponseTrait + std::fmt::Debug + for<'de> serde::Deserialize<'de>> T
             "Received response"
         );
 
-        if !resp.is_success() && resp.raw_response.code == ERR_CODE_APP_TICKET_INVALID {
-            apply_app_ticket(config).await?;
-        }
+        crate::auth::app_ticket::recover_app_ticket_if_needed(
+            resp.is_success(),
+            resp.raw_response.code,
+            config,
+        )
+        .await?;
 
         Ok(resp)
     }
