@@ -120,8 +120,6 @@ just release VERSION  # 发布新版本
 | `openlark-naming` | Client/Service/Resource/Request/Builder 命名规范 | 重命名、调整模块导出/prelude |
 | `openlark-validation-style` | `validate_required` 函数 vs 宏、空白字符串处理 | 统一 `validate()` 写法 |
 
-> 另有 OpenSpec 工作流技能（`.claude/skills/openspec-*`）配合 `openspec/` 目录管理变更提案，详见各 skill 文件。
-
 ## NOTES
 
 - **MSRV**: Rust 1.88+
@@ -129,7 +127,7 @@ just release VERSION  # 发布新版本
 - **WebSocket**: 需要单独启用 `websocket` feature
 - **测试**: 使用 `.env` 文件管理测试凭证（不要提交到 git）
 - **文档**: 使用 `cargo doc --workspace --all-features` 生成完整文档
-- **架构审核**: 详见 `openspec/changes/architecture-audit-review/` 中的完整审核报告和改进计划
+- **依赖治理**: 被 2 个或以上 crate 共用的第三方依赖在根 `Cargo.toml [workspace.dependencies]` 统一声明版本，各 crate 以 `{ workspace = true }` 引用，不要在 crate 级自钉版本（避免同一依赖出现多个 resolved 版本）；单 crate 使用的通用基础库也建议走 workspace
 - **Config 迁移**: `openlark_client::Config` 已在 merge-deprecated-config 移除（v0.18 breaking），统一到 `openlark_core::config::Config`；根 crate `openlark::Config` 直接 re-export core（见 CHANGELOG 迁移表）
 
 ## Agent skills
