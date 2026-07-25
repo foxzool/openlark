@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `leave_id` 改为 path 参数（原 `record_id` 同时作 path+body，官网 body 无 record_id）。响应 `record` object schema 未完整给出，透传 `Value`。
   **迁移**：`PatchRequest::new` 签名变（`leave_id` path + 4 必填 + `reason`）；新增 `LangText`。
 
+- **hr/attendance：`user_approval/query` 字段对齐飞书官网 schema（#533）**：
+  `user_id`/`approval_type`/`start_time`/`end_time`/分页 → 必填 `user_ids`/`check_date_from`/`check_date_to`(i32 yyyyMMdd)+可选 `check_date_type`/`status`/`check_time_from`/`check_time_to`。
+  响应 `user_approvals` items schema 未完整给出，透传 `Value`。
+  **迁移**：`QueryRequest::new` 签名变；`UserApproval` 删除（响应透传）。
+
 - **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
   原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
   `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝

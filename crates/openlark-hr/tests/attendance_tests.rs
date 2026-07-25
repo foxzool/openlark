@@ -196,10 +196,12 @@ mod builder_tests {
     );
     smoke_builder!(
         test_get_approval_info_request_builder,
-        user_approval::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .user_id("ou_1".to_string())
-            .approval_type(1)
-            .page_size(20)
+        user_approval::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            20_190_817,
+            20_190_820,
+        )
     );
     smoke_builder!(
         test_process_approval_request_builder,
@@ -821,16 +823,7 @@ mod serialization_tests {
         test_query_user_approval_response_serialization,
         user_approval::query::QueryResponse,
         user_approval::query::QueryResponse {
-            items: vec![user_approval::query::UserApproval {
-                approval_id: "a_1".to_string(),
-                user_id: "ou_1".to_string(),
-                approval_type: 1,
-                status: 1,
-                approval_time: 1735689600,
-                content: Some(json!({"reason":"正常"})),
-            }],
-            has_more: false,
-            page_token: None,
+            user_approvals: vec![json!({"approval_id": "a_1"})],
         }
     );
     roundtrip_eq!(
