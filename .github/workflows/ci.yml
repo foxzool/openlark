@@ -83,6 +83,14 @@ jobs:
             --tokens \
             --strict tokens \
             --report-dir "$RUNNER_TEMP/api_contract_tokens/auth"
+      - name: Validate attendance fields (non-strict monitor; #526 防回归 baseline)
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-hr \
+            --biz-tag attendance \
+            --fields \
+            --live-fields \
+            --report-dir "$RUNNER_TEMP/api_contract_fields/attendance"
       - name: Upload API contract reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -91,6 +99,7 @@ jobs:
           path: |
             ${{ runner.temp }}/api_contracts
             ${{ runner.temp }}/api_contract_tokens
+            ${{ runner.temp }}/api_contract_fields
           retention-days: 14
 
   lint:

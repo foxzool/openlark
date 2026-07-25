@@ -59,6 +59,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mapping", default="tools/api_coverage.toml", help="crate to bizTag mapping")
     parser.add_argument("--crate", dest="crate_name", help="Validate one mapped crate")
     parser.add_argument("--all-crates", action="store_true", help="Validate all mapped crates")
+    parser.add_argument(
+        "--biz-tag",
+        action="append",
+        help="进一步过滤到指定 bizTag（可多次传入）；覆盖 crate 的 biz_tags，用于子模块级 gate",
+    )
     parser.add_argument("--report-dir", default="reports/api_contracts", help="Report directory")
     parser.add_argument("--include-old", dest="skip_old", action="store_false", help="Include meta.Version=old APIs")
     parser.add_argument("--skip-old", dest="skip_old", action="store_true", default=True, help="Skip old APIs")
@@ -125,9 +130,10 @@ def validate_crate(
     field_retries: int = 1,
     max_field_apis: int = 0,
     tokens: bool = False,
+    biz_tag_filter: list[str] | None = None,
 ) -> ContractReport:
     src_path = Path(crate_config["src"])
-    biz_tags = list(crate_config.get("biz_tags") or [])
+    biz_tags = biz_tag_filter if biz_tag_filter else list(crate_config.get("biz_tags") or [])
     apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
     constants = load_endpoint_constants(src_path)
     enum_endpoints = load_enum_endpoints(src_path, constants)
@@ -244,6 +250,7 @@ def main() -> int:
             field_retries=args.field_retries,
             max_field_apis=args.max_field_apis,
             tokens=args.tokens,
+            biz_tag_filter=args.biz_tag,
         )
         for crate_name in crate_names
     ]
