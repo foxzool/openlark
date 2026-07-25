@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   响应 items schema 官网未完整给出，透传 `Value`。
   **迁移**：`CreateRequest::new` / `QueryRequest::new` 签名变；`RemedyRecord` 删除（响应透传 `Value`）。
 
+- **hr/attendance：`leave_accrual_record/patch` 字段对齐飞书官网 schema（#533）**：
+  `record_id`/`remaining_days` → 必填 `leave_granting_record_id`/`employment_id`/`leave_type_id`/`reason`(Vec<{lang,value}>)+可选 `time_offset`/`expiration_date`/`quantity`。
+  `leave_id` 改为 path 参数（原 `record_id` 同时作 path+body，官网 body 无 record_id）。响应 `record` object schema 未完整给出，透传 `Value`。
+  **迁移**：`PatchRequest::new` 签名变（`leave_id` path + 4 必填 + `reason`）；新增 `LangText`。
+
 - **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
   原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
   `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝
