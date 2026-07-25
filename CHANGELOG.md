@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Breaking — 目标 0.19)
 
+- **hr/attendance：`user_daily_shift` 族 3 API 字段对齐飞书官网 schema（#533）**：
+  `batch_create`（`shifts`→`user_daily_shifts`[{group_id,shift_id,month,user_id,day_no,is_clear_schedule}]，加可选 `operator_id`）、
+  `batch_create_temp`（`TempShift`→`user_tmp_daily_shifts`[{group_id,user_id,date,shift_name,punch_time_simple_rules[{on_time,off_time}]}]）、
+  `query`（`start_date`/`end_date`(i64)→`check_date_from`/`check_date_to`(i32 yyyyMMdd)，`user_ids` 改必填）。
+  ⚠️ 原 `date` 为 i64 时间戳，官网实为 `month`/`day_no`/`date` 的 int32（yyyyMM/yyyymmdd）；响应 items schema 官网未完整给出，透传 `Value`。
+  **迁移**：`UserDailyShift`/`TempShift`→`UserTmpDailyShift` 字段重构、`QueryRequest::new` 签名变（详见各 API docPath）。
+
 - **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
   原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
   `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝

@@ -7,56 +7,41 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询排班表请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 用户 ID 列表（可选）
-    user_ids: Option<Vec<String>>,
-    /// 开始日期（Unix 时间戳，必填）
-    start_date: i64,
-    /// 结束日期（Unix 时间戳，必填）
-    end_date: i64,
-    /// 分页大小（可选，默认 50，最大 100）
-    page_size: Option<i32>,
-    /// 分页标记（可选）
-    page_token: Option<String>,
+    /// 用户 ID 列表（必填，最多 50 人）
+    user_ids: Vec<String>,
+    /// 查询起始工作日（必填，格式 `yyyyMMdd`）
+    check_date_from: i32,
+    /// 查询结束工作日（必填，格式 `yyyyMMdd`）
+    check_date_to: i32,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config, start_date: i64, end_date: i64) -> Self {
+    ///
+    /// - `user_ids`: 用户 ID 列表（最多 50 人）
+    /// - `check_date_from`: 起始工作日（`yyyyMMdd`）
+    /// - `check_date_to`: 结束工作日（`yyyyMMdd`）
+    pub fn new(
+        config: Config,
+        user_ids: Vec<String>,
+        check_date_from: i32,
+        check_date_to: i32,
+    ) -> Self {
         Self {
-            user_ids: None,
-            start_date,
-            end_date,
-            page_size: None,
-            page_token: None,
+            user_ids,
+            check_date_from,
+            check_date_to,
             config,
         }
-    }
-
-    /// 设置用户 ID 列表（可选）
-    pub fn user_ids(mut self, user_ids: Vec<String>) -> Self {
-        self.user_ids = Some(user_ids);
-        self
-    }
-
-    /// 设置分页大小（可选，默认 50，最大 100）
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
-        self
-    }
-
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
-        self
     }
 
     /// 执行请求
@@ -72,39 +57,24 @@ impl QueryRequest {
     ) -> SDKResult<QueryResponse> {
         use crate::common::api_endpoints::AttendanceApiV1;
 
-        if self.start_date <= 0 {
+        // 1. 验证必填字段
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
+        if self.check_date_to < self.check_date_from {
             return Err(openlark_core::error::validation_error(
-                "start_date 无效",
-                "start_date 必须为正整数时间戳",
+                "日期范围无效",
+                "check_date_to 不能早于 check_date_from",
             ));
-        }
-        if self.end_date <= 0 {
-            return Err(openlark_core::error::validation_error(
-                "end_date 无效",
-                "end_date 必须为正整数时间戳",
-            ));
-        }
-        if self.end_date < self.start_date {
-            return Err(openlark_core::error::validation_error(
-                "时间范围无效",
-                "end_date 不能早于 start_date",
-            ));
-        }
-        if let Some(user_ids) = self.user_ids.as_ref() {
-            validate_required!(user_ids, "user_ids");
         }
 
-        // 1. 构建端点
+        // 2. 构建端点
         let api_endpoint = AttendanceApiV1::UserDailyShiftQuery;
         let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
 
-        // 2. 构建请求体
+        // 3. 构建请求体
         let request_body = QueryRequestBody {
             user_ids: self.user_ids,
-            start_date: self.start_date,
-            end_date: self.end_date,
-            page_size: self.page_size,
-            page_token: self.page_token,
+            check_date_from: self.check_date_from,
+            check_date_to: self.check_date_to,
         };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -114,7 +84,7 @@ impl QueryRequest {
         })?;
         let request = request.body(request_body_json);
 
-        // 3. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -129,47 +99,21 @@ impl QueryRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryRequestBody {
     /// 用户 ID 列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_ids: Option<Vec<String>>,
-    /// 开始日期
-    pub start_date: i64,
-    /// 结束日期
-    pub end_date: i64,
-    /// 分页大小
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_size: Option<i32>,
-    /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    pub user_ids: Vec<String>,
+    /// 查询起始工作日（`yyyyMMdd`）
+    pub check_date_from: i32,
+    /// 查询结束工作日（`yyyyMMdd`）
+    pub check_date_to: i32,
 }
 
 /// 查询排班表响应
+///
+/// 官网 response `data.user_daily_shifts` 为数组，items schema 未完整给出，透传 `Value`。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
     /// 排班记录列表
-    pub items: Vec<UserDailyShift>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-}
-
-/// 用户每日排班记录
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct UserDailyShift {
-    /// 用户 ID
-    pub user_id: String,
-    /// 排班日期（Unix 时间戳）
-    pub date: i64,
-    /// 班次 ID
-    pub shift_id: String,
-    /// 班次名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub shift_name: Option<String>,
-    /// 工作时长（小时）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub work_hours: Option<f64>,
+    #[serde(default)]
+    pub user_daily_shifts: Vec<serde_json::Value>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -179,7 +123,6 @@ impl ApiResponseTrait for QueryResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
@@ -187,10 +130,16 @@ mod tests {
 
     #[test]
     fn test_query_request_builder_new() {
-        let request = QueryRequest::new(TestConfigBuilder::new().build(), 1, 1);
+        let request = QueryRequest::new(
+            TestConfigBuilder::new().build(),
+            vec!["abd754f7".to_string()],
+            20_190_817,
+            20_190_820,
+        );
         let _ = request;
     }
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+
+    /// 端到端：Builder→execute→Transport→mock→assert 请求体字段对齐飞书官网 schema。
     #[tokio::test]
     async fn test_attendance_v1_user_daily_shift_query_returns_data_on_success() {
         use serde_json::json;
@@ -199,14 +148,12 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_daily_shifts/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": { "user_daily_shifts": [] }
             })))
             .mount(&server)
             .await;
@@ -218,18 +165,31 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config, 1_700_000_000, 1_700_000_000)
+        let data = QueryRequest::new(config, vec!["abd754f7".to_string()], 20_190_817, 20_190_820)
             .execute()
             .await
             .expect("attendance_v1_user_daily_shift_query 应成功");
 
-        let _ = &data;
+        assert!(data.user_daily_shifts.is_empty());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_daily_shifts/query"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(
+            body.contains("\"check_date_from\""),
+            "请求体缺 check_date_from: {body}"
+        );
+        assert!(
+            body.contains("\"check_date_to\""),
+            "请求体缺 check_date_to: {body}"
+        );
+        assert!(
+            !body.contains("\"start_date\""),
+            "请求体不应含旧字段 start_date: {body}"
         );
     }
 }
