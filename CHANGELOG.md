@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   响应 `user_approvals` items schema 未完整给出，透传 `Value`。
   **迁移**：`QueryRequest::new` 签名变；`UserApproval` 删除（响应透传）。
 
+- **hr/attendance：`user_stats_view/update` 字段对齐飞书官网 schema（#533）**：
+  `view_id`/`name`/`field_ids`/`is_default` → 必填嵌套 `view: { view_id, stats_type, user_id, items[{code, child_items[{code,value}]}] }`；`user_stats_view_id` 作为 path 参数。
+  响应 `view` object schema 未完整给出，透传 `Value`。
+  **迁移**：`UpdateRequest::new` 签名变（path id + `UserStatsView`）；新增 `UserStatsView`/`UserStatsViewItem`/`ChildItem`。
+
 - **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
   原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
   `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝

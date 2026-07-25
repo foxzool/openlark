@@ -7,41 +7,32 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, validate_required_list,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 更新统计设置请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
-    /// 视图 ID（必填）
-    view_id: String,
-    /// 视图名称（必填）
-    name: String,
-    /// 显示字段 ID 列表（必填）
-    field_ids: Vec<String>,
-    /// 是否设为默认视图（可选）
-    is_default: Option<bool>,
+    /// 统计设置 ID（path 参数 `user_stats_view_id`，必填）
+    user_stats_view_id: String,
+    /// 统计设置（必填）
+    view: UserStatsView,
     /// 配置信息
     config: Config,
 }
 
 impl UpdateRequest {
     /// 创建请求
-    pub fn new(config: Config, view_id: String, name: String, field_ids: Vec<String>) -> Self {
+    ///
+    /// - `user_stats_view_id`: path 参数（统计设置 ID）
+    /// - `view`: 统计设置内容
+    pub fn new(config: Config, user_stats_view_id: String, view: UserStatsView) -> Self {
         Self {
-            view_id,
-            name,
-            field_ids,
-            is_default: None,
+            user_stats_view_id,
+            view,
             config,
         }
-    }
-
-    /// 设置是否设为默认视图（可选）
-    pub fn is_default(mut self, is_default: bool) -> Self {
-        self.is_default = Some(is_default);
-        self
     }
 
     /// 执行请求
@@ -58,21 +49,15 @@ impl UpdateRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.view_id.trim(), "view_id");
-        validate_required!(self.name.trim(), "name");
-        validate_required_list!(self.field_ids, 50, "field_ids 不能为空且不能超过 50 个");
+        validate_required!(self.user_stats_view_id.trim(), "user_stats_view_id");
 
-        // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::UserStatsViewUpdate(self.view_id.clone()).to_url();
+        // 2. 构建端点（user_stats_view_id 为 path 参数）
+        let api_endpoint =
+            AttendanceApiV1::UserStatsViewUpdate(self.user_stats_view_id.clone()).to_url();
         let request = ApiRequest::<UpdateResponse>::put(&api_endpoint);
 
         // 3. 构建请求体
-        let request_body = UpdateRequestBody {
-            view_id: self.view_id,
-            name: self.name,
-            field_ids: self.field_ids,
-            is_default: self.is_default,
-        };
+        let request_body = UpdateRequestBody { view: self.view };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "构建请求体失败",
@@ -95,24 +80,49 @@ impl UpdateRequest {
 /// 更新统计设置请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateRequestBody {
+    /// 统计设置
+    pub view: UserStatsView,
+}
+
+/// 统计设置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserStatsView {
     /// 视图 ID
     pub view_id: String,
-    /// 视图名称
-    pub name: String,
-    /// 显示字段 ID 列表
-    pub field_ids: Vec<String>,
-    /// 是否设为默认视图
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_default: Option<bool>,
+    /// 视图类型（`daily` / `month`）
+    pub stats_type: String,
+    /// 操作者用户 ID
+    pub user_id: String,
+    /// 用户设置字段
+    pub items: Vec<UserStatsViewItem>,
+}
+
+/// 用户设置字段项
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserStatsViewItem {
+    /// 标题编号
+    pub code: String,
+    /// 子标题
+    pub child_items: Vec<ChildItem>,
+}
+
+/// 子标题项
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ChildItem {
+    /// 子标题编号
+    pub code: String,
+    /// 开关字段（`0`=关闭，`1`=开启）
+    pub value: String,
 }
 
 /// 更新统计设置响应
+///
+/// 官网 response `data.view` 为 object，schema 未完整给出，透传 `Value`。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UpdateResponse {
-    /// 是否成功
-    pub success: bool,
-    /// 视图 ID
-    pub view_id: String,
+    /// 统计设置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for UpdateResponse {
@@ -122,7 +132,6 @@ impl ApiResponseTrait for UpdateResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
@@ -132,13 +141,24 @@ mod tests {
     fn test_update_request_builder_new() {
         let request = UpdateRequest::new(
             TestConfigBuilder::new().build(),
-            "test".to_string(),
-            "test".to_string(),
-            vec!["test".to_string()],
+            "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09".to_string(),
+            UserStatsView {
+                view_id: "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09".to_string(),
+                stats_type: "month".to_string(),
+                user_id: "ec8ddg56".to_string(),
+                items: vec![UserStatsViewItem {
+                    code: "522".to_string(),
+                    child_items: vec![ChildItem {
+                        code: "50101".to_string(),
+                        value: "0".to_string(),
+                    }],
+                }],
+            },
         );
         let _ = request;
     }
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+
+    /// 端到端：Builder→execute→Transport→mock→assert 请求体字段对齐飞书官网 schema。
     #[tokio::test]
     async fn test_attendance_v1_user_stats_view_update_returns_data_on_success() {
         use serde_json::json;
@@ -147,14 +167,12 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"success": false, "view_id": "test"}"#).unwrap();
         Mock::given(method("PUT"))
             .and(path("/open-apis/attendance/v1/user_stats_views/view_001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": { "view": { "view_id": "view_001" } }
             })))
             .mount(&server)
             .await;
@@ -169,20 +187,44 @@ mod tests {
         let data = UpdateRequest::new(
             config,
             "view_001".to_string(),
-            "sample_name".to_string(),
-            vec!["id_001".to_string()],
+            UserStatsView {
+                view_id: "view_001".to_string(),
+                stats_type: "month".to_string(),
+                user_id: "ec8ddg56".to_string(),
+                items: vec![UserStatsViewItem {
+                    code: "522".to_string(),
+                    child_items: vec![ChildItem {
+                        code: "50101".to_string(),
+                        value: "0".to_string(),
+                    }],
+                }],
+            },
         )
         .execute()
         .await
         .expect("attendance_v1_user_stats_view_update 应成功");
 
-        let _ = &data;
+        assert!(data.view.is_some());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_stats_views/view_001"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"view\""), "请求体缺 view: {body}");
+        assert!(
+            body.contains("\"stats_type\""),
+            "请求体缺 view.stats_type: {body}"
+        );
+        assert!(
+            body.contains("\"child_items\""),
+            "请求体缺 view.items.child_items: {body}"
+        );
+        assert!(
+            !body.contains("\"field_ids\""),
+            "请求体不应含旧字段 field_ids: {body}"
         );
     }
 }
