@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ⚠️ 原 `date` 为 i64 时间戳，官网实为 `month`/`day_no`/`date` 的 int32（yyyyMM/yyyymmdd）；响应 items schema 官网未完整给出，透传 `Value`。
   **迁移**：`UserDailyShift`/`TempShift`→`UserTmpDailyShift` 字段重构、`QueryRequest::new` 签名变（详见各 API docPath）。
 
+- **hr/attendance：`user_task_remedy` 族 2 API 字段对齐飞书官网 schema（#533）**：
+  `create`（`original_time`/`remedy_time`(i64)→`remedy_date`(i32 yyyyMMdd)/`punch_no`/`work_type`/`remedy_time`(string `yyyy-MM-dd HH:mm`)，删臆测的 `original_time`）、
+  `query`（`user_id`/`start_time`/`end_time`/分页→`user_ids`(必填)/`check_time_from`/`check_time_to`(string 秒级时间戳)/可选 `check_date_type`/`status`）。
+  响应 items schema 官网未完整给出，透传 `Value`。
+  **迁移**：`CreateRequest::new` / `QueryRequest::new` 签名变；`RemedyRecord` 删除（响应透传 `Value`）。
+
 - **hr/attendance：`approval_info/process` 请求/响应字段对齐飞书官网 schema（#527，parent #526）**：
   原请求体发 `approval_instance_id`/`result`/`comment`、响应为扁平
   `success`/`approval_instance_id`，与飞书官网当前 schema 不符，真实调用被服务端拒绝

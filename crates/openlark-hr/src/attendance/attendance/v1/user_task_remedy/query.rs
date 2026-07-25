@@ -7,66 +7,54 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取补卡记录请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 用户 ID（可选）
-    user_id: Option<String>,
-    /// 开始时间（Unix 时间戳，可选）
-    start_time: Option<i64>,
-    /// 结束时间（Unix 时间戳，可选）
-    end_time: Option<i64>,
-    /// 分页大小（可选，默认 50，最大 100）
-    page_size: Option<i32>,
-    /// 分页标记（可选）
-    page_token: Option<String>,
+    /// 用户 ID 列表（必填，最多 50 个）
+    user_ids: Vec<String>,
+    /// 查询起始时间，精确到秒的时间戳（必填）
+    check_time_from: String,
+    /// 查询结束时间，精确到秒的时间戳（必填）
+    check_time_to: String,
+    /// 查询依据的时间类型（可选）
+    check_date_type: Option<String>,
+    /// 查询状态（可选，不填默认已通过）
+    status: Option<i32>,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
+    pub fn new(
+        config: Config,
+        user_ids: Vec<String>,
+        check_time_from: String,
+        check_time_to: String,
+    ) -> Self {
         Self {
-            user_id: None,
-            start_time: None,
-            end_time: None,
-            page_size: None,
-            page_token: None,
+            user_ids,
+            check_time_from,
+            check_time_to,
+            check_date_type: None,
+            status: None,
             config,
         }
     }
 
-    /// 设置用户 ID（可选）
-    pub fn user_id(mut self, user_id: String) -> Self {
-        self.user_id = Some(user_id);
+    /// 设置查询依据的时间类型（可选）
+    pub fn check_date_type(mut self, check_date_type: String) -> Self {
+        self.check_date_type = Some(check_date_type);
         self
     }
 
-    /// 设置开始时间（可选）
-    pub fn start_time(mut self, start_time: i64) -> Self {
-        self.start_time = Some(start_time);
-        self
-    }
-
-    /// 设置结束时间（可选）
-    pub fn end_time(mut self, end_time: i64) -> Self {
-        self.end_time = Some(end_time);
-        self
-    }
-
-    /// 设置分页大小（可选，默认 50，最大 100）
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
-        self
-    }
-
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
+    /// 设置查询状态（可选）
+    pub fn status(mut self, status: i32) -> Self {
+        self.status = Some(status);
         self
     }
 
@@ -83,17 +71,22 @@ impl QueryRequest {
     ) -> SDKResult<QueryResponse> {
         use crate::common::api_endpoints::AttendanceApiV1;
 
-        // 1. 构建端点
+        // 1. 验证必填字段
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
+        validate_required!(self.check_time_from.trim(), "check_time_from");
+        validate_required!(self.check_time_to.trim(), "check_time_to");
+
+        // 2. 构建端点
         let api_endpoint = AttendanceApiV1::UserTaskRemedyQuery;
         let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
 
-        // 2. 构建请求体
+        // 3. 构建请求体
         let request_body = QueryRequestBody {
-            user_id: self.user_id,
-            start_time: self.start_time,
-            end_time: self.end_time,
-            page_size: self.page_size,
-            page_token: self.page_token,
+            user_ids: self.user_ids,
+            check_time_from: self.check_time_from,
+            check_time_to: self.check_time_to,
+            check_date_type: self.check_date_type,
+            status: self.status,
         };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -103,7 +96,7 @@ impl QueryRequest {
         })?;
         let request = request.body(request_body_json);
 
-        // 3. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -117,52 +110,28 @@ impl QueryRequest {
 /// 获取补卡记录请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryRequestBody {
-    /// 用户 ID
+    /// 用户 ID 列表
+    pub user_ids: Vec<String>,
+    /// 查询起始时间（秒级时间戳）
+    pub check_time_from: String,
+    /// 查询结束时间（秒级时间戳）
+    pub check_time_to: String,
+    /// 查询依据的时间类型
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// 开始时间
+    pub check_date_type: Option<String>,
+    /// 查询状态
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_time: Option<i64>,
-    /// 结束时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_time: Option<i64>,
-    /// 分页大小
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_size: Option<i32>,
-    /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    pub status: Option<i32>,
 }
 
 /// 获取补卡记录响应
+///
+/// 官网 response `data.user_remedys` 为数组，items schema 未完整给出，透传 `Value`。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
     /// 补卡记录列表
-    pub items: Vec<RemedyRecord>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-}
-
-/// 补卡记录
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct RemedyRecord {
-    /// 补卡记录 ID
-    pub remedy_id: String,
-    /// 用户 ID
-    pub user_id: String,
-    /// 原打卡时间
-    pub original_time: i64,
-    /// 补卡时间
-    pub remedy_time: i64,
-    /// 补卡原因
-    pub reason: String,
-    /// 审批状态
-    pub approval_status: i32,
-    /// 创建时间（Unix 时间戳）
-    pub created_at: i64,
+    #[serde(default)]
+    pub user_remedys: Vec<serde_json::Value>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -172,7 +141,6 @@ impl ApiResponseTrait for QueryResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
@@ -180,11 +148,16 @@ mod tests {
 
     #[test]
     fn test_query_request_builder_new() {
-        let request =
-            QueryRequest::new(TestConfigBuilder::new().build()).user_id("test".to_string());
+        let request = QueryRequest::new(
+            TestConfigBuilder::new().build(),
+            vec!["abd754f7".to_string()],
+            "1566641088".to_string(),
+            "1592561088".to_string(),
+        );
         let _ = request;
     }
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+
+    /// 端到端：Builder→execute→Transport→mock→assert 请求体字段对齐飞书官网 schema。
     #[tokio::test]
     async fn test_attendance_v1_user_task_remedy_query_returns_data_on_success() {
         use serde_json::json;
@@ -193,14 +166,12 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_task_remedys/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": { "user_remedys": [] }
             })))
             .mount(&server)
             .await;
@@ -212,18 +183,33 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config)
-            .execute()
-            .await
-            .expect("attendance_v1_user_task_remedy_query 应成功");
+        let data = QueryRequest::new(
+            config,
+            vec!["abd754f7".to_string()],
+            "1566641088".to_string(),
+            "1592561088".to_string(),
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_user_task_remedy_query 应成功");
 
-        let _ = &data;
+        assert!(data.user_remedys.is_empty());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_task_remedys/query"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(
+            body.contains("\"check_time_from\""),
+            "请求体缺 check_time_from: {body}"
+        );
+        assert!(body.contains("\"user_ids\""), "请求体缺 user_ids: {body}");
+        assert!(
+            !body.contains("\"start_time\""),
+            "请求体不应含旧字段 start_time: {body}"
         );
     }
 }

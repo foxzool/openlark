@@ -150,18 +150,21 @@ mod builder_tests {
         user_task_remedy::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
             "ou_1".to_string(),
-            1735689600,
-            1735693200,
+            20_210_701,
+            0,
+            1,
+            "2021-07-01 08:00".to_string(),
             "补卡".to_string(),
         )
     );
     smoke_builder!(
         test_query_user_task_remedy_request_builder,
-        user_task_remedy::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .user_id("ou_1".to_string())
-            .start_time(1735689600)
-            .end_time(1735776000)
-            .page_size(20)
+        user_task_remedy::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            "1566641088".to_string(),
+            "1592561088".to_string(),
+        )
     );
     smoke_builder!(
         test_query_user_allowed_remedys_request_builder,
@@ -759,26 +762,14 @@ mod serialization_tests {
         test_create_user_task_remedy_response_serialization,
         user_task_remedy::create::CreateResponse,
         user_task_remedy::create::CreateResponse {
-            success: true,
-            remedy_id: "r_1".to_string(),
-            approval_instance_id: "ins_1".to_string(),
+            user_remedy: Some(serde_json::json!({ "remedy_id": "r_1" })),
         }
     );
     roundtrip_eq!(
         test_query_user_task_remedy_response_serialization,
         user_task_remedy::query::QueryResponse,
         user_task_remedy::query::QueryResponse {
-            items: vec![user_task_remedy::query::RemedyRecord {
-                remedy_id: "r_1".to_string(),
-                user_id: "ou_1".to_string(),
-                original_time: 1735689600,
-                remedy_time: 1735693200,
-                reason: "补卡".to_string(),
-                approval_status: 1,
-                created_at: 1735696800,
-            }],
-            has_more: false,
-            page_token: None,
+            user_remedys: vec![serde_json::json!({ "remedy_id": "r_1" })],
         }
     );
     roundtrip_eq!(
