@@ -7,29 +7,79 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 修改发放记录请求
 #[derive(Debug, Clone)]
 pub struct PatchRequest {
-    /// 发放记录 ID（必填）
-    record_id: String,
-    /// 剩余天数（必填）
-    remaining_days: f64,
+    /// 发放记录 ID（path 参数 `leave_id`，必填）
+    leave_id: String,
+    /// 发放记录的唯一 ID（必填）
+    leave_granting_record_id: String,
+    /// 员工 ID（必填）
+    employment_id: String,
+    /// 假期类型 ID（必填）
+    leave_type_id: String,
+    /// 修改原因（必填，多语言文本）
+    reason: Vec<LangText>,
+    /// 时间偏移（可选，东八区 = `480`）
+    time_offset: Option<i32>,
+    /// 失效日期（可选，格式 `2020-01-01`）
+    expiration_date: Option<String>,
+    /// 修改发放数量（可选）
+    quantity: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl PatchRequest {
     /// 创建请求
-    pub fn new(config: Config, record_id: String, remaining_days: f64) -> Self {
+    ///
+    /// - `leave_id`: path 参数（发放记录 ID）
+    /// - `leave_granting_record_id`: 发放记录唯一 ID
+    /// - `employment_id`: 员工 ID
+    /// - `leave_type_id`: 假期类型 ID
+    /// - `reason`: 修改原因（多语言）
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        config: Config,
+        leave_id: String,
+        leave_granting_record_id: String,
+        employment_id: String,
+        leave_type_id: String,
+        reason: Vec<LangText>,
+    ) -> Self {
         Self {
-            record_id,
-            remaining_days,
+            leave_id,
+            leave_granting_record_id,
+            employment_id,
+            leave_type_id,
+            reason,
+            time_offset: None,
+            expiration_date: None,
+            quantity: None,
             config,
         }
+    }
+
+    /// 设置时间偏移（可选）
+    pub fn time_offset(mut self, time_offset: i32) -> Self {
+        self.time_offset = Some(time_offset);
+        self
+    }
+
+    /// 设置失效日期（可选）
+    pub fn expiration_date(mut self, expiration_date: String) -> Self {
+        self.expiration_date = Some(expiration_date);
+        self
+    }
+
+    /// 设置修改发放数量（可选）
+    pub fn quantity(mut self, quantity: String) -> Self {
+        self.quantity = Some(quantity);
+        self
     }
 
     /// 执行请求
@@ -46,17 +96,28 @@ impl PatchRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.record_id.trim(), "record_id");
+        validate_required!(self.leave_id.trim(), "leave_id");
+        validate_required!(
+            self.leave_granting_record_id.trim(),
+            "leave_granting_record_id"
+        );
+        validate_required!(self.employment_id.trim(), "employment_id");
+        validate_required!(self.leave_type_id.trim(), "leave_type_id");
+        validate_required_list!(self.reason, 10, "reason 不能为空");
 
-        // 2. 构建端点
-        let api_endpoint =
-            AttendanceApiV1::LeaveAccrualRecordPatch(self.record_id.clone()).to_url();
+        // 2. 构建端点（leave_id 为 path 参数）
+        let api_endpoint = AttendanceApiV1::LeaveAccrualRecordPatch(self.leave_id.clone()).to_url();
         let request = ApiRequest::<PatchResponse>::patch(&api_endpoint);
 
         // 3. 构建请求体
         let request_body = PatchRequestBody {
-            record_id: self.record_id,
-            remaining_days: self.remaining_days,
+            leave_granting_record_id: self.leave_granting_record_id,
+            employment_id: self.employment_id,
+            leave_type_id: self.leave_type_id,
+            reason: self.reason,
+            time_offset: self.time_offset,
+            expiration_date: self.expiration_date,
+            quantity: self.quantity,
         };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -80,21 +141,42 @@ impl PatchRequest {
 /// 修改发放记录请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatchRequestBody {
-    /// 发放记录 ID
-    pub record_id: String,
-    /// 剩余天数
-    pub remaining_days: f64,
+    /// 发放记录唯一 ID
+    pub leave_granting_record_id: String,
+    /// 员工 ID
+    pub employment_id: String,
+    /// 假期类型 ID
+    pub leave_type_id: String,
+    /// 修改原因（多语言）
+    pub reason: Vec<LangText>,
+    /// 时间偏移
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_offset: Option<i32>,
+    /// 失效日期
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration_date: Option<String>,
+    /// 修改发放数量
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<String>,
+}
+
+/// 多语言文本
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LangText {
+    /// 语言码（如 `zh_CN`）
+    pub lang: String,
+    /// 语言码对应的文本
+    pub value: String,
 }
 
 /// 修改发放记录响应
+///
+/// 官网 response `data.record` 为 object，schema 未完整给出，透传 `Value`。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PatchResponse {
-    /// 是否成功
-    pub success: bool,
-    /// 发放记录 ID
-    pub record_id: String,
-    /// 修改后的剩余天数
-    pub remaining_days: f64,
+    /// 发放记录
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -107,7 +189,25 @@ impl ApiResponseTrait for PatchResponse {
 mod tests {
     use super::*;
     use openlark_core::config::Config;
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    use openlark_core::testing::prelude::TestConfigBuilder;
+
+    #[test]
+    fn test_patch_request_builder_new() {
+        let request = PatchRequest::new(
+            TestConfigBuilder::new().build(),
+            "6893014062142064135".to_string(),
+            "6893014062142064135".to_string(),
+            "6982509313466189342".to_string(),
+            "7111688079785723436".to_string(),
+            vec![LangText {
+                lang: "zh_CN".to_string(),
+                value: "test".to_string(),
+            }],
+        );
+        let _ = request;
+    }
+
+    /// 端到端：Builder→execute→Transport→mock→assert 请求体字段对齐飞书官网 schema。
     #[tokio::test]
     async fn test_attendance_v1_leave_accrual_record_patch_returns_data_on_success() {
         use serde_json::json;
@@ -116,18 +216,14 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(
-            r#"{"success": false, "record_id": "test", "remaining_days": 0.0}"#,
-        )
-        .unwrap();
         Mock::given(method("PATCH"))
             .and(path(
-                "/open-apis/attendance/v1/leave_accrual_record/record_001",
+                "/open-apis/attendance/v1/leave_accrual_record/6893014062142064135",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": { "record": { "leave_granting_record_id": "6893014062142064135" } }
             })))
             .mount(&server)
             .await;
@@ -139,18 +235,45 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = PatchRequest::new(config, "record_001".to_string(), 1.0)
-            .execute()
-            .await
-            .expect("attendance_v1_leave_accrual_record_patch 应成功");
+        let data = PatchRequest::new(
+            config,
+            "6893014062142064135".to_string(),
+            "6893014062142064135".to_string(),
+            "6982509313466189342".to_string(),
+            "7111688079785723436".to_string(),
+            vec![LangText {
+                lang: "zh_CN".to_string(),
+                value: "test".to_string(),
+            }],
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_leave_accrual_record_patch 应成功");
 
-        let _ = &data;
+        assert!(data.record.is_some());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
-            "/open-apis/attendance/v1/leave_accrual_record/record_001"
+            "/open-apis/attendance/v1/leave_accrual_record/6893014062142064135"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(
+            body.contains("\"leave_granting_record_id\""),
+            "请求体缺 leave_granting_record_id: {body}"
+        );
+        assert!(
+            body.contains("\"employment_id\""),
+            "请求体缺 employment_id: {body}"
+        );
+        assert!(
+            body.contains("\"leave_type_id\""),
+            "请求体缺 leave_type_id: {body}"
+        );
+        assert!(
+            !body.contains("\"remaining_days\""),
+            "请求体不应含旧字段 remaining_days: {body}"
         );
     }
 }
