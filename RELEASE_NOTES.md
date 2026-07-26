@@ -9,7 +9,8 @@
 
 ## 当前发布窗口：0.19.0
 
-**状态：** 内容已冻结（#557）；workspace 版本号与表面字符串在 bump 工单（#558）更新后打 tag。  
+**状态：** 已发布 — annotated tag `v0.19.0`、stable GitHub Release、crates.io `0.19.0`（#560）。  
+**Cut 记录：** [`docs/0.19.0_RELEASE_CUT.md`](docs/0.19.0_RELEASE_CUT.md)  
 **完整条目：** [`CHANGELOG.md` → `## [0.19.0]`](CHANGELOG.md)  
 **消费者升级：** [`docs/migration-guide.md` → OpenLark 0.19](docs/migration-guide.md)
 
