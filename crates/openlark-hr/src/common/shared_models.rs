@@ -8,6 +8,7 @@
 //! 只能侧向伸手进 hire 子树；提升后 canonical 路径为
 //! `crate::common::shared_models`，`hire` 反过来从此处 import。先例见
 //! `okr::okr::v2::common::models` 的跨叶消重（#336），本次把同一模式抬到全局（#473）。
+//! 0.19 起 `hire::hire::common_models` 不再 re-export 本模块类型（#556）。
 //!
 //! 序列化契约：字段名与 serde 属性与原 hire 定义逐字一致，wire 格式不变。
 

@@ -18,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Breaking)
 
+- **hr：删除 hire `common_models` 对共享原语的 deprecated re-export（#556，完成 #473）**：
+  0.18 将 `I18nText` / `FlexibleText` / `IdNameObject` / `CodeNameObject` /
+  `PaginatedResponse<T>` / `CatalogItem` / `LocalizedLabel` 提升到
+  `openlark_hr::common::shared_models`，并在 `hire::hire::common_models` 经
+  `#[deprecated] pub use` 再导出保留过渡周期。0.19 删除该 alias。
+  hire 专属摘要类型（`ApplicationSummary` / `AttachmentMeta` / `NoteRecord` 等）
+  仍在 `hire::hire::common_models`，路径不变。
+  - **迁移**：
+
+    ```rust
+    // before
+    use openlark_hr::hire::hire::common_models::I18nText;
+    // after
+    use openlark_hr::common::shared_models::I18nText;
+    ```
+
 - **core/client：飞书错误码解码断裂修复 —— `ApiError.raw_code` + 映射收敛（#544/#545/#546，ADR-0004）**：
   生产路径曾把飞书 9 位业务码（如 `99991663`）`as u16` 截断后再分类，导致 `ErrorCode` 恒为
   `Unknown`，`Display` 输出垃圾码。本批接通 `ErrorCode::from_code(raw_code)` 单路径，并收敛
@@ -327,10 +343,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hire` 反过来从此处 import；6 个兄弟域（attendance/corehr/payroll/performance/
   compensation/ehr）按需 opt-in 即可获得 typed i18n，不再侧向伸手进 hire 子树或
   退回 `serde_json::Value`。先例为 `okr::okr::v2::common::models` 跨叶消重（#336）。
-  - **非破坏**：序列化形状逐字不变；`hire::hire::common_models` 经 `#[deprecated]`
-    按名再导出这 7 个类型，既有全路径 import 仍可解析，仅多一条 deprecation 提示。
-    可选清理（#556）可在本 breaking 窗口删除该 alias；若 #556 未并入 tag，alias
-    继续 deprecated 至后续 breaking 窗口。消费者应立即改用 `common::shared_models`。
+  - **非破坏（0.18）**：序列化形状逐字不变；`hire::hire::common_models` 经
+    `#[deprecated]` 按名再导出这 7 个类型，保留一个过渡周期。0.19 已删除该
+    alias（见上方 Breaking / #556）。
 
 - **docs：API 实现模板修正 `extract_response_data` → `Transport::request_typed` doc-drift（#507）**：
   `docs/api-implementation-template.md` 仍教人 import + 调用 #486 已删的自由函数
