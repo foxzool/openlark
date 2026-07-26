@@ -10,6 +10,26 @@ from typing import Iterable
 from .models import DEFAULT_ACCESS_TOKEN_TYPES, RustApiContract, RustEndpointCall, RustField
 
 
+# CatalogEndpoint / .to_request 解析（#568）— 实现见 catalog_endpoints；此处 re-export 供校验器/测试
+from .catalog_endpoints import (
+    apply_enum_aliases,
+    enum_key_from_expression,
+    extract_endpoint_type_aliases,
+    extract_to_request_endpoint_calls,
+    extract_to_request_receiver,
+    iter_api_endpoint_definition_files,
+    load_enum_endpoints,
+    load_enum_methods,
+    parse_enum_methods,
+    parse_enum_to_url_endpoints,
+    parse_enum_variants,
+    resolve_enum_key,
+    resolve_enum_to_request_expression,
+    resolve_enum_to_url_expression,
+)
+
+
+
 REQUEST_STRUCT_SUFFIXES = ("Body", "Query", "Params", "RequestBody")
 RESPONSE_STRUCT_SUFFIXES = ("Response", "Result", "Resp")
 
@@ -256,105 +276,6 @@ def resolve_captured_format_template(template: str, constants: dict[str, str]) -
     return resolved if resolved.startswith("/open-apis/") else ""
 
 
-def resolve_enum_key(expression: str) -> str:
-    """从表达式中提取 EnumName::Variant 键（忽略参数与后缀方法调用）。"""
-    expr = expression.strip()
-    match = re.search(
-        r"([A-Za-z_][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)\b(?!::)",
-        expr,
-    )
-    if not match:
-        return ""
-    return f"{match.group(1)}::{match.group(2)}"
-
-
-def enum_key_from_expression(expression: str) -> str:
-    """兼容 .to_url/.path/.to_request 后缀的 EnumName::Variant 键提取。"""
-    expr = expression.strip()
-    for suffix in (".to_request()", ".to_url()", ".path()"):
-        if expr.endswith(suffix):
-            expr = expr[: -len(suffix)].strip()
-            break
-    with_call = re.match(
-        r"(.+?)\.to_request(?:_with_url)?(?:\s*::\s*<[^()]+>)?\s*\(.*\)\s*$",
-        expr,
-        re.DOTALL,
-    )
-    if with_call:
-        expr = with_call.group(1).strip()
-    return resolve_enum_key(expr)
-
-
-_TO_REQUEST_CALL_RE = re.compile(
-    r"\.to_request(?:_with_url)?(?:\s*::\s*<[^()]+>)?\s*\(",
-)
-
-
-def resolve_enum_to_request_expression(expression: str, enum_endpoints: dict[str, str]) -> str:
-    """解析 Enum::Variant(...).to_request() / .to_request_with_url(...) 的路径。"""
-    expr = expression.strip()
-    if not _TO_REQUEST_CALL_RE.search(expr):
-        key = resolve_enum_key(expr)
-        if key and key in enum_endpoints and ("::" in expr) and ".to_" not in expr:
-            if re.match(
-                r"^(?:[A-Za-z_][A-Za-z0-9_]*::)*[A-Za-z_][A-Za-z0-9_]*::[A-Za-z_][A-Za-z0-9_]*"
-                r"(?:\s*\(.*\))?\s*$",
-                expr,
-                re.DOTALL,
-            ):
-                return enum_endpoints[key]
-        return ""
-
-    match = re.search(
-        r"([A-Za-z_][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)\b(?!::)",
-        expr,
-    )
-    if not match:
-        return ""
-    enum_name = match.group(1)
-    variant = match.group(2)
-    pos = match.end()
-    rest = expr[pos:].strip()
-    if rest.startswith("("):
-        paren_open = expr.find("(", pos)
-        if paren_open >= 0:
-            paren_close = find_matching_paren(expr, paren_open)
-            if paren_close >= 0:
-                pos = paren_close + 1
-                rest = expr[pos:].strip()
-    if not _TO_REQUEST_CALL_RE.match(rest):
-        return ""
-    return enum_endpoints.get(f"{enum_name}::{variant}", "")
-
-
-def resolve_enum_to_url_expression(expression: str, enum_endpoints: dict[str, str]) -> str:
-    expr = expression.strip()
-    # 支持完整模块路径如 crate::common::api_endpoints::EnumName::VariantName
-    # 匹配末尾的 EnumName::VariantName
-    match = re.search(
-        r"([A-Za-z_][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)\b(?!::)",
-        expr,
-    )
-    if not match:
-        return ""
-    enum_name = match.group(1)
-    variant = match.group(2)
-    # 检查后面是否跟着 .to_url() 或 .path()
-    pos = match.end()
-    rest = expr[pos:].strip()
-    # 跳过可选的括号参数 ( ... )
-    if rest.startswith("("):
-        paren_open = expr.find("(", pos)
-        if paren_open >= 0:
-            paren_close = find_matching_paren(expr, paren_open)
-            if paren_close >= 0:
-                pos = paren_close + 1
-                rest = expr[pos:].strip()
-    # 检查后面是否跟着 .to_url() 或 .path()
-    if rest and not (rest.startswith(".to_url()") or rest.startswith(".path()")):
-        return ""
-    return enum_endpoints.get(f"{enum_name}::{variant}", "")
-
 def extract_enum_endpoint_aliases(text: str, enum_endpoints: dict[str, str]) -> dict[str, str]:
     aliases: dict[str, str] = {}
     if not enum_endpoints:
@@ -477,10 +398,6 @@ def extract_endpoint_template(expression: str, constants: dict[str, str] | None 
         return constants.get(constant_match.group(1), "")
 
     return ""
-    if string_match:
-        return string_match.group(1)
-
-    return ""
 
 
 def split_top_level_args(text: str) -> list[str]:
@@ -549,251 +466,6 @@ def load_endpoint_constants(crate_src: Path) -> dict[str, str]:
     return constants
 
 
-def iter_api_endpoint_definition_files(crate_src: Path) -> list[Path]:
-    """枚举端点定义文件：`api_endpoints.rs` 以及 `api_endpoints/**/*.rs` 子模块。
-
-    docs 域把 catalog 拆到 `common/api_endpoints/{lingo,drive,...}.rs`；仅扫顶层
-    `api_endpoints.rs` 会漏掉绝大部分路径/method 映射（#568）。
-    """
-    if not crate_src.exists():
-        return []
-    paths: list[Path] = []
-    for path in crate_src.rglob("*.rs"):
-        if "__pycache__" in path.parts:
-            continue
-        if path.name == "api_endpoints.rs" or "api_endpoints" in path.parts:
-            paths.append(path)
-    return sorted(set(paths))
-
-
-def extract_endpoint_type_aliases(text: str) -> dict[str, str]:
-    """解析 `type Alias = Target` 与 `pub use path::Target as Alias` 端点别名。"""
-    aliases: dict[str, str] = {}
-    for match in re.finditer(
-        r"pub\s+type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;",
-        text,
-    ):
-        aliases[match.group(1)] = match.group(2)
-    for match in re.finditer(
-        r"pub\s+use\s+(?:[A-Za-z_][A-Za-z0-9_]*::)*([A-Za-z_][A-Za-z0-9_]*)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
-        text,
-    ):
-        aliases[match.group(2)] = match.group(1)
-    return aliases
-
-
-def apply_enum_aliases(mapping: dict[str, str], type_aliases: dict[str, str]) -> dict[str, str]:
-    """把 Target::Variant 映射复制到 Alias::Variant。"""
-    result = dict(mapping)
-    for alias, target_enum in type_aliases.items():
-        for key, value in list(mapping.items()):
-            if key.startswith(f"{target_enum}::"):
-                alias_key = f"{alias}::{key[len(target_enum) + 2 :]}"
-                result[alias_key] = value
-    return result
-
-
-def load_enum_endpoints(crate_src: Path, constants: dict[str, str] | None = None) -> dict[str, str]:
-    enum_endpoints: dict[str, str] = {}
-    all_constants = constants or {}
-    type_aliases: dict[str, str] = {}
-
-    for path in iter_api_endpoint_definition_files(crate_src):
-        text = path.read_text(encoding="utf-8")
-        enum_variants = parse_enum_variants(text)
-        local_constants = dict(all_constants)
-        for match in re.finditer(r'pub\s+const\s+([A-Z0-9_]+)\s*:\s*&str\s*=\s*"([^"]+)"\s*;', text):
-            local_constants[match.group(1)] = match.group(2)
-        for match in re.finditer(r"pub\s+const\s+([A-Z0-9_]+)\s*:\s*&str\s*=\s*([A-Z0-9_]+)\s*;", text):
-            if match.group(2) in local_constants:
-                local_constants[match.group(1)] = local_constants[match.group(2)]
-        type_aliases.update(extract_endpoint_type_aliases(text))
-        for enum_name, variants in enum_variants.items():
-            enum_endpoints.update(parse_enum_to_url_endpoints(text, enum_name, variants, local_constants))
-
-    return apply_enum_aliases(enum_endpoints, type_aliases)
-
-
-def load_enum_methods(crate_src: Path) -> dict[str, str]:
-    """加载 CatalogEndpoint / inherent `method()` → EnumName::Variant → HTTP method。"""
-    enum_methods: dict[str, str] = {}
-    type_aliases: dict[str, str] = {}
-
-    for path in iter_api_endpoint_definition_files(crate_src):
-        text = path.read_text(encoding="utf-8")
-        type_aliases.update(extract_endpoint_type_aliases(text))
-        enum_variants = parse_enum_variants(text)
-        for enum_name, variants in enum_variants.items():
-            enum_methods.update(parse_enum_methods(text, enum_name, variants))
-
-    return apply_enum_aliases(enum_methods, type_aliases)
-
-
-def parse_enum_methods(text: str, enum_name: str, variants: set[str]) -> dict[str, str]:
-    """从 `impl CatalogEndpoint for Enum` / `impl Enum` 中的 `fn method` 解析 HTTP method。"""
-    methods: dict[str, str] = {}
-    impl_patterns = (
-        rf"impl\s+CatalogEndpoint\s+for\s+{re.escape(enum_name)}\s*\{{",
-        rf"impl\s+{re.escape(enum_name)}\s*\{{",
-    )
-    for impl_pattern in impl_patterns:
-        for impl_match in re.finditer(impl_pattern, text):
-            impl_open = text.find("{", impl_match.end() - 1)
-            impl_close = find_matching_brace(text, impl_open)
-            if impl_close < 0:
-                continue
-            impl_body = text[impl_open + 1 : impl_close]
-            fn_match = re.search(
-                r"(?:pub\s+)?fn\s+method\s*\([^)]*\)\s*->\s*HttpMethod\s*\{",
-                impl_body,
-            )
-            if not fn_match:
-                continue
-            fn_open = impl_body.find("{", fn_match.end() - 1)
-            fn_close = find_matching_brace(impl_body, fn_open)
-            if fn_close < 0:
-                continue
-            fn_body = impl_body[fn_open + 1 : fn_close]
-            parsed = _parse_method_fn_body(fn_body, enum_name, variants)
-            if parsed:
-                methods.update(parsed)
-                return methods
-    return methods
-
-
-def _parse_method_fn_body(fn_body: str, enum_name: str, variants: set[str]) -> dict[str, str]:
-    """解析 method() 函数体：常量返回或 match self 臂。"""
-    stripped = fn_body.strip()
-    simple = re.fullmatch(r"HttpMethod::(Get|Post|Put|Patch|Delete)\s*", stripped)
-    if simple:
-        method = simple.group(1).upper()
-        return {f"{enum_name}::{variant}": method for variant in variants}
-
-    match_pos = fn_body.find("match self")
-    if match_pos < 0:
-        return {}
-    match_open = fn_body.find("{", match_pos)
-    match_close = find_matching_brace(fn_body, match_open)
-    if match_close < 0:
-        return {}
-    match_body = fn_body[match_open + 1 : match_close]
-
-    methods: dict[str, str] = {}
-    enum_re = re.escape(enum_name)
-    arm_pattern = re.compile(
-        rf"(?P<head>(?:(?:Self|{enum_re})::[A-Za-z_][A-Za-z0-9_]*(?:\s*\([^=>]*?\))?\s*\|\s*)*"
-        rf"(?:Self|{enum_re})::[A-Za-z_][A-Za-z0-9_]*(?:\s*\([^=>]*?\))?)"
-        r"\s*=>",
-        re.DOTALL,
-    )
-    heads = list(arm_pattern.finditer(match_body))
-    for index, arm in enumerate(heads):
-        next_start = heads[index + 1].start() if index + 1 < len(heads) else len(match_body)
-        arm_span = match_body[arm.start() : next_start]
-        method_match = re.search(r"HttpMethod::(Get|Post|Put|Patch|Delete)", arm_span)
-        if not method_match:
-            continue
-        method = method_match.group(1).upper()
-        arm_variants = re.findall(
-            rf"(?:Self|{re.escape(enum_name)})::([A-Za-z_][A-Za-z0-9_]*)",
-            arm.group("head"),
-        )
-        for variant in arm_variants:
-            if variants and variant not in variants:
-                continue
-            methods[f"{enum_name}::{variant}"] = method
-    return methods
-
-
-def parse_enum_variants(text: str) -> dict[str, set[str]]:
-    variants_by_enum: dict[str, set[str]] = {}
-    # 兼容 `pub enum` 与 `pub(crate) enum`（minutes Extra catalog 等）
-    for match in re.finditer(
-        r"pub(?:\s*\([^)]*\))?\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{",
-        text,
-    ):
-        enum_name = match.group(1)
-        open_brace = text.find("{", match.end() - 1)
-        close_brace = find_matching_brace(text, open_brace)
-        if close_brace < 0:
-            continue
-        body = text[open_brace + 1 : close_brace]
-        variants = set(re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)(?:\s*\(|\s*,)", body, re.MULTILINE))
-        variants_by_enum[enum_name] = variants
-    return variants_by_enum
-
-
-def parse_enum_to_url_endpoints(text: str, enum_name: str, variants: set[str], constants: dict[str, str] | None = None) -> dict[str, str]:
-    """从 inherent `impl Enum` 或 `impl CatalogEndpoint for Enum` 的 to_url/path 解析路径。
-
-    docs 的 MinutesExtraApiV1 等仅在 CatalogEndpoint impl 中实现 to_url（#568）。
-    """
-    impl_patterns = (
-        rf"impl\s+{re.escape(enum_name)}\s*\{{",
-        rf"impl\s+CatalogEndpoint\s+for\s+{re.escape(enum_name)}\s*\{{",
-    )
-    endpoints: dict[str, str] = {}
-    for impl_pattern in impl_patterns:
-        for impl_match in re.finditer(impl_pattern, text):
-            impl_open = text.find("{", impl_match.end() - 1)
-            impl_close = find_matching_brace(text, impl_open)
-            if impl_close < 0:
-                continue
-            impl_body = text[impl_open + 1 : impl_close]
-
-            fn_match = re.search(
-                r"(?:pub(?:\s*\([^)]*\))?\s+)?fn\s+(to_url|path)\s*\([^)]*\)\s*->\s*(?:String|&'static\s+str)\s*\{",
-                impl_body,
-            )
-            if not fn_match:
-                continue
-            fn_open = impl_body.find("{", fn_match.end() - 1)
-            fn_close = find_matching_brace(impl_body, fn_open)
-            if fn_close < 0:
-                continue
-            fn_body = impl_body[fn_open + 1 : fn_close]
-
-            if re.search(rf"{re.escape(enum_name)}::(to_url|path)\s*\(", fn_body) and "match self" not in fn_body:
-                continue
-
-            match_pos = fn_body.find("match self")
-            if match_pos < 0:
-                template = extract_endpoint_template(fn_body, constants or {})
-                if template:
-                    for variant in variants:
-                        endpoints[f"{enum_name}::{variant}"] = template
-                    return endpoints
-                continue
-            match_open = fn_body.find("{", match_pos)
-            match_close = find_matching_brace(fn_body, match_open)
-            if match_close < 0:
-                continue
-            match_body = fn_body[match_open + 1 : match_close]
-
-            arm_pattern = re.compile(
-                rf"((?:\s*\|?\s*(?:{re.escape(enum_name)}|Self)::[A-Za-z_][A-Za-z0-9_]*(?:\s*\([^=]*?\))?)+)\s*=>",
-                re.MULTILINE | re.DOTALL,
-            )
-            arms = list(arm_pattern.finditer(match_body))
-            for index, arm in enumerate(arms):
-                next_start = arms[index + 1].start() if index + 1 < len(arms) else len(match_body)
-                arm_expression = match_body[arm.end() : next_start]
-                template = extract_endpoint_template(arm_expression, constants or {})
-                if not template:
-                    continue
-                arm_variants = re.findall(
-                    rf"(?:{re.escape(enum_name)}|Self)::([A-Za-z_][A-Za-z0-9_]*)",
-                    arm.group(1),
-                )
-                for variant in arm_variants:
-                    if variants and variant not in variants:
-                        continue
-                    endpoints[f"{enum_name}::{variant}"] = template
-            if endpoints:
-                return endpoints
-    return endpoints
-
-
 def iter_rust_files(root: Path) -> Iterable[Path]:
     if not root.exists():
         return []
@@ -836,118 +508,6 @@ def extract_endpoint_calls(text: str, resolver: EndpointResolver) -> tuple[RustE
 
     calls.extend(extract_to_request_endpoint_calls(text, resolver, enum_aliases))
     return tuple(calls)
-
-
-def extract_to_request_endpoint_calls(
-    text: str,
-    resolver: EndpointResolver,
-    enum_aliases: dict[str, str],
-) -> list[RustEndpointCall]:
-    """提取 `.to_request()` / `.to_request_with_url(...)` 端点调用（docs 主构造路径）。"""
-    calls: list[RustEndpointCall] = []
-    for match in _TO_REQUEST_CALL_RE.finditer(text):
-        prefix = text[max(0, match.start() - 40) : match.start()]
-        if re.search(r"\bfn\s+to_request(?:_with_url)?\s*$", prefix.rstrip()):
-            continue
-        open_paren = text.find("(", match.end() - 1)
-        close_paren = find_matching_paren(text, open_paren)
-        if close_paren < 0:
-            continue
-        receiver = extract_to_request_receiver(text, match.start())
-        if not receiver:
-            continue
-        call_span = text[match.start() : close_paren + 1]
-        full_expr = f"{receiver}{call_span}"
-        resolved_argument = expand_endpoint_alias(receiver, enum_aliases, text, resolver.enum_endpoints)
-        if resolved_argument != receiver and ".to_request" not in resolved_argument:
-            resolved_for_path = f"{resolved_argument}.to_request()"
-        else:
-            resolved_for_path = (
-                expand_endpoint_alias(full_expr, enum_aliases, text, resolver.enum_endpoints)
-                if resolved_argument == receiver
-                else f"{resolved_argument}.to_request()"
-            )
-
-        resolved_path, source_or_reason = resolver.resolve(resolved_for_path)
-        if not resolved_path:
-            resolved_path, source_or_reason = resolver.resolve(
-                expand_endpoint_alias(full_expr, enum_aliases, text, resolver.enum_endpoints)
-            )
-        method = resolver.resolve_method(
-            resolved_for_path if resolved_path else full_expr,
-            fallback="",
-        )
-        if not method and resolved_path:
-            method = resolver.resolve_method(resolved_argument, fallback="")
-
-        line = line_of(text, match.start())
-        if resolved_path and method:
-            calls.append(
-                RustEndpointCall(
-                    method=method,
-                    argument=full_expr if len(full_expr) < 200 else receiver,
-                    line=line,
-                    resolved_path=resolved_path,
-                    source=source_or_reason if source_or_reason.startswith("to_request") else f"to_request:{source_or_reason}",
-                )
-            )
-        elif resolved_path and not method:
-            calls.append(
-                RustEndpointCall(
-                    method="",
-                    argument=receiver,
-                    line=line,
-                    unresolved_reason=f"resolved path but missing enum method(): {resolved_path}",
-                )
-            )
-        else:
-            calls.append(
-                RustEndpointCall(
-                    method=method or "",
-                    argument=receiver,
-                    line=line,
-                    unresolved_reason=source_or_reason or "to_request endpoint could not be resolved",
-                )
-            )
-    return calls
-
-
-def extract_to_request_receiver(text: str, dot_index: int) -> str:
-    """从 `.to_request` 的 '.' 位置向前提取 receiver 表达式。"""
-    whitespace = set(" " + "\t" + "\r" + "\n")
-    # decode escapes
-    whitespace = {" ", chr(9), chr(10), chr(13)}
-    i = dot_index - 1
-    while i >= 0 and text[i] in whitespace:
-        i -= 1
-    if i < 0:
-        return ""
-
-    if text[i] == ")":
-        depth = 0
-        j = i
-        while j >= 0:
-            ch = text[j]
-            if ch == ")":
-                depth += 1
-            elif ch == "(":
-                depth -= 1
-                if depth == 0:
-                    k = j - 1
-                    while k >= 0 and text[k] in whitespace:
-                        k -= 1
-                    while k >= 0 and (text[k].isalnum() or text[k] in "_:"):
-                        k -= 1
-                    return text[k + 1 : i + 1].strip()
-            j -= 1
-        return ""
-
-    if text[i].isalnum() or text[i] == "_":
-        k = i
-        while k >= 0 and (text[k].isalnum() or text[k] in "_:"):
-            k -= 1
-        return text[k + 1 : i + 1].strip()
-    return ""
 
 
 def extract_rust_fields(text: str) -> tuple[RustField, ...]:
