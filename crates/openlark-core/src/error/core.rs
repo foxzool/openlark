@@ -798,16 +798,13 @@ impl CoreError {
     }
 
     /// 是否可重试
+    ///
+    /// `Network` 走 policy（可配置 max_retries）；其余与分类共用
+    /// [`ErrorCode::is_retryable`]（#545：Api 不再按 raw_code 数值范围）。
     pub fn is_retryable(&self) -> bool {
         match self {
             Self::Network(net) => net.policy.is_retryable(),
-            // #545：Api 重试谓词与分类单一事实源（ErrorCode variant）
-            Self::Api(api) => api.code.is_retryable(),
-            Self::Timeout { .. } => self.code().is_retryable(),
-            Self::RateLimit { .. } => self.code().is_retryable(),
-            Self::ServiceUnavailable { .. } => self.code().is_retryable(),
-            Self::Internal { .. } => self.code().is_retryable(),
-            _ => false,
+            _ => self.code().is_retryable(),
         }
     }
 
@@ -817,8 +814,9 @@ impl CoreError {
             Self::Network(net) => net.policy.retry_delay(attempt),
             Self::RateLimit { window, .. } => Some(*window),
             Self::ServiceUnavailable { retry_after, .. } => *retry_after,
-            // #545：谓词切 variant；延迟公式保持 `1 << attempt.min(5)`（不用 suggested_retry_delay）
-            Self::Api(api) if api.code.is_retryable() => {
+            // #545：谓词切 ErrorCode variant；延迟公式保持 `1 << attempt.min(5)`
+            // （不用 suggested_retry_delay，避免 429 固定 60s 破坏等价回归）
+            Self::Api(_) if self.code().is_retryable() => {
                 Some(Duration::from_secs(1 << attempt.min(5)))
             }
             _ => None,
