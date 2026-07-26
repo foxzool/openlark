@@ -698,7 +698,8 @@ impl MultipartBuilder {
 
 类型安全的响应处理系统：
 
-> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。  
+> **错误码（ADR-0004 / #542）**：`api_error` 收 `raw_code: i32`，**禁止** `code as u16` 截断；分类经 `ErrorCode::from_code(raw_code)`。
 
 ```rust
 use openlark_core::api::{Response, RawResponse};
@@ -706,7 +707,7 @@ use openlark_core::api::{Response, RawResponse};
 // 原始响应结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawResponse {
-    pub code: i32,
+    pub code: i32, // 双域共槽：飞书业务码或合成 HTTP status
     pub msg: String,
     pub request_id: Option<String>,
     pub data: Option<serde_json::Value>,
@@ -729,7 +730,7 @@ impl<T> Response<T> {
         }
     }
 
-    // 转换为结果类型
+    // 转换为结果类型（历史 API；现行用 Response::decode）
     pub fn into_result(self) -> Result<T, LarkAPIError> {
         if self.raw_response.is_success() {
             match self.data {
@@ -737,8 +738,9 @@ impl<T> Response<T> {
                 None => Err(api_error(0, "response", "响应数据为空", self.raw_response.request_id)),
             }
         } else {
+            // 传 i32 原值，禁止 as u16（飞书 9 位码会截断成垃圾值）
             Err(api_error(
-                self.raw_response.code as u16,
+                self.raw_response.code,
                 "response",
                 self.raw_response.msg,
                 self.raw_response.request_id,
@@ -2851,7 +2853,8 @@ impl Default for RawResponse {
 
 类型安全的响应包装器：
 
-> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。  
+> **错误码（ADR-0004 / #542）**：`api_error` 收 `raw_code: i32`，**禁止** `code as u16` 截断。
 
 ```rust
 // 类型安全的响应包装
@@ -2962,8 +2965,9 @@ impl<T> Response<T> {
                 )),
             }
         } else {
+            // 传 i32 原值，禁止 as u16（飞书 9 位码会截断成垃圾值）
             Err(api_error(
-                self.raw_response.code as u16,
+                self.raw_response.code,
                 "response",
                 self.raw_response.msg.clone(),
                 self.raw_response.request_id,
