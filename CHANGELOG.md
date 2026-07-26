@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed (Breaking — 目标 0.19)
+<!-- Post-0.19 work goes here. -->
+
+## [0.19.0]
+
+> Content freeze for the 0.19 release window (#557). Release date is filled when the
+> version is bumped (#558). GitHub Release body is extracted from this section by
+> `.github/workflows/release.yml` — this is the source of truth for 0.19 notes.
+> Consumer upgrade path: `docs/migration-guide.md` → **OpenLark 0.19**.
+
+### Changed (Breaking)
 
 - **hr：删除 hire `common_models` 对共享原语的 deprecated re-export（#556，完成 #473）**：
   0.18 将 `I18nText` / `FlexibleText` / `IdNameObject` / `CodeNameObject` /
@@ -336,7 +345,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   退回 `serde_json::Value`。先例为 `okr::okr::v2::common::models` 跨叶消重（#336）。
   - **非破坏（0.18）**：序列化形状逐字不变；`hire::hire::common_models` 经
     `#[deprecated]` 按名再导出这 7 个类型，保留一个过渡周期。0.19 已删除该
-    alias（见 Unreleased / #556）。
+    alias（见上方 Breaking / #556）。
 
 - **docs：API 实现模板修正 `extract_response_data` → `Transport::request_typed` doc-drift（#507）**：
   `docs/api-implementation-template.md` 仍教人 import + 调用 #486 已删的自由函数
