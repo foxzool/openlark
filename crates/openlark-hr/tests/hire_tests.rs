@@ -2322,3 +2322,86 @@ mod serialization_tests {
         }
     );
 }
+
+/// #556 surface seam：共享原语只走 `common::shared_models`；hire 专属模型仍在
+/// `hire::hire::common_models`。
+#[cfg(test)]
+mod common_models_surface_tests {
+    use openlark_hr::common::shared_models::{
+        CatalogItem, CodeNameObject, FlexibleText, I18nText, IdNameObject, LocalizedLabel,
+        PaginatedResponse,
+    };
+    use openlark_hr::hire::hire::common_models::{
+        ApplicationJobInfo, AttachmentMeta, NoteRecord,
+    };
+
+    #[test]
+    fn shared_primitives_live_at_shared_models() {
+        let i18n = I18nText {
+            zh_cn: Some("中文".to_string()),
+            en_us: Some("en".to_string()),
+            extra: Default::default(),
+        };
+        assert_eq!(i18n.zh_cn.as_deref(), Some("中文"));
+
+        let plain = FlexibleText::Plain("plain".to_string());
+        assert_eq!(plain.zh_cn_or_plain(), Some("plain"));
+        let i18n_flex = FlexibleText::I18n(I18nText {
+            zh_cn: Some("标题".to_string()),
+            en_us: None,
+            extra: Default::default(),
+        });
+        assert_eq!(i18n_flex.zh_cn_or_plain(), Some("标题"));
+
+        let _id = IdNameObject {
+            id: Some("ou_1".to_string()),
+            name: Some(i18n),
+            extra: Default::default(),
+        };
+        let _code = CodeNameObject {
+            code: Some("CN".to_string()),
+            ..Default::default()
+        };
+        let page: PaginatedResponse<String> = PaginatedResponse {
+            items: vec!["a".to_string()],
+            page_token: Some("t".to_string()),
+            has_more: Some(true),
+            extra: Default::default(),
+        };
+        assert_eq!(page.items.len(), 1);
+        let _cat = CatalogItem {
+            id: Some("c1".to_string()),
+            name: Some(FlexibleText::Plain("目录".to_string())),
+            ..Default::default()
+        };
+        let _label = LocalizedLabel {
+            zh_name: Some("标签".to_string()),
+            en_name: Some("label".to_string()),
+            extra: Default::default(),
+        };
+    }
+
+    #[test]
+    fn hire_specific_models_remain_on_common_models() {
+        let job = ApplicationJobInfo {
+            job_id: Some("job_1".to_string()),
+            job_name: Some("后端".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(job.job_id.as_deref(), Some("job_1"));
+
+        let attachment = AttachmentMeta {
+            file_id: Some("att_1".to_string()),
+            file_name: Some("cv.pdf".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(attachment.file_id.as_deref(), Some("att_1"));
+
+        let note = NoteRecord {
+            id: Some("note_1".to_string()),
+            content: Some("备注".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(note.content.as_deref(), Some("备注"));
+    }
+}

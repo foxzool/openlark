@@ -2,26 +2,15 @@
 //!
 //! 域无关的 HR 原语（`I18nText` / `FlexibleText` / `IdNameObject` /
 //! `CodeNameObject` / `PaginatedResponse` / `CatalogItem` / `LocalizedLabel`）
-//! 已迁至 crate root：[`crate::common::shared_models`]。本模块保留 hire 专属
-//! 摘要类型（职位 / 投递 / 面试 / offer / 生态 / 猎头 等），并经 deprecated
-//! re-export 再导出已迁移的原语，为既有全路径 import 留一个过渡周期（#473）。
+//! 已迁至 crate root：[`crate::common::shared_models`]（#473）。0.19 起本模块
+//! 不再 re-export 这些共享原语（#556）；请改用
+//! `openlark_hr::common::shared_models::*`。本模块仅保留 hire 专属摘要类型
+//! （职位 / 投递 / 面试 / offer / 生态 / 猎头 等）。
 
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-// 向后兼容 re-export：这 7 个域无关原语已迁至 crate root
-// （`crate::common::shared_models`），此处按名再导出保留一个过渡周期，将在下个
-// breaking 版本移除（#473）。功能上保证既有全路径 import 仍可解析（不破坏编译）。
-// 注意：rustc 当前不会为 `pub use` 重导出在消费端触发 deprecation 告警——这里的
-// `#[deprecated]` 主要作 rustdoc 标记 + 未来 Rust 版本转发兼容；alias 的实际移除
-// 以下个 breaking 窗口的 grep（`common_models::(I18nText|FlexibleText|...)`）为准。
-#[deprecated(note = "用 crate::common::shared_models，将在下个 breaking 版本移除")]
-pub use crate::common::shared_models::{
-    CatalogItem, CodeNameObject, FlexibleText, I18nText, IdNameObject, LocalizedLabel,
-    PaginatedResponse,
-};
 
 /// 面试任务摘要。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
