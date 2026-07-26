@@ -10,7 +10,46 @@
 - 实现源：`tools/api_coverage.toml` 中配置的 crate 源码目录与 bizTag 映射。
 - 默认排除 `meta.Version=old`（脚本默认开启 `--skip-old`）。
 - 报告默认不写入时间戳，确保同输入下可稳定复现（可通过 `--with-timestamp` 打开时间戳）。
-- 覆盖率定义：`已实现 / API 总数 * 100%`。
+- 覆盖率定义：`已实现 / API 总数 * 100%`（含 layout denoise 后的路径噪音匹配）。
+
+### 1.1 路径公式与 layout 候选
+
+Canonical（nested）公式：
+
+```text
+src/{bizTag}/{meta.Project}/{meta.Version}/{meta.Resource}/{meta.Name}.rs
+```
+
+其中 `meta.Resource` 的 `.`、`meta.Name` 的 `:`/`#` 会按脚本规则规范化。
+
+在 strict 路径之外，比较阶段还会尝试下列 **layout 候选**（命中即计为已实现，并写入 evidence）：
+
+| match_kind | 含义 | 典型 crate |
+|------------|------|------------|
+| `strict` | 与 canonical 公式完全一致 | docs / communication / hr 多数 |
+| `flat_project` | `biz/biz/version/...` → 磁盘 `biz/version/...`（省略重复 project） | platform（admin/directory/tenant/…） |
+| `rust_keyword` | 目录段为 Rust 关键字时用 `{kw}_mod`（如 `enum` → `enum_mod`） | platform app_engine workspace |
+| `rewrite` / `alias` | `tools/api_coverage.toml` 显式登记的 legacy 映射 | workflow / security |
+| `typo_correction` | 已知 CSV 拼写错误修正（如 `collboration` → `collaboration`） | platform directory |
+
+候选按 strict → 配置 alias/rewrite → 在已有候选上展开 flat/keyword/typo 的顺序生成；**先命中者优先**，因此 nested 与 flat 同时存在时计为 `strict`。
+
+### 1.2 分类字段（人读 + 机器可读）
+
+crate 报告与 `summary.json` 将结果拆成四类，避免把 layout 噪音当成「实现 API」工单：
+
+| 分类 | JSON 字段 | 是否计入「已实现」 |
+|------|-----------|-------------------|
+| strict 匹配 | `classification.strict_matched` | 是 |
+| 路径噪音匹配 | `classification.path_noise_matched` + `path_noise_matches[]` | 是（必须带 `expected_file` / `implementation_file` / `match_kind` / `match_reason`） |
+| 真缺口 | `classification.true_missing` + `true_missing_apis[]` / `prioritized_missing_apis[]` | 否 |
+| 额外实现文件 | `classification.extra_files` + `extra_file_list[]` | 否（不在 CSV） |
+
+约定：
+
+- `missing` **仅等于** 真缺口数量，不再混入 path noise。
+- 路径噪音重分类必须可追溯 evidence；禁止静默丢弃真缺口。
+- 发布 hard gate 阈值不因 denoise 下调；denoise 只修正路径匹配真实性。
 
 ## 2. 缺失 API 优先级模型
 
