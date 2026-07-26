@@ -9,6 +9,15 @@ API 验证脚本
 - meta.resource 中的 '.' 转换为 '/' 作为子目录
 - meta.name 中的 '/' 转换为 '/' 作为子目录
 - meta.name 中的 ':' 替换为 '_'
+
+路径匹配同时支持仓库内常见 layout 约定（见 layout candidates）：
+- nested（canonical）：biz/project/version/...
+- flat_project：当 project == biz 时，磁盘上常省略重复 project 段 → biz/version/...
+- rust_keyword：目录段若为 Rust 关键字（如 enum），可落为 enum_mod
+- 配置级 rewrite / alias（tools/api_coverage.toml）
+- 已知 CSV 拼写修正（如 collboration → collaboration）
+
+报告将结果分为：strict 匹配、路径噪音匹配（layout/typo/keyword）、真缺口、额外文件。
 """
 
 import csv
@@ -32,6 +41,75 @@ PRIORITY_DIMENSIONS = (
     "implementation_effort",
 )
 
+# 仅对「目录段」做关键字转义；文件名（*.rs stem）可保留 match/move 等。
+_RUST_PATH_KEYWORDS = frozenset(
+    {
+        "as",
+        "async",
+        "await",
+        "break",
+        "const",
+        "continue",
+        "crate",
+        "dyn",
+        "else",
+        "enum",
+        "extern",
+        "false",
+        "fn",
+        "for",
+        "if",
+        "impl",
+        "in",
+        "let",
+        "loop",
+        "match",
+        "mod",
+        "move",
+        "mut",
+        "pub",
+        "ref",
+        "return",
+        "self",
+        "static",
+        "struct",
+        "super",
+        "trait",
+        "true",
+        "type",
+        "unsafe",
+        "use",
+        "where",
+        "while",
+    }
+)
+
+# CSV 导出里出现过的已知拼写错误 → 仓库实际目录名
+_KNOWN_PATH_SEGMENT_TYPOS = {
+    "collboration": "collaboration",
+    "collboration_share_entity": "collaboration_share_entity",
+}
+
+# match_kind 中视为「路径噪音 / layout 匹配」的集合（计入已实现，但需 evidence）
+_PATH_NOISE_MATCH_KINDS = frozenset(
+    {
+        "flat_project",
+        "rust_keyword",
+        "typo_correction",
+        "rewrite",
+        "alias",
+    }
+)
+
+
+@dataclass(frozen=True)
+class PathMatchCandidate:
+    """实现路径候选及其分类标签。"""
+
+    path: str
+    kind: str
+    reason: str
+
 
 @dataclass
 class APIInfo:
@@ -48,6 +126,9 @@ class APIInfo:
     doc_path: str
     expected_file: str = ""
     is_implemented: bool = False
+    implementation_file: str = ""
+    match_kind: str = ""
+    match_reason: str = ""
     priority_level: str = ""
     priority_score: float = 0.0
     business_value: int = 0
@@ -285,6 +366,7 @@ class APIValidator:
         self.implemented_files: Set[str] = set()
         self.missing_apis: List[APIInfo] = []
         self.extra_files: Set[str] = set()
+        self.path_noise_matches: List[APIInfo] = []
         self.skipped_old_count: int = 0
 
     @staticmethod
@@ -419,25 +501,35 @@ class APIValidator:
         print(f"✅ 扫描完成，找到 {len(self.implemented_files)} 个实现文件")
 
     def compare(self) -> None:
-        """对比 CSV 和实际实现"""
+        """对比 CSV 和实际实现（含 layout denoise 与分类）。"""
         print("🔬 开始对比分析...")
 
         matched_implementation_files: Set[str] = set()
+        self.path_noise_matches = []
+        self.missing_apis = []
         for api in self.apis:
-            implementation_file = next(
+            matched = next(
                 (
                     candidate
-                    for candidate in self._implementation_path_candidates(api.expected_file)
-                    if candidate in self.implemented_files
+                    for candidate in self._implementation_path_candidates_detailed(api.expected_file)
+                    if candidate.path in self.implemented_files
                 ),
                 None,
             )
-            if implementation_file is not None:
+            if matched is not None:
                 api.is_implemented = True
-                matched_implementation_files.add(implementation_file)
+                api.implementation_file = matched.path
+                api.match_kind = matched.kind
+                api.match_reason = matched.reason
+                matched_implementation_files.add(matched.path)
+                if matched.kind in _PATH_NOISE_MATCH_KINDS:
+                    self.path_noise_matches.append(api)
                 continue
 
             api.is_implemented = False
+            api.implementation_file = ""
+            api.match_kind = "true_gap"
+            api.match_reason = "未找到与 expected_file 或其 layout 候选匹配的实现文件"
             if self.priority_model is not None:
                 self.priority_model.evaluate(api)
             self.missing_apis.append(api)
@@ -446,28 +538,77 @@ class APIValidator:
         if self.priority_model is not None:
             self.missing_apis = sorted(self.missing_apis, key=self.priority_model.sort_key)
 
+        implemented_count = len([api for api in self.apis if api.is_implemented])
         print("✅ 对比完成")
-        print(f"   - 已实现: {len([api for api in self.apis if api.is_implemented])}")
-        print(f"   - 未实现: {len(self.missing_apis)}")
+        print(f"   - 已实现: {implemented_count}")
+        print(f"   - 其中路径噪音匹配: {len(self.path_noise_matches)}")
+        print(f"   - 真缺口(未实现): {len(self.missing_apis)}")
         print(f"   - 额外文件: {len(self.extra_files)}")
 
     def _implementation_path_candidates(self, expected_file: str) -> List[str]:
-        """返回 strict 路径及仓库已登记的 legacy 实现路径。"""
+        """返回 strict 路径及 layout/legacy 候选路径（仅路径字符串）。"""
+        return [item.path for item in self._implementation_path_candidates_detailed(expected_file)]
+
+    def _implementation_path_candidates_detailed(self, expected_file: str) -> List["PathMatchCandidate"]:
+        """生成带分类标签的实现路径候选（strict 优先，其后为 layout/legacy）。"""
         if not expected_file:
             return []
 
-        candidates = [expected_file]
+        ordered: List[PathMatchCandidate] = []
+        seen: Set[str] = set()
+
+        def add(path: str, kind: str, reason: str) -> None:
+            if not path or path in seen:
+                return
+            seen.add(path)
+            ordered.append(PathMatchCandidate(path=path, kind=kind, reason=reason))
+
+        add(expected_file, "strict", "canonical nested formula: biz/project/version/resource/name.rs")
+
         alias = self.implementation_path_aliases.get(expected_file)
         if alias:
-            candidates.append(alias)
+            add(alias, "alias", f"implementation_path_aliases: {expected_file} → {alias}")
 
         for rewrite in self.implementation_path_rewrites:
             source_prefix = str(rewrite.get("from", ""))
             target_prefix = str(rewrite.get("to", ""))
             if source_prefix and expected_file.startswith(source_prefix):
-                candidates.append(target_prefix + expected_file[len(source_prefix) :])
+                rewritten = target_prefix + expected_file[len(source_prefix) :]
+                add(
+                    rewritten,
+                    "rewrite",
+                    f"implementation_path_rewrites: '{source_prefix}' → '{target_prefix}'",
+                )
 
-        return _dedupe_preserve_order(candidates)
+        # 在已有候选上展开 layout 变体（flat / keyword / typo），并允许组合。
+        index = 0
+        while index < len(ordered):
+            base = ordered[index]
+            index += 1
+
+            flat = _flat_project_path(base.path)
+            if flat != base.path:
+                add(
+                    flat,
+                    "flat_project",
+                    f"flat layout: drop duplicate project segment ({base.path} → {flat})",
+                )
+
+            for kw_path, segment in _rust_keyword_directory_variants(base.path):
+                add(
+                    kw_path,
+                    "rust_keyword",
+                    f"rust keyword directory escape: '{segment}' → '{segment}_mod' ({base.path} → {kw_path})",
+                )
+
+            for typo_path, old_seg, new_seg in _typo_corrected_path_variants(base.path):
+                add(
+                    typo_path,
+                    "typo_correction",
+                    f"known CSV path typo: '{old_seg}' → '{new_seg}' ({base.path} → {typo_path})",
+                )
+
+        return ordered
 
     def generate_report(self, output_path: str) -> None:
         """生成报告"""
@@ -480,6 +621,9 @@ class APIValidator:
             file.write(f"**CSV 文件**: {self.csv_path}\n")
             file.write(f"**源码目录**: {self.src_path}\n")
             file.write("**命名规范**: `src/bizTag/meta.project/meta.version/meta.resource/meta.name.rs`\n")
+            file.write(
+                "**路径匹配**: nested / flat_project / rust_keyword / rewrite / alias / typo_correction\n"
+            )
             if self.priority_model is not None:
                 file.write(f"**优先级配置**: `{self.priority_model.source_path}`\n")
             file.write("\n")
@@ -487,8 +631,14 @@ class APIValidator:
             section_index = 1
             self._write_overall_section(file, section_index)
             section_index += 1
+            self._write_classification_section(file, section_index)
+            section_index += 1
             self._write_module_section(file, section_index)
             section_index += 1
+
+            if self.path_noise_matches:
+                self._write_path_noise_section(file, section_index)
+                section_index += 1
 
             if self.missing_apis:
                 self._write_priority_section(file, section_index)
@@ -505,11 +655,14 @@ class APIValidator:
         print("✅ 报告生成完成")
 
     def calculate_summary(self) -> Dict[str, Any]:
-        """生成可序列化的统计摘要。"""
+        """生成可序列化的统计摘要（含分类字段）。"""
         total_apis = len(self.apis)
         implemented = len([api for api in self.apis if api.is_implemented])
         missing = len(self.missing_apis)
         completion_rate = (implemented / total_apis * 100) if total_apis > 0 else 0.0
+        strict_matched = len([api for api in self.apis if api.match_kind == "strict"])
+        path_noise_matched = len(self.path_noise_matches)
+        extra_list = sorted(self.extra_files)
 
         return {
             "total_apis": total_apis,
@@ -521,6 +674,15 @@ class APIValidator:
             "module_stats": self._calculate_module_stats(),
             "priority_counts": self._calculate_priority_counts(),
             "prioritized_missing_apis": [self._serialize_missing_api(api) for api in self.missing_apis],
+            "classification": {
+                "strict_matched": strict_matched,
+                "path_noise_matched": path_noise_matched,
+                "true_missing": missing,
+                "extra_files": len(self.extra_files),
+            },
+            "path_noise_matches": [self._serialize_path_noise_match(api) for api in self.path_noise_matches],
+            "true_missing_apis": [self._serialize_missing_api(api) for api in self.missing_apis],
+            "extra_file_list": extra_list,
         }
 
     def _write_overall_section(self, file: Any, section_index: int) -> None:
@@ -534,9 +696,41 @@ class APIValidator:
         file.write("|------|------|\n")
         file.write(f"| **API 总数** | {total_apis} |\n")
         file.write(f"| **已实现** | {implemented} |\n")
-        file.write(f"| **未实现** | {missing} |\n")
+        file.write(f"| **真缺口(未实现)** | {missing} |\n")
         file.write(f"| **完成率** | {completion_rate:.1f}% |\n")
         file.write(f"| **额外文件** | {len(self.extra_files)} |\n\n")
+
+    def _write_classification_section(self, file: Any, section_index: int) -> None:
+        strict_matched = len([api for api in self.apis if api.match_kind == "strict"])
+        path_noise_matched = len(self.path_noise_matches)
+        true_missing = len(self.missing_apis)
+
+        file.write(f"## {section_index}、分类统计\n\n")
+        file.write("覆盖率路径匹配结果按以下四类拆分（人读 + 与 JSON 字段对齐）：\n\n")
+        file.write("| 分类 | 数量 | 说明 |\n")
+        file.write("|------|------|------|\n")
+        file.write(f"| **strict 匹配** | {strict_matched} | 落盘路径与 canonical nested 公式一致 |\n")
+        file.write(
+            f"| **路径噪音匹配** | {path_noise_matched} | "
+            "flat_project / rust_keyword / rewrite / alias / typo_correction；计入已实现，附 evidence |\n"
+        )
+        file.write(f"| **真缺口** | {true_missing} | 无任何 layout 候选命中，可作为实现 backlog |\n")
+        file.write(
+            f"| **额外实现文件** | {len(self.extra_files)} | "
+            "源码中存在但未对应任何 CSV API 的叶子 `.rs` |\n\n"
+        )
+
+    def _write_path_noise_section(self, file: Any, section_index: int) -> None:
+        file.write(f"## {section_index}、路径噪音匹配（layout / typo / legacy）\n\n")
+        file.write("下列 API 已在磁盘找到实现，但路径偏离 canonical 公式；**不是真缺口**。\n\n")
+        file.write("| API | 预期文件 | 实际文件 | match_kind | 证据 |\n")
+        file.write("|-----|----------|----------|------------|------|\n")
+        for api in self.path_noise_matches:
+            file.write(
+                f"| {api.name} | `{api.expected_file}` | `{api.implementation_file}` | "
+                f"`{api.match_kind}` | {api.match_reason} |\n"
+            )
+        file.write("\n")
 
     def _write_module_section(self, file: Any, section_index: int) -> None:
         file.write(f"## {section_index}、模块统计\n\n")
@@ -578,7 +772,8 @@ class APIValidator:
         file.write("\n")
 
     def _write_missing_detail_section(self, file: Any, section_index: int) -> None:
-        file.write(f"## {section_index}、未实现的 API（按模块）\n\n")
+        file.write(f"## {section_index}、真缺口 API（按模块）\n\n")
+        file.write("仅包含 `classification=true_gap` 的条目；路径噪音已在上一节单独列出。\n\n")
         missing_by_module: Dict[str, List[APIInfo]] = defaultdict(list)
         for api in self.missing_apis:
             missing_by_module[api.biz_tag.upper()].append(api)
@@ -588,6 +783,7 @@ class APIValidator:
             for api in missing_by_module[module_name]:
                 file.write(f"#### {api.name}\n\n")
                 file.write(f"- **API ID**: {api.api_id}\n")
+                file.write(f"- **分类**: `true_gap`\n")
                 if api.priority_level:
                     file.write(f"- **优先级**: {api.priority_level} ({api.priority_score:.2f})\n")
                     file.write(
@@ -602,8 +798,8 @@ class APIValidator:
                 file.write(f"- **文档**: {api.doc_path}\n\n")
 
     def _write_extra_files_section(self, file: Any, section_index: int) -> None:
-        file.write(f"## {section_index}、额外的实现文件\n\n")
-        file.write("这些文件存在于代码中，但不在 CSV API 列表中：\n\n")
+        file.write(f"## {section_index}、额外实现文件\n\n")
+        file.write("这些文件存在于代码中，但未匹配任何 CSV API（`classification=extra_file`）：\n\n")
         for extra_file in sorted(self.extra_files):
             file.write(f"- `{extra_file}`\n")
         file.write("\n")
@@ -618,7 +814,13 @@ class APIValidator:
         for module_name in sorted(implemented_by_module.keys()):
             file.write(f"### {module_name} ({len(implemented_by_module[module_name])} 个)\n\n")
             for api in sorted(implemented_by_module[module_name], key=lambda item: item.name):
-                file.write(f"- ✅ {api.name} (`{api.expected_file}`)\n")
+                if api.match_kind and api.match_kind != "strict" and api.implementation_file:
+                    file.write(
+                        f"- ✅ {api.name} (`{api.expected_file}` → `{api.implementation_file}` "
+                        f"via `{api.match_kind}`)\n"
+                    )
+                else:
+                    file.write(f"- ✅ {api.name} (`{api.expected_file}`)\n")
             file.write("\n")
 
     def _calculate_module_stats(self) -> Dict[str, Dict[str, Any]]:
@@ -660,6 +862,9 @@ class APIValidator:
             "url": api.url,
             "doc_path": api.doc_path,
             "expected_file": api.expected_file,
+            "classification": "true_gap",
+            "match_kind": api.match_kind or "true_gap",
+            "match_reason": api.match_reason,
             "priority_level": api.priority_level,
             "priority_score": api.priority_score,
             "business_value": api.business_value,
@@ -670,11 +875,78 @@ class APIValidator:
         }
 
     @staticmethod
+    def _serialize_path_noise_match(api: APIInfo) -> Dict[str, Any]:
+        return {
+            "api_id": api.api_id,
+            "name": api.name,
+            "biz_tag": api.biz_tag,
+            "project": api.meta_project,
+            "version": api.meta_version,
+            "resource": api.meta_resource,
+            "meta_name": api.meta_name,
+            "url": api.url,
+            "doc_path": api.doc_path,
+            "expected_file": api.expected_file,
+            "implementation_file": api.implementation_file,
+            "classification": "path_noise",
+            "match_kind": api.match_kind,
+            "match_reason": api.match_reason,
+        }
+
+    @staticmethod
     def _get_timestamp() -> str:
         """获取当前时间戳"""
         from datetime import datetime
 
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _flat_project_path(path: str) -> str:
+    """若路径以 `biz/biz/...` 开头，返回省略重复 project 段后的 flat 路径。"""
+    segments = path.split("/")
+    if len(segments) >= 3 and segments[0] == segments[1] and segments[0]:
+        return "/".join([segments[0], *segments[2:]])
+    return path
+
+
+def _rust_keyword_directory_variants(path: str) -> List[Tuple[str, str]]:
+    """对目录段中的 Rust 关键字生成 `{kw}_mod` 变体（不改文件名 stem）。"""
+    if not path.endswith(".rs"):
+        return []
+    body = path[: -len(".rs")]
+    segments = body.split("/")
+    if len(segments) < 2:
+        return []
+    directory_segments = segments[:-1]
+    file_stem = segments[-1]
+    variants: List[Tuple[str, str]] = []
+    for index, segment in enumerate(directory_segments):
+        if segment not in _RUST_PATH_KEYWORDS:
+            continue
+        rewritten = directory_segments[:]
+        rewritten[index] = f"{segment}_mod"
+        variants.append(("/".join([*rewritten, file_stem]) + ".rs", segment))
+    return variants
+
+
+def _typo_corrected_path_variants(path: str) -> List[Tuple[str, str, str]]:
+    """对路径段应用已知 CSV 拼写修正，返回 (new_path, old, new)。"""
+    segments = path.split("/")
+    variants: List[Tuple[str, str, str]] = []
+    for index, segment in enumerate(segments):
+        # 文件名 stem 也可能含 typo（少见）；统一按整段替换
+        stem = segment
+        suffix = ""
+        if segment.endswith(".rs"):
+            stem = segment[: -len(".rs")]
+            suffix = ".rs"
+        replacement = _KNOWN_PATH_SEGMENT_TYPOS.get(stem)
+        if not replacement or replacement == stem:
+            continue
+        rewritten = segments[:]
+        rewritten[index] = replacement + suffix
+        variants.append(("/".join(rewritten), stem, replacement))
+    return variants
 
 
 def _as_string_list(value: Any) -> List[str]:
@@ -971,6 +1243,12 @@ def main() -> int:
             else:
                 file.write("- 包含 `meta.Version=old`。\n")
             file.write("- 数据来源：`api_list_export.csv` 对比 crate 源码目录。\n")
+            file.write(
+                "- 路径匹配：canonical nested + flat_project / rust_keyword / rewrite / alias / typo_correction。\n"
+            )
+            file.write(
+                "- 分类：`strict_matched` / `path_noise_matched`（计入已实现）/ `true_missing` / `extra_files`。\n"
+            )
             file.write(f"- 缺失 API 优先级配置：`{priority_source_path}`。\n")
             file.write(f"- 综合分公式：`{priority_model.priority_formula()}`。\n\n")
 
@@ -979,6 +1257,8 @@ def main() -> int:
             total_missing = sum(row[1]["missing"] for row in crate_rows)
             total_extra = sum(row[1]["extra_files"] for row in crate_rows)
             total_rate = (total_impl / total_apis * 100) if total_apis > 0 else 0.0
+            total_strict = sum(row[1].get("classification", {}).get("strict_matched", 0) for row in crate_rows)
+            total_noise = sum(row[1].get("classification", {}).get("path_noise_matched", 0) for row in crate_rows)
 
             file.write("## 总览\n\n")
             file.write("| 指标 | 数量 |\n")
@@ -986,19 +1266,27 @@ def main() -> int:
             file.write(f"| crate 数量 | {len(crate_rows)} |\n")
             file.write(f"| API 总数 | {total_apis} |\n")
             file.write(f"| 已实现 | {total_impl} |\n")
-            file.write(f"| 未实现 | {total_missing} |\n")
+            file.write(f"|   strict 匹配 | {total_strict} |\n")
+            file.write(f"|   路径噪音匹配 | {total_noise} |\n")
+            file.write(f"| 真缺口(未实现) | {total_missing} |\n")
             file.write(f"| 完成率 | {total_rate:.1f}% |\n")
             file.write(f"| 额外文件 | {total_extra} |\n\n")
 
             file.write("## 各 crate 覆盖率\n\n")
-            file.write("| crate | bizTag | 总数 | 已实现 | 未实现 | 完成率 | 额外文件 | 报告 |\n")
-            file.write("|-------|--------|------|--------|--------|--------|----------|------|\n")
+            file.write(
+                "| crate | bizTag | 总数 | 已实现 | 路径噪音 | 真缺口 | 完成率 | 额外文件 | 报告 |\n"
+            )
+            file.write(
+                "|-------|--------|------|--------|----------|--------|--------|----------|------|\n"
+            )
             for crate_name, stats, report_rel, tags in sorted(crate_rows, key=lambda item: item[0]):
                 tags_text = ", ".join(tags)
+                noise = stats.get("classification", {}).get("path_noise_matched", 0)
                 file.write(
                     f"| {crate_name} | `{tags_text}` | {stats['total_apis']} | "
-                    f"{stats['implemented']} | {stats['missing']} | {stats['completion_rate']:.1f}% | "
-                    f"{stats['extra_files']} | [{crate_name}]({report_rel}) |\n"
+                    f"{stats['implemented']} | {noise} | {stats['missing']} | "
+                    f"{stats['completion_rate']:.1f}% | {stats['extra_files']} | "
+                    f"[{crate_name}]({report_rel}) |\n"
                 )
             file.write("\n")
 
@@ -1125,6 +1413,16 @@ def main() -> int:
         total_missing = sum(item["missing"] for item in crate_summaries.values())
         total_extra = sum(item["extra_files"] for item in crate_summaries.values())
         total_rate = (total_impl / total_apis * 100) if total_apis > 0 else 0.0
+        total_strict = sum(
+            item.get("classification", {}).get("strict_matched", 0) for item in crate_summaries.values()
+        )
+        total_path_noise = sum(
+            item.get("classification", {}).get("path_noise_matched", 0) for item in crate_summaries.values()
+        )
+        all_path_noise_matches: List[Dict[str, Any]] = []
+        for crate_name, stats in crate_summaries.items():
+            for item in stats.get("path_noise_matches", []):
+                all_path_noise_matches.append({"crate": crate_name, **item})
 
         priority_counts: Dict[str, int] = defaultdict(int)
         for _, api in all_missing_apis:
@@ -1142,6 +1440,13 @@ def main() -> int:
             "missing": total_missing,
             "completion_rate": round(total_rate, 1),
             "extra_files": total_extra,
+            "classification": {
+                "strict_matched": total_strict,
+                "path_noise_matched": total_path_noise,
+                "true_missing": total_missing,
+                "extra_files": total_extra,
+            },
+            "path_noise_matches": all_path_noise_matches,
             "priority_counts": dict(sorted(priority_counts.items())),
             "top_missing_apis": top_missing_apis,
             "dashboards": dashboard_payloads,

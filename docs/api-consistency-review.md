@@ -155,13 +155,13 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 
 ### 6.1 覆盖率是「路径制」，文件存在 ≠ URL 正确
 
-`validate_apis.py` 严格按路径约定判文件在不在。报「缺失」分三类：
+`validate_apis.py` 按路径约定判文件在不在，并在比较阶段对常见 layout 做 denoise（flat_project / rust_keyword / rewrite / alias / typo_correction）。报告已将结果拆成 **strict 匹配 / 路径噪音匹配 / 真缺口 / 额外文件**（见 `docs/typed-api-coverage.md` §1.1–1.2）。仍须人工鉴别三类语义：
 
-- **① 路径命名噪音**（多数）：文件在、URL 也对，只是落盘路径偏离规范（扁平化、bizTag 别名、拼写）。非缺口。
-- **② 文件在但 endpoint URL 写错**（真 bug，调不通）：曾发生在 workflow task v2 的 `section`/`custom_field`——文件、结构体、测试齐全，但 URL 错用了 tasklist 作用域前缀，**调用必 404**。
-- **③ 真未实现**：文件确实没有。
+- **① 路径命名噪音**：文件在、URL 也对，只是落盘路径偏离 canonical nested 公式。工具会尽量自动记入 `path_noise_matches`（计入已实现，附 evidence）；未覆盖到的变体仍可能出现在真缺口里，需对照 `extra_file_list`。
+- **② 文件在但 endpoint URL 写错**（真 bug，调不通）：曾发生在 workflow task v2 的 `section`/`custom_field`——文件、结构体、测试齐全，但 URL 错用了 tasklist 作用域前缀，**调用必 404**。路径覆盖率检查发现不了这一类。
+- **③ 真未实现**：`classification=true_gap`，磁盘上无对应叶子实现。
 
-→ 鉴别两步：(1) `find` 文件存在与否（区分 ①②与③）；(2) **文件存在时必须再 grep `api_endpoints.rs` 核对 URL** 对照 CSV `url` 列——文件存在不等于 URL 正确，这是 ②类 bug 唯一的发现方式（路径覆盖率检查发现不了）。
+→ 鉴别两步：(1) 先看报告分类与 `path_noise_matches` evidence；(2) **文件存在时必须再核对 endpoint URL** 对照 CSV `url` 列——文件存在不等于 URL 正确，这是 ②类 bug 的发现方式。
 
 ### 6.2 Potemkin URL 测试：测试名有 URL ≠ URL 被测
 
