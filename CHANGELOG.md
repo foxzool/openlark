@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Breaking — 目标 0.19)
 
+- **core/client：删除死映射 `ErrorCode::from_feishu_code` 与 `from_feishu_response`（#546，ADR-0004）**：
+  三条飞书码映射路径收敛为一条——`ErrorCode::from_code(raw_code)`（经 `api_error` / `ApiError.raw_code` 接通，不截断）。
+  删除 `ErrorCode::from_feishu_code(i32) → Option`（`from_code` 飞书臂的子集复刻）及
+  `openlark_client::error::from_feishu_response`（测试外零调用）。
+  **迁移**：改用 `ErrorCode::from_code(code)`（未知 → `Unknown` 而非 `None`）或
+  core / client `api_error(raw_code, endpoint, message, request_id)`。
+
 - **hr/attendance：`user_daily_shift` 族 3 API 字段对齐飞书官网 schema（#533）**：
   `batch_create`（`shifts`→`user_daily_shifts`[{group_id,shift_id,month,user_id,day_no,is_clear_schedule}]，加可选 `operator_id`）、
   `batch_create_temp`（`TempShift`→`user_tmp_daily_shifts`[{group_id,user_id,date,shift_name,punch_time_simple_rules[{on_time,off_time}]}]）、
