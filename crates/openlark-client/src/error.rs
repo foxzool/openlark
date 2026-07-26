@@ -3,9 +3,7 @@
 //! 基于 openlark-core 的现代化错误处理系统
 //! 直接使用 CoreError，提供类型安全和用户友好的错误管理
 
-use openlark_core::error::{
-    ApiError, CoreError, ErrorCategory, ErrorCode, ErrorContext, ErrorTrait, ErrorType,
-};
+use openlark_core::error::{ApiError, CoreError, ErrorCode, ErrorContext, ErrorTrait, ErrorType};
 
 /// 🚨 OpenLark 客户端错误类型
 ///
@@ -61,6 +59,7 @@ pub fn from_feishu_response(
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> Error {
+    // #544 编译同步：字面构造改 raw_code；映射收敛删除留给 #546。
     let mapped = ErrorCode::from_feishu_code(code).unwrap_or_else(|| ErrorCode::from_code(code));
 
     let mut ctx = ErrorContext::new();
@@ -69,19 +68,8 @@ pub fn from_feishu_response(
         ctx.set_request_id(req);
     }
 
-    let status = mapped
-        .http_status()
-        .unwrap_or_else(|| match mapped.category() {
-            ErrorCategory::RateLimit => 429,
-            ErrorCategory::Authentication
-            | ErrorCategory::Permission
-            | ErrorCategory::Parameter => 400,
-            ErrorCategory::Resource => 404,
-            _ => 500,
-        });
-
     CoreError::Api(Box::new(ApiError {
-        status,
+        raw_code: code,
         endpoint: endpoint.into().into(),
         message: message.into(),
         source: None,
@@ -92,12 +80,12 @@ pub fn from_feishu_response(
 
 /// 创建API错误
 pub fn api_error(
-    status: u16,
+    raw_code: i32,
     endpoint: impl Into<String>,
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> Error {
-    openlark_core::error::api_error(status, endpoint, message, request_id)
+    openlark_core::error::api_error(raw_code, endpoint, message, request_id)
 }
 
 /// 创建验证错误

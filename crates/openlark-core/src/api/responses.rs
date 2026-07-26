@@ -6,9 +6,16 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// 原始响应数据
+///
+/// `code` 是**双域共槽**：
+/// - 飞书业务信封：装入飞书 `code` 字段（可为 9 位 i32，如 `99991663`）；
+/// - HTTP 非 2xx 且无信封：装入合成 HTTP status（如 429/500）。
+///
+/// [`ErrorCode::from_code`] 同时含 HTTP status 臂与飞书业务码臂，是双域共槽
+/// 行为正确的依据——**不要**因命名困惑而拆字段；拆共槽属另案（ADR-0004 非目标）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawResponse {
-    /// 响应代码
+    /// 响应代码（双域共槽：飞书业务码或合成 HTTP status；见结构体文档）
     pub code: i32,
     /// 响应消息
     pub msg: String,
@@ -246,7 +253,8 @@ impl<T> Response<T> {
         let raw = self.raw_response;
         let request_id = raw.request_id.clone();
         let err = if raw.code != 0 {
-            crate::error::api_error(raw.code as u16, "response", raw.msg, request_id.clone())
+            // 传 raw.code 原值（i32），禁止 as u16 截断；分类经 ErrorCode::from_code
+            crate::error::api_error(raw.code, "response", raw.msg, request_id.clone())
         } else {
             crate::error::validation_error("response.data", "服务器没有返回有效的数据")
         };
@@ -417,6 +425,43 @@ mod tests {
         assert_eq!(err.ctx().request_id(), Some("rid-x"));
         match err {
             crate::error::CoreError::Api(api) => assert!(api.message.contains("permission denied")),
+            other => panic!("expected Api for business error, got: {other:?}"),
+        }
+    }
+
+    /// #544：业务错误码不截断——分类接通 `ErrorCode::from_code`，`raw_code` 原样保留。
+    #[test]
+    fn decode_business_error_classifies_raw_code_without_truncation() {
+        let response: Response<String> = Response {
+            data: None,
+            raw_response: RawResponse {
+                code: 99991663,
+                msg: "tenant access token invalid".to_string(),
+                request_id: Some("rid-raw".to_string()),
+                ..RawResponse::success()
+            },
+        };
+        let err = response
+            .decode("测试-raw_code")
+            .expect_err("业务错误应报错");
+        assert_eq!(err.ctx().request_id(), Some("rid-raw"));
+        match err {
+            crate::error::CoreError::Api(api) => {
+                assert_eq!(
+                    api.raw_code, 99991663,
+                    "raw_code must preserve full i32 feishu code"
+                );
+                assert_eq!(
+                    api.code,
+                    crate::error::ErrorCode::TenantAccessTokenInvalid,
+                    "classification must use from_code without u16 truncation"
+                );
+                let display = api.to_string();
+                assert!(
+                    display.contains("99991663"),
+                    "Display must show real code, not truncated garbage: {display}"
+                );
+            }
             other => panic!("expected Api for business error, got: {other:?}"),
         }
     }

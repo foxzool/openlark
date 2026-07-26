@@ -10,7 +10,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, RequestData, ResponseFormat},
     config::Config,
     constants::AccessTokenType,
-    error::CoreError,
+    error::{CoreError, ErrorCode},
     http::Transport,
     req_option::RequestOption,
 };
@@ -1102,5 +1102,64 @@ async fn request_typed_failure_attaches_operation_resource_request_id() {
             );
         }
         other => panic!("expected CoreError::Api for business error, got: {other:?}"),
+    }
+}
+
+/// #544：飞书业务错误码解码不断裂——`request_typed` 生产路径分类为
+/// `TenantAccessTokenInvalid`，`raw_code` 原样，`X-Tt-Logid` 透传为 request_id。
+#[tokio::test]
+async fn request_typed_feishu_business_code_classifies_without_truncation() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/open-apis/contract/typed/token-invalid"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("X-Tt-Logid", "logid-token-invalid-544")
+                .set_body_json(serde_json::json!({
+                    "code": 99991663,
+                    "msg": "tenant access token invalid",
+                    "data": null
+                })),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let config = contract_config(&server.uri());
+    let req = get_req("/open-apis/contract/typed/token-invalid");
+
+    let err = Transport::<ContractData>::request_typed(
+        req,
+        &config,
+        Some(no_auth_option()),
+        "测试-token-invalid",
+    )
+    .await
+    .expect_err("feishu business error must surface as CoreError::Api");
+
+    assert_eq!(
+        err.ctx().request_id(),
+        Some("logid-token-invalid-544"),
+        "X-Tt-Logid must become request_id"
+    );
+
+    match &err {
+        CoreError::Api(api) => {
+            assert_eq!(
+                api.raw_code, 99991663,
+                "raw_code must preserve full 9-digit feishu code (no as u16 truncation)"
+            );
+            assert_eq!(
+                api.code,
+                ErrorCode::TenantAccessTokenInvalid,
+                "production path must classify via ErrorCode::from_code without truncation"
+            );
+            assert!(
+                api.message.contains("tenant access token invalid"),
+                "msg preserved: {}",
+                api.message
+            );
+        }
+        other => panic!("expected CoreError::Api, got: {other:?}"),
     }
 }

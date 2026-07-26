@@ -76,11 +76,11 @@ macro_rules! business_err {
 /// 创建API错误的宏
 #[macro_export]
 macro_rules! api_err {
-    ($status:expr, $endpoint:expr, $msg:expr) => {
-        $crate::error::api_error($status, $endpoint, $msg, None::<String>)
+    ($raw_code:expr, $endpoint:expr, $msg:expr) => {
+        $crate::error::api_error($raw_code, $endpoint, $msg, None::<String>)
     };
-    ($status:expr, $endpoint:expr, $fmt:expr, $($arg:tt)*) => {
-        $crate::error::api_error($status, $endpoint, format!($fmt, $($arg)*), None::<String>)
+    ($raw_code:expr, $endpoint:expr, $fmt:expr, $($arg:tt)*) => {
+        $crate::error::api_error($raw_code, $endpoint, format!($fmt, $($arg)*), None::<String>)
     };
 }
 

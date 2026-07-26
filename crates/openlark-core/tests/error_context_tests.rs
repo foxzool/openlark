@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn test_is_retryable_rate_limit() {
         let error = CoreError::api_builder()
-            .status(429)
+            .raw_code(429)
             .message("请求过于频繁")
             .build();
 
@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn test_is_retryable_server_error() {
         let error = CoreError::api_builder()
-            .status(503)
+            .raw_code(503)
             .message("服务不可用")
             .build();
 

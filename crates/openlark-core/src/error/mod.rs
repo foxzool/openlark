@@ -363,7 +363,7 @@ mod tests {
     #[test]
     fn test_error_builder_api_error() {
         let error = CoreError::api_builder()
-            .status(429)
+            .raw_code(429)
             .endpoint("/api/rate-limited")
             .message("请求过于频繁")
             .request_id("req-rate-001")
