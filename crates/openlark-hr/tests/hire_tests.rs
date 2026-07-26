@@ -2331,9 +2331,7 @@ mod common_models_surface_tests {
         CatalogItem, CodeNameObject, FlexibleText, I18nText, IdNameObject, LocalizedLabel,
         PaginatedResponse,
     };
-    use openlark_hr::hire::hire::common_models::{
-        ApplicationJobInfo, AttachmentMeta, NoteRecord,
-    };
+    use openlark_hr::hire::hire::common_models::{ApplicationJobInfo, AttachmentMeta, NoteRecord};
 
     #[test]
     fn shared_primitives_live_at_shared_models() {
