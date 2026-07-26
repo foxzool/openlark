@@ -11,7 +11,7 @@ use std::collections::HashMap;
 /// - 飞书业务信封：装入飞书 `code` 字段（可为 9 位 i32，如 `99991663`）；
 /// - HTTP 非 2xx 且无信封：装入合成 HTTP status（如 429/500）。
 ///
-/// [`ErrorCode::from_code`] 同时含 HTTP status 臂与飞书业务码臂，是双域共槽
+/// [`crate::error::ErrorCode::from_code`] 同时含 HTTP status 臂与飞书业务码臂，是双域共槽
 /// 行为正确的依据——**不要**因命名困惑而拆字段；拆共槽属另案（ADR-0004 非目标）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawResponse {
