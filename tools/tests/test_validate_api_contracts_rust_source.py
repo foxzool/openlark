@@ -10,6 +10,8 @@ from tools.api_contracts.rust_source import (
     extract_rust_response_fields,
     extract_rust_fields,
     load_endpoint_constants,
+    load_enum_endpoints,
+    load_enum_methods,
     resolve_format_expression,
     scan_api_file,
 )
@@ -297,6 +299,117 @@ class RustSourceContractTests(unittest.TestCase):
         self.assertIsNotNone(contract)
         assert contract is not None
         self.assertTrue(contract.has_flatten_value_passthrough)
+
+
+
+
+class DocsCatalogEndpointResolverTests(unittest.TestCase):
+    """#568：docs 域 CatalogEndpoint / .to_request() 解析盲区。"""
+
+    def test_load_enum_endpoints_reads_api_endpoints_submodules(self):
+        src = REPO_ROOT / "crates" / "openlark-docs" / "src"
+        endpoints = load_enum_endpoints(src, load_endpoint_constants(src))
+        self.assertIn("LingoApiV1::RepoList", endpoints)
+        self.assertEqual(endpoints["LingoApiV1::RepoList"], "/open-apis/lingo/v1/repos")
+        self.assertIn("BaseApiV2::RoleCreate", endpoints)
+        self.assertEqual(
+            endpoints["BaseApiV2::RoleCreate"],
+            "/open-apis/base/v2/apps/{param}/roles",
+        )
+
+    def test_load_enum_endpoints_keeps_baike_and_lingo_path_prefixes_distinct(self):
+        src = REPO_ROOT / "crates" / "openlark-docs" / "src"
+        endpoints = load_enum_endpoints(src, load_endpoint_constants(src))
+        self.assertEqual(
+            endpoints["BaikeApiV1::DraftUpdate"],
+            "/open-apis/baike/v1/drafts/{param}",
+        )
+        self.assertEqual(
+            endpoints["LingoApiV1::DraftUpdate"],
+            "/open-apis/lingo/v1/drafts/{param}",
+        )
+        self.assertEqual(
+            endpoints["LingoApiV1::EntityMatch"],
+            "/open-apis/lingo/v1/entities/match",
+        )
+        self.assertEqual(
+            endpoints["BaikeApiV1::EntityMatch"],
+            "/open-apis/baike/v1/entities/match",
+        )
+
+    def test_load_enum_methods_from_catalog_endpoint_impl(self):
+        src = REPO_ROOT / "crates" / "openlark-docs" / "src"
+        methods = load_enum_methods(src)
+        self.assertEqual(methods.get("LingoApiV1::RepoList"), "GET")
+        self.assertEqual(methods.get("LingoApiV1::DraftUpdate"), "PUT")
+        self.assertEqual(methods.get("LingoApiV1::EntityDelete"), "DELETE")
+        self.assertEqual(methods.get("BaseApiV2::RoleCreate"), "POST")
+        self.assertEqual(methods.get("BaikeApiV1::DraftUpdate"), "PUT")
+        self.assertEqual(methods.get("MinutesExtraApiV1::Search"), "POST")
+
+    def test_extract_endpoint_calls_resolves_direct_to_request(self):
+        text = """
+        let api_request: ApiRequest<ListRepoResp> = LingoApiV1::RepoList.to_request();
+        """
+        resolver = EndpointResolver(
+            constants={},
+            enum_endpoints={"LingoApiV1::RepoList": "/open-apis/lingo/v1/repos"},
+            enum_methods={"LingoApiV1::RepoList": "GET"},
+        )
+        calls = extract_endpoint_calls(text, resolver)
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0].is_resolved)
+        self.assertEqual(calls[0].method, "GET")
+        self.assertEqual(calls[0].resolved_path, "/open-apis/lingo/v1/repos")
+
+    def test_extract_endpoint_calls_resolves_to_request_with_variant_args(self):
+        text = """
+        let mut api_request: ApiRequest<UpdateDraftResp> = BaikeApiV1::DraftUpdate(self.draft_id)
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
+        """
+        resolver = EndpointResolver(
+            constants={},
+            enum_endpoints={"BaikeApiV1::DraftUpdate": "/open-apis/baike/v1/drafts/{param}"},
+            enum_methods={"BaikeApiV1::DraftUpdate": "PUT"},
+        )
+        calls = extract_endpoint_calls(text, resolver)
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0].is_resolved)
+        self.assertEqual(calls[0].method, "PUT")
+        self.assertEqual(calls[0].resolved_path, "/open-apis/baike/v1/drafts/{param}")
+
+    def test_extract_endpoint_calls_resolves_variable_to_request(self):
+        text = """
+        let api_endpoint = SheetsApiV3::GetFilter(spreadsheet_token.to_string(), sheet_id.to_string());
+        let api_request: ApiRequest<GetFilterResponse> = api_endpoint.to_request();
+        """
+        resolver = EndpointResolver(
+            constants={},
+            enum_endpoints={
+                "SheetsApiV3::GetFilter": (
+                    "/open-apis/sheets/v3/spreadsheets/{param}/sheets/{param}/filter"
+                )
+            },
+            enum_methods={"SheetsApiV3::GetFilter": "GET"},
+        )
+        calls = extract_endpoint_calls(text, resolver)
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0].is_resolved)
+        self.assertEqual(calls[0].method, "GET")
+
+    def test_scan_api_file_resolves_docs_catalog_to_request(self):
+        src = REPO_ROOT / "crates" / "openlark-docs" / "src"
+        contract = scan_api_file(src, "baike/lingo/v1/repo/list.rs")
+        self.assertIsNotNone(contract)
+        assert contract is not None
+        self.assertTrue(contract.endpoint_calls)
+        self.assertTrue(contract.endpoint_calls[0].is_resolved)
+        self.assertEqual(contract.endpoint_calls[0].method, "GET")
+        self.assertEqual(
+            contract.endpoint_calls[0].resolved_path,
+            "/open-apis/lingo/v1/repos",
+        )
 
 
 class ExtractAccessTokensTests(unittest.TestCase):

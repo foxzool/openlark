@@ -264,7 +264,9 @@ pub use wiki::{WikiApi, WikiApiV1, WikiApiV2};
 
 pub mod lingo;
 pub use lingo::LingoApiV1;
-pub use lingo::LingoApiV1 as BaikeApiV1;
+
+pub mod baike;
+pub use baike::BaikeApiV1;
 
 pub mod minutes;
 pub use minutes::MinutesApiV1;

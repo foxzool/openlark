@@ -212,5 +212,18 @@ just api-contract-fields openlark-ai 1
 
 - 字段级校验目前只覆盖 request body 顶层字段和 response `data` 顶层字段。
 - 嵌套字段、query/path 参数还未纳入 strict 比较。
-- endpoint 解析对复杂 `to_url()` enum 或动态拼接会给出 `W_ENDPOINT_UNRESOLVED`，不会在 endpoint strict 模式下失败。
+- endpoint 解析对**无法识别**的复杂动态拼接仍会给出 `W_ENDPOINT_UNRESOLVED`，不会在 endpoint strict 模式下失败。
 - live 模式依赖飞书官网详情接口，适合抽样和排查，不应替代离线快检。
+
+### 6.1 Docs CatalogEndpoint 解析（#568）
+
+`openlark-docs` 的 typed API 几乎全部通过 `CatalogEndpoint::to_request()` 构造请求（而不是
+`ApiRequest::get/post(...)` 字面量）。contract validator 现已支持：
+
+- `api_endpoints.rs` **以及** `api_endpoints/**/*.rs` 子模块中的 enum `to_url` / `method`
+- `Enum::Variant(...).to_request()` / `.to_request::<T>()` / `var.to_request()`
+- `pub use Target as Alias` 与独立 baike/lingo catalog（路径前缀不可混用）
+
+因此 docs 域的 path/method drift 会以 `E_ENDPOINT_*` **ERROR** 出现在报告中（不再被
+`W_ENDPOINT_UNRESOLVED` 掩盖）。`just api-contracts` / CI `--strict endpoint` 对
+`openlark-docs` 与其他 crate 使用同一 strict 规则。

@@ -1,0 +1,17 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/baike.rs
+expression: "catalog_semantics_snapshot::<BaikeApiV1>()"
+---
+DraftCreate | Post | /open-apis/baike/v1/drafts | Some([User, Tenant])
+DraftUpdate("") | Put | /open-apis/baike/v1/drafts/ | Some([User, Tenant])
+EntityCreate | Post | /open-apis/baike/v1/entities | Some([User, Tenant])
+EntityUpdate("") | Put | /open-apis/baike/v1/entities/ | Some([User, Tenant])
+EntityGet("") | Get | /open-apis/baike/v1/entities/ | Some([User, Tenant])
+EntityList | Get | /open-apis/baike/v1/entities | Some([User, Tenant])
+EntityMatch | Post | /open-apis/baike/v1/entities/match | Some([User, Tenant])
+EntitySearch | Post | /open-apis/baike/v1/entities/search | Some([User, Tenant])
+EntityHighlight | Post | /open-apis/baike/v1/entities/highlight | Some([User, Tenant])
+EntityExtract | Post | /open-apis/baike/v1/entities/extract | Some([User, Tenant])
+ClassificationList | Get | /open-apis/baike/v1/classifications | Some([User, Tenant])
+FileUpload | Post | /open-apis/baike/v1/files/upload | Some([User, Tenant])
+FileDownload("") | Get | /open-apis/baike/v1/files//download | Some([User, Tenant])

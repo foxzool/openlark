@@ -36,7 +36,12 @@ from tools.api_contracts.official import (
     parse_access_token_types_from_markdown,
 )
 from tools.api_contracts.report import write_report, write_summary
-from tools.api_contracts.rust_source import load_endpoint_constants, load_enum_endpoints, scan_api_file
+from tools.api_contracts.rust_source import (
+    load_endpoint_constants,
+    load_enum_endpoints,
+    load_enum_methods,
+    scan_api_file,
+)
 
 
 def implementation_path_candidates(expected_file: str, crate_config: dict) -> list[str]:
@@ -137,6 +142,7 @@ def validate_crate(
     apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
     constants = load_endpoint_constants(src_path)
     enum_endpoints = load_enum_endpoints(src_path, constants)
+    enum_methods = load_enum_methods(src_path)
     report = ContractReport(crate_name=crate_name, total_apis=len(apis))
 
     field_checks = 0
@@ -145,7 +151,12 @@ def validate_crate(
             (
                 contract
                 for candidate in implementation_path_candidates(api.expected_file, crate_config)
-                if (contract := scan_api_file(src_path, candidate, constants, enum_endpoints)) is not None
+                if (
+                    contract := scan_api_file(
+                        src_path, candidate, constants, enum_endpoints, enum_methods
+                    )
+                )
+                is not None
             ),
             None,
         )
