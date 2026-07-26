@@ -9,12 +9,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Breaking — 目标 0.19)
 
-- **core/client：删除死映射 `ErrorCode::from_feishu_code` 与 `from_feishu_response`（#546，ADR-0004）**：
-  三条飞书码映射路径收敛为一条——`ErrorCode::from_code(raw_code)`（经 `api_error` / `ApiError.raw_code` 接通，不截断）。
-  删除 `ErrorCode::from_feishu_code(i32) → Option`（`from_code` 飞书臂的子集复刻）及
-  `openlark_client::error::from_feishu_response`（测试外零调用）。
-  **迁移**：改用 `ErrorCode::from_code(code)`（未知 → `Unknown` 而非 `None`）或
-  core / client `api_error(raw_code, endpoint, message, request_id)`。
+- **core/client：飞书错误码解码断裂修复 —— `ApiError.raw_code` + 映射收敛（#544/#545/#546，ADR-0004）**：
+  生产路径曾把飞书 9 位业务码（如 `99991663`）`as u16` 截断后再分类，导致 `ErrorCode` 恒为
+  `Unknown`，`Display` 输出垃圾码。本批接通 `ErrorCode::from_code(raw_code)` 单路径，并收敛
+  三条并行映射。与 ADR-0002（`apply_app_ticket` 收口）/ ADR-0003（`WsClientError` 收并）同属
+  0.19 breaking 窗口；条目各自独立、不重复。
+  - **`ApiError.status: u16` 移除，`raw_code: i32` 新增**（#544）：字段语义从「截断后的假 HTTP
+    status」改为「原始错误码」（飞书 body `code` 或 HTTP 非 2xx 合成 status；与 `RawResponse.code`
+    同为双域共槽）。`code: ErrorCode` / `endpoint` / `message` / `source` / `ctx` 保留。
+    `Display` 打印 `raw_code`。`Response::decode` 传 `raw.code` 原值，去掉 `as u16`。
+  - **构造器签名 `u16` → `i32`**（#544）：自由函数 `api_error`、`CoreError::api` /
+    `CoreError::api_error`、client 转发壳 `openlark_client::error::api_error`、prelude 宏
+    `api_err!`、`ErrorBuilder::status(u16)` → `ErrorBuilder::raw_code(i32)` 同步改收完整
+    `i32`，经 `ErrorCode::from_code(raw_code)` 不截断分类。
+  - **retry 谓词切 `ErrorCode` variant**（#545，行为等价回归）：`CoreError::is_retryable` /
+    `retry_delay` 对 `Api` 不再匹配 `raw_code` 数值范围，改 `self.code().is_retryable()`
+    （覆盖 `TooManyRequests` + 5xx 族）。延迟公式保持 `1 << attempt.min(5)` 秒，**不**换成
+    `suggested_retry_delay`（后者对 429 固定 60s）。HTTP 合成 429/5xx 仍可重试；飞书业务码
+    仍不可重试。
+  - **删除死映射**（#546）：`ErrorCode::from_feishu_code(i32) → Option`（`from_code` 飞书臂的
+    子集复刻）与 `openlark_client::error::from_feishu_response`（测试外零调用，内含第三份
+    category→status magic）。三条路径收敛为一条：`ErrorCode::from_code(raw_code)`。
+  - **迁移（before → after）**：
+
+    ```rust
+    // 1) 读字段：status → raw_code / code
+    // before
+    if let CoreError::Api(api) = &err {
+        let _ = api.status; // u16 截断垃圾（99991663 → 49263）
+    }
+    // after
+    if let CoreError::Api(api) = &err {
+        let raw = api.raw_code;                 // i32 原样：99991663
+        let kind = api.code;                    // ErrorCode::TenantAccessTokenInvalid
+        assert_eq!(kind, ErrorCode::TenantAccessTokenInvalid);
+        let _ = raw;
+    }
+
+    // 2) 构造：api_error / CoreError::api* / api_err! 参数 u16 → i32（勿再 as u16）
+    // before
+    let _ = api_error(99991663u32 as u16, "/open-apis/...", "token invalid", None);
+    // after
+    let _ = api_error(99991663, "/open-apis/...", "token invalid", None);
+
+    // 3) ErrorBuilder：.status(u16) → .raw_code(i32)
+    // before
+    let _ = ErrorBuilder::new(BuilderKind::Api).status(404).message("not found").build();
+    // after
+    let _ = ErrorBuilder::new(BuilderKind::Api).raw_code(404).message("not found").build();
+
+    // 4) from_feishu_code 删除 → from_code（未知为 Unknown，非 None）
+    // before
+    // let opt: Option<ErrorCode> = ErrorCode::from_feishu_code(code);
+    // after
+    let kind = ErrorCode::from_code(code); // 未知 → ErrorCode::Unknown
+
+    // 5) from_feishu_response 删除 → core/client api_error 或 CoreError::Api
+    // before
+    // let err = openlark_client::error::from_feishu_response(...);
+    // after
+    let err = openlark_core::error::api_error(raw_code, endpoint, message, request_id);
+    ```
 
 - **hr/attendance：`user_daily_shift` 族 3 API 字段对齐飞书官网 schema（#533）**：
   `batch_create`（`shifts`→`user_daily_shifts`[{group_id,shift_id,month,user_id,day_no,is_clear_schedule}]，加可选 `operator_id`）、

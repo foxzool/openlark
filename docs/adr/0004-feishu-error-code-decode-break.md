@@ -1,7 +1,7 @@
 # ADR: 飞书错误码解码断裂修复（ApiError 承载 raw_code + 映射收敛）
 
-- **状态**: Proposed（2026-07-25 `/improve-codebase-architecture` → `/grilling` 达成共识，待实施）
-- **日期**: 2026-07-26
+- **状态**: Accepted（2026-07-26 全部落地：#543 ADR → #544 raw_code → #545 retry → #546 映射收敛 → #547 CHANGELOG/回归；见文末「执行记录」）
+- **日期**: 2026-07-26（决策）/ 2026-07-26（执行完成）
 - **决策者**: 架构评审 + 用户 grilling 共识
 - **来源**: 架构评审候选 1（error 解码断裂使 ErrorCode 分类在生产路径失效）+ grilling 三项决策；父 spec #542；本 ADR 为 #543
 - **breaking 窗口**: 目标 0.19，与 ADR-0002/0003 同批。公开 breaking：`ApiError.status: u16` 移除、`raw_code: i32` 新增；自由函数 `api_error` 与相关构造器签名 `u16 → i32`；`ErrorCode::from_feishu_code` 与 `openlark_client::error::from_feishu_response` 删除。`code: ErrorCode` / `endpoint` / `message` / `source` / `ctx` 字段保留。
@@ -143,4 +143,22 @@ SDK 使用者调用飞书 API 失败时拿到 `CoreError::Api`，但**无法区�
 
 ## 执行记录
 
-_待 #544–#547 落地后由 #547 补齐各 ticket commit 与验证结果。_
+ADR-0004 各阶段已落地（PR 链 #548 → #549 → #550 → #551 → #547，TDD；与 ADR-0002/0003 同批 0.19 窗口，CHANGELOG 条目各自独立、不重复）：
+
+| 阶段 | ticket / PR | commit | 产出 |
+|------|-------------|--------|------|
+| ADR | #543 / #548 | `c236add865936258e1eaae2d6cc0a4a784e61813` | 本文件：背景 / 三项决策 / 理由 / 后果 / 非目标 / 迁移路径 / 遵循 |
+| ApiError + decode | #544 / #549 | `5982eea16225458ad683cdf6855fa3dcce0565fa` | `ApiError.status: u16` → `raw_code: i32`；`api_error` / `CoreError::api*` / ErrorBuilder / prelude / client 转发壳签名 `u16→i32`；`Response::decode` 去 `as u16`；Display 打 `raw_code`；共槽注释；中间态 retry 先按 `raw_code` 范围（行为等价）。TDD：transport contract + decode 单元（`99991663 → TenantAccessTokenInvalid` + `raw_code` 原样 + `request_id` 透传） |
+| retry 判定 | #545 / #550 | `6acbbc21819ad78d6ebeb526c9389a55e51b7d97` | `is_retryable` / `retry_delay` 谓词切 `ErrorCode` variant（`api.code.is_retryable()` / 非 Network 统一 `self.code().is_retryable()`）；延迟公式保持 `1 << attempt.min(5)`；合成 429 可重试 + 飞书业务码不可重试回归 |
+| 映射收敛删除 | #546 / #551 | `ac51bb21a1ba22f4594f612374810ac010ce0183` | 删 `ErrorCode::from_feishu_code` + `from_feishu_response` 及其测试；全仓源码无残留；`ARCHITECTURE.md`「错误码对齐与优先级」改写为 `from_code` 单路径 + `raw_code` 语义；CHANGELOG 初稿条目 |
+| CHANGELOG + 回归 | #547 / 本提交 | （本提交 SHA） | CHANGELOG 0.19 breaking 迁移表覆盖 Breaking 清单全部行（字段移除/新增、`api_error`/`CoreError::api*`/ErrorBuilder/prelude 签名、两处删除）+ before/after 示例；与 ADR-0002/0003 同节并列；本 ADR 状态 → Accepted + 本执行记录；`just check-all` 等价验证 |
+
+验证（#547 本地全绿；#544–#546 各自合入时已独立全绿）：
+- `cargo test --workspace --all-features`（全 `0 failed`，含 transport contract / decode / retry seam）；
+- `cargo fmt --check`（workspace）；
+- `cargo clippy --workspace --all-targets --all-features -- -Dwarnings` 与 `--no-default-features` 两模式均 clean；
+- `RUSTDOCFLAGS="-D rustdoc::broken_intra_doc_links" cargo doc --workspace --all-features --no-deps`（无断链）；
+- `cargo machete`（workspace，无 unused dep）。
+- msrv 未单独跑：本批 #547 无依赖变更、lockfile 未动，不触发 msrv 门控（#551 若涉及 machete 清点已在其 PR 同步）。
+
+**Breaking（目标 0.19，与 ADR-0002/0003 同批）**：见上文「负面 / Breaking 清单」全部行；CHANGELOG Unreleased `### Changed (Breaking — 目标 0.19)` 下 ADR-0004 综合条目（#544/#545/#546）含 before/after 迁移示例。
