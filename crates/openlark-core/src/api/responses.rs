@@ -410,13 +410,14 @@ mod tests {
         assert_eq!(ctx.get_context("resource"), Some("测试"));
     }
 
+    /// 业务错误：保留 msg、request_id；#544 不截断——`raw_code` 原样 + `from_code` 分类 + Display 真码。
     #[test]
-    fn decode_business_error_is_api_error_preserving_msg() {
+    fn decode_business_error_preserves_msg_and_classifies_raw_code() {
         let response: Response<String> = Response {
             data: None,
             raw_response: RawResponse {
                 code: 99991663,
-                msg: "permission denied".to_string(),
+                msg: "tenant access token invalid".to_string(),
                 request_id: Some("rid-x".to_string()),
                 ..RawResponse::success()
             },
@@ -424,29 +425,12 @@ mod tests {
         let err = response.decode("测试").expect_err("业务错误应报错");
         assert_eq!(err.ctx().request_id(), Some("rid-x"));
         match err {
-            crate::error::CoreError::Api(api) => assert!(api.message.contains("permission denied")),
-            other => panic!("expected Api for business error, got: {other:?}"),
-        }
-    }
-
-    /// #544：业务错误码不截断——分类接通 `ErrorCode::from_code`，`raw_code` 原样保留。
-    #[test]
-    fn decode_business_error_classifies_raw_code_without_truncation() {
-        let response: Response<String> = Response {
-            data: None,
-            raw_response: RawResponse {
-                code: 99991663,
-                msg: "tenant access token invalid".to_string(),
-                request_id: Some("rid-raw".to_string()),
-                ..RawResponse::success()
-            },
-        };
-        let err = response
-            .decode("测试-raw_code")
-            .expect_err("业务错误应报错");
-        assert_eq!(err.ctx().request_id(), Some("rid-raw"));
-        match err {
             crate::error::CoreError::Api(api) => {
+                assert!(
+                    api.message.contains("tenant access token invalid"),
+                    "msg preserved: {}",
+                    api.message
+                );
                 assert_eq!(
                     api.raw_code, 99991663,
                     "raw_code must preserve full i32 feishu code"

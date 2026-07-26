@@ -3,7 +3,7 @@
 //! 基于 openlark-core 的现代化错误处理系统
 //! 直接使用 CoreError，提供类型安全和用户友好的错误管理
 
-use openlark_core::error::{ApiError, CoreError, ErrorCode, ErrorContext, ErrorTrait, ErrorType};
+use openlark_core::error::{CoreError, ErrorTrait, ErrorType};
 
 /// 🚨 OpenLark 客户端错误类型
 ///
@@ -53,29 +53,17 @@ pub fn user_identity_invalid_error(desc: impl Into<String>) -> Error {
 }
 
 /// 基于飞书通用 `code` 的统一错误映射（客户端自定义解析时可复用）
+///
+/// 委托 core `api_error`（`ErrorCode::from_code` 单路径）。#546 将删除本函数。
 pub fn from_feishu_response(
     code: i32,
     endpoint: impl Into<String>,
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> Error {
-    // #544 编译同步：字面构造改 raw_code；映射收敛删除留给 #546。
-    let mapped = ErrorCode::from_feishu_code(code).unwrap_or_else(|| ErrorCode::from_code(code));
-
-    let mut ctx = ErrorContext::new();
-    ctx.add_context("feishu_code", code.to_string());
-    if let Some(req) = request_id {
-        ctx.set_request_id(req);
-    }
-
-    CoreError::Api(Box::new(ApiError {
-        raw_code: code,
-        endpoint: endpoint.into().into(),
-        message: message.into(),
-        source: None,
-        code: mapped,
-        ctx: Box::new(ctx),
-    }))
+    openlark_core::error::api_error(code, endpoint, message, request_id).map_context(|ctx| {
+        ctx.add_context("feishu_code", code.to_string());
+    })
 }
 
 /// 创建API错误
