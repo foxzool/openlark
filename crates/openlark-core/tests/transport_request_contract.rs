@@ -10,7 +10,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, RequestData, ResponseFormat},
     config::Config,
     constants::AccessTokenType,
-    error::CoreError,
+    error::{CoreError, ErrorCode},
     http::Transport,
     req_option::RequestOption,
 };
@@ -1047,20 +1047,23 @@ async fn request_typed_custom_success_returns_typed() {
     assert_eq!(data.0, b"typed-custom-bytes");
 }
 
-/// 失败路径：业务错误 envelope（code≠0，data=null）→ `Transport::request` 仍返回
-/// `Ok(Response{data:None})`，`request_typed` 经 `extract_response_data` 抽取失败，
-/// 错误须附着 `operation` + `resource`(=context) + `request_id`（来自 envelope）。
+/// 失败路径：业务错误 envelope → `CoreError::Api`。
+/// - #485：保留 msg；附着 operation / resource / request_id
+/// - #544：不截断分类为 `TenantAccessTokenInvalid`，`raw_code` 原样；`X-Tt-Logid` 透传
 #[tokio::test]
-async fn request_typed_failure_attaches_operation_resource_request_id() {
+async fn request_typed_feishu_business_error_classifies_and_attaches_context() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/open-apis/contract/typed/fail"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code": 99991663,
-            "msg": "permission denied",
-            "request_id": "rid-typed-fail",
-            "data": null
-        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("X-Tt-Logid", "logid-token-invalid-544")
+                .set_body_json(serde_json::json!({
+                    "code": 99991663,
+                    "msg": "tenant access token invalid",
+                    "data": null
+                })),
+        )
         .expect(1)
         .mount(&server)
         .await;
@@ -1073,7 +1076,6 @@ async fn request_typed_failure_attaches_operation_resource_request_id() {
             .await
             .expect_err("business error envelope must surface as extraction failure");
 
-    // 经 canonical helper 的 map_context 附着的三件诊断上下文
     let ctx = err.ctx();
     assert_eq!(
         ctx.operation(),
@@ -1087,18 +1089,25 @@ async fn request_typed_failure_attaches_operation_resource_request_id() {
     );
     assert_eq!(
         ctx.request_id(),
-        Some("rid-typed-fail"),
-        "request_id from envelope must be attached for server-side reconciliation"
+        Some("logid-token-invalid-544"),
+        "X-Tt-Logid must become request_id"
     );
 
-    // Option C (#485)：业务错误（code≠0）保留飞书 msg，返回 Api 错误（非 Validation）；
-    // 此前 canonical 路径把业务错误当"data 缺失"丢 msg。
     match &err {
         CoreError::Api(api) => {
             assert!(
-                api.message.contains("permission denied"),
+                api.message.contains("tenant access token invalid"),
                 "business envelope msg must be preserved: {}",
                 api.message
+            );
+            assert_eq!(
+                api.raw_code, 99991663,
+                "raw_code must preserve full 9-digit feishu code (no as u16 truncation)"
+            );
+            assert_eq!(
+                api.code,
+                ErrorCode::TenantAccessTokenInvalid,
+                "production path must classify via ErrorCode::from_code without truncation"
             );
         }
         other => panic!("expected CoreError::Api for business error, got: {other:?}"),

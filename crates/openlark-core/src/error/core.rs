@@ -157,8 +157,8 @@ pub struct ErrorBuilder {
     message: Option<String>,
     /// 错误码
     code: Option<ErrorCode>,
-    /// HTTP 状态码
-    status: Option<u16>,
+    /// 原始错误码（飞书业务码或合成 HTTP status；双域共槽）
+    raw_code: Option<i32>,
     /// API 端点
     endpoint: Option<String>,
     /// 验证字段名
@@ -192,7 +192,7 @@ impl ErrorBuilder {
             kind,
             message: None,
             code: None,
-            status: None,
+            raw_code: None,
             endpoint: None,
             field: None,
             source: None,
@@ -220,9 +220,9 @@ impl ErrorBuilder {
         self
     }
 
-    /// 设置 HTTP 状态码
-    pub fn status(mut self, status: u16) -> Self {
-        self.status = Some(status);
+    /// 设置原始错误码（飞书业务码或 HTTP status 合成码）
+    pub fn raw_code(mut self, raw_code: i32) -> Self {
+        self.raw_code = Some(raw_code);
         self
     }
 
@@ -334,18 +334,16 @@ impl ErrorBuilder {
                 ctx: Box::new(self.ctx),
             },
             BuilderKind::Api => {
-                let status = self.status.unwrap_or(500);
+                let raw_code = self.raw_code.unwrap_or(500);
                 CoreError::Api(Box::new(ApiError {
-                    status,
+                    raw_code,
                     endpoint: self
                         .endpoint
                         .unwrap_or_else(|| "unknown".to_string())
                         .into(),
                     message: msg,
                     source: self.source,
-                    code: self
-                        .code
-                        .unwrap_or_else(|| ErrorCode::from_http_status(status)),
+                    code: self.code.unwrap_or_else(|| ErrorCode::from_code(raw_code)),
                     ctx: Box::new(self.ctx),
                 }))
             }
@@ -558,8 +556,8 @@ impl std::fmt::Display for NetworkError {
 /// API 错误
 #[derive(Debug)]
 pub struct ApiError {
-    /// HTTP 状态码
-    pub status: u16,
+    /// 原始错误码（飞书业务码或 HTTP 非 2xx 合成 status；与 `RawResponse.code` 同为双域共槽）
+    pub raw_code: i32,
     /// API 端点
     pub endpoint: Cow<'static, str>,
     /// 错误消息
@@ -574,7 +572,7 @@ pub struct ApiError {
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}: {}", self.status, self.endpoint, self.message)
+        write!(f, "{} {}: {}", self.raw_code, self.endpoint, self.message)
     }
 }
 
@@ -593,7 +591,7 @@ impl Clone for CoreError {
                 ctx: ctx.clone(),
             },
             Self::Api(api) => Self::Api(Box::new(ApiError {
-                status: api.status,
+                raw_code: api.raw_code,
                 endpoint: api.endpoint.clone(),
                 message: api.message.clone(),
                 source: None,
@@ -722,17 +720,12 @@ impl CoreError {
 
     /// 简单 API 错误（便于兼容旧 CoreError::api_error）
     pub fn api_error(
-        status: i32,
+        raw_code: i32,
         endpoint: impl Into<String>,
         message: impl Into<String>,
         request_id: Option<impl Into<String>>,
     ) -> Self {
-        api_error(
-            status as u16,
-            endpoint,
-            message,
-            request_id.map(|id| id.into()),
-        )
+        api_error(raw_code, endpoint, message, request_id.map(|id| id.into()))
     }
 
     /// 仅带 message 的验证错误（默认字段 general）
@@ -772,7 +765,7 @@ impl CoreError {
     /// API 数据错误
     pub fn api_data_error(message: impl Into<String>) -> Self {
         Self::Api(Box::new(ApiError {
-            status: 500,
+            raw_code: 500,
             endpoint: "data_error".into(),
             message: format!("no data: {}", message.into()),
             source: None,
@@ -808,7 +801,9 @@ impl CoreError {
     pub fn is_retryable(&self) -> bool {
         match self {
             Self::Network(net) => net.policy.is_retryable(),
-            Self::Api(api) => matches!(api.status, 429 | 500..=599),
+            // #544 中间态：按 raw_code 范围判定（HTTP 合成码可重试；飞书 9 位码不可重试）。
+            // #545 再切到 api.code.is_retryable() variant 判定。
+            Self::Api(api) => matches!(api.raw_code, 429 | 500..=599),
             Self::Timeout { .. } => self.code().is_retryable(),
             Self::RateLimit { .. } => self.code().is_retryable(),
             Self::ServiceUnavailable { .. } => self.code().is_retryable(),
@@ -823,7 +818,8 @@ impl CoreError {
             Self::Network(net) => net.policy.retry_delay(attempt),
             Self::RateLimit { window, .. } => Some(*window),
             Self::ServiceUnavailable { retry_after, .. } => *retry_after,
-            Self::Api(api) if matches!(api.status, 429 | 500..=599) => {
+            // #544 中间态：谓词跟 raw_code；延迟公式保持 1<<attempt（#545 不改公式）。
+            Self::Api(api) if matches!(api.raw_code, 429 | 500..=599) => {
                 Some(Duration::from_secs(1 << attempt.min(5)))
             }
             _ => None,
@@ -1069,17 +1065,17 @@ impl CoreError {
 
     /// API 错误
     pub fn api(
-        status: u16,
+        raw_code: i32,
         endpoint: impl Into<Cow<'static, str>>,
         message: impl Into<String>,
         ctx: ErrorContext,
     ) -> Self {
         Self::Api(Box::new(ApiError {
-            status,
+            raw_code,
             endpoint: endpoint.into(),
             message: message.into(),
             source: None,
-            code: ErrorCode::from_http_status(status),
+            code: ErrorCode::from_code(raw_code),
             ctx: Box::new(ctx),
         }))
     }
@@ -1235,18 +1231,21 @@ pub fn authentication_error(message: impl Into<String>) -> CoreError {
 }
 
 /// 创建API错误
+///
+/// `raw_code` 为原始错误码（飞书业务码或 HTTP 合成 status），经
+/// [`ErrorCode::from_code`] 不截断分类。
 pub fn api_error(
-    status: u16,
+    raw_code: i32,
     endpoint: impl Into<String>,
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> CoreError {
     CoreError::Api(Box::new(ApiError {
-        status,
+        raw_code,
         endpoint: endpoint.into().into(),
         message: message.into(),
         source: None,
-        code: ErrorCode::from_http_status(status),
+        code: ErrorCode::from_code(raw_code),
         ctx: {
             let mut ctx = ErrorContext::new();
             if let Some(req_id) = request_id {
@@ -1465,7 +1464,7 @@ mod tests {
     #[test]
     fn builder_creates_api_error_with_context() {
         let err = CoreError::api_builder()
-            .status(404)
+            .raw_code(404)
             .endpoint("/users/1")
             .message("not found")
             .request_id("req-123")
