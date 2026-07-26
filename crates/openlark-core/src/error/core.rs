@@ -801,9 +801,8 @@ impl CoreError {
     pub fn is_retryable(&self) -> bool {
         match self {
             Self::Network(net) => net.policy.is_retryable(),
-            // #544 中间态：按 raw_code 范围判定（HTTP 合成码可重试；飞书 9 位码不可重试）。
-            // #545 再切到 api.code.is_retryable() variant 判定。
-            Self::Api(api) => matches!(api.raw_code, 429 | 500..=599),
+            // #545：Api 重试谓词与分类单一事实源（ErrorCode variant）
+            Self::Api(api) => api.code.is_retryable(),
             Self::Timeout { .. } => self.code().is_retryable(),
             Self::RateLimit { .. } => self.code().is_retryable(),
             Self::ServiceUnavailable { .. } => self.code().is_retryable(),
@@ -818,8 +817,8 @@ impl CoreError {
             Self::Network(net) => net.policy.retry_delay(attempt),
             Self::RateLimit { window, .. } => Some(*window),
             Self::ServiceUnavailable { retry_after, .. } => *retry_after,
-            // #544 中间态：谓词跟 raw_code；延迟公式保持 1<<attempt（#545 不改公式）。
-            Self::Api(api) if matches!(api.raw_code, 429 | 500..=599) => {
+            // #545：谓词切 variant；延迟公式保持 `1 << attempt.min(5)`（不用 suggested_retry_delay）
+            Self::Api(api) if api.code.is_retryable() => {
                 Some(Duration::from_secs(1 << attempt.min(5)))
             }
             _ => None,
@@ -1576,5 +1575,45 @@ mod tests {
         assert_eq!(err.context().component(), Some("openlark-docs"));
         assert_eq!(err.context().get_context("resource"), Some("查询记录"));
         assert_eq!(err.context().request_id(), Some("req-456"));
+    }
+
+    /// #545：Api 重试判定走 ErrorCode variant；延迟公式保持 `1 << attempt.min(5)`。
+    #[test]
+    fn api_retry_uses_errorcode_variant_with_stable_delay_formula() {
+        // 合成 HTTP 429 / 5xx 族 → 可重试（from_code 映射到五个 variant）
+        for (raw, expected) in [
+            (429, ErrorCode::TooManyRequests),
+            (500, ErrorCode::InternalServerError),
+            (502, ErrorCode::BadGateway),
+            (503, ErrorCode::ServiceUnavailable),
+            (504, ErrorCode::GatewayTimeout),
+        ] {
+            let err = api_error(raw, "/api", "retryable", None::<String>);
+            assert_eq!(err.code(), expected, "raw_code={raw}");
+            assert!(
+                err.is_retryable(),
+                "{expected:?} (raw={raw}) must be retryable via code.is_retryable()"
+            );
+            // 不换成 suggested_retry_delay（429 固定 60s）；保持 1<<attempt
+            assert_eq!(err.retry_delay(0), Some(Duration::from_secs(1)));
+            assert_eq!(err.retry_delay(1), Some(Duration::from_secs(2)));
+            assert_eq!(err.retry_delay(5), Some(Duration::from_secs(32)));
+            assert_eq!(
+                err.retry_delay(6),
+                Some(Duration::from_secs(32)),
+                "attempt.min(5) caps shift"
+            );
+        }
+
+        // 飞书业务码 → 分类正确且不可重试
+        let feishu = api_error(99991663, "/api", "token invalid", None::<String>);
+        assert_eq!(feishu.code(), ErrorCode::TenantAccessTokenInvalid);
+        assert!(!feishu.is_retryable());
+        assert!(feishu.retry_delay(0).is_none());
+
+        // 4xx 客户端错误不可重试
+        let bad = api_error(400, "/api", "bad request", None::<String>);
+        assert!(!bad.is_retryable());
+        assert!(bad.retry_delay(0).is_none());
     }
 }
