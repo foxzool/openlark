@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.19 work goes here. -->
 
+### Changed (Breaking)
+
+- **docs：`BaikeApiV1` 从 `LingoApiV1` 别名拆为独立 catalog enum（#568）**：
+  历史上 `BaikeApiV1` 是 `pub use LingoApiV1 as BaikeApiV1`，variant 集合与 lingo 完全一致，
+  且路径前缀错误落在 `/open-apis/lingo/v1/`。现改为独立 enum（`common/api_endpoints/baike.rs`），
+  仅覆盖 baike CSV 中的 13 个端点，路径前缀为 `/open-apis/baike/v1/`。
+  - **影响**：对 `BaikeApiV1` 做 exhaustive `match` 的代码会因 variant 集合变小而编译失败；
+    依赖「baike 与 lingo 同构」或 lingo-only variant 的调用需改用 `LingoApiV1`。
+  - **迁移**：
+
+    ```rust
+    // before — BaikeApiV1 是 LingoApiV1 的别名（含 lingo-only variants / 错误 lingo 路径）
+    use openlark_docs::common::api_endpoints::BaikeApiV1;
+    let _ = BaikeApiV1::EntityDelete("id".into()); // lingo-only，现已不在 BaikeApiV1
+
+    // after — baike 用独立 catalog；lingo 专用 variant 改走 LingoApiV1
+    use openlark_docs::common::api_endpoints::{BaikeApiV1, LingoApiV1};
+    let _ = BaikeApiV1::DraftUpdate("draft_id".into()); // /open-apis/baike/v1/drafts/{id}
+    let _ = LingoApiV1::EntityDelete("id".into());     // /open-apis/lingo/v1/entities/{id}
+    ```
+
 ## [0.19.0] - 2026-07-26
 
 > Content freeze for the 0.19 release window (#557). Release date filled by version

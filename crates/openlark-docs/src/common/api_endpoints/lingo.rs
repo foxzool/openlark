@@ -79,7 +79,8 @@ impl LingoApiV1 {
                 format!("/open-apis/lingo/v1/entities/{entity_id}")
             }
             LingoApiV1::EntityList => "/open-apis/lingo/v1/entities".to_string(),
-            LingoApiV1::EntityMatch => "/open-apis/baike/v1/entities/match".to_string(),
+            // EntityMatch / EntityExtract 历史误写 baike 前缀；lingo catalog 必须走 lingo 路径（#568）
+            LingoApiV1::EntityMatch => "/open-apis/lingo/v1/entities/match".to_string(),
             LingoApiV1::EntitySearch => "/open-apis/lingo/v1/entities/search".to_string(),
             LingoApiV1::EntityHighlight => "/open-apis/lingo/v1/entities/highlight".to_string(),
             LingoApiV1::EntityBatchGet => "/open-apis/lingo/v1/entities:batchGet".to_string(),
@@ -87,7 +88,7 @@ impl LingoApiV1 {
             LingoApiV1::EntitySearchRecommend => {
                 "/open-apis/lingo/v1/entities:searchRecommend".to_string()
             }
-            LingoApiV1::EntityExtract => "/open-apis/baike/v1/entities/extract".to_string(),
+            LingoApiV1::EntityExtract => "/open-apis/lingo/v1/entities/extract".to_string(),
             LingoApiV1::EntityHistoryGet(entity_id) => {
                 format!("/open-apis/lingo/v1/entities/{entity_id}/history")
             }
