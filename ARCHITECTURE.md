@@ -150,7 +150,9 @@
 
 **错误码对齐与优先级**
 - 优先级：`飞书通用 code` > `HTTP status` > `内部业务码`（同一响应仅选一层）。  
-- 核心映射：响应体含 `code` 时优先调用 `ErrorCode::from_feishu_code`；未命中再用 `status`；都缺省时使用内部业务码。  
+- **唯一映射路径**：`ErrorCode::from_code(raw_code: i32)`（HTTP 臂 + 飞书通用码臂 + 内部业务码臂）。  
+  解码接通后 `ApiError.raw_code` 原样携带飞书 `code`（不经 `u16` 截断），再经 `from_code` 分类；  
+  未知码 → `ErrorCode::Unknown`。构造入口为 core `api_error(raw_code, …)` / `CoreError::Api`。  
 - 观测：`log_id` 写入 `ErrorContext.request_id`，`feishu_code` 写入上下文 `feishu_code` 键，便于链路与告警。  
 - 关键通用码（示例）：
   - 99991661：AccessToken 格式/内容无效  
@@ -3946,133 +3948,38 @@ pub enum ErrorSeverity {
    - 用户身份：99992351/52/53（ID非法）
    - 应用相关：10003（未安装）、19001（权限不足）
 
-**错误码映射实现**：
+**错误码映射实现**（`from_code` 单路径 + `raw_code`）：
 ```rust
-// 飞书错误码映射器
-pub struct FeishuErrorMapper;
+// 唯一映射：ErrorCode::from_code(raw_code)；未知 → Unknown
+// 构造入口：core::api_error(raw_code, endpoint, message, request_id)
+// ApiError 携带 raw_code: i32（飞书 body code 原样，不经 u16 截断）
 
-impl FeishuErrorMapper {
-    pub fn map_auth_error(
-        feishu_code: i32,
-        message: &str,
-        request_id: Option<&str>,
-    ) -> CoreError {
-        let mut ctx = ErrorContext::new();
-        if let Some(req_id) = request_id {
-            ctx.set_request_id(req_id);
-        }
-        ctx.add_context("feishu_code", feishu_code.to_string());
+// 响应体含飞书 code 时：
+let err = openlark_core::error::api_error(
+    feishu_code,           // raw_code: i32
+    endpoint,
+    message,
+    request_id,
+);
+// err 内：code = ErrorCode::from_code(feishu_code)
 
-        // 优先映射飞书通用错误码
-        match ErrorCode::from_feishu_code(feishu_code) {
-            Some(ErrorCode::AccessTokenExpiredV2) => {
-                CoreError::Authentication {
-                    message: format!("访问令牌已过期: {}", message),
-                    code: ErrorCode::AccessTokenExpiredV2,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::PermissionMissing) => {
-                CoreError::Authentication {
-                    message: format!("权限不足: {}", message),
-                    code: ErrorCode::PermissionMissing,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::InvalidToken) => {
-                CoreError::Authentication {
-                    message: format!("访问令牌无效: {}", message),
-                    code: ErrorCode::InvalidToken,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::UserNotFound) => {
-                CoreError::Validation {
-                    field: "user_id".into(),
-                    message: format!("用户不存在: {}", message),
-                    code: ErrorCode::UserNotFound,
-                    ctx,
-                }
-            },
-            // ... 更多映射规则
-            _ => {
-                // 回退到HTTP状态码或内部业务码
-                CoreError::Api(ApiError {
-                    status: feishu_code as u16,
-                    endpoint: "auth".into(),
-                    message: message.to_string(),
-                    source: None,
-                    code: ErrorCode::from_feishu_code(feishu_code)
-                        .unwrap_or(ErrorCode::InternalError),
-                    ctx,
-                })
-            }
-        }
-    }
+// HTTP status 回退（无 body code）时，同样走 from_code：
+let err = openlark_core::error::api_error(
+    status as i32,
+    endpoint,
+    message,
+    request_id,
+);
 
-    // 业务API错误映射
-    pub fn map_api_error(
-        status: u16,
-        endpoint: &str,
-        message: &str,
-        request_id: Option<&str>,
-    ) -> CoreError {
-        let mut ctx = ErrorContext::new();
-        if let Some(req_id) = request_id {
-            ctx.set_request_id(req_id);
-        }
-        ctx.add_context("endpoint", endpoint);
-        ctx.add_context("http_status", status.to_string());
-
-        match status {
-            400 => CoreError::Validation {
-                field: "request".into(),
-                message: format!("请求参数不正确: {}", message),
-                code: ErrorCode::ValidationError,
-                ctx,
-            },
-            401 => CoreError::Authentication {
-                message: "认证失败，请检查访问令牌".to_string(),
-                code: ErrorCode::InvalidToken,
-                ctx,
-            },
-            403 => CoreError::Authentication {
-                message: "权限不足，无法访问该资源".to_string(),
-                code: ErrorCode::PermissionMissing,
-                ctx,
-            },
-            404 => CoreError::Api(ApiError {
-                status,
-                endpoint: endpoint.into(),
-                message: format!("资源不存在: {}", message),
-                source: None,
-                code: ErrorCode::NotFound,
-                ctx,
-            }),
-            429 => CoreError::RateLimit {
-                limit: 0,
-                window: Duration::from_secs(60),
-                reset_after: Some(Duration::from_secs(60)),
-                code: ErrorCode::RateLimitExceeded,
-                ctx,
-            },
-            500..=599 => CoreError::ServiceUnavailable {
-                service: endpoint.into(),
-                retry_after: Some(Duration::from_secs(30)),
-                code: ErrorCode::ServiceUnavailable,
-                ctx,
-            },
-            _ => CoreError::Api(ApiError {
-                status,
-                endpoint: endpoint.into(),
-                message: message.to_string(),
-                source: None,
-                code: ErrorCode::InternalError,
-                ctx,
-            }),
-        }
-    }
-}
+// 等价字段示意（请优先用 api_error 工厂，勿手写并行映射）：
+// CoreError::Api(Box::new(ApiError {
+//     raw_code,
+//     endpoint: endpoint.into(),
+//     message: message.to_string(),
+//     source: None,
+//     code: ErrorCode::from_code(raw_code),
+//     ctx,
+// }))
 ```
 
 ### 9.2 业务层错误处理模式

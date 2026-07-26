@@ -52,20 +52,6 @@ pub fn user_identity_invalid_error(desc: impl Into<String>) -> Error {
     openlark_core::error::user_identity_invalid_error(desc)
 }
 
-/// 基于飞书通用 `code` 的统一错误映射（客户端自定义解析时可复用）
-///
-/// 委托 core `api_error`（`ErrorCode::from_code` 单路径）。#546 将删除本函数。
-pub fn from_feishu_response(
-    code: i32,
-    endpoint: impl Into<String>,
-    message: impl Into<String>,
-    request_id: Option<String>,
-) -> Error {
-    openlark_core::error::api_error(code, endpoint, message, request_id).map_context(|ctx| {
-        ctx.add_context("feishu_code", code.to_string());
-    })
-}
-
 /// 创建API错误
 pub fn api_error(
     raw_code: i32,
@@ -590,20 +576,6 @@ mod tests {
     fn test_user_identity_invalid_error_function() {
         let error = user_identity_invalid_error("用户身份标识非法");
         assert!(error.is_auth_error());
-    }
-
-    #[test]
-    fn test_from_feishu_response_function() {
-        let error = from_feishu_response(
-            99991677,
-            "/api/test",
-            "token过期",
-            Some("req-789".to_string()),
-        );
-        // 错误可能是认证错误或其他类型，只需确保能正确创建
-        assert!(!error.to_string().is_empty());
-        let error2 = from_feishu_response(400, "/api/test", "参数错误", None);
-        assert!(!error2.to_string().is_empty());
     }
 
     #[test]

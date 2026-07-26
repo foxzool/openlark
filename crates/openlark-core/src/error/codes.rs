@@ -665,30 +665,6 @@ impl ErrorCode {
         Self::from_code(status as i32)
     }
 
-    /// 按飞书通用错误码映射（仅飞书返回体的 code 字段，未知返回 None）
-    pub fn from_feishu_code(code: i32) -> Option<Self> {
-        match code {
-            99991661 => Some(Self::AccessTokenFormatInvalid),
-            99991663 => Some(Self::TenantAccessTokenInvalid),
-            99991664 => Some(Self::AppAccessTokenInvalid),
-            99991670 => Some(Self::SsoTokenInvalid),
-            99991671 => Some(Self::AccessTokenInvalid),
-            99991672 => Some(Self::PermissionMissing),
-            99991676 => Some(Self::AccessTokenNoPermission),
-            99991677 => Some(Self::AccessTokenExpiredV2),
-            99991641 => Some(Self::UserSessionInvalid),
-            99991642 => Some(Self::UserSessionNotFound),
-            99991645 => Some(Self::UserSessionTimeout),
-            99991669 => Some(Self::UserIdentityInvalid),
-            99991674 => Some(Self::UserTypeNotSupportedV2),
-            99991675 => Some(Self::UserIdentityMismatch),
-            99992351 => Some(Self::UserIdInvalid),
-            99992352 => Some(Self::OpenIdInvalid),
-            99992353 => Some(Self::UnionIdInvalid),
-            _ => None,
-        }
-    }
-
     // === 与thiserror CoreError配合的新方法 ===
 
     /// 根据错误类型自动选择合适的错误码
@@ -1137,6 +1113,39 @@ mod tests {
         assert_eq!(ErrorCode::from_code(0), ErrorCode::Success);
         assert_eq!(ErrorCode::from_code(404), ErrorCode::NotFound);
         assert_eq!(ErrorCode::from_code(999999), ErrorCode::Unknown);
+    }
+
+    /// `from_code` 是飞书通用码的唯一映射路径（#546 映射收敛 seam）。
+    #[test]
+    fn from_code_is_sole_feishu_common_code_mapper() {
+        let cases = [
+            (99991661, ErrorCode::AccessTokenFormatInvalid),
+            (99991663, ErrorCode::TenantAccessTokenInvalid),
+            (99991664, ErrorCode::AppAccessTokenInvalid),
+            (99991670, ErrorCode::SsoTokenInvalid),
+            (99991671, ErrorCode::AccessTokenInvalid),
+            (99991672, ErrorCode::PermissionMissing),
+            (99991676, ErrorCode::AccessTokenNoPermission),
+            (99991677, ErrorCode::AccessTokenExpiredV2),
+            (99991641, ErrorCode::UserSessionInvalid),
+            (99991642, ErrorCode::UserSessionNotFound),
+            (99991645, ErrorCode::UserSessionTimeout),
+            (99991669, ErrorCode::UserIdentityInvalid),
+            (99991674, ErrorCode::UserTypeNotSupportedV2),
+            (99991675, ErrorCode::UserIdentityMismatch),
+            (99992351, ErrorCode::UserIdInvalid),
+            (99992352, ErrorCode::OpenIdInvalid),
+            (99992353, ErrorCode::UnionIdInvalid),
+        ];
+        for (raw, expected) in cases {
+            assert_eq!(
+                ErrorCode::from_code(raw),
+                expected,
+                "from_code({raw}) must be the sole feishu-code mapping path"
+            );
+        }
+        // 未知码：from_code → Unknown（不再有 Option::None 的并行路径）
+        assert_eq!(ErrorCode::from_code(12345678), ErrorCode::Unknown);
     }
 
     #[test]
