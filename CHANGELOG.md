@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.19 work goes here. -->
 
-## [0.19.0]
+## [0.19.0] - 2026-07-26
 
-> Content freeze for the 0.19 release window (#557). Release date is filled when the
-> version is bumped (#558). GitHub Release body is extracted from this section by
+> Content freeze for the 0.19 release window (#557). Release date filled by version
+> bump (#558). GitHub Release body is extracted from this section by
 > `.github/workflows/release.yml` — this is the source of truth for 0.19 notes.
 > Consumer upgrade path: `docs/migration-guide.md` → **OpenLark 0.19**.
 
