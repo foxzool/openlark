@@ -1,6 +1,159 @@
 # OpenLark 迁移指南
 
-本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.18.0**；下方按版本分节。
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.18.0**（0.19 发布内容已冻结，
+版本号与表面字符串在 bump 工单更新）。下方按版本分节；**从 0.18 升级请先读 0.19 专节**。
+
+完整 breaking 表与逐 API 迁移代码见根目录 [`CHANGELOG.md`](../CHANGELOG.md) 的
+`## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+
+---
+
+# OpenLark 0.19 迁移指南
+
+适用范围：从 `0.18.x` 迁移到 `0.19.x`
+
+## 一句话结论
+
+`0.19` 是 breaking 窗口：删除 registry 诊断半边、接通飞书错误码解码（`ApiError.raw_code`）、
+收并 `WsClientError`、对齐 attendance 字段 schema，并清理一批零消费者死 trait/helper。
+业务调用仍走 `client.<domain>`；多数只做 leaf builder 的代码主要受 attendance 字段与
+错误处理路径影响。
+
+## 1. Registry 删除（#471）
+
+0.18 仍保留 `Client::registry()` 只读诊断；**0.19 整段删除**：
+
+| 已删除 | 替代 |
+|--------|------|
+| `Client::registry()` / `ServiceRegistry` / `ServiceEntry` / `ServiceMetadata` / `RegistryError` | 删除。能力是否编译 → **Cargo feature** + `openlark-capability-unique` trybuild（编译期） |
+| `LarkClient` / `ServiceTrait` / `ServiceLifecycle` / `LazyService` / `ClientErrorHandling` | 删除。业务继续 `client.<domain>` |
+| `error::registry_error()` / `From<RegistryError>` | 删除 |
+
+```rust
+// before (0.18)
+if client.registry().has_service("docs") { /* ... */ }
+
+// after (0.19)
+// 删除 registry 调用。用 Cargo feature 门控编译期路径：
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
+```
+
+仅走 `client.<domain>` 的代码零影响。
+
+## 2. `ApiError` / `raw_code` / 构造器（#544–#546，ADR-0004）
+
+生产路径曾把飞书 9 位业务码 `as u16` 截断，导致 `ErrorCode` 恒为 `Unknown`。0.19 接通
+`ErrorCode::from_code(raw_code)` 单路径。
+
+| 变更 | 说明 |
+|------|------|
+| `ApiError.status: u16` → `raw_code: i32` | 字段语义为原始错误码（飞书 body `code` 或 HTTP 非 2xx 合成 status） |
+| `api_error` / `CoreError::api*` / `api_err!` | 参数 `u16` → `i32`（勿再 `as u16`） |
+| `ErrorBuilder::status(u16)` → `raw_code(i32)` | Builder 同步 |
+| 删除 `ErrorCode::from_feishu_code` | 改 `ErrorCode::from_code`（未知 → `Unknown`，非 `None`） |
+| 删除 `openlark_client::error::from_feishu_response` | 改 core/client `api_error` 或 `CoreError::Api` |
+| retry 谓词 | `is_retryable` 改匹配 `ErrorCode` variant；延迟公式不变 |
+
+```rust
+// 读字段
+if let CoreError::Api(api) = &err {
+    let raw = api.raw_code; // i32 原样，如 99991663
+    let kind = api.code;    // ErrorCode::TenantAccessTokenInvalid
+    let _ = (raw, kind);
+}
+
+// 构造：勿 as u16
+let _ = api_error(99991663, "/open-apis/...", "token invalid", None);
+let _ = ErrorBuilder::new(BuilderKind::Api).raw_code(404).message("not found").build();
+```
+
+完整 before/after 表见 CHANGELOG `## [0.19.0]` 中 ADR-0004 条目。
+
+## 3. `WsClientError`（ADR-0003）
+
+端点发现 HTTP 收口到 core `Transport`；公开错误变体收敛：
+
+| 变更 | 说明 |
+|------|------|
+| 删除 `ServerError{code,message}` / `ClientError{code,message}` | 端点发现独占、零外部消费者 |
+| `RequestError` 负载 | `reqwest::Error` → `CoreError`（透传 `request_id`） |
+| 保留 | `UnexpectedResponse` 与全部 WS 会话 variant |
+
+```rust
+// before
+// match err {
+//     WsClientError::ServerError { .. } | WsClientError::ClientError { .. } => {}
+//     WsClientError::RequestError(reqwest_err) => {}
+//     ...
+// }
+
+// after
+match err {
+    WsClientError::RequestError(core_err) => {
+        let _ = core_err.request_id(); // 端点业务错误现可带 request_id
+    }
+    WsClientError::UnexpectedResponse(_) => {}
+    // ConnectionClosed / WsError / HandlerPanicked / ... 不变
+    _ => {}
+}
+```
+
+## 4. Attendance 字段 / Builder 摘要（#526–#533）
+
+一批 attendance API 与飞书官网 schema 对齐；本地 wiremock 曾抄自错误实现而全绿。
+**只改字段与 Builder 签名，不重做业务语义。** 按族快速对照：
+
+| API 族 | 要点 |
+|--------|------|
+| `user_daily_shift`（batch_create / batch_create_temp / query） | `shifts`→`user_daily_shifts`；`TempShift`→`UserTmpDailyShift`；query 日期 `check_date_from/to`(i32 yyyyMMdd)，`user_ids` 必填 |
+| `user_task_remedy`（create / query） | create 用 `remedy_date`/`punch_no`/`work_type`/`remedy_time(string)`；query 改 `user_ids` + `check_time_from/to`；`RemedyRecord` 删除（响应透传 `Value`） |
+| `leave_accrual_record/patch` | 必填 `leave_granting_record_id`/`employment_id`/`leave_type_id`/`reason`；`leave_id` 为 path |
+| `user_approval/query` | `user_ids` + `check_date_from/to`；`UserApproval` 删除 |
+| `user_stats_view/update` | 嵌套 `view { view_id, stats_type, user_id, items[...] }`；path `user_stats_view_id` |
+| `approval_info/process` | `approval_id`/`approval_type`/`status`；响应嵌套 `approval_info` |
+| `archive_rule/del_report` | 必填 `month`/`operator_id`/`archive_rule_id`；响应空对象 |
+| `archive_rule/upload_report` | `archive_report_datas` + `ArchiveFieldData`；响应 `invalid_code`/`invalid_member_id` |
+
+逐 API `::new` 签名与字段表见 CHANGELOG；各 leaf 的 rustdoc/`docPath` 与官网一致。
+
+## 5. 已删除的死 trait / helper（速查）
+
+| 符号 | 替代 |
+|------|------|
+| `AsyncApiClient` / `SyncApiClient`（#504） | 直接 `Transport::request_typed` / leaf builder |
+| `Response::into_result`（#505） | `Response::decode(context)`（leaf 走 `request_typed` 不受影响） |
+| `ensure_success`（#506） | 空成功类 API 走 `request_typed` + 响应类型的 `ApiResponseTrait` |
+| `Transport::do_send` 公开性（#478） | `pub` → `pub(crate)`；外部勿调用 |
+| `auth::app_ticket::apply_app_ticket`（ADR-0002） | 由 `Transport::request` 自动恢复；模块 `pub(crate)` |
+| HR 7 个 config-holder facade（#474：`Hire`/`Attendance`/…） | `client.hr.config()` 直达；`client.hr.okr.v2()` 保留 |
+| security 风险评估装置 / `SecurityErrorBuilder` / `map_feishu_security_error` | 删除；用 core 通用错误构造器 |
+| HR 端点 unit variant → tuple path-param | 直接构造 enum 需传参；leaf builder 零影响 |
+
+```bash
+# 升级后快速 grep 死调用点
+rg 'Client::registry|\.registry\(\)|FeatureLoader|ServiceRegistry' 
+rg 'AsyncApiClient|SyncApiClient|into_result|ensure_success|from_feishu_code|from_feishu_response'
+rg 'ApiError.*\.status|\.status\([0-9]+\)'   # ErrorBuilder / 读字段
+rg 'WsClientError::(ServerError|ClientError)'
+rg 'client\.hr\.(attendance|hire|corehr|payroll|performance|compensation|ehr)\b'
+```
+
+## 6. 非破坏但相关
+
+- **HR 共享原语**（#473）：canonical 路径 `openlark_hr::common::shared_models::*`。
+  `hire::hire::common_models` 对 7 个共享类型仍 `#[deprecated]` 再导出；可选清理见 #556。
+  请立即改 import，勿再依赖 alias。
+- **OpenSpec 退役**：纯 process，无 Rust 公开 API 影响。
+
+## 7. 升级自检
+
+- [ ] 无 `client.registry()` / `ServiceRegistry` / registry prelude trait
+- [ ] 错误处理读 `raw_code` / `code`，构造传 `i32`，无 `as u16` / `from_feishu_*`
+- [ ] `match WsClientError` 覆盖 `RequestError(CoreError)`，无 `ServerError`/`ClientError`
+- [ ] attendance 调用按上表改字段与 `::new` 签名；相关集成测试/mock 同步
+- [ ] 无 `into_result` / `ensure_success` / `AsyncApiClient` / HR facade 字段
+- [ ] 阅读 CHANGELOG `## [0.19.0]` Breaking 全文（本专节为摘要）
 
 ---
 
@@ -18,10 +171,8 @@
 
 ## 1. registry / FeatureLoader 迁移
 
-> ⚠️ **0.19（#471）已移除整个 registry 半边**：`Client::registry()` / `ServiceRegistry` /
-> `ServiceMetadata` / 相关 trait 全部删除（零外部消费者）。下方「推荐诊断写法」仅适用
-> 于 **0.18.x**；0.19 起能力是否编译改由 **Cargo feature** 与 `openlark-capability-unique`
-> trybuild（编译期）判断，不再有 runtime registry。迁移到 0.19 时删除所有 `client.registry()` 调用即可。
+> ⚠️ **0.19 已移除整个 registry 半边**（见上方 **OpenLark 0.19** 专节）。下方「推荐诊断写法」
+> 仅适用于 **0.18.x**。从 0.18 升级到 0.19 时删除所有 `client.registry()` 调用即可。
 
 ### 已删除（严重正确性例外，0.18 直接移除）
 

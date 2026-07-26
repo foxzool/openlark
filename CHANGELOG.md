@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed (Breaking — 目标 0.19)
+<!-- Post-0.19 work goes here. -->
+
+## [0.19.0]
+
+> Content freeze for the 0.19 release window (#557). Release date is filled when the
+> version is bumped (#558). GitHub Release body is extracted from this section by
+> `.github/workflows/release.yml` — this is the source of truth for 0.19 notes.
+> Consumer upgrade path: `docs/migration-guide.md` → **OpenLark 0.19**.
+
+### Changed (Breaking)
 
 - **core/client：飞书错误码解码断裂修复 —— `ApiError.raw_code` + 映射收敛（#544/#545/#546，ADR-0004）**：
   生产路径曾把飞书 9 位业务码（如 `99991663`）`as u16` 截断后再分类，导致 `ErrorCode` 恒为
@@ -319,8 +328,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compensation/ehr）按需 opt-in 即可获得 typed i18n，不再侧向伸手进 hire 子树或
   退回 `serde_json::Value`。先例为 `okr::okr::v2::common::models` 跨叶消重（#336）。
   - **非破坏**：序列化形状逐字不变；`hire::hire::common_models` 经 `#[deprecated]`
-    按名再导出这 7 个类型，保留一个过渡周期——既有全路径 import 仍可解析，仅多一条
-    deprecation 提示。下个 breaking 窗口（0.19）删除该 alias。
+    按名再导出这 7 个类型，既有全路径 import 仍可解析，仅多一条 deprecation 提示。
+    可选清理（#556）可在本 breaking 窗口删除该 alias；若 #556 未并入 tag，alias
+    继续 deprecated 至后续 breaking 窗口。消费者应立即改用 `common::shared_models`。
 
 - **docs：API 实现模板修正 `extract_response_data` → `Transport::request_typed` doc-drift（#507）**：
   `docs/api-implementation-template.md` 仍教人 import + 调用 #486 已删的自由函数

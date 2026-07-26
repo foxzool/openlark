@@ -1,10 +1,44 @@
-# OpenLark 0.16.0 发布说明
+# OpenLark 发布说明
 
-**发布日期：** 待定  
-**版本类型：** Stable
-**适用版本：** `0.16.0`
+> **Source of truth for GitHub Release body**: root [`CHANGELOG.md`](CHANGELOG.md).
+> `.github/workflows/release.yml` extracts the `## [<version>]` section automatically and
+> attaches quality-status artifacts. **Do not treat this file as the release-body pipeline.**
+>
+> Historical narrative below the demotion notice (0.16-era) is **archived for archaeology
+> only** and is not current product guidance.
 
-## 概览
+## 当前发布窗口：0.19.0
+
+**状态：** 内容已冻结（#557）；workspace 版本号与表面字符串在 bump 工单（#558）更新后打 tag。  
+**完整条目：** [`CHANGELOG.md` → `## [0.19.0]`](CHANGELOG.md)  
+**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.19](docs/migration-guide.md)
+
+### 主题摘要（非完整列表）
+
+| 主题 | 要点 |
+|------|------|
+| Registry 删除 | `Client::registry()` / `ServiceRegistry` / 相关 trait 整段移除；能力靠 Cargo feature |
+| 错误码解码 | `ApiError.status: u16` → `raw_code: i32`；构造器 `u16`→`i32`；删 `from_feishu_*` |
+| WebSocket 错误 | `WsClientError` 删 `ServerError`/`ClientError`；`RequestError` 负载改为 `CoreError` |
+| Attendance | 多族 API 字段/Builder 对齐飞书官网 schema（shift / remedy / archive / approval 等） |
+| 死 seam 清理 | `AsyncApiClient`、`into_result`、`ensure_success`、HR config-holder facade、security 死装置等 |
+
+升级请优先读迁移指南 0.19 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
+
+### 如何生成正式 Release 正文
+
+1. 确认 `CHANGELOG.md` 含 `## [0.19.0]`（日期可在 bump 时补上）。
+2. 打 annotated tag `v0.19.0` 后由 `release.yml` 提取该节。
+3. 可选：将 `tools/release_quality_status.py` 产出附在 Release 末尾（工作流已支持）。
+
+---
+
+# 归档：OpenLark 0.16.0 发布说明（历史，非当前）
+
+**状态：** 已降级为历史归档。正式 0.16.x / 后续版本说明以对应 `CHANGELOG.md` 节为准。  
+**原适用版本：** `0.16.0`（勿再当作最新安装指引复制）
+
+## 概览（历史）
 
 `0.15` 的核心目标不是继续堆叠 API 数量，而是把 SDK 的对外使用方式收敛成一个清晰、稳定、可解释的模型。
 
@@ -16,7 +50,7 @@
 
 这意味着新用户不再需要先区分 “到底应该依赖 `openlark` 还是 `openlark-client`”，也不需要理解 `client`、`protocol` 这类内部实现细节才能开始接入。
 
-## 这版最重要的变化
+## 这版最重要的变化（历史）
 
 ### 1. `openlark` 成为唯一官方入口
 
@@ -76,7 +110,7 @@ openlark = { version = "0.16.0", features = ["enterprise"] }
 openlark = { version = "0.16.0", features = ["full"] }
 ```
 
-## 推荐安装方式
+## 推荐安装方式（历史 — 请改用当前 README / 最新版本号）
 
 ### 最小接入
 
@@ -121,7 +155,7 @@ openlark = { version = "0.16.0", features = ["enterprise"] }
 openlark = { version = "0.16.0", features = ["full"] }
 ```
 
-## 示例入口统一
+## 示例入口统一（历史）
 
 主 README 和根 examples 现在统一使用 `openlark` 根路径。
 
@@ -139,7 +173,7 @@ let client = Client::builder()
 
 工作流示例也统一到了根 crate，而不是直接要求用户引入 `openlark-workflow`。
 
-## 升级说明
+## 升级说明（历史）
 
 如果你之前直接使用根 crate，并且把它当成“功能聚合层”，这次升级主要需要注意两点：
 
@@ -148,7 +182,7 @@ let client = Client::builder()
 
 如果你之前直接依赖 `openlark-client`，代码仍可继续使用，但文档推荐路径已经调整为 `openlark`。
 
-## 兼容性与验证
+## 兼容性与验证（历史）
 
 本次改造已完成以下验证：
 
@@ -165,7 +199,7 @@ let client = Client::builder()
 - public API 稳定性与废弃策略：`docs/PUBLIC_API_STABILITY_POLICY.md`
 - 主推 examples 的编译校验脚本与 CI 接入
 
-## 对用户意味着什么
+## 对用户意味着什么（历史）
 
 这版最直接的价值是：
 
@@ -174,7 +208,7 @@ let client = Client::builder()
 - 示例更一致：README、examples、crate 导出不再混用多套入口
 - 后续版本更稳：根 crate 已经具备长期作为官方门面的结构基础
 
-## 后续计划
+## 后续计划（历史）
 
 `0.15` 正式版后，接下来的重点会放在两类工作：
 
