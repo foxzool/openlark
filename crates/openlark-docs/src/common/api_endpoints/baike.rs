@@ -84,9 +84,10 @@ impl CatalogEndpoint for BaikeApiV1 {
 
     fn method(&self) -> HttpMethod {
         match self {
-            Self::EntityGet(_) | Self::EntityList | Self::ClassificationList | Self::FileDownload(_) => {
-                HttpMethod::Get
-            }
+            Self::EntityGet(_)
+            | Self::EntityList
+            | Self::ClassificationList
+            | Self::FileDownload(_) => HttpMethod::Get,
             Self::DraftUpdate(_) | Self::EntityUpdate(_) => HttpMethod::Put,
             Self::DraftCreate
             | Self::EntityCreate
