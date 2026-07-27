@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.19 work goes here. -->
 
+### Added
+
+- **ci(api-contracts)：docs 域 field strict gate（#569，0.20 首个 contract 域扩展）**：
+  在 attendance field-monitor → strict（#534/#540）之后，将 live field 校验扩展到
+  `openlark-docs`（ccm/base/baike/minutes，~214 API）并以 `--strict fields` 接入 CI
+  `api-contracts` job。落地前 live 全量基线为 **0 ERROR**（仅 WARN：
+  `W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 gate）；
+  无公开 API 字段 breaking。配套：`tools/tests/test_validate_api_contracts_ci_gates.py`
+  钉死 CI 域清单；`docs/api-contract-validation.md` §1.5 记录域扩展表。
+
 ### Changed (Breaking)
 
 - **docs：`BaikeApiV1` 从 `LingoApiV1` 别名拆为独立 catalog enum（#568）**：

@@ -33,7 +33,12 @@ python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 - `reports/api_contracts/crates/<crate>.md`
 - `reports/api_contracts/crates/<crate>.json`
 
-CI 启用本层（全仓离线 endpoint）与 token 层（`openlark-security`，见 §1.4）两个 strict gate。
+CI 启用的 strict gate（`api-contracts` job）：
+
+- 全仓离线 endpoint（`--all-crates --strict endpoint`）
+- token 层：`openlark-security` + `openlark-auth`（见 §1.4）
+- field 层：`openlark-hr --biz-tag attendance`（#526/#533）与
+  `openlark-docs` 全 crate（#569，ccm/base/baike/minutes；0.20 首个域扩展）
 
 ### 1.2 Endpoint live 校验
 
@@ -135,6 +140,31 @@ oracle 取值（优先级递减）：
 security_and_compliance 误配的回归 gate（与 endpoint strict gate 同级；auth 覆盖 OIDC token
 端点）。全仓 live 核对因每个接口都要抓取详情 payload、调用量过大，未纳入 CI；其他 crate 用
 `just api-contract-tokens <crate>` 人工抽样。
+
+### 1.5 Field strict 域扩展（attendance → docs）
+
+字段 strict 按域推进，**禁止**一次 PR 把 monorepo 全量 `--strict fields` 打开。先验
+基线（0 `ERROR`），再 flip CI。
+
+| 域 | 范围 | 状态 | Issue |
+|---|---|---|---|
+| attendance | `openlark-hr --biz-tag attendance`（~39 API） | CI `--strict fields` | #526 / #533 / #534 / #540 |
+| docs | `openlark-docs`（ccm/base/baike/minutes，~214 API） | CI `--strict fields` | #569（0.20 首批） |
+
+本地复现 docs 门禁：
+
+```bash
+python3 tools/validate_api_contracts.py \
+  --crate openlark-docs \
+  --fields \
+  --live-fields \
+  --strict fields \
+  --report-dir /tmp/openlark-api-contracts-docs-fields
+```
+
+基线证据（#569 落地时 live 全量）：`0 error` / 仅 `WARN`（主要为
+`W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 strict）。
+字段扫描器对 docs multipart（`UploadMeta` / `json!` 字面量）的识别见 #223 / #224。
 
 ## 2. 单 crate 使用
 

@@ -56,13 +56,14 @@ API 实现与官网一致，至少要同时满足下表五件事。每一项都�
 
 ### 第 0 层：先看 CI 已经守护了什么（日常不必手动跑）
 
-CI 的 `api-contracts` job（`ci.yml:54-93`）已经在每次推送时跑：
+CI 的 `api-contracts` job（`ci.yml`）已经在每次推送时跑：
 
 - 全仓离线 endpoint strict gate（`--all-crates --strict endpoint`）
 - `openlark-security` + `openlark-auth` 的 token strict gate（`--strict tokens`）
-- 三个合约测试模块（`tools.tests.test_validate_api_contracts_{official,rust_source,compare}`）
+- field strict：`openlark-hr --biz-tag attendance`（#526/#533）与 `openlark-docs`（#569）
+- 合约测试模块（`tools.tests.test_validate_api_contracts_{official,rust_source,compare,ci_gates}`）
 
-→ 这意味着 **method/path 漂移和这两个 crate 的 token 漂移，CI 会自动挡**。手动复查的重点应放在 CI 没覆盖的：字段级、其他 crate 的 token、以及路径噪音掩盖的真 bug。
+→ 这意味着 **method/path 漂移、security/auth 的 token 漂移、attendance/docs 的 required-field 漂移，CI 会自动挡**。手动复查的重点应放在 CI 没覆盖的：其他 crate 的字段/token，以及路径噪音掩盖的真 bug。
 
 ### 第 1 层：覆盖率（秒级，离线）
 
@@ -145,7 +146,7 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 | `WARN` | 实现缺失/解析不到/低风险 | 需人工判断是否真问题 |
 | `UNVERIFIED` | 官方数据不足，机器无法核对 | **不是没问题**，要人工查文档（如 §6.6 的孤儿 docPath） |
 
-关键认知：**全绿 ≠ 一致**。`UNVERIFIED` 太多时，机器其实没核对多少，得靠人工补。字段维度默认不进 strict（只 `--strict fields` 才阻塞），所以 `just api-contracts` 绿灯只保证 endpoint，不保证字段。
+关键认知：**全绿 ≠ 一致**。`UNVERIFIED` 太多时，机器其实没核对多少，得靠人工补。字段维度默认不进全仓 strict（只对 attendance/docs 等已 flip 的域以 `--strict fields` 阻塞），所以 `just api-contracts` 绿灯只保证 endpoint，不保证未入 gate 的 crate 字段。
 
 ---
 
@@ -202,7 +203,7 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 
 一次性复查之外，项目有三道长期防线：
 
-1. **CI strict gate**（`ci.yml`）：endpoint 全仓 + token(security/auth) 每次推送自动跑。method/path 和这两个 crate 的 token 漂移会被自动挡。
+1. **CI strict gate**（`ci.yml`）：endpoint 全仓 + token(security/auth) + field(attendance + docs) 每次推送自动跑。method/path、这两个 crate 的 token、以及 attendance/docs 的 required-field 漂移会被自动挡。
 2. **飞书 API 变动检测 issue**：周期性 bot issue 汇总飞书侧新增/变更。新增 API → 补 SDK 实现 + 同步 CSV；字段元数据变化（计费/显示名）通常 out of scope（不影响请求/响应结构）。
 3. **发布前兼容性 checklist**（`api-compatibility-release-checklist.md`）：打 tag 前的人工 + 自动复查，release.yml 跑覆盖率产出 artifact。
 
