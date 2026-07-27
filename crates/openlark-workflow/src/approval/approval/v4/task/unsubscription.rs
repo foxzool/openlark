@@ -1,6 +1,6 @@
 //! 退订审批任务状态变更事件（v4）
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/task/unsubscribe>
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/unsubscription>
 
 use std::sync::Arc;
 

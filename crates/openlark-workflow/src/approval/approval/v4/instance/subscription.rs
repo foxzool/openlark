@@ -1,6 +1,6 @@
 //! 订阅审批实例状态变更事件（v4）
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/subscribe>
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/subscription>
 
 use std::sync::Arc;
 

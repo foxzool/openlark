@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.20 work goes here. -->
 
+### Changed
+
+- **catalog：同步 2026-07-27 飞书 API 目录（#581）**：
+  live 二次导出复核与 issue 快照一致（基准 1739 → 当前 1736；新增 0 / 删除 3 / 字段变化 7）。
+  - 刷新 `api_list_export.csv`：合并 approval subscription 文档路径重命名与 charging 回填、
+    IM「搜索消息」与 VC bot 读接口的计费/`supportAppTypes`/`name` 元数据变化；`url` 列未改写。
+  - **message_cot（create/complete/update）**：live 目录列表已无，但官方 `docPath` 仍 HTTP 200。
+    CSV 与 live 对齐移除三行；**SDK 公开 API 默认冻结保留**（`openlark-communication` im/v1
+    message_cot leaf 不删不改），按「catalog 外 extra 实现」口径处理，不触发 missing 补齐。
+  - 可选：approval instance/task subscription 模块 `docPath` 注释对齐新 `fullPath` slug；
+    wire method/path 与 Request/Response 形状不变。
+
 ## [0.20.0] - 2026-07-27
 
 > Content freeze for the 0.20 release window (parent #566). Package identity + dated
