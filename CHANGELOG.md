@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ADR-0002 lock-in（#584）**：代码迁移已在 main；本项补治理半边——
+  `docs/adr/0002-auth-concern-concentration.md` 状态 → **Accepted**（残差空）；
+  `ARCHITECTURE.md` / `openlark-core/AGENTS.md` 鉴权归属对齐 `auth/{policy,acquisition,app_ticket}`；
+  新增结构回归锁 `crates/openlark-core/tests/adr0002_locality_lock.rs`
+  （policy 不回迁 Transport、resend 不经 ad-hoc client、AuthHandler 不回迁 request_execution、
+  无公开 resend escape hatch、ADR 状态）。无公开 API 变更。
+
 - **catalog：同步 2026-07-27 飞书 API 目录（#581）**：
   live 二次导出复核与 issue 快照一致（基准 1739 → 当前 1736；新增 0 / 删除 3 / 字段变化 7）。
   - 刷新 `api_list_export.csv`：合并 approval subscription 文档路径重命名与 charging 回填、

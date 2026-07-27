@@ -16,22 +16,13 @@ src/
 │   ├── prelude.rs           # API 模块预置导入
 │   ├── responses.rs         # Response<T>, RawResponse 定义
 │   └── traits.rs            # ApiResponseTrait 等 trait
-├── auth/                     # 认证相关（令牌抽象 - 具体实现已迁移到 openlark-auth）
-│   ├── mod.rs               # 认证模块入口
-│   ├── app_ticket.rs        # App Ticket 管理（保留在 core 因依赖 http 模块）
-│   └── token_provider.rs    # 令牌提供者 trait（抽象接口）
-├── config.rs                 # 客户端配置
-│   ├── mod.rs               # 认证模块入口
-│   ├── app_ticket.rs        # App Ticket 管理（保留在 core 因依赖 http 模块）
-│   └── token_provider.rs    # 令牌提供者 trait（抽象接口）
-│   ├── mod.rs               # 认证模块入口
-│   ├── app_ticket.rs        # App Ticket 管理
-│   ├── cache.rs             # 令牌缓存
-│   ├── refresh.rs           # 令牌刷新
-│   ├── token.rs             # AccessToken/RefreshToken
-│   ├── token_provider.rs    # 令牌提供者
-│   └── validator.rs         # 令牌验证
-├── config.rs                 # 客户端配置
+├── auth/                     # 鉴权 concern 全链（ADR-0002 Accepted）
+│   ├── mod.rs               # 模块入口；re-export AuthHandler (pub(crate))
+│   ├── policy.rs            # token 类型决策 + 授权校验（pub(crate)）
+│   ├── acquisition.rs       # AuthHandler：TokenProvider adapter（pub(crate)）
+│   ├── app_ticket.rs        # 10012 恢复 + resend bootstrap（pub(crate)）
+│   └── token_provider.rs    # TokenProvider trait（公开抽象；具体实现在 openlark-auth）
+├── config/                   # 客户端配置（Config、ConfigBuilder）
 ├── constants.rs              # 全局常量（AppType、AccessTokenType 等）
 ├── error/                    # CoreError 错误系统
 │   ├── core.rs              # 核心错误类型（CoreError 枚举）
@@ -40,11 +31,10 @@ src/
 │   ├── traits.rs            # ErrorType 枚举
 │   ├── prelude.rs           # 错误系统预置导入
 │   └── mod.rs               # 错误模块入口
-├── http.rs                   # Transport 公开 seam（HTTP 边界）
+├── http.rs                   # Transport 公开 seam（HTTP 边界；按名委托 auth）
 ├── req_option.rs            # 请求选项
 ├── request_execution/       # pub(crate) 深请求执行（#422）
-│   ├── mod.rs               # UnifiedRequestBuilder 协调
-│   ├── auth_handler.rs      # TokenProvider 双 adapter 认证 seam
+│   ├── mod.rs               # UnifiedRequestBuilder；委托 auth::AuthHandler
 │   ├── multipart_builder.rs # multipart 组合规则
 │   └── decode.rs            # 类型化响应解码（Data/Flatten/Text/Binary/Custom）
 ├── validation/              # 参数验证
@@ -63,16 +53,22 @@ src/
     └── utils.rs
 ```
 
+> **ADR-0002**：勿在 `request_execution/` 复活 `auth_handler.rs`；勿把 `determine_token_type` 等搬回 `http.rs`；resend 必须经 `UnifiedRequestBuilder` bootstrap。回归锁见 `tests/adr0002_locality_lock.rs`。
+
 ## WHERE TO LOOK
 
 | Task | Location | Notes |
 |------|----------|-------|
 | 添加错误码 | `src/error/codes.rs` | 飞书通用错误码映射 |
-| 修改 HTTP 行为 | `src/http.rs` | reqwest 客户端配置 |
+| 修改 HTTP 行为 | `src/http.rs` | Transport 入口；鉴权委托 `auth/`（ADR-0002） |
+| token 类型决策 / 授权校验 | `src/auth/policy.rs` | 勿搬回 `http.rs` |
+| token 获取 adapter | `src/auth/acquisition.rs` | `AuthHandler`；勿在 `request_execution/` 复活 |
+| app_ticket 恢复 | `src/auth/app_ticket.rs` | resend 经 UnifiedRequestBuilder bootstrap |
 | 添加验证规则 | `src/validation/core.rs` | 复用 validate_required! 宏 |
-| 令牌管理 | `crates/openlark-auth/src/common/token.rs` | AccessToken/RefreshToken (已迁移) |
+| 令牌具体实现 | `crates/openlark-auth/` | AccessToken/RefreshToken + provider 实现 |
 | 常量定义 | `src/constants.rs` | BASE_URL, 默认超时等 |
 | 请求选项 | `src/req_option.rs` | RequestOption（字段为 Option<String>） |
+| ADR-0002 回归锁 | `tests/adr0002_locality_lock.rs` | 结构归属 + ADR Accepted |
 
 ## CONVENTIONS
 
