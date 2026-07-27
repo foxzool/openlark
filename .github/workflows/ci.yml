@@ -53,7 +53,8 @@ jobs:
 
   api-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # endpoint offline + token(security/auth) + field(attendance ~39 + docs ~214 live)
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
@@ -64,7 +65,8 @@ jobs:
           python3 -m unittest \
             tools.tests.test_validate_api_contracts_official \
             tools.tests.test_validate_api_contracts_rust_source \
-            tools.tests.test_validate_api_contracts_compare
+            tools.tests.test_validate_api_contracts_compare \
+            tools.tests.test_validate_api_contracts_ci_gates
       - name: Validate typed API endpoint contracts
         run: |
           python3 tools/validate_api_contracts.py \
@@ -92,6 +94,14 @@ jobs:
             --live-fields \
             --strict fields \
             --report-dir "$RUNNER_TEMP/api_contract_fields/attendance"
+      - name: Validate docs fields (strict gate; #569 首个 0.20 域扩展)
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-docs \
+            --fields \
+            --live-fields \
+            --strict fields \
+            --report-dir "$RUNNER_TEMP/api_contract_fields/docs"
       - name: Upload API contract reports
         if: always()
         uses: actions/upload-artifact@v4
