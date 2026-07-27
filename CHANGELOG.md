@@ -7,24 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- Post-0.19 work goes here. -->
+<!-- Post-0.20 work goes here. -->
 
-### Added
+## [0.20.0] - 2026-07-27
 
-- **workflow：高频 `create_task` helper（#572）**：
-  新增 `WorkflowTaskCreate` 输入类型与 `WorkflowService::create_task`，在既有
-  typed `CreateTaskRequest` 之上固化常见创建字段（标题/描述/截止/优先级/执行者/清单等），
-  返回业务 `CreateTaskResponse`。不新增 feature、不引入 registry 或双客户端栈。
-  覆盖：builder unit test、wiremock e2e、helper snapshot、`workflow_api_example` /
-  `communication_workflows` 示例，以及 helper 边界文档。
-
-- **ci(api-contracts)：docs 域 field strict gate（#569，0.20 首个 contract 域扩展）**：
-  在 attendance field-monitor → strict（#534/#540）之后，将 live field 校验扩展到
-  `openlark-docs`（ccm/base/baike/minutes，~214 API）并以 `--strict fields` 接入 CI
-  `api-contracts` job。落地前 live 全量基线为 **0 ERROR**（仅 WARN：
-  `W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 gate）；
-  无公开 API 字段 breaking。配套：`tools/tests/test_validate_api_contracts_ci_gates.py`
-  钉死 CI 域清单；`docs/api-contract-validation.md` §1.5 记录域扩展表。
+> Content freeze for the 0.20 release window (parent #566). Package identity + dated
+> section filled by packaging ticket (#573). GitHub Release body is extracted from this
+> section by `.github/workflows/release.yml` — this is the source of truth for 0.20 notes.
+> Consumer upgrade path: `docs/migration-guide.md` → **OpenLark 0.20**.
 
 ### Changed (Breaking)
 
@@ -46,6 +36,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     let _ = BaikeApiV1::DraftUpdate("draft_id".into()); // /open-apis/baike/v1/drafts/{id}
     let _ = LingoApiV1::EntityDelete("id".into());     // /open-apis/lingo/v1/entities/{id}
     ```
+
+### Added
+
+- **workflow：高频 `create_task` helper（#572）**：
+  新增 `WorkflowTaskCreate` 输入类型与 `WorkflowService::create_task`，在既有
+  typed `CreateTaskRequest` 之上固化常见创建字段（标题/描述/截止/优先级/执行者/清单等），
+  返回业务 `CreateTaskResponse`。不新增 feature、不引入 registry 或双客户端栈。
+  覆盖：builder unit test、wiremock e2e、helper snapshot、`workflow_api_example` /
+  `communication_workflows` 示例，以及 helper 边界文档。
+
+- **ci(api-contracts)：docs 域 field strict gate（#569，0.20 首个 contract 域扩展）**：
+  在 attendance field-monitor → strict（#534/#540）之后，将 live field 校验扩展到
+  `openlark-docs`（ccm/base/baike/minutes，~214 API）并以 `--strict fields` 接入 CI
+  `api-contracts` job。落地前 live 全量基线为 **0 ERROR**（仅 WARN：
+  `W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 gate）；
+  无公开 API 字段 breaking。配套：`tools/tests/test_validate_api_contracts_ci_gates.py`
+  钉死 CI 域清单；`docs/api-contract-validation.md` §1.5 记录域扩展表。
+
+- **coverage：path denoise + classified missing reports（#567）**：
+  `tools/validate_apis.py` 对 missing 报告区分 true gap / path noise / extra files；
+  稳定发布 hard gate 阈值不降。文档见 `docs/typed-api-coverage.md`。
+
+### Changed
+
+- **coverage：seven platform P1 reads clear-or-disprove（#570）**：
+  0.19 残留的 7 个 platform/tenant/trust-party P1「缺口」经 denoise 后证实为 path noise
+  （实现已存在，报告路径公式误报）。无公开 API 变更；P1 true-gap 计数归零。
+
+- **coverage：selective P2 path-noise reclassification（#571）**：
+  helpdesk / mail / hr-OKR 若干 P2 路径噪声重分类；**不**追求 platform 100%。
+  真缺口保留在 classified missing 报告中，hard gate 阈值不变。
 
 ## [0.19.0] - 2026-07-26
 
