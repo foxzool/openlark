@@ -110,3 +110,19 @@ waiver 至少需要满足：
 - 自动阻断脚本
 
 这些自动化接入可以在后续发布流程 issue 中完成，但应直接复用这里的输入与门槛。
+
+### 7.1 阈值纪律（#586 institutionalization）
+
+Hard gate 阈值是 0.20 trust 程序的一部分：**不得下调**（must not lower）阈值来
+换取 CI / 发布 PASS。具体：
+
+- `summary_completion_rate_min` / `core_business_completion_rate_min` /
+  `core_crate_completion_rate_min` 的制度化地板由
+  `tools/tests/test_typed_coverage_release_policy.py` 钉死；
+- 任何阈值变更必须是独立 policy PR，且只允许升高或维持，禁止降低；
+- 与 contract 侧「禁止 monorepo-wide field strict、一域一 PR」规则一起，保证
+  “CI green” 继续表示可调用准确性，而不是门槛被游戏。
+
+分类纪律（path_noise vs true_gap）同样不得为了刷完成度而删除：噪音匹配必须
+保留 evidence，真缺口继续计入 `true_missing`。详见
+`docs/typed-api-coverage.md` 与 `docs/api-contract-validation.md` §1.6。
