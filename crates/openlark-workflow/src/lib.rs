@@ -15,8 +15,8 @@
 //!
 //! ```rust,no_run
 //! use openlark_workflow::{
-//!     ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-//!     WorkflowTaskMutation,
+//!     ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+//!     WorkflowTaskListQuery, WorkflowTaskMutation,
 //! };
 //! use openlark_core::config::Config;
 //!
@@ -28,6 +28,15 @@
 //!
 //! let workflow_service = WorkflowService::new(config);
 //!
+//! // 创建任务
+//! let created = workflow_service
+//!     .create_task(
+//!         WorkflowTaskCreate::new("完成项目文档")
+//!             .priority(3)
+//!             .tasklist_guid("tasklist_guid"),
+//!     )
+//!     .await?;
+//!
 //! // 列取任务清单中的任务
 //! let tasks = workflow_service
 //!     .list_tasks_all(WorkflowTaskListQuery::for_tasklist("tasklist_guid"))
@@ -36,7 +45,7 @@
 //! // 更新任务
 //! let result = workflow_service
 //!     .mutate_task(
-//!         "task_guid",
+//!         &created.task_guid,
 //!         WorkflowTaskMutation::new()
 //!             .summary("完成项目文档")
 //!             .priority(3),
@@ -99,8 +108,8 @@ pub mod prelude;
 
 // 重新导出核心服务
 pub use service::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-    WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+    WorkflowTaskListQuery, WorkflowTaskMutation,
 };
 
 // 重新导出 approval v4 用户级接口类型（用户态，需 user_access_token）

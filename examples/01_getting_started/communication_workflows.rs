@@ -11,7 +11,8 @@
 
 use open_lark::prelude::*;
 use open_lark::workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskListQuery, WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskCreate, WorkflowTaskListQuery,
+    WorkflowTaskMutation,
 };
 
 #[tokio::main]
@@ -91,6 +92,22 @@ async fn workflow_execution_flow(
     if let Ok(tasklist_guid) = std::env::var("OPENLARK_WORKFLOW_TASKLIST_GUID")
         && !tasklist_guid.trim().is_empty()
     {
+        if std::env::var("OPENLARK_WORKFLOW_CREATE_TASK")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+        {
+            let created = client
+                .workflow
+                .create_task(
+                    WorkflowTaskCreate::new("通过 helper 创建任务")
+                        .description("communication_workflows 示例")
+                        .priority(3)
+                        .tasklist_guid(&tasklist_guid),
+                )
+                .await?;
+            println!("任务创建完成: {}", created.task_guid);
+        }
+
         let tasks = client
             .workflow
             .list_tasks_all(

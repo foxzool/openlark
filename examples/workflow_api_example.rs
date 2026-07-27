@@ -4,8 +4,8 @@
 
 use open_lark::CoreConfig;
 use open_lark::workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-    WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+    WorkflowTaskListQuery, WorkflowTaskMutation,
 };
 
 #[tokio::main]
@@ -17,6 +17,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
 
     let workflow_service = WorkflowService::new(config);
+
+    let created = workflow_service
+        .create_task(
+            WorkflowTaskCreate::new("完成项目文档")
+                .description("编写并完成 OpenLark SDK 的工作流模块文档")
+                .priority(3)
+                .tasklist_guid("tasklist_guid"),
+        )
+        .await?;
+    println!("任务创建成功: {}", created.task_guid);
 
     let tasks = workflow_service
         .list_tasks_all(
@@ -30,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = workflow_service
         .mutate_task(
-            "task_guid",
+            &created.task_guid,
             WorkflowTaskMutation::new()
                 .summary("完成项目文档")
                 .description("编写并完成 OpenLark SDK 的工作流模块文档")

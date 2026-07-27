@@ -102,6 +102,106 @@ impl WorkflowTaskListQuery {
     }
 }
 
+/// 任务创建 helper。
+///
+/// 只覆盖高频创建字段（标题、描述、截止、优先级、执行者、所属清单等），
+/// 不试图替代完整 typed `CreateTaskRequest`（自定义字段 / 子任务 / 重复规则等仍走 typed API）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorkflowTaskCreate {
+    /// 任务标题（必填）。
+    pub summary: String,
+    /// 任务描述。
+    pub description: Option<String>,
+    /// 开始时间。
+    pub start: Option<String>,
+    /// 截止时间。
+    pub due: Option<String>,
+    /// 优先级。
+    pub priority: Option<i32>,
+    /// 执行者。
+    pub assignee: Option<String>,
+    /// 任务清单 GUID。
+    pub tasklist_guid: Option<String>,
+    /// 分组 GUID。
+    pub section_guid: Option<String>,
+    /// 关注者。
+    pub followers: Option<Vec<String>>,
+    /// 提醒时间。
+    pub remind_time: Option<String>,
+}
+
+impl WorkflowTaskCreate {
+    /// 以必填标题创建任务描述。
+    pub fn new(summary: impl Into<String>) -> Self {
+        Self {
+            summary: summary.into(),
+            description: None,
+            start: None,
+            due: None,
+            priority: None,
+            assignee: None,
+            tasklist_guid: None,
+            section_guid: None,
+            followers: None,
+            remind_time: None,
+        }
+    }
+
+    /// 设置任务描述。
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// 设置开始时间。
+    pub fn start(mut self, start: impl Into<String>) -> Self {
+        self.start = Some(start.into());
+        self
+    }
+
+    /// 设置截止时间。
+    pub fn due(mut self, due: impl Into<String>) -> Self {
+        self.due = Some(due.into());
+        self
+    }
+
+    /// 设置优先级。
+    pub fn priority(mut self, priority: i32) -> Self {
+        self.priority = Some(priority);
+        self
+    }
+
+    /// 设置执行者。
+    pub fn assignee(mut self, assignee: impl Into<String>) -> Self {
+        self.assignee = Some(assignee.into());
+        self
+    }
+
+    /// 设置任务清单 GUID。
+    pub fn tasklist_guid(mut self, tasklist_guid: impl Into<String>) -> Self {
+        self.tasklist_guid = Some(tasklist_guid.into());
+        self
+    }
+
+    /// 设置分组 GUID。
+    pub fn section_guid(mut self, section_guid: impl Into<String>) -> Self {
+        self.section_guid = Some(section_guid.into());
+        self
+    }
+
+    /// 设置关注者列表。
+    pub fn followers(mut self, followers: Vec<String>) -> Self {
+        self.followers = Some(followers);
+        self
+    }
+
+    /// 设置提醒时间。
+    pub fn remind_time(mut self, remind_time: impl Into<String>) -> Self {
+        self.remind_time = Some(remind_time.into());
+        self
+    }
+}
+
 /// 任务变更 helper。
 ///
 /// 只覆盖高频可变字段，不试图替代完整 typed request。
@@ -356,6 +456,49 @@ impl WorkflowService {
         Ok(items)
     }
 
+    /// 使用 helper 风格创建任务（高频字段）。
+    ///
+    /// 在 typed `CreateTaskRequest` 之上固化常见创建动作，返回业务结果
+    /// `CreateTaskResponse`，而不是底层响应壳。
+    #[cfg(feature = "v2")]
+    pub async fn create_task(
+        &self,
+        create: WorkflowTaskCreate,
+    ) -> SDKResult<crate::v2::task::models::CreateTaskResponse> {
+        use crate::v2::task::create::CreateTaskRequest;
+
+        let mut request = CreateTaskRequest::new(self.config.clone()).summary(create.summary);
+        if let Some(description) = create.description {
+            request = request.description(description);
+        }
+        if let Some(start) = create.start {
+            request = request.start(start);
+        }
+        if let Some(due) = create.due {
+            request = request.due(due);
+        }
+        if let Some(priority) = create.priority {
+            request = request.priority(priority);
+        }
+        if let Some(assignee) = create.assignee {
+            request = request.assignee(assignee);
+        }
+        if let Some(tasklist_guid) = create.tasklist_guid {
+            request = request.tasklist_guid(tasklist_guid);
+        }
+        if let Some(section_guid) = create.section_guid {
+            request = request.section_guid(section_guid);
+        }
+        if let Some(followers) = create.followers {
+            request = request.followers(followers);
+        }
+        if let Some(remind_time) = create.remind_time {
+            request = request.remind_time(remind_time);
+        }
+
+        request.execute().await
+    }
+
     /// 使用 helper 风格更新任务高频字段。
     #[cfg(feature = "v2")]
     pub async fn mutate_task(
@@ -575,6 +718,37 @@ mod tests {
     }
 
     #[test]
+    fn test_task_create_builder() {
+        let create = WorkflowTaskCreate::new("编写 release notes")
+            .description("补齐 0.20 create_task helper")
+            .due("2026-08-01T18:00:00Z")
+            .start("2026-07-27T09:00:00Z")
+            .priority(2)
+            .assignee("ou_owner")
+            .tasklist_guid("tasklist_abc")
+            .section_guid("section_xyz")
+            .followers(vec!["ou_follower".to_string()])
+            .remind_time("2026-07-31T09:00:00Z");
+
+        assert_eq!(create.summary, "编写 release notes");
+        assert_eq!(
+            create.description.as_deref(),
+            Some("补齐 0.20 create_task helper")
+        );
+        assert_eq!(create.due.as_deref(), Some("2026-08-01T18:00:00Z"));
+        assert_eq!(create.start.as_deref(), Some("2026-07-27T09:00:00Z"));
+        assert_eq!(create.priority, Some(2));
+        assert_eq!(create.assignee.as_deref(), Some("ou_owner"));
+        assert_eq!(create.tasklist_guid.as_deref(), Some("tasklist_abc"));
+        assert_eq!(create.section_guid.as_deref(), Some("section_xyz"));
+        assert_eq!(
+            create.followers,
+            Some(vec!["ou_follower".to_string()])
+        );
+        assert_eq!(create.remind_time.as_deref(), Some("2026-07-31T09:00:00Z"));
+    }
+
+    #[test]
     fn test_approval_task_query_builder() {
         let query = ApprovalTaskQuery::new("ou_xxx", "1")
             .user_id_type("open_id")
@@ -605,6 +779,70 @@ mod tests {
         assert_eq!(action.user_id_type.as_deref(), Some("open_id"));
         assert_eq!(action.comment.as_deref(), Some("已确认"));
         assert_eq!(action.form.as_deref(), Some("[{}]"));
+    }
+
+    /// #572：create_task helper 透传高频字段并返回业务 CreateTaskResponse。
+    #[cfg(feature = "v2")]
+    #[tokio::test]
+    async fn test_create_task_helper_posts_high_frequency_fields() {
+        use wiremock::matchers::{body_partial_json, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/task/v2/tasks"))
+            .and(body_partial_json(json!({
+                "summary": "编写 release notes",
+                "description": "补齐 0.20 create_task helper",
+                "priority": 2,
+                "assignee": "ou_owner",
+                "tasklist_guid": "tasklist_abc"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "task_guid": "task_created_001",
+                    "summary": "编写 release notes",
+                    "description": "补齐 0.20 create_task helper",
+                    "status": "todo",
+                    "tasklist_guid": "tasklist_abc",
+                    "section_guid": null,
+                    "created_at": "2026-07-27T00:00:00Z",
+                    "updated_at": "2026-07-27T00:00:00Z"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let response = service
+            .create_task(
+                WorkflowTaskCreate::new("编写 release notes")
+                    .description("补齐 0.20 create_task helper")
+                    .priority(2)
+                    .assignee("ou_owner")
+                    .tasklist_guid("tasklist_abc"),
+            )
+            .await
+            .expect("create_task 应在飞书成功响应时返回业务结果");
+
+        assert_eq!(response.task_guid, "task_created_001");
+        assert_eq!(response.summary, "编写 release notes");
+        assert_eq!(response.status, "todo");
+        assert_eq!(response.tasklist_guid.as_deref(), Some("tasklist_abc"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/task/v2/tasks");
     }
 
     /// #350：approve/reject/resubmit 成功时返回 `Ok(())`，不再伪造恒真 `success`。

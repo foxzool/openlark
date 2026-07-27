@@ -1,6 +1,6 @@
 ---
 source: crates/openlark-workflow/tests/helper_snapshots.rs
-expression: "json!({\n    \"workflow_task_list_query\":\n    {\n        \"tasklist_guid\": list_query.tasklist_guid, \"section_guid\":\n        list_query.section_guid, \"filter\": list_query.filter, \"sort\":\n        list_query.sort, \"user_type\": list_query.user_type, \"page_size\":\n        list_query.page_size,\n    }, \"workflow_task_mutation\":\n    {\n        \"summary\": mutation.summary, \"description\": mutation.description,\n        \"due\": mutation.due, \"priority\": mutation.priority, \"assignee\":\n        mutation.assignee, \"status\": mutation.status,\n    }, \"approval_task_query\":\n    {\n        \"user_id\": approval_query.user_id, \"topic\": approval_query.topic,\n        \"user_id_type\": approval_query.user_id_type, \"status\":\n        approval_query.status, \"instance_code\": approval_query.instance_code,\n        \"page_size\": approval_query.page_size,\n    }, \"approval_task_action\":\n    {\n        \"approval_code\": approval_action.approval_code, \"instance_code\":\n        approval_action.instance_code, \"user_id\": approval_action.user_id,\n        \"task_id\": approval_action.task_id, \"user_id_type\":\n        approval_action.user_id_type, \"comment\": approval_action.comment,\n        \"form\": approval_action.form,\n    }\n})"
+expression: "json!({\n    \"workflow_task_list_query\":\n    {\n        \"tasklist_guid\": list_query.tasklist_guid, \"section_guid\":\n        list_query.section_guid, \"filter\": list_query.filter, \"sort\":\n        list_query.sort, \"user_type\": list_query.user_type, \"page_size\":\n        list_query.page_size,\n    }, \"workflow_task_create\":\n    {\n        \"summary\": create.summary, \"description\": create.description, \"start\":\n        create.start, \"due\": create.due, \"priority\": create.priority,\n        \"assignee\": create.assignee, \"tasklist_guid\": create.tasklist_guid,\n        \"section_guid\": create.section_guid, \"followers\": create.followers,\n        \"remind_time\": create.remind_time,\n    }, \"workflow_task_mutation\":\n    {\n        \"summary\": mutation.summary, \"description\": mutation.description,\n        \"due\": mutation.due, \"priority\": mutation.priority, \"assignee\":\n        mutation.assignee, \"status\": mutation.status,\n    }, \"approval_task_query\":\n    {\n        \"user_id\": approval_query.user_id, \"topic\": approval_query.topic,\n        \"user_id_type\": approval_query.user_id_type, \"status\":\n        approval_query.status, \"instance_code\": approval_query.instance_code,\n        \"page_size\": approval_query.page_size,\n    }, \"approval_task_action\":\n    {\n        \"approval_code\": approval_action.approval_code, \"instance_code\":\n        approval_action.instance_code, \"user_id\": approval_action.user_id,\n        \"task_id\": approval_action.task_id, \"user_id_type\":\n        approval_action.user_id_type, \"comment\": approval_action.comment,\n        \"form\": approval_action.form,\n    }\n})"
 ---
 {
   "approval_task_action": {
@@ -19,6 +19,20 @@ expression: "json!({\n    \"workflow_task_list_query\":\n    {\n        \"taskli
     "topic": "1",
     "user_id": "ou_xxx",
     "user_id_type": "open_id"
+  },
+  "workflow_task_create": {
+    "assignee": "ou_owner",
+    "description": "补齐 0.20 create_task helper",
+    "due": "2026-08-01T18:00:00Z",
+    "followers": [
+      "ou_follower"
+    ],
+    "priority": 2,
+    "remind_time": "2026-07-31T09:00:00Z",
+    "section_guid": "section_xyz",
+    "start": "2026-07-27T09:00:00Z",
+    "summary": "编写 release notes",
+    "tasklist_guid": "tasklist_abc"
   },
   "workflow_task_list_query": {
     "filter": "{\"status\":\"Todo\"}",

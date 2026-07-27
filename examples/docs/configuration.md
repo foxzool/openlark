@@ -66,13 +66,14 @@ cargo run --example websocket_echo_bot --features "communication,websocket"
 ## 说明
 
 - `client_setup` 默认只演示客户端初始化；当你提供 `OPENLARK_USER_SEARCH_NAME` / `OPENLARK_CHAT_SEARCH_NAME` 时，才会额外触发 user/chat lookup helper。
-- `communication_workflows` 会串起“查人/查群 -> 发消息”和“列任务 -> 更新任务 -> 处理审批”两类任务流。
+- `communication_workflows` 会串起“查人/查群 -> 发消息”和“创建/列任务 -> 更新任务 -> 处理审批”两类任务流。
 - `docs_helpers` 会按你是否提供相关 token，分别演示文件夹遍历、Drive 上传/下载、sheet 查找、批量读范围与多维表格读取；如需启用分片下载/批量写入演示，再额外设置 `OPENLARK_DOWNLOAD_RANGE_DEMO=1` / `OPENLARK_SHEETS_WRITE_DEMO=1`。
 - `docs_workflows` 会以任务流方式串起 Drive 文件流转、Spreadsheet 周报处理，以及 Wiki / Bitable 巡检流程。
 - `websocket_echo_bot` 需要额外完成飞书事件订阅和长连接配置。
 
 ## 风险提示
 
-- `communication_workflows` 在环境变量完整时，会执行真实的消息发送、任务更新和审批动作。
+- `communication_workflows` 在环境变量完整时，会执行真实的消息发送、任务创建/更新和审批动作；
+  任务创建需额外设置 `OPENLARK_WORKFLOW_CREATE_TASK=1`（与 `OPENLARK_WORKFLOW_TASKLIST_GUID` 联用）。
 - `workflow_api_example` 使用的是可编译的占位参数示例，适合先验证 helper 调用结构。
 - 如果你只想验证示例可编译，请不要设置这些动作相关环境变量，或保持其值为空。
