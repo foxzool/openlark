@@ -469,7 +469,11 @@ async fn transport_oversized_streamed_body_returns_response_too_large() {
     }
 }
 
-/// 业务 code=10012 时触发 app_ticket resend 副作用（#422 app-ticket recovery）。
+/// 业务 code=10012 时触发 app_ticket resend 副作用（ADR-0002 / #584 行为锁）。
+///
+/// 断言：Transport 管线仍会发出 resend（`APPLY_APP_TICKET_PATH`），且经 auth 恢复路径
+/// （`auth::app_ticket::recover_app_ticket_if_needed` → `UnifiedRequestBuilder` bootstrap）。
+/// 结构归属另见 `adr0002_locality_lock`。
 #[tokio::test]
 async fn transport_app_ticket_invalid_triggers_resend() {
     use openlark_core::constants::{APPLY_APP_TICKET_PATH, ERR_CODE_APP_TICKET_INVALID};

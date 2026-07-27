@@ -1,10 +1,11 @@
 # ADR: 鉴权 concern 浓缩进 auth/（决策 / 获取 / 恢复同居 + resend bootstrap 旁路）
 
-- **状态**: Proposed（2026-07-24 `/improve-codebase-architecture` → `/grilling` 达成共识，待实施）
-- **日期**: 2026-07-24
+- **状态**: Accepted（2026-07-27 lock-in #584：代码迁移已在 main；本记录补治理半边——状态翻 Accepted + 回归锁 + 文档本地化；见文末「执行记录」与「残差」）
+- **日期**: 2026-07-24（决策）/ 2026-07-27（Accepted 验证）
 - **决策者**: 架构评审 + 用户 grilling 共识
+- **相关 issue**: #584（ADR-0002 lock-in）；parent #583（SDK depth P0）
 - **来源**: 架构评审候选 #1（auth 策略泄漏到 Transport seam 之外）
-- **breaking 窗口**: 目标 0.19（一项）。`auth::app_ticket::apply_app_ticket`（`pub`，全仓零外部消费者——仅 core 内 `do_request` 调用）随恢复收口删除；新 `recover_app_ticket_if_needed` / `resend_app_ticket` 为 `pub(crate)`。余皆 `openlark-core` 内部移动（`AuthHandler` + 决策函数原为 `pub(crate)`，搬迁不改可见性），无其他公开 API 影响。
+- **breaking 窗口**: 目标 0.19（一项，已随 0.19 落地）。`auth::app_ticket::apply_app_ticket`（`pub`，全仓零外部消费者——仅 core 内 `do_request` 调用）随恢复收口删除；新 `recover_app_ticket_if_needed` / `resend_app_ticket` 为 `pub(crate)`。余皆 `openlark-core` 内部移动（`AuthHandler` + 决策函数原为 `pub(crate)`，搬迁不改可见性），无其他公开 API 影响。
 
 ## 背景
 
@@ -103,6 +104,8 @@
 
 ## 执行记录
 
+### 代码迁移（0.19 窗口，已合入 main）
+
 ADR-0002 各阶段已落地（branch `refactor/0002-auth-concern-concentration`，TDD）：
 
 | 阶段 | commit | 产出 |
@@ -110,9 +113,9 @@ ADR-0002 各阶段已落地（branch `refactor/0002-auth-concern-concentration`�
 | A | `a22fca034` | `determine_token_type` / `validate_token_type` + `validate_authorization` → `auth/policy.rs`；`validate()` 瘦身委托 |
 | B | `38af4a525` | `AuthHandler` → `auth/acquisition.rs`（`pub(crate)`，零公开 API 影响） |
 | C+D | `7ef45c983` | `recover_app_ticket_if_needed` + `resend_app_ticket`（`UnifiedRequestBuilder` bootstrap）；`do_request` α-delegate；删 `apply_app_ticket`（red→green TDD） |
-| E | 本提交 | `ARCHITECTURE.md` 「Transport HTTP 边界」措辞修正 + CHANGELOG breaking 条目 |
+| E | （随迁移 PR） | `ARCHITECTURE.md` 「Transport HTTP 边界」措辞修正 + CHANGELOG breaking 条目 |
 
-验证（本地全绿）：
+验证（迁移时本地全绿）：
 - `cargo test --workspace --all-features`（407 core lib + 32 contract + 全仓千余测试，0 failed）；
 - `cargo fmt --check`（workspace）；
 - `cargo clippy --workspace --all-targets --all-features -- -Dwarnings` 与 `--no-default-features` 两模式均 clean；
@@ -120,4 +123,35 @@ ADR-0002 各阶段已落地（branch `refactor/0002-auth-concern-concentration`�
 - `cargo machete`（无遗留 unused dep）。
 - msrv 未单独跑：无依赖变更、lockfile 未动，不触发 msrv 门控。
 
-**Breaking（目标 0.19）**：`auth::app_ticket::apply_app_ticket`（`pub`，零外部消费者）删除；新恢复函数 `pub(crate)`。余皆 `openlark-core` 内部移动。
+**Breaking（目标 0.19，已发布）**：`auth::app_ticket::apply_app_ticket`（`pub`，零外部消费者）删除；新恢复函数 `pub(crate)`。余皆 `openlark-core` 内部移动。
+
+### Lock-in / 治理半边（#584，2026-07-27）
+
+**残差审计（对当前 main）**：代码阶段 A–E 均已在树内；无实现缺口。
+
+| 检查项 | 结果 |
+|--------|------|
+| `auth/policy.rs` 持有 `determine_token_type` / `validate_token_type` / `validate_authorization` | ✅ |
+| `auth/acquisition.rs` 持有 `AuthHandler`；`request_execution/auth_handler.rs` 不存在 | ✅ |
+| `auth/app_ticket.rs`：`recover_app_ticket_if_needed` + `resend_app_ticket`（`UnifiedRequestBuilder` bootstrap） | ✅ |
+| `http.rs` α-delegate：`auth::policy::*` + `auth::app_ticket::recover_app_ticket_if_needed` | ✅ |
+| 无 `apply_app_ticket`；`resend`/`recover` 保持 `pub(crate)` | ✅ |
+| 行为测：`auth/app_ticket` 条件矩阵 + `transport_app_ticket_invalid_triggers_resend` | ✅ |
+
+**#584 产出**：
+
+| 项 | 产出 |
+|----|------|
+| 状态 | 本文件 → **Accepted**；残差列表见下（空） |
+| 结构回归锁 | `crates/openlark-core/tests/adr0002_locality_lock.rs`（policy 归属 / Transport 不重定义 / resend bootstrap / AuthHandler 不回迁 request_execution / 无公开 escape hatch / ADR 状态） |
+| 文档本地化 | `ARCHITECTURE.md` 认证归属改写为 `auth/{policy,acquisition,app_ticket}`；`crates/openlark-core/AGENTS.md` 模块树对齐 |
+
+验证（#584 聚焦）：
+- `cargo test -p openlark-core --test adr0002_locality_lock`
+- `cargo test -p openlark-core --test transport_request_contract transport_app_ticket`
+- `cargo test -p openlark-core --lib auth::`
+- `cargo clippy -p openlark-core --all-targets --all-features -- -Dwarnings` 与 `--no-default-features`
+
+### 残差
+
+**无。** Config 每请求 `app_id`/`app_secret` 校验 smell、endpoint catalog、codegen 重连等仍属本 ADR「非目标」，不记为残差；若未来要做，另开 ticket。

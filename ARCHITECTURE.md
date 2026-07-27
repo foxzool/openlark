@@ -112,13 +112,31 @@
 >
 > **作用域澄清**：守卫只检**业务 crate** 的 `Cargo.toml`（`openlark-core` 在白名单——它是 Transport 抽象本体，合法碰 reqwest）。「唯一出口」对业务 crate 由 `Transport::request` 收口；core 内部的副作用请求（如 app_ticket resend）经 **ADR-0002** 收口走 `UnifiedRequestBuilder` bootstrap 旁路（`auth::app_ticket::resend_app_ticket`），不再有 ad-hoc `config.http_client().post()` 路径。
 
+### 鉴权 concern 归属（ADR-0002 Accepted）
+
+「给一个请求做鉴权」整条链（决策 / 获取 / 恢复）**同居** `openlark_core::auth/`；`Transport` 与 `request_execution` 只按名委托，不重编码 marketplace / token-cache 规则，也不自建第二条 HTTP 出口。
+
+| 子 concern | 模块 | 关键入口 | 调用方 |
+|------------|------|----------|--------|
+| 决策 + 授权校验 | `auth/policy.rs` | `determine_token_type` / `validate_token_type` / `validate_authorization` | `Transport::request`（α-delegate） |
+| 获取（TokenProvider adapter） | `auth/acquisition.rs` | `AuthHandler::apply_auth` | `request_execution::UnifiedRequestBuilder` |
+| 恢复（app_ticket 10012） | `auth/app_ticket.rs` | `recover_app_ticket_if_needed` → `resend_app_ticket`（`UnifiedRequestBuilder` None-token bootstrap） | `Transport::do_request`（α-delegate） |
+| 令牌抽象 | `auth/token_provider.rs` | `TokenProvider` trait | acquisition + 业务 provider 实现 |
+
+分层：`auth/` ← `request_execution/`（URL/header/body/multipart 编排，调 `AuthHandler`）← `http::Transport`（HTTP 入口）。  
+回归锁：`crates/openlark-core/tests/adr0002_locality_lock.rs` + 行为测 `transport_app_ticket_invalid_triggers_resend`。  
+**禁止**：把 policy 自由函数搬回 `http.rs`；在 `request_execution/` 复活 `auth_handler.rs`；对 resend 再开 `reqwest::Client::new` / `http_client().post()` ad-hoc 路径；把 `resend_app_ticket` / `recover_app_ticket_if_needed` 升为 `pub`。
+
 **调用路径**（仅 core 碰 reqwest）：
 
 ```
 *Request::execute()
   └─> openlark_core::http::Transport::request(req, &config, option)
-        └─> ReqTranslator / UnifiedRequestBuilder
-              └─> reqwest::RequestBuilder  ← 仅 openlark-core 这一跳
+        ├─> auth::policy::{validate_token_type, determine_token_type, validate_authorization}
+        ├─> request_execution::UnifiedRequestBuilder
+        │     └─> auth::AuthHandler::apply_auth  →  reqwest::RequestBuilder
+        └─> (响应后) auth::app_ticket::recover_app_ticket_if_needed
+              └─> resend via UnifiedRequestBuilder bootstrap（非 ad-hoc client）
 ```
 
 **Cargo 依赖边界**：
@@ -575,7 +593,7 @@ impl UnifiedRequestBuilder {
         // 2. 构建请求头
         req_builder = HeaderBuilder::build_headers(req_builder, config, option);
 
-        // 3. 处理认证
+        // 3. 认证获取：委托 auth::AuthHandler（ADR-0002；定义在 auth/acquisition.rs）
         req_builder = AuthHandler::apply_auth(req_builder, access_token_type, config, option).await?;
 
         // 4. 处理请求体和文件
@@ -590,13 +608,20 @@ impl UnifiedRequestBuilder {
 }
 ```
 
-#### 6.2.2 认证处理机制
+> Token **类型决策**不在本 builder：由 `Transport` 先调 `auth::policy`，再把结果传入 `build`。
 
-支持多种令牌类型和自动认证处理：
+#### 6.2.2 认证处理机制（`auth/`，ADR-0002）
+
+认证**不**作为 `request_execution` 子模块或 `Transport` 内自由逻辑存在。归属：
+
+- **决策**：`openlark_core::auth::policy`（`determine_token_type` / `validate_token_type` / `validate_authorization`）——由 `Transport` 按名调用。
+- **获取**：`openlark_core::auth::acquisition::AuthHandler`——由 `UnifiedRequestBuilder` 委托；内部走 `TokenProvider`（Static / NoOp 等 adapter）。
+- **恢复**：`openlark_core::auth::app_ticket`——`recover_app_ticket_if_needed` 在 `do_request` 收到业务码 10012 时触发；`resend_app_ticket` 经 `UnifiedRequestBuilder` None-token bootstrap，禁止 ad-hoc `reqwest` 出口。
 
 ```rust
-// 认证处理器
-pub struct AuthHandler;
+// 位置：crates/openlark-core/src/auth/acquisition.rs（pub(crate)）
+// request_execution 仅 `use crate::auth::AuthHandler`，不再持有 auth_handler 子模块。
+pub(crate) struct AuthHandler;
 
 impl AuthHandler {
     pub async fn apply_auth(
@@ -604,24 +629,11 @@ impl AuthHandler {
         token_type: AccessTokenType,
         config: &Config,
         option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
+    ) -> Result<RequestBuilder, CoreError> {
         match token_type {
-            AccessTokenType::User => {
-                if let Some(token) = &option.user_access_token {
-                    Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-                } else {
-                    // 自动获取用户令牌
-                    Self::get_user_access_token(config).await
-                }
-            },
-            AccessTokenType::App => {
-                // 应用级令牌处理
-                Self::get_app_access_token(config).await
-            },
-            AccessTokenType::Tenant => {
-                // 租户级令牌处理
-                Self::get_tenant_access_token(config).await
-            },
+            AccessTokenType::User => Self::apply_user_auth(req_builder, option),
+            AccessTokenType::App => Self::apply_app_auth(req_builder, config, option).await,
+            AccessTokenType::Tenant => Self::apply_tenant_auth(req_builder, config, option).await,
             AccessTokenType::None => Ok(req_builder),
         }
     }
@@ -2178,85 +2190,36 @@ impl UnifiedRequestBuilder {
 }
 ```
 
-#### 8.1.2 AuthHandler认证处理器
+#### 8.1.2 AuthHandler 认证处理器（`auth/acquisition`，ADR-0002）
 
-认证处理器支持多种令牌类型和自动令牌管理：
+> **本地化**：`AuthHandler` 定义在 `crates/openlark-core/src/auth/acquisition.rs`（`pub(crate)`），由 `request_execution::UnifiedRequestBuilder` 导入使用。  
+> **不要**在 `request_execution/` 下再建 `auth_handler.rs`，也不要在 Transport 内联 token 获取。  
+> Token 类型**决策**在 `auth/policy.rs`；app_ticket **恢复**在 `auth/app_ticket.rs`。详见上文「鉴权 concern 归属」。
 
 ```rust
-// 认证处理器
-pub struct AuthHandler;
+// crates/openlark-core/src/auth/acquisition.rs
+pub(crate) struct AuthHandler;
 
 impl AuthHandler {
-    /// 应用认证到请求
+    /// 应用认证到请求（经 Config.token_provider 获取 token）
     pub async fn apply_auth(
-        mut req_builder: RequestBuilder,
+        req_builder: RequestBuilder,
         token_type: AccessTokenType,
         config: &Config,
         option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
+    ) -> Result<RequestBuilder, CoreError> {
         match token_type {
-            AccessTokenType::User => Self::apply_user_auth(req_builder, option).await,
+            AccessTokenType::User => Self::apply_user_auth(req_builder, option),
             AccessTokenType::App => Self::apply_app_auth(req_builder, config, option).await,
             AccessTokenType::Tenant => Self::apply_tenant_auth(req_builder, config, option).await,
             AccessTokenType::None => Ok(req_builder),
         }
     }
-
-    /// 应用用户认证
-    async fn apply_user_auth(
-        req_builder: RequestBuilder,
-        option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        if let Some(token) = &option.user_access_token {
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        } else {
-            // 自动获取用户访问令牌
-            Self::auto_fetch_user_token(req_builder).await
-        }
-    }
-
-    /// 应用应用认证
-    async fn apply_app_auth(
-        req_builder: RequestBuilder,
-        config: &Config,
-        option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        if let Some(token) = &option.app_access_token {
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        } else {
-            // 获取应用访问令牌
-            let token = Self::fetch_app_access_token(config).await?;
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        }
-    }
-
-    /// 自动获取用户令牌
-    async fn auto_fetch_user_token(
-        req_builder: RequestBuilder,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        // 实现OAuth流程或从缓存获取令牌
-        // 这里简化处理，实际实现会更复杂
-        Err(authentication_error("用户令牌未提供且无法自动获取"))
-    }
-
-    /// 获取应用访问令牌
-    async fn fetch_app_access_token(config: &Config) -> Result<String, LarkAPIError> {
-        let token_request = serde_json::json!({
-            "app_id": config.app_id,
-            "app_secret": config.app_secret
-        });
-
-        let response = config.http_client
-            .post(&format!("{}/open-apis/auth/v3/app_access_token/internal", config.base_url))
-            .json(&token_request)
-            .send()
-            .await?;
-
-        let token_response: AppAccessTokenResponse = response.json().await?;
-        Ok(token_response.app_access_token)
-    }
+    // apply_*_auth → TokenProvider::get_token → Authorization: Bearer …
 }
 ```
+
+Token 获取走 `TokenProvider`（`auth/token_provider.rs`），**禁止**在 Transport / acquisition 外手搓 `http_client().post()` 换 token。app_ticket 失效恢复见 `auth/app_ticket.rs`（`UnifiedRequestBuilder` bootstrap）。
 
 #### 8.1.3 HeaderBuilder头部构建器
 
