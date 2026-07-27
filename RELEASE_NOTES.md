@@ -9,9 +9,8 @@
 
 ## 当前发布窗口：0.20.0
 
-**状态：** 打包中 — workspace identity `0.20.0` + pre-release GO（#573 AC1–AC3）；annotated tag /
-stable GitHub Release / crates.io 为 **post-merge cut**（#573 AC4，同 0.19 #560 纪律；**no tag before GO**）。  
-#573 在 cut 验证前保持 open（packaging 用 `Refs #573`，勿 `Fixes`）。  
+**状态：** 已发布 — annotated tag `v0.20.0`、stable GitHub Release、crates.io `0.20.0`（#591）。  
+**Cut 记录：** [`docs/0.20.0_RELEASE_CUT.md`](docs/0.20.0_RELEASE_CUT.md)  
 **Sign-off：** [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md)  
 **完整条目：** [`CHANGELOG.md` → `## [0.20.0]`](CHANGELOG.md)  
 **消费者升级：** [`docs/migration-guide.md` → OpenLark 0.20](docs/migration-guide.md)
