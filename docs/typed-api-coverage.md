@@ -79,10 +79,30 @@ business_value × 0.50
 
 - Task v2 的任务、清单、评论、自定义字段、分组和附件能力
 - 联系人基础查询类入口
-- 企业信息、席位信息、跨组织可见范围
+- 企业信息、席位信息、跨组织可见范围（见 §2.2：0.20 已 clear-or-disprove，不再是真缺口）
 - CoreHR 流程发起、流程模板、时间轴查询
 - 安全合规迁移、多地域查询
 - 只读查询类接口的低复杂度倾斜
+
+### 2.2 0.20 P1 clear-or-disprove（#570）
+
+0.19 签核时 workspace 真缺口优先级分布含 **P1=7**，全部落在 `openlark-platform` 的 tenant / trust_party / directory 跨组织只读接口。#567 完成路径 denoise 后，这七项均已在磁盘找到 typed 实现，终端结论一律为 **path noise**（非真缺口、不延期）：
+
+| # | API | 预期文件（nested / CSV） | 实际实现文件 | match_kind | 终端结论 |
+|---|-----|--------------------------|--------------|------------|----------|
+| 1 | 获取关联组织双方共享成员范围 | `directory/directory/v1/collboration_share_entity/list.rs` | `directory/v1/collaboration_share_entity/list.rs` | `typo_correction` | noise |
+| 2 | 获取企业席位信息接口 | `tenant/tenant/v2/tenant/product_assign_info/query.rs` | `tenant/v2/tenant/product_assign_info/query.rs` | `flat_project` | noise |
+| 3 | 获取企业信息 | `tenant/tenant/v2/tenant/query.rs` | `tenant/v2/tenant/query.rs` | `flat_project` | noise |
+| 4 | 获取关联组织部门详情 | `trust_party/trust_party/v1/collaboration_tenant/collaboration_department/get.rs` | `trust_party/v1/collaboration_tenant/collaboration_department/get.rs` | `flat_project` | noise |
+| 5 | 获取关联组织成员详情 | `trust_party/trust_party/v1/collaboration_tenant/collaboration_user/get.rs` | `trust_party/v1/collaboration_tenant/collaboration_user/get.rs` | `flat_project` | noise |
+| 6 | 获取关联组织详情 | `trust_party/trust_party/v1/collaboration_tenant/get.rs` | `trust_party/v1/collaboration_tenant/get.rs` | `flat_project` | noise |
+| 7 | 获取可见关联组织的列表 | `trust_party/trust_party/v1/collaboration_tenant/list.rs` | `trust_party/v1/collaboration_tenant/list.rs` | `flat_project` | noise |
+
+说明：
+
+- **实现形态**：均为 `*RequestBuilder` + `async fn execute` + `Transport::request_typed` 的可调用 typed API。`tenant` / `trust_party` 按 ADR-0001 **flat-by-design** 直路径访问（`crate::tenant::v2::*` / `crate::trust_party::v1::*`），`PlatformService` 故意不暴露 shell accessor；directory 侧经 `PlatformService::directory().v1().collaboration_share_entity()` 链可达。
+- **证据复现**：`python3 tools/validate_apis.py --crate openlark-platform` 后，platform `true_missing=0`、`priority_counts` 无 P1；回归锁在 `tools/tests/test_p1_platform_clear_or_disprove.py`。
+- **硬门禁**：未下调 `tools/typed_coverage_release.toml` 阈值；core-business P0 仍为 0。
 
 ## 3. 报告产物
 
