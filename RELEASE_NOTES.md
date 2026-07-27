@@ -7,30 +7,41 @@
 > Historical narrative below the demotion notice (0.16-era) is **archived for archaeology
 > only** and is not current product guidance.
 
-## 当前发布窗口：0.19.0
+## 当前发布窗口：0.20.0
 
-**状态：** 已发布 — annotated tag `v0.19.0`、stable GitHub Release、crates.io `0.19.0`（#560）。  
-**Cut 记录：** [`docs/0.19.0_RELEASE_CUT.md`](docs/0.19.0_RELEASE_CUT.md)  
-**完整条目：** [`CHANGELOG.md` → `## [0.19.0]`](CHANGELOG.md)  
-**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.19](docs/migration-guide.md)
+**状态：** 打包中 — workspace identity `0.20.0` + pre-release GO（#573 AC1–AC3）；annotated tag /
+stable GitHub Release / crates.io 为 **post-merge cut**（#573 AC4，同 0.19 #560 纪律；**no tag before GO**）。  
+#573 在 cut 验证前保持 open（packaging 用 `Refs #573`，勿 `Fixes`）。  
+**Sign-off：** [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md)  
+**完整条目：** [`CHANGELOG.md` → `## [0.20.0]`](CHANGELOG.md)  
+**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.20](docs/migration-guide.md)
 
 ### 主题摘要（非完整列表）
 
 | 主题 | 要点 |
 |------|------|
-| Registry 删除 | `Client::registry()` / `ServiceRegistry` / 相关 trait 整段移除；能力靠 Cargo feature |
-| 错误码解码 | `ApiError.status: u16` → `raw_code: i32`；构造器 `u16`→`i32`；删 `from_feishu_*` |
-| WebSocket 错误 | `WsClientError` 删 `ServerError`/`ClientError`；`RequestError` 负载改为 `CoreError` |
-| Attendance | 多族 API 字段/Builder 对齐飞书官网 schema（shift / remedy / archive / approval 等） |
-| 死 seam 清理 | `AsyncApiClient`、`into_result`、`ensure_success`、HR config-holder facade、security 死装置等 |
+| Contract trust | docs 域 field strict gate（#569）；endpoint resolver baike 盲区关闭（#568） |
+| Coverage truth | path denoise + classified missing（#567）；P1/P2 噪声重分类（#570/#571） |
+| Selective gaps | 不追求 platform 100%；hard gate 阈值不降 |
+| Thin helper | `WorkflowService::create_task`（#572，可选体验轨） |
+| Breaking | 仅 `BaikeApiV1` 独立 catalog（#568）；多数 leaf 业务路径 minor 兼容 |
 
-升级请优先读迁移指南 0.19 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
+升级请优先读迁移指南 0.20 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
 
 ### 如何生成正式 Release 正文
 
-1. 确认 `CHANGELOG.md` 含 `## [0.19.0]`（日期可在 bump 时补上）。
-2. 打 annotated tag `v0.19.0` 后由 `release.yml` 提取该节。
-3. 可选：将 `tools/release_quality_status.py` 产出附在 Release 末尾（工作流已支持）。
+1. 确认 `CHANGELOG.md` 含 `## [0.20.0]`（本窗口已 dated）。
+2. 确认 [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md) 记录 **GO**。
+3. 打 annotated tag `v0.20.0` 后由 `release.yml` 提取该节并 publish。
+4. 可选：将 `tools/release_quality_status.py` 产出附在 Release 末尾（工作流已支持）。
+
+---
+
+## 上一窗口：0.19.0（已发布）
+
+**状态：** 已发布 — annotated tag `v0.19.0`、stable GitHub Release、crates.io `0.19.0`（#560）。  
+**Cut 记录：** [`docs/0.19.0_RELEASE_CUT.md`](docs/0.19.0_RELEASE_CUT.md)  
+**完整条目：** [`CHANGELOG.md` → `## [0.19.0]`](CHANGELOG.md)
 
 ---
 

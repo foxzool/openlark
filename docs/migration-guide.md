@@ -1,9 +1,62 @@
 # OpenLark 迁移指南
 
-本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.19.0**。下方按版本分节；**从 0.18 升级请先读 0.19 专节**。
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.20.0**。下方按版本分节；
+**从 0.19 升级请先读 0.20 专节**；跨多个大版本请按顺序阅读各节。
 
 完整 breaking 表与逐 API 迁移代码见根目录 [`CHANGELOG.md`](../CHANGELOG.md) 的
-`## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+`## [0.20.0]` / `## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+
+---
+
+# OpenLark 0.20 迁移指南
+
+适用范围：从 `0.19.x` 迁移到 `0.20.x`
+
+## 一句话结论
+
+`0.20` 以 **contract trust / coverage truth / selective gaps** 为主题（parent #566），
+优先提升可调用准确性与覆盖报告可信度。对大多数只走 leaf builder 的业务代码是
+**minor 兼容**；唯一公开 breaking 是 docs 域 `BaikeApiV1` catalog 与 lingo 脱钩
+（#568，修正错误的 lingo 路径前缀）。
+
+## 1. `BaikeApiV1` 独立 catalog（#568）
+
+历史上 `BaikeApiV1` 是 `LingoApiV1` 的 `pub use` 别名，variant 集合与 lingo 完全一致，
+且路径错误落在 `/open-apis/lingo/v1/`。0.20 改为独立 enum，仅覆盖 baike 的 13 个端点，
+路径前缀为 `/open-apis/baike/v1/`。
+
+| 场景 | 迁移 |
+|------|------|
+| 只调用 baike 业务端点（draft/entity/classification/…） | 继续 `BaikeApiV1::…`；路径现已正确 |
+| exhaustive `match BaikeApiV1` | variant 集合缩小，补全/删除 lingo-only 臂 |
+| 依赖 lingo-only variant（如 `EntityDelete` 等） | 改 `LingoApiV1::…` |
+
+```rust
+// before — BaikeApiV1 是 LingoApiV1 别名（含 lingo-only / 错误 lingo 路径）
+use openlark_docs::common::api_endpoints::BaikeApiV1;
+let _ = BaikeApiV1::EntityDelete("id".into());
+
+// after
+use openlark_docs::common::api_endpoints::{BaikeApiV1, LingoApiV1};
+let _ = BaikeApiV1::DraftUpdate("draft_id".into()); // /open-apis/baike/v1/drafts/{id}
+let _ = LingoApiV1::EntityDelete("id".into());     // /open-apis/lingo/v1/entities/{id}
+```
+
+## 2. 非破坏但相关（0.20）
+
+- **docs field strict gate（#569）**：CI 对 `openlark-docs` 启用 live field `--strict fields`；
+  无公开字段 breaking，仅加强回归保护。
+- **coverage denoise（#567 / #570 / #571）**：typed-coverage missing 报告区分 true gap /
+  path noise；P1 platform 七项与部分 P2 重分类为噪声。**不**降低 release hard gate 阈值。
+- **`WorkflowService::create_task` helper（#572）**：新增便利方法；既有 typed
+  `CreateTaskRequest` 路径不变。
+
+## 3. 升级自检
+
+- [ ] 无对 `BaikeApiV1` 的 lingo-only variant / 错误 lingo 路径假设
+- [ ] exhaustive `match BaikeApiV1` 已按 13 端点集合更新
+- [ ] 如需 lingo 专用端点，改用 `LingoApiV1`
+- [ ] 阅读 CHANGELOG `## [0.20.0]` 全文（本专节为摘要）
 
 ---
 
