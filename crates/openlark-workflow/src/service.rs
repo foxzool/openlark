@@ -741,10 +741,7 @@ mod tests {
         assert_eq!(create.assignee.as_deref(), Some("ou_owner"));
         assert_eq!(create.tasklist_guid.as_deref(), Some("tasklist_abc"));
         assert_eq!(create.section_guid.as_deref(), Some("section_xyz"));
-        assert_eq!(
-            create.followers,
-            Some(vec!["ou_follower".to_string()])
-        );
+        assert_eq!(create.followers, Some(vec!["ou_follower".to_string()]));
         assert_eq!(create.remind_time.as_deref(), Some("2026-07-31T09:00:00Z"));
     }
 
