@@ -8,7 +8,8 @@ use openlark_workflow::v2::custom_field::{
 use openlark_workflow::v2::task::{CreateTaskBody, ListTasksResponse};
 use openlark_workflow::v2::tasklist::{CreateTasklistBody, ListTasklistsResponse, TasklistIcon};
 use openlark_workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskListQuery, WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskCreate, WorkflowTaskListQuery,
+    WorkflowTaskMutation,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -45,6 +46,32 @@ fn workflow_helper_models_preserve_builder_contracts() {
             sort: Some(json!([{ "field": "updated_at", "order": "desc" }])),
             user_type: Some("open_id".to_string()),
             page_size: Some(50),
+        }
+    );
+
+    let create = WorkflowTaskCreate::new("编写 release notes")
+        .description("补齐 create_task helper")
+        .start("2026-07-27T09:00:00Z")
+        .due("2026-08-01T18:00:00Z")
+        .priority(2)
+        .assignee("ou_owner")
+        .tasklist_guid("tasklist_abc")
+        .section_guid("section_xyz")
+        .followers(vec!["ou_follower".to_string()])
+        .remind_time("2026-07-31T09:00:00Z");
+    assert_eq!(
+        create,
+        WorkflowTaskCreate {
+            summary: "编写 release notes".to_string(),
+            description: Some("补齐 create_task helper".to_string()),
+            start: Some("2026-07-27T09:00:00Z".to_string()),
+            due: Some("2026-08-01T18:00:00Z".to_string()),
+            priority: Some(2),
+            assignee: Some("ou_owner".to_string()),
+            tasklist_guid: Some("tasklist_abc".to_string()),
+            section_guid: Some("section_xyz".to_string()),
+            followers: Some(vec!["ou_follower".to_string()]),
+            remind_time: Some("2026-07-31T09:00:00Z".to_string()),
         }
     );
 

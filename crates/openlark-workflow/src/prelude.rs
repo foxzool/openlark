@@ -3,7 +3,7 @@
 //! 这个模块重新导出了使用 workflow / approval helper 时最常需要的类型。
 
 pub use crate::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-    WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+    WorkflowTaskListQuery, WorkflowTaskMutation,
 };
 pub use openlark_core::{SDKResult, config::Config};

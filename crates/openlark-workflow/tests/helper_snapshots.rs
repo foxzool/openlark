@@ -3,7 +3,8 @@
 
 use insta::assert_json_snapshot;
 use openlark_workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskListQuery, WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskCreate, WorkflowTaskListQuery,
+    WorkflowTaskMutation,
 };
 use serde_json::json;
 
@@ -15,6 +16,16 @@ fn workflow_helper_outputs_snapshot() {
         .sort(json!([{ "field": "updated_at", "order": "desc" }]))
         .user_type("open_id")
         .page_size(50);
+    let create = WorkflowTaskCreate::new("编写 release notes")
+        .description("补齐 0.20 create_task helper")
+        .start("2026-07-27T09:00:00Z")
+        .due("2026-08-01T18:00:00Z")
+        .priority(2)
+        .assignee("ou_owner")
+        .tasklist_guid("tasklist_abc")
+        .section_guid("section_xyz")
+        .followers(vec!["ou_follower".to_string()])
+        .remind_time("2026-07-31T09:00:00Z");
     let mutation = WorkflowTaskMutation::new()
         .summary("完成项目文档")
         .description("补齐 helper 快照测试")
@@ -43,6 +54,18 @@ fn workflow_helper_outputs_snapshot() {
                 "sort": list_query.sort,
                 "user_type": list_query.user_type,
                 "page_size": list_query.page_size,
+            },
+            "workflow_task_create": {
+                "summary": create.summary,
+                "description": create.description,
+                "start": create.start,
+                "due": create.due,
+                "priority": create.priority,
+                "assignee": create.assignee,
+                "tasklist_guid": create.tasklist_guid,
+                "section_guid": create.section_guid,
+                "followers": create.followers,
+                "remind_time": create.remind_time,
             },
             "workflow_task_mutation": {
                 "summary": mutation.summary,

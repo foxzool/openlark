@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **workflow：高频 `create_task` helper（#572）**：
+  新增 `WorkflowTaskCreate` 输入类型与 `WorkflowService::create_task`，在既有
+  typed `CreateTaskRequest` 之上固化常见创建字段（标题/描述/截止/优先级/执行者/清单等），
+  返回业务 `CreateTaskResponse`。不新增 feature、不引入 registry 或双客户端栈。
+  覆盖：builder unit test、wiremock e2e、helper snapshot、`workflow_api_example` /
+  `communication_workflows` 示例，以及 helper 边界文档。
+
 - **ci(api-contracts)：docs 域 field strict gate（#569，0.20 首个 contract 域扩展）**：
   在 attendance field-monitor → strict（#534/#540）之后，将 live field 校验扩展到
   `openlark-docs`（ccm/base/baike/minutes，~214 API）并以 `--strict fields` 接入 CI
