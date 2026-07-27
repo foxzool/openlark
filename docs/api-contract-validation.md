@@ -150,6 +150,7 @@ security_and_compliance 误配的回归 gate（与 endpoint strict gate 同级�
 |---|---|---|---|
 | attendance | `openlark-hr --biz-tag attendance`（~39 API） | CI `--strict fields` | #526 / #533 / #534 / #540 |
 | docs | `openlark-docs`（ccm/base/baike/minutes，~214 API） | CI `--strict fields` | #569（0.20 首批） |
+| *(next field-strict domain slot)* | 待选（**一域一 PR**） | 未 flip | 见 §1.6 admission |
 
 本地复现 docs 门禁：
 
@@ -165,6 +166,85 @@ python3 tools/validate_api_contracts.py \
 基线证据（#569 落地时 live 全量）：`0 error` / 仅 `WARN`（主要为
 `W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 strict）。
 字段扫描器对 docs multipart（`UploadMeta` / `json!` 字面量）的识别见 #223 / #224。
+
+### 1.6 Trust gate inventory + next field-strict domain admission（#586）
+
+本节把 0.20 已落地的 contract / coverage trust gate **制度化**：CI green 必须继续
+表示「可调用准确性」，而不是「阈值被下调」或「域 gate 被静默删掉」。
+
+#### 1.6.1 Gate inventory（当前 pinned 清单）
+
+下列门禁由 `.github/workflows/ci.yml` 的 `api-contracts` job 执行，并由
+`tools/tests/test_validate_api_contracts_ci_gates.py`（gate inventory test）钉死。
+删除 / 放宽任一 pin 会让该 unittest 失败。
+
+| 层 | 范围 | CI 标志 | Inventory pin |
+|---|---|---|---|
+| Endpoint | monorepo 全仓离线 | `--all-crates --strict endpoint` | `test_endpoint_strict_covers_all_crates` |
+| Token | `openlark-security` + `openlark-auth` | `--strict tokens`（各一 step） | `test_token_strict_covers_security_and_auth` |
+| Field | attendance（`openlark-hr --biz-tag attendance`） | `--live-fields --strict fields` | `test_attendance_field_strict_gate` |
+| Field | docs（`openlark-docs`） | `--live-fields --strict fields` | `test_docs_field_strict_gate` |
+| Field inventory | **恰好** attendance + docs 两域 | 无 monorepo-wide field strict | `test_field_strict_inventory_is_exactly_attendance_and_docs` + `test_no_monorepo_wide_field_strict` |
+
+与 coverage 侧硬门禁的关系（**不在本 job 内执行，但同属 0.20 trust 程序**）：
+
+| 锁 | 位置 | 不得弱化 |
+|---|---|---|
+| Typed-coverage hard gates | `tools/typed_coverage_release.toml` + `docs/typed-coverage-release-criteria.md` | 阈值不得下调（见 #586 非目标） |
+| path_noise vs true_gap 分类 | `tools/validate_apis.py` 报告 + denoise 回归测试 | 分类保留；不得把噪音当「实现完成」删掉真相 |
+| Core-business P0 missing = 0 | release gate / `core_business` dashboard | 不得靠降低门槛伪装 PASS |
+| Platform P1 clear-or-disprove | `tools/tests/test_p1_platform_clear_or_disprove.py` | 锁仍绿 |
+| Selective P2 path_noise | `tools/tests/test_p2_selective_slice.py` | 锁仍绿 |
+
+本地复核 inventory（离线、秒级；不跑 live fields/tokens）：
+
+```bash
+python3 -m unittest tools.tests.test_validate_api_contracts_ci_gates -v
+python3 -m unittest tools.tests.test_typed_coverage_release_policy -v
+```
+
+#### 1.6.2 Next field-strict domain admission（下一域准入）
+
+**Slot**：上表「next field-strict domain slot」——每次只接纳 **一个** 新域进入
+CI `--strict fields`。本 ticket（#586）只制度化 slot + 规则 + 绿 inventory，
+**不**在本变更中 flip 第三个域。
+
+Admission 准入条件（全部满足才允许 flip）：
+
+1. **一域一 PR**：候选域必须单独成 PR（或明确 scoped 子单元），不得与无关重构混装。
+2. **Live baseline 必须 0 ERROR**：对候选域先跑 live field 校验，报告中
+   `ERROR` 计数为 0 后，才允许把该域 step 以 `--strict fields` 写入 CI。
+   `WARN` / `UNVERIFIED` 可带入（与 attendance/docs 先例一致），但不得靠
+   关掉 strict 或缩小扫描范围「假绿」。
+3. **Dual-edit（双改）规则**：同一变更必须同时更新：
+   - `.github/workflows/ci.yml` 的 `api-contracts` job（新增 domain-scoped step）；
+   - `tools/tests/test_validate_api_contracts_ci_gates.py` 的
+     `FIELD_STRICT_DOMAINS` inventory 与对应断言；
+   - 本节域表（§1.5）把 slot 行改成新域的「已 flip」状态。
+   只改 workflow 或只改测试 = 审查拒绝。
+4. **域范围显式**：step 必须带 `--crate …`（及必要时 `--biz-tag …`），
+   report-dir 使用 `api_contract_fields/<domain>` 风格片段，便于 inventory 钉死。
+
+推荐本地基线命令（以假设候选 `openlark-communication` 为例，**非**已 flip 域）：
+
+```bash
+python3 tools/validate_api_contracts.py \
+  --crate openlark-communication \
+  --fields \
+  --live-fields \
+  --report-dir /tmp/openlark-api-contracts-candidate-fields
+# 仅当 0 ERROR 后，再在 PR 中加 --strict fields 并 dual-edit inventory
+```
+
+#### 1.6.3 非目标（Explicit non-goals）
+
+- **禁止 monorepo-wide field strict**：不得用 `--all-crates --strict fields`
+  （或等价「一次打开全仓 fields」）替代域批推进。
+- **禁止 hard-gate 阈值下调**：不得为了让 typed-coverage / contract CI 变绿而降低
+  `tools/typed_coverage_release.toml` 中的 hard gate 阈值；阈值变更必须是独立
+  policy PR，且只能升高或维持，不得降低。
+- **本制度化单元不 march 新域**：#586 交付 slot + rules + green inventory，
+  不实现第三个域的 full field-strict flip（除非作为文档示例命令，且不写入 CI）。
 
 ## 2. 单 crate 使用
 
