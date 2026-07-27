@@ -157,6 +157,13 @@ jobs:
         run: bash tools/check_reqwest_boundary.sh
       - name: Check no handwritten response extraction (drift guard #470/#486)
         run: python3 tools/check_no_handwritten_extraction.py
+      - name: Leaf paradigm hard gate (issue41 guardrail; #585)
+        run: |
+          # Hard on ERROR for DEFAULT_TARGET_CRATES (docs/meeting/communication/hr).
+          # Do NOT pass --strict-warn: W001 remains warn-only until historical debt is cleared.
+          # Inventory pin: tools/tests/test_issue41_guardrail.py
+          python3 -m unittest tools.tests.test_issue41_guardrail
+          python3 tools/issue41_guardrail.py
       - name: Run clippy (no default features)
         run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
