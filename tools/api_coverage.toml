@@ -45,6 +45,12 @@ biz_tags = [
   "ehr",
 ]
 dashboard_groups = ["core_business"]
+# OKR v2 CSV resources are `okr.<sub>` → expected `okr/okr/v2/okr/<sub>/...`.
+# On-disk layout drops the redundant resource-prefix segment (project is already `okr`).
+# See #571 selective P2 slice / docs/typed-api-coverage.md §2.3.
+implementation_path_rewrites = [
+  { from = "okr/okr/v2/okr/", to = "okr/okr/v2/" },
+]
 
 [crates.openlark-security]
 src = "crates/openlark-security/src"
@@ -97,10 +103,19 @@ biz_tags = ["personal_settings"]
 [crates.openlark-mail]
 src = "crates/openlark-mail/src"
 biz_tags = ["mail"]
+# CSV uses meta.Resource=sent_message; on-disk layout nests under message/recall/
+# (matches Feishu URL /messages/:id/recall). See #571 selective P2 slice.
+[crates.openlark-mail.implementation_path_aliases]
+"mail/mail/v1/user_mailbox/sent_message/get_recall_detail.rs" = "mail/mail/v1/user_mailbox/message/recall/get_recall_detail.rs"
+"mail/mail/v1/user_mailbox/sent_message/recall.rs" = "mail/mail/v1/user_mailbox/message/recall/recall.rs"
 
 [crates.openlark-helpdesk]
 src = "crates/openlark-helpdesk/src"
 biz_tags = ["helpdesk"]
+# CSV meta.Name=faq_image → expected faq_image.rs; leaf is image.rs (docPath faq_image).
+# See #571 selective P2 slice.
+[crates.openlark-helpdesk.implementation_path_aliases]
+"helpdesk/helpdesk/v1/faq/faq_image.rs" = "helpdesk/helpdesk/v1/faq/image.rs"
 
 [crates.openlark-application]
 src = "crates/openlark-application/src"

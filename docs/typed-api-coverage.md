@@ -104,6 +104,29 @@ business_value × 0.50
 - **证据复现**：`python3 tools/validate_apis.py --crate openlark-platform` 后，platform `true_missing=0`、`priority_counts` 无 P1；回归锁在 `tools/tests/test_p1_platform_clear_or_disprove.py`。
 - **硬门禁**：未下调 `tools/typed_coverage_release.toml` 阈值；core-business P0 仍为 0。
 
+### 2.3 0.20 selective P2 slice（#571）
+
+0.19 签核时 workspace 真缺口含 **P2=89** 量级。#567 denoise 后，helpdesk / mail 尾部与 hr OKR v2 的「未实现」行被证明是 **path noise**（磁盘已有可调用 typed leaf），而非业务缺口。#571 只清这一小片（28 行），**不**以「清光全部 P2」为目标，也不下调 hard gate。
+
+| 范围 | 行数 | 机制 | 配置 |
+|------|-----:|------|------|
+| helpdesk FAQ 图像 | 1 | `alias`：`faq/faq_image.rs` → `faq/image.rs` | `[crates.openlark-helpdesk.implementation_path_aliases]` |
+| mail 撤回进度 / 撤回 | 2 | `alias`：`sent_message/*` → `message/recall/*` | `[crates.openlark-mail.implementation_path_aliases]` |
+| hr OKR v2 全套 | 25 | `rewrite`：`okr/okr/v2/okr/` → `okr/okr/v2/`（CSV resource `okr.*` 相对 project 冗余） | `[crates.openlark-hr] implementation_path_rewrites` |
+
+终端结论（复现命令）：
+
+```bash
+python3 tools/validate_apis.py --crate openlark-helpdesk  # true_missing=0, path_noise=1
+python3 tools/validate_apis.py --crate openlark-mail      # true_missing=0, path_noise=2
+python3 tools/validate_apis.py --crate openlark-hr        # true_missing=0, path_noise=25（OKR v2）
+python3 -m unittest tools.tests.test_p2_selective_slice -v
+```
+
+- **选型清单**：写在 issue #571 评论（coding 前），本表为仓库内 SSOT 摘要。
+- **硬门禁**：未改 `tools/typed_coverage_release.toml` 阈值；core-business P0 仍为 0。
+- **非目标**：platform/admin/acs 等其余 P2 尾、OKR 新功能实现（本片仅 reclassify 已存在 leaf）。
+
 ## 3. 报告产物
 
 执行批量模式后，会生成以下文件：
