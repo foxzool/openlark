@@ -9,24 +9,26 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ## 🧭 技能路由指南
 
 **本技能适用场景：**
-- 新增/重构飞书 API 后，需要核对请求体/响应体字段是否与官方文档一致
+- **实现前/后**读取飞书官方文档字段（本仓库唯一可靠的文档抓取入口）
+- 新增/重构飞书 API 后，核对请求体/响应体字段是否与官方文档一致
 - 怀疑某个 API 的字段是"推断"而非来自真实文档（如参照同族接口复制）
 - 用户级（user_access_token）接口的字段核对（这类接口字段常与应用级不同）
-- `fetch_docpath.py` 抓取失败（返回占位文本），需要替代方案
+- `fetch_docpath.py` 在线抓取失败（返回占位文本），需要替代方案
 
 **其他技能：**
-- 添加/重构 API 的实现规范 → `Skill(openlark-api)`
+- 添加/重构 API 的实现规范 → `Skill(openlark-api)`（读文档后回此技能核对，或实现时先来此抓取）
 - 统计 API 覆盖率/缺失清单 → `Skill(openlark-api-validation)`
 - 代码规范、风格一致性 → `Skill(openlark-code-standards)`
 
 ### 关键词触发映射
 
-- 字段核对、字段验证、字段不符、文档核对、核对请求字段、核对响应字段 → `openlark-api-field-verify`
+- 字段核对、字段验证、字段不符、文档核对、核对请求字段、核对响应字段、飞书文档、playwright 抓文档 → `openlark-api-field-verify`
 - 新增 API、重构 API、Builder、Request/Response → `openlark-api`
 - 覆盖率、缺失 API、CSV 对比 → `openlark-api-validation`
 
 ### 双向跳转规则
 
+- **`openlark-api` 需要读文档时必须来本技能**（勿用 `fetch_docpath.py` 在线抓取）
 - 若核对发现字段不符需要修正实现，转 `openlark-api` 落地修正
 - 若核对发现是 API 尚未实现，转 `openlark-api` 补齐
 - 若核对根源是覆盖率脚本误报，转 `openlark-api-validation`
@@ -59,27 +61,30 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 
 ### 第 1 步：找到正确的文档 URL
 
-**这是最易错的一步。** 飞书文档 URL 有两种路径格式，**不能混用**：
+**这是最易错的一步。** URL **唯一权威源**是 CSV 的 `fullPath`：
 
-| 文档类型 | URL 格式 | 说明 |
-|---------|---------|------|
-| 旧版/server-docs | `/document/server-docs/{project}-{version}/{resource}-{name}` | 用 `-` 连接，如 `approval-v4/task-pass` |
-| **新版/reference** | `/document/uAjLw4CM/ukTMukTMukTM/reference/{project}/{version}/{resource}/{name}` | 用 `/` 分层 |
+```text
+canonical_url = "https://open.feishu.cn" + fullPath
+```
 
-**判断方法：从 `api_list_export.csv` 的 `fullPath` 字段取真实路径**，不要自己拼：
+| 来源 | 是否可用 | 说明 |
+|------|---------|------|
+| `fullPath` | ✅ 唯一权威 | 原样拼接，不要改路径格式 |
+| `docPath` | ❌ 默认勿用 | 常与 `fullPath` 不一致（大量 server-docs vs 实际路径） |
+| 手拼 `/reference/...` 或 `/server-docs/...` | ❌ 禁止 | 易 404："The documentation could not be found." |
 
 ```bash
-# 从 CSV 查某个 API 的真实 fullPath（用 url 反查）
+# 从 CSV 用 api id 或 url 反查 fullPath
 python3 -c "
 import csv
 with open('api_list_export.csv', encoding='utf-8-sig') as f:
     for row in csv.DictReader(f):
-        if 'approval/v4/tasks/pass' in row['url']:
-            print(row['fullPath'])  # 真实路径，拼到 https://open.feishu.cn 后面
+        if row['id'] == '7642253323628383198' or 'approval/v4/tasks/pass' in row['url']:
+            print(row['fullPath'])
 "
 ```
 
-> ⚠️ 若用错路径格式，页面会显示 "The documentation could not be found."，**这不是抓取失败，是 URL 错了**。
+> ⚠️ 若用错路径，页面会显示 "The documentation could not be found."，**这不是抓取失败，是 URL 错了**。
 
 ### 第 2 步：用 playwright 渲染抓取
 
@@ -96,21 +101,28 @@ npx playwright install chromium  # 装匹配版本（约 170MB）
 #### 抓取单页
 
 ```bash
+# 推荐：按 CSV api-id（脚本内用 fullPath 拼 URL）
+node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
+  --from-csv 7642253323628383198 \
+  --out /tmp/doc_pass.txt
+
+# 或直接传完整 URL / fullPath
 node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
   "https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass" \
   /tmp/doc_pass.txt
 ```
 
-脚本会 `waitUntil: 'networkidle'` + 多次延时 + 滚动触发懒加载，导出完整 `innerText`。正常应抓到 5000-8000 字符；若 < 500 字符，说明 URL 错或页面没渲染（回第 1 步检查 URL）。
+脚本会 `waitUntil: 'networkidle'` + 多次延时 + 滚动触发懒加载，导出完整 `innerText`。正常应抓到 5000-8000 字符；若 < 500 字符，说明 URL 错或页面没渲染（回第 1 步检查 URL）。**实现前抓取失败不得继续写字段。**
 
 #### 批量抓取
+
+传入 **完整 fullPath 或完整 URL**（勿再传「去掉前缀的短 path」——旧用法会错误拼到 `/reference/` 下）：
 
 ```bash
 node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
   --batch \
-  approval-v4/instance/add_cc \
-  approval-v4/instance/detail \
-  approval-v4/task/pass \
+  /document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/add_cc \
+  /document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass \
   --out-dir /tmp/docs
 ```
 
@@ -129,8 +141,8 @@ python3 tools/verify_api_fields.py --crate openlark-workflow
 # 完整模式：抓飞书文档对比字段（慢，约 8 秒/API，默认跳过已缓存）
 python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
 
-# 单个 API 调试（只跑可疑模式检测，不抓文档）
-python3 tools/verify_api_fields.py --api-id 7642253323628383198
+# 单个 API 核对门禁（实现后必做）：抓文档对比
+python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
 ```
 
 工具自动完成路径解析、字段提取、文档抓取、差异对比，输出 `reports/api_field_verify/` 报告。
@@ -200,23 +212,25 @@ awk '/^Response body example$/{p=1} /^Error code$/{p=0} p' doc_xxx.txt \
 
 ### scripts/fetch_doc.js
 
-playwright 渲染抓取脚本，两种用法：
-- 单页：`node fetch_doc.js <url> <out.txt>`
-- 批量：`node fetch_doc.js --batch <path1> <path2> ... --out-dir <dir>`
+playwright 渲染抓取脚本（本仓库读飞书文档的**唯一在线入口**）：
 
-脚本自动处理：`networkidle` 等待、滚动触发懒加载、导出 `innerText`。
+- 单页：`node fetch_doc.js <完整URL|fullPath> <out.txt>`
+- 按 CSV：`node fetch_doc.js --from-csv <api_id> --out <out.txt>`
+- 批量：`node fetch_doc.js --batch <fullPath|URL>... --out-dir <dir>`
+
+URL 解析规则：以 `http` 开头原样使用；以 `/` 开头则拼 `https://open.feishu.cn`；**禁止**手拼 `/reference/` 或 `/server-docs/` 前缀。
 
 > 依赖：`playwright` npm 包 + chromium。首次用前跑 `npx playwright install chromium`。
 
 ## 🚨 常见陷阱
 
-### 1. URL 路径格式错（最高频）
+### 1. URL 路径错误（最高频）
 
 症状：抓到的内容 < 500 字符，含 "The documentation could not be found."
 
-原因：用了 `server-docs/xxx-yyy` 格式，但接口实际在 `reference/xxx/yyy` 下。
+原因：用手拼了 `server-docs` / `reference` 前缀，或误用了 CSV `docPath`（常与 `fullPath` 不一致）。
 
-解决：**永远从 CSV 的 `fullPath` 取真实路径**，不要自己拼。reference 类（新版）文档用 `/` 分层，server-docs 类（旧版）用 `-` 连接。
+解决：**永远用 CSV `fullPath` 拼 `https://open.feishu.cn` + fullPath**，或 `--from-csv <api_id>`。
 
 ### 2. 响应 data 子字段在折叠区
 
@@ -268,6 +282,6 @@ playwright 渲染抓取脚本，两种用法：
 
 ## 🔗 相关技能
 
-- **添加/重构 API 实现**：`Skill(openlark-api)` —— 字段核对后，用它落地修正
-- **覆盖率验证**：`Skill(openlark-api-validation)` —— 核对文件落盘是否完整
+- **添加/重构 API 实现**：`Skill(openlark-api)` —— 实现前先用本技能抓文档；核对差异后回它落地修正；其 checklist 含本技能核对门禁
+- **覆盖率验证**：`Skill(openlark-api-validation)` —— 核对文件落盘是否完整（不管字段正确性）
 - **校验风格**：`Skill(openlark-validation-style)` —— `validate_required` vs `validate_required_list` 用法
