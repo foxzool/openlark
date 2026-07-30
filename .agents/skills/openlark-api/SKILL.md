@@ -16,13 +16,16 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 - 需要了解端点规范、RequestOption 约定、Service 链式调用
 
 **其他技能：**
+- 字段核对 / 抓飞书文档（playwright）→ `Skill(openlark-api-field-verify)`（**读文档唯一入口**）
 - 项目级规范体检（架构/API/导出/校验一体）→ `Skill(openlark-code-standards)`
 - 审查整体设计规范 → `Skill(openlark-design-review)`
 - 统一 `validate()` 写法 → `Skill(openlark-validation-style)`
+- 覆盖率（文件在不在）→ `Skill(openlark-api-validation)`
 
 ### 关键词触发映射
 
 - 新增 API、重构 API、Builder、Request/Response、mod.rs 导出、RequestOption → `openlark-api`
+- 字段核对、文档抓取、playwright、飞书文档字段 → `openlark-api-field-verify`
 - 代码规范、规范检查、风格一致性、体检 → `openlark-code-standards`
 - 架构设计、public API、收敛方案、feature gating、兼容策略 → `openlark-design-review`
 - validate、必填校验、validate_required、空白字符串、校验聚合 → `openlark-validation-style`
@@ -30,13 +33,15 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 
 ### 双向跳转规则
 
+- **读文档 / 字段核对**：一律转 `openlark-api-field-verify`（勿用本技能下的 `fetch_docpath.py` 在线抓取）。
+- 实现完成后必须跑字段核对门禁（见 §0 步骤 8 / §4）；差异修正仍在本技能落地。
 - 若实现问题本质是架构范式冲突（Request/Service 边界），转 `openlark-design-review`。
 - 若实现前需要先做全仓规范体检，先跑 `openlark-code-standards`。
 - 若实现完成后要核验覆盖率与缺失清单，转 `openlark-api-validation`。
 
 ---
 
-本文件只保留"可执行的最小流程"，标准示例与 docPath 抓取能力见 `references/` 与 `scripts/`。
+本文件只保留"可执行的最小流程"。标准示例见 `references/`；**官方文档抓取**见 `Skill(openlark-api-field-verify)`。
 
 ## 🔒 核心契约（所有 crate 必须遵守，不可违反）
 
@@ -57,19 +62,21 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
 
 ## 0. 快速工作流（新增一个 API）
 
-1) **定位 API**：在 `./api_list_export.csv` 拿到 `bizTag`、`meta.Project`、`meta.Version`、`meta.Resource`、`meta.Name`
-   - 若有 `docPath`，用脚本抓取请求/响应体定义（见 §4）
-2) **选 crate**：根据 bizTag 选择 feature crate（见 §1）
-3) **定路径**：`crates/{crate}/src/{bizTag}/{project}/{version}/{resource...}/{name}.rs`
-4) **写代码**：`Body/Response` + Builder（`execute/send`）+ 端点常量/enum
+1) **定位 API**：在 `./api_list_export.csv` 拿到 `id`、`bizTag`、`meta.*`、**`fullPath`**
+   - URL 权威源是 `fullPath`（拼 `https://open.feishu.cn` + `fullPath`）。**不要**用手拼路径，也**不要**默认用 `docPath`（常与 `fullPath` 不一致）。
+2) **读文档（门禁）**：用 playwright 抓取（见 §5）。产出文件 `<500` 字符 = 失败，**禁止**继续实现或推断字段。
+3) **选 crate**：根据 bizTag 选择 feature crate（见 §1）
+4) **定路径**：`crates/{crate}/src/{bizTag}/{project}/{version}/{resource...}/{name}.rs`
+5) **写代码**：按抓取到的真实字段写 `Body/Response` + Builder（`execute/send`）+ 端点常量/enum
    - **必须支持 RequestOption**：用于 `user_access_token` / `tenant_key` / 自定义 header
-5) **补导出**：在 `mod.rs` 中 `pub mod ...` / `pub use ...`
-6) **补链路**：在约定入口补齐链式调用（默认 `service.rs`，但 `openlark-docs` 例外，见 §2）
-7) **验证**：
+6) **补导出**：在 `mod.rs` 中 `pub mod ...` / `pub use ...`
+7) **补链路**：在约定入口补齐链式调用（默认 `service.rs`，但 `openlark-docs` 例外，见 §2）
+8) **验证（含字段核对门禁）**：
    - 新增 API 所属 crate feature 已在 `Cargo.toml [features]` 声明；
    - 涉及该 feature 的测试用 `#[cfg(test)]` 模块内 `#![cfg(feature = "...")]`（或模块级 `#[cfg(feature)]`）门控；
    - 若新增 `examples/` 示例，须在 `Cargo.toml [[example]]` 声明 `required-features`；
-   - 跑 `just fmt && just lint && just test`，其中 `just lint` 须含 `--all-targets`（覆盖 examples + tests）。
+   - 跑 `just fmt && just lint && just test`，其中 `just lint` 须含 `--all-targets`（覆盖 examples + tests）；
+   - **字段核对（必做）**：`python3 tools/verify_api_fields.py --api-id <CSV的id> --fetch-docs`；`error`/`warning` 须清零（或按报告修正后再跑）。详细流程见 `Skill(openlark-api-field-verify)`。
 
 ## 1. Feature Crate ↔ bizTag
 
@@ -248,6 +255,7 @@ impl {Name}Request {
 ## 4. 提交前检查清单
 
 - [ ] 落盘路径正确（与同模块现有结构一致）
+- [ ] **已用 playwright 按 `fullPath` 抓取文档**（产出 ≥500 字符）；字段来自真实文档，非同族推断
 - [ ] Request/Response 字段对齐官方文档（含 `serde(rename)`）
 - [ ] **核心契约 1**：`config: Config`（owned），未用 `Arc<Config>`
 - [ ] **核心契约 2**：`R` 是响应 data 内容类型，未在外面再包 `XxxResponse{data}`
@@ -258,15 +266,36 @@ impl {Name}Request {
 - [ ] `mod.rs` 已导出；`service.rs`/链式入口已补
 - [ ] 新增 feature 已在 `Cargo.toml [features]` 声明；测试/示例的 `#[cfg(feature)]` 与 `[[example]] required-features` 已补
 - [ ] `just fmt && just lint --all-targets && just test` 通过
+- [ ] **字段核对门禁**：`python3 tools/verify_api_fields.py --api-id <id> --fetch-docs` 无未处理的 error/warning
 
-## 5. docPath 网页读取
+## 5. 官方文档读取（唯一入口）
+
+飞书文档是 **SPA**，禁止用本目录 `scripts/fetch_docpath.py` 做在线抓取（常返回空壳）。统一走 field-verify 的 playwright 脚本，**URL 只用 CSV `fullPath`**：
 
 ```bash
-python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
+# 从 CSV 取 fullPath / id 后：
+FULL_PATH="$(python3 -c "
+import csv
+with open('api_list_export.csv', encoding='utf-8-sig') as f:
+    for row in csv.DictReader(f):
+        if row['id'] == '<API_ID>':
+            print(row['fullPath']); break
+")"
+
+node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
+  "https://open.feishu.cn${FULL_PATH}" \
+  "/tmp/doc_<API_ID>.txt"
+
+# 或按 api-id 直接抓（脚本内读 CSV）：
+node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
+  --from-csv <API_ID> --out /tmp/doc_<API_ID>.txt
 ```
+
+抓取后按 `Skill(openlark-api-field-verify)` 解析 Request/Response 字段再写代码。离线已有 HTML 时，才可用 `fetch_docpath.py --html-file` 作解析兜底。
 
 ## 6. References
 
 - 目录规范与反查：`references/file-layout.md`
 - CSV 映射规则：`references/csv-mapping.md`
 - 标准示例（照抄结构）：`references/standard-example.md`
+- 字段核对与文档抓取：`Skill(openlark-api-field-verify)`

@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """
-抓取飞书开放平台 docPath 网页并提取“可能有用”的 API 定义信息（请求/响应/示例 JSON/字段表等）。
+[DEPRECATED — 在线抓取请改用 openlark-api-field-verify/scripts/fetch_doc.js]
 
-目标：
-- 尽量用 stdlib（无需额外依赖）
-- 输出可直接粘贴到上下文的 Markdown，辅助生成 Rust Request/Response 字段
+飞书开放平台文档是 SPA，本脚本用 stdlib HTTP 抓 HTML，**在线模式对新接口常返回空壳/占位**，
+无法可靠提取字段表。
 
-用法：
-  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format md --out /tmp/doc.md
-  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --format json
+唯一可靠的在线入口：
+  node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js --from-csv <api_id> --out /tmp/doc.txt
+  # URL = https://open.feishu.cn + CSV fullPath（不要用手拼 / 默认 docPath）
 
-离线模式（无网络/受限环境）：
-  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --html-file /path/to/page.html --format md
-  cat /path/to/page.html | python3 .agents/skills/openlark-api/scripts/fetch_docpath.py "<docPath>" --stdin --format md
+本脚本仅保留离线用途：已有 HTML 文件时解析为 Markdown/JSON：
+  python3 .agents/skills/openlark-api/scripts/fetch_docpath.py unused --html-file /path/to/page.html --format md
+  cat page.html | python3 .agents/skills/openlark-api/scripts/fetch_docpath.py unused --stdin --format md
 """
 
 from __future__ import annotations
@@ -275,8 +274,13 @@ def to_markdown(data: Extracted) -> str:
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Fetch and extract useful parts from a docPath page.")
-    p.add_argument("url", nargs="?", help="docPath URL（离线模式可省略）")
+    p = argparse.ArgumentParser(
+        description=(
+            "[DEPRECATED online] Parse Feishu doc HTML offline. "
+            "For live fetch use openlark-api-field-verify/scripts/fetch_doc.js"
+        )
+    )
+    p.add_argument("url", nargs="?", help="docPath URL（在线已弃用；离线模式可省略）")
     p.add_argument("--timeout", type=int, default=20)
     p.add_argument("--max-code-blocks", type=int, default=12)
     p.add_argument("--max-text-chars", type=int, default=12000)
@@ -302,6 +306,13 @@ def main(argv: list[str]) -> int:
     else:
         if not args.url:
             raise SystemExit("缺少 docPath URL：请提供 <docPath>，或使用 --html-file/--stdin 进入离线模式")
+        print(
+            "⚠️  DEPRECATED: 在线抓取请改用\n"
+            "  node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js "
+            "--from-csv <api_id> --out /tmp/doc.txt\n"
+            "本脚本对 SPA 常返回空壳，结果不可靠。",
+            file=sys.stderr,
+        )
         html = fetch_html(args.url, timeout=args.timeout)
         url = args.url
 
