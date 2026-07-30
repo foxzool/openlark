@@ -142,10 +142,12 @@ python3 tools/verify_api_fields.py --crate openlark-workflow
 python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
 
 # 单个 API 核对门禁（实现后必做）：抓文档对比
+# 抓取失败 / error / warning → 非 0 退出（禁止假绿）
 python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
 ```
 
 工具自动完成路径解析、字段提取、文档抓取、差异对比，输出 `reports/api_field_verify/` 报告。
+`--fetch-docs` 模式下：文档抓取失败、内容过少/404、字段 error/warning 均记入报告并以非 0 退出；info 不阻断。
 设计文档见 `docs/superpowers/specs/2026-06-16-api-field-verify-tool-design.md`。
 
 ### 第 3 步：解析字段

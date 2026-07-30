@@ -306,6 +306,30 @@ class TestParseDocFields(unittest.TestCase):
         self.assertTrue(req_map["instance_code"])
         self.assertFalse(req_map["comment"])
 
+    def test_parse_param_table_sparse_blank_lines_like_feishu_spa(self):
+        """飞书 SPA 在字段名与 Yes/No 之间插入多行空行时仍能解析，且不把 string 当字段。"""
+        section = (
+            "Parameter\n\nType\n\nRequired\n\nDescription\n\n\n\n"
+            "instance_code\n\n\n\nstring\n\n\n\nYes\n\n\n\n"
+            "Approval instance Code\n\n"
+            "Example value: \"81D31358\"\n\n\n\n\n"
+            "task_id\n\n\n\nstring\n\n\n\nYes\n\n\n\n"
+            "The approval task ID\n\n"
+            "form\n\n\n\nstring\n\n\n\nNo\n\n\n\n"
+            "Form data\n\n"
+            "comment\n\n\n\nstring\n\n\n\nNo\n\n\n\n"
+            "approval comment\n"
+        )
+        fields = verify_api_fields._parse_param_table(section)
+        names = [f.name for f in fields]
+        self.assertEqual(names, ["instance_code", "task_id", "form", "comment"])
+        self.assertNotIn("string", names)
+        req = {f.name: f.required for f in fields}
+        self.assertTrue(req["instance_code"])
+        self.assertTrue(req["task_id"])
+        self.assertFalse(req["form"])
+        self.assertFalse(req["comment"])
+
 
 class TestCompareFields(unittest.TestCase):
     def test_compare_finds_missing_and_extra(self):
@@ -322,6 +346,139 @@ class TestCompareFields(unittest.TestCase):
         self.assertIn("task_id", diff.missing)  # 文档有代码无
         self.assertIn("user_id", diff.extra)  # 代码有文档无
         self.assertIn("instance_code", diff.matched)
+
+
+class TestDocFetchGate(unittest.TestCase):
+    """完整模式不得在抓取失败时假绿放行。"""
+
+    def test_validate_doc_text_rejects_thin_or_404(self):
+        self.assertIsNotNone(verify_api_fields._validate_doc_text(""))
+        self.assertIsNotNone(verify_api_fields._validate_doc_text("x" * 100))
+        self.assertIsNotNone(
+            verify_api_fields._validate_doc_text(
+                "The documentation could not be found.\n" + ("a" * 600)
+            )
+        )
+        self.assertIsNone(verify_api_fields._validate_doc_text("正文内容" * 200))
+
+    def test_exit_code_error_and_warning_fail(self):
+        self.assertEqual(verify_api_fields._exit_code_for_issues([]), 0)
+        self.assertEqual(
+            verify_api_fields._exit_code_for_issues(
+                [verify_api_fields.FieldIssue("info", "x", "tip")]
+            ),
+            0,
+        )
+        self.assertEqual(
+            verify_api_fields._exit_code_for_issues(
+                [verify_api_fields.FieldIssue("warning", "x", "warn")]
+            ),
+            1,
+        )
+        self.assertEqual(
+            verify_api_fields._exit_code_for_issues(
+                [verify_api_fields.FieldIssue("error", "doc_fetch_failed", "fail")]
+            ),
+            1,
+        )
+
+    def test_fetch_docs_failure_recorded_as_error_exit_1(self):
+        """--fetch-docs 时抓取失败必须记 error 且返回非 0（不再假绿）。"""
+        import tempfile
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            src_root = tmpdir / "crates"
+            api_dir = (
+                src_root / "openlark-workflow" / "src" / "approval" / "approval" / "v4" / "task"
+            )
+            api_dir.mkdir(parents=True)
+            (api_dir / "pass.rs").write_text(
+                "pub struct PassTaskBodyV4 {\n"
+                "    pub instance_code: String,\n"
+                "    pub task_id: String,\n"
+                "}\n"
+                "pub struct PassTaskResponseV4 {}\n",
+                encoding="utf-8",
+            )
+            out_dir = tmpdir / "out"
+            api = verify_api_fields.ApiRecord(
+                api_id="999",
+                name="同意",
+                biz_tag="approval",
+                meta_project="approval",
+                meta_version="v4",
+                meta_resource="task",
+                meta_name="pass",
+                url="POST:/open-apis/approval/v4/tasks/pass",
+                doc_path="",
+                full_path="/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass",
+            )
+            fake_fail = verify_api_fields.DocFetchResult(error="playwright missing")
+            with mock.patch.object(
+                verify_api_fields, "_fetch_single_doc", return_value=fake_fail
+            ):
+                code = verify_api_fields._run_single_api(
+                    "999", [api], src_root, out_dir, "api-999", fetch_docs=True
+                )
+            self.assertEqual(code, 1)
+            report = (out_dir / "api-999.md").read_text(encoding="utf-8")
+            self.assertIn("文档抓取失败", report)
+            self.assertIn("有问题 | 1", report)
+
+    def test_fetch_docs_success_compares_fields(self):
+        """抓取成功时对比字段，多余字段记 warning 并非 0 退出。"""
+        import tempfile
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            src_root = tmpdir / "crates"
+            api_dir = (
+                src_root / "openlark-workflow" / "src" / "approval" / "approval" / "v4" / "task"
+            )
+            api_dir.mkdir(parents=True)
+            (api_dir / "pass.rs").write_text(
+                "pub struct PassTaskBodyV4 {\n"
+                "    pub instance_code: String,\n"
+                "    pub task_id: String,\n"
+                "    pub user_id: String,\n"  # 文档没有 → extra
+                "}\n"
+                "pub struct PassTaskResponseV4 {}\n",
+                encoding="utf-8",
+            )
+            out_dir = tmpdir / "out"
+            api = verify_api_fields.ApiRecord(
+                api_id="998",
+                name="同意",
+                biz_tag="approval",
+                meta_project="approval",
+                meta_version="v4",
+                meta_resource="task",
+                meta_name="pass",
+                url="POST:/open-apis/approval/v4/tasks/pass",
+                doc_path="",
+                full_path="/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/pass",
+            )
+            # 伪造足够长的文档正文（含 Request body 段）
+            pad = "x" * 400
+            doc_text = (
+                f"{pad}\n目录 Request Request body Request example Response\n"
+                "Request body\n"
+                "instance_code\nstring\nYes\n实例\n"
+                "task_id\nstring\nYes\n任务\n"
+                "Request example\n"
+                f"{pad}\n"
+            )
+            ok = verify_api_fields.DocFetchResult(text=doc_text)
+            with mock.patch.object(verify_api_fields, "_fetch_single_doc", return_value=ok):
+                code = verify_api_fields._run_single_api(
+                    "998", [api], src_root, out_dir, "api-998", fetch_docs=True
+                )
+            self.assertEqual(code, 1)  # extra_field warning
+            report = (out_dir / "api-998.md").read_text(encoding="utf-8")
+            self.assertIn("多余字段", report)
 
 
 if __name__ == "__main__":
