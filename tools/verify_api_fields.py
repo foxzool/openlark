@@ -452,6 +452,32 @@ def _write_summary_json(reports: List[ApiFieldReport], path: Path, mode: str) ->
 # 文档字段解析与对比（完整模式）
 # ---------------------------------------------------------------------------
 
+MIN_DOC_CHARS = 500  # 低于此视为抓取失败（URL 错或 SPA 未渲染）
+
+
+@dataclass
+class DocFetchResult:
+    """文档抓取结果。ok=False 时必须记 error，禁止假绿放行。"""
+
+    text: str = ""
+    error: Optional[str] = None  # None 表示成功
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None
+
+
+def _validate_doc_text(text: str) -> Optional[str]:
+    """校验文档正文；返回错误原因，通过则返回 None。"""
+    if not text or not text.strip():
+        return "文档内容为空"
+    if len(text) < MIN_DOC_CHARS:
+        return f"文档内容过少（{len(text)} < {MIN_DOC_CHARS} 字符），可能 URL 错误或未渲染"
+    lower = text.lower()
+    if "the documentation could not be found" in lower or "文档不存在" in text:
+        return "文档页面不存在（URL 可能错误）"
+    return None
+
 
 @dataclass
 class FieldDiff:
@@ -504,26 +530,54 @@ def _extract_section(text: str, start: str, end: str, occurrence: int = 1) -> st
 
 
 def _parse_param_table(section: str) -> List[FieldInfo]:
-    """解析参数表（参数名/类型/必填交错成行）。"""
+    """解析参数表（参数名/类型/必填交错成行）。
+
+    飞书 SPA innerText 常在参数名与 Yes/No 之间插入多行空行 + 类型行，
+    回看窗口需足够大；同时禁止把类型名（string/int/...）当成字段名。
+    """
     lines = [l.strip() for l in section.split("\n")]
     results: List[FieldInfo] = []
     banned = {
         "parameter", "type", "required", "description", "authorization",
-        "content", "value", "example",
+        "content", "value", "example", "facts", "scopes", "header",
+        # 类型名（勿当字段）
+        "string", "int", "integer", "boolean", "bool", "number", "float",
+        "double", "object", "array", "file", "binary", "map", "null",
+        "string[]", "int[]", "integer[]", "boolean[]", "number[]", "object[]",
     }
+    type_line = re.compile(
+        r"^(string|int|integer|boolean|bool|number|float|double|object|array|"
+        r"file|binary|map|null)(\[\])?$",
+        re.I,
+    )
     i = 0
     while i < len(lines):
         line = lines[i]
-        # 候选参数名：snake_case，非 banned 词
-        if re.fullmatch(r"[a-z][a-z0-9_]*", line) and line not in banned and len(line) >= 2:
-            # 往后找 Yes/No
-            for j in range(i + 1, min(i + 8, len(lines))):
+        # 候选参数名：snake_case，非 banned / 非类型名
+        if (
+            re.fullmatch(r"[a-z][a-z0-9_]*", line)
+            and line not in banned
+            and not type_line.fullmatch(line)
+            and len(line) >= 2
+        ):
+            # 往后找 Yes/No（空行多时需更大窗口）
+            found = False
+            for j in range(i + 1, min(i + 16, len(lines))):
                 if lines[j] in ("Yes", "No"):
                     required = lines[j] == "Yes"
-                    results.append(FieldInfo(name=line, type_name="", required=required))
+                    # 尝试取中间的类型行
+                    type_name = ""
+                    for k in range(i + 1, j):
+                        if type_line.fullmatch(lines[k]):
+                            type_name = lines[k]
+                            break
+                    results.append(
+                        FieldInfo(name=line, type_name=type_name, required=required)
+                    )
                     i = j + 1
+                    found = True
                     break
-            else:
+            if not found:
                 i += 1
         else:
             i += 1
@@ -548,6 +602,66 @@ def compare_fields(
 # ---------------------------------------------------------------------------
 
 
+def _exit_code_for_issues(issues: List[FieldIssue]) -> int:
+    """完整模式门禁：error/warning 导致非 0；info 不阻断。"""
+    for i in issues:
+        if i.severity in ("error", "warning"):
+            return 1
+    return 0
+
+
+def _compare_doc_against_code(
+    api: ApiRecord,
+    structs: List[StructFields],
+    doc_text: str,
+    issues: List[FieldIssue],
+) -> None:
+    """把文档字段对比结果追加到 issues（就地修改）。"""
+    doc_req = parse_doc_request_fields(doc_text, api.http_method)
+    code_body = next((s.fields for s in structs if "Body" in s.name), [])
+    if doc_req and code_body:
+        diff = compare_fields(code_body, doc_req)
+        if diff.missing:
+            issues.append(
+                FieldIssue(
+                    "error",
+                    "missing_field",
+                    f"请求体缺字段: {', '.join(diff.missing)}",
+                )
+            )
+        if diff.extra:
+            issues.append(
+                FieldIssue(
+                    "warning",
+                    "extra_field",
+                    f"请求体多余字段: {', '.join(diff.extra)}",
+                )
+            )
+    elif not doc_req and code_body:
+        # 有请求体实现但文档没解析出字段——通常是解析失败，记 warning 避免假绿
+        issues.append(
+            FieldIssue(
+                "warning",
+                "doc_parse_empty",
+                "文档未解析到请求字段（可能页面结构变化或非 POST/GET 标准段）",
+            )
+        )
+
+    doc_resp = parse_doc_response_fields(doc_text)
+    code_resp = next((s.fields for s in structs if "Response" in s.name), [])
+    if doc_resp and code_resp:
+        code_resp_names = {f.effective_name for f in code_resp}
+        missing_resp = sorted(set(doc_resp) - code_resp_names)
+        if missing_resp:
+            issues.append(
+                FieldIssue(
+                    "info",
+                    "missing_response_field",
+                    f"响应体可能缺字段: {', '.join(missing_resp)}",
+                )
+            )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="API 字段核对工具")
     parser.add_argument("--csv", default=str(DEFAULT_CSV), help="API 清单 CSV 路径")
@@ -564,11 +678,10 @@ def main() -> int:
     if args.api_id:
         src_root = REPO_ROOT / "crates"
         crate_label = f"api-{args.api_id}"
-        # 自定义过滤：只保留指定 id 的 API
         all_apis = load_apis_from_csv(csv_path)
-        filter_tags = None  # 由 _filter_by_id 处理
-        _run_single_api(args.api_id, all_apis, src_root, out_dir, crate_label, args.fetch_docs)
-        return 0
+        return _run_single_api(
+            args.api_id, all_apis, src_root, out_dir, crate_label, args.fetch_docs
+        )
 
     # 确定 src 根目录和 bizTag 过滤
     if args.crate:
@@ -602,60 +715,54 @@ def main() -> int:
     return 0
 
 
-def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs):
-    """核对单个 API（调试用）。"""
+def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs) -> int:
+    """核对单个 API。--fetch-docs 时抓取失败或 error/warning 返回非 0。"""
     api = next((a for a in all_apis if a.api_id == api_id), None)
     if api is None:
         print(f"❌ CSV 中找不到 id={api_id} 的 API")
-        return
+        return 1
     print(f"🔍 单 API 核对: {api.name} ({api.url})")
     rel_path = generate_expected_file_path(api)
     # 单 API 模式：在所有 crate 的 src 目录下查找文件
     full_path = None
     for crate_dir in src_root.iterdir():
+        if not crate_dir.is_dir():
+            continue
         candidate = crate_dir / "src" / rel_path
         if candidate.exists():
             full_path = candidate
             break
     if full_path is None:
         print(f"❌ 文件不存在（在所有 crate 中查找）: {rel_path}")
-        return
+        return 1
     source = full_path.read_text(encoding="utf-8")
     structs = extract_structs(source)
     issues = detect_suspicious_patterns(api, structs, source)
 
     # 完整模式：抓文档对比字段
     mode = "quick"
-    if fetch_docs and api.full_path:
+    if fetch_docs:
         mode = "full"
-        doc_text = _fetch_single_doc(api, out_dir)
-        if doc_text:
-            # 对比请求体字段
-            doc_req = parse_doc_request_fields(doc_text, api.http_method)
-            code_body = next((s.fields for s in structs if "Body" in s.name), [])
-            if doc_req and code_body:
-                diff = compare_fields(code_body, doc_req)
-                if diff.missing:
-                    issues.append(
-                        FieldIssue("error", "missing_field",
-                                   f"请求体缺字段: {', '.join(diff.missing)}")
+        if not api.full_path:
+            issues.append(
+                FieldIssue(
+                    "error",
+                    "doc_fetch_failed",
+                    "CSV fullPath 为空，无法抓取官方文档",
+                )
+            )
+        else:
+            result = _fetch_single_doc(api, out_dir)
+            if not result.ok:
+                issues.append(
+                    FieldIssue(
+                        "error",
+                        "doc_fetch_failed",
+                        f"文档抓取失败: {result.error}",
                     )
-                if diff.extra:
-                    issues.append(
-                        FieldIssue("warning", "extra_field",
-                                   f"请求体多余字段: {', '.join(diff.extra)}")
-                    )
-            # 对比响应体字段
-            doc_resp = parse_doc_response_fields(doc_text)
-            code_resp = next((s.fields for s in structs if "Response" in s.name), [])
-            if doc_resp and code_resp:
-                code_resp_names = {f.effective_name for f in code_resp}
-                missing_resp = sorted(set(doc_resp) - code_resp_names)
-                if missing_resp:
-                    issues.append(
-                        FieldIssue("info", "missing_response_field",
-                                   f"响应体可能缺字段: {', '.join(missing_resp)}")
-                    )
+                )
+            else:
+                _compare_doc_against_code(api, structs, result.text, issues)
 
     report = ApiFieldReport(
         api=api, file_path=rel_path, file_exists=True, structs=structs, issues=issues,
@@ -668,20 +775,22 @@ def _run_single_api(api_id, all_apis, src_root, out_dir, crate_label, fetch_docs
         for i in issues:
             print(f"  [{i.severity}] {i.detail}")
     else:
-        print("✅ 无可疑模式")
+        print("✅ 字段核对通过" if fetch_docs else "✅ 无可疑模式")
     print(f"📄 报告: {out_dir / f'{crate_label}.md'}")
+    return _exit_code_for_issues(issues) if fetch_docs else 0
 
 
-def _fetch_single_doc(api: ApiRecord, out_dir: Path) -> str:
-    """抓取单个 API 的文档（带缓存）。返回文档文本，失败返回空串。"""
+def _fetch_single_doc(api: ApiRecord, out_dir: Path) -> DocFetchResult:
+    """抓取单个 API 的文档（带缓存）。失败时 DocFetchResult.error 非空。"""
     import subprocess
 
     fetch_script = (
         REPO_ROOT / ".agents" / "skills" / "openlark-api-field-verify" / "scripts" / "fetch_doc.js"
     )
     if not fetch_script.exists():
-        print(f"⚠️ 找不到抓取脚本: {fetch_script}")
-        return ""
+        msg = f"找不到抓取脚本: {fetch_script}"
+        print(f"⚠️ {msg}")
+        return DocFetchResult(error=msg)
     doc_cache = out_dir / "doc_cache"
     doc_cache.mkdir(parents=True, exist_ok=True)
     doc_file = doc_cache / f"{api.api_id}.txt"
@@ -691,12 +800,34 @@ def _fetch_single_doc(api: ApiRecord, out_dir: Path) -> str:
         try:
             subprocess.run(
                 ["node", str(fetch_script), url, str(doc_file)],
-                check=True, capture_output=True, timeout=90,
+                check=True, capture_output=True, timeout=90, text=True,
             )
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            print("⚠️ 文档抓取失败")
-            return ""
-    return doc_file.read_text(encoding="utf-8") if doc_file.exists() else ""
+        except subprocess.CalledProcessError as e:
+            err_tail = (e.stderr or e.stdout or str(e))[-200:]
+            msg = f"fetch_doc.js 退出码 {e.returncode}: {err_tail}"
+            print(f"⚠️ 文档抓取失败: {msg}")
+            return DocFetchResult(error=msg)
+        except subprocess.TimeoutExpired:
+            msg = "fetch_doc.js 超时（90s）"
+            print(f"⚠️ 文档抓取失败: {msg}")
+            return DocFetchResult(error=msg)
+
+    if not doc_file.exists():
+        msg = "抓取完成但缓存文件未生成"
+        print(f"⚠️ 文档抓取失败: {msg}")
+        return DocFetchResult(error=msg)
+
+    text = doc_file.read_text(encoding="utf-8")
+    bad = _validate_doc_text(text)
+    if bad:
+        # 无效缓存不留着，避免下次 resume 假绿
+        try:
+            doc_file.unlink()
+        except OSError:
+            pass
+        print(f"⚠️ 文档内容无效: {bad}")
+        return DocFetchResult(text=text, error=bad)
+    return DocFetchResult(text=text)
 
 
 def _load_crate_tags(crate: str) -> Optional[List[str]]:
@@ -712,8 +843,8 @@ def _load_crate_tags(crate: str) -> Optional[List[str]]:
     return crate_cfg.get("biz_tags")
 
 
-def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
-    """完整模式：抓飞书文档对比字段（慢）。"""
+def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags) -> int:
+    """完整模式：抓飞书文档对比字段（慢）。抓取失败或 error/warning 返回非 0。"""
     import json
     import subprocess
 
@@ -741,18 +872,26 @@ def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
         issues = detect_suspicious_patterns(api, structs, source)
 
         # 抓文档
-        doc_text = ""
-        if api.full_path:
+        if not api.full_path:
+            err = "CSV fullPath 为空"
+            failed.append((api.api_id, err))
+            issues.append(FieldIssue("error", "doc_fetch_failed", f"文档抓取失败: {err}"))
+        else:
             url = "https://open.feishu.cn" + api.full_path
             doc_file = doc_cache / f"{api.api_id}.txt"
+            doc_text = ""
+            fetch_error: Optional[str] = None
             if not doc_file.exists():  # 简单 resume：文件存在则跳过
                 try:
                     subprocess.run(
                         ["node", str(fetch_script), url, str(doc_file)],
-                        check=True, capture_output=True, timeout=90,
+                        check=True, capture_output=True, timeout=90, text=True,
                     )
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                    failed.append((api.api_id, str(e)[:80]))
+                except subprocess.CalledProcessError as e:
+                    err_tail = (e.stderr or e.stdout or str(e))[-200:]
+                    fetch_error = f"fetch_doc.js 退出码 {e.returncode}: {err_tail}"
+                except subprocess.TimeoutExpired:
+                    fetch_error = "fetch_doc.js 超时（90s）"
                 else:
                     doc_text = (
                         doc_file.read_text(encoding="utf-8") if doc_file.exists() else ""
@@ -760,41 +899,27 @@ def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
             else:
                 doc_text = doc_file.read_text(encoding="utf-8")
 
-            # 对比请求体字段
-            if doc_text:
-                doc_req = parse_doc_request_fields(doc_text, api.http_method)
-                code_body = next((s.fields for s in structs if "Body" in s.name), [])
-                if doc_req and code_body:
-                    diff = compare_fields(code_body, doc_req)
-                    if diff.missing:
-                        issues.append(
-                            FieldIssue(
-                                "error", "missing_field",
-                                f"请求体缺字段: {', '.join(diff.missing)}",
-                            )
-                        )
-                    if diff.extra:
-                        issues.append(
-                            FieldIssue(
-                                "warning", "extra_field",
-                                f"请求体多余字段: {', '.join(diff.extra)}",
-                            )
-                        )
+            if fetch_error is None:
+                bad = _validate_doc_text(doc_text)
+                if bad:
+                    fetch_error = bad
+                    if doc_file.exists():
+                        try:
+                            doc_file.unlink()
+                        except OSError:
+                            pass
 
-                # 对比响应体字段（文档示例 vs 代码 Response struct）
-                doc_resp = parse_doc_response_fields(doc_text)
-                code_resp = next((s.fields for s in structs if "Response" in s.name), [])
-                if doc_resp and code_resp:
-                    code_resp_names = {f.effective_name for f in code_resp}
-                    doc_resp_set = set(doc_resp)
-                    missing_resp = sorted(doc_resp_set - code_resp_names)
-                    if missing_resp:
-                        issues.append(
-                            FieldIssue(
-                                "info", "missing_response_field",
-                                f"响应体可能缺字段: {', '.join(missing_resp)}",
-                            )
-                        )
+            if fetch_error:
+                failed.append((api.api_id, fetch_error[:200]))
+                issues.append(
+                    FieldIssue(
+                        "error",
+                        "doc_fetch_failed",
+                        f"文档抓取失败: {fetch_error}",
+                    )
+                )
+            else:
+                _compare_doc_against_code(api, structs, doc_text, issues)
 
         reports.append(
             ApiFieldReport(
@@ -814,8 +939,14 @@ def _run_full_mode(csv_path, src_root, out_dir, crate_label, filter_tags):
         (out_dir / "failed.json").write_text(
             json.dumps(failed, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-    print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
-    return 0
+
+    all_issues = [i for r in reports for i in r.issues]
+    exit_code = _exit_code_for_issues(all_issues)
+    if exit_code == 0:
+        print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
+    else:
+        print(f"❌ 核对未通过（error/warning），报告: {out_dir / f'{crate_label}.md'}")
+    return exit_code
 
 
 if __name__ == "__main__":

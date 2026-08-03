@@ -76,7 +76,7 @@ allowed-tools: Bash, Read, Grep, Glob, Edit
    - 涉及该 feature 的测试用 `#[cfg(test)]` 模块内 `#![cfg(feature = "...")]`（或模块级 `#[cfg(feature)]`）门控；
    - 若新增 `examples/` 示例，须在 `Cargo.toml [[example]]` 声明 `required-features`；
    - 跑 `just fmt && just lint && just test`，其中 `just lint` 须含 `--all-targets`（覆盖 examples + tests）；
-   - **字段核对（必做）**：`python3 tools/verify_api_fields.py --api-id <CSV的id> --fetch-docs`；`error`/`warning` 须清零（或按报告修正后再跑）。详细流程见 `Skill(openlark-api-field-verify)`。
+   - **字段核对（必做）**：`python3 tools/verify_api_fields.py --api-id <CSV的id> --fetch-docs`；进程须以 0 退出（抓取失败 / error / warning 均非 0）。详细流程见 `Skill(openlark-api-field-verify)`。
 
 ## 1. Feature Crate ↔ bizTag
 
