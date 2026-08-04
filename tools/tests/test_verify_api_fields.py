@@ -541,6 +541,55 @@ class TestDocFetchGate(unittest.TestCase):
         empty = [i for i in issues if i.category == "doc_parse_empty"]
         self.assertEqual(len(empty), 1)  # 不重复
 
+    # --- issue #599：空解析 warning 对合法无字段 action API 假阳性 ---
+
+    def test_compare_fieldless_api_with_sections_not_failing(self):
+        """合法无字段 action API（doc 含标准段标题但段内无字段）-> 降为 info，不报 failing（issue #599）。
+
+        PR #598 的空解析 warning 对 envelope-only 响应的合法 API 假阳性（exit 1）。
+        修复：doc 含标准段标题（已渲染/结构正常）但字段空 -> 合法无字段 -> info（不阻断）。
+        """
+        api = verify_api_fields.ApiRecord(
+            api_id="3", name="操作", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="act",
+            url="POST:/open-apis/x/v1/r/act", doc_path="",
+            full_path="/document/x/reference/x-v1/r/act",
+        )
+        # 无 Body struct；Response 无字段（操作型 / envelope-only API）
+        structs = [verify_api_fields.StructFields(name="ActResponse", fields=[])]
+        # doc 含 "Response body example" 段标题（结构正常/已渲染），但 data:{} 无字段；
+        # 不含 "Request body"（无请求体段）
+        doc_text = (
+            "API intro padding content. " * 30
+            + "\nResponse body example\n"
+            + '{\n  "code": 0,\n  "msg": "ok",\n  "data": {}\n}\n'
+            + "Error code\n"
+        )
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        failing = [i for i in issues if i.severity in ("warning", "error")]
+        self.assertEqual(failing, [])  # 合法无字段 → 不阻断（最多一条 info）
+
+    def test_compare_unrendered_doc_without_sections_still_warning(self):
+        """缺标准段标题的未渲染文档 → 仍 warning，文案点明「缺标准段标题」（issue #599 反向分支）。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="4", name="查询", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="q",
+            url="GET:/open-apis/x/v1/r/q", doc_path="",
+            full_path="/document/x/reference/x-v1/r/q",
+        )
+        structs = [verify_api_fields.StructFields(name="QResponse", fields=[])]
+        # 未渲染 SPA 外壳：无任一标准段标题，且无字段
+        doc_text = "导航壳占位内容\n" * 80
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        warns = [
+            i for i in issues
+            if i.category == "doc_parse_empty" and i.severity == "warning"
+        ]
+        self.assertEqual(len(warns), 1)
+        self.assertIn("缺标准段标题", warns[0].detail)  # 钉 #599 warning 分支文案
+
 
 if __name__ == "__main__":
     unittest.main()
