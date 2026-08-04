@@ -480,6 +480,67 @@ class TestDocFetchGate(unittest.TestCase):
             report = (out_dir / "api-998.md").read_text(encoding="utf-8")
             self.assertIn("多余字段", report)
 
+    # --- issue #595：404 子串无锚点误伤 + 空解析假绿 ---
+
+    def test_validate_notfound_phrase_in_body_not_flagged(self):
+        """合法文档正文深处含 404 短语不应误判（issue #595 问题1）。
+
+        真实样本：错误码表/排障说明里合法出现「文档不存在」/
+        "the documentation could not be found"，在正文深处（数百行后）。
+        当前全文无锚点子串匹配会误判 -> _fetch_single_doc unlink 缓存 ->
+        每次 resume 重抓同一份有效文档又重判红（thrash）。
+        """
+        nav = "\n".join(f"nav {i}" for i in range(40))
+        body = "正常正文内容" * 200  # > MIN_DOC_CHARS
+        # 404 短语埋在正文深处（远超头部窗口）
+        doc = nav + "\n" + body + "\n若 文档不存在，请联系管理员。\n"
+        self.assertIsNone(verify_api_fields._validate_doc_text(doc))
+
+    def test_validate_notfound_phrase_in_head_still_flagged(self):
+        """404 短语出现在页面头部仍应判无效（真实 404 提示在导航后第 17 行）。"""
+        head = "\n".join([
+            "Customer Stories", "Documentation", "API Explorer", "CardKit",
+            "The documentation could not be found.",
+        ])
+        # 补足 >MIN_DOC_CHARS（模拟渲染较多导航的 404），短语仍在头部窗口内
+        doc = head + "\n" + "nav tail\n" * 60
+        self.assertIsNotNone(verify_api_fields._validate_doc_text(doc))
+
+    def test_compare_empty_doc_parse_records_warning(self):
+        """文档过 validate 但请求/响应字段均解析为空 -> 记 warning，禁止假绿（issue #595 问题2）。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="1", name="查询", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="q",
+            url="GET:/open-apis/x/v1/r/q", doc_path="",
+            full_path="/document/x/reference/x-v1/r/q",
+        )
+        structs = [verify_api_fields.StructFields(name="QResponse", fields=[])]
+        # >MIN_DOC_CHARS、无头部 404 短语、但无 Request body / Response body example 段
+        doc_text = "导航项内容\n" * 80
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        empty = [i for i in issues if i.category == "doc_parse_empty"]
+        self.assertEqual(len(empty), 1)
+        self.assertEqual(empty[0].severity, "warning")
+
+    def test_compare_body_present_but_no_req_fields_single_warning(self):
+        """有 Body 实现但文档未解析出请求字段 -> 仅一条 doc_parse_empty（不与空解析检查重复）。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="2", name="创建", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="c",
+            url="POST:/open-apis/x/v1/r/c", doc_path="",
+            full_path="/document/x/reference/x-v1/r/c",
+        )
+        structs = [verify_api_fields.StructFields(
+            name="CBody", fields=[verify_api_fields.FieldInfo("foo", "String", True)],
+        )]
+        # 无 Request body 段 -> doc_req 空；无 Response body example -> doc_resp 空
+        doc_text = "导航项内容\n" * 80
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        empty = [i for i in issues if i.category == "doc_parse_empty"]
+        self.assertEqual(len(empty), 1)  # 不重复
+
 
 if __name__ == "__main__":
     unittest.main()

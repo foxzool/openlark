@@ -453,6 +453,10 @@ def _write_summary_json(reports: List[ApiFieldReport], path: Path, mode: str) ->
 # ---------------------------------------------------------------------------
 
 MIN_DOC_CHARS = 500  # 低于此视为抓取失败（URL 错或 SPA 未渲染）
+# 404 提示只在此头部窗口（行）内匹配：飞书 404 页面的错误提示在导航壳之后（实测第 17 行），
+# 而合法文档正文里出现「文档不存在」/"the documentation could not be found"（错误码表/排障说明）
+# 在数百行之后——全文匹配会误伤有效文档并 unlink 缓存，导致每次 resume 重抓重判红（thrash）。
+NOT_FOUND_HEAD_LINES = 30
 
 
 @dataclass
@@ -473,8 +477,9 @@ def _validate_doc_text(text: str) -> Optional[str]:
         return "文档内容为空"
     if len(text) < MIN_DOC_CHARS:
         return f"文档内容过少（{len(text)} < {MIN_DOC_CHARS} 字符），可能 URL 错误或未渲染"
-    lower = text.lower()
-    if "the documentation could not be found" in lower or "文档不存在" in text:
+    # 404 短语锚定到页面头部窗口（见 NOT_FOUND_HEAD_LINES），避免误伤正文深处合法出现
+    head_lower = "\n".join(text.split("\n")[:NOT_FOUND_HEAD_LINES]).lower()
+    if "the documentation could not be found" in head_lower or "文档不存在" in head_lower:
         return "文档页面不存在（URL 可能错误）"
     return None
 
@@ -619,6 +624,7 @@ def _compare_doc_against_code(
     """把文档字段对比结果追加到 issues（就地修改）。"""
     doc_req = parse_doc_request_fields(doc_text, api.http_method)
     code_body = next((s.fields for s in structs if "Body" in s.name), [])
+    parse_warned = False
     if doc_req and code_body:
         diff = compare_fields(code_body, doc_req)
         if diff.missing:
@@ -646,6 +652,7 @@ def _compare_doc_against_code(
                 "文档未解析到请求字段（可能页面结构变化或非 POST/GET 标准段）",
             )
         )
+        parse_warned = True
 
     doc_resp = parse_doc_response_fields(doc_text)
     code_resp = next((s.fields for s in structs if "Response" in s.name), [])
@@ -660,6 +667,18 @@ def _compare_doc_against_code(
                     f"响应体可能缺字段: {', '.join(missing_resp)}",
                 )
             )
+
+    # 文档正文已通过 _validate_doc_text 的基本校验（调用方契约，本函数不重校），
+    # 但请求/响应字段都解析为空——通常是页面未渲染/结构异常。
+    # 记 warning 避免静默假绿（issue #595 问题2）。
+    if not doc_req and not doc_resp and not parse_warned:
+        issues.append(
+            FieldIssue(
+                "warning",
+                "doc_parse_empty",
+                "文档未解析到任何请求/响应字段（可能页面未渲染或结构异常）",
+            )
+        )
 
 
 def main() -> int:
