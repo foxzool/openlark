@@ -493,6 +493,29 @@ class FieldDiff:
     extra: List[str] = field(default_factory=list)  # 代码有、文档无
 
 
+# 标准 API 文档段标题（飞书 innerText）——判断文档是否已渲染/结构正常（issue #599）。
+# parse_doc_request_fields / parse_doc_response_fields 也以此定位段，集中定义避免漂移。
+SECTION_REQUEST_BODY = "Request body"
+SECTION_QUERY_PARAMS = "Query parameters"
+SECTION_RESPONSE_EXAMPLE = "Response body example"
+STANDARD_DOC_SECTIONS = (
+    SECTION_REQUEST_BODY,
+    SECTION_QUERY_PARAMS,
+    SECTION_RESPONSE_EXAMPLE,
+)
+
+
+def _doc_has_standard_sections(doc_text: str) -> bool:
+    """文档是否渲染了真实 API 段（区分 TOC 占位与未渲染 shell）。
+
+    飞书文档里段标题出现两次：per-article TOC 导航项 + 真实 section 标题。故
+    count >= 2 表示真实 section 已渲染；仅 1 次（只在 TOC）说明 section bodies 未
+    渲染（部分渲染 shell），应判未渲染而非合法无字段——避免子串匹配被 TOC 误导假绿
+    （issue #599 对抗验证发现；实测 "Response body example" 在 12 份真实文档恒为 2 次）。
+    """
+    return any(doc_text.count(section) >= 2 for section in STANDARD_DOC_SECTIONS)
+
+
 def parse_doc_request_fields(doc_text: str, method: str) -> List[FieldInfo]:
     """从文档 innerText 提取请求体/查询参数字段。
 
@@ -500,9 +523,9 @@ def parse_doc_request_fields(doc_text: str, method: str) -> List[FieldInfo]:
     GET:  Query parameters → Request example
     """
     if method == "POST":
-        section = _extract_section(doc_text, "Request body", "Request example", occurrence=2)
+        section = _extract_section(doc_text, SECTION_REQUEST_BODY, "Request example", occurrence=2)
     else:
-        section = _extract_section(doc_text, "Query parameters", "Request example", occurrence=1)
+        section = _extract_section(doc_text, SECTION_QUERY_PARAMS, "Request example", occurrence=1)
     if not section:
         return []
     return _parse_param_table(section)
@@ -514,7 +537,7 @@ def parse_doc_response_fields(doc_text: str) -> List[str]:
     Response body 的 data 子字段在折叠区拿不到，从示例 JSON 反推。
     返回 data 内部的字段名列表。
     """
-    section = _extract_section(doc_text, "Response body example", "Error code", occurrence=1)
+    section = _extract_section(doc_text, SECTION_RESPONSE_EXAMPLE, "Error code", occurrence=1)
     if not section:
         return []
     # 提取所有 "field": 的字段名（排除外层 code/msg/data）
@@ -669,16 +692,26 @@ def _compare_doc_against_code(
             )
 
     # 文档正文已通过 _validate_doc_text 的基本校验（调用方契约，本函数不重校），
-    # 但请求/响应字段都解析为空——通常是页面未渲染/结构异常。
-    # 记 warning 避免静默假绿（issue #595 问题2）。
+    # 但请求/响应字段都解析为空。分两种情况（issue #599）：
+    # - 含标准段标题但段内无字段 → 合法无字段 action API，降为 info（不阻断）
+    # - 缺标准段标题 → 页面未渲染/结构异常，维持 warning 避免静默假绿（issue #595 问题2）
     if not doc_req and not doc_resp and not parse_warned:
-        issues.append(
-            FieldIssue(
-                "warning",
-                "doc_parse_empty",
-                "文档未解析到任何请求/响应字段（可能页面未渲染或结构异常）",
+        if _doc_has_standard_sections(doc_text):
+            issues.append(
+                FieldIssue(
+                    "info",
+                    "doc_parse_empty",
+                    "文档含标准段标题但请求/响应字段均空（可能为无字段的 action API）",
+                )
             )
-        )
+        else:
+            issues.append(
+                FieldIssue(
+                    "warning",
+                    "doc_parse_empty",
+                    "文档未解析到任何请求/响应字段且缺标准段标题（可能页面未渲染或结构异常）",
+                )
+            )
 
 
 def main() -> int:

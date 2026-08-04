@@ -541,6 +541,85 @@ class TestDocFetchGate(unittest.TestCase):
         empty = [i for i in issues if i.category == "doc_parse_empty"]
         self.assertEqual(len(empty), 1)  # 不重复
 
+    # --- issue #599：空解析 warning 对合法无字段 action API 假阳性 ---
+
+    def test_compare_fieldless_api_with_sections_not_failing(self):
+        """合法无字段 action API（doc 含标准段标题但段内无字段）-> 降为 info，不报 failing（issue #599）。
+
+        PR #598 的空解析 warning 对 envelope-only 响应的合法 API 假阳性（exit 1）。
+        修复：doc 含标准段标题（已渲染/结构正常）但字段空 -> 合法无字段 -> info（不阻断）。
+        """
+        api = verify_api_fields.ApiRecord(
+            api_id="3", name="操作", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="act",
+            url="POST:/open-apis/x/v1/r/act", doc_path="",
+            full_path="/document/x/reference/x-v1/r/act",
+        )
+        # 无 Body struct；Response 无字段（操作型 / envelope-only API）
+        structs = [verify_api_fields.StructFields(name="ActResponse", fields=[])]
+        # doc 渲染了真实段：TOC + section 标题各一次（Response body example 共 2 次），
+        # 但 data:{} 无字段；不含 "Request body"（无请求体段）
+        doc_text = (
+            "The contents of this article\n"
+            "Response body example\n"  # TOC 导航项（第 1 次）
+            + "API intro padding content. " * 30
+            + "\nResponse body example\n"  # 真实 section 标题（第 2 次）
+            + '{\n  "code": 0,\n  "msg": "ok",\n  "data": {}\n}\n'
+            + "Error code\n"
+        )
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        failing = [i for i in issues if i.severity in ("warning", "error")]
+        self.assertEqual(failing, [])  # 合法无字段 → 不阻断（最多一条 info）
+
+    def test_compare_unrendered_doc_without_sections_still_warning(self):
+        """缺标准段标题的未渲染文档 → 仍 warning，文案点明「缺标准段标题」（issue #599 反向分支）。"""
+        api = verify_api_fields.ApiRecord(
+            api_id="4", name="查询", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="q",
+            url="GET:/open-apis/x/v1/r/q", doc_path="",
+            full_path="/document/x/reference/x-v1/r/q",
+        )
+        structs = [verify_api_fields.StructFields(name="QResponse", fields=[])]
+        # 未渲染 SPA 外壳：无任一标准段标题，且无字段
+        doc_text = "导航壳占位内容\n" * 80
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        warns = [
+            i for i in issues
+            if i.category == "doc_parse_empty" and i.severity == "warning"
+        ]
+        self.assertEqual(len(warns), 1)
+        self.assertIn("缺标准段标题", warns[0].detail)  # 钉 #599 warning 分支文案
+
+    def test_compare_toc_only_shell_still_warning_not_false_green(self):
+        """部分渲染 shell（TOC 含段标题子串但 section bodies 未渲染）-> 仍 warning，不假绿。
+
+        回归保护：_doc_has_standard_sections 用子串时被 TOC 导航项误导（对抗验证发现），
+        未渲染 shell 误判 info -> exit 0 假绿（违背 #595）。改用 count>=2（TOC + 真实段
+        各一次）后修复：真实文档 Response body example 恒 2 次，TOC-only shell 仅 1 次。
+        """
+        api = verify_api_fields.ApiRecord(
+            api_id="5", name="操作", biz_tag="x", meta_project="x",
+            meta_version="v1", meta_resource="r", meta_name="act",
+            url="POST:/open-apis/x/v1/r/act", doc_path="",
+            full_path="/document/x/reference/x-v1/r/act",
+        )
+        structs = [verify_api_fields.StructFields(name="ActResponse", fields=[])]
+        # TOC-only shell：段标题仅在 TOC 出现 1 次，无 section bodies
+        doc_text = (
+            "The contents of this article\n"
+            "Request body\nQuery parameters\nResponse body example\n"  # TOC 导航项（各 1 次）
+            + "nav padding content line\n" * 80  # 凑长度，无真实 section body
+        )
+        issues = []
+        verify_api_fields._compare_doc_against_code(api, structs, doc_text, issues)
+        warns = [
+            i for i in issues
+            if i.category == "doc_parse_empty" and i.severity == "warning"
+        ]
+        self.assertEqual(len(warns), 1)  # TOC-only shell -> warning，不假绿
+
 
 if __name__ == "__main__":
     unittest.main()
