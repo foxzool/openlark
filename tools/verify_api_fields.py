@@ -506,8 +506,14 @@ STANDARD_DOC_SECTIONS = (
 
 
 def _doc_has_standard_sections(doc_text: str) -> bool:
-    """文档是否含任一标准段标题——含则视为已渲染/结构正常（即便段内无字段）。"""
-    return any(section in doc_text for section in STANDARD_DOC_SECTIONS)
+    """文档是否渲染了真实 API 段（区分 TOC 占位与未渲染 shell）。
+
+    飞书文档里段标题出现两次：per-article TOC 导航项 + 真实 section 标题。故
+    count >= 2 表示真实 section 已渲染；仅 1 次（只在 TOC）说明 section bodies 未
+    渲染（部分渲染 shell），应判未渲染而非合法无字段——避免子串匹配被 TOC 误导假绿
+    （issue #599 对抗验证发现；实测 "Response body example" 在 12 份真实文档恒为 2 次）。
+    """
+    return any(doc_text.count(section) >= 2 for section in STANDARD_DOC_SECTIONS)
 
 
 def parse_doc_request_fields(doc_text: str, method: str) -> List[FieldInfo]:
