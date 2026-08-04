@@ -40,36 +40,40 @@ MESSAGE_COT_SDK_FILES = [
     COMM_SRC / "im" / "im" / "v1" / "message_cot" / "mod.rs",
 ]
 
-# 7 条已确认字段变化（url 不得改写）。
+# #581 确认的 7 条目录身份（元数据按后续 #596 当前值更新；url 不得改写）。
 FIELD_CHANGE_EXPECTATIONS = {
-    # approval instance/task subscription：fullPath 重命名 + charging 回填；docPath live 为空
+    # approval instance/task subscription：fullPath 重命名；#596 起标记为计费；docPath live 为空
     "7663359183039794441": {
         "url": "POST:/open-apis/approval/v4/instances/subscription",
-        "chargingMethod": "none",
+        "chargingMethod": "basic",
         "fullDose": "true",
         "fullPath": "/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/subscription",
         "docPath": "",
+        "isCharge": "true",
     },
     "7663359183039810825": {
         "url": "DELETE:/open-apis/approval/v4/instances/subscription",
-        "chargingMethod": "none",
+        "chargingMethod": "basic",
         "fullDose": "true",
         "fullPath": "/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/instance/unsubscription",
         "docPath": "",
+        "isCharge": "true",
     },
     "7663359183039761673": {
         "url": "POST:/open-apis/approval/v4/tasks/subscription",
-        "chargingMethod": "none",
+        "chargingMethod": "basic",
         "fullDose": "true",
         "fullPath": "/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/subscription",
         "docPath": "",
+        "isCharge": "true",
     },
     "7663359183039778057": {
         "url": "DELETE:/open-apis/approval/v4/tasks/subscription",
-        "chargingMethod": "none",
+        "chargingMethod": "basic",
         "fullDose": "true",
         "fullPath": "/document/uAjLw4CM/ukTMukTMukTM/reference/approval-v4/task/unsubscription",
         "docPath": "",
+        "isCharge": "true",
     },
     # IM 搜索消息：计费元数据
     "7649057980096580572": {
@@ -77,20 +81,20 @@ FIELD_CHANGE_EXPECTATIONS = {
         "chargingMethod": "basic",
         "isCharge": "true",
     },
-    # VC bot 读接口：中文 name + 计费 + supportAppTypes 收窄
+    # VC bot 读接口：中文 name + 计费；#596 起增加 ISV 支持
     "7657481714696588519": {
         "url": "GET:/open-apis/vc/v1/bots/events",
         "name": "获取会议事件列表",
         "chargingMethod": "basic",
         "isCharge": "true",
-        "supportAppTypes": '["custom"]',
+        "supportAppTypes": '["isv", "custom"]',
     },
     "7657481714696604903": {
         "url": "GET:/open-apis/vc/v1/bots/user_active_meeting",
         "name": "获取用户活跃会议列表",
         "chargingMethod": "basic",
         "isCharge": "true",
-        "supportAppTypes": '["custom"]',
+        "supportAppTypes": '["isv", "custom"]',
     },
 }
 
@@ -138,7 +142,7 @@ class CatalogSync20260727Tests(unittest.TestCase):
             [],
             f"message_cot 仍在 catalog 中（应移除并对齐 live）: {present}",
         )
-        self.assertEqual(len(rows), 1736)
+        self.assertEqual(len(rows), 1737)
 
     def test_seven_confirmed_field_changes_are_applied(self):
         """7 条已确认字段变化写入 CSV，且 url 列无错误改写。"""
