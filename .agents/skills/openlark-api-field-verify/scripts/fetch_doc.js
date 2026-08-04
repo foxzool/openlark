@@ -146,6 +146,18 @@ function outNameFromInput(input) {
 }
 
 /**
+ * 拒绝把 URL 当本地输出路径：path.resolve 会把 "https://" 折叠成 "https:/"，
+ * 配合 mkdirSync(recursive) 在 cwd 建出整棵 "https:/host/..." 垃圾目录树。
+ */
+function assertLocalOutFile(outFile) {
+  if (/^https?:\/\//i.test(outFile)) {
+    throw new Error(
+      `outFile 不能是 URL（得到 "${outFile}"）；请指定本地输出路径，如 /tmp/doc.txt`
+    );
+  }
+}
+
+/**
  * 渲染单个文档页面，导出 innerText
  * @param {import('playwright').Browser} browser
  * @param {string} url 完整 URL
@@ -206,6 +218,7 @@ async function main() {
     const csvPath = csvIdx >= 0 ? args[csvIdx + 1] : defaultCsvPath();
     const outFile =
       outIdx >= 0 ? args[outIdx + 1] : path.join('/tmp', `doc_${apiId}.txt`);
+    assertLocalOutFile(outFile);
 
     const fullPath = fullPathFromCsv(apiId, csvPath);
     const url = resolveUrl(fullPath);
@@ -276,6 +289,7 @@ async function main() {
     printUsage();
     process.exit(1);
   }
+  assertLocalOutFile(outFile);
   let url;
   try {
     url = resolveUrl(input);
