@@ -1,6 +1,32 @@
 //! 重置登录密码
 //!
 //! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/passport-v1/password/update>
+//!
+//! # 示例
+//!
+//! ```rust,no_run
+//! use openlark_auth::passport::passport::v1::password::update::{
+//!     PassportUserIdType, UpdatePasswordBody, UpdatePasswordRequest,
+//! };
+//! use openlark_core::config::Config;
+//!
+//! # async fn run() -> openlark_core::SDKResult<()> {
+//! let config = Config::builder()
+//!     .app_id("your_app_id")
+//!     .app_secret("your_app_secret")
+//!     .build();
+//!
+//! UpdatePasswordRequest::new(config)
+//!     .user_id_type(PassportUserIdType::OpenId)
+//!     .execute(UpdatePasswordBody {
+//!         user_id: "ou_xxx".to_string(),
+//!         password: Some("1234abcd".to_string()),
+//!         require_reset: Some(true),
+//!     })
+//!     .await?;
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::common::api_endpoints::PassportApiV1;
 use openlark_core::{

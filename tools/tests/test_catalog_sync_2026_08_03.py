@@ -51,6 +51,7 @@ def _load_csv_by_id() -> dict[str, dict[str, str]]:
 class CatalogSync20260803Tests(unittest.TestCase):
     def test_password_update_api_identity_is_checked_in(self):
         rows = _load_csv_by_id()
+        self.assertEqual(len(rows), 1737)
         row = rows.get(PASSWORD_UPDATE_ID)
         self.assertIsNotNone(row, f"缺少 API id={PASSWORD_UPDATE_ID}")
         assert row is not None
