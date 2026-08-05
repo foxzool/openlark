@@ -70,18 +70,18 @@
 | `personal_settings` | 6 | 6 | 0 |
 | `trust_party` | 5 | 5 | 0 |
 | `mdm` | 4 | 4 | 0 |
+| `passport` | 3 | 3 | 0 |
 | `report` | 3 | 3 | 0 |
 | `workplace` | 3 | 3 | 0 |
 | `ehr` | 2 | 2 | 0 |
 | `event` | 2 | 2 | 0 |
-| `passport` | 2 | 2 | 0 |
 | `tenant` | 2 | 2 | 0 |
 | `bot` | 1 | 1 | 0 |
 | `human_authentication` | 1 | 4 | 3 |
 | `moments` | 1 | 1 | 0 |
 | `verification_information` | 1 | 1 | 0 |
 | `meeting_room` | 0 | 17 | 17 |
-| **合计** | 1627 | 1736 | 109 |
+| **合计** | 1628 | 1737 | 109 |
 
 ## 工具用法
 

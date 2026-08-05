@@ -268,6 +268,25 @@ class TestParseDocFields(unittest.TestCase):
         required_map = {f.name: f.required for f in fields}
         self.assertTrue(required_map["instance_code"])
 
+    def test_parse_put_request_body_fields(self):
+        """PUT 接口与 POST 一样从 Request body 正文解析字段。"""
+        doc_text = (
+            "目录 Request Request body Request example Response\n"
+            "Request body\n"
+            "Parameter Type Required Description\n\n"
+            "user_id\n\nstring\n\nYes\n\n目标用户\n\n"
+            "password\n\nstring\n\nNo\n\n新密码\n\n"
+            "require_reset\n\nboolean\n\nNo\n\n下次登录重置\n\n"
+            "Request example\n"
+        )
+
+        fields = verify_api_fields.parse_doc_request_fields(doc_text, method="PUT")
+
+        self.assertEqual(
+            [(field.name, field.required) for field in fields],
+            [("user_id", True), ("password", False), ("require_reset", False)],
+        )
+
     def test_parse_response_fields_from_example(self):
         """从响应示例 JSON 提取响应字段名。"""
         doc_text = (

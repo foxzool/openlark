@@ -105,6 +105,8 @@ pub mod prelude {
 /// Passport V1 API 端点枚举
 #[derive(Debug, Clone)]
 pub enum PassportApiV1 {
+    /// 重置登录密码
+    PasswordUpdate,
     /// 批量查询用户登录会话
     SessionQuery,
     /// 登出用户会话
@@ -115,6 +117,7 @@ impl PassportApiV1 {
     /// 获取对应的 API 路径
     pub fn path(&self) -> &'static str {
         match self {
+            PassportApiV1::PasswordUpdate => "/open-apis/passport/v1/password",
             PassportApiV1::SessionQuery => "/open-apis/passport/v1/sessions/query",
             PassportApiV1::SessionLogout => "/open-apis/passport/v1/sessions/logout",
         }

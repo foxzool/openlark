@@ -519,10 +519,10 @@ def _doc_has_standard_sections(doc_text: str) -> bool:
 def parse_doc_request_fields(doc_text: str, method: str) -> List[FieldInfo]:
     """从文档 innerText 提取请求体/查询参数字段。
 
-    POST: Request body（第2次出现）→ Request example
-    GET:  Query parameters → Request example
+    POST/PUT/PATCH: Request body（第2次出现）→ Request example
+    GET/DELETE:     Query parameters → Request example
     """
-    if method == "POST":
+    if method.upper() in {"POST", "PUT", "PATCH"}:
         section = _extract_section(doc_text, SECTION_REQUEST_BODY, "Request example", occurrence=2)
     else:
         section = _extract_section(doc_text, SECTION_QUERY_PARAMS, "Request example", occurrence=1)
@@ -672,7 +672,7 @@ def _compare_doc_against_code(
             FieldIssue(
                 "warning",
                 "doc_parse_empty",
-                "文档未解析到请求字段（可能页面结构变化或非 POST/GET 标准段）",
+                "文档未解析到请求字段（可能页面结构变化或非标准请求段）",
             )
         )
         parse_warned = True
