@@ -436,10 +436,12 @@ mod update_element_content_body_tests {
             card_id: "card_123".to_string(),
             element_id: "elem_456".to_string(),
             content: json!("new streaming content"),
+            sequence: Some(1),
         };
 
         assert_eq!(body.card_id, "card_123");
         assert_eq!(body.element_id, "elem_456");
+        assert_eq!(body.sequence, Some(1));
     }
 
     #[test]
@@ -448,12 +450,15 @@ mod update_element_content_body_tests {
             card_id: "card_123".to_string(),
             element_id: "elem_456".to_string(),
             content: json!("streaming text content"),
+            sequence: Some(2),
         };
 
         let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element_id"));
         assert!(json_str.contains("content"));
+        assert!(json_str.contains(r#""sequence":2"#));
+        // card_id/element_id 仅用于 URL path
+        assert!(!json_str.contains("card_id"));
+        assert!(!json_str.contains("element_id"));
     }
 }
 
