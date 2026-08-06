@@ -12,13 +12,20 @@ use crate::{
     endpoints::cardkit_v1_card_settings,
 };
 
-/// 更新卡片实体配置请求体
+/// 更新卡片实体配置请求体（官方 SettingsCardRequestBody：settings + uuid + sequence）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateCardSettingsBody {
-    /// 卡片 ID
+    /// 卡片 ID（仅 URL path 用，不进请求体）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 设置内容（结构以官方文档为准）
-    pub settings: serde_json::Value,
+    /// 设置内容（JSON 字符串，如 `{"streaming_mode":false}`）
+    pub settings: String,
+    /// 请求唯一标识（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    /// 更新序号（递增；缺失可能报 300317）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<i64>,
 }
 
 /// 更新卡片实体配置响应
@@ -39,7 +46,9 @@ impl openlark_core::api::ApiResponseTrait for UpdateCardSettingsResponse {}
 pub struct UpdateCardSettingsRequest {
     config: Config,
     card_id: Option<String>,
-    settings: Option<serde_json::Value>,
+    settings: Option<String>,
+    uuid: Option<String>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardSettingsRequest {
@@ -49,6 +58,8 @@ impl UpdateCardSettingsRequest {
             config,
             card_id: None,
             settings: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -78,6 +89,12 @@ impl UpdateCardSettingsRequest {
         if let Some(settings) = self.settings {
             body.settings = settings;
         }
+        if let Some(uuid) = self.uuid {
+            body.uuid = Some(uuid);
+        }
+        if let Some(sequence) = self.sequence {
+            body.sequence = Some(sequence);
+        }
 
         validate_card_id(&body.card_id)?;
 
@@ -95,7 +112,9 @@ impl UpdateCardSettingsRequest {
 pub struct UpdateCardSettingsRequestBuilder {
     request: UpdateCardSettingsRequest,
     card_id: Option<String>,
-    settings: Option<serde_json::Value>,
+    settings: Option<String>,
+    uuid: Option<String>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardSettingsRequestBuilder {
@@ -105,6 +124,8 @@ impl UpdateCardSettingsRequestBuilder {
             request: UpdateCardSettingsRequest::new(config),
             card_id: None,
             settings: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -114,9 +135,21 @@ impl UpdateCardSettingsRequestBuilder {
         self
     }
 
-    /// 设置配置
-    pub fn settings(mut self, settings: impl Into<serde_json::Value>) -> Self {
+    /// 设置配置（JSON 字符串）
+    pub fn settings(mut self, settings: impl Into<String>) -> Self {
         self.settings = Some(settings.into());
+        self
+    }
+
+    /// 设置请求唯一标识
+    pub fn uuid(mut self, uuid: impl Into<String>) -> Self {
+        self.uuid = Some(uuid.into());
+        self
+    }
+
+    /// 设置更新序号（递增；缺失可能报 300317）
+    pub fn sequence(mut self, sequence: impl Into<i64>) -> Self {
+        self.sequence = Some(sequence.into());
         self
     }
 
@@ -126,6 +159,8 @@ impl UpdateCardSettingsRequestBuilder {
             config: self.request.config,
             card_id: self.card_id,
             settings: self.settings,
+            uuid: self.uuid,
+            sequence: self.sequence,
         }
     }
 }
@@ -161,7 +196,9 @@ mod tests {
 
         let body = UpdateCardSettingsBody {
             card_id: "card_001".into(),
-            settings: json!({ "sharing": { "permission": "anyone_can_edit" } }),
+            settings: r#"{"sharing":{"permission":"anyone_can_edit"}}"#.to_string(),
+            uuid: None,
+            sequence: Some(1),
         };
         let resp = UpdateCardSettingsRequest::new(config)
             .execute(body)
@@ -172,6 +209,11 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["settings"]["sharing"]["permission"], "anyone_can_edit");
+        assert_eq!(
+            sent["settings"],
+            r#"{"sharing":{"permission":"anyone_can_edit"}}"#
+        );
+        assert_eq!(sent["sequence"], 1);
+        assert!(sent.get("card_id").is_none(), "card_id 仅用于 URL path");
     }
 }

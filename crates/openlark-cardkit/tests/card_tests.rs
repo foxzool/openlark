@@ -136,14 +136,9 @@ mod update_card_settings_request_builder_tests {
     fn test_settings_builder_with_params() {
         let config = create_test_config();
 
-        let settings = json!({
-            "auto_submit": true,
-            "allow_forward": false
-        });
-
         let builder = UpdateCardSettingsRequestBuilder::new(config.clone())
             .card_id("card_123")
-            .settings(settings);
+            .settings(r#"{"auto_submit":true,"allow_forward":false}"#);
 
         let _request = builder.build();
     }
@@ -159,11 +154,13 @@ mod update_card_settings_request_builder_tests {
     fn test_settings_body_creation() {
         let body = UpdateCardSettingsBody {
             card_id: "card_123".to_string(),
-            settings: json!({"key": "value"}),
+            settings: r#"{"key":"value"}"#.to_string(),
+            uuid: None,
+            sequence: Some(1),
         };
 
         assert_eq!(body.card_id, "card_123");
-        assert!(!body.settings.is_null());
+        assert!(!body.settings.is_empty());
     }
 }
 
@@ -264,12 +261,16 @@ mod body_serialization_tests {
     fn test_settings_body_serialization() {
         let body = UpdateCardSettingsBody {
             card_id: "card_123".to_string(),
-            settings: json!({"auto_submit": true}),
+            settings: r#"{"auto_submit":true}"#.to_string(),
+            uuid: None,
+            sequence: Some(1),
         };
 
         let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
         assert!(json_str.contains("settings"));
+        assert!(json_str.contains(r#"\"auto_submit\":true"#));
+        assert!(json_str.contains(r#"\"sequence\":1"#));
+        assert!(!json_str.contains("card_id"), "card_id 仅用于 URL path");
     }
 
     #[test]
