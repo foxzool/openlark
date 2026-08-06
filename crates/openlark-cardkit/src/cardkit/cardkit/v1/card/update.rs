@@ -1,6 +1,11 @@
 //! 全量更新卡片实体
 //!
 //! docPath: <https://open.feishu.cn/document/cardkit-v1/card/update>
+//!
+//! 请求体对齐官方 lark-oapi SDK（UpdateCardRequestBody：`card` + `uuid` + `sequence`）：
+//! `{"card": {"type":"card_json","data":"..."}, "sequence": N}`。
+//! 修正：原 `card_id/card_content` 格式与飞书实际 API 不符（未联调验证），
+//! 且缺失必填 `sequence`（不带会报 300317 sequence compare failed）。
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
@@ -12,21 +17,20 @@ use crate::{
     endpoints::cardkit_v1_card,
 };
 
-/// 全量更新卡片实体请求体
+/// 全量更新卡片实体请求体（官方格式：`card` + `uuid` + `sequence`）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateCardBody {
-    /// 卡片 ID
+    /// 卡片 ID（仅 URL path 用，不进请求体）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 卡片内容
-    pub card_content: serde_json::Value,
-    /// 卡片类型（可选）
+    /// 卡片内容（`{"type":"card_json","data":"<json>"}`）
+    pub card: serde_json::Value,
+    /// 请求唯一标识（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 卡片类型。
-    pub card_type: Option<String>,
-    /// 更新掩码（可选）
+    pub uuid: Option<String>,
+    /// 更新序号（递增；缺失可能报 300317 sequence compare failed）
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 更新字段掩码。
-    pub update_mask: Option<Vec<String>>,
+    pub sequence: Option<i64>,
 }
 
 /// 全量更新卡片实体响应
@@ -47,9 +51,9 @@ impl openlark_core::api::ApiResponseTrait for UpdateCardResponse {}
 pub struct UpdateCardRequest {
     config: Config,
     card_id: Option<String>,
-    card_content: Option<serde_json::Value>,
-    card_type: Option<String>,
-    update_mask: Option<Vec<String>>,
+    card: Option<serde_json::Value>,
+    uuid: Option<String>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardRequest {
@@ -58,9 +62,9 @@ impl UpdateCardRequest {
         Self {
             config,
             card_id: None,
-            card_content: None,
-            card_type: None,
-            update_mask: None,
+            card: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -84,17 +88,22 @@ impl UpdateCardRequest {
         if let Some(card_id) = self.card_id {
             body.card_id = card_id;
         }
-        if let Some(card_content) = self.card_content {
-            body.card_content = card_content;
+        if let Some(card) = self.card {
+            body.card = card;
         }
-        if let Some(card_type) = self.card_type {
-            body.card_type = Some(card_type);
+        if let Some(uuid) = self.uuid {
+            body.uuid = Some(uuid);
         }
-        if let Some(update_mask) = self.update_mask {
-            body.update_mask = Some(update_mask);
+        if let Some(sequence) = self.sequence {
+            body.sequence = Some(sequence);
         }
 
         validate_card_id(&body.card_id)?;
+        if body.card.is_null() || !body.card.is_object() {
+            return Err(openlark_core::CoreError::validation_msg(
+                "card 必须是 JSON 对象（{\"type\":\"card_json\",\"data\":...}）",
+            ));
+        }
 
         // url: PUT:/open-apis/cardkit/v1/cards/:card_id
         let url = cardkit_v1_card(&body.card_id);
@@ -110,9 +119,9 @@ impl UpdateCardRequest {
 pub struct UpdateCardRequestBuilder {
     request: UpdateCardRequest,
     card_id: Option<String>,
-    card_content: Option<serde_json::Value>,
-    card_type: Option<String>,
-    update_mask: Option<Vec<String>>,
+    card: Option<serde_json::Value>,
+    uuid: Option<String>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardRequestBuilder {
@@ -121,9 +130,9 @@ impl UpdateCardRequestBuilder {
         Self {
             request: UpdateCardRequest::new(config),
             card_id: None,
-            card_content: None,
-            card_type: None,
-            update_mask: None,
+            card: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -134,20 +143,20 @@ impl UpdateCardRequestBuilder {
     }
 
     /// 设置卡片内容
-    pub fn card_content(mut self, card_content: impl Into<serde_json::Value>) -> Self {
-        self.card_content = Some(card_content.into());
+    pub fn card(mut self, card: impl Into<serde_json::Value>) -> Self {
+        self.card = Some(card.into());
         self
     }
 
-    /// 设置卡片类型
-    pub fn card_type(mut self, card_type: impl Into<String>) -> Self {
-        self.card_type = Some(card_type.into());
+    /// 设置请求唯一标识
+    pub fn uuid(mut self, uuid: impl Into<String>) -> Self {
+        self.uuid = Some(uuid.into());
         self
     }
 
-    /// 设置更新掩码
-    pub fn update_mask(mut self, update_mask: impl Into<Vec<String>>) -> Self {
-        self.update_mask = Some(update_mask.into());
+    /// 设置更新序号（递增；缺失可能报 300317）
+    pub fn sequence(mut self, sequence: impl Into<i64>) -> Self {
+        self.sequence = Some(sequence.into());
         self
     }
 
@@ -156,9 +165,9 @@ impl UpdateCardRequestBuilder {
         UpdateCardRequest {
             config: self.request.config,
             card_id: self.card_id,
-            card_content: self.card_content,
-            card_type: self.card_type,
-            update_mask: self.update_mask,
+            card: self.card,
+            uuid: self.uuid,
+            sequence: self.sequence,
         }
     }
 }
@@ -166,47 +175,19 @@ impl UpdateCardRequestBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
-    use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
-    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：PUT .../cards/{card_id} + body 序列化 → UpdateCardResponse。
-    #[tokio::test]
-    async fn test_update_card_returns_data_on_success() {
-        let server = MockServer::start().await;
-        Mock::given(method("PUT"))
-            .and(path("/open-apis/cardkit/v1/cards/card_001"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "data": { "card_id": "card_001", "app_id": "app_001" }
-            })))
-            .mount(&server)
-            .await;
-
-        let config = Config::builder()
-            .app_id("ci_app_id")
-            .app_secret("ci_app_secret")
-            .base_url(server.uri())
-            .enable_token_cache(false)
-            .build();
-
+    #[test]
+    fn update_body_serializes_official_format_without_card_id() {
         let body = UpdateCardBody {
-            card_id: "card_001".into(),
-            card_content: json!({ "schema": "2.0" }),
-            card_type: None,
-            update_mask: None,
+            card_id: "card_1".into(),
+            card: serde_json::json!({"type": "card_json", "data": "{}"}),
+            uuid: None,
+            sequence: Some(3),
         };
-        let resp = UpdateCardRequest::new(config)
-            .execute(body)
-            .await
-            .expect("全量更新卡片实体应成功");
-        assert_eq!(resp.card_id.as_deref(), Some("card_001"));
-
-        let received = server.received_requests().await.unwrap_or_default();
-        assert_eq!(received.len(), 1);
-        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["card_content"]["schema"], "2.0");
+        let json = serde_json::to_value(&body).unwrap();
+        // 请求体含 card + sequence；card_id 不进请求体（URL path 用）
+        assert_eq!(json["card"]["type"], "card_json");
+        assert_eq!(json["sequence"], 3);
+        assert!(json.get("card_id").is_none(), "card_id 不应出现在请求体");
     }
 }

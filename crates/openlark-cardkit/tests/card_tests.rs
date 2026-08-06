@@ -4,7 +4,7 @@
 
 use openlark_cardkit::cardkit::cardkit::v1::card::{
     batch_update::{BatchUpdateCardBody, BatchUpdateCardRequest, BatchUpdateCardRequestBuilder},
-    create::{CreateCardBody, CreateCardRequest, CreateCardRequestBuilder},
+    create::{CreateCardBody, CreateCardRequest},
     id_convert::{ConvertCardIdBody, ConvertCardIdRequest, ConvertCardIdRequestBuilder},
     settings::{
         UpdateCardSettingsBody, UpdateCardSettingsRequest, UpdateCardSettingsRequestBuilder,
@@ -19,216 +19,6 @@ fn create_test_config() -> openlark_core::config::Config {
         .app_id("test_app_id")
         .app_secret("test_app_secret")
         .build()
-}
-
-/// 创建卡片请求构建器测试
-#[cfg(test)]
-mod create_card_request_builder_tests {
-    use super::*;
-
-    #[test]
-    fn test_builder_default_state() {
-        let config = create_test_config();
-        let builder = CreateCardRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证请求被正确创建
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_builder_card_content_setting() {
-        let config = create_test_config();
-        let card_content = json!({"type": "text", "content": "test"});
-
-        let builder =
-            CreateCardRequestBuilder::new(config.clone()).card_content(card_content.clone());
-
-        // 验证构建器可以被链式调用
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_builder_card_type_setting() {
-        let config = create_test_config();
-
-        let builder = CreateCardRequestBuilder::new(config.clone()).card_type("interactive");
-
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_builder_template_id_setting() {
-        let config = create_test_config();
-
-        let builder = CreateCardRequestBuilder::new(config.clone()).template_id("tmpl_123");
-
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_builder_temp_settings() {
-        let config = create_test_config();
-
-        let builder = CreateCardRequestBuilder::new(config.clone())
-            .temp(true)
-            .temp_expire_time(3600);
-
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_builder_chaining() {
-        let config = create_test_config();
-        let card_content = json!({"type": "text"});
-
-        let _request = CreateCardRequestBuilder::new(config.clone())
-            .card_content(card_content.clone())
-            .card_type("interactive")
-            .template_id("tmpl_123")
-            .temp(false)
-            .temp_expire_time(86400)
-            .build();
-
-        // 验证请求被正确创建
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_request_new() {
-        let config = create_test_config();
-        let _request = CreateCardRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-}
-
-/// 创建卡片体验证测试
-#[cfg(test)]
-mod create_card_body_validation_tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_card_body() {
-        let body = CreateCardBody {
-            card_content: json!({"type": "text", "content": "hello"}),
-            card_type: Some("interactive".to_string()),
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
-        };
-
-        assert!(body.validate().is_ok());
-    }
-
-    #[test]
-    fn test_null_card_content_validation() {
-        let body = CreateCardBody {
-            card_content: serde_json::Value::Null,
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
-        };
-
-        let result = body.validate();
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("card_content 不能为空")
-        );
-    }
-
-    #[test]
-    fn test_non_object_card_content_validation() {
-        let body = CreateCardBody {
-            card_content: json!("string content"),
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
-        };
-
-        let result = body.validate();
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("card_content 必须是 JSON 对象")
-        );
-    }
-
-    #[test]
-    fn test_temp_expire_time_range_validation() {
-        // 有效范围：1 ~ 86400
-        let valid_body = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: Some(true),
-            temp_expire_time: Some(3600),
-        };
-        assert!(valid_body.validate().is_ok());
-
-        // 超范围：0
-        let invalid_body_zero = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: Some(true),
-            temp_expire_time: Some(0),
-        };
-        assert!(invalid_body_zero.validate().is_err());
-
-        // 超范围：86401
-        let invalid_body_large = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: Some(true),
-            temp_expire_time: Some(86401),
-        };
-        assert!(invalid_body_large.validate().is_err());
-    }
-
-    #[test]
-    fn test_optional_fields_can_be_none() {
-        // 所有可选字段都为 None 应该是有效的
-        let body = CreateCardBody {
-            card_content: json!({"key": "value"}),
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
-        };
-
-        assert!(body.validate().is_ok());
-    }
-
-    #[test]
-    fn test_temp_expire_time_boundary() {
-        // 边界值：1（最小有效值）
-        let body_min = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: Some(true),
-            temp_expire_time: Some(1),
-        };
-        assert!(body_min.validate().is_ok());
-
-        // 边界值：86400（最大有效值）
-        let body_max = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: Some(true),
-            temp_expire_time: Some(86400),
-        };
-        assert!(body_max.validate().is_ok());
-    }
 }
 
 /// 更新卡片请求构建器测试
@@ -251,9 +41,8 @@ mod update_card_request_builder_tests {
 
         let builder = UpdateCardRequestBuilder::new(config.clone())
             .card_id("card_123")
-            .card_content(json!({"updated": true}))
-            .card_type("updated_type")
-            .update_mask(vec!["card_content".to_string()]);
+            .card(json!({"type": "card_json", "data": "{\"updated\":true}"}))
+            .sequence(1);
 
         let _request = builder.build();
     }
@@ -271,9 +60,9 @@ mod update_card_request_builder_tests {
 
         let _request = UpdateCardRequestBuilder::new(config.clone())
             .card_id("card_123")
-            .card_content(json!({"key": "value"}))
-            .card_type("interactive")
-            .update_mask(vec!["card_content".to_string(), "card_type".to_string()])
+            .card(json!({"type": "card_json", "data": "{\"key\":\"value\"}"}))
+            .uuid("uuid_1")
+            .sequence(2)
             .build();
 
         // 验证 request 对象已创建（Rust 引用永不为 null）
@@ -433,31 +222,30 @@ mod body_serialization_tests {
     #[test]
     fn test_create_card_body_serialization() {
         let body = CreateCardBody {
-            card_content: json!({"type": "text"}),
-            card_type: Some("interactive".to_string()),
-            template_id: Some("tmpl_123".to_string()),
-            temp: Some(true),
-            temp_expire_time: Some(3600),
+            r#type: "card_json".into(),
+            data: r#"{"schema":"2.0"}"#.into(),
         };
 
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_content"));
-        assert!(json_str.contains("card_type"));
-        assert!(json_str.contains("template_id"));
+        let v = serde_json::to_value(&body).expect("序列化失败");
+        assert_eq!(v["type"], "card_json");
+        assert_eq!(v["data"], r#"{"schema":"2.0"}"#);
+        assert!(v.get("card_content").is_none(), "官方平铺格式不应有 card_content");
     }
 
     #[test]
     fn test_update_card_body_serialization() {
         let body = UpdateCardBody {
             card_id: "card_123".to_string(),
-            card_content: json!({"updated": true}),
-            card_type: Some("template".to_string()),
-            update_mask: Some(vec!["card_content".to_string()]),
+            card: json!({"type": "card_json", "data": "{\"updated\":true}"}),
+            uuid: None,
+            sequence: Some(3),
         };
 
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("card_content"));
+        let v = serde_json::to_value(&body).expect("序列化失败");
+        assert_eq!(v["card"]["type"], "card_json");
+        assert_eq!(v["sequence"], 3);
+        assert!(v.get("card_id").is_none(), "card_id 仅用于 URL path");
+        assert!(v.get("card_content").is_none());
     }
 
     #[test]
@@ -506,13 +294,10 @@ mod edge_case_tests {
 
     #[test]
     fn test_empty_card_content_object() {
-        // 空的 JSON 对象应该是有效的
+        // 空的 JSON 字符串（data）也有效（校验仅要求非空）
         let body = CreateCardBody {
-            card_content: json!({}),
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
+            r#type: "card_json".into(),
+            data: "{}".into(),
         };
 
         assert!(body.validate().is_ok());
@@ -520,23 +305,10 @@ mod edge_case_tests {
 
     #[test]
     fn test_nested_card_content() {
-        // 嵌套的复杂 JSON 对象
+        // 嵌套的复杂 JSON 以字符串形式放在 data
         let body = CreateCardBody {
-            card_content: json!({
-                "header": {
-                    "title": {
-                        "tag": "plain_text",
-                        "content": "标题"
-                    }
-                },
-                "elements": [
-                    {"tag": "div", "text": {"tag": "plain_text", "content": "内容"}}
-                ]
-            }),
-            card_type: Some("interactive".to_string()),
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
+            r#type: "card_json".into(),
+            data: r#"{"header":{"title":{"tag":"plain_text","content":"标题"}},"elements":[{"tag":"div"}]}"#.into(),
         };
 
         assert!(body.validate().is_ok());
@@ -545,13 +317,8 @@ mod edge_case_tests {
     #[test]
     fn test_special_characters_in_strings() {
         let body = CreateCardBody {
-            card_content: json!({
-                "text": "特殊字符：!@#$%^&*()_+-=[]{}|;':\",./<>?"
-            }),
-            card_type: Some("interactive".to_string()),
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
+            r#type: "card_json".into(),
+            data: r#"{"text":"特殊字符：!@#$%^&*()_+-=[]{}|;':\",./<>?"}"#.into(),
         };
 
         assert!(body.validate().is_ok());
@@ -560,13 +327,8 @@ mod edge_case_tests {
     #[test]
     fn test_unicode_content() {
         let body = CreateCardBody {
-            card_content: json!({
-                "text": "中文内容 🎉 Emoji 测试"
-            }),
-            card_type: Some("interactive".to_string()),
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
+            r#type: "card_json".into(),
+            data: r#"{"text":"中文内容 🎉 Emoji 测试"}"#.into(),
         };
 
         assert!(body.validate().is_ok());

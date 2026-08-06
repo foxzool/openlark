@@ -13,15 +13,20 @@ use crate::common::{
 };
 use crate::endpoints::cardkit_v1_card_element_content;
 
-/// 流式更新文本请求体（结构以官方文档为准）
+/// 流式更新文本请求体（结构以官方文档为准：`content` + `sequence`）。
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UpdateCardElementContentBody {
-    /// 卡片 ID
+    /// 卡片 ID（仅 URL path 用，不进请求体）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 组件 ID
+    /// 组件 ID（仅 URL path 用，不进请求体）
+    #[serde(skip_serializing)]
     pub element_id: String,
-    /// 内容
+    /// 内容（累积全文，卡片自动 diff 打字机）
     pub content: serde_json::Value,
+    /// 更新序号（递增；缺失可能报 300317 sequence compare failed）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<i64>,
 }
 
 /// 流式更新文本请求
@@ -31,6 +36,7 @@ pub struct UpdateCardElementContentRequest {
     card_id: Option<String>,
     element_id: Option<String>,
     content: Option<serde_json::Value>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardElementContentRequest {
@@ -41,6 +47,7 @@ impl UpdateCardElementContentRequest {
             card_id: None,
             element_id: None,
             content: None,
+            sequence: None,
         }
     }
 
@@ -73,6 +80,9 @@ impl UpdateCardElementContentRequest {
         if let Some(content) = self.content {
             body.content = content;
         }
+        if let Some(sequence) = self.sequence {
+            body.sequence = Some(sequence);
+        }
 
         validate_card_id(&body.card_id)?;
         validate_element_id(&body.element_id)?;
@@ -94,6 +104,7 @@ pub struct UpdateCardElementContentRequestBuilder {
     card_id: Option<String>,
     element_id: Option<String>,
     content: Option<serde_json::Value>,
+    sequence: Option<i64>,
 }
 
 impl UpdateCardElementContentRequestBuilder {
@@ -104,6 +115,7 @@ impl UpdateCardElementContentRequestBuilder {
             card_id: None,
             element_id: None,
             content: None,
+            sequence: None,
         }
     }
 
@@ -125,6 +137,12 @@ impl UpdateCardElementContentRequestBuilder {
         self
     }
 
+    /// 设置更新序号（递增；缺失可能报 300317）
+    pub fn sequence(mut self, sequence: impl Into<i64>) -> Self {
+        self.sequence = Some(sequence.into());
+        self
+    }
+
     /// 构建请求
     pub fn build(self) -> UpdateCardElementContentRequest {
         UpdateCardElementContentRequest {
@@ -132,6 +150,7 @@ impl UpdateCardElementContentRequestBuilder {
             card_id: self.card_id,
             element_id: self.element_id,
             content: self.content,
+            sequence: self.sequence,
         }
     }
 }
@@ -171,6 +190,7 @@ mod tests {
             card_id: "card_001".into(),
             element_id: "elem_001".into(),
             content: json!({ "tag": "markdown", "content": "hello" }),
+            sequence: Some(1),
         };
         let resp = UpdateCardElementContentRequest::new(config)
             .execute(body)
@@ -182,5 +202,9 @@ mod tests {
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
         assert_eq!(sent["content"]["tag"], "markdown");
+        assert_eq!(sent["sequence"], 1);
+        // card_id/element_id 不进请求体（URL path 用）
+        assert!(sent.get("card_id").is_none());
+        assert!(sent.get("element_id").is_none());
     }
 }
