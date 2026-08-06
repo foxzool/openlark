@@ -268,8 +268,8 @@ mod body_serialization_tests {
 
         let json_str = serde_json::to_string(&body).expect("序列化失败");
         assert!(json_str.contains("settings"));
-        assert!(json_str.contains(r#"\"auto_submit\":true"#));
-        assert!(json_str.contains(r#"\"sequence\":1"#));
+        assert!(json_str.contains(r#"\"auto_submit\":true"#), "settings 字符串应含转义 JSON: {json_str}");
+        assert!(json_str.contains("\"sequence\":1"), "sequence 为数字字段: {json_str}");
         assert!(!json_str.contains("card_id"), "card_id 仅用于 URL path");
     }
 
