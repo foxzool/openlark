@@ -2,6 +2,7 @@
 //!
 //! 方法分发由 [`super::session::Session`] 完成；本模块不再二次 match method。
 
+use base64::Engine;
 use lark_websocket_protobuf::pbbp2::{Frame, Header};
 use log::{debug, error, trace};
 use serde::{Deserialize, Serialize};
@@ -34,11 +35,28 @@ pub(crate) enum ControlFrameError {
 }
 
 /// 数据帧事件应答（写回 peer 的 payload）。
-#[derive(Serialize, Deserialize, Debug)]
+///
+/// 序列化对齐飞书协议：`data` 为 base64 字符串（官方 lark SDK `{code:0, data:base64(回执)}`），
+/// 不能按 `Vec<u8>` 默认序列化成 JSON 数组（gclm-agent 联调发现）。
+#[derive(Deserialize, Debug)]
 struct EventAck {
     code: u16,
     headers: std::collections::HashMap<String, String>,
     data: Vec<u8>,
+}
+
+impl Serialize for EventAck {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut st = s.serialize_struct("EventAck", 3)?;
+        st.serialize_field("code", &self.code)?;
+        st.serialize_field("headers", &self.headers)?;
+        st.serialize_field(
+            "data",
+            &base64::engine::general_purpose::STANDARD.encode(&self.data),
+        )?;
+        st.end()
+    }
 }
 
 impl EventAck {
@@ -123,7 +141,9 @@ impl FrameHandler {
         );
 
         match msg_type {
-            "event" | "" => {
+            // 注意：`card` 帧（card.action.trigger 审批卡回调）与 event 同构——
+            // 必须分发 + 回 ACK，否则审批卡点击回调丢失（gclm-agent 联调发现）。
+            "event" | "" | "card" => {
                 let response = Self::process_event(&payload, event_handler);
 
                 if let Some(biz_rt) = response.headers.get("biz_rt") {
@@ -140,10 +160,6 @@ impl FrameHandler {
                 }));
 
                 Some(frame)
-            }
-            "card" => {
-                debug!("Card frame received, skipping");
-                None
             }
             other => {
                 debug!("Unknown data frame type: {other}");

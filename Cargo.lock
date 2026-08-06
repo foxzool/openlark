@@ -1619,6 +1619,7 @@ dependencies = [
 name = "openlark-client"
 version = "0.20.0"
 dependencies = [
+ "base64",
  "futures-util",
  "lark-websocket-protobuf",
  "log",
