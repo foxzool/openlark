@@ -24,11 +24,6 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: 缓存依赖
         uses: Swatinem/rust-cache@v2
 

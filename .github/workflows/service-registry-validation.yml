@@ -28,11 +28,6 @@ jobs:
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Run ServiceRegistry specific tests
         run: |
           echo "🔍 运行 openlark-client 的 ServiceRegistry 相关验证..."
@@ -49,11 +44,6 @@ jobs:
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Performance Benchmarks
         run: |
           echo "⚡ 运行ServiceRegistry性能基准测试..."
@@ -82,11 +72,6 @@ jobs:
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Generate Validation Report
         run: |
           echo "📊 生成ServiceRegistry验证报告..."

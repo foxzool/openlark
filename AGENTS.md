@@ -16,7 +16,7 @@ OpenLark 是为飞书（Feishu/Lark）开放平台构建的企业级 Rust SDK，
 ├── crates/                    # 18 个业务模块 crates
 │   ├── openlark-core/        # 核心基础设施（HTTP、错误处理）
 │   ├── openlark-client/      # 高级客户端（meta 链式入口）
-│   ├── openlark-protocol/    # WebSocket 协议
+│   ├── lark-websocket-protobuf/ # WebSocket protobuf 协议（预生成源码）
 │   ├── openlark-auth/        # 认证服务
 │   ├── openlark-communication/  # IM 消息和联系人
 │   ├── openlark-docs/        # 云文档和表格（158 APIs）
@@ -151,7 +151,7 @@ Issues 在 GitHub Issues（`foxzool/openlark`）跟踪，统一用 `gh` CLI；�
 本仓库是 Rust workspace 库 SDK（不是长驻服务）。"运行应用"= 运行 `examples/` 里的示例程序。
 
 - **工具链**: edition 2024 + MSRV 1.88，需 `stable` 工具链（≥1.88）。`rustup default stable` 已在环境预置。
-- **系统依赖（非显而易见）**: `lark-websocket-protobuf` 的 build 脚本需要 `protoc`，因此 `--all-features` 构建/测试必须安装 `protobuf-compiler`（提供 `protoc`）。缺失时报 “Could not find `protoc`”。该系统依赖已在环境预置，不在更新脚本内。
+- **WebSocket protobuf**: `lark-websocket-protobuf` 随 crate 发布预生成 Rust 源码；普通构建、`--all-features` 测试和下游消费均不需要安装 `protoc`。
 - **`just`**: 未安装。`justfile` 记录了权威命令，直接用底层 `cargo` 命令即可（见下）。
 - **常用命令**（直接 cargo，等价 `justfile` 目标）:
   - 构建: `cargo build --workspace --all-features`

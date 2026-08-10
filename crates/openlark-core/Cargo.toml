@@ -35,7 +35,7 @@ futures-util = { workspace = true }
 regex = { workspace = true }
 tokio-tungstenite = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
-lark-websocket-protobuf = { version = "0.1", optional = true }
+lark-websocket-protobuf = { workspace = true, optional = true }
 http = { workspace = true }
 num_cpus = { workspace = true }
 urlencoding = "2.1"
