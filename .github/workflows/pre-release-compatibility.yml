@@ -51,11 +51,6 @@ jobs:
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Run pre-release compatibility verification
         run: bash scripts/check-pre-release-compatibility.sh
 

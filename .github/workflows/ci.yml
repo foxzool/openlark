@@ -23,12 +23,11 @@ jobs:
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
       - name: Run cargo test (workspace, all features)
         run: cargo test --workspace --all-features --no-fail-fast
+
+      - name: Verify protobuf package builds without protoc
+        run: python3 -m unittest tools.tests.test_lark_websocket_protobuf_package
 
       - name: Validate public examples
         run: bash scripts/check-public-examples.sh
@@ -44,10 +43,6 @@ jobs:
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
       - name: Run cargo doc
         run: cargo doc --workspace --all-features --no-deps
 
@@ -125,10 +120,6 @@ jobs:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
       - name: Check format
         run: cargo fmt --all -- --check
       - name: Run clippy (all features)
@@ -237,11 +228,6 @@ jobs:
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Build with feature combination
         run: |
           echo "Testing feature combination: ${{ matrix.features }}"
@@ -283,10 +269,6 @@ jobs:
         with:
           toolchain: 1.88
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
       - name: Use pinned MSRV lockfile
         run: cp .github/msrv/Cargo.lock Cargo.lock
       - name: Check MSRV build
