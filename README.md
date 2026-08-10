@@ -176,7 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 |------|------|---------|------|
 | openlark-core | ✅ 完成 | - | 核心基础设施，HTTP 客户端，错误处理 |
 | openlark-client | ✅ 完成 | - | 单入口 + capability catalog（meta 链式字段访问） |
-| openlark-protocol | ✅ 完成 | - | WebSocket 协议 |
+| lark-websocket-protobuf | ✅ 完成 | - | WebSocket protobuf 协议（预生成源码） |
 | openlark-auth | ✅ 完成 | 15 | Token 管理，认证服务 |
 | openlark-hr | ✅ 完成 | 562 | 招聘、CoreHR、考勤、薪酬等 |
 | openlark-docs | ✅ 完成 | 158 | 云文档、多维表格、知识库、会议纪要 |
@@ -238,7 +238,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - 测试覆盖率 ~47% - 核心模块完整测试覆盖
 
 **已完成**：
-- ✅ 核心基础设施（core、client、protocol、auth）
+- ✅ 核心基础设施（core、client、lark-websocket-protobuf、auth）
 - ✅ 18 个业务模块全部实现，共 1,560+ 个 API
 - ✅ openlark-hr 562 个 API（招聘、CoreHR、考勤、薪酬）
 - ✅ openlark-communication 175 个 API

@@ -37,7 +37,12 @@ class ReleaseWorkflowTests(unittest.TestCase):
         publish_script = PUBLISH_SCRIPT_PATH.read_text(encoding="utf-8")
         loop = re.search(r"PUBLISH_ORDER=\((?P<crates>.*?)\n\)", publish_script, re.DOTALL)
         self.assertIsNotNone(loop)
-        planned = set(re.findall(r'"(openlark(?:-[a-z-]+)?)"', loop.group("crates")))
+        planned = set(
+            re.findall(
+                r'"(openlark(?:-[a-z-]+)?|lark-websocket-protobuf)"',
+                loop.group("crates"),
+            )
+        )
 
         self.assertEqual(planned, publishable_workspace_crates())
 
