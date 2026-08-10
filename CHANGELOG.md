@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **websocket protobuf 打包修复（#605）**：恢复 `lark-websocket-protobuf` 为 workspace
+  权威发布源并准备 `0.1.2`；将 `pbbp2.proto` 的生成代码随 crate 提交和打包，移除默认
+  `build.rs`、`prost-build` 与消费者侧 `protoc` 系统依赖。公开路径
+  `lark_websocket_protobuf::pbbp2::{Frame, Header}` 和消息字段保持兼容；新增从 `.crate`
+  解包后在无 `protoc` 环境构建的回归测试。实际 crates.io 发布仍需 owner 在合并后执行。
+
 - **ADR-0002 lock-in（#584）**：代码迁移已在 main；本项补治理半边——
   `docs/adr/0002-auth-concern-concentration.md` 状态 → **Accepted**（残差空）；
   `ARCHITECTURE.md` / `openlark-core/AGENTS.md` 鉴权归属对齐 `auth/{policy,acquisition,app_ticket}`；

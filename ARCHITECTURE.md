@@ -98,7 +98,7 @@
 │ └─────────────┴─────────────┴─────────────┴─────────────┘      │
 ├─────────────────────────────────────────────────────────────────┤
 │                       基础设施层 (Core Layer)                   │
-│           openlark-core + openlark-protocol                     │
+│      openlark-core + lark-websocket-protobuf                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -189,11 +189,11 @@
 - 异步接口抽象
 - 构建器模式API
 
-#### 3. openlark-protocol
+#### 3. lark-websocket-protobuf
 **职责**: 协议定义
-- WebSocket protobuf定义
-- 消息协议和事件处理
-- 数据序列化/反序列化
+- WebSocket protobuf 消息定义
+- 发布预生成 Rust 源码，不把 `protoc` 依赖泄漏给消费者
+- `Frame` / `Header` 数据序列化与反序列化
 
 ### 业务模块 (Business Modules)
 
@@ -293,7 +293,7 @@ graph TD
     N --> C
     O --> C
 
-    C --> P["openlark-protocol"]
+    C --> P["lark-websocket-protobuf"]
 
     style C fill:#e1f5fe
     style P fill:#f3e5f5

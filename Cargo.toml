@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     # === 核心基础设施 (Core Infrastructure) ===
+    "crates/lark-websocket-protobuf", # WebSocket protobuf 协议定义（crates.io 权威源码）
     "crates/openlark-core",           # 核心 HTTP 客户端和错误处理
     "crates/openlark-client",         # 高级客户端接口
     # 内部 trybuild：catalog 唯一性 compile-fail（publish=false；openlark-client 不依赖本 crate）
@@ -89,12 +90,11 @@ chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 url = { version = "2.5", features = ["serde"] }
 prost = { version = "0.13" }
-bytes = "1.6"
 
 # === 网络与HTTP (Networking & HTTP) ===
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls", "stream", "query"] }
 tokio-tungstenite = { version = "0.29", features = ["rustls-tls-native-roots"] }
-lark-websocket-protobuf = "0.1"
+lark-websocket-protobuf = { path = "crates/lark-websocket-protobuf", version = "0.1.2" }
 http = "1.0"
 
 # === 加密与安全 (Cryptography & Security) ===

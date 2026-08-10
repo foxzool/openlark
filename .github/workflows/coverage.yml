@@ -38,11 +38,6 @@ jobs:
 
       # 注意：rust-cache 与覆盖率收集不兼容，禁用缓存
       # - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc
-
       - name: Run coverage tests
         run: |
           set -euo pipefail

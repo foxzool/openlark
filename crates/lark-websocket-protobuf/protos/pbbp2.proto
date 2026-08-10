@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+import "gogo.proto";
+
+package pbbp2;
+
+
+message Header {
+  required string key = 1;
+  required string value = 2;
+}
+
+// message frame
+message Frame {
+  required uint64  SeqID = 1;
+  required uint64  LogID = 2;
+
+  required int32 service = 3;
+  required int32 method = 4;
+
+
+  repeated Header headers = 5 [(gogoproto.nullable) = false];
+
+  optional string  payload_encoding = 6;  // http like content-encoding, eg: gzip or none
+  optional string  payload_type = 7;  // http like content-type
+  optional bytes  payload = 8;  // http like body
+  optional string  LogIDNew = 9;
+}

@@ -42,6 +42,9 @@ publish_crate() {
 }
 
 PUBLISH_ORDER=(
+    # Layer 0: WebSocket protocol
+    "lark-websocket-protobuf"
+
     # Layer 1: Core
     "openlark-core"
 
@@ -73,7 +76,7 @@ PUBLISH_ORDER=(
 
 for crate in "${PUBLISH_ORDER[@]}"; do
     case "$crate" in
-        openlark-core | openlark-client)
+        lark-websocket-protobuf | openlark-core | openlark-client)
             publish_crate "$crate" 30
             ;;
         openlark)
