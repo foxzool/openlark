@@ -1,4 +1,4 @@
-"""从版本化 Recorded Snapshot 收集官方文档证据。"""
+"""收集并解释逐维度的 Official Document Evidence。"""
 
 from __future__ import annotations
 
@@ -7,12 +7,16 @@ import http.client
 import json
 import os
 import re
+import select
 import socket
+import subprocess
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -47,12 +51,30 @@ __all__ = [
     "TokenObservation",
     "collect",
     "compose",
+    "compose_full",
 ]
 
 _INTERPRETER_REVISION = "official-evidence/1"
 
 _STRUCTURED_DETAIL_URL = (
     "https://open.feishu.cn/document_portal/v1/document/get_detail"
+)
+_RENDERED_WORKER_COMMAND = (
+    "node",
+    str(Path(__file__).with_name("rendered_document_worker.js")),
+)
+_RENDERED_MIN_DOC_CHARS = 500
+_RENDERED_NOT_FOUND_HEAD_LINES = 30
+_RENDERED_REQUEST_BODY = "Request body"
+_RENDERED_PATH_PARAMETERS = "Path parameters"
+_RENDERED_QUERY_PARAMETERS = "Query parameters"
+_RENDERED_REQUEST_EXAMPLE = "Request example"
+_RENDERED_RESPONSE_EXAMPLE = "Response body example"
+_RENDERED_ERROR_CODE = "Error code"
+_RENDERED_STANDARD_SECTIONS = (
+    _RENDERED_REQUEST_BODY,
+    _RENDERED_QUERY_PARAMETERS,
+    _RENDERED_RESPONSE_EXAMPLE,
 )
 
 
@@ -365,6 +387,208 @@ class _StructuredDetailAdapter:
         )
 
 
+class _UnavailableRenderedDocumentAdapter:
+    def acquire(self, catalog_entry: ApiIdentity) -> _AcquisitionResult:
+        return _AcquisitionResult(
+            snapshot=None,
+            failure=_unavailable(
+                EvidenceSource.RENDERED_DOCUMENT,
+                "adapter_unavailable",
+            ),
+        )
+
+    def close(self) -> None:
+        pass
+
+
+class _RenderedDocumentAdapter:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+        self._process: subprocess.Popen[str] | None = None
+        self._lock = threading.Lock()
+        self._request_id = 0
+
+    def acquire(self, catalog_entry: ApiIdentity) -> _AcquisitionResult:
+        with self._lock:
+            return self._acquire(catalog_entry)
+
+    def _acquire(self, catalog_entry: ApiIdentity) -> _AcquisitionResult:
+        url = _rendered_url(catalog_entry)
+        process = self._ensure_process()
+        if process is None:
+            return _AcquisitionResult(
+                snapshot=None,
+                failure=_unavailable(
+                    EvidenceSource.RENDERED_DOCUMENT,
+                    "adapter_unavailable",
+                ),
+            )
+        self._request_id += 1
+        request_id = self._request_id
+        request = json.dumps(
+            {
+                "id": request_id,
+                "url": url,
+                "timeout_ms": max(1, int(self._timeout_seconds * 1000)),
+            },
+            separators=(",", ":"),
+        )
+        if process.stdin is None:
+            raise AdapterContractError(
+                "Rendered Document adapter 缺少 stdin pipe"
+            )
+        try:
+            process.stdin.write(request + "\n")
+            process.stdin.flush()
+        except (BrokenPipeError, OSError):
+            self._stop_process()
+            return _AcquisitionResult(
+                snapshot=None,
+                failure=_unavailable(
+                    EvidenceSource.RENDERED_DOCUMENT,
+                    "acquisition_failed",
+                ),
+            )
+
+        if process.stdout is None:
+            raise AdapterContractError(
+                "Rendered Document adapter 缺少 stdout pipe"
+            )
+        readable, _, _ = select.select(
+            (process.stdout,),
+            (),
+            (),
+            self._timeout_seconds,
+        )
+        if not readable:
+            self._stop_process()
+            return _AcquisitionResult(
+                snapshot=None,
+                failure=_unavailable(
+                    EvidenceSource.RENDERED_DOCUMENT,
+                    "acquisition_timeout",
+                ),
+            )
+        raw_response = process.stdout.readline()
+        if not raw_response:
+            self._stop_process()
+            return _AcquisitionResult(
+                snapshot=None,
+                failure=_unavailable(
+                    EvidenceSource.RENDERED_DOCUMENT,
+                    "acquisition_failed",
+                ),
+            )
+        try:
+            response = json.loads(raw_response)
+        except json.JSONDecodeError as error:
+            raise AdapterContractError(
+                "Rendered Document adapter 返回了无效 JSON"
+            ) from error
+        if not isinstance(response, dict) or response.get("id") != request_id:
+            raise AdapterContractError(
+                "Rendered Document adapter response 与请求不匹配"
+            )
+        status = response.get("status")
+        if status == "unavailable":
+            code = response.get("code")
+            if code not in {
+                "adapter_unavailable",
+                "acquisition_failed",
+                "acquisition_timeout",
+                "document_not_found",
+            }:
+                raise AdapterContractError(
+                    "Rendered Document adapter 返回了无效 failure"
+                )
+            return _AcquisitionResult(
+                snapshot=None,
+                failure=_unavailable(EvidenceSource.RENDERED_DOCUMENT, code),
+            )
+        if status != "ok":
+            raise AdapterContractError(
+                "Rendered Document adapter 返回了未知状态"
+            )
+        source_uri = response.get("source_uri")
+        content = response.get("content")
+        if (
+            not isinstance(source_uri, str)
+            or re.fullmatch(r"https?://\S+", source_uri) is None
+            or not isinstance(content, str)
+        ):
+            raise AdapterContractError(
+                "Rendered Document adapter 成功响应缺少内容或来源"
+            )
+        return _AcquisitionResult(
+            snapshot=RecordedSnapshot._create(
+                version=1,
+                source_kind=EvidenceSource.RENDERED_DOCUMENT,
+                catalog_entry=catalog_entry,
+                acquired_at=_now_iso8601(),
+                source_uri=source_uri,
+                raw_representation=content,
+            ),
+            failure=None,
+        )
+
+    def close(self) -> None:
+        with self._lock:
+            self._close()
+
+    def _close(self) -> None:
+        process = self._process
+        if process is None:
+            return
+        if process.poll() is None and process.stdin is not None:
+            try:
+                process.stdin.write('{"type":"shutdown"}\n')
+                process.stdin.flush()
+                process.wait(timeout=1)
+            except (BrokenPipeError, OSError, subprocess.TimeoutExpired):
+                self._stop_process()
+                return
+        self._close_pipes(process)
+        self._process = None
+
+    def _ensure_process(self) -> subprocess.Popen[str] | None:
+        if self._process is not None and self._process.poll() is None:
+            return self._process
+        self._stop_process()
+        try:
+            self._process = subprocess.Popen(
+                _RENDERED_WORKER_COMMAND,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1,
+            )
+        except OSError:
+            return None
+        return self._process
+
+    def _stop_process(self) -> None:
+        process = self._process
+        if process is None:
+            return
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        self._close_pipes(process)
+        self._process = None
+
+    @staticmethod
+    def _close_pipes(process: subprocess.Popen[str]) -> None:
+        if process.stdin is not None:
+            process.stdin.close()
+        if process.stdout is not None:
+            process.stdout.close()
+
+
 class _SnapshotStore:
     def __init__(self, directory: Path) -> None:
         self._directory = directory
@@ -505,16 +729,28 @@ class _SnapshotStore:
             raise SnapshotStoreError("读取 Official Snapshot store 失败") from error
 
 
-class _OfficialEvidenceCollector:
+class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollector"]):
     """绑定 live adapters 与 snapshot store 的 Evidence composition。"""
 
     def __init__(
         self,
         structured_detail: _StructuredDetailAdapter,
+        rendered_document: _RenderedDocumentAdapter
+        | _UnavailableRenderedDocumentAdapter,
         snapshot_store: _SnapshotStore,
     ) -> None:
         self._structured_detail = structured_detail
+        self._rendered_document = rendered_document
         self._snapshot_store = snapshot_store
+
+    def __enter__(self) -> _OfficialEvidenceCollector:
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self._rendered_document.close()
 
     def collect(
         self,
@@ -532,56 +768,87 @@ class _OfficialEvidenceCollector:
             )
         if not isinstance(policy, (FreshOfficialPolicy, PreferSnapshotPolicy)):
             raise InvalidEvidenceRequest("不支持的 Evidence Acquisition Policy")
-        if isinstance(policy, PreferSnapshotPolicy):
-            cached = self._snapshot_store.load(
-                catalog_entry,
-                EvidenceSource.STRUCTURED_DETAIL,
-            )
-            if cached is not None:
-                result = _collect_from_snapshots(
-                    catalog_entry,
-                    requested,
-                    (cached,),
-                )
-                if not _structured_rejected(result):
-                    return result
-                self._snapshot_store.remove(cached)
-        acquisition = self._structured_detail.acquire(catalog_entry)
-        if not isinstance(acquisition, _AcquisitionResult):
-            raise AdapterContractError(
-                "Structured Detail adapter 返回了无效 acquisition result"
-            )
-        if acquisition.snapshot is None:
-            if acquisition.failure is None:
-                raise AdapterContractError(
-                    "Structured Detail adapter 未返回 snapshot 或 failure"
-                )
-            return _collect_from_candidate(
-                catalog_entry,
-                requested,
-                acquisition.failure,
-            )
-        if acquisition.failure is not None:
-            raise AdapterContractError(
-                "Structured Detail adapter 同时返回 snapshot 与 failure"
-            )
-        snapshot = acquisition.snapshot
-        if (
-            snapshot.catalog_entry != catalog_entry
-            or snapshot.source_kind is not EvidenceSource.STRUCTURED_DETAIL
-        ):
-            raise AdapterContractError(
-                "Structured Detail snapshot provenance 与请求不匹配"
-            )
-        self._snapshot_store.save(snapshot)
-        result = _collect_from_snapshots(
+
+        structured = self._obtain_candidates(
             catalog_entry,
             requested,
-            (snapshot,),
+            EvidenceSource.STRUCTURED_DETAIL,
+            self._structured_detail,
+            policy,
         )
-        if _structured_rejected(result):
+        fallback_dimensions = tuple(
+            dimension
+            for dimension in requested
+            if structured[dimension].status is not EvidenceStatus.TRUSTED
+        )
+        rendered: dict[EvidenceDimension, _Candidate] = {}
+        if fallback_dimensions:
+            rendered = self._obtain_candidates(
+                catalog_entry,
+                fallback_dimensions,
+                EvidenceSource.RENDERED_DOCUMENT,
+                self._rendered_document,
+                policy,
+            )
+
+        results = []
+        for dimension in requested:
+            candidates = [structured[dimension]]
+            if dimension in rendered:
+                candidates.append(rendered[dimension])
+            selected = max(candidates, key=_selection_key)
+            trail = tuple(_attempt(candidate) for candidate in candidates)
+            results.append(_to_evidence(dimension, selected, trail))
+        return OfficialDocumentEvidence(
+            catalog_entry=catalog_entry,
+            dimensions=tuple(results),
+        )
+
+    def _obtain_candidates(
+        self,
+        catalog_entry: ApiIdentity,
+        dimensions: tuple[EvidenceDimension, ...],
+        source: EvidenceSource,
+        adapter: _StructuredDetailAdapter
+        | _RenderedDocumentAdapter
+        | _UnavailableRenderedDocumentAdapter,
+        policy: FreshOfficialPolicy | PreferSnapshotPolicy,
+    ) -> dict[EvidenceDimension, _Candidate]:
+        if isinstance(policy, PreferSnapshotPolicy):
+            cached = self._snapshot_store.load(catalog_entry, source)
+            if cached is not None:
+                cached_candidates = {
+                    dimension: _interpret_snapshot(cached, dimension)
+                    for dimension in dimensions
+                }
+                if not any(
+                    candidate.status is EvidenceStatus.REJECTED
+                    for candidate in cached_candidates.values()
+                ):
+                    return cached_candidates
+                self._snapshot_store.remove(cached)
+
+        acquisition = adapter.acquire(catalog_entry)
+        snapshot, failure = _validate_acquisition(
+            acquisition,
+            catalog_entry,
+            source,
+        )
+        if failure is not None:
+            return {dimension: failure for dimension in dimensions}
+        if snapshot is None:
+            raise AdapterContractError("adapter acquisition invariant 违例")
+        self._snapshot_store.save(snapshot)
+        candidates = {
+            dimension: _interpret_snapshot(snapshot, dimension)
+            for dimension in dimensions
+        }
+        if any(
+            candidate.status is EvidenceStatus.REJECTED
+            for candidate in candidates.values()
+        ):
             self._snapshot_store.remove(snapshot)
-        return result
+        return candidates
 
 
 def compose(
@@ -591,7 +858,42 @@ def compose(
     retries: int,
     structured_detail_url: str = _STRUCTURED_DETAIL_URL,
 ) -> _OfficialEvidenceCollector:
-    """在 composition root 配置 live transport 与 snapshot store。"""
+    """配置不依赖 Playwright 的 CI live composition。"""
+    return _compose(
+        snapshot_directory=snapshot_directory,
+        timeout_seconds=timeout_seconds,
+        retries=retries,
+        structured_detail_url=structured_detail_url,
+        rendered_document=_UnavailableRenderedDocumentAdapter(),
+    )
+
+
+def compose_full(
+    *,
+    snapshot_directory: Path,
+    timeout_seconds: float,
+    retries: int,
+    structured_detail_url: str = _STRUCTURED_DETAIL_URL,
+) -> _OfficialEvidenceCollector:
+    """配置可复用 Playwright 生命周期的人工/full live composition。"""
+    return _compose(
+        snapshot_directory=snapshot_directory,
+        timeout_seconds=timeout_seconds,
+        retries=retries,
+        structured_detail_url=structured_detail_url,
+        rendered_document=_RenderedDocumentAdapter(float(timeout_seconds)),
+    )
+
+
+def _compose(
+    *,
+    snapshot_directory: Path,
+    timeout_seconds: float,
+    retries: int,
+    structured_detail_url: str,
+    rendered_document: _RenderedDocumentAdapter
+    | _UnavailableRenderedDocumentAdapter,
+) -> _OfficialEvidenceCollector:
     if not isinstance(snapshot_directory, Path):
         raise TypeError("snapshot_directory 必须是 pathlib.Path")
     if not isinstance(timeout_seconds, (int, float)) or timeout_seconds <= 0:
@@ -606,6 +908,7 @@ def compose(
             float(timeout_seconds),
             retries,
         ),
+        rendered_document,
         _SnapshotStore(snapshot_directory),
     )
 
@@ -715,6 +1018,47 @@ def _validate_snapshot(snapshot: RecordedSnapshot) -> None:
         )
 
 
+def _validate_acquisition(
+    acquisition: object,
+    catalog_entry: ApiIdentity,
+    source: EvidenceSource,
+) -> tuple[RecordedSnapshot | None, _Candidate | None]:
+    source_name = (
+        "Structured Detail"
+        if source is EvidenceSource.STRUCTURED_DETAIL
+        else "Rendered Document"
+    )
+    if not isinstance(acquisition, _AcquisitionResult):
+        raise AdapterContractError(
+            f"{source_name} adapter 返回了无效 acquisition result"
+        )
+    if acquisition.snapshot is None:
+        if (
+            acquisition.failure is None
+            or acquisition.failure.source is not source
+            or acquisition.failure.status is not EvidenceStatus.UNAVAILABLE
+            or acquisition.failure.snapshot is not None
+        ):
+            raise AdapterContractError(
+                f"{source_name} adapter 未返回有效 snapshot 或 failure"
+            )
+        return None, acquisition.failure
+    if acquisition.failure is not None:
+        raise AdapterContractError(
+            f"{source_name} adapter 同时返回 snapshot 与 failure"
+        )
+    snapshot = acquisition.snapshot
+    if (
+        snapshot.catalog_entry != catalog_entry
+        or snapshot.source_kind is not source
+    ):
+        raise AdapterContractError(
+            f"{source_name} snapshot provenance 与请求不匹配"
+        )
+    _validate_snapshot(snapshot)
+    return snapshot, None
+
+
 def _collect_from_snapshots(
     catalog_entry: ApiIdentity,
     dimensions: tuple[EvidenceDimension, ...],
@@ -730,45 +1074,12 @@ def _collect_from_snapshots(
         dimensions=results,
     )
 
-
-def _collect_from_candidate(
-    catalog_entry: ApiIdentity,
-    dimensions: tuple[EvidenceDimension, ...],
-    structured: _Candidate,
-) -> OfficialDocumentEvidence:
-    results = tuple(
-        _collect_dimension(
-            dimension,
-            {},
-            structured_candidate=structured,
-        )
-        for dimension in dimensions
-    )
-    return OfficialDocumentEvidence(
-        catalog_entry=catalog_entry,
-        dimensions=results,
-    )
-
-
-def _structured_rejected(evidence: OfficialDocumentEvidence) -> bool:
-    return any(
-        dimension.acquisition_trail
-        and dimension.acquisition_trail[0].source
-        is EvidenceSource.STRUCTURED_DETAIL
-        and dimension.acquisition_trail[0].status
-        is EvidenceStatus.REJECTED
-        for dimension in evidence.dimensions
-    )
-
-
 def _collect_dimension(
     dimension: EvidenceDimension,
     snapshots: dict[EvidenceSource, RecordedSnapshot],
-    *,
-    structured_candidate: _Candidate | None = None,
 ) -> DimensionEvidence:
     structured_snapshot = snapshots.get(EvidenceSource.STRUCTURED_DETAIL)
-    structured = structured_candidate or (
+    structured = (
         _interpret_snapshot(structured_snapshot, dimension)
         if structured_snapshot is not None
         else _unavailable(EvidenceSource.STRUCTURED_DETAIL)
@@ -1007,8 +1318,7 @@ def _interpret_rendered(
     dimension: EvidenceDimension,
 ) -> _Candidate:
     content = snapshot.raw_representation.strip()
-    lowered = content.casefold()
-    if not content or "documentation could not be found" in lowered or "404 not found" in lowered:
+    if not _rendered_content_is_healthy(content):
         return _rejected(snapshot, "document_unhealthy")
     heading = {
         EvidenceDimension.ENDPOINT: "Endpoint",
@@ -1018,6 +1328,12 @@ def _interpret_rendered(
     }[dimension]
     section = _rendered_section(content, heading)
     if section is None:
+        if not _is_recorded_rendered_format(content):
+            return _interpret_rendered_inner_text(
+                snapshot,
+                content,
+                dimension,
+            )
         return _incomplete(snapshot, "structure_incomplete")
     if dimension is EvidenceDimension.ENDPOINT:
         match = re.search(
@@ -1056,6 +1372,339 @@ def _rendered_section(content: str, heading: str) -> str | None:
         content,
     )
     return match.group(1) if match else None
+
+
+def _is_recorded_rendered_format(content: str) -> bool:
+    return re.search(r"(?m)^##[ \t]+", content) is not None
+
+
+def _rendered_content_is_healthy(content: str) -> bool:
+    if not content:
+        return False
+    head = "\n".join(
+        content.splitlines()[:_RENDERED_NOT_FOUND_HEAD_LINES]
+    ).casefold()
+    if (
+        "the documentation could not be found" in head
+        or "文档不存在" in head
+        or "404 not found" in head
+    ):
+        return False
+    if _is_recorded_rendered_format(content):
+        return True
+    return (
+        len(content) >= _RENDERED_MIN_DOC_CHARS
+        and any(
+            content.count(section) >= 2
+            for section in _RENDERED_STANDARD_SECTIONS
+        )
+    )
+
+
+def _interpret_rendered_inner_text(
+    snapshot: RecordedSnapshot,
+    content: str,
+    dimension: EvidenceDimension,
+) -> _Candidate:
+    if dimension is EvidenceDimension.ENDPOINT:
+        return _interpret_rendered_inner_text_endpoint(snapshot, content)
+    if dimension is EvidenceDimension.TOKENS:
+        return _interpret_rendered_inner_text_tokens(snapshot, content)
+    return _interpret_rendered_inner_text_fields(snapshot, content, dimension)
+
+
+def _interpret_rendered_inner_text_endpoint(
+    snapshot: RecordedSnapshot,
+    content: str,
+) -> _Candidate:
+    combined = re.search(
+        r"(?im)^\s*(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\s+"
+        r"(https?://\S+|/\S+)\s*$",
+        content,
+    )
+    if combined is not None:
+        method, raw_path = combined.groups()
+    else:
+        method_match = re.search(
+            r"(?im)^\s*(?:HTTP Method|Method)\s*\r?\n"
+            r"\s*(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\s*$",
+            content,
+        )
+        path_match = re.search(
+            r"(?im)^\s*(?:HTTP URL|Request URL|URL)\s*\r?\n"
+            r"\s*(https?://\S+|/\S+)\s*$",
+            content,
+        )
+        if method_match is None or path_match is None:
+            return _incomplete(snapshot, "structure_incomplete")
+        method = method_match.group(1)
+        raw_path = path_match.group(1)
+    if raw_path.casefold().startswith(("http://", "https://")):
+        raw_path = urllib.parse.urlsplit(raw_path).path
+    if not raw_path.startswith("/"):
+        return _incomplete(snapshot, "structure_incomplete")
+    return _trusted(
+        snapshot,
+        (
+            EndpointObservation(
+                method=method.upper(),
+                path=_normalize_endpoint(raw_path),
+                source=snapshot.source_kind,
+            ),
+        ),
+    )
+
+
+def _interpret_rendered_inner_text_tokens(
+    snapshot: RecordedSnapshot,
+    content: str,
+) -> _Candidate:
+    authorization = re.search(
+        r"(?ims)^\s*Authorization\s*$\r?\n"
+        r"(.*?)(?=^\s*(?:Path parameters|Query parameters|Request body|"
+        r"Request example|Response body example|Error code)\s*$|\Z)",
+        content,
+    )
+    if authorization is None:
+        return _incomplete(snapshot, "structure_incomplete")
+    section = authorization.group(1)
+    tokens = tuple(
+        TokenObservation(token=token, source=snapshot.source_kind)
+        for token in dict.fromkeys(
+            re.findall(
+                r"\b(?:tenant|user|app|none)_access_token\b",
+                section,
+                flags=re.IGNORECASE,
+            )
+        )
+    )
+    if tokens:
+        return _trusted(snapshot, tokens)
+    if re.search(
+        r"(?i)\b(?:none|not required|no authorization)\b",
+        section,
+    ):
+        return _trusted(snapshot, ())
+    return _incomplete(snapshot, "structure_incomplete")
+
+
+def _interpret_rendered_inner_text_fields(
+    snapshot: RecordedSnapshot,
+    content: str,
+    dimension: EvidenceDimension,
+) -> _Candidate:
+    if dimension is EvidenceDimension.RESPONSE_FIELDS:
+        section = _extract_rendered_inner_text_section(
+            content,
+            _RENDERED_RESPONSE_EXAMPLE,
+            _RENDERED_ERROR_CODE,
+            occurrence=1,
+        )
+        if section is None:
+            return _incomplete(snapshot, "structure_incomplete")
+        names = tuple(
+            name
+            for name in re.findall(r'"([a-z_]+)"\s*:', section)
+            if name not in {"code", "msg", "data"}
+        )
+        observations = tuple(
+            FieldObservation(
+                path=(name,),
+                location="response_body",
+                required=None,
+                field_type=None,
+                source=snapshot.source_kind,
+            )
+            for name in dict.fromkeys(names)
+        )
+        if observations or re.search(r'"data"\s*:\s*\{\s*\}', section):
+            return _trusted(snapshot, observations)
+        return _incomplete(snapshot, "structure_incomplete")
+
+    sections = (
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_PATH_PARAMETERS,
+                (
+                    _RENDERED_QUERY_PARAMETERS,
+                    _RENDERED_REQUEST_BODY,
+                    _RENDERED_REQUEST_EXAMPLE,
+                ),
+                occurrence=2,
+            ),
+            "path",
+            _parse_rendered_path_parameter_table,
+        ),
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_QUERY_PARAMETERS,
+                (_RENDERED_REQUEST_BODY, _RENDERED_REQUEST_EXAMPLE),
+                occurrence=1,
+            ),
+            "query",
+            _parse_rendered_parameter_table,
+        ),
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_REQUEST_BODY,
+                _RENDERED_REQUEST_EXAMPLE,
+                occurrence=2,
+            ),
+            "request_body",
+            _parse_rendered_parameter_table,
+        ),
+    )
+    observations: list[FieldObservation] = []
+    found_section = False
+    incomplete_section = False
+    for section, location, parser in sections:
+        if section is None:
+            continue
+        found_section = True
+        fields = parser(section)
+        if section.strip() and not fields:
+            incomplete_section = True
+        observations.extend(
+            FieldObservation(
+                path=(name,),
+                location=location,
+                required=required,
+                field_type=field_type or None,
+                source=snapshot.source_kind,
+            )
+            for name, field_type, required in fields
+        )
+    values = tuple(observations)
+    if incomplete_section or not found_section:
+        return _incomplete(snapshot, "structure_incomplete", values)
+    return _trusted(snapshot, values)
+
+
+def _extract_rendered_inner_text_section(
+    content: str,
+    start: str,
+    end: str | tuple[str, ...],
+    *,
+    occurrence: int,
+) -> str | None:
+    parts = content.split(start)
+    if len(parts) <= occurrence:
+        return None
+    section = start.join(parts[occurrence:])
+    end_markers = (end,) if isinstance(end, str) else end
+    end_indexes = tuple(
+        index
+        for marker in end_markers
+        if (index := section.find(marker)) >= 0
+    )
+    if end_indexes:
+        section = section[: min(end_indexes)]
+    candidate = section.lstrip()
+    if candidate == start:
+        return ""
+    for separator in ("\r\n", "\n"):
+        if candidate.startswith(f"{start}{separator}"):
+            return candidate[len(start) + len(separator) :]
+    return section
+
+
+def _parse_rendered_path_parameter_table(
+    section: str,
+) -> tuple[tuple[str, str, bool], ...]:
+    pattern = re.compile(
+        r"(?im)^[ \t]*([a-z][a-z0-9_]{1,})[ \t]*\r?\n"
+        r"(?:[ \t]*\r?\n)*[ \t]*"
+        r"((?:string|int|integer|boolean|bool|number|float|double|object|array|"
+        r"file|binary|map|null)(?:\[\])?)[ \t]*$",
+    )
+    banned = {"parameter", "type", "description", "string", "integer", "boolean"}
+    return tuple(
+        (name, field_type, True)
+        for name, field_type in pattern.findall(section)
+        if name.casefold() not in banned
+    )
+
+
+def _parse_rendered_parameter_table(
+    section: str,
+) -> tuple[tuple[str, str, bool], ...]:
+    lines = [line.strip() for line in section.splitlines()]
+    banned = {
+        "parameter",
+        "type",
+        "required",
+        "description",
+        "authorization",
+        "content",
+        "value",
+        "example",
+        "facts",
+        "scopes",
+        "header",
+        "string",
+        "int",
+        "integer",
+        "boolean",
+        "bool",
+        "number",
+        "float",
+        "double",
+        "object",
+        "array",
+        "file",
+        "binary",
+        "map",
+        "null",
+        "string[]",
+        "int[]",
+        "integer[]",
+        "boolean[]",
+        "number[]",
+        "object[]",
+    }
+    type_line = re.compile(
+        r"^(string|int|integer|boolean|bool|number|float|double|object|array|"
+        r"file|binary|map|null)(\[\])?$",
+        re.IGNORECASE,
+    )
+    observations: list[tuple[str, str, bool]] = []
+    index = 0
+    while index < len(lines):
+        name = lines[index]
+        if (
+            re.fullmatch(r"[a-z][a-z0-9_]*", name)
+            and name not in banned
+            and type_line.fullmatch(name) is None
+            and len(name) >= 2
+        ):
+            for required_index in range(
+                index + 1,
+                min(index + 16, len(lines)),
+            ):
+                if lines[required_index] not in {"Yes", "No"}:
+                    continue
+                field_type = next(
+                    (
+                        lines[type_index]
+                        for type_index in range(index + 1, required_index)
+                        if type_line.fullmatch(lines[type_index])
+                    ),
+                    "",
+                )
+                observations.append(
+                    (
+                        name,
+                        field_type,
+                        lines[required_index] == "Yes",
+                    )
+                )
+                index = required_index
+                break
+        index += 1
+    return tuple(observations)
 
 
 def _interpret_rendered_fields(
@@ -1140,6 +1789,16 @@ def _detail_full_path(catalog_entry: ApiIdentity) -> str:
     return full_path
 
 
+def _rendered_url(catalog_entry: ApiIdentity) -> str:
+    doc_path = catalog_entry.doc_path.strip()
+    if re.fullmatch(r"https?://\S+", doc_path):
+        return doc_path
+    full_path = catalog_entry.full_path.strip()
+    if full_path.startswith("/"):
+        return urllib.parse.urljoin("https://open.feishu.cn", full_path)
+    raise InvalidEvidenceRequest("Catalog Entry 缺少 Rendered Document URL")
+
+
 def _now_iso8601() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -1188,6 +1847,7 @@ def _snapshot_key(snapshot: RecordedSnapshot) -> str:
 def _diagnostic(code: str) -> EvidenceDiagnostic:
     messages = {
         "snapshot_unavailable": "未提供可用的 Recorded Snapshot",
+        "adapter_unavailable": "Rendered Document adapter 不可用",
         "acquisition_timeout": "Official Source 获取超时",
         "acquisition_failed": "Official Source 获取失败",
         "document_not_found": "Official Source 未找到对应文档",
