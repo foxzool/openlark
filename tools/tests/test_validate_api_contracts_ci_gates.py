@@ -54,9 +54,15 @@ class ApiContractsCiGatesTests(unittest.TestCase):
         self.workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
         self.job = _api_contracts_job(self.workflow)
 
-    def test_endpoint_strict_covers_all_crates(self) -> None:
-        self.assertIn("--all-crates", self.job)
-        self.assertIn("--strict endpoint", self.job)
+    def test_endpoint_strict_covers_all_crates_offline(self) -> None:
+        strict_block = self._step_run_block_containing("--all-crates")
+        self.assertIn("--strict endpoint", strict_block)
+        self.assertNotIn("--live-endpoints", strict_block)
+
+    def test_live_endpoint_monitor_uses_structured_only_cli_mode(self) -> None:
+        live_block = self._step_run_block_containing("--live-endpoints")
+        self.assertIn("--crate openlark-ai", live_block)
+        self.assertNotIn("--strict endpoint", live_block)
 
     def test_token_strict_covers_security_and_auth(self) -> None:
         self.assertIn("--crate openlark-security", self.job)
