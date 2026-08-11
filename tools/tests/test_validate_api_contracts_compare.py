@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools.api_contracts.compare import (
     compare_access_token_types,
@@ -12,6 +13,7 @@ from tools.api_contracts.compare import (
     compare_response_fields,
 )
 from tools.api_contracts.models import (
+    ContractFinding,
     ContractReport,
     DEFAULT_ACCESS_TOKEN_TYPES,
     ApiIdentity,
@@ -297,40 +299,138 @@ class ContractCompareTests(unittest.TestCase):
         )
         self.assertEqual(result.code, "U_OFFICIAL_DETAIL_FETCH_FAILED")
 
-    def test_strict_exit_blocks_only_unavailable_acquisition_failures(self):
+    def test_strict_runner_allows_only_trusted_evidence(self):
         import tools.validate_api_contracts as cli
 
-        report = ContractReport(
+        for status in (
+            EvidenceStatus.INCOMPLETE,
+            EvidenceStatus.UNAVAILABLE,
+            EvidenceStatus.REJECTED,
+        ):
+            with self.subTest(status=status):
+                report = ContractReport(
+                    "fixture",
+                    evidence=[
+                        {
+                            "api_id": "1",
+                            "dimensions": [
+                                {
+                                    "dimension": "request_fields",
+                                    "status": status.value,
+                                    "diagnostics": [],
+                                }
+                            ],
+                        }
+                    ],
+                )
+                live_fields = {"request_fields", "response_fields"}
+                self.assertEqual(
+                    cli._strict_exit_code(
+                        [report], {"fields"}, live_fields
+                    ),
+                    1,
+                )
+                self.assertEqual(
+                    cli._strict_exit_code([report], set(), live_fields), 0
+                )
+                self.assertEqual(
+                    cli._strict_exit_code(
+                        [report], {"tokens"}, live_fields
+                    ),
+                    0,
+                )
+
+        trusted = ContractReport(
             "fixture",
             evidence=[
                 {
                     "api_id": "1",
                     "dimensions": [
                         {
-                            "status": "incomplete",
-                            "diagnostics": [
-                                {"code": "structure_incomplete"}
-                            ],
+                            "dimension": "request_fields",
+                            "status": EvidenceStatus.TRUSTED.value,
+                            "diagnostics": [],
                         },
                         {
-                            "status": "rejected",
-                            "diagnostics": [
-                                {"code": "document_unhealthy"}
-                            ],
+                            "dimension": "response_fields",
+                            "status": EvidenceStatus.TRUSTED.value,
+                            "diagnostics": [],
                         },
                     ],
                 }
             ],
         )
-        self.assertFalse(cli._has_blocking_evidence_failure([report]))
+        live_fields = {"request_fields", "response_fields"}
+        self.assertEqual(
+            cli._strict_exit_code([trusted], {"fields"}, live_fields), 0
+        )
+        trusted.add(
+            ContractFinding(
+                severity="ERROR",
+                code="E_ENDPOINT_PATH_MISMATCH",
+                message="fixture drift",
+                api_id="1",
+                api_name="fixture",
+                expected_file="fixture.rs",
+                doc_path="",
+            )
+        )
+        self.assertEqual(
+            cli._strict_exit_code([trusted], {"fields"}, live_fields), 1
+        )
+        self.assertEqual(
+            cli._strict_exit_code(
+                [ContractReport("empty")], {"tokens"}, {"tokens"}
+            ),
+            1,
+        )
 
-        report.evidence[0]["dimensions"].append(
-            {
-                "status": "unavailable",
-                "diagnostics": [{"code": "acquisition_failed"}],
+    def test_runner_filters_catalog_to_explicit_api_inventory(self):
+        import tools.validate_api_contracts as cli
+
+        first = self._api()
+        second = ApiIdentity(
+            **{
+                **first.__dict__,
+                "api_id": "2",
+                "name": "Second API",
             }
         )
-        self.assertTrue(cli._has_blocking_evidence_failure([report]))
+
+        class RecordingCollector:
+            def __init__(self):
+                self.api_ids = []
+
+            def collect(self, api, dimensions, policy):
+                self.api_ids.append(api.api_id)
+                return _TrustedCollector().collect(
+                    api, dimensions, policy
+                )
+
+        collector = RecordingCollector()
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                cli, "load_api_identities", return_value=[first, second]
+            ),
+            mock.patch.object(cli, "load_endpoint_constants", return_value={}),
+            mock.patch.object(cli, "load_enum_endpoints", return_value={}),
+            mock.patch.object(cli, "load_enum_methods", return_value={}),
+            mock.patch.object(cli, "scan_api_file", return_value=None),
+        ):
+            report = cli.validate_crate(
+                "fixture",
+                {"src": directory, "biz_tags": ["ai"]},
+                Path(directory) / "catalog.csv",
+                Path(directory) / "reports",
+                True,
+                collector,
+                tokens=True,
+                api_ids={"2"},
+            )
+
+        self.assertEqual(report.total_apis, 1)
+        self.assertEqual(collector.api_ids, ["2"])
 
 
 class ContractCliTests(unittest.TestCase):

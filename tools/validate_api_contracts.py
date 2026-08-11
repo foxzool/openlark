@@ -69,6 +69,11 @@ def parse_args() -> argparse.Namespace:
         action="append",
         help="进一步过滤到指定 bizTag（可多次传入）；覆盖 crate 的 biz_tags，用于子模块级 gate",
     )
+    parser.add_argument(
+        "--api-id",
+        action="append",
+        help="仅验证显式列入 gate inventory 的 API ID（可多次传入，需配合 --crate）",
+    )
     parser.add_argument("--report-dir", default="reports/api_contracts", help="Report directory")
     parser.add_argument("--include-old", dest="skip_old", action="store_false", help="Include meta.Version=old APIs")
     parser.add_argument("--skip-old", dest="skip_old", action="store_true", default=True, help="Skip old APIs")
@@ -135,11 +140,21 @@ def validate_crate(
     max_field_apis: int = 0,
     tokens: bool = False,
     biz_tag_filter: list[str] | None = None,
+    api_ids: set[str] | None = None,
 ) -> ContractReport:
     """核对一个 crate；官方事实只通过 collect seam 获取。"""
     src_path = Path(crate_config["src"])
     biz_tags = biz_tag_filter if biz_tag_filter else list(crate_config.get("biz_tags") or [])
     apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
+    if api_ids:
+        available_ids = {api.api_id for api in apis}
+        missing_ids = api_ids - available_ids
+        if missing_ids:
+            raise SystemExit(
+                "指定 API ID 不在当前 crate/catalog 范围内: "
+                + ", ".join(sorted(missing_ids))
+            )
+        apis = [api for api in apis if api.api_id in api_ids]
     constants = load_endpoint_constants(src_path)
     enum_endpoints = load_enum_endpoints(src_path, constants)
     enum_methods = load_enum_methods(src_path)
@@ -324,25 +339,44 @@ def _evidence_finding(api, dimension, evidence):
     )
 
 
-def _has_blocking_evidence_failure(reports: list[ContractReport]) -> bool:
-    """仅真实 acquisition 不可用阻断兼容的 strict CLI 退出码。"""
-    blocking_diagnostics = {
-        "snapshot_unavailable",
-        "adapter_unavailable",
-        "acquisition_timeout",
-        "acquisition_failed",
-        "document_not_found",
-    }
-    return any(
-        dimension["status"] == EvidenceStatus.UNAVAILABLE.value
-        and any(
-            diagnostic["code"] in blocking_diagnostics
-            for diagnostic in dimension["diagnostics"]
+def _strict_exit_code(
+    reports: list[ContractReport],
+    strict_categories: set[str],
+    live_dimensions: set[str],
+) -> int:
+    """Strict Evidence Gate：requested Evidence 只有 Trusted 才通过。"""
+    strict_dimensions = set()
+    if "endpoint" in strict_categories:
+        strict_dimensions.add(EvidenceDimension.ENDPOINT.value)
+    if "fields" in strict_categories:
+        strict_dimensions.update(
+            (
+                EvidenceDimension.REQUEST_FIELDS.value,
+                EvidenceDimension.RESPONSE_FIELDS.value,
+            )
         )
+    if "tokens" in strict_categories:
+        strict_dimensions.add(EvidenceDimension.TOKENS.value)
+    if not strict_dimensions:
+        return 0
+    required_strict_dimensions = strict_dimensions & live_dimensions
+    observed_dimensions = {
+        dimension["dimension"]
+        for report in reports
+        for api_evidence in report.evidence
+        for dimension in api_evidence["dimensions"]
+    }
+    if not required_strict_dimensions <= observed_dimensions:
+        return 1
+    has_nontrusted_evidence = any(
+        dimension["dimension"] in strict_dimensions
+        and dimension["status"] != EvidenceStatus.TRUSTED.value
         for report in reports
         for api_evidence in report.evidence
         for dimension in api_evidence["dimensions"]
     )
+    has_contract_error = any(report.error_count for report in reports)
+    return 1 if has_contract_error or has_nontrusted_evidence else 0
 
 
 def main() -> int:
@@ -358,6 +392,9 @@ def main() -> int:
     mapping = load_mapping(Path(args.mapping))
     if not args.all_crates and not args.crate_name:
         print("Specify --crate <name> or --all-crates", file=sys.stderr)
+        return 1
+    if args.api_id and not args.crate_name:
+        print("--api-id 必须配合 --crate 使用", file=sys.stderr)
         return 1
 
     if args.crate_name:
@@ -387,6 +424,7 @@ def main() -> int:
                 max_field_apis=args.max_field_apis,
                 tokens=args.tokens,
                 biz_tag_filter=args.biz_tag,
+                api_ids=set(args.api_id or []),
             )
             for crate_name in crate_names
         ]
@@ -401,12 +439,19 @@ def main() -> int:
     )
 
     strict_categories = {item.strip() for item in args.strict.split(",") if item.strip()}
-    blocking_evidence_failure = _has_blocking_evidence_failure(reports)
-    if strict_categories & {"endpoint", "fields", "tokens"} and (
-        total_errors or blocking_evidence_failure
-    ):
-        return 1
-    return 0
+    live_dimensions = set()
+    if args.live_endpoints:
+        live_dimensions.add(EvidenceDimension.ENDPOINT.value)
+    if args.fields:
+        live_dimensions.update(
+            (
+                EvidenceDimension.REQUEST_FIELDS.value,
+                EvidenceDimension.RESPONSE_FIELDS.value,
+            )
+        )
+    if args.tokens:
+        live_dimensions.add(EvidenceDimension.TOKENS.value)
+    return _strict_exit_code(reports, strict_categories, live_dimensions)
 
 
 if __name__ == "__main__":

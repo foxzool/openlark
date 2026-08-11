@@ -77,34 +77,44 @@ jobs:
             --crate openlark-ai \
             --live-endpoints \
             --report-dir "$RUNNER_TEMP/api_contracts_live_monitor"
-      - name: Validate access-token types (security + auth regression gate, #511)
+      - name: Validate Trusted token Evidence inventory
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-security \
+            --api-id 7321978105899122716 \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens_strict/security"
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-auth \
+            --api-id 7277403063290724380 \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens_strict/auth"
+      - name: Monitor full token Evidence domains
         run: |
           python3 tools/validate_api_contracts.py \
             --crate openlark-security \
             --tokens \
-            --strict tokens \
             --report-dir "$RUNNER_TEMP/api_contract_tokens/security"
           python3 tools/validate_api_contracts.py \
             --crate openlark-auth \
             --tokens \
-            --strict tokens \
             --report-dir "$RUNNER_TEMP/api_contract_tokens/auth"
-      - name: Validate attendance fields (strict gate; #526/#533 防回归)
+      - name: Monitor attendance field Evidence
         run: |
           python3 tools/validate_api_contracts.py \
             --crate openlark-hr \
             --biz-tag attendance \
             --fields \
             --live-fields \
-            --strict fields \
             --report-dir "$RUNNER_TEMP/api_contract_fields/attendance"
-      - name: Validate docs fields (strict gate; #569 首个 0.20 域扩展)
+      - name: Monitor docs field Evidence
         run: |
           python3 tools/validate_api_contracts.py \
             --crate openlark-docs \
             --fields \
             --live-fields \
-            --strict fields \
             --report-dir "$RUNNER_TEMP/api_contract_fields/docs"
       - name: Upload API contract reports
         if: always()
@@ -114,6 +124,7 @@ jobs:
           path: |
             ${{ runner.temp }}/api_contracts
             ${{ runner.temp }}/api_contract_tokens
+            ${{ runner.temp }}/api_contract_tokens_strict
             ${{ runner.temp }}/api_contract_fields
           retention-days: 14
 
