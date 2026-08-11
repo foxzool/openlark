@@ -36,10 +36,9 @@ python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 CI 启用的 strict gate（`api-contracts` job）：
 
 - 全仓离线 endpoint strict（`--all-crates --strict endpoint`）
-- token 层：`openlark-security` + `openlark-auth`（见 §1.4）
-- field 层：`openlark-hr --biz-tag attendance`（#526/#533）与
-  `openlark-docs` 全 crate（#569，ccm/base/baike/minutes；0.20 首个域扩展）
-- live endpoint monitor：`openlark-ai --live-endpoints`，保留 fail-closed Evidence 状态但不作为全仓 strict gate
+- token strict：security/auth 各一个显式 Trusted API inventory（见 §1.4）
+- field live monitor：attendance 与 docs；field strict inventory 暂为空
+- live endpoint monitor：`openlark-ai --live-endpoints`，无 strict
 
 ### 1.2 Endpoint live 校验
 
@@ -112,6 +111,7 @@ acs / security_and_compliance 批量误配（误设 `App`/`app_access_token`）�
 ```bash
 python3 tools/validate_api_contracts.py \
   --crate openlark-security \
+  --api-id 7321978105899122716 \
   --tokens \
   --strict tokens \
   --report-dir /tmp/openlark-api-contracts-tokens
@@ -130,56 +130,53 @@ Token oracle 同样来自 Official Document Evidence `collect` seam。Structured
   按实际注入的 token 类型核对，而非 `none_access_token`——避免把「手动注入 user token」
   误判为 disjoint `ERROR`。真正无鉴权（声明 `None` 且无手动注入）对要求 token 的文档仍报 `ERROR`。
 
-与 live 校验一致，该维度访问网络。CI 对 `openlark-security` 与 `openlark-auth` 启用
-`--strict tokens`，作为 [#511](https://github.com/foxzool/openlark/issues/511) acs /
-security_and_compliance 误配的回归 gate（与 endpoint strict gate 同级；auth 覆盖 OIDC token
-端点）。全仓 live 核对因每个接口都要抓取详情 payload、调用量过大，未纳入 CI；其他 crate 用
-`just api-contract-tokens <crate>` 人工抽样。
+CI 的 token strict gate 只包含已证明 Structured Tokens Evidence 为 `Trusted` 的显式
+API inventory：`openlark-security/7321978105899122716` 与
+`openlark-auth/7277403063290724380`。两个 crate 的全量 token Evidence 仍以
+non-strict monitor 采集并上传报告；新增 strict API 必须先满足 §1.6 admission。
 
-### 1.5 Field strict 域扩展（attendance → docs）
+### 1.5 Field Evidence monitor 与 strict 准入
 
-字段 strict 按域推进，**禁止**一次 PR 把 monorepo 全量 `--strict fields` 打开。先验
-基线（0 `ERROR`），再 flip CI。
+Structured-only composition 当前无法让 attendance/docs 的 Request Fields 与 Response
+Fields 全部成为 `Trusted`；CI 不安装 Playwright，因此这两个域不能继续伪装成 strict
+pass。完整 live 采集保留为 monitor，field strict inventory 暂为空。
 
-| 域 | 范围 | 状态 | Issue |
+| 域 | 范围 | 当前状态 | Issue |
 |---|---|---|---|
-| attendance | `openlark-hr --biz-tag attendance`（~39 API） | CI `--strict fields` | #526 / #533 / #534 / #540 |
-| docs | `openlark-docs`（ccm/base/baike/minutes，~214 API） | CI `--strict fields` | #569（0.20 首批） |
+| attendance | `openlark-hr --biz-tag attendance`（~39 API） | live monitor；未进入 strict inventory | #526 / #533 / #534 / #540 |
+| docs | `openlark-docs`（ccm/base/baike/minutes，~214 API） | live monitor；未进入 strict inventory | #569 |
 | *(next field-strict domain slot)* | 待选（**一域一 PR**） | 未 flip | 见 §1.6 admission |
 
-本地复现 docs 门禁：
+本地复现 docs monitor：
 
 ```bash
 python3 tools/validate_api_contracts.py \
   --crate openlark-docs \
   --fields \
   --live-fields \
-  --strict fields \
   --report-dir /tmp/openlark-api-contracts-docs-fields
 ```
 
-基线证据（#569 落地时 live 全量）：`0 error` / 仅 `WARN`（主要为
-`W_*_FIELDS_UNRESOLVED` 与 1 条 `W_REQUIRED_REQUEST_FIELD_OPTIONAL`，不阻塞 strict）。
-字段扫描器对 docs multipart（`UploadMeta` / `json!` 字面量）的识别见 #223 / #224。
+monitor 的 `Incomplete` / `Unavailable` / `Rejected` 会保留在 JSON/Markdown 报告中。
+只有域内 requested dimensions 全部为 `Trusted`，且 comparison 为 0 `ERROR`，才允许
+加入 `--strict fields` inventory。
 
-### 1.6 Trust gate inventory + next field-strict domain admission（#586）
+### 1.6 Trust gate inventory + strict admission（#586 / #616）
 
-本节把 0.20 已落地的 contract / coverage trust gate **制度化**：CI green 必须继续
-表示「可调用准确性」，而不是「阈值被下调」或「域 gate 被静默删掉」。
+CI 必须明确区分 hard strict gate 与 live monitor；monitor 不得通过命名、参数或
+`continue-on-error` 伪装成 strict pass。清单由 `.github/workflows/ci.yml` 与
+`tools/tests/test_validate_api_contracts_ci_gates.py` 双改钉死。
 
 #### 1.6.1 Gate inventory（当前 pinned 清单）
 
-下列门禁由 `.github/workflows/ci.yml` 的 `api-contracts` job 执行，并由
-`tools/tests/test_validate_api_contracts_ci_gates.py`（gate inventory test）钉死。
-删除 / 放宽任一 pin 会让该 unittest 失败。
-
-| 层 | 范围 | CI 标志 | Inventory pin |
+| 层 | 范围 | CI 模式 | Inventory pin |
 |---|---|---|---|
-| Endpoint | monorepo 全仓离线 | `--all-crates --strict endpoint` | `test_endpoint_strict_covers_all_crates` |
-| Token | `openlark-security` + `openlark-auth` | `--strict tokens`（各一 step） | `test_token_strict_covers_security_and_auth` |
-| Field | attendance（`openlark-hr --biz-tag attendance`） | `--live-fields --strict fields` | `test_attendance_field_strict_gate` |
-| Field | docs（`openlark-docs`） | `--live-fields --strict fields` | `test_docs_field_strict_gate` |
-| Field inventory | **恰好** attendance + docs 两域 | 无 monorepo-wide field strict | `test_field_strict_inventory_is_exactly_attendance_and_docs` + `test_no_monorepo_wide_field_strict` |
+| Endpoint strict | monorepo 全仓离线 | `--all-crates --strict endpoint` | `test_endpoint_strict_covers_all_crates_offline` |
+| Endpoint monitor | `openlark-ai` live Structured | `--live-endpoints`，无 strict | `test_live_endpoint_monitor_uses_structured_only_cli_mode` |
+| Token strict | security/auth 各一个 Trusted API | `--api-id … --strict tokens` | `test_token_strict_uses_explicit_trusted_api_inventory` |
+| Token monitor | `openlark-security` + `openlark-auth` 全量 | `--tokens`，无 strict | `test_full_token_domains_remain_non_strict_monitors` |
+| Field strict | 空 inventory | 无 `--strict fields` | `test_field_strict_inventory_is_empty_until_trusted` |
+| Field monitor | attendance + docs | `--fields --live-fields`，无 strict | `test_field_monitor_inventory_is_exactly_attendance_and_docs` |
 
 与 coverage 侧硬门禁的关系（**不在本 job 内执行，但同属 0.20 trust 程序**）：
 
@@ -191,34 +188,28 @@ python3 tools/validate_api_contracts.py \
 | Platform P1 clear-or-disprove | `tools/tests/test_p1_platform_clear_or_disprove.py` | 锁仍绿 |
 | Selective P2 path_noise | `tools/tests/test_p2_selective_slice.py` | 锁仍绿 |
 
-本地复核 inventory（离线、秒级；不跑 live fields/tokens）：
+本地复核 inventory（离线、秒级；不跑 live monitors）：
 
 ```bash
 python3 -m unittest tools.tests.test_validate_api_contracts_ci_gates -v
 python3 -m unittest tools.tests.test_typed_coverage_release_policy -v
 ```
 
-#### 1.6.2 Next field-strict domain admission（下一域准入）
+#### 1.6.2 Strict Evidence admission（下一项准入）
 
-**Slot**：上表「next field-strict domain slot」——每次只接纳 **一个** 新域进入
-CI `--strict fields`。本 ticket（#586）只制度化 slot + 规则 + 绿 inventory，
-**不**在本变更中 flip 第三个域。
+每次只接纳一个显式 API inventory 项或一个完整 field 域。全部满足才允许 flip：
 
-Admission 准入条件（全部满足才允许 flip）：
-
-1. **一域一 PR**：候选域必须单独成 PR（或明确 scoped 子单元），不得与无关重构混装。
-2. **Live baseline 必须 0 ERROR**：对候选域先跑 live field 校验，报告中
-   `ERROR` 计数为 0 后，才允许把该域 step 以 `--strict fields` 写入 CI。
-   `WARN` / `UNVERIFIED` 可带入（与 attendance/docs 先例一致），但不得靠
-   关掉 strict 或缩小扫描范围「假绿」。
-3. **Dual-edit（双改）规则**：同一变更必须同时更新：
-   - `.github/workflows/ci.yml` 的 `api-contracts` job（新增 domain-scoped step）；
-   - `tools/tests/test_validate_api_contracts_ci_gates.py` 的
-     `FIELD_STRICT_DOMAINS` inventory 与对应断言；
-   - 本节域表（§1.5）把 slot 行改成新域的「已 flip」状态。
-   只改 workflow 或只改测试 = 审查拒绝。
-4. **域范围显式**：step 必须带 `--crate …`（及必要时 `--biz-tag …`），
-   report-dir 使用 `api_contract_fields/<domain>` 风格片段，便于 inventory 钉死。
+1. **Fresh Structured baseline**：CI composition 不安装 Playwright，也不得用 Recorded
+   Snapshot 冒充 fresh evidence。
+2. **Only Trusted**：候选范围内每个 requested Evidence Dimension 必须全部为
+   `Trusted`；`Incomplete`、`Unavailable`、`Rejected` 任一出现都不得进入 strict。
+3. **Comparison 0 ERROR**：Evidence Trusted 后，Rust comparison 必须为 0 `ERROR`。
+4. **完整范围**：field 域 admission 必须覆盖整个声明域，不得用 `--max-field-apis`
+   或单个 `--api-id` 冒充域级 strict。Token 可按显式 API inventory 逐项推进。
+5. **Dual-edit（双改）**：同一变更必须同时更新 workflow、gate inventory test 与本节
+   表格；只改一处即审查拒绝。
+6. **域范围显式**：step 必须带 `--crate`，必要时带 `--biz-tag` / `--api-id`，并使用
+   独立 report-dir。
 
 推荐本地基线命令（以假设候选 `openlark-communication` 为例，**非**已 flip 域）：
 
@@ -228,7 +219,7 @@ python3 tools/validate_api_contracts.py \
   --fields \
   --live-fields \
   --report-dir /tmp/openlark-api-contracts-candidate-fields
-# 仅当 0 ERROR 后，再在 PR 中加 --strict fields 并 dual-edit inventory
+# 仅当 requested Evidence 全 Trusted 且 0 ERROR，才可 dual-edit 加入 strict inventory
 ```
 
 #### 1.6.3 非目标（Explicit non-goals）
@@ -238,8 +229,8 @@ python3 tools/validate_api_contracts.py \
 - **禁止 hard-gate 阈值下调**：不得为了让 typed-coverage / contract CI 变绿而降低
   `tools/typed_coverage_release.toml` 中的 hard gate 阈值；阈值变更必须是独立
   policy PR，且只能升高或维持，不得降低。
-- **本制度化单元不 march 新域**：#586 交付 slot + rules + green inventory，
-  不实现第三个域的 full field-strict flip（除非作为文档示例命令，且不写入 CI）。
+- **本票不 march 新域**：#616 恢复 only-Trusted verdict 并重建诚实 inventory，
+  不把任何尚有 non-Trusted Evidence 的 field 域写回 strict。
 
 ## 2. 单 crate 使用
 
@@ -270,7 +261,7 @@ python3 tools/validate_api_contracts.py \
 | `WARN` | 实现缺失、解析不到或低噪声风险；endpoint strict 当前不因 warning 失败 |
 | `UNVERIFIED` | 官方详情或实现形态无法机器确认，需要人工判断 |
 
-Evidence 报告中，`Incomplete`、`Unavailable`、`Rejected` 均明确标记为 non-passing，并映射到既有 finding code。为保持既有 CLI 退出码用途，strict 仍以 `ERROR` 为主；真实 acquisition `Unavailable`（adapter/timeout/fetch/not-found）额外阻断，结构不完整或文档不健康继续以 `UNVERIFIED` 报告而不单独改变退出码。
+Evidence 报告中，`Incomplete`、`Unavailable`、`Rejected` 均明确标记为 non-passing，并映射到既有 finding code。只要命令请求了 `--strict endpoint|fields|tokens`，其实际采集的 requested Evidence Dimensions 必须全部为 `Trusted`；任一 non-Trusted 状态都返回非零。live strict 范围经 `--biz-tag` / `--api-id` 等过滤后若没有采集到 requested Evidence，同样 fail closed，防止空 inventory 误绿。未请求 live Evidence 的离线 endpoint strict 继续按既有 `ERROR` verdict 工作。
 
 常见 finding code：
 
