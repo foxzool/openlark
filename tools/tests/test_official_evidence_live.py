@@ -430,8 +430,158 @@ class LiveOfficialEvidenceCollectTests(unittest.TestCase):
         )
         self.assertEqual(
             [observation.canonical_path for observation in request.observations],
-            ["rendered_only"],
+            ["app_token", "rendered_only"],
         )
+
+    def test_full_composition_interprets_every_inner_text_dimension(self):
+        worker = Path(__file__).parent / "fixtures" / "rendered_document_worker.py"
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            detail_server({}, status=404) as (_, url),
+            patch.dict(
+                os.environ,
+                {"OPENLARK_TEST_RENDERED_WORKER_MODE": "innertext"},
+            ),
+            patch(
+                "tools.api_contracts.official_evidence._RENDERED_WORKER_COMMAND",
+                (sys.executable, str(worker)),
+            ),
+            compose_full(
+                snapshot_directory=Path(directory),
+                structured_detail_url=url,
+                timeout_seconds=1,
+                retries=0,
+            ) as collector,
+        ):
+            result = collector.collect(
+                self.api,
+                tuple(EvidenceDimension),
+                FreshOfficialPolicy(),
+            )
+
+        endpoint = result.for_dimension(EvidenceDimension.ENDPOINT)
+        self.assertEqual(endpoint.status, EvidenceStatus.TRUSTED)
+        self.assertEqual(endpoint.selected_source, EvidenceSource.RENDERED_DOCUMENT)
+        self.assertEqual(endpoint.observations[0].method, "POST")
+        self.assertEqual(
+            endpoint.observations[0].path,
+            "/open-apis/rendered/innertext",
+        )
+
+        tokens = result.for_dimension(EvidenceDimension.TOKENS)
+        self.assertEqual(tokens.status, EvidenceStatus.TRUSTED)
+        self.assertEqual(tokens.selected_source, EvidenceSource.RENDERED_DOCUMENT)
+        self.assertEqual(
+            [observation.token for observation in tokens.observations],
+            ["tenant_access_token", "user_access_token"],
+        )
+
+    def test_inner_text_missing_field_sections_remain_incomplete(self):
+        worker = Path(__file__).parent / "fixtures" / "rendered_document_worker.py"
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            detail_server({}, status=404) as (_, url),
+            patch.dict(
+                os.environ,
+                {"OPENLARK_TEST_RENDERED_WORKER_MODE": "innertext_missing_fields"},
+            ),
+            patch(
+                "tools.api_contracts.official_evidence._RENDERED_WORKER_COMMAND",
+                (sys.executable, str(worker)),
+            ),
+            compose_full(
+                snapshot_directory=Path(directory),
+                structured_detail_url=url,
+                timeout_seconds=1,
+                retries=0,
+            ) as collector,
+        ):
+            result = collector.collect(
+                self.api,
+                (
+                    EvidenceDimension.REQUEST_FIELDS,
+                    EvidenceDimension.RESPONSE_FIELDS,
+                ),
+                FreshOfficialPolicy(),
+            )
+
+        for dimension in (
+            EvidenceDimension.REQUEST_FIELDS,
+            EvidenceDimension.RESPONSE_FIELDS,
+        ):
+            evidence = result.for_dimension(dimension)
+            self.assertEqual(evidence.status, EvidenceStatus.INCOMPLETE)
+            self.assertEqual(evidence.observations, ())
+
+    def test_inner_text_single_query_heading_is_trusted(self):
+        worker = Path(__file__).parent / "fixtures" / "rendered_document_worker.py"
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            detail_server({}, status=404) as (_, url),
+            patch.dict(
+                os.environ,
+                {"OPENLARK_TEST_RENDERED_WORKER_MODE": "innertext_query_once"},
+            ),
+            patch(
+                "tools.api_contracts.official_evidence._RENDERED_WORKER_COMMAND",
+                (sys.executable, str(worker)),
+            ),
+            compose_full(
+                snapshot_directory=Path(directory),
+                structured_detail_url=url,
+                timeout_seconds=1,
+                retries=0,
+            ) as collector,
+        ):
+            evidence = collector.collect(
+                self.api,
+                (EvidenceDimension.REQUEST_FIELDS,),
+                FreshOfficialPolicy(),
+            ).for_dimension(EvidenceDimension.REQUEST_FIELDS)
+
+        self.assertEqual(evidence.status, EvidenceStatus.TRUSTED)
+        self.assertEqual(evidence.selected_source, EvidenceSource.RENDERED_DOCUMENT)
+        self.assertEqual(
+            [
+                (
+                    observation.canonical_path,
+                    observation.location,
+                    observation.required,
+                )
+                for observation in evidence.observations
+            ],
+            [("page_token", "query", False)],
+        )
+
+    def test_inner_text_explicit_empty_query_is_trusted(self):
+        worker = Path(__file__).parent / "fixtures" / "rendered_document_worker.py"
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            detail_server({}, status=404) as (_, url),
+            patch.dict(
+                os.environ,
+                {"OPENLARK_TEST_RENDERED_WORKER_MODE": "innertext_empty_query"},
+            ),
+            patch(
+                "tools.api_contracts.official_evidence._RENDERED_WORKER_COMMAND",
+                (sys.executable, str(worker)),
+            ),
+            compose_full(
+                snapshot_directory=Path(directory),
+                structured_detail_url=url,
+                timeout_seconds=1,
+                retries=0,
+            ) as collector,
+        ):
+            evidence = collector.collect(
+                self.api,
+                (EvidenceDimension.REQUEST_FIELDS,),
+                FreshOfficialPolicy(),
+            ).for_dimension(EvidenceDimension.REQUEST_FIELDS)
+
+        self.assertEqual(evidence.status, EvidenceStatus.TRUSTED)
+        self.assertEqual(evidence.selected_source, EvidenceSource.RENDERED_DOCUMENT)
+        self.assertEqual(evidence.observations, ())
 
     def test_full_composition_reuses_one_rendered_browser_worker(self):
         worker = Path(__file__).parent / "fixtures" / "rendered_document_worker.py"

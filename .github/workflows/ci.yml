@@ -58,6 +58,8 @@ jobs:
       - name: Run API contract tooling tests
         run: |
           python3 -m unittest \
+            tools.tests.test_official_evidence_collect \
+            tools.tests.test_official_evidence_live \
             tools.tests.test_validate_api_contracts_official \
             tools.tests.test_validate_api_contracts_rust_source \
             tools.tests.test_validate_api_contracts_compare \

@@ -66,6 +66,7 @@ _RENDERED_WORKER_COMMAND = (
 _RENDERED_MIN_DOC_CHARS = 500
 _RENDERED_NOT_FOUND_HEAD_LINES = 30
 _RENDERED_REQUEST_BODY = "Request body"
+_RENDERED_PATH_PARAMETERS = "Path parameters"
 _RENDERED_QUERY_PARAMETERS = "Query parameters"
 _RENDERED_REQUEST_EXAMPLE = "Request example"
 _RENDERED_RESPONSE_EXAMPLE = "Response body example"
@@ -1327,11 +1328,8 @@ def _interpret_rendered(
     }[dimension]
     section = _rendered_section(content, heading)
     if section is None:
-        if dimension in {
-            EvidenceDimension.REQUEST_FIELDS,
-            EvidenceDimension.RESPONSE_FIELDS,
-        } and not _is_recorded_rendered_format(content):
-            return _interpret_rendered_inner_text_fields(
+        if not _is_recorded_rendered_format(content):
+            return _interpret_rendered_inner_text(
                 snapshot,
                 content,
                 dimension,
@@ -1403,6 +1401,93 @@ def _rendered_content_is_healthy(content: str) -> bool:
     )
 
 
+def _interpret_rendered_inner_text(
+    snapshot: RecordedSnapshot,
+    content: str,
+    dimension: EvidenceDimension,
+) -> _Candidate:
+    if dimension is EvidenceDimension.ENDPOINT:
+        return _interpret_rendered_inner_text_endpoint(snapshot, content)
+    if dimension is EvidenceDimension.TOKENS:
+        return _interpret_rendered_inner_text_tokens(snapshot, content)
+    return _interpret_rendered_inner_text_fields(snapshot, content, dimension)
+
+
+def _interpret_rendered_inner_text_endpoint(
+    snapshot: RecordedSnapshot,
+    content: str,
+) -> _Candidate:
+    combined = re.search(
+        r"(?im)^\s*(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\s+"
+        r"(https?://\S+|/\S+)\s*$",
+        content,
+    )
+    if combined is not None:
+        method, raw_path = combined.groups()
+    else:
+        method_match = re.search(
+            r"(?im)^\s*(?:HTTP Method|Method)\s*\r?\n"
+            r"\s*(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\s*$",
+            content,
+        )
+        path_match = re.search(
+            r"(?im)^\s*(?:HTTP URL|Request URL|URL)\s*\r?\n"
+            r"\s*(https?://\S+|/\S+)\s*$",
+            content,
+        )
+        if method_match is None or path_match is None:
+            return _incomplete(snapshot, "structure_incomplete")
+        method = method_match.group(1)
+        raw_path = path_match.group(1)
+    if raw_path.casefold().startswith(("http://", "https://")):
+        raw_path = urllib.parse.urlsplit(raw_path).path
+    if not raw_path.startswith("/"):
+        return _incomplete(snapshot, "structure_incomplete")
+    return _trusted(
+        snapshot,
+        (
+            EndpointObservation(
+                method=method.upper(),
+                path=_normalize_endpoint(raw_path),
+                source=snapshot.source_kind,
+            ),
+        ),
+    )
+
+
+def _interpret_rendered_inner_text_tokens(
+    snapshot: RecordedSnapshot,
+    content: str,
+) -> _Candidate:
+    authorization = re.search(
+        r"(?ims)^\s*Authorization\s*$\r?\n"
+        r"(.*?)(?=^\s*(?:Path parameters|Query parameters|Request body|"
+        r"Request example|Response body example|Error code)\s*$|\Z)",
+        content,
+    )
+    if authorization is None:
+        return _incomplete(snapshot, "structure_incomplete")
+    section = authorization.group(1)
+    tokens = tuple(
+        TokenObservation(token=token, source=snapshot.source_kind)
+        for token in dict.fromkeys(
+            re.findall(
+                r"\b(?:tenant|user|app|none)_access_token\b",
+                section,
+                flags=re.IGNORECASE,
+            )
+        )
+    )
+    if tokens:
+        return _trusted(snapshot, tokens)
+    if re.search(
+        r"(?i)\b(?:none|not required|no authorization)\b",
+        section,
+    ):
+        return _trusted(snapshot, ())
+    return _incomplete(snapshot, "structure_incomplete")
+
+
 def _interpret_rendered_inner_text_fields(
     snapshot: RecordedSnapshot,
     content: str,
@@ -1415,6 +1500,8 @@ def _interpret_rendered_inner_text_fields(
             _RENDERED_ERROR_CODE,
             occurrence=1,
         )
+        if section is None:
+            return _incomplete(snapshot, "structure_incomplete")
         names = tuple(
             name
             for name in re.findall(r'"([a-z_]+)"\s*:', section)
@@ -1430,49 +1517,115 @@ def _interpret_rendered_inner_text_fields(
             )
             for name in dict.fromkeys(names)
         )
-        return _trusted(snapshot, observations)
+        if observations or re.search(r'"data"\s*:\s*\{\s*\}', section):
+            return _trusted(snapshot, observations)
+        return _incomplete(snapshot, "structure_incomplete")
 
-    method = snapshot.catalog_entry.url.partition(":")[0].upper()
-    if method in {"POST", "PUT", "PATCH"}:
-        start = _RENDERED_REQUEST_BODY
-        occurrence = 2
-        location = "request_body"
-    else:
-        start = _RENDERED_QUERY_PARAMETERS
-        occurrence = 1
-        location = "query"
-    section = _extract_rendered_inner_text_section(
-        content,
-        start,
-        _RENDERED_REQUEST_EXAMPLE,
-        occurrence=occurrence,
+    sections = (
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_PATH_PARAMETERS,
+                (
+                    _RENDERED_QUERY_PARAMETERS,
+                    _RENDERED_REQUEST_BODY,
+                    _RENDERED_REQUEST_EXAMPLE,
+                ),
+                occurrence=2,
+            ),
+            "path",
+            _parse_rendered_path_parameter_table,
+        ),
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_QUERY_PARAMETERS,
+                (_RENDERED_REQUEST_BODY, _RENDERED_REQUEST_EXAMPLE),
+                occurrence=1,
+            ),
+            "query",
+            _parse_rendered_parameter_table,
+        ),
+        (
+            _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_REQUEST_BODY,
+                _RENDERED_REQUEST_EXAMPLE,
+                occurrence=2,
+            ),
+            "request_body",
+            _parse_rendered_parameter_table,
+        ),
     )
-    observations = tuple(
-        FieldObservation(
-            path=(name,),
-            location=location,
-            required=required,
-            field_type=field_type or None,
-            source=snapshot.source_kind,
+    observations: list[FieldObservation] = []
+    found_section = False
+    incomplete_section = False
+    for section, location, parser in sections:
+        if section is None:
+            continue
+        found_section = True
+        fields = parser(section)
+        if section.strip() and not fields:
+            incomplete_section = True
+        observations.extend(
+            FieldObservation(
+                path=(name,),
+                location=location,
+                required=required,
+                field_type=field_type or None,
+                source=snapshot.source_kind,
+            )
+            for name, field_type, required in fields
         )
-        for name, field_type, required in _parse_rendered_parameter_table(section)
-    )
-    return _trusted(snapshot, observations)
+    values = tuple(observations)
+    if incomplete_section or not found_section:
+        return _incomplete(snapshot, "structure_incomplete", values)
+    return _trusted(snapshot, values)
 
 
 def _extract_rendered_inner_text_section(
     content: str,
     start: str,
-    end: str,
+    end: str | tuple[str, ...],
     *,
     occurrence: int,
-) -> str:
+) -> str | None:
     parts = content.split(start)
     if len(parts) <= occurrence:
-        return ""
+        return None
     section = start.join(parts[occurrence:])
-    end_index = section.find(end)
-    return section if end_index < 0 else section[:end_index]
+    end_markers = (end,) if isinstance(end, str) else end
+    end_indexes = tuple(
+        index
+        for marker in end_markers
+        if (index := section.find(marker)) >= 0
+    )
+    if end_indexes:
+        section = section[: min(end_indexes)]
+    candidate = section.lstrip()
+    if candidate == start:
+        return ""
+    for separator in ("\r\n", "\n"):
+        if candidate.startswith(f"{start}{separator}"):
+            return candidate[len(start) + len(separator) :]
+    return section
+
+
+def _parse_rendered_path_parameter_table(
+    section: str,
+) -> tuple[tuple[str, str, bool], ...]:
+    pattern = re.compile(
+        r"(?im)^[ \t]*([a-z][a-z0-9_]{1,})[ \t]*\r?\n"
+        r"(?:[ \t]*\r?\n)*[ \t]*"
+        r"((?:string|int|integer|boolean|bool|number|float|double|object|array|"
+        r"file|binary|map|null)(?:\[\])?)[ \t]*$",
+    )
+    banned = {"parameter", "type", "description", "string", "integer", "boolean"}
+    return tuple(
+        (name, field_type, True)
+        for name, field_type in pattern.findall(section)
+        if name.casefold() not in banned
+    )
 
 
 def _parse_rendered_parameter_table(
