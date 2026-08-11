@@ -35,7 +35,7 @@ python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 
 CI 启用的 strict gate（`api-contracts` job）：
 
-- 全仓离线 endpoint（`--all-crates --strict endpoint`）
+- 全仓 live endpoint（`--all-crates --live-endpoints --strict endpoint`）
 - token 层：`openlark-security` + `openlark-auth`（见 §1.4）
 - field 层：`openlark-hr --biz-tag attendance`（#526/#533）与
   `openlark-docs` 全 crate（#569，ccm/base/baike/minutes；0.20 首个域扩展）
@@ -52,7 +52,7 @@ python3 tools/validate_api_contracts.py \
   --report-dir /tmp/openlark-api-contracts-live-endpoints
 ```
 
-该模式会访问飞书文档详情接口，读取 `schema.apiSchema.httpMethod` 和 `schema.apiSchema.path`，再和 Rust 实现比较。它适合人工抽样或 API 变动排查，不适合作为默认本地快检。
+该模式通过统一的 Official Document Evidence `collect` seam 获取 Endpoint Evidence，再和 Rust 实现比较。CI 使用 Structured-only composition，不安装 Playwright；需要 rendered fallback 但 adapter 不可用时会明确记为 non-passing。未传 `--live-endpoints` 时仍使用 checked-in CSV，保持默认本地快检语义。
 
 ### 1.3 Field live 校验
 
@@ -73,10 +73,10 @@ python3 tools/validate_api_contracts.py \
   --report-dir reports/api_contract_fields
 ```
 
-该模式会读取当前官网详情页中的结构化 schema，并和 Rust 结构体的可序列化字段比较。当前覆盖：
+该模式通过同一个 `collect` seam 获取 Request Fields 与 Response Fields Evidence，并和 Rust 结构体的可序列化字段比较。当前 Rust comparison 只消费 Evidence 中的顶层字段：
 
-- request body 顶层字段：`schema.apiSchema.requestBody.content.*.schema.properties`
-- response data 顶层字段：`schema.apiSchema.responses.200.content.application/json.schema.properties.data.properties`
+- request body 顶层 `FieldObservation`
+- response body 顶层 `FieldObservation`
 
 request 字段解析支持：
 
@@ -116,13 +116,7 @@ python3 tools/validate_api_contracts.py \
   --report-dir /tmp/openlark-api-contracts-tokens
 ```
 
-oracle 取值（优先级递减）：
-
-1. 官网详情 payload 的 `schema.apiSchema.security.supportedAccessToken`（结构化，多数页面）。
-2. 部分 `server-docs` 风格页（如 acs `user/get`、`user/list`）的 detail payload 不含该字段，
-   回退到抓取文档 `.md` 源的「请求头 Authorization」行（SPA 页正文来源，见
-   `docs/api-spec-accuracy-audit.md` 的核对方法节）。注意：该回退对每个 detail payload 缺标注
-   的接口会多一次 `.md` HTTP 抓取，全量核对时网络调用量会相应放大。
+Token oracle 同样来自 Official Document Evidence `collect` seam。Structured Detail 无法产生 Trusted Tokens Evidence 时，manual/full composition 可逐维度回退到 live Rendered Document；CI composition 不安装 Playwright，fallback 不可用会明确返回 `Unavailable`，不会静默跳过或把 Recorded Snapshot 冒充 fresh evidence。
 
 判定规则（被测对象 = Rust 声明的有效 token 集合，未显式声明时取默认 `[User, Tenant]`）：
 
@@ -275,6 +269,8 @@ python3 tools/validate_api_contracts.py \
 | `WARN` | 实现缺失、解析不到或低噪声风险；endpoint strict 当前不因 warning 失败 |
 | `UNVERIFIED` | 官方详情或实现形态无法机器确认，需要人工判断 |
 
+Strict Evidence Gate 下，`Incomplete`、`Unavailable`、`Rejected` 均为 non-passing；稳定 Evidence Diagnostic 会映射到既有 finding code。
+
 常见 finding code：
 
 | Code | 含义 |
@@ -290,6 +286,9 @@ python3 tools/validate_api_contracts.py \
 | `E_ACCESS_TOKEN_TYPE_MISMATCH` | Rust 声明的 token 类型全被官方文档拒绝（不相交，鉴权必失败） |
 | `U_ACCESS_TOKEN_UNANNOTATED` | 官方文档未标注 `supportedAccessToken`/Authorization，token 类型无法核对 |
 | `U_OFFICIAL_DETAIL_FETCH_FAILED` | live 模式无法获取官网详情 payload |
+
+
+JSON 顶层字段保持兼容，并追加 `evidence`。每个维度包含 `status`、`selected_source`、provenance、diagnostics 与 `acquisition_trail`；Markdown 报告同步追加逐维度 Evidence 表。
 
 ## 4. 当前已知验证证据
 
@@ -320,10 +319,10 @@ just api-contract-fields openlark-ai 1
 
 ## 6. 当前限制
 
-- 字段级校验目前只覆盖 request body 顶层字段和 response `data` 顶层字段。
-- 嵌套字段、query/path 参数还未纳入 strict 比较。
-- endpoint 解析对**无法识别**的复杂动态拼接仍会给出 `W_ENDPOINT_UNRESOLVED`，不会在 endpoint strict 模式下失败。
-- live 模式依赖飞书官网详情接口，适合抽样和排查，不应替代离线快检。
+- 字段级 Rust comparison 目前只消费 request/response 顶层 `FieldObservation`。
+- 嵌套字段、query/path 参数尚未纳入 strict comparison。
+- endpoint 解析对**无法识别**的复杂动态拼接仍会给出 `W_ENDPOINT_UNRESOLVED`，不会单独触发 endpoint strict 失败。
+- live acquisition 统一位于 Official Document Evidence 模块；manual/full 可用 Playwright fallback，CI 为 Structured-only 且 fail closed。
 
 ### 6.1 Docs CatalogEndpoint 解析（#568）
 

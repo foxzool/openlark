@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import ContractFinding, ContractReport
+from .official_evidence import DimensionEvidence, OfficialDocumentEvidence
 
 
 def write_report(report: ContractReport, markdown_path: Path, json_path: Path) -> None:
@@ -16,6 +17,120 @@ def write_report(report: ContractReport, markdown_path: Path, json_path: Path) -
         json.dumps(report.to_jsonable(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+def evidence_to_jsonable(evidence: OfficialDocumentEvidence) -> dict:
+    """把稳定 Evidence 元数据转换为报告可消费的 JSON 结构。"""
+    return {
+        "api_id": evidence.catalog_entry.api_id,
+        "dimensions": [
+            dimension_evidence_to_jsonable(item)
+            for item in evidence.dimensions
+        ],
+    }
+
+
+def dimension_evidence_to_jsonable(evidence: DimensionEvidence) -> dict:
+    provenance = evidence.snapshot_provenance
+    interpretation = evidence.interpretation_provenance
+    return {
+        "dimension": evidence.dimension.value,
+        "status": evidence.status.value,
+        "selected_source": (
+            evidence.selected_source.value if evidence.selected_source else None
+        ),
+        "provenance": (
+            {
+                "source": provenance.source.value,
+                "acquired_at": provenance.acquired_at,
+                "source_uri": provenance.source_uri,
+                "content_digest": provenance.content_digest,
+                "snapshot_version": provenance.snapshot_version,
+                "interpreter_revision": (
+                    interpretation.interpreter_revision if interpretation else None
+                ),
+            }
+            if provenance
+            else None
+        ),
+        "diagnostics": [
+            {"code": diagnostic.code, "message": diagnostic.message}
+            for diagnostic in evidence.diagnostics
+        ],
+        "acquisition_trail": [
+            {
+                "source": attempt.source.value,
+                "status": attempt.status.value,
+                "diagnostics": [
+                    {"code": diagnostic.code, "message": diagnostic.message}
+                    for diagnostic in attempt.diagnostics
+                ],
+                "provenance": (
+                    {
+                        "source_uri": attempt.snapshot_provenance.source_uri,
+                        "content_digest": (
+                            attempt.snapshot_provenance.content_digest
+                        ),
+                    }
+                    if attempt.snapshot_provenance
+                    else None
+                ),
+            }
+            for attempt in evidence.acquisition_trail
+        ],
+    }
+
+def evidence_markdown_lines(
+    entries: list[tuple[str, dict]],
+    *,
+    heading: str = "## Official Document Evidence",
+) -> list[str]:
+    """渲染包含完整逐维度元数据的 Evidence Markdown 表。"""
+    if not entries:
+        return []
+    lines = [
+        heading,
+        "",
+        "| API | Dimension | Status | Source | Provenance | Diagnostics | Acquisition Trail |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for api_label, dimension in entries:
+        provenance = dimension["provenance"]
+        provenance_text = ""
+        if provenance:
+            provenance_text = (
+                f"{provenance['source']}@{provenance['acquired_at']} "
+                f"{provenance['source_uri']} "
+                f"digest={provenance['content_digest']} "
+                f"snapshot=v{provenance['snapshot_version']} "
+                f"interpreter={provenance['interpreter_revision'] or ''}"
+            )
+        diagnostics = ", ".join(
+            item["code"] for item in dimension["diagnostics"]
+        )
+        trail = " -> ".join(
+            (
+                f"{attempt['source']}:{attempt['status']}"
+                + (
+                    "["
+                    + ",".join(
+                        item["code"] for item in attempt["diagnostics"]
+                    )
+                    + "]"
+                    if attempt["diagnostics"]
+                    else ""
+                )
+            )
+            for attempt in dimension["acquisition_trail"]
+        )
+        lines.append(
+            f"| {escape(api_label)} | {escape(dimension['dimension'])} | "
+            f"{escape(dimension['status'])} | "
+            f"{escape(dimension['selected_source'] or '')} | "
+            f"{escape(provenance_text)} | {escape(diagnostics)} | "
+            f"{escape(trail)} |"
+        )
+    lines.append("")
+    return lines
 
 
 def render_markdown(report: ContractReport) -> str:
@@ -35,6 +150,16 @@ def render_markdown(report: ContractReport) -> str:
     ]
 
     findings = sorted(report.findings, key=lambda item: item.sort_key())
+
+    lines.extend(
+        evidence_markdown_lines(
+            [
+                (api_evidence["api_id"], dimension)
+                for api_evidence in report.evidence
+                for dimension in api_evidence["dimensions"]
+            ]
+        )
+    )
     if not findings:
         lines.extend(["No contract findings.", ""])
         return "\n".join(lines)

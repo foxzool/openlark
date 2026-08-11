@@ -63,11 +63,13 @@ jobs:
             tools.tests.test_validate_api_contracts_official \
             tools.tests.test_validate_api_contracts_rust_source \
             tools.tests.test_validate_api_contracts_compare \
-            tools.tests.test_validate_api_contracts_ci_gates
+            tools.tests.test_validate_api_contracts_ci_gates \
+            tools.tests.test_verify_api_fields
       - name: Validate typed API endpoint contracts
         run: |
           python3 tools/validate_api_contracts.py \
             --all-crates \
+            --live-endpoints \
             --strict endpoint \
             --report-dir "$RUNNER_TEMP/api_contracts"
       - name: Validate access-token types (security + auth regression gate, #511)

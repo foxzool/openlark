@@ -1,4 +1,5 @@
 import csv
+import json
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,68 @@ from tools.api_contracts.models import (
     RustEndpointCall,
     RustField,
 )
+from tools.api_contracts.official_evidence import (
+    AcquisitionAttempt,
+    DimensionEvidence,
+    EvidenceDiagnostic,
+    EndpointObservation,
+    EvidenceDimension,
+    EvidenceSource,
+    EvidenceStatus,
+    FieldObservation,
+    OfficialDocumentEvidence,
+)
+
+
+class _TrustedCollector:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return None
+
+    def collect(self, api, dimensions, policy):
+        evidence = []
+        for dimension in dimensions:
+            observations = ()
+            if dimension is EvidenceDimension.ENDPOINT:
+                observations = (
+                    EndpointObservation(
+                        api.official_method,
+                        api.official_path,
+                        EvidenceSource.STRUCTURED_DETAIL,
+                    ),
+                )
+            elif dimension is EvidenceDimension.REQUEST_FIELDS:
+                observations = (
+                    FieldObservation(
+                        ("file",),
+                        "request_body",
+                        True,
+                        "string:binary",
+                        EvidenceSource.STRUCTURED_DETAIL,
+                    ),
+                )
+            evidence.append(
+                DimensionEvidence(
+                    dimension=dimension,
+                    status=EvidenceStatus.TRUSTED,
+                    selected_source=EvidenceSource.STRUCTURED_DETAIL,
+                    observations=observations,
+                    snapshot_provenance=None,
+                    interpretation_provenance=None,
+                    diagnostics=(),
+                    acquisition_trail=(
+                        AcquisitionAttempt(
+                            EvidenceSource.STRUCTURED_DETAIL,
+                            EvidenceStatus.TRUSTED,
+                            (),
+                            None,
+                        ),
+                    ),
+                )
+            )
+        return OfficialDocumentEvidence(api, tuple(evidence))
 
 
 class ContractCompareTests(unittest.TestCase):
@@ -212,6 +275,27 @@ class ContractCompareTests(unittest.TestCase):
         self.assertEqual(findings[0].code, "W_RESPONSE_FIELD_MISSING")
         self.assertEqual(findings[0].severity, "WARN")
 
+    def test_acquisition_diagnostic_preserves_fetch_failure_code(self):
+        import tools.validate_api_contracts as cli
+
+        diagnostic = EvidenceDiagnostic(
+            "acquisition_failed", "Official Source 获取失败"
+        )
+        evidence = DimensionEvidence(
+            dimension=EvidenceDimension.ENDPOINT,
+            status=EvidenceStatus.UNAVAILABLE,
+            selected_source=EvidenceSource.STRUCTURED_DETAIL,
+            observations=(),
+            snapshot_provenance=None,
+            interpretation_provenance=None,
+            diagnostics=(diagnostic,),
+            acquisition_trail=(),
+        )
+        result = cli._evidence_finding(
+            self._api(), EvidenceDimension.ENDPOINT, evidence
+        )
+        self.assertEqual(result.code, "U_OFFICIAL_DETAIL_FETCH_FAILED")
+
 
 class ContractCliTests(unittest.TestCase):
     def test_cli_requires_live_fields_for_field_validation(self):
@@ -253,6 +337,7 @@ class ContractCliTests(unittest.TestCase):
 
             original_argv = sys.argv
             original_cwd = Path.cwd()
+            original_compose = cli.compose
             sys.argv = [
                 "validate_api_contracts.py",
                 "--crate",
@@ -270,6 +355,7 @@ class ContractCliTests(unittest.TestCase):
                 import os
 
                 os.chdir(root)
+                cli.compose = lambda **kwargs: _TrustedCollector()
                 exit_code = cli.main()
                 self.assertEqual(exit_code, 0)
                 self.assertTrue((report_dir / "summary.md").exists())
@@ -278,6 +364,7 @@ class ContractCliTests(unittest.TestCase):
                     (report_dir / "crates" / "openlark-ai.md").read_text(encoding="utf-8"),
                 )
             finally:
+                cli.compose = original_compose
                 os.chdir(original_cwd)
                 sys.argv = original_argv
 
@@ -313,6 +400,7 @@ class ContractCliTests(unittest.TestCase):
 
             original_argv = sys.argv
             original_cwd = Path.cwd()
+            original_compose = cli.compose
             sys.argv = [
                 "validate_api_contracts.py",
                 "--crate",
@@ -329,9 +417,11 @@ class ContractCliTests(unittest.TestCase):
             try:
                 import os
 
+                cli.compose = lambda **kwargs: _TrustedCollector()
                 os.chdir(root)
                 exit_code = cli.main()
             finally:
+                cli.compose = original_compose
                 os.chdir(original_cwd)
                 sys.argv = original_argv
 
@@ -339,32 +429,6 @@ class ContractCliTests(unittest.TestCase):
 
     def test_cli_field_validation_report_only_returns_zero_with_findings(self):
         import tools.validate_api_contracts as cli
-
-        def fake_fetch_detail_payload(api, timeout, retries):
-            return {
-                "data": {
-                    "schema": {
-                        "apiSchema": {
-                            "requestBody": {
-                                "content": {
-                                    "multipart/form-data": {
-                                        "schema": {
-                                            "properties": [
-                                                {
-                                                    "name": "file",
-                                                    "type": "string",
-                                                    "format": "binary",
-                                                    "required": True,
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -400,7 +464,7 @@ class ContractCliTests(unittest.TestCase):
 
             original_argv = sys.argv
             original_cwd = Path.cwd()
-            original_fetch = cli.fetch_detail_payload
+            original_compose = cli.compose
             sys.argv = [
                 "validate_api_contracts.py",
                 "--crate",
@@ -413,20 +477,57 @@ class ContractCliTests(unittest.TestCase):
                 str(report_dir),
                 "--fields",
                 "--live-fields",
+                "--live-endpoints",
+                "--tokens",
                 "--max-field-apis",
                 "1",
             ]
             try:
                 import os
 
-                cli.fetch_detail_payload = fake_fetch_detail_payload
+                cli.compose = lambda **kwargs: _TrustedCollector()
                 os.chdir(root)
                 exit_code = cli.main()
                 self.assertEqual(exit_code, 0)
                 report_text = (report_dir / "crates" / "openlark-ai.md").read_text(encoding="utf-8")
                 self.assertIn("E_REQUIRED_REQUEST_FIELD_MISSING", report_text)
+                self.assertIn("Provenance", report_text)
+                self.assertIn("Acquisition Trail", report_text)
+                report = json.loads(
+                    (report_dir / "crates/openlark-ai.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertTrue(
+                    {
+                        "crate",
+                        "total_apis",
+                        "checked_apis",
+                        "error_count",
+                        "warn_count",
+                        "unresolved_count",
+                        "findings",
+                    }
+                    <= set(report)
+                )
+                self.assertEqual(
+                    [
+                        item["dimension"]
+                        for item in report["evidence"][0]["dimensions"]
+                    ],
+                    [
+                        "endpoint",
+                        "request_fields",
+                        "response_fields",
+                        "tokens",
+                    ],
+                )
+                endpoint = report["evidence"][0]["dimensions"][0]
+                self.assertIn("provenance", endpoint)
+                self.assertIn("diagnostics", endpoint)
+                self.assertIn("acquisition_trail", endpoint)
             finally:
-                cli.fetch_detail_payload = original_fetch
+                cli.compose = original_compose
                 os.chdir(original_cwd)
                 sys.argv = original_argv
 

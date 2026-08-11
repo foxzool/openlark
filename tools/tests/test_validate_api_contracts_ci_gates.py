@@ -57,6 +57,7 @@ class ApiContractsCiGatesTests(unittest.TestCase):
     def test_endpoint_strict_covers_all_crates(self) -> None:
         self.assertIn("--all-crates", self.job)
         self.assertIn("--strict endpoint", self.job)
+        self.assertIn("--live-endpoints", self.job)
 
     def test_token_strict_covers_security_and_auth(self) -> None:
         self.assertIn("--crate openlark-security", self.job)
