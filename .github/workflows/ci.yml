@@ -69,9 +69,14 @@ jobs:
         run: |
           python3 tools/validate_api_contracts.py \
             --all-crates \
-            --live-endpoints \
             --strict endpoint \
             --report-dir "$RUNNER_TEMP/api_contracts"
+      - name: Monitor live Official Endpoint Evidence
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-ai \
+            --live-endpoints \
+            --report-dir "$RUNNER_TEMP/api_contracts_live_monitor"
       - name: Validate access-token types (security + auth regression gate, #511)
         run: |
           python3 tools/validate_api_contracts.py \

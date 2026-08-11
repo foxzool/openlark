@@ -35,10 +35,11 @@ python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 
 CI 启用的 strict gate（`api-contracts` job）：
 
-- 全仓 live endpoint（`--all-crates --live-endpoints --strict endpoint`）
+- 全仓离线 endpoint strict（`--all-crates --strict endpoint`）
 - token 层：`openlark-security` + `openlark-auth`（见 §1.4）
 - field 层：`openlark-hr --biz-tag attendance`（#526/#533）与
   `openlark-docs` 全 crate（#569，ccm/base/baike/minutes；0.20 首个域扩展）
+- live endpoint monitor：`openlark-ai --live-endpoints`，保留 fail-closed Evidence 状态但不作为全仓 strict gate
 
 ### 1.2 Endpoint live 校验
 
@@ -52,7 +53,7 @@ python3 tools/validate_api_contracts.py \
   --report-dir /tmp/openlark-api-contracts-live-endpoints
 ```
 
-该模式通过统一的 Official Document Evidence `collect` seam 获取 Endpoint Evidence，再和 Rust 实现比较。CI 使用 Structured-only composition，不安装 Playwright；需要 rendered fallback 但 adapter 不可用时会明确记为 non-passing。未传 `--live-endpoints` 时仍使用 checked-in CSV，保持默认本地快检语义。
+该模式通过统一的 Official Document Evidence `collect` seam 获取 Endpoint Evidence，再和 Rust 实现比较。CI monitor 使用 Structured-only composition，不安装 Playwright；需要 rendered fallback 但 adapter 不可用时会明确记录 non-passing Evidence 与既有 finding code。全仓 endpoint strict 继续使用 checked-in CSV，避免官方页面暂时不健康导致永久红灯；人工命令可组合 `--live-endpoints --strict endpoint`，同时保留既有 strict 退出码用途。
 
 ### 1.3 Field live 校验
 
@@ -269,7 +270,7 @@ python3 tools/validate_api_contracts.py \
 | `WARN` | 实现缺失、解析不到或低噪声风险；endpoint strict 当前不因 warning 失败 |
 | `UNVERIFIED` | 官方详情或实现形态无法机器确认，需要人工判断 |
 
-Strict Evidence Gate 下，`Incomplete`、`Unavailable`、`Rejected` 均为 non-passing；稳定 Evidence Diagnostic 会映射到既有 finding code。
+Evidence 报告中，`Incomplete`、`Unavailable`、`Rejected` 均明确标记为 non-passing，并映射到既有 finding code。为保持既有 CLI 退出码用途，strict 仍以 `ERROR` 为主；真实 acquisition `Unavailable`（adapter/timeout/fetch/not-found）额外阻断，结构不完整或文档不健康继续以 `UNVERIFIED` 报告而不单独改变退出码。
 
 常见 finding code：
 

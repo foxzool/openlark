@@ -324,6 +324,27 @@ def _evidence_finding(api, dimension, evidence):
     )
 
 
+def _has_blocking_evidence_failure(reports: list[ContractReport]) -> bool:
+    """仅真实 acquisition 不可用阻断兼容的 strict CLI 退出码。"""
+    blocking_diagnostics = {
+        "snapshot_unavailable",
+        "adapter_unavailable",
+        "acquisition_timeout",
+        "acquisition_failed",
+        "document_not_found",
+    }
+    return any(
+        dimension["status"] == EvidenceStatus.UNAVAILABLE.value
+        and any(
+            diagnostic["code"] in blocking_diagnostics
+            for diagnostic in dimension["diagnostics"]
+        )
+        for report in reports
+        for api_evidence in report.evidence
+        for dimension in api_evidence["dimensions"]
+    )
+
+
 def main() -> int:
     args = parse_args()
     if args.fields and not args.live_fields:
@@ -380,14 +401,9 @@ def main() -> int:
     )
 
     strict_categories = {item.strip() for item in args.strict.split(",") if item.strip()}
-    nonpassing_evidence = any(
-        dimension["status"] != EvidenceStatus.TRUSTED.value
-        for report in reports
-        for api_evidence in report.evidence
-        for dimension in api_evidence["dimensions"]
-    )
+    blocking_evidence_failure = _has_blocking_evidence_failure(reports)
     if strict_categories & {"endpoint", "fields", "tokens"} and (
-        total_errors or nonpassing_evidence
+        total_errors or blocking_evidence_failure
     ):
         return 1
     return 0

@@ -12,6 +12,7 @@ from tools.api_contracts.compare import (
     compare_response_fields,
 )
 from tools.api_contracts.models import (
+    ContractReport,
     DEFAULT_ACCESS_TOKEN_TYPES,
     ApiIdentity,
     OfficialField,
@@ -295,6 +296,41 @@ class ContractCompareTests(unittest.TestCase):
             self._api(), EvidenceDimension.ENDPOINT, evidence
         )
         self.assertEqual(result.code, "U_OFFICIAL_DETAIL_FETCH_FAILED")
+
+    def test_strict_exit_blocks_only_unavailable_acquisition_failures(self):
+        import tools.validate_api_contracts as cli
+
+        report = ContractReport(
+            "fixture",
+            evidence=[
+                {
+                    "api_id": "1",
+                    "dimensions": [
+                        {
+                            "status": "incomplete",
+                            "diagnostics": [
+                                {"code": "structure_incomplete"}
+                            ],
+                        },
+                        {
+                            "status": "rejected",
+                            "diagnostics": [
+                                {"code": "document_unhealthy"}
+                            ],
+                        },
+                    ],
+                }
+            ],
+        )
+        self.assertFalse(cli._has_blocking_evidence_failure([report]))
+
+        report.evidence[0]["dimensions"].append(
+            {
+                "status": "unavailable",
+                "diagnostics": [{"code": "acquisition_failed"}],
+            }
+        )
+        self.assertTrue(cli._has_blocking_evidence_failure([report]))
 
 
 class ContractCliTests(unittest.TestCase):
