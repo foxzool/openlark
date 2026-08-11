@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
+import os
 import re
-from dataclasses import dataclass
-from datetime import datetime
+import socket
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any, Iterable
 
 from ..models import ApiIdentity
@@ -15,6 +24,7 @@ from ..models import ApiIdentity
 
 __all__ = [
     "AcquisitionAttempt",
+    "AdapterContractError",
     "DimensionEvidence",
     "EndpointObservation",
     "EvidenceDiagnostic",
@@ -23,19 +33,27 @@ __all__ = [
     "EvidenceSource",
     "EvidenceStatus",
     "FieldObservation",
+    "FreshOfficialPolicy",
     "InterpretationProvenance",
     "InterpreterError",
     "InvalidEvidenceRequest",
     "OfficialDocumentEvidence",
+    "PreferSnapshotPolicy",
     "RecordedOnlyPolicy",
     "RecordedSnapshot",
     "SnapshotInvariantError",
     "SnapshotProvenance",
+    "SnapshotStoreError",
     "TokenObservation",
     "collect",
+    "compose",
 ]
 
 _INTERPRETER_REVISION = "official-evidence/1"
+
+_STRUCTURED_DETAIL_URL = (
+    "https://open.feishu.cn/document_portal/v1/document/get_detail"
+)
 
 
 class EvidenceDimension(str, Enum):
@@ -71,6 +89,14 @@ class SnapshotInvariantError(EvidenceError):
 
 class InterpreterError(EvidenceError):
     """解释器发生非预期缺陷。"""
+
+
+class SnapshotStoreError(EvidenceError):
+    """Snapshot store 无法维持持久化契约。"""
+
+
+class AdapterContractError(EvidenceError):
+    """Live source adapter 返回了违反契约的结果。"""
 
 
 @dataclass(frozen=True)
@@ -246,6 +272,16 @@ class RecordedOnlyPolicy:
 
 
 @dataclass(frozen=True)
+class FreshOfficialPolicy:
+    """必须从当前 Official Source 获取新快照。"""
+
+
+@dataclass(frozen=True)
+class PreferSnapshotPolicy:
+    """优先复用 provenance 匹配的持久快照，否则获取新快照。"""
+
+
+@dataclass(frozen=True)
 class _Candidate:
     status: EvidenceStatus
     source: EvidenceSource
@@ -254,75 +290,485 @@ class _Candidate:
     snapshot: RecordedSnapshot | None
 
 
+@dataclass(frozen=True)
+class _AcquisitionResult:
+    snapshot: RecordedSnapshot | None
+    failure: _Candidate | None
+
+
+class _StructuredDetailAdapter:
+    def __init__(self, base_url: str, timeout_seconds: float, retries: int) -> None:
+        self._base_url = base_url
+        self._timeout_seconds = timeout_seconds
+        self._retries = retries
+
+    def acquire(self, catalog_entry: ApiIdentity) -> _AcquisitionResult:
+        full_path = _detail_full_path(catalog_entry)
+        if not full_path:
+            raise InvalidEvidenceRequest("Catalog Entry 缺少 Structured Detail fullPath")
+        separator = "&" if "?" in self._base_url else "?"
+        url = (
+            self._base_url
+            + separator
+            + urllib.parse.urlencode({"fullPath": full_path})
+        )
+        last_error: Exception | None = None
+        for attempt in range(self._retries + 1):
+            try:
+                request = urllib.request.Request(
+                    url,
+                    headers={"User-Agent": "openlark-official-evidence/1.0"},
+                )
+                with urllib.request.urlopen(
+                    request,
+                    timeout=self._timeout_seconds,
+                ) as response:
+                    raw_bytes = response.read()
+                    source_uri = response.geturl()
+                raw = raw_bytes.decode("utf-8", "replace")
+                return _AcquisitionResult(
+                    snapshot=_raw_structured_snapshot(
+                        catalog_entry,
+                        source_uri,
+                        raw,
+                    ),
+                    failure=None,
+                )
+            except urllib.error.HTTPError as error:
+                status = error.code
+                error.close()
+                if status == 404:
+                    return _AcquisitionResult(
+                        snapshot=None,
+                        failure=_unavailable(
+                            EvidenceSource.STRUCTURED_DETAIL,
+                            "document_not_found",
+                        ),
+                    )
+                last_error = error
+            except (TimeoutError, socket.timeout) as error:
+                last_error = error
+            except urllib.error.URLError as error:
+                last_error = error
+            except (OSError, http.client.HTTPException) as error:
+                last_error = error
+            if attempt < self._retries:
+                time.sleep(min(2**attempt, 8))
+        code = (
+            "acquisition_timeout"
+            if _is_timeout(last_error)
+            else "acquisition_failed"
+        )
+        return _AcquisitionResult(
+            snapshot=None,
+            failure=_unavailable(EvidenceSource.STRUCTURED_DETAIL, code),
+        )
+
+
+class _SnapshotStore:
+    def __init__(self, directory: Path) -> None:
+        self._directory = directory
+
+    def load(
+        self,
+        catalog_entry: ApiIdentity,
+        source: EvidenceSource,
+    ) -> RecordedSnapshot | None:
+        source_directory = self._source_directory(catalog_entry, source)
+        try:
+            if not source_directory.exists():
+                return None
+            snapshots = tuple(
+                self._read(path)
+                for path in source_directory.iterdir()
+                if path.is_file() and path.suffix == ".json"
+            )
+        except SnapshotStoreError:
+            raise
+        except OSError as error:
+            raise SnapshotStoreError("读取 Official Snapshot store 失败") from error
+        matching = tuple(
+            snapshot
+            for snapshot in snapshots
+            if snapshot.catalog_entry == catalog_entry
+            and snapshot.source_kind is source
+        )
+        if len(matching) != len(snapshots):
+            raise SnapshotStoreError("Snapshot store provenance 与存储路径不匹配")
+        return max(matching, key=_snapshot_time) if matching else None
+
+    def save(self, snapshot: RecordedSnapshot) -> None:
+        _validate_snapshot(snapshot)
+        source_directory = self._source_directory(
+            snapshot.catalog_entry,
+            snapshot.source_kind,
+        )
+        path = source_directory / f"{_snapshot_key(snapshot)}.json"
+        record = {
+            "version": snapshot.version,
+            "source_kind": snapshot.source_kind.value,
+            "catalog_entry": asdict(snapshot.catalog_entry),
+            "acquired_at": snapshot.acquired_at,
+            "source_uri": snapshot.source_uri,
+            "content_digest": snapshot.content_digest,
+            "raw_representation": snapshot.raw_representation,
+        }
+        serialized = json.dumps(
+            record,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        try:
+            source_directory.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            raise SnapshotStoreError(
+                "创建 Official Snapshot store 目录失败"
+            ) from error
+        temporary_path: Path | None = None
+        try:
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=source_directory,
+                prefix=".snapshot-",
+            )
+            temporary_path = Path(temporary_name)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(serialized)
+                handle.flush()
+                os.fsync(handle.fileno())
+            try:
+                os.link(temporary_path, path)
+            except FileExistsError:
+                if path.read_text(encoding="utf-8") != serialized:
+                    raise SnapshotStoreError(
+                        "不可变 Official Snapshot 写入发生键冲突"
+                    )
+        except SnapshotStoreError:
+            raise
+        except OSError as error:
+            raise SnapshotStoreError(
+                "写入 Official Snapshot store 失败"
+            ) from error
+        finally:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError as error:
+                    raise SnapshotStoreError(
+                        "清理 Official Snapshot 临时文件失败"
+                    ) from error
+
+    def remove(self, snapshot: RecordedSnapshot) -> None:
+        path = self._source_directory(
+            snapshot.catalog_entry,
+            snapshot.source_kind,
+        ) / f"{_snapshot_key(snapshot)}.json"
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as error:
+            raise SnapshotStoreError("淘汰 Rejected Official Snapshot 失败") from error
+
+    def _source_directory(
+        self,
+        catalog_entry: ApiIdentity,
+        source: EvidenceSource,
+    ) -> Path:
+        identity = json.dumps(
+            asdict(catalog_entry),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        identity_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+        return self._directory / identity_key / source.value
+
+    @staticmethod
+    def _read(path: Path) -> RecordedSnapshot:
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(record, dict):
+                raise ValueError("snapshot record is not an object")
+            snapshot = RecordedSnapshot(
+                version=record["version"],
+                source_kind=EvidenceSource(record["source_kind"]),
+                catalog_entry=ApiIdentity(**record["catalog_entry"]),
+                acquired_at=record["acquired_at"],
+                source_uri=record["source_uri"],
+                content_digest=record["content_digest"],
+                raw_representation=record["raw_representation"],
+            )
+            _validate_snapshot(snapshot)
+            return snapshot
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise SnapshotStoreError("Official Snapshot store 记录损坏") from error
+        except OSError as error:
+            raise SnapshotStoreError("读取 Official Snapshot store 失败") from error
+
+
+class _OfficialEvidenceCollector:
+    """绑定 live adapters 与 snapshot store 的 Evidence composition。"""
+
+    def __init__(
+        self,
+        structured_detail: _StructuredDetailAdapter,
+        snapshot_store: _SnapshotStore,
+    ) -> None:
+        self._structured_detail = structured_detail
+        self._snapshot_store = snapshot_store
+
+    def collect(
+        self,
+        catalog_entry: ApiIdentity,
+        dimensions: Iterable[EvidenceDimension],
+        policy: FreshOfficialPolicy | PreferSnapshotPolicy | RecordedOnlyPolicy,
+    ) -> OfficialDocumentEvidence:
+        requested = _requested_dimensions(catalog_entry, dimensions)
+        if isinstance(policy, RecordedOnlyPolicy):
+            _validate_recorded_policy(catalog_entry, policy)
+            return _collect_from_snapshots(
+                catalog_entry,
+                requested,
+                policy.snapshots,
+            )
+        if not isinstance(policy, (FreshOfficialPolicy, PreferSnapshotPolicy)):
+            raise InvalidEvidenceRequest("不支持的 Evidence Acquisition Policy")
+        if isinstance(policy, PreferSnapshotPolicy):
+            cached = self._snapshot_store.load(
+                catalog_entry,
+                EvidenceSource.STRUCTURED_DETAIL,
+            )
+            if cached is not None:
+                result = _collect_from_snapshots(
+                    catalog_entry,
+                    requested,
+                    (cached,),
+                )
+                if not _structured_rejected(result):
+                    return result
+                self._snapshot_store.remove(cached)
+        acquisition = self._structured_detail.acquire(catalog_entry)
+        if not isinstance(acquisition, _AcquisitionResult):
+            raise AdapterContractError(
+                "Structured Detail adapter 返回了无效 acquisition result"
+            )
+        if acquisition.snapshot is None:
+            if acquisition.failure is None:
+                raise AdapterContractError(
+                    "Structured Detail adapter 未返回 snapshot 或 failure"
+                )
+            return _collect_from_candidate(
+                catalog_entry,
+                requested,
+                acquisition.failure,
+            )
+        if acquisition.failure is not None:
+            raise AdapterContractError(
+                "Structured Detail adapter 同时返回 snapshot 与 failure"
+            )
+        snapshot = acquisition.snapshot
+        if (
+            snapshot.catalog_entry != catalog_entry
+            or snapshot.source_kind is not EvidenceSource.STRUCTURED_DETAIL
+        ):
+            raise AdapterContractError(
+                "Structured Detail snapshot provenance 与请求不匹配"
+            )
+        self._snapshot_store.save(snapshot)
+        result = _collect_from_snapshots(
+            catalog_entry,
+            requested,
+            (snapshot,),
+        )
+        if _structured_rejected(result):
+            self._snapshot_store.remove(snapshot)
+        return result
+
+
+def compose(
+    *,
+    snapshot_directory: Path,
+    timeout_seconds: float,
+    retries: int,
+    structured_detail_url: str = _STRUCTURED_DETAIL_URL,
+) -> _OfficialEvidenceCollector:
+    """在 composition root 配置 live transport 与 snapshot store。"""
+    if not isinstance(snapshot_directory, Path):
+        raise TypeError("snapshot_directory 必须是 pathlib.Path")
+    if not isinstance(timeout_seconds, (int, float)) or timeout_seconds <= 0:
+        raise ValueError("timeout_seconds 必须大于零")
+    if not isinstance(retries, int) or isinstance(retries, bool) or retries < 0:
+        raise ValueError("retries 必须是非负整数")
+    if not isinstance(structured_detail_url, str) or not structured_detail_url:
+        raise ValueError("structured_detail_url 不能为空")
+    return _OfficialEvidenceCollector(
+        _StructuredDetailAdapter(
+            structured_detail_url,
+            float(timeout_seconds),
+            retries,
+        ),
+        _SnapshotStore(snapshot_directory),
+    )
+
+
 def collect(
     catalog_entry: ApiIdentity,
     dimensions: Iterable[EvidenceDimension],
     policy: RecordedOnlyPolicy,
 ) -> OfficialDocumentEvidence:
-    """只通过 Recorded Snapshots 为一个 Catalog Entry 收集所需维度。"""
+    """通过统一 collect seam 解释版本化 Recorded Snapshots。"""
+    requested = _requested_dimensions(catalog_entry, dimensions)
+    if not isinstance(policy, RecordedOnlyPolicy):
+        raise InvalidEvidenceRequest(
+            "live acquisition policy 必须通过 compose() 配置"
+        )
+    _validate_recorded_policy(catalog_entry, policy)
+    return _collect_from_snapshots(
+        catalog_entry,
+        requested,
+        policy.snapshots,
+    )
+
+
+def _requested_dimensions(
+    catalog_entry: ApiIdentity,
+    dimensions: Iterable[EvidenceDimension],
+) -> tuple[EvidenceDimension, ...]:
+    if not isinstance(catalog_entry, ApiIdentity):
+        raise InvalidEvidenceRequest("catalog_entry 必须是 ApiIdentity")
     try:
         requested = tuple(dimensions)
     except TypeError as error:
         raise InvalidEvidenceRequest("Evidence Dimensions 必须可迭代") from error
-    _validate_request(catalog_entry, requested, policy)
-    snapshots = {snapshot.source_kind: snapshot for snapshot in policy.snapshots}
-    results = tuple(
-        _collect_dimension(dimension, snapshots)
-        for dimension in requested
-    )
-    return OfficialDocumentEvidence(catalog_entry=catalog_entry, dimensions=results)
+    if not requested or any(
+        not isinstance(item, EvidenceDimension)
+        for item in requested
+    ):
+        raise InvalidEvidenceRequest("至少请求一个有效 Evidence Dimension")
+    if len(set(requested)) != len(requested):
+        raise InvalidEvidenceRequest("Evidence Dimensions 不得重复")
+    return requested
 
 
-def _validate_request(
+def _validate_recorded_policy(
     catalog_entry: ApiIdentity,
-    dimensions: tuple[EvidenceDimension, ...],
     policy: RecordedOnlyPolicy,
 ) -> None:
-    if not isinstance(catalog_entry, ApiIdentity):
-        raise InvalidEvidenceRequest("catalog_entry 必须是 ApiIdentity")
-    if not isinstance(policy, RecordedOnlyPolicy):
-        raise InvalidEvidenceRequest("仅支持 recorded-only acquisition policy")
-    if not dimensions or any(not isinstance(item, EvidenceDimension) for item in dimensions):
-        raise InvalidEvidenceRequest("至少请求一个有效 Evidence Dimension")
-    if len(set(dimensions)) != len(dimensions):
-        raise InvalidEvidenceRequest("Evidence Dimensions 不得重复")
     if not isinstance(policy.snapshots, tuple):
-        raise SnapshotInvariantError("Recorded-only policy 必须保存不可变 snapshot 序列")
-    if any(not isinstance(snapshot, RecordedSnapshot) for snapshot in policy.snapshots):
+        raise SnapshotInvariantError(
+            "Recorded-only policy 必须保存不可变 snapshot 序列"
+        )
+    if any(
+        not isinstance(snapshot, RecordedSnapshot)
+        for snapshot in policy.snapshots
+    ):
         raise SnapshotInvariantError("Recorded-only policy 包含无效 snapshot")
-    if any(snapshot.catalog_entry != catalog_entry for snapshot in policy.snapshots):
-        raise InvalidEvidenceRequest("Recorded Snapshot 与 Catalog Entry 不匹配")
+    if any(
+        snapshot.catalog_entry != catalog_entry
+        for snapshot in policy.snapshots
+    ):
+        raise InvalidEvidenceRequest(
+            "Recorded Snapshot 与 Catalog Entry 不匹配"
+        )
     sources = [snapshot.source_kind for snapshot in policy.snapshots]
-    if any(not isinstance(source, EvidenceSource) for source in sources):
-        raise SnapshotInvariantError("Recorded Snapshot source kind 无效")
     if len(set(sources)) != len(sources):
-        raise InvalidEvidenceRequest("每种 Official Evidence Source 最多一个 Recorded Snapshot")
+        raise InvalidEvidenceRequest(
+            "每种 Official Evidence Source 最多一个 Recorded Snapshot"
+        )
     for snapshot in policy.snapshots:
-        if snapshot.version != 1:
-            raise SnapshotInvariantError("不支持的 Recorded Snapshot version")
-        if not isinstance(snapshot.raw_representation, str):
-            raise SnapshotInvariantError("Recorded Snapshot 原始表示必须是字符串")
-        if not isinstance(snapshot.acquired_at, str):
-            raise SnapshotInvariantError("Recorded Snapshot acquisition time 无效")
-        try:
-            acquired_at = datetime.fromisoformat(snapshot.acquired_at.replace("Z", "+00:00"))
-        except ValueError as error:
-            raise SnapshotInvariantError("Recorded Snapshot acquisition time 无效") from error
-        if acquired_at.tzinfo is None:
-            raise SnapshotInvariantError("Recorded Snapshot acquisition time 必须包含时区")
-        if not isinstance(snapshot.source_uri, str) or not snapshot.source_uri.strip():
-            raise SnapshotInvariantError("Recorded Snapshot source URI 不能为空")
-        digest = hashlib.sha256(snapshot.raw_representation.encode("utf-8")).hexdigest()
-        if digest != snapshot.content_digest:
-            raise SnapshotInvariantError("Recorded Snapshot content digest 不匹配")
+        _validate_snapshot(snapshot)
+
+
+def _validate_snapshot(snapshot: RecordedSnapshot) -> None:
+    if not isinstance(snapshot.catalog_entry, ApiIdentity):
+        raise SnapshotInvariantError("Official Snapshot Catalog Entry 无效")
+    if not isinstance(snapshot.source_kind, EvidenceSource):
+        raise SnapshotInvariantError("Official Snapshot source kind 无效")
+    if snapshot.version != 1:
+        raise SnapshotInvariantError("不支持的 Official Snapshot version")
+    if not isinstance(snapshot.raw_representation, str):
+        raise SnapshotInvariantError("Official Snapshot 原始表示必须是字符串")
+    if not isinstance(snapshot.acquired_at, str):
+        raise SnapshotInvariantError("Official Snapshot acquisition time 无效")
+    try:
+        acquired_at = datetime.fromisoformat(
+            snapshot.acquired_at.replace("Z", "+00:00")
+        )
+    except ValueError as error:
+        raise SnapshotInvariantError(
+            "Official Snapshot acquisition time 无效"
+        ) from error
+    if acquired_at.tzinfo is None:
+        raise SnapshotInvariantError(
+            "Official Snapshot acquisition time 必须包含时区"
+        )
+    if (
+        not isinstance(snapshot.source_uri, str)
+        or not snapshot.source_uri.strip()
+    ):
+        raise SnapshotInvariantError("Official Snapshot source URI 不能为空")
+    digest = hashlib.sha256(
+        snapshot.raw_representation.encode("utf-8")
+    ).hexdigest()
+    if digest != snapshot.content_digest:
+        raise SnapshotInvariantError(
+            "Official Snapshot content digest 不匹配"
+        )
+
+
+def _collect_from_snapshots(
+    catalog_entry: ApiIdentity,
+    dimensions: tuple[EvidenceDimension, ...],
+    snapshots: tuple[RecordedSnapshot, ...],
+) -> OfficialDocumentEvidence:
+    by_source = {snapshot.source_kind: snapshot for snapshot in snapshots}
+    results = tuple(
+        _collect_dimension(dimension, by_source)
+        for dimension in dimensions
+    )
+    return OfficialDocumentEvidence(
+        catalog_entry=catalog_entry,
+        dimensions=results,
+    )
+
+
+def _collect_from_candidate(
+    catalog_entry: ApiIdentity,
+    dimensions: tuple[EvidenceDimension, ...],
+    structured: _Candidate,
+) -> OfficialDocumentEvidence:
+    results = tuple(
+        _collect_dimension(
+            dimension,
+            {},
+            structured_candidate=structured,
+        )
+        for dimension in dimensions
+    )
+    return OfficialDocumentEvidence(
+        catalog_entry=catalog_entry,
+        dimensions=results,
+    )
+
+
+def _structured_rejected(evidence: OfficialDocumentEvidence) -> bool:
+    return any(
+        dimension.acquisition_trail
+        and dimension.acquisition_trail[0].source
+        is EvidenceSource.STRUCTURED_DETAIL
+        and dimension.acquisition_trail[0].status
+        is EvidenceStatus.REJECTED
+        for dimension in evidence.dimensions
+    )
 
 
 def _collect_dimension(
     dimension: EvidenceDimension,
     snapshots: dict[EvidenceSource, RecordedSnapshot],
+    *,
+    structured_candidate: _Candidate | None = None,
 ) -> DimensionEvidence:
     structured_snapshot = snapshots.get(EvidenceSource.STRUCTURED_DETAIL)
-    structured = (
+    structured = structured_candidate or (
         _interpret_snapshot(structured_snapshot, dimension)
         if structured_snapshot is not None
         else _unavailable(EvidenceSource.STRUCTURED_DETAIL)
@@ -685,9 +1131,66 @@ def _normalize_endpoint(path: str) -> str:
     return normalized.rstrip("/") or "/"
 
 
+def _detail_full_path(catalog_entry: ApiIdentity) -> str:
+    full_path = catalog_entry.full_path.strip()
+    if full_path.startswith("/document/"):
+        return full_path.removeprefix("/document")
+    if full_path == "/document":
+        return ""
+    return full_path
+
+
+def _now_iso8601() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _raw_structured_snapshot(
+    catalog_entry: ApiIdentity,
+    source_uri: str,
+    raw: str,
+) -> RecordedSnapshot:
+    return RecordedSnapshot._create(
+        version=1,
+        source_kind=EvidenceSource.STRUCTURED_DETAIL,
+        catalog_entry=catalog_entry,
+        acquired_at=_now_iso8601(),
+        source_uri=source_uri,
+        raw_representation=raw,
+    )
+
+
+def _is_timeout(error: Exception | None) -> bool:
+    if isinstance(error, (TimeoutError, socket.timeout)):
+        return True
+    return (
+        isinstance(error, urllib.error.URLError)
+        and isinstance(error.reason, (TimeoutError, socket.timeout))
+    )
+
+
+def _snapshot_time(snapshot: RecordedSnapshot) -> datetime:
+    return datetime.fromisoformat(
+        snapshot.acquired_at.replace("Z", "+00:00")
+    )
+
+
+def _snapshot_key(snapshot: RecordedSnapshot) -> str:
+    identity = "\0".join(
+        (
+            snapshot.source_uri,
+            snapshot.acquired_at,
+            snapshot.content_digest,
+        )
+    )
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+
 def _diagnostic(code: str) -> EvidenceDiagnostic:
     messages = {
         "snapshot_unavailable": "未提供可用的 Recorded Snapshot",
+        "acquisition_timeout": "Official Source 获取超时",
+        "acquisition_failed": "Official Source 获取失败",
+        "document_not_found": "Official Source 未找到对应文档",
         "document_unhealthy": "原始官方文档表示未通过健康检查",
         "structure_incomplete": "相关官方文档结构无法完整解释",
         "structure_unsupported": "相关官方文档结构暂不受解释器支持",
@@ -695,12 +1198,15 @@ def _diagnostic(code: str) -> EvidenceDiagnostic:
     return EvidenceDiagnostic(code=code, message=messages[code])
 
 
-def _unavailable(source: EvidenceSource) -> _Candidate:
+def _unavailable(
+    source: EvidenceSource,
+    code: str = "snapshot_unavailable",
+) -> _Candidate:
     return _Candidate(
         status=EvidenceStatus.UNAVAILABLE,
         source=source,
         observations=(),
-        diagnostics=(_diagnostic("snapshot_unavailable"),),
+        diagnostics=(_diagnostic(code),),
         snapshot=None,
     )
 
