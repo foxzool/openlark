@@ -4,24 +4,44 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use super::models::UpdateCardElementContentResponse;
 use crate::common::{
     api_utils::serialize_params,
-    validation::{validate_card_id, validate_element_id},
+    validation::{validate_card_id, validate_element_id, validate_sequence, validate_uuid},
 };
 use crate::endpoints::cardkit_v1_card_element_content;
 
-/// 流式更新文本请求体（结构以官方文档为准）
+/// 流式更新文本请求体
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UpdateCardElementContentBody {
-    /// 卡片 ID
+    /// 卡片 ID（路径参数，不进入 JSON body）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 组件 ID
+    /// 组件 ID（路径参数，不进入 JSON body）
+    #[serde(skip_serializing)]
     pub element_id: String,
-    /// 内容
-    pub content: serde_json::Value,
+    /// 更新后的文本内容
+    pub content: String,
+    /// 流式更新序号（必填，严格递增）
+    pub sequence: i32,
+    /// 幂等 ID（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+}
+
+impl UpdateCardElementContentBody {
+    /// 校验请求体。
+    pub fn validate(&self) -> SDKResult<()> {
+        validate_card_id(&self.card_id)?;
+        validate_element_id(&self.element_id)?;
+        validate_required!(self.content, "content 不能为空");
+        validate_sequence(self.sequence)?;
+        validate_uuid(&self.uuid)?;
+        Ok(())
+    }
 }
 
 /// 流式更新文本请求
@@ -30,7 +50,9 @@ pub struct UpdateCardElementContentRequest {
     config: Config,
     card_id: Option<String>,
     element_id: Option<String>,
-    content: Option<serde_json::Value>,
+    content: Option<String>,
+    sequence: Option<i32>,
+    uuid: Option<String>,
 }
 
 impl UpdateCardElementContentRequest {
@@ -41,6 +63,8 @@ impl UpdateCardElementContentRequest {
             card_id: None,
             element_id: None,
             content: None,
+            sequence: None,
+            uuid: None,
         }
     }
 
@@ -73,9 +97,14 @@ impl UpdateCardElementContentRequest {
         if let Some(content) = self.content {
             body.content = content;
         }
+        if let Some(sequence) = self.sequence {
+            body.sequence = sequence;
+        }
+        if let Some(uuid) = self.uuid {
+            body.uuid = Some(uuid);
+        }
 
-        validate_card_id(&body.card_id)?;
-        validate_element_id(&body.element_id)?;
+        body.validate()?;
 
         // url: PUT:/open-apis/cardkit/v1/cards/:card_id/elements/:element_id/content
         let req: ApiRequest<UpdateCardElementContentResponse> = ApiRequest::put(
@@ -91,9 +120,6 @@ impl UpdateCardElementContentRequest {
 #[derive(Debug, Clone)]
 pub struct UpdateCardElementContentRequestBuilder {
     request: UpdateCardElementContentRequest,
-    card_id: Option<String>,
-    element_id: Option<String>,
-    content: Option<serde_json::Value>,
 }
 
 impl UpdateCardElementContentRequestBuilder {
@@ -101,38 +127,42 @@ impl UpdateCardElementContentRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: UpdateCardElementContentRequest::new(config),
-            card_id: None,
-            element_id: None,
-            content: None,
         }
     }
 
     /// 设置卡片 ID
     pub fn card_id(mut self, card_id: impl Into<String>) -> Self {
-        self.card_id = Some(card_id.into());
+        self.request.card_id = Some(card_id.into());
         self
     }
 
     /// 设置组件 ID
     pub fn element_id(mut self, element_id: impl Into<String>) -> Self {
-        self.element_id = Some(element_id.into());
+        self.request.element_id = Some(element_id.into());
         self
     }
 
     /// 设置内容
-    pub fn content(mut self, content: impl Into<serde_json::Value>) -> Self {
-        self.content = Some(content.into());
+    pub fn content(mut self, content: impl Into<String>) -> Self {
+        self.request.content = Some(content.into());
+        self
+    }
+
+    /// 设置流式更新序号
+    pub fn sequence(mut self, sequence: i32) -> Self {
+        self.request.sequence = Some(sequence);
+        self
+    }
+
+    /// 设置幂等 ID
+    pub fn uuid(mut self, uuid: impl Into<String>) -> Self {
+        self.request.uuid = Some(uuid.into());
         self
     }
 
     /// 构建请求
     pub fn build(self) -> UpdateCardElementContentRequest {
-        UpdateCardElementContentRequest {
-            config: self.request.config,
-            card_id: self.card_id,
-            element_id: self.element_id,
-            content: self.content,
-        }
+        self.request
     }
 }
 
@@ -144,7 +174,7 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：PUT .../cards/{card_id}/elements/{element_id}/content + body 序列化 → UpdateCardElementContentResponse。
+    /// 端到端：PUT .../cards/{card_id}/elements/{element_id}/content + body 序列化。
     #[tokio::test]
     async fn test_update_card_element_content_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -155,7 +185,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "card_id": "card_001", "element_id": "elem_001" }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -170,17 +200,21 @@ mod tests {
         let body = UpdateCardElementContentBody {
             card_id: "card_001".into(),
             element_id: "elem_001".into(),
-            content: json!({ "tag": "markdown", "content": "hello" }),
+            content: "updated text".into(),
+            sequence: 1,
+            uuid: Some("a0d69e20-1dd1-458b-k525-dfeca4015204".into()),
         };
-        let resp = UpdateCardElementContentRequest::new(config)
+        UpdateCardElementContentRequest::new(config)
             .execute(body)
             .await
             .expect("流式更新文本应成功");
-        assert_eq!(resp.element_id.as_deref(), Some("elem_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["content"]["tag"], "markdown");
+        assert!(sent.get("card_id").is_none());
+        assert!(sent.get("element_id").is_none());
+        assert_eq!(sent["content"], "updated text");
+        assert_eq!(sent["sequence"], 1);
     }
 }

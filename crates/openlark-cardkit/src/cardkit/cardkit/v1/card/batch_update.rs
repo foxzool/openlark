@@ -4,33 +4,47 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{api_utils::serialize_params, validation::validate_card_id},
+    common::{
+        api_utils::serialize_params,
+        validation::{validate_card_id, validate_sequence, validate_uuid},
+    },
     endpoints::cardkit_v1_card_batch_update,
 };
 
 /// 局部更新卡片实体请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchUpdateCardBody {
-    /// 卡片 ID
+    /// 卡片 ID（路径参数，不进入 JSON body）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 操作列表（结构以官方文档为准）
-    pub operations: Vec<serde_json::Value>,
+    /// 操作列表（JSON 数组的序列化字符串）
+    pub actions: String,
+    /// 幂等 ID（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    /// 流式更新序号（必填，严格递增）
+    pub sequence: i32,
 }
 
-/// 局部更新卡片实体响应
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct BatchUpdateCardResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 卡片 ID。
-    pub card_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 应用 ID。
-    pub app_id: Option<String>,
+impl BatchUpdateCardBody {
+    /// 校验请求体。
+    pub fn validate(&self) -> SDKResult<()> {
+        validate_card_id(&self.card_id)?;
+        validate_required!(self.actions, "actions 不能为空");
+        validate_uuid(&self.uuid)?;
+        validate_sequence(self.sequence)?;
+        Ok(())
+    }
 }
+
+/// 局部更新卡片实体响应（官方 `data` 为空对象）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BatchUpdateCardResponse {}
 
 impl openlark_core::api::ApiResponseTrait for BatchUpdateCardResponse {}
 
@@ -39,7 +53,9 @@ impl openlark_core::api::ApiResponseTrait for BatchUpdateCardResponse {}
 pub struct BatchUpdateCardRequest {
     config: Config,
     card_id: Option<String>,
-    operations: Option<Vec<serde_json::Value>>,
+    actions: Option<String>,
+    uuid: Option<String>,
+    sequence: Option<i32>,
 }
 
 impl BatchUpdateCardRequest {
@@ -48,7 +64,9 @@ impl BatchUpdateCardRequest {
         Self {
             config,
             card_id: None,
-            operations: None,
+            actions: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -72,17 +90,17 @@ impl BatchUpdateCardRequest {
         if let Some(card_id) = self.card_id {
             body.card_id = card_id;
         }
-        if let Some(operations) = self.operations {
-            body.operations = operations;
+        if let Some(actions) = self.actions {
+            body.actions = actions;
+        }
+        if let Some(uuid) = self.uuid {
+            body.uuid = Some(uuid);
+        }
+        if let Some(sequence) = self.sequence {
+            body.sequence = sequence;
         }
 
-        validate_card_id(&body.card_id)?;
-        if body.operations.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "operations 不能为空",
-                "operations 不能为空",
-            ));
-        }
+        body.validate()?;
 
         // url: POST:/open-apis/cardkit/v1/cards/:card_id/batch_update
         let url = cardkit_v1_card_batch_update(&body.card_id);
@@ -97,8 +115,6 @@ impl BatchUpdateCardRequest {
 #[derive(Debug, Clone)]
 pub struct BatchUpdateCardRequestBuilder {
     request: BatchUpdateCardRequest,
-    card_id: Option<String>,
-    operations: Option<Vec<serde_json::Value>>,
 }
 
 impl BatchUpdateCardRequestBuilder {
@@ -106,30 +122,36 @@ impl BatchUpdateCardRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: BatchUpdateCardRequest::new(config),
-            card_id: None,
-            operations: None,
         }
     }
 
     /// 设置卡片 ID
     pub fn card_id(mut self, card_id: impl Into<String>) -> Self {
-        self.card_id = Some(card_id.into());
+        self.request.card_id = Some(card_id.into());
         self
     }
 
-    /// 设置操作列表
-    pub fn operations(mut self, operations: impl Into<Vec<serde_json::Value>>) -> Self {
-        self.operations = Some(operations.into());
+    /// 设置操作列表（JSON 数组序列化字符串）
+    pub fn actions(mut self, actions: impl Into<String>) -> Self {
+        self.request.actions = Some(actions.into());
+        self
+    }
+
+    /// 设置幂等 ID
+    pub fn uuid(mut self, uuid: impl Into<String>) -> Self {
+        self.request.uuid = Some(uuid.into());
+        self
+    }
+
+    /// 设置流式更新序号
+    pub fn sequence(mut self, sequence: i32) -> Self {
+        self.request.sequence = Some(sequence);
         self
     }
 
     /// 构建请求
     pub fn build(self) -> BatchUpdateCardRequest {
-        BatchUpdateCardRequest {
-            config: self.request.config,
-            card_id: self.card_id,
-            operations: self.operations,
-        }
+        self.request
     }
 }
 
@@ -150,7 +172,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "card_id": "card_001", "app_id": "app_001" }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -164,17 +186,21 @@ mod tests {
 
         let body = BatchUpdateCardBody {
             card_id: "card_001".into(),
-            operations: vec![json!({ "op": "replace", "path": "/title" })],
+            actions: r#"[{"action":"partial_update_setting","params":{"settings":{"config":{"streaming_mode":true}}}}]"#.into(),
+            uuid: None,
+            sequence: 1,
         };
-        let resp = BatchUpdateCardRequest::new(config)
+        BatchUpdateCardRequest::new(config)
             .execute(body)
             .await
             .expect("局部更新卡片实体应成功");
-        assert_eq!(resp.card_id.as_deref(), Some("card_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["operations"][0]["op"], "replace");
+        assert!(sent.get("card_id").is_none());
+        assert!(sent.get("operations").is_none());
+        assert!(sent["actions"].as_str().unwrap().contains("partial_update_setting"));
+        assert_eq!(sent["sequence"], 1);
     }
 }

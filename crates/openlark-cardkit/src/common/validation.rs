@@ -50,6 +50,34 @@ pub fn validate_element_id(element_id: &str) -> Result<(), error::CoreError> {
     Ok(())
 }
 
+/// 验证流式更新序号 `sequence`
+///
+/// 官方约束：正整数，取值范围 1～2147483647（int32）。
+pub fn validate_sequence(sequence: i32) -> Result<(), error::CoreError> {
+    if sequence < 1 {
+        return Err(error::validation_error(
+            "sequence 无效",
+            "sequence 必须是 1～2147483647 的正整数",
+        ));
+    }
+    Ok(())
+}
+
+/// 验证可选幂等 ID `uuid`
+pub fn validate_uuid(uuid: &Option<String>) -> Result<(), error::CoreError> {
+    if let Some(uuid) = uuid {
+        validate_required!(uuid, "uuid 不能为空");
+        let len = uuid.chars().count();
+        if !(1..=64).contains(&len) {
+            return Err(error::validation_error(
+                "uuid 长度无效",
+                "uuid 长度范围为 1～64 个字符",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// 验证 ID 类型是否有效
 ///
 /// # 参数

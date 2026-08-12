@@ -1,6 +1,6 @@
 //! 卡片组件构建器单元测试
 //!
-//! 测试卡片组件的构建器模式，包括参数验证、链式调用、默认值等。
+//! 测试卡片组件的构建器模式、字段序列化与校验。
 
 use openlark_cardkit::cardkit::cardkit::v1::card::element::{
     content::{
@@ -16,7 +16,6 @@ use openlark_cardkit::cardkit::cardkit::v1::card::element::{
     patch::{PatchCardElementBody, PatchCardElementRequest, PatchCardElementRequestBuilder},
     update::{UpdateCardElementBody, UpdateCardElementRequest, UpdateCardElementRequestBuilder},
 };
-use serde_json::json;
 
 /// 辅助函数：创建测试配置
 fn create_test_config() -> openlark_core::config::Config {
@@ -26,685 +25,243 @@ fn create_test_config() -> openlark_core::config::Config {
         .build()
 }
 
-/// 创建卡片组件请求构建器测试
 #[cfg(test)]
-mod create_card_element_request_builder_tests {
+mod create_card_element_tests {
     use super::*;
-
-    #[test]
-    fn test_builder_default_state() {
-        let config = create_test_config();
-        let builder = CreateCardElementRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_builder_card_id_setting() {
-        let config = create_test_config();
-
-        let builder = CreateCardElementRequestBuilder::new(config.clone()).card_id("card_123");
-
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_builder_element_setting() {
-        let config = create_test_config();
-        let element = json!({"type": "text", "content": "hello"});
-
-        let builder = CreateCardElementRequestBuilder::new(config.clone()).element(element.clone());
-
-        let _request = builder.build();
-    }
 
     #[test]
     fn test_builder_chaining() {
         let config = create_test_config();
-        let element = json!({"type": "div", "text": {"content": "test"}});
-
-        let _request = CreateCardElementRequestBuilder::new(config.clone())
+        let _request = CreateCardElementRequestBuilder::new(config)
             .card_id("card_123")
-            .element(element)
+            .type_("append")
+            .elements(r#"[{"tag":"markdown","id":"md_1","content":"hi"}]"#)
+            .sequence(1)
             .build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
     }
-
-    #[test]
-    fn test_request_new() {
-        let config = create_test_config();
-        let _request = CreateCardElementRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-}
-
-/// 创建卡片组件体验证测试
-#[cfg(test)]
-mod create_card_element_body_tests {
-    use super::*;
 
     #[test]
     fn test_valid_element_body() {
         let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({"type": "text", "content": "hello"}),
+            card_id: "card_123".into(),
+            type_: "insert_before".into(),
+            target_element_id: Some("elem_1".into()),
+            uuid: None,
+            sequence: 1,
+            elements: r#"[{"tag":"markdown","id":"md_1","content":"hello"}]"#.into(),
         };
-
-        assert_eq!(body.card_id, "card_123");
-        assert!(!body.element.is_null());
+        assert!(body.validate().is_ok());
     }
 
     #[test]
-    fn test_element_body_serialization() {
+    fn test_element_body_serialization_skips_path_params() {
         let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "div",
-                "text": {
-                    "tag": "plain_text",
-                    "content": "测试内容"
-                }
-            }),
+            card_id: "card_123".into(),
+            type_: "append".into(),
+            target_element_id: None,
+            uuid: None,
+            sequence: 1,
+            elements: r#"[{"tag":"div"}]"#.into(),
         };
-
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element"));
-    }
-
-    #[test]
-    fn test_complex_element_body() {
-        let body = CreateCardElementBody {
-            card_id: "card_456".to_string(),
-            element: json!({
-                "tag": "column_set",
-                "flex_mode": "none",
-                "background_style": "default",
-                "columns": [
-                    {
-                        "tag": "column",
-                        "width": "weighted",
-                        "weight": 1,
-                        "elements": [
-                            {"tag": "markdown", "content": "列1内容"}
-                        ]
-                    }
-                ]
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-}
-
-/// 更新卡片组件请求构建器测试
-#[cfg(test)]
-mod update_card_element_request_builder_tests {
-    use super::*;
-
-    #[test]
-    fn test_update_builder_default_state() {
-        let config = create_test_config();
-        let builder = UpdateCardElementRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_update_builder_with_params() {
-        let config = create_test_config();
-        let patch = json!({"content": "updated content"});
-
-        let builder = UpdateCardElementRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .patch(patch);
-
-        let _request = builder.build();
+        let value = serde_json::to_value(&body).expect("序列化失败");
+        assert!(value.get("card_id").is_none());
+        assert!(value.get("element").is_none());
+        assert_eq!(value["type"], "append");
+        assert_eq!(value["sequence"], 1);
     }
 
     #[test]
     fn test_request_new() {
-        let config = create_test_config();
-        let _request = UpdateCardElementRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_update_builder_chaining() {
-        let config = create_test_config();
-
-        let _request = UpdateCardElementRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .patch(json!({"key": "value"}))
-            .build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
+        let _request = CreateCardElementRequest::new(create_test_config());
     }
 }
 
-/// 更新卡片组件体验证测试
 #[cfg(test)]
-mod update_card_element_body_tests {
+mod update_card_element_tests {
     use super::*;
+
+    #[test]
+    fn test_update_builder_with_params() {
+        let _request = UpdateCardElementRequestBuilder::new(create_test_config())
+            .card_id("card_123")
+            .element_id("elem_456")
+            .element(r#"{"tag":"markdown","id":"md_1","content":"普通文本"}"#)
+            .sequence(1)
+            .build();
+    }
 
     #[test]
     fn test_valid_update_body() {
         let body = UpdateCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            patch: json!({"content": "new content"}),
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            element: r#"{"tag":"markdown","content":"new"}"#.into(),
+            sequence: 1,
+            uuid: None,
         };
-
-        assert_eq!(body.card_id, "card_123");
-        assert_eq!(body.element_id, "elem_456");
+        assert!(body.validate().is_ok());
     }
 
     #[test]
     fn test_update_body_serialization() {
         let body = UpdateCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            patch: json!({"style": {"bold": true}}),
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            element: r#"{"tag":"markdown"}"#.into(),
+            sequence: 2,
+            uuid: None,
         };
-
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element_id"));
-        assert!(json_str.contains("patch"));
-    }
-}
-
-/// 修补卡片组件请求构建器测试
-#[cfg(test)]
-mod patch_card_element_request_builder_tests {
-    use super::*;
-
-    #[test]
-    fn test_patch_builder_default_state() {
-        let config = create_test_config();
-        let builder = PatchCardElementRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_patch_builder_with_params() {
-        let config = create_test_config();
-        let patch = json!([{"op": "replace", "path": "/content", "value": "new"}]);
-
-        let builder = PatchCardElementRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .patch(patch);
-
-        let _request = builder.build();
+        let value = serde_json::to_value(&body).expect("序列化失败");
+        assert!(value.get("card_id").is_none());
+        assert!(value.get("element_id").is_none());
+        assert!(value.get("patch").is_none());
+        assert!(value["element"].is_string());
+        assert_eq!(value["sequence"], 2);
     }
 
     #[test]
     fn test_request_new() {
-        let config = create_test_config();
-        let _request = PatchCardElementRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_patch_builder_chaining() {
-        let config = create_test_config();
-
-        let _request = PatchCardElementRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .patch(json!({"op": "add"}))
-            .build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
+        let _request = UpdateCardElementRequest::new(create_test_config());
     }
 }
 
-/// 修补卡片组件体验证测试
 #[cfg(test)]
-mod patch_card_element_body_tests {
+mod patch_card_element_tests {
     use super::*;
 
     #[test]
-    fn test_valid_patch_body() {
-        let body = PatchCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            patch: json!([{"op": "replace", "path": "/text", "value": {"content": "new"}}]),
-        };
-
-        assert_eq!(body.card_id, "card_123");
-        assert_eq!(body.element_id, "elem_456");
+    fn test_patch_builder_with_params() {
+        let _request = PatchCardElementRequestBuilder::new(create_test_config())
+            .card_id("card_123")
+            .element_id("elem_456")
+            .partial_element(r#"{"content":"Updated text"}"#)
+            .sequence(1)
+            .build();
     }
 
     #[test]
     fn test_patch_body_serialization() {
         let body = PatchCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            patch: json!({
-                "operations": [
-                    {"op": "add", "path": "/new_field", "value": "value"}
-                ]
-            }),
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            partial_element: r#"{"content":"Updated text"}"#.into(),
+            sequence: 1,
+            uuid: None,
         };
+        let value = serde_json::to_value(&body).expect("序列化失败");
+        assert!(value.get("patch").is_none());
+        assert_eq!(value["partial_element"], r#"{"content":"Updated text"}"#);
+        assert_eq!(value["sequence"], 1);
+    }
 
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element_id"));
-        assert!(json_str.contains("patch"));
+    #[test]
+    fn test_request_new() {
+        let _request = PatchCardElementRequest::new(create_test_config());
     }
 }
 
-/// 删除卡片组件请求构建器测试
 #[cfg(test)]
-mod delete_card_element_request_builder_tests {
+mod delete_card_element_tests {
     use super::*;
-
-    #[test]
-    fn test_delete_builder_default_state() {
-        let config = create_test_config();
-        let builder = DeleteCardElementRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
 
     #[test]
     fn test_delete_builder_with_params() {
-        let config = create_test_config();
-
-        let builder = DeleteCardElementRequestBuilder::new(config.clone())
+        let _request = DeleteCardElementRequestBuilder::new(create_test_config())
             .card_id("card_123")
-            .element_id("elem_456");
+            .element_id("elem_456")
+            .sequence(1)
+            .uuid("uuid-1")
+            .build();
+    }
 
-        let _request = builder.build();
+    #[test]
+    fn test_delete_body_requires_sequence() {
+        let body = DeleteCardElementBody {
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            sequence: 1,
+            uuid: None,
+        };
+        assert!(body.validate().is_ok());
+        assert!(
+            DeleteCardElementBody {
+                card_id: "card_123".into(),
+                element_id: "elem_456".into(),
+                sequence: 0,
+                uuid: None,
+            }
+            .validate()
+            .is_err()
+        );
     }
 
     #[test]
     fn test_request_new() {
-        let config = create_test_config();
-        let _request = DeleteCardElementRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_delete_builder_chaining() {
-        let config = create_test_config();
-
-        let _request = DeleteCardElementRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
+        let _request = DeleteCardElementRequest::new(create_test_config());
     }
 }
 
-/// 删除卡片组件体验证测试
 #[cfg(test)]
-mod delete_card_element_body_tests {
+mod content_card_element_tests {
     use super::*;
-
-    #[test]
-    fn test_valid_delete_body() {
-        let body = DeleteCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-        };
-
-        assert_eq!(body.card_id, "card_123");
-        assert_eq!(body.element_id, "elem_456");
-    }
-
-    #[test]
-    fn test_delete_body_serialization() {
-        let body = DeleteCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-        };
-
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element_id"));
-    }
-}
-
-/// 更新组件内容请求构建器测试
-#[cfg(test)]
-mod update_element_content_request_builder_tests {
-    use super::*;
-
-    #[test]
-    fn test_content_builder_default_state() {
-        let config = create_test_config();
-        let builder = UpdateCardElementContentRequestBuilder::new(config.clone());
-        let _request = builder.build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
 
     #[test]
     fn test_content_builder_with_params() {
-        let config = create_test_config();
-        let content = json!("updated text content");
-
-        let builder = UpdateCardElementContentRequestBuilder::new(config.clone())
+        let _request = UpdateCardElementContentRequestBuilder::new(create_test_config())
             .card_id("card_123")
             .element_id("elem_456")
-            .content(content);
-
-        let _request = builder.build();
-    }
-
-    #[test]
-    fn test_request_new() {
-        let config = create_test_config();
-        let _request = UpdateCardElementContentRequest::new(config);
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-
-    #[test]
-    fn test_content_builder_chaining() {
-        let config = create_test_config();
-
-        let _request = UpdateCardElementContentRequestBuilder::new(config.clone())
-            .card_id("card_123")
-            .element_id("elem_456")
-            .content(json!("streaming content"))
+            .content("updated text")
+            .sequence(1)
             .build();
-
-        // 验证 request 对象已创建（Rust 引用永不为 null）
-    }
-}
-
-/// 更新组件内容体验证测试
-#[cfg(test)]
-mod update_element_content_body_tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_content_body() {
-        let body = UpdateCardElementContentBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            content: json!("new streaming content"),
-        };
-
-        assert_eq!(body.card_id, "card_123");
-        assert_eq!(body.element_id, "elem_456");
     }
 
     #[test]
     fn test_content_body_serialization() {
         let body = UpdateCardElementContentBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            content: json!("streaming text content"),
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            content: "updated text".into(),
+            sequence: 1,
+            uuid: None,
         };
+        let value = serde_json::to_value(&body).expect("序列化失败");
+        assert!(value.get("card_id").is_none());
+        assert!(value.get("element_id").is_none());
+        assert_eq!(value["content"], "updated text");
+        assert_eq!(value["sequence"], 1);
+    }
 
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("card_id"));
-        assert!(json_str.contains("element_id"));
-        assert!(json_str.contains("content"));
+    #[test]
+    fn test_content_must_be_string_not_object() {
+        // 官方文档 content 为 string，不是 JSON 对象
+        let body = UpdateCardElementContentBody {
+            card_id: "card_123".into(),
+            element_id: "elem_456".into(),
+            content: "plain text".into(),
+            sequence: 1,
+            uuid: None,
+        };
+        assert!(body.validate().is_ok());
+        let value = serde_json::to_value(&body).unwrap();
+        assert!(value["content"].is_string());
+    }
+
+    #[test]
+    fn test_request_new() {
+        let _request = UpdateCardElementContentRequest::new(create_test_config());
     }
 }
 
-/// 响应模型测试
 #[cfg(test)]
-mod response_model_tests {
+mod response_models_tests {
     use super::*;
 
     #[test]
-    fn test_create_element_response_default() {
-        let response = CreateCardElementResponse::default();
-        assert!(response.card_id.is_none());
-        assert!(response.element_id.is_none());
-    }
-
-    #[test]
-    fn test_update_element_response_default() {
-        let response = UpdateCardElementResponse::default();
-        assert!(response.card_id.is_none());
-        assert!(response.element_id.is_none());
-    }
-
-    #[test]
-    fn test_patch_element_response_default() {
-        let response = PatchCardElementResponse::default();
-        assert!(response.card_id.is_none());
-        assert!(response.element_id.is_none());
-    }
-
-    #[test]
-    fn test_delete_element_response_default() {
-        let response = DeleteCardElementResponse::default();
-        assert!(response.card_id.is_none());
-        assert!(response.element_id.is_none());
-    }
-
-    #[test]
-    fn test_update_content_response_default() {
-        let response = UpdateCardElementContentResponse::default();
-        assert!(response.card_id.is_none());
-        assert!(response.element_id.is_none());
-    }
-
-    #[test]
-    fn test_create_element_response_with_data() {
-        let json_str = r#"{"card_id": "card_123", "element_id": "elem_456"}"#;
-        let response: CreateCardElementResponse =
-            serde_json::from_str(json_str).expect("反序列化失败");
-
-        assert_eq!(response.card_id, Some("card_123".to_string()));
-        assert_eq!(response.element_id, Some("elem_456".to_string()));
-    }
-
-    #[test]
-    fn test_update_element_response_with_data() {
-        let json_str = r#"{"card_id": "card_123", "element_id": "elem_456"}"#;
-        let response: UpdateCardElementResponse =
-            serde_json::from_str(json_str).expect("反序列化失败");
-
-        assert_eq!(response.card_id, Some("card_123".to_string()));
-        assert_eq!(response.element_id, Some("elem_456".to_string()));
-    }
-
-    #[test]
-    fn test_response_partial_data() {
-        // 只包含部分字段的响应
-        let json_str = r#"{"card_id": "card_123"}"#;
-        let response: CreateCardElementResponse =
-            serde_json::from_str(json_str).expect("反序列化失败");
-
-        assert_eq!(response.card_id, Some("card_123".to_string()));
-        assert!(response.element_id.is_none());
-    }
-}
-
-/// 边界情况测试
-#[cfg(test)]
-mod edge_case_tests {
-    use super::*;
-
-    #[test]
-    fn test_empty_element_object() {
-        // 空的 JSON 对象作为 element
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({}),
-        };
-
-        assert!(body.element.is_object());
-    }
-
-    #[test]
-    fn test_nested_element_content() {
-        // 嵌套的复杂 JSON 对象
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "column_set",
-                "columns": [
-                    {
-                        "tag": "column",
-                        "elements": [
-                            {
-                                "tag": "markdown",
-                                "content": "**粗体文本**"
-                            }
-                        ]
-                    }
-                ]
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_special_characters_in_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "text": "特殊字符：<>&\"'"
-            }),
-        };
-
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("特殊字符"));
-    }
-
-    #[test]
-    fn test_unicode_in_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "text": "中文 🎉 Emoji 测试 🔧"
-            }),
-        };
-
-        let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("中文"));
-        assert!(json_str.contains("🎉"));
-    }
-
-    #[test]
-    fn test_long_content() {
-        let long_text = "a".repeat(10000);
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "text": long_text
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_array_patch_content() {
-        // JSON Patch 格式的数组
-        let body = PatchCardElementBody {
-            card_id: "card_123".to_string(),
-            element_id: "elem_456".to_string(),
-            patch: json!([
-                {"op": "replace", "path": "/text/content", "value": "new text"},
-                {"op": "add", "path": "/extra", "value": "value"}
-            ]),
-        };
-
-        assert!(body.patch.is_array());
-    }
-}
-
-/// 组件类型变体测试
-#[cfg(test)]
-mod element_type_variants_tests {
-    use super::*;
-
-    #[test]
-    fn test_plain_text_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "plain_text",
-                "content": "纯文本内容"
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_markdown_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "markdown",
-                "content": "**粗体** *斜体*"
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_div_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "div",
-                "text": {
-                    "tag": "plain_text",
-                    "content": "div内容"
-                }
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_image_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "img",
-                "img_key": "img_123",
-                "alt": {
-                    "tag": "plain_text",
-                    "content": "图片说明"
-                }
-            }),
-        };
-
-        assert!(!body.element.is_null());
-    }
-
-    #[test]
-    fn test_button_element() {
-        let body = CreateCardElementBody {
-            card_id: "card_123".to_string(),
-            element: json!({
-                "tag": "button",
-                "text": {
-                    "tag": "plain_text",
-                    "content": "点击我"
-                },
-                "value": {
-                    "key": "value"
-                }
-            }),
-        };
-
-        assert!(!body.element.is_null());
+    fn test_empty_response_defaults() {
+        let _ = CreateCardElementResponse::default();
+        let _ = UpdateCardElementResponse::default();
+        let _ = PatchCardElementResponse::default();
+        let _ = UpdateCardElementContentResponse::default();
+        let _ = DeleteCardElementResponse::default();
     }
 }
