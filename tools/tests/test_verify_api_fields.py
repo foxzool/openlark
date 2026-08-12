@@ -178,6 +178,25 @@ pub struct UpdateBody {
         self.assertFalse(fields["uuid"].required)
         self.assertIn("sequence", fields)
 
+    def test_skips_multipart_internal_meta_fields(self):
+        source = '''
+pub struct UploadBody {
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
+    pub pdf_page_limit: i32,
+    pub ocr_mode: String,
+}
+'''
+        structs = verify_api_fields.extract_structs(source)
+        fields = {item.effective_name: item for item in structs[0].fields}
+        self.assertNotIn("__file_name", fields)
+        self.assertNotIn("file_name", fields)
+        self.assertNotIn("file", fields)
+        self.assertIn("pdf_page_limit", fields)
+        self.assertIn("ocr_mode", fields)
+
 
 class SuspiciousPatternTests(unittest.TestCase):
     def test_user_level_extra_field_is_informational(self):
@@ -247,12 +266,12 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(diff.required_mismatches[0].severity, "error")
         self.assertEqual(diff.required_mismatches[0].category, "required_mismatch")
 
-    def test_compare_fields_required_mismatch_doc_no_code_required_is_warning(self):
+    def test_compare_fields_required_mismatch_doc_no_code_required_is_info(self):
         code = [verify_api_fields.FieldInfo("comment", "String", True)]
         official = [verify_api_fields.FieldInfo("comment", "string", False)]
         diff = verify_api_fields.compare_fields(code, official)
         self.assertEqual(len(diff.required_mismatches), 1)
-        self.assertEqual(diff.required_mismatches[0].severity, "warning")
+        self.assertEqual(diff.required_mismatches[0].severity, "info")
 
     def test_compare_fields_type_mismatch_warns(self):
         code = [verify_api_fields.FieldInfo("add_sign_type", "String", True)]

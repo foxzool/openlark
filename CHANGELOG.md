@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **helpdesk：对齐飞书 Helpdesk OpenAPI 请求体**：按官方文档重写
+  `openlark-helpdesk` 中字段硬错误接口的 Body（嵌套包装与扁平字段）。
+  - `agent/schedules/patch`：`agent_schedule.{schedule[],agent_skill_ids}`；
+    `agent_schedule/create`：`agent_schedules[]`。
+  - `agent_skill/create|patch`：`rules`/`agent_ids`；patch 使用 `agent_skill` 包装。
+  - `agent/patch`：`status` 改为整型。
+  - `category/create|patch`：`name`/`parent_id`（create 必填）+ 可选 `language`；移除错误
+    `description`/`order`。
+  - `faq/create|patch`：请求体改为 `faq{...}` 包装（question 等）。
+  - `bot/message/create`：`msg_type`/`content`/`receiver_id`/`receive_type`（移除 `receive_id`）。
+  - `ticket/message/create`：`msg_type`/`content` 必填；`answer_user_query`：`event_id`/`faqs`；
+    `start_service`：`open_id`/`human_service`/`appointed_agents`/`customized_info`。
+  - `notification/create|patch`：按官方 Notification 扁平字段（`job_name`/`push_content` 等），
+    移除错误 `title`/`content`。
+  - `ticket_customized_field/create|patch`：对齐 `key_name`/`display_name`/`field_type` 等官方字段。
+
 - **application：对齐飞书 app_badge/set OpenAPI 请求体**：按官方文档重写
   `openlark-application` `application/v6/app_badge/set`（及历史 v1 同名模块）Body。
   - 移除错误推断字段 `app_id` / `badge`。
@@ -44,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 多数写接口响应 `data` 为空对象，对应 Response 结构同步收敛。
 
 ### Changed
+
+- **tools：字段核对跳过多分表单内部元数据 / 放宽「代码更严」门禁**：
+  `verify_api_fields` 提取 Body 时跳过 serde 名以 `__` 开头的字段（如 multipart
+  `__file_name`）；「文档选填但代码非 Option」由 warning 降为 info，不再阻断 `--fetch-docs`
+  门禁（保留提示，避免有意更严建模被误拦）。
 
 - **websocket protobuf 打包修复（#605）**：恢复 `lark-websocket-protobuf` 为 workspace
   权威发布源并准备 `0.1.2`；将 `pbbp2.proto` 的生成代码随 crate 提交和打包，移除默认
