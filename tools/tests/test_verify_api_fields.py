@@ -18,7 +18,12 @@ from tools.api_contracts.official_evidence import (
     EvidenceSource,
     EvidenceStatus,
     FieldObservation,
+    FreshOfficialPolicy,
     OfficialDocumentEvidence,
+    PreferSnapshotPolicy,
+    RecordedOnlyPolicy,
+    RecordedSnapshot,
+    collect,
 )
 
 class _FieldCollector:
@@ -148,7 +153,9 @@ pub struct DemoRequest {
         self.assertEqual(fields["task_type"].effective_name, "type")
         self.assertTrue(fields["user_ids"].required)
         self.assertEqual(fields["user_ids"].type_name, "String")
+        self.assertTrue(fields["user_ids"].is_array)
         self.assertFalse(fields["comment"].required)
+        self.assertFalse(fields["comment"].is_array)
 
 
 class SuspiciousPatternTests(unittest.TestCase):
@@ -208,6 +215,111 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(diff.matched, ["instance_code"])
         self.assertEqual(diff.missing, ["task_id"])
         self.assertEqual(diff.extra, ["extra"])
+        self.assertEqual(diff.required_mismatches, [])
+        self.assertEqual(diff.type_mismatches, [])
+
+    def test_compare_fields_required_mismatch_doc_yes_code_option_is_error(self):
+        code = [verify_api_fields.FieldInfo("instance_code", "String", False)]
+        official = [verify_api_fields.FieldInfo("instance_code", "string", True)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(len(diff.required_mismatches), 1)
+        self.assertEqual(diff.required_mismatches[0].severity, "error")
+        self.assertEqual(diff.required_mismatches[0].category, "required_mismatch")
+
+    def test_compare_fields_required_mismatch_doc_no_code_required_is_warning(self):
+        code = [verify_api_fields.FieldInfo("comment", "String", True)]
+        official = [verify_api_fields.FieldInfo("comment", "string", False)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(len(diff.required_mismatches), 1)
+        self.assertEqual(diff.required_mismatches[0].severity, "warning")
+
+    def test_compare_fields_type_mismatch_warns(self):
+        code = [verify_api_fields.FieldInfo("add_sign_type", "String", True)]
+        official = [verify_api_fields.FieldInfo("add_sign_type", "int", True)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(len(diff.type_mismatches), 1)
+        self.assertEqual(diff.type_mismatches[0].category, "type_mismatch")
+        self.assertEqual(diff.type_mismatches[0].severity, "warning")
+
+    def test_compare_fields_array_type_mismatch_warns(self):
+        code = [
+            verify_api_fields.FieldInfo(
+                "user_ids", "String", True, is_array=False
+            )
+        ]
+        official = [
+            verify_api_fields.FieldInfo(
+                "user_ids", "string[]", True, is_array=True
+            )
+        ]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(len(diff.type_mismatches), 1)
+
+    def test_compare_fields_skips_type_when_doc_type_empty(self):
+        code = [verify_api_fields.FieldInfo("x", "String", True)]
+        official = [verify_api_fields.FieldInfo("x", "", True)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(diff.type_mismatches, [])
+
+    def test_compare_fields_skips_required_when_doc_required_unknown(self):
+        code = [verify_api_fields.FieldInfo("x", "String", True)]
+        official = [verify_api_fields.FieldInfo("x", "string", None)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(diff.required_mismatches, [])
+
+    def test_evidence_comparison_surfaces_required_and_type_mismatches(self):
+        api = api_identity()
+        evidence = OfficialDocumentEvidence(
+            api,
+            (
+                DimensionEvidence(
+                    dimension=EvidenceDimension.REQUEST_FIELDS,
+                    status=EvidenceStatus.TRUSTED,
+                    selected_source=EvidenceSource.STRUCTURED_DETAIL,
+                    observations=(
+                        FieldObservation(
+                            ("add_sign_type",),
+                            "request_body",
+                            True,
+                            "int",
+                            EvidenceSource.STRUCTURED_DETAIL,
+                        ),
+                    ),
+                    snapshot_provenance=None,
+                    interpretation_provenance=None,
+                    diagnostics=(),
+                    acquisition_trail=(),
+                ),
+                DimensionEvidence(
+                    dimension=EvidenceDimension.RESPONSE_FIELDS,
+                    status=EvidenceStatus.TRUSTED,
+                    selected_source=EvidenceSource.STRUCTURED_DETAIL,
+                    observations=(),
+                    snapshot_provenance=None,
+                    interpretation_provenance=None,
+                    diagnostics=(),
+                    acquisition_trail=(),
+                ),
+            ),
+        )
+        issues = []
+        verify_api_fields._compare_evidence_against_code(
+            [
+                verify_api_fields.StructFields(
+                    "PassBody",
+                    [
+                        verify_api_fields.FieldInfo(
+                            "add_sign_type", "String", False
+                        )
+                    ],
+                )
+            ],
+            evidence,
+            issues,
+        )
+        categories = {item.category for item in issues}
+        self.assertIn("required_mismatch", categories)
+        self.assertIn("type_mismatch", categories)
 
     def test_evidence_comparison_consumes_only_top_level_observations(self):
         api = api_identity()
@@ -336,6 +448,8 @@ class FieldCliEvidenceTests(unittest.TestCase):
                     EvidenceDimension.RESPONSE_FIELDS,
                 ),
             )
+            # 单 API 门禁默认 FreshOfficialPolicy（重抓）
+            self.assertIsInstance(collector.requests[0][2], FreshOfficialPolicy)
             report = json.loads(
                 (output / "summary.json").read_text(encoding="utf-8")
             )
@@ -356,6 +470,106 @@ class FieldCliEvidenceTests(unittest.TestCase):
             self.assertEqual(
                 evidence["acquisition_trail"][0]["status"], "trusted"
             )
+
+    def test_single_api_warns_on_multiple_crate_matches(self):
+        api = api_identity()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for crate in ("openlark-workflow", "openlark-hr"):
+                path = root / "crates" / crate / "src" / api.expected_file
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    "pub struct PassBody {\n    pub instance_code: String,\n}\n",
+                    encoding="utf-8",
+                )
+            output = root / "reports"
+            argv = [
+                "verify_api_fields.py",
+                "--api-id",
+                api.api_id,
+                "--output-dir",
+                str(output),
+            ]
+            with (
+                mock.patch.object(sys, "argv", argv),
+                mock.patch.object(verify_api_fields, "REPO_ROOT", root),
+                mock.patch.object(
+                    verify_api_fields,
+                    "load_api_identities",
+                    return_value=[api],
+                ),
+                mock.patch("builtins.print") as printed,
+            ):
+                exit_code = verify_api_fields.main()
+
+            self.assertEqual(exit_code, 0)
+            warning_text = "\n".join(
+                str(call.args[0]) for call in printed.call_args_list if call.args
+            )
+            self.assertIn("多个 crate 中匹配", warning_text)
+            self.assertIn("openlark-hr", warning_text)
+            self.assertIn("openlark-workflow", warning_text)
+
+    def test_resolve_evidence_policy_defaults(self):
+        self.assertIsInstance(
+            verify_api_fields._resolve_evidence_policy(
+                force_refresh=False, max_age_days=30, single_api=True
+            ),
+            FreshOfficialPolicy,
+        )
+        self.assertIsInstance(
+            verify_api_fields._resolve_evidence_policy(
+                force_refresh=True, max_age_days=30, single_api=False
+            ),
+            FreshOfficialPolicy,
+        )
+        policy = verify_api_fields._resolve_evidence_policy(
+            force_refresh=False, max_age_days=7, single_api=False
+        )
+        self.assertIsInstance(policy, PreferSnapshotPolicy)
+        self.assertEqual(policy.max_age_days, 7)
+
+
+class ResponseFieldDigitNameTests(unittest.TestCase):
+    """#618: 响应示例字段名正则须保留含数字的名字（如 i18n_name）。"""
+
+    def test_rendered_response_keeps_digit_containing_field_names(self):
+        api = api_identity()
+        padding = "Rendered Feishu API document content.\n" * 20
+        content = (
+            padding
+            + "Response body example\n"
+            + "Response body example\n"
+            + '{"code": 0, "msg": "ok", "data": {'
+            + '"i18n_name": "n", "md5": "x", "s3_key": "k", "plain_name": "p"'
+            + "}}\n"
+            + "Error code\n"
+        )
+        snapshot = RecordedSnapshot.rendered(
+            version=1,
+            catalog_entry=api,
+            acquired_at="2026-08-11T00:00:00Z",
+            source_uri="https://open.feishu.cn/document/mock",
+            content=content,
+        )
+        result = collect(
+            api,
+            (EvidenceDimension.RESPONSE_FIELDS,),
+            RecordedOnlyPolicy((snapshot,)),
+        )
+        names = {
+            observation.path[0]
+            for observation in result.for_dimension(
+                EvidenceDimension.RESPONSE_FIELDS
+            ).observations
+        }
+        self.assertIn("i18n_name", names)
+        self.assertIn("md5", names)
+        self.assertIn("s3_key", names)
+        self.assertIn("plain_name", names)
+        self.assertNotIn("code", names)
+        self.assertNotIn("msg", names)
+        self.assertNotIn("data", names)
 
 
 if __name__ == "__main__":

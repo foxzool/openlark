@@ -5,6 +5,8 @@ API 字段核对工具：扫描代码字段、检测可疑模式、可选抓飞�
 用法：
     快速模式（默认，秒级）：python3 tools/verify_api_fields.py --crate openlark-workflow
     完整模式（抓文档）：    python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
+    强制重抓 / 超龄：       ... --fetch-docs --force-refresh | --max-age 7
+    单 API 门禁：           python3 tools/verify_api_fields.py --api-id <id> --fetch-docs
 
 设计文档：docs/superpowers/specs/2026-06-16-api-field-verify-tool-design.md
 """
@@ -27,6 +29,7 @@ from tools.api_contracts.official_evidence import (
     EvidenceDimension,
     EvidenceStatus,
     FieldObservation,
+    FreshOfficialPolicy,
     PreferSnapshotPolicy,
     compose_full,
 )
@@ -54,9 +57,10 @@ class FieldInfo:
     """单个字段信息。"""
 
     name: str  # Rust 字段名（rename 前的 snake_case）
-    type_name: str  # 类型名（Vec<String> -> String，Option<i32> -> i32）
-    required: bool  # 是否必填（Option -> False，其余 -> True）
+    type_name: str  # 核心类型名（Vec<String> -> String，Option<i32> -> i32）
+    required: Optional[bool]  # 是否必填；None=文档未标注（跳过必填对比）
     rename: Optional[str] = None  # serde rename 后的名字，无则 None
+    is_array: bool = False  # 是否数组（Vec / doc 的 T[]）
 
     @property
     def effective_name(self) -> str:
@@ -113,33 +117,37 @@ def _extract_fields_from_block(block: str) -> List[FieldInfo]:
             continue
         fname = field_match.group(1)
         raw_type = field_match.group(2).strip().rstrip(",")
-        required, type_name = _parse_type(raw_type)
+        required, type_name, is_array = _parse_type(raw_type)
         fields.append(
             FieldInfo(
                 name=fname,
                 type_name=type_name,
                 required=required,
                 rename=pending_rename,
+                is_array=is_array,
             )
         )
         pending_rename = None
     return fields
 
 
-def _parse_type(raw: str) -> Tuple[bool, str]:
-    """解析类型字符串，返回 (是否必填, 规范化类型名)。"""
+def _parse_type(raw: str) -> Tuple[bool, str, bool]:
+    """解析类型字符串，返回 (是否必填, 规范化类型名, 是否数组)。"""
     raw = raw.strip()
     # Option<T> -> 选填，内部类型
     opt_match = re.match(r"Option<(.+)>$", raw)
     if opt_match:
         inner = opt_match.group(1).strip()
-        return False, _unwrap_generic(inner)
+        vec_match = re.match(r"Vec<(.+)>$", inner)
+        if vec_match:
+            return False, _unwrap_generic(vec_match.group(1).strip()), True
+        return False, _unwrap_generic(inner), False
     # Vec<T> -> 必填，元素类型
     vec_match = re.match(r"Vec<(.+)>$", raw)
     if vec_match:
-        return True, _unwrap_generic(vec_match.group(1).strip())
+        return True, _unwrap_generic(vec_match.group(1).strip()), True
     # 裸类型
-    return True, _unwrap_generic(raw)
+    return True, _unwrap_generic(raw), False
 
 
 def _unwrap_generic(type_str: str) -> str:
@@ -406,20 +414,113 @@ class FieldDiff:
     matched: List[str] = field(default_factory=list)  # 两边都有
     missing: List[str] = field(default_factory=list)  # 文档有、代码无
     extra: List[str] = field(default_factory=list)  # 代码有、文档无
+    required_mismatches: List[FieldIssue] = field(default_factory=list)
+    type_mismatches: List[FieldIssue] = field(default_factory=list)
 
 
+# 文档类型 → 可接受的 Rust 核心类型名（不含 Option/Vec 外壳）
+_DOC_TYPE_TO_RUST: dict[str, set[str]] = {
+    "string": {"String"},
+    "int": {"i32", "i64", "u32", "u64", "isize", "usize"},
+    "integer": {"i32", "i64", "u32", "u64", "isize", "usize"},
+    "boolean": {"bool"},
+    "bool": {"bool"},
+    "number": {"f64", "f32", "i32", "i64"},
+    "float": {"f32", "f64"},
+    "double": {"f64"},
+}
+
+
+def _doc_type_core(type_name: str) -> Optional[Tuple[str, bool]]:
+    """解析文档类型为 (核心类型小写, 是否数组)。空类型返回 None（跳过对比）。"""
+    raw = (type_name or "").strip()
+    if not raw:
+        return None
+    is_array = raw.endswith("[]")
+    core = raw[:-2].strip() if is_array else raw
+    if not core:
+        return None
+    return core.lower(), is_array
+
+
+def _rust_type_basename(type_name: str) -> str:
+    """取 Rust 类型末段（忽略路径/模块前缀）。"""
+    return type_name.rsplit("::", 1)[-1].strip()
 
 
 def compare_fields(
     code_fields: List[FieldInfo], doc_fields: List[FieldInfo]
 ) -> FieldDiff:
-    """对比代码字段与文档字段。"""
-    code_names = {f.effective_name for f in code_fields}
-    doc_names = {f.effective_name for f in doc_fields}
+    """对比代码字段与文档字段（名字 + 必填性 + 类型）。
+
+    必填性：文档 Yes + 代码 Option → error；文档 No + 代码非 Option → warning。
+    类型：文档类型映射到 Rust 核心类型后不匹配 → warning；空类型跳过。
+    """
+    code_by_name = {f.effective_name: f for f in code_fields}
+    doc_by_name = {f.effective_name: f for f in doc_fields}
+    code_names = set(code_by_name)
+    doc_names = set(doc_by_name)
+    matched = sorted(code_names & doc_names)
+    required_mismatches: List[FieldIssue] = []
+    type_mismatches: List[FieldIssue] = []
+
+    for name in matched:
+        code_f = code_by_name[name]
+        doc_f = doc_by_name[name]
+
+        if doc_f.required is True and code_f.required is False:
+            required_mismatches.append(
+                FieldIssue(
+                    severity="error",
+                    category="required_mismatch",
+                    detail=(
+                        f"字段 {name} 文档必填(Yes) 但代码为 Option"
+                    ),
+                )
+            )
+        elif doc_f.required is False and code_f.required is True:
+            required_mismatches.append(
+                FieldIssue(
+                    severity="warning",
+                    category="required_mismatch",
+                    detail=(
+                        f"字段 {name} 文档选填(No) 但代码非 Option（代码更严，可能有意）"
+                    ),
+                )
+            )
+
+        parsed = _doc_type_core(doc_f.type_name)
+        if parsed is None:
+            continue
+        doc_core, doc_is_array = parsed
+        accepted = _DOC_TYPE_TO_RUST.get(doc_core)
+        if accepted is None:
+            # object/file/自定义等未建模类型：跳过，避免误报
+            continue
+        code_core = _rust_type_basename(code_f.type_name)
+        array_mismatch = doc_is_array != code_f.is_array
+        core_mismatch = code_core not in accepted
+        if array_mismatch or core_mismatch:
+            doc_display = f"{doc_core}[]" if doc_is_array else doc_core
+            code_display = (
+                f"Vec<{code_f.type_name}>" if code_f.is_array else code_f.type_name
+            )
+            type_mismatches.append(
+                FieldIssue(
+                    severity="warning",
+                    category="type_mismatch",
+                    detail=(
+                        f"字段 {name} 类型不一致：文档 {doc_display} vs 代码 {code_display}"
+                    ),
+                )
+            )
+
     return FieldDiff(
-        matched=sorted(code_names & doc_names),
+        matched=matched,
         missing=sorted(doc_names - code_names),
         extra=sorted(code_names - doc_names),
+        required_mismatches=required_mismatches,
+        type_mismatches=type_mismatches,
     )
 
 
@@ -473,7 +574,8 @@ def _compare_evidence_against_code(
             FieldInfo(
                 name=item.path[0],
                 type_name=item.field_type or "",
-                required=bool(item.required),
+                required=item.required,
+                is_array=(item.field_type or "").rstrip().endswith("[]"),
             )
             for item in request.observations
             if isinstance(item, FieldObservation)
@@ -509,6 +611,8 @@ def _compare_evidence_against_code(
                         f"请求体多余字段: {', '.join(diff.extra)}",
                     )
                 )
+            issues.extend(diff.required_mismatches)
+            issues.extend(diff.type_mismatches)
 
     if response.status is EvidenceStatus.TRUSTED:
         doc_response_names = {
@@ -532,28 +636,73 @@ def _compare_evidence_against_code(
                 )
 
 
-def _collect_field_evidence(collector, api: ApiIdentity):
+def _collect_field_evidence(collector, api: ApiIdentity, policy):
     return collector.collect(
         api,
         (
             EvidenceDimension.REQUEST_FIELDS,
             EvidenceDimension.RESPONSE_FIELDS,
         ),
-        PreferSnapshotPolicy(),
+        policy,
     )
+
+
+def _resolve_evidence_policy(
+    *,
+    force_refresh: bool,
+    max_age_days: int,
+    single_api: bool,
+):
+    """选择 Official Evidence 抓取策略。
+
+    - --force-refresh：始终 FreshOfficialPolicy
+    - 单 API + --fetch-docs：默认 FreshOfficialPolicy（门禁应对齐官网）
+    - 批量完整模式：PreferSnapshotPolicy(max_age_days=...)
+    """
+    if force_refresh or single_api:
+        return FreshOfficialPolicy()
+    return PreferSnapshotPolicy(max_age_days=max_age_days)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="API 字段核对工具")
     parser.add_argument("--csv", default=str(DEFAULT_CSV), help="API 清单 CSV 路径")
     parser.add_argument("--crate", help="指定单个 crate（如 openlark-workflow）")
-    parser.add_argument("--fetch-docs", action="store_true", help="完整模式：抓飞书文档对比（慢，默认跳过已缓存）")
+    parser.add_argument(
+        "--fetch-docs",
+        action="store_true",
+        help=(
+            "完整模式：抓飞书文档对比（慢）。"
+            "批量模式默认复用未超龄快照；单 API 模式默认重抓"
+        ),
+    )
+    parser.add_argument(
+        "--force-refresh",
+        action="store_true",
+        help="忽略本地 Official Evidence 快照，强制重新抓取文档",
+    )
+    parser.add_argument(
+        "--max-age",
+        type=int,
+        default=30,
+        metavar="DAYS",
+        help="批量 --fetch-docs 时快照最大年龄（天），超时重抓；默认 30",
+    )
     parser.add_argument("--output-dir", default="reports/api_field_verify", help="报告输出目录")
     parser.add_argument("--api-id", help="只核对单个 API（调试用，按 CSV id 过滤）")
     args = parser.parse_args()
 
+    if args.max_age < 0:
+        print("❌ --max-age 必须是非负整数")
+        return 1
+
     csv_path = Path(args.csv)
     out_dir = Path(args.output_dir)
+    evidence_policy = _resolve_evidence_policy(
+        force_refresh=args.force_refresh,
+        max_age_days=args.max_age,
+        single_api=bool(args.api_id),
+    )
 
     # 单 API 模式：按 id 过滤，src 根用 crates 目录。
     if args.api_id:
@@ -574,6 +723,7 @@ def main() -> int:
                     crate_label,
                     True,
                     collector,
+                    evidence_policy,
                 )
         return _run_single_api(
             args.api_id,
@@ -583,6 +733,7 @@ def main() -> int:
             crate_label,
             False,
             None,
+            evidence_policy,
         )
 
     # 确定 src 根目录和 bizTag 过滤
@@ -591,7 +742,7 @@ def main() -> int:
         filter_tags = _load_crate_tags(args.crate)
         crate_label = args.crate
     else:
-        # --all-crates 或无参数：扫描整个 crates 目录
+        # 无参数：扫描整个 crates 目录（无 --all-crates 旗标）
         src_root = REPO_ROOT / "crates"
         filter_tags = None
         crate_label = "all"
@@ -602,6 +753,13 @@ def main() -> int:
 
     if args.fetch_docs:
         print("🐌 完整模式（通过 Official Document Evidence 收集）")
+        if isinstance(evidence_policy, FreshOfficialPolicy):
+            print("🔄 文档策略: FreshOfficialPolicy（强制重抓）")
+        else:
+            print(
+                f"💾 文档策略: PreferSnapshotPolicy"
+                f"（max_age={args.max_age} 天）"
+            )
         with compose_full(
             snapshot_directory=out_dir / "official_evidence",
             timeout_seconds=90,
@@ -614,6 +772,7 @@ def main() -> int:
                 crate_label,
                 filter_tags,
                 collector,
+                evidence_policy,
             )
 
     # 快速模式
@@ -637,6 +796,7 @@ def _run_single_api(
     crate_label,
     fetch_docs,
     collector,
+    evidence_policy=None,
 ) -> int:
     """核对单个 API。--fetch-docs 时抓取失败或 error/warning 返回非 0。"""
     api = next((a for a in all_apis if a.api_id == api_id), None)
@@ -645,18 +805,24 @@ def _run_single_api(
         return 1
     print(f"🔍 单 API 核对: {api.name} ({api.url})")
     rel_path = api.expected_file
-    # 单 API 模式：在所有 crate 的 src 目录下查找文件
-    full_path = None
-    for crate_dir in src_root.iterdir():
+    # 单 API 模式：在所有 crate 的 src 目录下查找文件；多匹配时告警仍取第一个
+    matches: List[Path] = []
+    for crate_dir in sorted(src_root.iterdir(), key=lambda p: p.name):
         if not crate_dir.is_dir():
             continue
         candidate = crate_dir / "src" / rel_path
         if candidate.exists():
-            full_path = candidate
-            break
-    if full_path is None:
+            matches.append(candidate)
+    if not matches:
         print(f"❌ 文件不存在（在所有 crate 中查找）: {rel_path}")
         return 1
+    if len(matches) > 1:
+        listed = "\n".join(f"  - {path}" for path in matches)
+        print(
+            f"⚠️ 相对路径 {rel_path} 在多个 crate 中匹配，"
+            f"使用第一个：{matches[0]}\n候选：\n{listed}"
+        )
+    full_path = matches[0]
     source = full_path.read_text(encoding="utf-8")
     structs = extract_structs(source)
     issues = detect_suspicious_patterns(api, structs, source)
@@ -665,7 +831,8 @@ def _run_single_api(
     evidence_metadata = []
     if fetch_docs:
         mode = "full"
-        evidence = _collect_field_evidence(collector, api)
+        policy = evidence_policy or FreshOfficialPolicy()
+        evidence = _collect_field_evidence(collector, api, policy)
         evidence_metadata = evidence_to_jsonable(evidence)["dimensions"]
         _compare_evidence_against_code(structs, evidence, issues)
 
@@ -713,6 +880,7 @@ def _run_full_mode(
     crate_label,
     filter_tags,
     collector,
+    evidence_policy=None,
 ) -> int:
     """完整模式：复用同一个 collect 行为核对所有字段。"""
     import json
@@ -720,6 +888,7 @@ def _run_full_mode(
     apis = load_api_identities(csv_path, filter_tags)
     reports: List[ApiFieldReport] = []
     failed: List[Tuple[str, str]] = []
+    policy = evidence_policy or PreferSnapshotPolicy(max_age_days=30)
 
     for idx, api in enumerate(apis, 1):
         rel_path = api.expected_file
@@ -730,7 +899,7 @@ def _run_full_mode(
         source = full_path.read_text(encoding="utf-8")
         structs = extract_structs(source)
         issues = detect_suspicious_patterns(api, structs, source)
-        evidence = _collect_field_evidence(collector, api)
+        evidence = _collect_field_evidence(collector, api, policy)
         dimensions = evidence_to_jsonable(evidence)["dimensions"]
         _compare_evidence_against_code(structs, evidence, issues)
         nonpassing = [

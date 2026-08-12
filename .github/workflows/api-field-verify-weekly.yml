@@ -1,0 +1,162 @@
+name: API Field Verify (Weekly Quick)
+
+on:
+  schedule:
+    # 每周一 11:00（Asia/Shanghai）跑全仓快速自检
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: api-field-verify-weekly
+  cancel-in-progress: false
+
+jobs:
+  quick:
+    name: Quick-mode field self-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run verify_api_fields unit tests
+        run: |
+          python3 -m unittest tools.tests.test_verify_api_fields
+
+      - name: Run quick-mode full-repo scan
+        id: scan
+        run: |
+          set -euo pipefail
+          mkdir -p reports/api_field_verify
+          # 快速模式恒 exit 0；工具崩溃才失败本 step
+          python3 tools/verify_api_fields.py --output-dir reports/api_field_verify
+
+          python3 <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          summary_path = Path("reports/api_field_verify/summary.json")
+          if not summary_path.exists():
+              raise SystemExit("missing summary.json after quick scan")
+
+          summary = json.loads(summary_path.read_text(encoding="utf-8"))
+          blocking = []
+          for api in summary.get("apis", []):
+              for issue in api.get("issues", []):
+                  if issue.get("severity") in ("error", "warning"):
+                      blocking.append(
+                          {
+                              "id": api.get("id"),
+                              "name": api.get("name"),
+                              "file": api.get("file"),
+                              "severity": issue.get("severity"),
+                              "category": issue.get("category"),
+                              "detail": issue.get("detail"),
+                          }
+                      )
+
+          Path("reports/api_field_verify/blocking.json").write_text(
+              json.dumps(blocking, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+
+          lines = [
+              "<!-- api-field-verify-weekly-tracking -->",
+              "",
+              "# API 字段核对（快速模式）发现可疑模式",
+              "",
+              f"- 运行时间（UTC）: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}",
+              f"- 模式: `{summary.get('mode', 'quick')}`",
+              f"- 核对 API 数: {summary.get('total_apis', 0)}",
+              f"- 有问题 API 数: {summary.get('apis_with_issues', 0)}",
+              f"- error/warning 条数: {len(blocking)}",
+              "",
+              "本 issue 由 `.github/workflows/api-field-verify-weekly.yml` 自动维护。",
+              "快速模式**不抓文档**，仅代码自检 + 可疑模式；完整模式请手动触发 `API Field Verify (Full)`。",
+              "",
+          ]
+          if blocking:
+              lines.extend(
+                  [
+                      "## 问题列表",
+                      "",
+                      "| 严重度 | API | 文件 | 类别 | 详情 |",
+                      "|--------|-----|------|------|------|",
+                  ]
+              )
+              for item in blocking[:200]:
+                  detail = (item.get("detail") or "").replace("|", "\\|")
+                  lines.append(
+                      f"| {item.get('severity')} | {item.get('name')} "
+                      f"(`{item.get('id')}`) | `{item.get('file')}` | "
+                      f"{item.get('category')} | {detail} |"
+                  )
+              if len(blocking) > 200:
+                  lines.append("")
+                  lines.append(f"> 仅展示前 200 条，共 {len(blocking)} 条。")
+          else:
+              lines.append("当前无 error/warning。")
+
+          Path("reports/api_field_verify/findings.md").write_text(
+              "\n".join(lines) + "\n", encoding="utf-8"
+          )
+          print(len(blocking))
+          PY
+
+          BLOCKING_COUNT="$(python3 -c '
+          import json
+          from pathlib import Path
+          print(len(json.loads(Path("reports/api_field_verify/blocking.json").read_text(encoding="utf-8"))))
+          ')"
+          echo "blocking_count=${BLOCKING_COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload quick-mode artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-field-verify-weekly
+          path: reports/api_field_verify/
+          retention-days: 14
+
+      - name: Open or update tracking issue
+        if: steps.scan.outputs.blocking_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          title="API 字段核对（快速模式）发现可疑模式"
+          body_file="reports/api_field_verify/findings.md"
+
+          existing="$(
+            gh issue list \
+              --state open \
+              --search "\"${title}\" in:title" \
+              --json number,title \
+              --jq ".[] | select(.title == \"${title}\") | .number" \
+              | head -n1
+          )"
+
+          if [[ -n "${existing}" ]]; then
+            gh issue edit "$existing" --body-file "$body_file"
+            echo "Updated issue #${existing}"
+          else
+            gh issue create \
+              --title "$title" \
+              --body-file "$body_file" \
+              --label "scope:quality" || \
+            gh issue create \
+              --title "$title" \
+              --body-file "$body_file"
+            echo "Created tracking issue"
+          fi

@@ -5,6 +5,7 @@ const readline = require('readline');
 const { execFileSync } = require('child_process');
 
 let browser;
+let englishContext;
 
 function loadChromium() {
   try {
@@ -34,9 +35,26 @@ async function ensureBrowser() {
   return browser;
 }
 
-async function render(request) {
+async function ensureEnglishContext() {
   const activeBrowser = await ensureBrowser();
   if (!activeBrowser) {
+    return null;
+  }
+  if (!englishContext) {
+    // 固定英文 locale，避免飞书按地区渲染中文段标题导致解析归零
+    englishContext = await activeBrowser.newContext({
+      locale: 'en-US',
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en',
+      },
+    });
+  }
+  return englishContext;
+}
+
+async function render(request) {
+  const context = await ensureEnglishContext();
+  if (!context) {
     return {
       id: request.id,
       status: 'unavailable',
@@ -44,7 +62,7 @@ async function render(request) {
     };
   }
 
-  const page = await activeBrowser.newPage();
+  const page = await context.newPage();
   try {
     const timeout = Math.max(1, request.timeout_ms);
     await page.goto(request.url, {
@@ -79,6 +97,10 @@ async function render(request) {
 }
 
 async function shutdown() {
+  if (englishContext) {
+    await englishContext.close();
+    englishContext = undefined;
+  }
   if (browser) {
     await browser.close();
     browser = undefined;
