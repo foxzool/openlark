@@ -5,4 +5,10 @@ pub mod batch_open;
 pub mod create;
 pub mod delete;
 pub mod list;
+pub mod models;
 pub mod patch;
+
+pub use models::{
+    SystemStatus, SystemStatusI18nName, SystemStatusSyncSetting, SystemStatusUserCloseResult,
+    SystemStatusUserOpenParam, SystemStatusUserOpenResult,
+};

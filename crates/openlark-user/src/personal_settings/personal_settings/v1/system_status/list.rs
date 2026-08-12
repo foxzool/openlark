@@ -1,39 +1,68 @@
-//! system_status list
-//! docPath: <https://open.feishu.cn/document/server-docs/personal_settings-v1/system_status/list>
+//! 获取系统状态列表
+//!
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/personal_settings-v1/system_status/list>
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use super::models::SystemStatus;
+
 /// 获取系统状态列表的请求。
 #[derive(Debug, Clone)]
 pub struct SystemStatusListRequest {
     config: Arc<Config>,
+    page_size: Option<i32>,
+    page_token: Option<String>,
 }
 
-/// 获取系统状态列表的响应。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// 获取系统状态列表响应 `data`。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SystemStatusListResponse {
-    /// 响应数据。
-    pub data: Option<serde_json::Value>,
+    /// 系统状态列表。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<SystemStatus>>,
+    /// 是否还有更多项。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 下一页标记。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 impl ApiResponseTrait for SystemStatusListResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+    fn empty_success() -> Option<Self> {
+        Some(Self::default())
     }
 }
 
 impl SystemStatusListRequest {
     /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self {
+            config,
+            page_size: None,
+            page_token: None,
+        }
+    }
+
+    /// 设置分页大小（1～50，默认 50）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
     }
 
     /// 执行获取系统状态列表请求。
@@ -46,15 +75,19 @@ impl SystemStatusListRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<SystemStatusListResponse> {
-        let req: ApiRequest<SystemStatusListResponse> =
-            ApiRequest::get("/open-apis/personal_settings/v1/system_statuses");
+        let mut req: ApiRequest<SystemStatusListResponse> =
+            ApiRequest::get("/open-apis/personal_settings/v1/system_statuses")
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
+        if let Some(size) = self.page_size {
+            req = req.query("page_size", size.to_string());
+        }
+        req = req.query_opt("page_token", self.page_token.as_ref());
 
-        Transport::request_typed(req, &self.config, Some(option), "system_status list").await
+        Transport::request_typed(req, &self.config, Some(option), "获取系统状态").await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use serde_json::json;
@@ -62,7 +95,7 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET .../system_statuses → 响应解析（data:{data:{...}} 双层信封）。
+    /// 端到端：GET .../system_statuses?page_size= → items/has_more。
     #[tokio::test]
     async fn test_list_system_status_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -71,7 +104,14 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "items": [{ "system_status_id": "ss_001" }] } }
+                "data": {
+                    "items": [{
+                        "system_status_id": "ss_001",
+                        "title": "出差",
+                        "icon_key": "GeneralBusinessTrip"
+                    }],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -86,17 +126,15 @@ mod tests {
         );
 
         let resp = SystemStatusListRequest::new(config)
+            .page_size(50)
             .execute()
             .await
             .expect("获取系统状态列表应成功");
-        let data = resp.data.expect("响应 data 不应为空");
-        assert_eq!(data["items"].as_array().unwrap().len(), 1);
+        assert_eq!(resp.items.as_ref().unwrap().len(), 1);
+        assert_eq!(resp.has_more, Some(false));
 
         let received = server.received_requests().await.unwrap_or_default();
-        assert_eq!(received.len(), 1);
-        assert_eq!(
-            received[0].url.path(),
-            "/open-apis/personal_settings/v1/system_statuses"
-        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("page_size=50"));
     }
 }
