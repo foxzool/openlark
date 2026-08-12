@@ -24,18 +24,18 @@ from tools.api_contracts.compare import (
     compare_response_fields,
     finding,
 )
-from tools.api_contracts.models import ContractReport
-from tools.api_contracts.official import (
-    extract_access_token_types_from_detail_payload,
-    extract_endpoint_from_detail_payload,
-    extract_request_fields_from_detail_payload,
-    extract_response_fields_from_detail_payload,
-    fetch_detail_payload,
-    fetch_doc_markdown,
-    load_api_identities,
-    parse_access_token_types_from_markdown,
+from tools.api_contracts.models import ContractReport, OfficialField
+from tools.api_contracts.official import load_api_identities
+from tools.api_contracts.official_evidence import (
+    EndpointObservation,
+    EvidenceDimension,
+    EvidenceStatus,
+    FieldObservation,
+    FreshOfficialPolicy,
+    TokenObservation,
+    compose,
 )
-from tools.api_contracts.report import write_report, write_summary
+from tools.api_contracts.report import evidence_to_jsonable, write_report, write_summary
 from tools.api_contracts.rust_source import (
     load_endpoint_constants,
     load_enum_endpoints,
@@ -68,6 +68,11 @@ def parse_args() -> argparse.Namespace:
         "--biz-tag",
         action="append",
         help="进一步过滤到指定 bizTag（可多次传入）；覆盖 crate 的 biz_tags，用于子模块级 gate",
+    )
+    parser.add_argument(
+        "--api-id",
+        action="append",
+        help="仅验证显式列入 gate inventory 的 API ID（可多次传入，需配合 --crate）",
     )
     parser.add_argument("--report-dir", default="reports/api_contracts", help="Report directory")
     parser.add_argument("--include-old", dest="skip_old", action="store_false", help="Include meta.Version=old APIs")
@@ -129,17 +134,27 @@ def validate_crate(
     csv_path: Path,
     report_dir: Path,
     skip_old: bool,
+    collector,
     live_endpoints: bool = False,
     fields: bool = False,
-    field_timeout: int = 20,
-    field_retries: int = 1,
     max_field_apis: int = 0,
     tokens: bool = False,
     biz_tag_filter: list[str] | None = None,
+    api_ids: set[str] | None = None,
 ) -> ContractReport:
+    """核对一个 crate；官方事实只通过 collect seam 获取。"""
     src_path = Path(crate_config["src"])
     biz_tags = biz_tag_filter if biz_tag_filter else list(crate_config.get("biz_tags") or [])
     apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
+    if api_ids:
+        available_ids = {api.api_id for api in apis}
+        missing_ids = api_ids - available_ids
+        if missing_ids:
+            raise SystemExit(
+                "指定 API ID 不在当前 crate/catalog 范围内: "
+                + ", ".join(sorted(missing_ids))
+            )
+        apis = [api for api in apis if api.api_id in api_ids]
     constants = load_endpoint_constants(src_path)
     enum_endpoints = load_enum_endpoints(src_path, constants)
     enum_methods = load_enum_methods(src_path)
@@ -162,59 +177,111 @@ def validate_crate(
         )
         if rust_contract is not None:
             report.checked_apis += 1
-        detail_payload = None
+
+        should_check_fields = fields and (
+            not max_field_apis or field_checks < max_field_apis
+        )
+        dimensions = []
+        if live_endpoints:
+            dimensions.append(EvidenceDimension.ENDPOINT)
+        if should_check_fields:
+            dimensions.extend(
+                (
+                    EvidenceDimension.REQUEST_FIELDS,
+                    EvidenceDimension.RESPONSE_FIELDS,
+                )
+            )
+        if tokens:
+            dimensions.append(EvidenceDimension.TOKENS)
+        evidence = None
+        if dimensions:
+            evidence = collector.collect(
+                api, tuple(dimensions), FreshOfficialPolicy()
+            )
+            report.evidence.append(evidence_to_jsonable(evidence))
+
         endpoint_api = api
-        should_check_fields = fields and (not max_field_apis or field_checks < max_field_apis)
-        if live_endpoints or should_check_fields or tokens:
-            try:
-                detail_payload = fetch_detail_payload(api, timeout=field_timeout, retries=field_retries)
-            except Exception as exc:  # noqa: BLE001 - report and keep validating the remaining APIs.
+        if live_endpoints:
+            endpoint = evidence.for_dimension(EvidenceDimension.ENDPOINT)
+            if endpoint.status is EvidenceStatus.TRUSTED:
+                observation = next(
+                    (
+                        item
+                        for item in endpoint.observations
+                        if isinstance(item, EndpointObservation)
+                    ),
+                    None,
+                )
+                if observation is not None:
+                    endpoint_api = replace(
+                        api, url=f"{observation.method}:{observation.path}"
+                    )
+            else:
                 report.add(
-                    finding(
-                        "UNVERIFIED",
-                        "U_OFFICIAL_DETAIL_FETCH_FAILED",
-                        "Official detail payload could not be fetched.",
-                        api,
-                        official=str(exc),
+                    _evidence_finding(
+                        api, EvidenceDimension.ENDPOINT, endpoint
                     )
                 )
-            if live_endpoints and detail_payload is not None:
-                method, path = extract_endpoint_from_detail_payload(detail_payload)
-                if method and path:
-                    endpoint_api = replace(api, url=f"{method}:{path}")
-                else:
-                    report.add(
-                        finding(
-                            "UNVERIFIED",
-                            "U_LIVE_OFFICIAL_ENDPOINT_UNAVAILABLE",
-                            "Current official schema did not expose httpMethod/path.",
-                            api,
-                        )
-                    )
-
         for item in compare_endpoint(endpoint_api, rust_contract):
             report.add(item)
 
         if tokens:
-            # oracle：优先用 detail payload 的 security.supportedAccessToken；
-            # JSON 缺标注时（部分 server-docs 页）回退到 .md 源的 Authorization 行。
-            official_tokens = ()
-            if detail_payload is not None:
-                official_tokens = extract_access_token_types_from_detail_payload(detail_payload)
-            if not official_tokens:
-                markdown = fetch_doc_markdown(api, timeout=field_timeout)
-                official_tokens = parse_access_token_types_from_markdown(markdown)
-            for item in compare_access_token_types(api, official_tokens, rust_contract):
-                report.add(item)
+            token_evidence = evidence.for_dimension(EvidenceDimension.TOKENS)
+            if token_evidence.status is EvidenceStatus.TRUSTED:
+                official_tokens = tuple(
+                    item.token
+                    for item in token_evidence.observations
+                    if isinstance(item, TokenObservation)
+                )
+                for item in compare_access_token_types(
+                    api, official_tokens, rust_contract
+                ):
+                    report.add(item)
+            else:
+                report.add(
+                    _evidence_finding(
+                        api, EvidenceDimension.TOKENS, token_evidence
+                    )
+                )
 
-        if should_check_fields and detail_payload is not None:
+        if should_check_fields:
             field_checks += 1
-            request_fields = extract_request_fields_from_detail_payload(detail_payload)
-            for item in compare_request_fields(api, request_fields, rust_contract):
-                report.add(item)
-            response_fields = extract_response_fields_from_detail_payload(detail_payload)
-            for item in compare_response_fields(api, response_fields, rust_contract):
-                report.add(item)
+            request_evidence = evidence.for_dimension(
+                EvidenceDimension.REQUEST_FIELDS
+            )
+            response_evidence = evidence.for_dimension(
+                EvidenceDimension.RESPONSE_FIELDS
+            )
+            if request_evidence.status is EvidenceStatus.TRUSTED:
+                request_fields = _official_fields(request_evidence.observations)
+                for item in compare_request_fields(
+                    api, request_fields, rust_contract
+                ):
+                    report.add(item)
+            else:
+                report.add(
+                    _evidence_finding(
+                        api,
+                        EvidenceDimension.REQUEST_FIELDS,
+                        request_evidence,
+                    )
+                )
+            if response_evidence.status is EvidenceStatus.TRUSTED:
+                response_fields = _official_fields(
+                    response_evidence.observations
+                )
+                for item in compare_response_fields(
+                    api, response_fields, rust_contract
+                ):
+                    report.add(item)
+            else:
+                report.add(
+                    _evidence_finding(
+                        api,
+                        EvidenceDimension.RESPONSE_FIELDS,
+                        response_evidence,
+                    )
+                )
 
     write_report(
         report,
@@ -222,6 +289,94 @@ def validate_crate(
         report_dir / "crates" / f"{crate_name}.json",
     )
     return report
+
+
+def _official_fields(observations) -> tuple[OfficialField, ...]:
+    """当前 Rust comparison 只消费顶层字段，保持既有比较边界。"""
+    return tuple(
+        OfficialField(
+            name=item.path[0],
+            required=bool(item.required),
+            location=item.location or "",
+            field_type=item.field_type or "",
+            source=item.source.value,
+        )
+        for item in observations
+        if isinstance(item, FieldObservation) and len(item.path) == 1
+    )
+
+
+def _evidence_finding(api, dimension, evidence):
+    diagnostic_codes = {
+        diagnostic.code for diagnostic in evidence.diagnostics
+    }
+    acquisition_failure_codes = {
+        "snapshot_unavailable",
+        "adapter_unavailable",
+        "acquisition_timeout",
+        "acquisition_failed",
+        "document_not_found",
+        "document_unhealthy",
+    }
+    if diagnostic_codes & acquisition_failure_codes:
+        code = "U_OFFICIAL_DETAIL_FETCH_FAILED"
+    else:
+        code = {
+            EvidenceDimension.ENDPOINT: "U_LIVE_OFFICIAL_ENDPOINT_UNAVAILABLE",
+            EvidenceDimension.REQUEST_FIELDS: "U_OFFICIAL_DETAIL_FETCH_FAILED",
+            EvidenceDimension.RESPONSE_FIELDS: "U_OFFICIAL_DETAIL_FETCH_FAILED",
+            EvidenceDimension.TOKENS: "U_ACCESS_TOKEN_UNANNOTATED",
+        }[dimension]
+    diagnostics = ", ".join(
+        diagnostic.code for diagnostic in evidence.diagnostics
+    )
+    return finding(
+        "UNVERIFIED",
+        code,
+        "Official Document Evidence is not trusted.",
+        api,
+        official=f"{evidence.status.value}: {diagnostics}",
+    )
+
+
+def _strict_exit_code(
+    reports: list[ContractReport],
+    strict_categories: set[str],
+    live_dimensions: set[str],
+) -> int:
+    """Strict Evidence Gate：requested Evidence 只有 Trusted 才通过。"""
+    strict_dimensions = set()
+    if "endpoint" in strict_categories:
+        strict_dimensions.add(EvidenceDimension.ENDPOINT.value)
+    if "fields" in strict_categories:
+        strict_dimensions.update(
+            (
+                EvidenceDimension.REQUEST_FIELDS.value,
+                EvidenceDimension.RESPONSE_FIELDS.value,
+            )
+        )
+    if "tokens" in strict_categories:
+        strict_dimensions.add(EvidenceDimension.TOKENS.value)
+    if not strict_dimensions:
+        return 0
+    required_strict_dimensions = strict_dimensions & live_dimensions
+    observed_dimensions = {
+        dimension["dimension"]
+        for report in reports
+        for api_evidence in report.evidence
+        for dimension in api_evidence["dimensions"]
+    }
+    if not required_strict_dimensions <= observed_dimensions:
+        return 1
+    has_nontrusted_evidence = any(
+        dimension["dimension"] in strict_dimensions
+        and dimension["status"] != EvidenceStatus.TRUSTED.value
+        for report in reports
+        for api_evidence in report.evidence
+        for dimension in api_evidence["dimensions"]
+    )
+    has_contract_error = any(report.error_count for report in reports)
+    return 1 if has_contract_error or has_nontrusted_evidence else 0
 
 
 def main() -> int:
@@ -238,6 +393,9 @@ def main() -> int:
     if not args.all_crates and not args.crate_name:
         print("Specify --crate <name> or --all-crates", file=sys.stderr)
         return 1
+    if args.api_id and not args.crate_name:
+        print("--api-id 必须配合 --crate 使用", file=sys.stderr)
+        return 1
 
     if args.crate_name:
         if args.crate_name not in mapping:
@@ -248,23 +406,28 @@ def main() -> int:
         crate_names = sorted(mapping.keys())
 
     report_dir = Path(args.report_dir)
-    reports = [
-        validate_crate(
-            crate_name,
-            mapping[crate_name],
-            csv_path,
-            report_dir,
-            args.skip_old,
-            live_endpoints=args.live_endpoints,
-            fields=args.fields,
-            field_timeout=args.field_timeout,
-            field_retries=args.field_retries,
-            max_field_apis=args.max_field_apis,
-            tokens=args.tokens,
-            biz_tag_filter=args.biz_tag,
-        )
-        for crate_name in crate_names
-    ]
+    with compose(
+        snapshot_directory=report_dir / "official_evidence",
+        timeout_seconds=args.field_timeout,
+        retries=args.field_retries,
+    ) as collector:
+        reports = [
+            validate_crate(
+                crate_name,
+                mapping[crate_name],
+                csv_path,
+                report_dir,
+                args.skip_old,
+                collector,
+                live_endpoints=args.live_endpoints,
+                fields=args.fields,
+                max_field_apis=args.max_field_apis,
+                tokens=args.tokens,
+                biz_tag_filter=args.biz_tag,
+                api_ids=set(args.api_id or []),
+            )
+            for crate_name in crate_names
+        ]
     write_summary(reports, report_dir / "summary.md", report_dir / "summary.json")
 
     total_errors = sum(report.error_count for report in reports)
@@ -276,9 +439,19 @@ def main() -> int:
     )
 
     strict_categories = {item.strip() for item in args.strict.split(",") if item.strip()}
-    if strict_categories & {"endpoint", "fields", "tokens"} and total_errors:
-        return 1
-    return 0
+    live_dimensions = set()
+    if args.live_endpoints:
+        live_dimensions.add(EvidenceDimension.ENDPOINT.value)
+    if args.fields:
+        live_dimensions.update(
+            (
+                EvidenceDimension.REQUEST_FIELDS.value,
+                EvidenceDimension.RESPONSE_FIELDS.value,
+            )
+        )
+    if args.tokens:
+        live_dimensions.add(EvidenceDimension.TOKENS.value)
+    return _strict_exit_code(reports, strict_categories, live_dimensions)
 
 
 if __name__ == "__main__":

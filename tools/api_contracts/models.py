@@ -135,6 +135,7 @@ class ContractReport:
     total_apis: int = 0
     checked_apis: int = 0
     findings: list[ContractFinding] = field(default_factory=list)
+    evidence: list[dict[str, Any]] = field(default_factory=list)
 
     def add(self, finding: ContractFinding) -> None:
         self.findings.append(finding)
@@ -163,4 +164,5 @@ class ContractReport:
                 asdict(finding)
                 for finding in sorted(self.findings, key=lambda item: item.sort_key())
             ],
+            "evidence": self.evidence,
         }
