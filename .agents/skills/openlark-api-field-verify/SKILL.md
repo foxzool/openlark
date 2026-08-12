@@ -138,10 +138,15 @@ python3 tools/verify_api_fields.py
 # 快速模式：单个 crate
 python3 tools/verify_api_fields.py --crate openlark-workflow
 
-# 完整模式：抓飞书文档对比字段（慢，约 8 秒/API，默认跳过已缓存）
+# 完整模式：抓飞书文档对比字段（慢，约 8 秒/API）
+# 批量模式默认复用未超龄 Official Evidence 快照（--max-age 天，默认 30）
 python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs
 
-# 单个 API 核对门禁（实现后必做）：抓文档对比
+# 强制忽略快照重抓 / 自定义超龄阈值
+python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs --force-refresh
+python3 tools/verify_api_fields.py --crate openlark-workflow --fetch-docs --max-age 7
+
+# 单个 API 核对门禁（实现后必做）：默认 Fresh 重抓（单页约 8 秒）
 # 抓取失败 / error / warning → 非 0 退出（禁止假绿）
 python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
 ```
@@ -149,6 +154,19 @@ python3 tools/verify_api_fields.py --api-id 7642253323628383198 --fetch-docs
 工具自动完成路径解析、字段提取、文档抓取、差异对比，输出 `reports/api_field_verify/` 报告。
 `--fetch-docs` 模式下：文档抓取失败、内容过少/404、字段 error/warning 均记入报告并以非 0 退出；info 不阻断。
 设计文档见 `docs/superpowers/specs/2026-06-16-api-field-verify-tool-design.md`。
+
+### 工具核对边界
+
+门禁通过 ≠ 字段完全正确。自动化覆盖有限，以下边界需知情：
+
+1. **嵌套结构盲区**：请求体只对比「第一个名字含 Body 的 struct」；嵌套子对象的独立 struct（通常不叫 `*Body`）不参与对比。文档 innerText 拍平后嵌套子字段可能被当成顶层参数，误报/漏报方向不定。响应侧只做「示例字段名集合差」，字段在错误层级也算存在。
+2. **响应体是弱保证**：`missing_response_field` 仅 info 不阻断；代码多余的响应字段完全不检测。响应体完整性需人工比对 Response body example。
+3. **人工核对项**（门禁不覆盖）：
+   - 数组上限（如 `cc_user_ids` ≤20）——无法从 innerText 结构化解析
+   - 嵌套子结构字段与层级（见上）
+   - 响应体字段完整性与类型（见上）
+
+> 类型与必填性已纳入 `compare_fields()` 自动对比（文档 Yes+代码 Option → error；类型映射不匹配 → warning）；不再需要人工逐项核对这两类。
 
 ### 第 3 步：解析字段
 
@@ -169,7 +187,7 @@ Query parameters ... Request example 之间
 **Response body 的 data 子字段**：
 - 外层只有 `code/msg/data`
 - `data` 的子字段在折叠的 "Show sublists" 里，innerText 拿不到
-- **改从 Response body example 的 JSON 提取字段名**：`grep -oE '"[a-z_]+"\s*:' doc.txt | sort -u`
+- **改从 Response body example 的 JSON 提取字段名**：`grep -oE '"[a-z][a-z0-9_]*"\s*:' doc.txt | sort -u`
 
 #### 解析辅助命令
 
@@ -179,9 +197,9 @@ awk '/^Request body$/{c++; if(c==2){p=1; next}} /^Request example$/{p=0} p' doc_
   | grep -E "^[a-z_]+$|^(Yes|No)$|^(string|int|boolean|string\[\]|object|-)$" \
   | grep -vE "^(parameter|type|required|description)$"
 
-# 提取响应示例里的所有字段名（用于完整建模响应体）
+# 提取响应示例里的所有字段名（用于完整建模响应体；含 i18n_name/md5/s3_key 等数字字符）
 awk '/^Response body example$/{p=1} /^Error code$/{p=0} p' doc_xxx.txt \
-  | grep -oE '"[a-z_]+"\s*:' | tr -d '":' | sort -u
+  | grep -oE '"[a-z][a-z0-9_]*"\s*:' | tr -d '":' | sort -u
 
 # 确认 POST 响应的 data 是否空对象（决定 Response struct 是否留空）
 awk '/^Response body example$/{p=1} /^Error code$/{p=0} p' doc_xxx.txt \
@@ -240,7 +258,7 @@ URL 解析规则：以 `http` 开头原样使用；以 `/` 开头则拼 `https:/
 
 原因：data 的子字段在 "Show sublists" 折叠区，innerText 拿不到。
 
-解决：从 **Response body example 的 JSON** 提取字段名（`grep -oE '"[a-z_]+"\s*:'`），示例里出现的字段就是真实字段。
+解决：从 **Response body example 的 JSON** 提取字段名（`grep -oE '"[a-z][a-z0-9_]*"\s*:'`），示例里出现的字段就是真实字段。
 
 ### 3. playwright 版本不匹配
 

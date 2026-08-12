@@ -300,7 +300,14 @@ class FreshOfficialPolicy:
 
 @dataclass(frozen=True)
 class PreferSnapshotPolicy:
-    """优先复用 provenance 匹配的持久快照，否则获取新快照。"""
+    """优先复用 provenance 匹配的持久快照，否则获取新快照。
+
+    max_age_days:
+      - None：不过期（仅按「有可用快照」复用）
+      - int：快照 acquired_at 超过 N 天则视为过期并重新抓取
+    """
+
+    max_age_days: int | None = None
 
 
 @dataclass(frozen=True)
@@ -816,7 +823,9 @@ class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollec
     ) -> dict[EvidenceDimension, _Candidate]:
         if isinstance(policy, PreferSnapshotPolicy):
             cached = self._snapshot_store.load(catalog_entry, source)
-            if cached is not None:
+            if cached is not None and _snapshot_within_max_age(
+                cached, policy.max_age_days
+            ):
                 cached_candidates = {
                     dimension: _interpret_snapshot(cached, dimension)
                     for dimension in dimensions
@@ -1504,7 +1513,7 @@ def _interpret_rendered_inner_text_fields(
             return _incomplete(snapshot, "structure_incomplete")
         names = tuple(
             name
-            for name in re.findall(r'"([a-z_]+)"\s*:', section)
+            for name in re.findall(r'"([a-z][a-z0-9_]*)"\s*:', section)
             if name not in {"code", "msg", "data"}
         )
         observations = tuple(
@@ -1831,6 +1840,21 @@ def _snapshot_time(snapshot: RecordedSnapshot) -> datetime:
     return datetime.fromisoformat(
         snapshot.acquired_at.replace("Z", "+00:00")
     )
+
+
+def _snapshot_within_max_age(
+    snapshot: RecordedSnapshot, max_age_days: int | None
+) -> bool:
+    """PreferSnapshotPolicy 过期判断：None 表示不过期。"""
+    if max_age_days is None:
+        return True
+    if max_age_days < 0:
+        return False
+    acquired = _snapshot_time(snapshot)
+    if acquired.tzinfo is None:
+        acquired = acquired.replace(tzinfo=timezone.utc)
+    age = datetime.now(timezone.utc) - acquired.astimezone(timezone.utc)
+    return age.total_seconds() <= max_age_days * 86400
 
 
 def _snapshot_key(snapshot: RecordedSnapshot) -> str:

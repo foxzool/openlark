@@ -195,6 +195,19 @@ class LiveOfficialEvidenceCollectTests(unittest.TestCase):
                         previous.interpretation_provenance,
                     )
 
+                # max_age_days=0：任何已有快照都过期，必须重抓
+                expired = collector.collect(
+                    self.api,
+                    self.dimensions,
+                    PreferSnapshotPolicy(max_age_days=0),
+                )
+                self.assertEqual(server.requests, 2)
+                for dimension in self.dimensions:
+                    self.assertEqual(
+                        expired.for_dimension(dimension).status,
+                        EvidenceStatus.TRUSTED,
+                    )
+
     def test_fresh_policy_never_succeeds_from_an_existing_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:
             with detail_server(structured_payload()) as (server, url):

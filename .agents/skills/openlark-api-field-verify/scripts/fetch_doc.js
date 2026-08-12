@@ -34,6 +34,13 @@ const { execSync } = require('child_process');
 
 const DOC_BASE = 'https://open.feishu.cn';
 
+/** 与 verify_api_fields / official_evidence 解析锚点对齐的英文段标题。 */
+const STANDARD_DOC_SECTIONS = [
+  'Request body',
+  'Query parameters',
+  'Response body example',
+];
+
 /** 懒加载 playwright，便于 --help / CSV 解析在未安装时也能跑。 */
 function loadChromium() {
   try {
@@ -48,6 +55,30 @@ function loadChromium() {
       );
       process.exit(1);
     }
+  }
+}
+
+/**
+ * 固定英文 locale，避免飞书按地区渲染中文段标题导致下游解析归零。
+ * @param {import('playwright').Browser} browser
+ */
+async function newEnglishContext(browser) {
+  return browser.newContext({
+    locale: 'en-US',
+    extraHTTPHeaders: {
+      'Accept-Language': 'en-US,en',
+    },
+  });
+}
+
+/** 抓取内容若缺少英文标准段标题，提示可能落到了非英文页。 */
+function warnIfMissingEnglishSections(text, outFile) {
+  const hasSection = STANDARD_DOC_SECTIONS.some((section) => text.includes(section));
+  if (!hasSection) {
+    console.warn(
+      `⚠️ ${path.basename(outFile)}: 未检测到英文标准段标题` +
+        `（${STANDARD_DOC_SECTIONS.join(' / ')}），页面可能非英文，解析可能失败`
+    );
   }
 }
 
@@ -159,12 +190,12 @@ function assertLocalOutFile(outFile) {
 
 /**
  * 渲染单个文档页面，导出 innerText
- * @param {import('playwright').Browser} browser
+ * @param {import('playwright').BrowserContext} context 已固定 en-US 的 context
  * @param {string} url 完整 URL
  * @param {string} outFile 输出文件路径
  */
-async function fetchOne(browser, url, outFile) {
-  const page = await browser.newPage();
+async function fetchOne(context, url, outFile) {
+  const page = await context.newPage();
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
     // SPA 需要额外等待内容渲染
@@ -185,6 +216,7 @@ async function fetchOne(browser, url, outFile) {
     const flag = text.length < 500 ? '⚠️ 内容过少，检查 URL 是否正确' : '✅';
     console.log(`${flag} ${path.basename(outFile)}: ${text.length} chars`);
     console.log(`   url: ${url}`);
+    warnIfMissingEnglishSections(text, outFile);
     return text.length;
   } finally {
     await page.close();
@@ -226,9 +258,11 @@ async function main() {
 
     const chromium = loadChromium();
     const browser = await chromium.launch({ headless: true });
+    const context = await newEnglishContext(browser);
     try {
-      await fetchOne(browser, url, outFile);
+      await fetchOne(context, url, outFile);
     } finally {
+      await context.close();
       await browser.close();
     }
     return;
@@ -262,6 +296,7 @@ async function main() {
     fs.mkdirSync(outDir, { recursive: true });
     const chromium = loadChromium();
     const browser = await chromium.launch({ headless: true });
+    const context = await newEnglishContext(browser);
     console.log(`📥 批量抓取 ${paths.length} 个文档到 ${outDir}`);
     for (const p of paths) {
       let url;
@@ -273,11 +308,12 @@ async function main() {
       }
       const outFile = path.join(outDir, outNameFromInput(p));
       try {
-        await fetchOne(browser, url, outFile);
+        await fetchOne(context, url, outFile);
       } catch (e) {
         console.log(`❌ ${p}: ${e.message}`);
       }
     }
+    await context.close();
     await browser.close();
     console.log('✅ 批量完成');
     return;
@@ -299,9 +335,11 @@ async function main() {
   }
   const chromium = loadChromium();
   const browser = await chromium.launch({ headless: true });
+  const context = await newEnglishContext(browser);
   try {
-    await fetchOne(browser, url, outFile);
+    await fetchOne(context, url, outFile);
   } finally {
+    await context.close();
     await browser.close();
   }
 }

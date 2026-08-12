@@ -1,0 +1,90 @@
+name: API Field Verify (Full)
+
+on:
+  workflow_dispatch:
+    inputs:
+      crate:
+        description: '可选 crate（如 openlark-workflow）；留空=全仓'
+        required: false
+        type: string
+        default: ''
+      force_refresh:
+        description: '强制忽略 Official Evidence 快照重抓'
+        required: false
+        type: boolean
+        default: false
+      max_age:
+        description: '快照最大年龄（天），仅在未 force_refresh 时生效'
+        required: false
+        type: string
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-field-verify-full-${{ github.event.inputs.crate || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  full:
+    name: Full-mode field verify
+    runs-on: ubuntu-latest
+    # 全仓完整模式可能极慢；单 crate 通常可接受
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install -g playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run full-mode verify
+        id: verify
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p reports/api_field_verify
+
+          args=(--fetch-docs --output-dir reports/api_field_verify --max-age "${{ inputs.max_age }}")
+          if [[ -n "${{ inputs.crate }}" ]]; then
+            args+=(--crate "${{ inputs.crate }}")
+          fi
+          if [[ "${{ inputs.force_refresh }}" == "true" ]]; then
+            args+=(--force-refresh)
+          fi
+
+          echo "Running: python3 tools/verify_api_fields.py ${args[*]}"
+          set +e
+          python3 tools/verify_api_fields.py "${args[@]}"
+          status=$?
+          set -e
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit "${status}"
+
+      - name: Upload field-verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-field-verify-full
+          path: reports/api_field_verify/
+          retention-days: 30
+
+      - name: Fail job if verify reported error/warning
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "Full-mode verify exited non-zero (error/warning or tool failure)."
+          echo "See uploaded artifact reports/api_field_verify/ for details."
+          exit 1
