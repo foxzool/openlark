@@ -25,7 +25,10 @@ impl<'a> TicketMessage<'a> {
 
     /// 发送工单消息
     pub fn create(&self, ticket_id: impl Into<String>) -> create::CreateTicketMessageRequest {
-        create::CreateTicketMessageRequest::new(self.ticket.config.clone(), ticket_id.into())
+        create::CreateTicketMessageRequest::new(
+            self.ticket.config.as_ref().clone(),
+            ticket_id.into(),
+        )
     }
 }
 

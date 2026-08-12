@@ -23,6 +23,6 @@ impl Message {
 
     /// 通过服务台机器人发送消息
     pub fn create(&self) -> create::CreateBotMessageRequestBuilder {
-        create::CreateBotMessageRequestBuilder::new(self.config.clone())
+        create::CreateBotMessageRequestBuilder::new(self.config.as_ref().clone())
     }
 }

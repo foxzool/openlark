@@ -9,7 +9,6 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::common::api_utils::serialize_params;
@@ -17,20 +16,33 @@ use crate::common::api_utils::serialize_params;
 /// 创建知识库请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateFaqBody {
-    /// 标题
-    pub title: String,
-    /// 内容
-    pub content: String,
+    /// 知识库内容
+    pub faq: CreateFaq,
+}
+
+/// 待创建的知识库内容
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CreateFaq {
     /// 分类ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category_id: Option<String>,
+    /// 问题
+    pub question: String,
+    /// 答案
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub answer: Option<String>,
+    /// 富文本答案，创建接口使用 JSON 字符串
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub answer_richtext: Option<String>,
+    /// 标签
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
 }
 
 impl CreateFaqBody {
     /// 验证请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.title, "title is required");
-        validate_required!(self.content, "content is required");
+        validate_required!(self.faq.question, "question 不能为空");
         Ok(())
     }
 }
@@ -38,25 +50,15 @@ impl CreateFaqBody {
 /// 创建知识库响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateFaqResponse {
-    /// 响应数据。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CreateFaqResult>,
-}
-
-impl openlark_core::api::ApiResponseTrait for CreateFaqResponse {}
-
-/// 创建知识库结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateFaqResult {
     /// 知识库ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// 标题
+    /// 问题
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    /// 内容
+    pub question: Option<String>,
+    /// 答案
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub content: Option<String>,
+    pub answer: Option<String>,
     /// 分类ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category_id: Option<String>,
@@ -65,15 +67,17 @@ pub struct CreateFaqResult {
     pub status: Option<String>,
 }
 
+impl openlark_core::api::ApiResponseTrait for CreateFaqResponse {}
+
 /// 创建知识库请求
 #[derive(Debug, Clone)]
 pub struct CreateFaqRequest {
-    config: Arc<Config>,
+    config: Config,
 }
 
 impl CreateFaqRequest {
     /// 创建新的创建知识库请求
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self { config }
     }
 
@@ -102,33 +106,25 @@ impl CreateFaqRequest {
 /// 创建知识库请求构建器
 #[derive(Debug, Clone)]
 pub struct CreateFaqRequestBuilder {
-    config: Arc<Config>,
-    title: Option<String>,
-    content: Option<String>,
+    config: Config,
     category_id: Option<String>,
+    question: Option<String>,
+    answer: Option<String>,
+    answer_richtext: Option<String>,
+    tags: Option<Vec<String>>,
 }
 
 impl CreateFaqRequestBuilder {
     /// 创建新的构建器
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             config,
-            title: None,
-            content: None,
             category_id: None,
+            question: None,
+            answer: None,
+            answer_richtext: None,
+            tags: None,
         }
-    }
-
-    /// 设置标题
-    pub fn title(mut self, title: impl Into<String>) -> Self {
-        self.title = Some(title.into());
-        self
-    }
-
-    /// 设置内容
-    pub fn content(mut self, content: impl Into<String>) -> Self {
-        self.content = Some(content.into());
-        self
     }
 
     /// 设置分类ID
@@ -137,15 +133,42 @@ impl CreateFaqRequestBuilder {
         self
     }
 
+    /// 设置问题
+    pub fn question(mut self, question: impl Into<String>) -> Self {
+        self.question = Some(question.into());
+        self
+    }
+
+    /// 设置答案
+    pub fn answer(mut self, answer: impl Into<String>) -> Self {
+        self.answer = Some(answer.into());
+        self
+    }
+
+    /// 设置富文本答案 JSON 字符串
+    pub fn answer_richtext(mut self, answer_richtext: impl Into<String>) -> Self {
+        self.answer_richtext = Some(answer_richtext.into());
+        self
+    }
+
+    /// 设置标签
+    pub fn tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
     /// 构建请求体
     pub fn body(&self) -> Result<CreateFaqBody, String> {
-        let title = self.title.clone().ok_or("title is required")?;
-        let content = self.content.clone().ok_or("content is required")?;
+        let question = self.question.clone().ok_or("question 不能为空")?;
 
         Ok(CreateFaqBody {
-            title,
-            content,
-            category_id: self.category_id.clone(),
+            faq: CreateFaq {
+                category_id: self.category_id.clone(),
+                question,
+                answer: self.answer.clone(),
+                answer_richtext: self.answer_richtext.clone(),
+                tags: self.tags.clone(),
+            },
         })
     }
 
@@ -186,34 +209,41 @@ mod tests {
     #[test]
     fn test_body_validation_valid() {
         let body = CreateFaqBody {
-            title: "如何重置密码？".to_string(),
-            content: "请按照以下步骤重置密码...".to_string(),
-            category_id: Some("cat_123".to_string()),
+            faq: CreateFaq {
+                category_id: Some("cat_123".to_string()),
+                question: "如何重置密码？".to_string(),
+                answer: Some("请按照以下步骤重置密码...".to_string()),
+                answer_richtext: Some(r#"[{\"type\":\"text\",\"content\":\"步骤\"}]"#.to_string()),
+                tags: Some(vec!["账号".to_string()]),
+            },
         };
         let result = body.validate();
         assert!(result.is_ok());
     }
 
     #[test]
-    fn test_body_validation_empty_title() {
+    fn test_body_validation_empty_question() {
         let body = CreateFaqBody {
-            title: "".to_string(),
-            content: "内容".to_string(),
-            category_id: None,
+            faq: CreateFaq::default(),
         };
         let result = body.validate();
         assert!(result.is_err());
     }
 
     #[test]
-    fn test_body_validation_empty_content() {
+    fn test_body_serialization_matches_official_shape() {
         let body = CreateFaqBody {
-            title: "标题".to_string(),
-            content: "".to_string(),
-            category_id: None,
+            faq: CreateFaq {
+                question: "问题".to_string(),
+                answer_richtext: Some("[{\"type\":\"text\"}]".to_string()),
+                ..Default::default()
+            },
         };
-        let result = body.validate();
-        assert!(result.is_err());
+        let value = serde_json::to_value(body).expect("请求体应可序列化");
+
+        assert_eq!(value["faq"]["question"], "问题");
+        assert!(value["faq"]["answer_richtext"].is_string());
+        assert!(value.get("question").is_none());
     }
 
     #[test]
@@ -222,12 +252,12 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = CreateFaqRequestBuilder::new(Arc::new(config));
+        let builder = CreateFaqRequestBuilder::new(config);
 
-        assert!(builder.title.is_none());
+        assert!(builder.question.is_none());
     }
 
-    /// 端到端：POST .../faqs → 强类型 CreateFaqResponse 解析（双层 data 信封）。
+    /// 端到端：POST .../faqs → 强类型 CreateFaqResponse 解析。
     #[tokio::test]
     async fn test_create_faq_returns_data_on_success() {
         use serde_json::json;
@@ -241,30 +271,30 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "id": "faq_001", "title": "如何重置密码？" } }
+                "data": { "id": "faq_001", "question": "如何重置密码？" }
             })))
             .mount(&server)
             .await;
 
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
         let body = CreateFaqBody {
-            title: "如何重置密码？".to_string(),
-            content: "请按照以下步骤重置密码...".to_string(),
-            category_id: None,
+            faq: CreateFaq {
+                question: "如何重置密码？".to_string(),
+                answer: Some("请按照以下步骤重置密码...".to_string()),
+                ..Default::default()
+            },
         };
         let resp = CreateFaqRequest::new(config)
             .execute(body)
             .await
             .expect("创建知识库应成功");
-        assert!(resp.data.is_some());
+        assert_eq!(resp.id.as_deref(), Some("faq_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

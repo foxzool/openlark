@@ -38,7 +38,7 @@ impl Faq {
 
     /// 创建知识库
     pub fn create(&self) -> create::CreateFaqRequest {
-        create::CreateFaqRequest::new(self.config.clone())
+        create::CreateFaqRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定知识库
@@ -48,7 +48,7 @@ impl Faq {
 
     /// 更新指定知识库
     pub fn patch(&self, id: impl Into<String>) -> patch::PatchFaqRequest {
-        patch::PatchFaqRequest::new(self.config.clone(), id.into())
+        patch::PatchFaqRequest::new(self.config.as_ref().clone(), id.into())
     }
 
     /// 删除指定知识库

@@ -8,7 +8,9 @@ use openlark_helpdesk::helpdesk::helpdesk::v1::agent::patch::{PatchAgentBody, Pa
 use openlark_helpdesk::helpdesk::helpdesk::v1::category::create::{
     CreateCategoryBody, CreateCategoryResult,
 };
-use openlark_helpdesk::helpdesk::helpdesk::v1::faq::create::{CreateFaqBody, CreateFaqResult};
+use openlark_helpdesk::helpdesk::helpdesk::v1::faq::create::{
+    CreateFaq, CreateFaqBody, CreateFaqResponse,
+};
 use openlark_helpdesk::helpdesk::helpdesk::v1::notification::create::{
     CreateNotificationBody, CreateNotificationResult,
 };
@@ -213,41 +215,51 @@ fn category_create_result_roundtrip() {
 #[test]
 fn faq_create_body_roundtrip() {
     let body = CreateFaqBody {
-        title: "如何重置密码？".to_string(),
-        content: "请在登录页面点击「忘记密码」...".to_string(),
-        category_id: Some("cat_001".to_string()),
+        faq: CreateFaq {
+            category_id: Some("cat_001".to_string()),
+            question: "如何重置密码？".to_string(),
+            answer: Some("请在登录页面点击「忘记密码」...".to_string()),
+            answer_richtext: Some("[{\"type\":\"text\",\"content\":\"答案\"}]".to_string()),
+            tags: Some(vec!["账号".to_string()]),
+        },
     };
     assert_json_contract(
         &body,
         json!({
-            "title": "如何重置密码？",
-            "content": "请在登录页面点击「忘记密码」...",
-            "category_id": "cat_001"
+            "faq": {
+                "category_id": "cat_001",
+                "question": "如何重置密码？",
+                "answer": "请在登录页面点击「忘记密码」...",
+                "answer_richtext": "[{\"type\":\"text\",\"content\":\"答案\"}]",
+                "tags": ["账号"]
+            }
         }),
     );
 
     let roundtrip: CreateFaqBody = from_value(to_value(&body).unwrap()).unwrap();
-    assert_eq!(roundtrip.title, body.title);
-    assert_eq!(roundtrip.content, body.content);
+    assert_eq!(roundtrip.faq.question, body.faq.question);
+    assert_eq!(roundtrip.faq.answer, body.faq.answer);
 }
 
 #[test]
 fn faq_create_body_without_optional() {
     let body = CreateFaqBody {
-        title: "常见问题".to_string(),
-        content: "这是答案内容".to_string(),
-        category_id: None,
+        faq: CreateFaq {
+            question: "常见问题".to_string(),
+            ..Default::default()
+        },
     };
     let value = to_value(&body).unwrap();
-    assert!(value.get("category_id").is_none());
+    assert!(value["faq"].get("category_id").is_none());
+    assert!(value["faq"].get("answer").is_none());
 }
 
 #[test]
-fn faq_create_result_roundtrip() {
-    let result = parse_contract::<CreateFaqResult>(json!({
+fn faq_create_response_roundtrip() {
+    let result = parse_contract::<CreateFaqResponse>(json!({
         "id": "faq_100",
-        "title": "如何重置密码？",
-        "content": "请在登录页面点击「忘记密码」...",
+        "question": "如何重置密码？",
+        "answer": "请在登录页面点击「忘记密码」...",
         "category_id": "cat_001",
         "status": "published"
     }));
@@ -320,7 +332,7 @@ fn agent_patch_result_roundtrip() {
 fn ticket_message_body_roundtrip() {
     let body = CreateTicketMessageBody {
         content: "您好，请提供更多信息".to_string(),
-        msg_type: Some("text".to_string()),
+        msg_type: "text".to_string(),
     };
     assert_json_contract(
         &body,
@@ -332,12 +344,12 @@ fn ticket_message_body_roundtrip() {
 }
 
 #[test]
-fn ticket_message_body_minimal() {
+fn ticket_message_body_contains_required_fields() {
     let body = CreateTicketMessageBody {
         content: "简单的消息".to_string(),
-        msg_type: None,
+        msg_type: "text".to_string(),
     };
     let value = to_value(&body).unwrap();
     assert_eq!(value["content"], "简单的消息");
-    assert!(value.get("msg_type").is_none());
+    assert_eq!(value["msg_type"], "text");
 }
