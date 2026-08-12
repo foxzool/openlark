@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **tools：字段核对跳过多分表单内部元数据 / 放宽「代码更严」门禁**：
+  `verify_api_fields` 提取 Body 时跳过 serde 名以 `__` 开头的字段（如 multipart
+  `__file_name`）；「文档选填但代码非 Option」由 warning 降为 info，不再阻断 `--fetch-docs`
+  门禁（保留提示，避免 OCR 等有意更严建模被误拦）。
+
 - **websocket protobuf 打包修复（#605）**：恢复 `lark-websocket-protobuf` 为 workspace
   权威发布源并准备 `0.1.2`；将 `pbbp2.proto` 的生成代码随 crate 提交和打包，移除默认
   `build.rs`、`prost-build` 与消费者侧 `protoc` 系统依赖。公开路径
