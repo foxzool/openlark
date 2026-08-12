@@ -9,6 +9,8 @@ pub mod delete;
 /// 获取接口。
 pub mod get;
 pub mod list;
+/// 工单自定义字段共享模型。
+pub mod models;
 /// 更新接口。
 pub mod patch;
 
@@ -57,4 +59,5 @@ pub use create::{CreateTicketCustomizedFieldRequest, CreateTicketCustomizedField
 pub use delete::{DeleteTicketCustomizedFieldRequest, DeleteTicketCustomizedFieldRequestBuilder};
 pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
 pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
+pub use models::{TicketCustomizedFieldDropdownOption, TicketCustomizedFieldDropdownOptions};
 pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};
