@@ -12,8 +12,9 @@ use openlark_helpdesk::helpdesk::helpdesk::v1::faq::create::{
     CreateFaq, CreateFaqBody, CreateFaqResponse,
 };
 use openlark_helpdesk::helpdesk::helpdesk::v1::notification::create::{
-    CreateNotificationBody, CreateNotificationResult,
+    CreateNotificationBody, CreateNotificationResponse,
 };
+use openlark_helpdesk::helpdesk::helpdesk::v1::notification::models::NotificationUser;
 use openlark_helpdesk::helpdesk::helpdesk::v1::ticket::message::create::CreateTicketMessageBody;
 use openlark_helpdesk::helpdesk::helpdesk::v1::ticket::models::{
     CreateTicketBody, CreateTicketResponse, GetTicketResponse, TicketItem, TicketListResponse,
@@ -268,28 +269,36 @@ fn faq_create_response_roundtrip() {
 #[test]
 fn notification_create_body_roundtrip() {
     let body = CreateNotificationBody {
-        title: "系统维护通知".to_string(),
-        content: "系统将于今晚 22:00 进行维护".to_string(),
+        job_name: Some("系统维护通知".to_string()),
+        push_content: Some("系统将于今晚 22:00 进行维护".to_string()),
+        push_type: Some(0),
+        push_scope_type: Some(2),
+        user_list: Some(vec![NotificationUser {
+            user_id: Some("ou_001".to_string()),
+            ..Default::default()
+        }]),
+        ..Default::default()
     };
     assert_json_contract(
         &body,
         json!({
-            "title": "系统维护通知",
-            "content": "系统将于今晚 22:00 进行维护"
+            "job_name": "系统维护通知",
+            "push_content": "系统将于今晚 22:00 进行维护",
+            "push_type": 0,
+            "push_scope_type": 2,
+            "user_list": [{ "user_id": "ou_001" }]
         }),
     );
 }
 
 #[test]
-fn notification_create_result_roundtrip() {
-    let result = parse_contract::<CreateNotificationResult>(json!({
-        "id": "notify_001",
-        "title": "系统维护通知",
-        "status": "draft"
+fn notification_create_response_roundtrip() {
+    let result = parse_contract::<CreateNotificationResponse>(json!({
+        "notification_id": "notify_001",
+        "status": 0
     }));
-    assert_eq!(result.id, Some("notify_001".to_string()));
-    assert_eq!(result.title, Some("系统维护通知".to_string()));
-    assert_eq!(result.status, Some("draft".to_string()));
+    assert_eq!(result.notification_id, Some("notify_001".to_string()));
+    assert_eq!(result.status, Some(0));
 }
 
 // ── Agent 模型 ───────────────────────────────────────────────
