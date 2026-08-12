@@ -4,33 +4,47 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{api_utils::serialize_params, validation::validate_card_id},
+    common::{
+        api_utils::serialize_params,
+        validation::{validate_card_id, validate_sequence, validate_uuid},
+    },
     endpoints::cardkit_v1_card_settings,
 };
 
 /// 更新卡片实体配置请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateCardSettingsBody {
-    /// 卡片 ID
+    /// 卡片 ID（路径参数，不进入 JSON body）
+    #[serde(skip_serializing)]
     pub card_id: String,
-    /// 设置内容（结构以官方文档为准）
-    pub settings: serde_json::Value,
+    /// 卡片配置（含 `config` / `card_link` 的 JSON 序列化字符串）
+    pub settings: String,
+    /// 幂等 ID（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    /// 流式更新序号（必填，严格递增）
+    pub sequence: i32,
 }
 
-/// 更新卡片实体配置响应
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct UpdateCardSettingsResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 卡片 ID。
-    pub card_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 应用 ID。
-    pub app_id: Option<String>,
+impl UpdateCardSettingsBody {
+    /// 校验请求体。
+    pub fn validate(&self) -> SDKResult<()> {
+        validate_card_id(&self.card_id)?;
+        validate_required!(self.settings, "settings 不能为空");
+        validate_uuid(&self.uuid)?;
+        validate_sequence(self.sequence)?;
+        Ok(())
+    }
 }
+
+/// 更新卡片实体配置响应（官方 `data` 为空对象）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateCardSettingsResponse {}
 
 impl openlark_core::api::ApiResponseTrait for UpdateCardSettingsResponse {}
 
@@ -39,7 +53,9 @@ impl openlark_core::api::ApiResponseTrait for UpdateCardSettingsResponse {}
 pub struct UpdateCardSettingsRequest {
     config: Config,
     card_id: Option<String>,
-    settings: Option<serde_json::Value>,
+    settings: Option<String>,
+    uuid: Option<String>,
+    sequence: Option<i32>,
 }
 
 impl UpdateCardSettingsRequest {
@@ -49,6 +65,8 @@ impl UpdateCardSettingsRequest {
             config,
             card_id: None,
             settings: None,
+            uuid: None,
+            sequence: None,
         }
     }
 
@@ -78,8 +96,14 @@ impl UpdateCardSettingsRequest {
         if let Some(settings) = self.settings {
             body.settings = settings;
         }
+        if let Some(uuid) = self.uuid {
+            body.uuid = Some(uuid);
+        }
+        if let Some(sequence) = self.sequence {
+            body.sequence = sequence;
+        }
 
-        validate_card_id(&body.card_id)?;
+        body.validate()?;
 
         // url: PATCH:/open-apis/cardkit/v1/cards/:card_id/settings
         let url = cardkit_v1_card_settings(&body.card_id);
@@ -94,8 +118,6 @@ impl UpdateCardSettingsRequest {
 #[derive(Debug, Clone)]
 pub struct UpdateCardSettingsRequestBuilder {
     request: UpdateCardSettingsRequest,
-    card_id: Option<String>,
-    settings: Option<serde_json::Value>,
 }
 
 impl UpdateCardSettingsRequestBuilder {
@@ -103,30 +125,36 @@ impl UpdateCardSettingsRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: UpdateCardSettingsRequest::new(config),
-            card_id: None,
-            settings: None,
         }
     }
 
     /// 设置卡片 ID
     pub fn card_id(mut self, card_id: impl Into<String>) -> Self {
-        self.card_id = Some(card_id.into());
+        self.request.card_id = Some(card_id.into());
         self
     }
 
     /// 设置配置
-    pub fn settings(mut self, settings: impl Into<serde_json::Value>) -> Self {
-        self.settings = Some(settings.into());
+    pub fn settings(mut self, settings: impl Into<String>) -> Self {
+        self.request.settings = Some(settings.into());
+        self
+    }
+
+    /// 设置幂等 ID
+    pub fn uuid(mut self, uuid: impl Into<String>) -> Self {
+        self.request.uuid = Some(uuid.into());
+        self
+    }
+
+    /// 设置流式更新序号
+    pub fn sequence(mut self, sequence: i32) -> Self {
+        self.request.sequence = Some(sequence);
         self
     }
 
     /// 构建请求
     pub fn build(self) -> UpdateCardSettingsRequest {
-        UpdateCardSettingsRequest {
-            config: self.request.config,
-            card_id: self.card_id,
-            settings: self.settings,
-        }
+        self.request
     }
 }
 
@@ -147,7 +175,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "card_id": "card_001", "app_id": "app_001" }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -161,17 +189,20 @@ mod tests {
 
         let body = UpdateCardSettingsBody {
             card_id: "card_001".into(),
-            settings: json!({ "sharing": { "permission": "anyone_can_edit" } }),
+            settings: r#"{"config":{"streaming_mode":true}}"#.into(),
+            uuid: None,
+            sequence: 1,
         };
-        let resp = UpdateCardSettingsRequest::new(config)
+        UpdateCardSettingsRequest::new(config)
             .execute(body)
             .await
             .expect("更新卡片实体配置应成功");
-        assert_eq!(resp.app_id.as_deref(), Some("app_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["settings"]["sharing"]["permission"], "anyone_can_edit");
+        assert!(sent.get("card_id").is_none());
+        assert_eq!(sent["settings"], r#"{"config":{"streaming_mode":true}}"#);
+        assert_eq!(sent["sequence"], 1);
     }
 }

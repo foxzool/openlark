@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.20 work goes here. -->
 
+### Breaking
+
+- **cardkit：对齐飞书 CardKit OpenAPI 请求体（#603）**：按官方文档重写
+  `openlark-cardkit` 全量/局部更新、配置、组件增删改、流式文本与 `id_convert` 的 Body 字段。
+  - 所有流式相关写接口补齐必填 `sequence`（及可选 `uuid`）；路径参数 `card_id`/`element_id` 不再序列化进 JSON body。
+  - `CreateCardBody`：`type` + `data`（字符串）；移除错误的 `card_content`/`card_type`/`template_id`/`temp*`。
+  - `UpdateCardBody`：`card.{type,data}` + `sequence`；移除 `card_content`/`update_mask`。
+  - `BatchUpdateCardBody`：`actions`（字符串）替代 `operations`。
+  - `UpdateCardSettingsBody.settings`、组件 `element`/`partial_element`/`elements`/`content` 均按文档使用字符串。
+  - `element.content` 端点（`PUT .../elements/:id/content`）字段修正为 `content: String` + `sequence`。
+  - `ConvertCardIdBody` 仅保留官方 `message_id`（旧 `source_id_type`/`card_ids` 为错误推断）。
+  - 多数写接口响应 `data` 为空对象，对应 Response 结构同步收敛。
+
 ### Changed
 
 - **websocket protobuf 打包修复（#605）**：恢复 `lark-websocket-protobuf` 为 workspace

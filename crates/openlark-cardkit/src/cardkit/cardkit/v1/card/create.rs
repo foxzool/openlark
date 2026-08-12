@@ -4,56 +4,29 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{common::api_utils::serialize_params, endpoints::CARDKIT_V1_CARDS};
 
 /// 创建卡片实体请求体
+///
+/// 官方字段：`type`（`card_json` / `template`）+ `data`（JSON 序列化字符串）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateCardBody {
-    /// 卡片内容
-    pub card_content: serde_json::Value,
-    /// 卡片类型（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 卡片类型。
-    pub card_type: Option<String>,
-    /// 模板ID（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 模板 ID。
-    pub template_id: Option<String>,
-    /// 临时卡片标记（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 临时卡片标记。
-    pub temp: Option<bool>,
-    /// 临时卡片过期时间（可选，秒）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 临时卡片过期时间。
-    pub temp_expire_time: Option<i32>,
+    /// 卡片类型：`card_json` 或 `template`
+    #[serde(rename = "type")]
+    pub type_: String,
+    /// 卡片数据（与 `type_` 对应的 JSON 序列化字符串）
+    pub data: String,
 }
 
 impl CreateCardBody {
     /// 校验请求体。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        if self.card_content.is_null() {
-            return Err(openlark_core::CoreError::validation_msg(
-                "card_content 不能为空",
-            ));
-        }
-        if !self.card_content.is_object() {
-            return Err(openlark_core::CoreError::validation_msg(
-                "card_content 必须是 JSON 对象",
-            ));
-        }
-
-        if let Some(temp_expire_time) = self.temp_expire_time
-            && (temp_expire_time <= 0 || temp_expire_time > 86_400)
-        {
-            return Err(openlark_core::CoreError::validation_msg(
-                "temp_expire_time 取值范围为 1~86400（秒）",
-            ));
-        }
-
+        validate_required!(self.type_, "type 不能为空");
+        validate_required!(self.data, "data 不能为空");
         Ok(())
     }
 }
@@ -61,12 +34,9 @@ impl CreateCardBody {
 /// 创建卡片实体响应
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateCardResponse {
+    /// 卡片实体 ID。
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 卡片 ID。
     pub card_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 应用 ID。
-    pub app_id: Option<String>,
 }
 
 impl openlark_core::api::ApiResponseTrait for CreateCardResponse {}
@@ -113,11 +83,6 @@ impl CreateCardRequest {
 #[derive(Debug, Clone)]
 pub struct CreateCardRequestBuilder {
     request: CreateCardRequest,
-    card_content: Option<serde_json::Value>,
-    card_type: Option<String>,
-    template_id: Option<String>,
-    temp: Option<bool>,
-    temp_expire_time: Option<i32>,
 }
 
 impl CreateCardRequestBuilder {
@@ -125,49 +90,12 @@ impl CreateCardRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: CreateCardRequest::new(config),
-            card_content: None,
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
         }
-    }
-
-    /// 设置卡片内容
-    pub fn card_content(mut self, card_content: impl Into<serde_json::Value>) -> Self {
-        self.card_content = Some(card_content.into());
-        self
-    }
-
-    /// 设置卡片类型
-    pub fn card_type(mut self, card_type: impl Into<String>) -> Self {
-        self.card_type = Some(card_type.into());
-        self
-    }
-
-    /// 设置模板 ID
-    pub fn template_id(mut self, template_id: impl Into<String>) -> Self {
-        self.template_id = Some(template_id.into());
-        self
-    }
-
-    /// 设置临时卡片标记
-    pub fn temp(mut self, temp: impl Into<bool>) -> Self {
-        self.temp = Some(temp.into());
-        self
-    }
-
-    /// 设置临时卡片过期时间
-    pub fn temp_expire_time(mut self, temp_expire_time: impl Into<i32>) -> Self {
-        self.temp_expire_time = Some(temp_expire_time.into());
-        self
     }
 
     /// 构建请求
     pub fn build(self) -> CreateCardRequest {
-        CreateCardRequest {
-            config: self.request.config,
-        }
+        self.request
     }
 }
 
@@ -212,7 +140,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "card_id": "card_001", "app_id": "app_001" }
+                "data": { "card_id": "card_001" }
             })))
             .mount(&server)
             .await;
@@ -225,22 +153,20 @@ mod tests {
             .build();
 
         let body = CreateCardBody {
-            card_content: json!({ "schema": "2.0" }),
-            card_type: None,
-            template_id: None,
-            temp: None,
-            temp_expire_time: None,
+            type_: "card_json".into(),
+            data: r#"{"schema":"2.0"}"#.into(),
         };
         let resp = CreateCardRequest::new(config)
             .execute(body)
             .await
             .expect("创建卡片实体应成功");
         assert_eq!(resp.card_id.as_deref(), Some("card_001"));
-        assert_eq!(resp.app_id.as_deref(), Some("app_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["card_content"]["schema"], "2.0");
+        assert_eq!(sent["type"], "card_json");
+        assert_eq!(sent["data"], r#"{"schema":"2.0"}"#);
+        assert!(sent.get("card_content").is_none());
     }
 }

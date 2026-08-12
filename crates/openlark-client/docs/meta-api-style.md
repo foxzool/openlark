@@ -40,18 +40,14 @@ CSV 对应行（示例）：
 ```rust,no_run
 use openlark_client::prelude::*;
 use openlark_cardkit::cardkit::cardkit::v1::card::create::CreateCardBody;
-use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let client = Client::from_env()?;
 
     let req = CreateCardBody {
-        card_content: json!({"elements": []}),
-        card_type: None,
-        template_id: None,
-        temp: None,
-        temp_expire_time: None,
+        type_: "card_json".into(),
+        data: r#"{"schema":"2.0","body":{"elements":[]}}"#.into(),
     };
 
     let resp = client.cardkit.v1.card.create(req).await?;

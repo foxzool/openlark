@@ -99,21 +99,37 @@ def _extract_fields_from_block(block: str) -> List[FieldInfo]:
     fields: List[FieldInfo] = []
     lines = block.split("\n")
     pending_rename: Optional[str] = None
+    # 纯 skip_serializing（路径参数）不进入请求体对比；skip_serializing_if 仍参与。
+    pending_skip_serializing = False
+    pending_attrs: List[str] = []
     for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
-        # 收集 serde rename 属性
-        rename_match = re.search(r'#\[serde\s*\([^)]*rename\s*=\s*"([^"]+)"', stripped)
-        if rename_match:
-            pending_rename = rename_match.group(1)
+        if stripped.startswith("//"):
             continue
-        # 跳过其他属性行和注释行
-        if stripped.startswith("#[") or stripped.startswith("//"):
+        if stripped.startswith("#["):
+            pending_attrs.append(stripped)
+            rename_match = re.search(
+                r'#\[serde\s*\([^)]*rename\s*=\s*"([^"]+)"', stripped
+            )
+            if rename_match:
+                pending_rename = rename_match.group(1)
+            # 与 tools/api_contracts/rust_source.py 对齐：仅绝对 skip_serializing 跳过
+            if "skip_serializing" in stripped and "skip_serializing_if" not in stripped:
+                pending_skip_serializing = True
             continue
         # 匹配 pub field_name: Type,
         field_match = re.match(r"pub\s+(\w+)\s*:\s*(.+?),?\s*$", stripped)
         if not field_match:
+            pending_rename = None
+            pending_skip_serializing = False
+            pending_attrs.clear()
+            continue
+        if pending_skip_serializing:
+            pending_rename = None
+            pending_skip_serializing = False
+            pending_attrs.clear()
             continue
         fname = field_match.group(1)
         raw_type = field_match.group(2).strip().rstrip(",")
@@ -128,6 +144,8 @@ def _extract_fields_from_block(block: str) -> List[FieldInfo]:
             )
         )
         pending_rename = None
+        pending_skip_serializing = False
+        pending_attrs.clear()
     return fields
 
 

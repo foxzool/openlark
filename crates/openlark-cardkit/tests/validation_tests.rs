@@ -3,7 +3,8 @@
 //! 测试卡片和组件相关的验证函数行为。
 
 use openlark_cardkit::common::validation::{
-    validate_card_id, validate_element_id, validate_id_list, validate_id_type,
+    validate_card_id, validate_element_id, validate_id_list, validate_id_type, validate_sequence,
+    validate_uuid,
 };
 
 /// validate_card_id 函数测试
@@ -176,6 +177,34 @@ mod validate_id_list_tests {
         // 多个元素的列表
         let ids: Vec<String> = (0..100).map(|i| format!("id_{i}")).collect();
         assert!(validate_id_list(&ids, "ID列表").is_ok());
+    }
+}
+
+/// validate_sequence / validate_uuid 测试
+#[cfg(test)]
+mod validate_sequence_uuid_tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_sequence_valid() {
+        assert!(validate_sequence(1).is_ok());
+        assert!(validate_sequence(1712578784).is_ok());
+        assert!(validate_sequence(i32::MAX).is_ok());
+    }
+
+    #[test]
+    fn test_validate_sequence_invalid() {
+        assert!(validate_sequence(0).is_err());
+        assert!(validate_sequence(-1).is_err());
+    }
+
+    #[test]
+    fn test_validate_uuid_optional() {
+        assert!(validate_uuid(&None).is_ok());
+        assert!(validate_uuid(&Some("a0d69e20-1dd1-458b-k525-dfeca4015204".into())).is_ok());
+        assert!(validate_uuid(&Some("".into())).is_err());
+        assert!(validate_uuid(&Some("   ".into())).is_err());
+        assert!(validate_uuid(&Some("x".repeat(65))).is_err());
     }
 }
 

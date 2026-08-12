@@ -12,4 +12,6 @@ pub use self::models::*;
 pub mod settings;
 pub mod update;
 
+pub use update::UpdateCardPayload;
+
 pub mod element;
