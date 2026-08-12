@@ -172,3 +172,9 @@ crates/openlark-meeting/report.md
 # Stray rustc metadata / dep files emitted outside target/
 *.rmeta
 *.d
+node_modules/
+
+# Local npm deps for agent/doc tooling (not part of Rust workspace)
+node_modules/
+package.json
+package-lock.json
