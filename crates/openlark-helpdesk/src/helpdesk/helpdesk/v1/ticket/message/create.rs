@@ -180,6 +180,15 @@ mod tests {
     }
 
     #[test]
+    fn test_body_validation_empty_msg_type() {
+        let body = CreateTicketMessageBody {
+            content: "消息内容".to_string(),
+            msg_type: String::new(),
+        };
+        assert!(body.validate().is_err());
+    }
+
+    #[test]
     fn test_builder_creation() {
         let config = Config::builder()
             .app_id("test_app_id")

@@ -212,6 +212,28 @@ mod tests {
     }
 
     #[test]
+    fn test_body_validation_missing_msg_type() {
+        let body = CreateBotMessageBody {
+            msg_type: String::new(),
+            content: r#"{"text":"hello"}"#.to_string(),
+            receiver_id: "ou_xxx".to_string(),
+            receive_type: None,
+        };
+        assert!(body.validate().is_err());
+    }
+
+    #[test]
+    fn test_body_validation_missing_content() {
+        let body = CreateBotMessageBody {
+            msg_type: "post".to_string(),
+            content: String::new(),
+            receiver_id: "ou_xxx".to_string(),
+            receive_type: None,
+        };
+        assert!(body.validate().is_err());
+    }
+
+    #[test]
     fn test_body_serialization_matches_official_shape() {
         let body = CreateBotMessageBody {
             msg_type: "post".to_string(),
