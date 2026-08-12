@@ -157,6 +157,27 @@ pub struct DemoRequest {
         self.assertFalse(fields["comment"].required)
         self.assertFalse(fields["comment"].is_array)
 
+    def test_skips_absolute_skip_serializing_path_params(self):
+        source = '''
+pub struct UpdateBody {
+    /// path param
+    #[serde(skip_serializing)]
+    pub card_id: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub sequence: i32,
+}
+'''
+        structs = verify_api_fields.extract_structs(source)
+        fields = {item.effective_name: item for item in structs[0].fields}
+        self.assertNotIn("card_id", fields)
+        self.assertIn("type", fields)
+        self.assertIn("uuid", fields)
+        self.assertFalse(fields["uuid"].required)
+        self.assertIn("sequence", fields)
+
 
 class SuspiciousPatternTests(unittest.TestCase):
     def test_user_level_extra_field_is_informational(self):

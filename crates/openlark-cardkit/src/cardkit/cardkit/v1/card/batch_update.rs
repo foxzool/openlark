@@ -200,7 +200,12 @@ mod tests {
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
         assert!(sent.get("card_id").is_none());
         assert!(sent.get("operations").is_none());
-        assert!(sent["actions"].as_str().unwrap().contains("partial_update_setting"));
+        assert!(
+            sent["actions"]
+                .as_str()
+                .unwrap()
+                .contains("partial_update_setting")
+        );
         assert_eq!(sent["sequence"], 1);
     }
 }

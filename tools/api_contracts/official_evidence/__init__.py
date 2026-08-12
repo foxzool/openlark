@@ -1503,17 +1503,30 @@ def _interpret_rendered_inner_text_fields(
     dimension: EvidenceDimension,
 ) -> _Candidate:
     if dimension is EvidenceDimension.RESPONSE_FIELDS:
-        section = _extract_rendered_inner_text_section(
-            content,
-            _RENDERED_RESPONSE_EXAMPLE,
-            _RENDERED_ERROR_CODE,
-            occurrence=1,
-        )
-        if section is None:
+        # 飞书英文文档 TOC 常重复出现 "Response body example"，occurrence=1 多为空目录段；
+        # 依次尝试后续出现位置，优先采用含 JSON 示例（或空 data 对象）的段落。
+        chosen: str | None = None
+        for occurrence in (1, 2, 3):
+            section = _extract_rendered_inner_text_section(
+                content,
+                _RENDERED_RESPONSE_EXAMPLE,
+                _RENDERED_ERROR_CODE,
+                occurrence=occurrence,
+            )
+            if section is None:
+                break
+            if re.search(r'"data"\s*:', section) or re.search(
+                r'"data"\s*:\s*\{\s*\}', section
+            ):
+                chosen = section
+                break
+            if chosen is None and section.strip():
+                chosen = section
+        if chosen is None:
             return _incomplete(snapshot, "structure_incomplete")
         names = tuple(
             name
-            for name in re.findall(r'"([a-z][a-z0-9_]*)"\s*:', section)
+            for name in re.findall(r'"([a-z][a-z0-9_]*)"\s*:', chosen)
             if name not in {"code", "msg", "data"}
         )
         observations = tuple(
@@ -1526,7 +1539,7 @@ def _interpret_rendered_inner_text_fields(
             )
             for name in dict.fromkeys(names)
         )
-        if observations or re.search(r'"data"\s*:\s*\{\s*\}', section):
+        if observations or re.search(r'"data"\s*:\s*\{\s*\}', chosen):
             return _trusted(snapshot, observations)
         return _incomplete(snapshot, "structure_incomplete")
 
@@ -1629,7 +1642,9 @@ def _parse_rendered_path_parameter_table(
         r"((?:string|int|integer|boolean|bool|number|float|double|object|array|"
         r"file|binary|map|null)(?:\[\])?)[ \t]*$",
     )
-    banned = {"parameter", "type", "description", "string", "integer", "boolean"}
+    # 表头噪声（Parameter/Type/...）本身是大写，已被下方 `[a-z]...` 规则排除；
+    # 这里只拦纯类型名/通用列名，避免误杀真实字段名 `type`。
+    banned = {"parameter", "description", "string", "integer", "boolean"}
     return tuple(
         (name, field_type, True)
         for name, field_type in pattern.findall(section)
@@ -1641,14 +1656,14 @@ def _parse_rendered_parameter_table(
     section: str,
 ) -> tuple[tuple[str, str, bool], ...]:
     lines = [line.strip() for line in section.splitlines()]
+    # 注意：不要 ban 真实 API 字段名（如 cardkit 的 `type` / `content`）。
+    # 英文表头 Parameter/Type/Required/Description 为首字母大写，本就不会命中
+    # `^[a-z][a-z0-9_]*$`；此处只过滤类型字面量与通用噪声词。
     banned = {
         "parameter",
-        "type",
         "required",
         "description",
         "authorization",
-        "content",
-        "value",
         "example",
         "facts",
         "scopes",

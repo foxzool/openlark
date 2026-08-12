@@ -130,8 +130,7 @@ mod batch_update_card_request_builder_tests {
     fn test_batch_update_body_validation() {
         let valid_body = BatchUpdateCardBody {
             card_id: "card_123".into(),
-            actions: r#"[{"action":"delete_elements","params":{"element_ids":["text_1"]}}]"#
-                .into(),
+            actions: r#"[{"action":"delete_elements","params":{"element_ids":["text_1"]}}]"#.into(),
             uuid: None,
             sequence: 1,
         };
@@ -268,7 +267,12 @@ mod body_serialization_tests {
         let value = serde_json::to_value(&body).expect("序列化失败");
         assert!(value.get("card_id").is_none());
         assert!(value.get("operations").is_none());
-        assert!(value["actions"].as_str().unwrap().contains("delete_elements"));
+        assert!(
+            value["actions"]
+                .as_str()
+                .unwrap()
+                .contains("delete_elements")
+        );
     }
 
     #[test]
