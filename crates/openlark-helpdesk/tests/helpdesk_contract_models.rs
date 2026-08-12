@@ -163,17 +163,15 @@ fn ticket_item_roundtrip() {
 fn category_create_body_full_roundtrip() {
     let body = CreateCategoryBody {
         name: "技术支持".to_string(),
-        description: Some("技术相关问题分类".to_string()),
-        parent_id: Some("cat_root".to_string()),
-        order: Some(10),
+        parent_id: "cat_root".to_string(),
+        language: Some("zh_cn".to_string()),
     };
     assert_json_contract(
         &body,
         json!({
             "name": "技术支持",
-            "description": "技术相关问题分类",
             "parent_id": "cat_root",
-            "order": 10
+            "language": "zh_cn"
         }),
     );
 
@@ -186,14 +184,13 @@ fn category_create_body_full_roundtrip() {
 fn category_create_body_minimal() {
     let body = CreateCategoryBody {
         name: "常见问题".to_string(),
-        description: None,
-        parent_id: None,
-        order: None,
+        parent_id: "0".to_string(),
+        language: None,
     };
     let value = to_value(&body).unwrap();
     assert_eq!(value["name"], "常见问题");
-    assert!(value.get("description").is_none());
-    assert!(value.get("order").is_none());
+    assert_eq!(value["parent_id"], "0");
+    assert!(value.get("language").is_none());
 }
 
 #[test]
@@ -201,13 +198,12 @@ fn category_create_result_roundtrip() {
     let result = parse_contract::<CreateCategoryResult>(json!({
         "id": "cat_001",
         "name": "技术支持",
-        "description": "技术相关问题",
         "parent_id": "cat_root",
-        "order": 5
+        "language": "zh_cn"
     }));
     assert_eq!(result.id, Some("cat_001".to_string()));
     assert_eq!(result.name, Some("技术支持".to_string()));
-    assert_eq!(result.order, Some(5));
+    assert_eq!(result.language, Some("zh_cn".to_string()));
 }
 
 // ── FAQ 模型 ─────────────────────────────────────────────────
@@ -300,13 +296,11 @@ fn notification_create_result_roundtrip() {
 
 #[test]
 fn agent_patch_body_roundtrip() {
-    let body = PatchAgentBody {
-        status: Some("online".to_string()),
-    };
-    assert_json_contract(&body, json!({ "status": "online" }));
+    let body = PatchAgentBody { status: Some(1) };
+    assert_json_contract(&body, json!({ "status": 1 }));
 
     let roundtrip: PatchAgentBody = from_value(to_value(&body).unwrap()).unwrap();
-    assert_eq!(roundtrip.status, Some("online".to_string()));
+    assert_eq!(roundtrip.status, Some(1));
 }
 
 #[test]
@@ -320,10 +314,10 @@ fn agent_patch_body_empty() {
 fn agent_patch_result_roundtrip() {
     let result = parse_contract::<PatchAgentResult>(json!({
         "agent_id": "agent_001",
-        "status": "online"
+        "status": 1
     }));
     assert_eq!(result.agent_id, Some("agent_001".to_string()));
-    assert_eq!(result.status, Some("online".to_string()));
+    assert_eq!(result.status, Some(1));
 }
 
 // ── Ticket Message 模型 ─────────────────────────────────────

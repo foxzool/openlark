@@ -8,7 +8,6 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::common::api_utils::serialize_params;
@@ -16,21 +15,14 @@ use crate::common::api_utils::serialize_params;
 /// 更新客服信息请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PatchAgentBody {
-    /// 客服状态: offline:离线, online:在线, busy:忙碌
+    /// 客服状态。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<i32>,
 }
 
 impl PatchAgentBody {
     /// 验证请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        if let Some(status) = &self.status
-            && !["offline", "online", "busy"].contains(&status.as_str())
-        {
-            return Err(openlark_core::CoreError::validation_msg(
-                "status must be offline, online, or busy",
-            ));
-        }
         Ok(())
     }
 }
@@ -38,34 +30,29 @@ impl PatchAgentBody {
 /// 更新客服信息响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatchAgentResponse {
-    /// 响应数据。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<PatchAgentResult>,
-}
-
-impl openlark_core::api::ApiResponseTrait for PatchAgentResponse {}
-
-/// 更新客服信息结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PatchAgentResult {
     /// 客服ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
     /// 客服状态
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<i32>,
 }
+
+impl openlark_core::api::ApiResponseTrait for PatchAgentResponse {}
+
+/// 更新客服信息结果。
+pub type PatchAgentResult = PatchAgentResponse;
 
 /// 更新客服信息请求
 #[derive(Debug, Clone)]
 pub struct PatchAgentRequest {
-    config: Arc<Config>,
+    config: Config,
     agent_id: String,
 }
 
 impl PatchAgentRequest {
     /// 创建新的更新客服信息请求
-    pub fn new(config: Arc<Config>, agent_id: String) -> Self {
+    pub fn new(config: Config, agent_id: String) -> Self {
         Self { config, agent_id }
     }
 
@@ -94,14 +81,14 @@ impl PatchAgentRequest {
 /// 更新客服信息请求构建器
 #[derive(Debug, Clone)]
 pub struct PatchAgentRequestBuilder {
-    config: Arc<Config>,
+    config: Config,
     agent_id: String,
-    status: Option<String>,
+    status: Option<i32>,
 }
 
 impl PatchAgentRequestBuilder {
     /// 创建新的构建器
-    pub fn new(config: Arc<Config>, agent_id: String) -> Self {
+    pub fn new(config: Config, agent_id: String) -> Self {
         Self {
             config,
             agent_id,
@@ -110,15 +97,15 @@ impl PatchAgentRequestBuilder {
     }
 
     /// 设置客服状态
-    pub fn status(mut self, status: impl Into<String>) -> Self {
-        self.status = Some(status.into());
+    pub fn status(mut self, status: i32) -> Self {
+        self.status = Some(status);
         self
     }
 
     /// 构建请求体
     pub fn body(&self) -> PatchAgentBody {
         PatchAgentBody {
-            status: self.status.clone(),
+            status: self.status,
         }
     }
 
@@ -169,23 +156,16 @@ pub async fn patch_agent_with_options(
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
-    fn test_body_validation_valid_status() {
-        let body = PatchAgentBody {
-            status: Some("online".to_string()),
-        };
-        let result = body.validate();
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_body_validation_invalid_status() {
-        let body = PatchAgentBody {
-            status: Some("invalid_status".to_string()),
-        };
-        let result = body.validate();
-        assert!(result.is_err());
+    fn test_body_serializes_integer_status() {
+        let body = PatchAgentBody { status: Some(1) };
+        assert!(body.validate().is_ok());
+        assert_eq!(
+            serde_json::to_value(body).expect("序列化请求体失败"),
+            json!({ "status": 1 })
+        );
     }
 
     #[test]
@@ -194,47 +174,43 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = PatchAgentRequestBuilder::new(Arc::new(config), "agent_123".to_string());
+        let builder = PatchAgentRequestBuilder::new(config, "agent_123".to_string());
 
         assert!(builder.status.is_none());
     }
 
-    /// 端到端：PATCH .../agents/{agent_id} → 强类型 PatchAgentResponse 解析（双层 data 信封）。
+    /// 端到端：PATCH .../agents/{agent_id} → 强类型响应解析。
     #[tokio::test]
     async fn test_patch_agent_returns_data_on_success() {
-        use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("PATCH"))
             .and(path("/open-apis/helpdesk/v1/agents/ag_001"))
+            .and(body_json(json!({ "status": 1 })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "agent_id": "ag_001", "status": "online" } }
+                "data": { "agent_id": "ag_001", "status": 1 }
             })))
             .mount(&server)
             .await;
 
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-        let body = PatchAgentBody {
-            status: Some("online".to_string()),
-        };
+        let body = PatchAgentBody { status: Some(1) };
         let resp = PatchAgentRequest::new(config, "ag_001".to_string())
             .execute(body)
             .await
             .expect("更新客服信息应成功");
-        assert!(resp.data.is_some());
+        assert_eq!(resp.status, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

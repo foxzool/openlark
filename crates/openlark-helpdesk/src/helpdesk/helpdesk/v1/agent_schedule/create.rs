@@ -9,7 +9,6 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::common::api_utils::serialize_params;
@@ -17,30 +16,46 @@ use crate::common::api_utils::serialize_params;
 /// 创建客服工作日程请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateAgentScheduleBody {
-    /// 客服ID
+    /// 待创建的客服日程列表。
+    pub agent_schedules: Vec<AgentSchedule>,
+}
+
+/// 客服日程。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AgentSchedule {
+    /// 客服 ID。
     pub agent_id: String,
-    /// 工作日期 (格式: YYYY-MM-DD)
-    pub work_date: String,
-    /// 开始时间 (格式: HH:mm:ss)
-    pub start_time: String,
-    /// 结束时间 (格式: HH:mm:ss)
-    pub end_time: String,
-    /// 星期几 (1-7, 1表示周一)
+    /// 每周工作时间段。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub day_of_week: Option<i32>,
+    pub schedule: Option<Vec<WeekdaySchedule>>,
+    /// 客服技能 ID 列表。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_skill_ids: Option<Vec<String>>,
+}
+
+/// 每周工作时间段。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WeekdaySchedule {
+    /// 开始时间，格式为 HH:mm。
+    pub start_time: String,
+    /// 结束时间，格式为 HH:mm。
+    pub end_time: String,
+    /// 星期标识。
+    pub weekday: i32,
 }
 
 impl CreateAgentScheduleBody {
     /// 验证请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.agent_id, "agent_id is required");
-        validate_required!(self.work_date, "work_date is required");
-        validate_required!(self.start_time, "start_time is required");
-        validate_required!(self.end_time, "end_time is required");
-        if self.start_time >= self.end_time {
-            return Err(openlark_core::CoreError::validation_msg(
-                "start_time must be less than end_time",
-            ));
+        validate_required!(self.agent_schedules, "agent_schedules 不能为空");
+        for agent_schedule in &self.agent_schedules {
+            validate_required!(agent_schedule.agent_id, "agent_id 不能为空");
+            if let Some(schedule) = &agent_schedule.schedule {
+                for item in schedule {
+                    validate_required!(item.start_time, "start_time 不能为空");
+                    validate_required!(item.end_time, "end_time 不能为空");
+                }
+            }
         }
         Ok(())
     }
@@ -49,42 +64,25 @@ impl CreateAgentScheduleBody {
 /// 创建客服工作日程响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAgentScheduleResponse {
-    /// 响应数据。
+    /// 已创建的客服日程列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CreateAgentScheduleResult>,
+    pub agent_schedules: Option<Vec<AgentSchedule>>,
 }
 
 impl openlark_core::api::ApiResponseTrait for CreateAgentScheduleResponse {}
 
-/// 创建客服工作日程结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateAgentScheduleResult {
-    /// 客服ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub agent_id: Option<String>,
-    /// 工作日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub work_date: Option<String>,
-    /// 开始时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_time: Option<String>,
-    /// 结束时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_time: Option<String>,
-    /// 星期几
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub day_of_week: Option<i32>,
-}
+/// 创建客服工作日程结果。
+pub type CreateAgentScheduleResult = CreateAgentScheduleResponse;
 
 /// 创建客服工作日程请求
 #[derive(Debug, Clone)]
 pub struct CreateAgentScheduleRequest {
-    config: Arc<Config>,
+    config: Config,
 }
 
 impl CreateAgentScheduleRequest {
     /// 创建新的创建客服工作日程请求
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self { config }
     }
 
@@ -116,78 +114,41 @@ impl CreateAgentScheduleRequest {
 /// 创建客服工作日程请求构建器
 #[derive(Debug, Clone)]
 pub struct CreateAgentScheduleRequestBuilder {
-    config: Arc<Config>,
-    agent_id: Option<String>,
-    work_date: Option<String>,
-    start_time: Option<String>,
-    end_time: Option<String>,
-    day_of_week: Option<i32>,
+    config: Config,
+    agent_schedules: Vec<AgentSchedule>,
 }
 
 impl CreateAgentScheduleRequestBuilder {
     /// 创建新的构建器
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             config,
-            agent_id: None,
-            work_date: None,
-            start_time: None,
-            end_time: None,
-            day_of_week: None,
+            agent_schedules: Vec::new(),
         }
     }
 
-    /// 设置客服ID
-    pub fn agent_id(mut self, agent_id: impl Into<String>) -> Self {
-        self.agent_id = Some(agent_id.into());
+    /// 设置待创建的客服日程列表。
+    pub fn agent_schedules(mut self, agent_schedules: Vec<AgentSchedule>) -> Self {
+        self.agent_schedules = agent_schedules;
         self
     }
 
-    /// 设置工作日期 (格式: YYYY-MM-DD)
-    pub fn work_date(mut self, work_date: impl Into<String>) -> Self {
-        self.work_date = Some(work_date.into());
-        self
-    }
-
-    /// 设置开始时间 (格式: HH:mm:ss)
-    pub fn start_time(mut self, start_time: impl Into<String>) -> Self {
-        self.start_time = Some(start_time.into());
-        self
-    }
-
-    /// 设置结束时间 (格式: HH:mm:ss)
-    pub fn end_time(mut self, end_time: impl Into<String>) -> Self {
-        self.end_time = Some(end_time.into());
-        self
-    }
-
-    /// 设置星期几 (1-7)
-    pub fn day_of_week(mut self, day_of_week: i32) -> Self {
-        self.day_of_week = Some(day_of_week);
+    /// 添加一个客服日程。
+    pub fn agent_schedule(mut self, agent_schedule: AgentSchedule) -> Self {
+        self.agent_schedules.push(agent_schedule);
         self
     }
 
     /// 构建请求体
-    pub fn body(&self) -> Result<CreateAgentScheduleBody, String> {
-        let agent_id = self.agent_id.clone().ok_or("agent_id is required")?;
-        let work_date = self.work_date.clone().ok_or("work_date is required")?;
-        let start_time = self.start_time.clone().ok_or("start_time is required")?;
-        let end_time = self.end_time.clone().ok_or("end_time is required")?;
-
-        Ok(CreateAgentScheduleBody {
-            agent_id,
-            work_date,
-            start_time,
-            end_time,
-            day_of_week: self.day_of_week,
-        })
+    pub fn body(&self) -> CreateAgentScheduleBody {
+        CreateAgentScheduleBody {
+            agent_schedules: self.agent_schedules.clone(),
+        }
     }
 
     /// 执行请求
     pub async fn execute(&self) -> SDKResult<CreateAgentScheduleResponse> {
-        let body = self
-            .body()
-            .map_err(|reason| openlark_core::error::validation_error("body", reason))?;
+        let body = self.body();
         let request = CreateAgentScheduleRequest::new(self.config.clone());
         request.execute(body).await
     }
@@ -220,44 +181,49 @@ pub async fn create_agent_schedule_with_options(
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
-    fn test_body_validation_valid() {
+    fn test_body_serialization_matches_official_schema() {
         let body = CreateAgentScheduleBody {
-            agent_id: "agent_123".to_string(),
-            work_date: "2024-01-15".to_string(),
-            start_time: "09:00:00".to_string(),
-            end_time: "18:00:00".to_string(),
-            day_of_week: Some(1),
+            agent_schedules: vec![AgentSchedule {
+                agent_id: "agent_123".to_string(),
+                schedule: Some(vec![WeekdaySchedule {
+                    start_time: "00:00".to_string(),
+                    end_time: "24:00".to_string(),
+                    weekday: 9,
+                }]),
+                agent_skill_ids: Some(vec!["test-skill-id".to_string()]),
+            }],
         };
-        let result = body.validate();
-        assert!(result.is_ok());
+        assert!(body.validate().is_ok());
+        assert_eq!(
+            serde_json::to_value(body).expect("序列化请求体失败"),
+            json!({
+                "agent_schedules": [{
+                    "agent_id": "agent_123",
+                    "schedule": [{
+                        "start_time": "00:00",
+                        "end_time": "24:00",
+                        "weekday": 9
+                    }],
+                    "agent_skill_ids": ["test-skill-id"]
+                }]
+            })
+        );
     }
 
     #[test]
-    fn test_body_validation_empty_agent_id() {
+    fn test_body_validation_rejects_empty_agent_id() {
         let body = CreateAgentScheduleBody {
-            agent_id: "".to_string(),
-            work_date: "2024-01-15".to_string(),
-            start_time: "09:00:00".to_string(),
-            end_time: "18:00:00".to_string(),
-            day_of_week: None,
+            agent_schedules: vec![AgentSchedule::default()],
         };
-        let result = body.validate();
-        assert!(result.is_err());
+        assert!(body.validate().is_err());
     }
 
     #[test]
-    fn test_body_validation_invalid_time() {
-        let body = CreateAgentScheduleBody {
-            agent_id: "agent_123".to_string(),
-            work_date: "2024-01-15".to_string(),
-            start_time: "18:00:00".to_string(),
-            end_time: "09:00:00".to_string(),
-            day_of_week: None,
-        };
-        let result = body.validate();
-        assert!(result.is_err());
+    fn test_body_validation_rejects_empty_list() {
+        assert!(CreateAgentScheduleBody::default().validate().is_err());
     }
 
     #[test]
@@ -266,51 +232,63 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = CreateAgentScheduleRequestBuilder::new(Arc::new(config));
+        let builder = CreateAgentScheduleRequestBuilder::new(config);
 
-        assert!(builder.agent_id.is_none());
+        assert!(builder.agent_schedules.is_empty());
     }
 
-    /// 端到端：POST .../agent_schedules → 强类型 CreateAgentScheduleResponse 解析（双层 data 信封）。
+    /// 端到端：POST .../agent_schedules → 强类型响应解析。
     #[tokio::test]
     async fn test_create_agent_schedule_returns_data_on_success() {
-        use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/helpdesk/v1/agent_schedules"))
+            .and(body_json(json!({
+                "agent_schedules": [{
+                    "agent_id": "ag_001",
+                    "schedule": [{
+                        "start_time": "00:00",
+                        "end_time": "24:00",
+                        "weekday": 9
+                    }],
+                    "agent_skill_ids": ["test-skill-id"]
+                }]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "agent_id": "ag_001", "work_date": "2024-01-15" } }
+                "data": { "agent_schedules": [{ "agent_id": "ag_001" }] }
             })))
             .mount(&server)
             .await;
 
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
         let body = CreateAgentScheduleBody {
-            agent_id: "ag_001".to_string(),
-            work_date: "2024-01-15".to_string(),
-            start_time: "09:00:00".to_string(),
-            end_time: "18:00:00".to_string(),
-            day_of_week: Some(1),
+            agent_schedules: vec![AgentSchedule {
+                agent_id: "ag_001".to_string(),
+                schedule: Some(vec![WeekdaySchedule {
+                    start_time: "00:00".to_string(),
+                    end_time: "24:00".to_string(),
+                    weekday: 9,
+                }]),
+                agent_skill_ids: Some(vec!["test-skill-id".to_string()]),
+            }],
         };
         let resp = CreateAgentScheduleRequest::new(config)
             .execute(body)
             .await
             .expect("创建客服工作日程应成功");
-        assert!(resp.data.is_some());
+        assert_eq!(resp.agent_schedules.as_ref().map(Vec::len), Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
