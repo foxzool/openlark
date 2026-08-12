@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **ai：对齐飞书 OCR/语音/翻译/合同抽取 OpenAPI 请求体**：按官方文档重写
+  `openlark-ai` 中 5 个字段硬错误接口的 Body/Response。
+  - `optical_char_recognition/.../basic_recognize`：`image`（base64；文档标选填，
+    SDK 建模为必填）替代错误的 `file_token`/`recognition_model`；响应为 `text_list`。
+  - `speech_to_text/.../file_recognize`：`speech.speech` + `config.{file_id,format,engine_type}`；
+    响应为 `recognition_text`。
+  - `speech_to_text/.../stream_recognize`：`speech.speech` +
+    `config.{stream_id,sequence_id,action,format,engine_type}`；响应含 `recognition_text` 等。
+  - `translation/.../text/translate`：单字段 `text` + 可选 `glossary[{from,to}]`，移除 `texts`；
+    响应为 `text`。
+  - `document_ai/.../contract/field_extraction`：改为 multipart `file` + 必填
+    `pdf_page_limit`/`ocr_mode`（移除错误的 `file_token`/`is_async`）。
+
 - **user：对齐飞书 personal_settings system_status OpenAPI 请求/响应体**：按官方文档重写
   `openlark-user` 全部 6 个 system_status 接口的 Body/Response。
   - `batch_close`：请求体字段 `user_ids` → `user_list`（`string[]`，长度 1～50）；响应为

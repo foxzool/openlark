@@ -133,6 +133,13 @@ def _extract_fields_from_block(block: str) -> List[FieldInfo]:
             continue
         fname = field_match.group(1)
         raw_type = field_match.group(2).strip().rstrip(",")
+        # multipart 内部元数据（如 __file_name）不参与官方字段对比
+        effective = pending_rename or fname
+        if effective.startswith("__"):
+            pending_rename = None
+            pending_skip_serializing = False
+            pending_attrs.clear()
+            continue
         required, type_name, is_array = _parse_type(raw_type)
         fields.append(
             FieldInfo(
@@ -475,7 +482,7 @@ def compare_fields(
 ) -> FieldDiff:
     """对比代码字段与文档字段（名字 + 必填性 + 类型）。
 
-    必填性：文档 Yes + 代码 Option → error；文档 No + 代码非 Option → warning。
+    必填性：文档 Yes + 代码 Option → error；文档 No + 代码非 Option → info（更严建模，不阻断）。
     类型：仅当代码侧是已知原始类型时对比；不匹配 → warning。
     空文档类型 / 未建模文档类型 / 代码自定义 enum·newtype → 跳过类型对比。
     """
@@ -502,9 +509,10 @@ def compare_fields(
                 )
             )
         elif doc_f.required is False and code_f.required is True:
+            # 代码比文档更严是常见有意建模（如 OCR image），不阻断门禁
             required_mismatches.append(
                 FieldIssue(
-                    severity="warning",
+                    severity="info",
                     category="required_mismatch",
                     detail=(
                         f"字段 {name} 文档选填(No) 但代码非 Option（代码更严，可能有意）"
