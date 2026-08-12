@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **user：对齐飞书 personal_settings system_status OpenAPI 请求/响应体**：按官方文档重写
+  `openlark-user` 全部 6 个 system_status 接口的 Body/Response。
+  - `batch_close`：请求体字段 `user_ids` → `user_list`（`string[]`，长度 1～50）；响应为
+    `result_list[{user_id,result}]`；支持查询参数 `user_id_type`。
+  - `batch_open`：补齐必填 body.`user_list[{user_id,end_time}]`；响应为
+    `result_list[{user_id,end_time,result}]`。
+  - `create`：补齐 body（`title`/`icon_key` 必填，及 `i18n_title`/`color`/`priority`/`sync_setting`）；
+    响应为 `system_status`。
+  - `patch`：补齐 body.`system_status` + `update_fields`；路径参数 setter 为 `system_status_id`；
+    响应为 `system_status`。
+  - `list`：补齐查询参数 `page_size`/`page_token`；响应为 `items`/`has_more`/`page_token`。
+  - `delete`：路径参数 setter 为 `system_status_id`；响应 `data` 为空对象。
+  - 移除错误的双重嵌套 `Response { data: Option<Value> }`（`Transport` 已解包外层 `data`）。
+
 - **cardkit：对齐飞书 CardKit OpenAPI 请求体（#603）**：按官方文档重写
   `openlark-cardkit` 全量/局部更新、配置、组件增删改、流式文本与 `id_convert` 的 Body 字段。
   - 所有流式相关写接口补齐必填 `sequence`（及可选 `uuid`）；路径参数 `card_id`/`element_id` 不再序列化进 JSON body。
