@@ -261,6 +261,40 @@ class ComparisonTests(unittest.TestCase):
         diff = verify_api_fields.compare_fields(code, official)
         self.assertEqual(diff.type_mismatches, [])
 
+    def test_compare_fields_skips_custom_enum_vs_doc_string(self):
+        """serde 自定义枚举对文档 string 是合法建模，不得 type_mismatch。"""
+        code = [
+            verify_api_fields.FieldInfo(
+                "recognition_model", "RecognitionModel", False
+            )
+        ]
+        official = [
+            verify_api_fields.FieldInfo("recognition_model", "string", False)
+        ]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(diff.type_mismatches, [])
+
+    def test_compare_fields_skips_custom_enum_vec_vs_doc_string_array(self):
+        code = [
+            verify_api_fields.FieldInfo(
+                "modes", "RecognitionModel", True, is_array=True
+            )
+        ]
+        official = [
+            verify_api_fields.FieldInfo(
+                "modes", "string[]", True, is_array=True
+            )
+        ]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(diff.type_mismatches, [])
+
+    def test_compare_fields_still_warns_primitive_mismatch(self):
+        """已知原始类型不一致仍应 warning（回归：自定义跳过不能吞掉真冲突）。"""
+        code = [verify_api_fields.FieldInfo("count", "String", True)]
+        official = [verify_api_fields.FieldInfo("count", "int", True)]
+        diff = verify_api_fields.compare_fields(code, official)
+        self.assertEqual(len(diff.type_mismatches), 1)
+
     def test_compare_fields_skips_required_when_doc_required_unknown(self):
         code = [verify_api_fields.FieldInfo("x", "String", True)]
         official = [verify_api_fields.FieldInfo("x", "string", None)]

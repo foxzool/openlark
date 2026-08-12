@@ -430,6 +430,10 @@ _DOC_TYPE_TO_RUST: dict[str, set[str]] = {
     "double": {"f64"},
 }
 
+# 仅当代码侧是这些已知原始类型时才做类型对比；
+# 自定义 enum/newtype（如 RecognitionModel）对文档 string/string[] 跳过，避免假绿反向的假警告。
+_KNOWN_RUST_PRIMITIVES: frozenset[str] = frozenset().union(*_DOC_TYPE_TO_RUST.values())
+
 
 def _doc_type_core(type_name: str) -> Optional[Tuple[str, bool]]:
     """解析文档类型为 (核心类型小写, 是否数组)。空类型返回 None（跳过对比）。"""
@@ -454,7 +458,8 @@ def compare_fields(
     """对比代码字段与文档字段（名字 + 必填性 + 类型）。
 
     必填性：文档 Yes + 代码 Option → error；文档 No + 代码非 Option → warning。
-    类型：文档类型映射到 Rust 核心类型后不匹配 → warning；空类型跳过。
+    类型：仅当代码侧是已知原始类型时对比；不匹配 → warning。
+    空文档类型 / 未建模文档类型 / 代码自定义 enum·newtype → 跳过类型对比。
     """
     code_by_name = {f.effective_name: f for f in code_fields}
     doc_by_name = {f.effective_name: f for f in doc_fields}
@@ -498,6 +503,10 @@ def compare_fields(
             # object/file/自定义等未建模类型：跳过，避免误报
             continue
         code_core = _rust_type_basename(code_f.type_name)
+        if code_core not in _KNOWN_RUST_PRIMITIVES:
+            # 代码侧是自定义 enum/newtype 等：跳过类型对比
+            # （文档 string ↔ serde 枚举是合法建模，不能假警告阻断门禁）
+            continue
         array_mismatch = doc_is_array != code_f.is_array
         core_mismatch = code_core not in accepted
         if array_mismatch or core_mismatch:
