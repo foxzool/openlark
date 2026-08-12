@@ -1,47 +1,72 @@
 //! 更新应用红点
-//! docPath: <https://open.feishu.cn/document/server-docs/application-v6/app_badge/set>
+//!
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/application-v6/app_badge/set>
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+/// 客户端红点数量（`client_badge_num`）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClientBadgeNum {
+    /// h5 / web_app 能力的 badge 数量。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web_app: Option<i32>,
+    /// 小程序能力的 badge 数量。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gadget: Option<i32>,
+}
 
 /// 更新应用红点的请求。
 #[derive(Debug, Clone)]
 pub struct SetAppBadgeRequest {
     config: Arc<Config>,
+    /// 查询参数 `user_id_type`。
+    user_id_type: Option<String>,
     body: SetAppBadgeBody,
 }
 
 /// 更新应用红点的请求体。
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SetAppBadgeBody {
-    /// 应用 ID。
-    pub app_id: String,
-    /// 徽标。
-    pub badge: i32,
+    /// 用户 ID（类型由 `user_id_type` 决定）。
+    pub user_id: String,
+    /// 红点数据版本号。
+    pub version: String,
+    /// 红点额外信息（JSON 字符串）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra: Option<String>,
+    /// PC 端红点数量。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pc: Option<ClientBadgeNum>,
+    /// 移动端红点数量。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile: Option<ClientBadgeNum>,
 }
 
-/// 更新应用红点的响应。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SetAppBadgeResponse {
-    /// 响应数据。
-    pub data: Option<serde_json::Value>,
+impl SetAppBadgeBody {
+    fn validate(&self) -> SDKResult<()> {
+        validate_required!(self.user_id.trim(), "user_id 不能为空");
+        validate_required!(self.version.trim(), "version 不能为空");
+        Ok(())
+    }
 }
+
+/// 更新应用红点响应 `data`（文档为空对象）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SetAppBadgeResponse {}
 
 impl ApiResponseTrait for SetAppBadgeResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
-    }
-
-    /// 成功但无 `data` 字段时的空成功（set 类 API，与旧 `unwrap_or` 默认值一致）。
     fn empty_success() -> Option<Self> {
-        Some(Self { data: None })
+        Some(Self::default())
     }
 }
 
@@ -50,19 +75,44 @@ impl SetAppBadgeRequest {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
+            user_id_type: None,
             body: SetAppBadgeBody::default(),
         }
     }
 
-    /// 设置应用 ID。
-    pub fn app_id(mut self, id: impl Into<String>) -> Self {
-        self.body.app_id = id.into();
+    /// 设置用户 ID 类型（查询参数）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
-    /// 设置徽标。
-    pub fn badge(mut self, badge: i32) -> Self {
-        self.body.badge = badge;
+    /// 设置用户 ID。
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.body.user_id = user_id.into();
+        self
+    }
+
+    /// 设置红点数据版本号。
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.body.version = version.into();
+        self
+    }
+
+    /// 设置红点额外信息。
+    pub fn extra(mut self, extra: impl Into<String>) -> Self {
+        self.body.extra = Some(extra.into());
+        self
+    }
+
+    /// 设置 PC 端红点数量。
+    pub fn pc(mut self, pc: ClientBadgeNum) -> Self {
+        self.body.pc = Some(pc);
+        self
+    }
+
+    /// 设置移动端红点数量。
+    pub fn mobile(mut self, mobile: ClientBadgeNum) -> Self {
+        self.body.mobile = Some(mobile);
         self
     }
 
@@ -76,33 +126,35 @@ impl SetAppBadgeRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<SetAppBadgeResponse> {
-        let path = "/open-apis/application/v6/app_badge/set";
+        self.body.validate()?;
         let body = serde_json::to_value(&self.body)?;
-        let req: ApiRequest<SetAppBadgeResponse> = ApiRequest::post(path).body(body);
+        let req: ApiRequest<SetAppBadgeResponse> =
+            ApiRequest::post("/open-apis/application/v6/app_badge/set")
+                .query_opt("user_id_type", self.user_id_type.as_ref())
+                .body(body)
+                .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
         Transport::request_typed(req, &self.config, Some(option), "更新应用红点").await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST .../app_badge/set → 强类型 SetAppBadgeResponse 解析（双层 data 信封）。
+    /// 端到端：POST .../app_badge/set + 官方 body → 空 data。
     #[tokio::test]
     async fn test_set_app_badge_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/application/v6/app_badge/set"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "app_id": "cli_test_app", "badge": 5 } }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -116,19 +168,33 @@ mod tests {
                 .build(),
         );
 
-        let resp = SetAppBadgeRequest::new(config)
-            .app_id("cli_test_app")
-            .badge(5)
+        let _resp = SetAppBadgeRequest::new(config)
+            .user_id_type("open_id")
+            .user_id("ou_d317f090b7258ad0372aa53963cda70d")
+            .version("1664360599355")
+            .extra("{}")
+            .pc(ClientBadgeNum {
+                web_app: Some(1),
+                gadget: Some(2),
+            })
+            .mobile(ClientBadgeNum {
+                web_app: Some(1),
+                gadget: Some(2),
+            })
             .execute()
             .await
             .expect("更新应用红点应成功");
-        assert_eq!(resp.data.unwrap()["app_id"], "cli_test_app");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
-        assert_eq!(
-            received[0].url.path(),
-            "/open-apis/application/v6/app_badge/set"
-        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("user_id_type=open_id"));
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["user_id"], "ou_d317f090b7258ad0372aa53963cda70d");
+        assert_eq!(sent["version"], "1664360599355");
+        assert_eq!(sent["pc"]["web_app"], 1);
+        assert_eq!(sent["mobile"]["gadget"], 2);
+        assert!(sent.get("app_id").is_none());
+        assert!(sent.get("badge").is_none());
     }
 }

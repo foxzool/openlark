@@ -35,11 +35,17 @@ mod v1_tests {
     #[test]
     fn set_app_badge_body_contract() {
         let body: SetAppBadgeBody = parse_contract(json!({
-            "app_id": "cli_a5xxxxxxxx",
-            "badge": 3
+            "user_id": "ou_d317f090b7258ad0372aa53963cda70d",
+            "version": "1664360599355",
+            "extra": "{}",
+            "pc": { "web_app": 1, "gadget": 2 },
+            "mobile": { "web_app": 1, "gadget": 2 }
         }));
-        assert_eq!(body.app_id, "cli_a5xxxxxxxx");
-        assert_eq!(body.badge, 3);
+        assert_eq!(body.user_id, "ou_d317f090b7258ad0372aa53963cda70d");
+        assert_eq!(body.version, "1664360599355");
+        assert_eq!(body.extra.as_deref(), Some("{}"));
+        assert_eq!(body.pc.as_ref().unwrap().web_app, Some(1));
+        assert_eq!(body.mobile.as_ref().unwrap().gadget, Some(2));
     }
 }
 

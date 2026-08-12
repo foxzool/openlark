@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+<<<<<<< HEAD
 - **ai：对齐飞书 OCR/语音/翻译/合同抽取 OpenAPI 请求体**：按官方文档重写
   `openlark-ai` 中 5 个字段硬错误接口的 Body/Response。
   - `optical_char_recognition/.../basic_recognize`：`image`（base64；文档标选填，
@@ -23,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     响应为 `text`。
   - `document_ai/.../contract/field_extraction`：改为 multipart `file` + 必填
     `pdf_page_limit`/`ocr_mode`（移除错误的 `file_token`/`is_async`）。
+=======
+- **application：对齐飞书 app_badge/set OpenAPI 请求体**：按官方文档重写
+  `openlark-application` `application/v6/app_badge/set`（及历史 v1 同名模块）Body。
+  - 移除错误推断字段 `app_id` / `badge`。
+  - 官方字段：必填 `user_id` + `version`；可选 `extra`、`pc`/`mobile`
+    （`client_badge_num`：`web_app` / `gadget`）；查询参数 `user_id_type`。
+  - 响应 `data` 为空对象，去掉错误的双重嵌套 `Response { data: Option<Value> }`。
+>>>>>>> origin/main
 
 - **user：对齐飞书 personal_settings system_status OpenAPI 请求/响应体**：按官方文档重写
   `openlark-user` 全部 6 个 system_status 接口的 Body/Response。
