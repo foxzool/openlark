@@ -30,7 +30,7 @@ impl Agent {
 
     /// 更新客服信息
     pub fn patch(&self, agent_id: impl Into<String>) -> patch::PatchAgentRequest {
-        patch::PatchAgentRequest::new(self.config.clone(), agent_id.into())
+        patch::PatchAgentRequest::new(self.config.as_ref().clone(), agent_id.into())
     }
 
     /// 访问客服工作日程

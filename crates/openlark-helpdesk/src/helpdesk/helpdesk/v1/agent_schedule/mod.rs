@@ -34,7 +34,7 @@ impl AgentSchedule {
 
     /// 创建客服工作日程
     pub fn create(&self) -> create::CreateAgentScheduleRequest {
-        create::CreateAgentScheduleRequest::new(self.config.clone())
+        create::CreateAgentScheduleRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定客服的工作日程

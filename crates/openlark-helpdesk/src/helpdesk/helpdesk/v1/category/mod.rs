@@ -34,7 +34,7 @@ impl Category {
 
     /// 创建知识库分类
     pub fn create(&self) -> create::CreateCategoryRequest {
-        create::CreateCategoryRequest::new(self.config.clone())
+        create::CreateCategoryRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定知识库分类
@@ -44,7 +44,7 @@ impl Category {
 
     /// 更新指定知识库分类
     pub fn patch(&self, id: impl Into<String>) -> patch::PatchCategoryRequest {
-        patch::PatchCategoryRequest::new(self.config.clone(), id.into())
+        patch::PatchCategoryRequest::new(self.config.as_ref().clone(), id.into())
     }
 
     /// 删除指定知识库分类

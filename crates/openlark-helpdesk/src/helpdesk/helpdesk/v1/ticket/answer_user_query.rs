@@ -8,14 +8,14 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// 回复用户提问请求。
 #[derive(Debug, Clone)]
 pub struct AnswerUserQueryRequest {
-    config: Arc<Config>,
+    config: Config,
     ticket_id: String,
     body: AnswerUserQueryBody,
 }
@@ -23,21 +23,25 @@ pub struct AnswerUserQueryRequest {
 /// 回复用户提问请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AnswerUserQueryBody {
-    /// 回复内容。
-    pub content: String,
-    /// 回复内容类型。
+    /// 事件 ID。
+    pub event_id: String,
+    /// 推荐的知识库答案。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_type: Option<String>,
+    pub faqs: Option<Vec<AnswerUserQueryFaq>>,
+}
+
+/// 推荐的知识库答案。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnswerUserQueryFaq {
+    /// 知识库 ID。
+    pub id: String,
+    /// 匹配分数。
+    pub score: f64,
 }
 
 impl AnswerUserQueryBody {
     fn validate(&self) -> SDKResult<()> {
-        if self.content.trim().is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "回复内容不能为空",
-                "",
-            ));
-        }
+        validate_required!(self.event_id, "event_id 不能为空");
         Ok(())
     }
 }
@@ -45,8 +49,8 @@ impl AnswerUserQueryBody {
 /// 回复用户提问响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnswerUserQueryResponse {
-    /// 响应数据。
-    pub data: Option<AnswerUserQueryData>,
+    /// 消息 ID。
+    pub message_id: String,
 }
 
 impl ApiResponseTrait for AnswerUserQueryResponse {
@@ -55,16 +59,9 @@ impl ApiResponseTrait for AnswerUserQueryResponse {
     }
 }
 
-/// 回复用户提问响应数据。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AnswerUserQueryData {
-    /// 消息 ID。
-    pub message_id: String,
-}
-
 impl AnswerUserQueryRequest {
     /// 创建新的实例。
-    pub fn new(config: Arc<Config>, ticket_id: impl Into<String>) -> Self {
+    pub fn new(config: Config, ticket_id: impl Into<String>) -> Self {
         Self {
             config,
             ticket_id: ticket_id.into(),
@@ -72,15 +69,15 @@ impl AnswerUserQueryRequest {
         }
     }
 
-    /// 设置回复内容。
-    pub fn content(mut self, content: impl Into<String>) -> Self {
-        self.body.content = content.into();
+    /// 设置事件 ID。
+    pub fn event_id(mut self, event_id: impl Into<String>) -> Self {
+        self.body.event_id = event_id.into();
         self
     }
 
-    /// 设置回复内容类型。
-    pub fn content_type(mut self, content_type: impl Into<String>) -> Self {
-        self.body.content_type = Some(content_type.into());
+    /// 设置推荐的知识库答案。
+    pub fn faqs(mut self, faqs: Vec<AnswerUserQueryFaq>) -> Self {
+        self.body.faqs = Some(faqs);
         self
     }
 
@@ -109,7 +106,30 @@ impl AnswerUserQueryRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../tickets/{id}/answer_user_query → 强类型 AnswerUserQueryResponse 解析（双层 data 信封）。
+    #[test]
+    fn test_body_validation_requires_event_id() {
+        let body = AnswerUserQueryBody::default();
+        assert!(body.validate().is_err());
+    }
+
+    #[test]
+    fn test_body_serialization_matches_official_shape() {
+        let body = AnswerUserQueryBody {
+            event_id: "abcd".to_string(),
+            faqs: Some(vec![AnswerUserQueryFaq {
+                id: "12345".to_string(),
+                score: 0.9,
+            }]),
+        };
+        let value = serde_json::to_value(body).expect("请求体应可序列化");
+
+        assert_eq!(value["event_id"], "abcd");
+        assert_eq!(value["faqs"][0]["id"], "12345");
+        assert!(value.get("content").is_none());
+        assert!(value.get("content_type").is_none());
+    }
+
+    /// 端到端：POST .../tickets/{id}/answer_user_query → 强类型响应解析。
     #[tokio::test]
     async fn test_answer_user_query_returns_data_on_success() {
         use serde_json::json;
@@ -125,27 +145,28 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "message_id": "msg_001" } }
+                "data": { "message_id": "msg_001" }
             })))
             .mount(&server)
             .await;
 
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
         let resp = AnswerUserQueryRequest::new(config, "tk_001")
-            .content("您好，请问需要什么帮助？")
+            .event_id("abcd")
+            .faqs(vec![AnswerUserQueryFaq {
+                id: "12345".to_string(),
+                score: 0.9,
+            }])
             .execute()
             .await
             .expect("回复用户提问应成功");
-        assert!(resp.data.is_some());
-        assert_eq!(resp.data.unwrap().message_id, "msg_001");
+        assert_eq!(resp.message_id, "msg_001");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

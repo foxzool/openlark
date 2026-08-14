@@ -8,10 +8,13 @@ use openlark_helpdesk::helpdesk::helpdesk::v1::agent::patch::{PatchAgentBody, Pa
 use openlark_helpdesk::helpdesk::helpdesk::v1::category::create::{
     CreateCategoryBody, CreateCategoryResult,
 };
-use openlark_helpdesk::helpdesk::helpdesk::v1::faq::create::{CreateFaqBody, CreateFaqResult};
-use openlark_helpdesk::helpdesk::helpdesk::v1::notification::create::{
-    CreateNotificationBody, CreateNotificationResult,
+use openlark_helpdesk::helpdesk::helpdesk::v1::faq::create::{
+    CreateFaq, CreateFaqBody, CreateFaqResponse,
 };
+use openlark_helpdesk::helpdesk::helpdesk::v1::notification::create::{
+    CreateNotificationBody, CreateNotificationResponse,
+};
+use openlark_helpdesk::helpdesk::helpdesk::v1::notification::models::NotificationUser;
 use openlark_helpdesk::helpdesk::helpdesk::v1::ticket::message::create::CreateTicketMessageBody;
 use openlark_helpdesk::helpdesk::helpdesk::v1::ticket::models::{
     CreateTicketBody, CreateTicketResponse, GetTicketResponse, TicketItem, TicketListResponse,
@@ -161,17 +164,15 @@ fn ticket_item_roundtrip() {
 fn category_create_body_full_roundtrip() {
     let body = CreateCategoryBody {
         name: "技术支持".to_string(),
-        description: Some("技术相关问题分类".to_string()),
-        parent_id: Some("cat_root".to_string()),
-        order: Some(10),
+        parent_id: "cat_root".to_string(),
+        language: Some("zh_cn".to_string()),
     };
     assert_json_contract(
         &body,
         json!({
             "name": "技术支持",
-            "description": "技术相关问题分类",
             "parent_id": "cat_root",
-            "order": 10
+            "language": "zh_cn"
         }),
     );
 
@@ -184,14 +185,13 @@ fn category_create_body_full_roundtrip() {
 fn category_create_body_minimal() {
     let body = CreateCategoryBody {
         name: "常见问题".to_string(),
-        description: None,
-        parent_id: None,
-        order: None,
+        parent_id: "0".to_string(),
+        language: None,
     };
     let value = to_value(&body).unwrap();
     assert_eq!(value["name"], "常见问题");
-    assert!(value.get("description").is_none());
-    assert!(value.get("order").is_none());
+    assert_eq!(value["parent_id"], "0");
+    assert!(value.get("language").is_none());
 }
 
 #[test]
@@ -199,13 +199,12 @@ fn category_create_result_roundtrip() {
     let result = parse_contract::<CreateCategoryResult>(json!({
         "id": "cat_001",
         "name": "技术支持",
-        "description": "技术相关问题",
         "parent_id": "cat_root",
-        "order": 5
+        "language": "zh_cn"
     }));
     assert_eq!(result.id, Some("cat_001".to_string()));
     assert_eq!(result.name, Some("技术支持".to_string()));
-    assert_eq!(result.order, Some(5));
+    assert_eq!(result.language, Some("zh_cn".to_string()));
 }
 
 // ── FAQ 模型 ─────────────────────────────────────────────────
@@ -213,41 +212,51 @@ fn category_create_result_roundtrip() {
 #[test]
 fn faq_create_body_roundtrip() {
     let body = CreateFaqBody {
-        title: "如何重置密码？".to_string(),
-        content: "请在登录页面点击「忘记密码」...".to_string(),
-        category_id: Some("cat_001".to_string()),
+        faq: CreateFaq {
+            category_id: Some("cat_001".to_string()),
+            question: "如何重置密码？".to_string(),
+            answer: Some("请在登录页面点击「忘记密码」...".to_string()),
+            answer_richtext: Some("[{\"type\":\"text\",\"content\":\"答案\"}]".to_string()),
+            tags: Some(vec!["账号".to_string()]),
+        },
     };
     assert_json_contract(
         &body,
         json!({
-            "title": "如何重置密码？",
-            "content": "请在登录页面点击「忘记密码」...",
-            "category_id": "cat_001"
+            "faq": {
+                "category_id": "cat_001",
+                "question": "如何重置密码？",
+                "answer": "请在登录页面点击「忘记密码」...",
+                "answer_richtext": "[{\"type\":\"text\",\"content\":\"答案\"}]",
+                "tags": ["账号"]
+            }
         }),
     );
 
     let roundtrip: CreateFaqBody = from_value(to_value(&body).unwrap()).unwrap();
-    assert_eq!(roundtrip.title, body.title);
-    assert_eq!(roundtrip.content, body.content);
+    assert_eq!(roundtrip.faq.question, body.faq.question);
+    assert_eq!(roundtrip.faq.answer, body.faq.answer);
 }
 
 #[test]
 fn faq_create_body_without_optional() {
     let body = CreateFaqBody {
-        title: "常见问题".to_string(),
-        content: "这是答案内容".to_string(),
-        category_id: None,
+        faq: CreateFaq {
+            question: "常见问题".to_string(),
+            ..Default::default()
+        },
     };
     let value = to_value(&body).unwrap();
-    assert!(value.get("category_id").is_none());
+    assert!(value["faq"].get("category_id").is_none());
+    assert!(value["faq"].get("answer").is_none());
 }
 
 #[test]
-fn faq_create_result_roundtrip() {
-    let result = parse_contract::<CreateFaqResult>(json!({
+fn faq_create_response_roundtrip() {
+    let result = parse_contract::<CreateFaqResponse>(json!({
         "id": "faq_100",
-        "title": "如何重置密码？",
-        "content": "请在登录页面点击「忘记密码」...",
+        "question": "如何重置密码？",
+        "answer": "请在登录页面点击「忘记密码」...",
         "category_id": "cat_001",
         "status": "published"
     }));
@@ -260,41 +269,47 @@ fn faq_create_result_roundtrip() {
 #[test]
 fn notification_create_body_roundtrip() {
     let body = CreateNotificationBody {
-        title: "系统维护通知".to_string(),
-        content: "系统将于今晚 22:00 进行维护".to_string(),
+        job_name: Some("系统维护通知".to_string()),
+        push_content: Some("系统将于今晚 22:00 进行维护".to_string()),
+        push_type: Some(0),
+        push_scope_type: Some(2),
+        user_list: Some(vec![NotificationUser {
+            user_id: Some("ou_001".to_string()),
+            ..Default::default()
+        }]),
+        ..Default::default()
     };
     assert_json_contract(
         &body,
         json!({
-            "title": "系统维护通知",
-            "content": "系统将于今晚 22:00 进行维护"
+            "job_name": "系统维护通知",
+            "push_content": "系统将于今晚 22:00 进行维护",
+            "push_type": 0,
+            "push_scope_type": 2,
+            "user_list": [{ "user_id": "ou_001" }]
         }),
     );
 }
 
 #[test]
-fn notification_create_result_roundtrip() {
-    let result = parse_contract::<CreateNotificationResult>(json!({
-        "id": "notify_001",
-        "title": "系统维护通知",
-        "status": "draft"
+fn notification_create_response_roundtrip() {
+    let result = parse_contract::<CreateNotificationResponse>(json!({
+        "notification_id": "notify_001",
+        "status": 0
     }));
-    assert_eq!(result.id, Some("notify_001".to_string()));
-    assert_eq!(result.title, Some("系统维护通知".to_string()));
-    assert_eq!(result.status, Some("draft".to_string()));
+    assert_eq!(result.notification_id, Some("notify_001".to_string()));
+    assert_eq!(result.status, Some(0));
 }
 
 // ── Agent 模型 ───────────────────────────────────────────────
 
 #[test]
 fn agent_patch_body_roundtrip() {
-    let body = PatchAgentBody {
-        status: Some("online".to_string()),
-    };
-    assert_json_contract(&body, json!({ "status": "online" }));
+    let body = PatchAgentBody { status: Some(1) };
+    assert_json_contract(&body, json!({ "status": 1 }));
 
     let roundtrip: PatchAgentBody = from_value(to_value(&body).unwrap()).unwrap();
-    assert_eq!(roundtrip.status, Some("online".to_string()));
+    assert_eq!(roundtrip.status, Some(1));
 }
 
 #[test]
@@ -308,10 +323,10 @@ fn agent_patch_body_empty() {
 fn agent_patch_result_roundtrip() {
     let result = parse_contract::<PatchAgentResult>(json!({
         "agent_id": "agent_001",
-        "status": "online"
+        "status": 1
     }));
     assert_eq!(result.agent_id, Some("agent_001".to_string()));
-    assert_eq!(result.status, Some("online".to_string()));
+    assert_eq!(result.status, Some(1));
 }
 
 // ── Ticket Message 模型 ─────────────────────────────────────
@@ -320,7 +335,7 @@ fn agent_patch_result_roundtrip() {
 fn ticket_message_body_roundtrip() {
     let body = CreateTicketMessageBody {
         content: "您好，请提供更多信息".to_string(),
-        msg_type: Some("text".to_string()),
+        msg_type: "text".to_string(),
     };
     assert_json_contract(
         &body,
@@ -332,12 +347,12 @@ fn ticket_message_body_roundtrip() {
 }
 
 #[test]
-fn ticket_message_body_minimal() {
+fn ticket_message_body_contains_required_fields() {
     let body = CreateTicketMessageBody {
         content: "简单的消息".to_string(),
-        msg_type: None,
+        msg_type: "text".to_string(),
     };
     let value = to_value(&body).unwrap();
     assert_eq!(value["content"], "简单的消息");
-    assert!(value.get("msg_type").is_none());
+    assert_eq!(value["msg_type"], "text");
 }
