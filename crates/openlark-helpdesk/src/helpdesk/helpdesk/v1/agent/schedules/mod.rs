@@ -37,6 +37,6 @@ impl AgentSchedules {
 
     /// 创建补丁请求。
     pub fn patch(self) -> patch::PatchAgentScheduleRequest {
-        patch::PatchAgentScheduleRequest::new(self.config, self.agent_id)
+        patch::PatchAgentScheduleRequest::new(self.config.as_ref().clone(), self.agent_id)
     }
 }

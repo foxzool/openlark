@@ -11,6 +11,8 @@ pub mod create;
 pub mod execute_send;
 /// 获取接口。
 pub mod get;
+/// 推送通知共享模型。
+pub mod models;
 /// 更新接口。
 pub mod patch;
 /// preview 模块。
@@ -105,6 +107,7 @@ pub use cancel_send::{CancelSendNotificationRequest, CancelSendNotificationReque
 pub use create::{CreateNotificationRequest, CreateNotificationRequestBuilder};
 pub use execute_send::{ExecuteSendNotificationRequest, ExecuteSendNotificationRequestBuilder};
 pub use get::{GetNotificationRequest, GetNotificationRequestBuilder};
+pub use models::{NotificationChat, NotificationDepartment, NotificationUser};
 pub use patch::{PatchNotificationRequest, PatchNotificationRequestBuilder};
 pub use preview::{PreviewNotificationRequest, PreviewNotificationRequestBuilder};
 pub use submit_approve::{

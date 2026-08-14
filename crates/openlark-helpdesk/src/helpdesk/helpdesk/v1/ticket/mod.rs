@@ -58,7 +58,7 @@ impl Ticket {
 
     /// 拉起服务请求。
     pub fn start_service(&self) -> start_service::StartServiceRequest {
-        start_service::StartServiceRequest::new(self.config.clone())
+        start_service::StartServiceRequest::new(self.config.as_ref().clone())
     }
 
     /// 回复用户提问请求。
@@ -66,7 +66,7 @@ impl Ticket {
         &self,
         ticket_id: impl Into<String>,
     ) -> answer_user_query::AnswerUserQueryRequest {
-        answer_user_query::AnswerUserQueryRequest::new(self.config.clone(), ticket_id)
+        answer_user_query::AnswerUserQueryRequest::new(self.config.as_ref().clone(), ticket_id)
     }
 
     /// 获取工单图片请求。

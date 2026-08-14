@@ -34,7 +34,7 @@ impl AgentSkill {
 
     /// 创建客服技能
     pub fn create(&self) -> create::CreateAgentSkillRequest {
-        create::CreateAgentSkillRequest::new(self.config.clone())
+        create::CreateAgentSkillRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定客服技能
@@ -44,7 +44,7 @@ impl AgentSkill {
 
     /// 更新指定客服技能
     pub fn patch(&self, agent_skill_id: impl Into<String>) -> patch::PatchAgentSkillRequest {
-        patch::PatchAgentSkillRequest::new(self.config.clone(), agent_skill_id.into())
+        patch::PatchAgentSkillRequest::new(self.config.as_ref().clone(), agent_skill_id.into())
     }
 
     /// 删除指定客服技能

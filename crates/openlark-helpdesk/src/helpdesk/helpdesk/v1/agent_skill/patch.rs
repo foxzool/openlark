@@ -6,36 +6,45 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
 use crate::common::api_utils::serialize_params;
+use crate::helpdesk::helpdesk::v1::agent_skill::create::AgentSkillRule;
 
 /// 更新客服技能请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PatchAgentSkillBody {
-    /// 技能名称
+    /// 客服技能。
+    pub agent_skill: AgentSkill,
+}
+
+/// 待更新的客服技能。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AgentSkill {
+    /// 技能名称。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// 技能描述
+    /// 技能规则。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 是否启用
+    pub rules: Option<Vec<AgentSkillRule>>,
+    /// 绑定的客服 ID 列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub enable: Option<bool>,
+    pub agent_ids: Option<Vec<String>>,
 }
 
 impl PatchAgentSkillBody {
     /// 验证请求参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        if let Some(name) = &self.name
-            && name.is_empty()
-        {
-            return Err(openlark_core::CoreError::validation_msg(
-                "name cannot be empty",
-            ));
+        if let Some(name) = &self.agent_skill.name {
+            validate_required!(name, "name 不能为空");
+        }
+        if let Some(rules) = &self.agent_skill.rules {
+            for rule in rules {
+                validate_required!(rule.id, "规则 id 不能为空");
+            }
         }
         Ok(())
     }
@@ -44,40 +53,35 @@ impl PatchAgentSkillBody {
 /// 更新客服技能响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatchAgentSkillResponse {
-    /// 响应数据。
+    /// 技能 ID。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<PatchAgentSkillResult>,
+    pub id: Option<String>,
+    /// 技能名称。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// 技能规则。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rules: Option<Vec<AgentSkillRule>>,
+    /// 绑定的客服 ID 列表。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_ids: Option<Vec<String>>,
 }
 
 impl openlark_core::api::ApiResponseTrait for PatchAgentSkillResponse {}
 
-/// 更新客服技能结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PatchAgentSkillResult {
-    /// 技能ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 技能名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 技能描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 是否启用
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub enable: Option<bool>,
-}
+/// 更新客服技能结果。
+pub type PatchAgentSkillResult = PatchAgentSkillResponse;
 
 /// 更新客服技能请求
 #[derive(Debug, Clone)]
 pub struct PatchAgentSkillRequest {
-    config: Arc<Config>,
+    config: Config,
     agent_skill_id: String,
 }
 
 impl PatchAgentSkillRequest {
     /// 创建新的更新客服技能请求
-    pub fn new(config: Arc<Config>, agent_skill_id: String) -> Self {
+    pub fn new(config: Config, agent_skill_id: String) -> Self {
         Self {
             config,
             agent_skill_id,
@@ -109,22 +113,22 @@ impl PatchAgentSkillRequest {
 /// 更新客服技能请求构建器
 #[derive(Debug, Clone)]
 pub struct PatchAgentSkillRequestBuilder {
-    config: Arc<Config>,
+    config: Config,
     agent_skill_id: String,
     name: Option<String>,
-    description: Option<String>,
-    enable: Option<bool>,
+    rules: Option<Vec<AgentSkillRule>>,
+    agent_ids: Option<Vec<String>>,
 }
 
 impl PatchAgentSkillRequestBuilder {
     /// 创建新的构建器
-    pub fn new(config: Arc<Config>, agent_skill_id: String) -> Self {
+    pub fn new(config: Config, agent_skill_id: String) -> Self {
         Self {
             config,
             agent_skill_id,
             name: None,
-            description: None,
-            enable: None,
+            rules: None,
+            agent_ids: None,
         }
     }
 
@@ -134,24 +138,26 @@ impl PatchAgentSkillRequestBuilder {
         self
     }
 
-    /// 设置技能描述
-    pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.description = Some(description.into());
+    /// 设置技能规则。
+    pub fn rules(mut self, rules: Vec<AgentSkillRule>) -> Self {
+        self.rules = Some(rules);
         self
     }
 
-    /// 设置是否启用
-    pub fn enable(mut self, enable: bool) -> Self {
-        self.enable = Some(enable);
+    /// 设置绑定的客服 ID 列表。
+    pub fn agent_ids(mut self, agent_ids: Vec<String>) -> Self {
+        self.agent_ids = Some(agent_ids);
         self
     }
 
     /// 构建请求体
     pub fn body(&self) -> PatchAgentSkillBody {
         PatchAgentSkillBody {
-            name: self.name.clone(),
-            description: self.description.clone(),
-            enable: self.enable,
+            agent_skill: AgentSkill {
+                name: self.name.clone(),
+                rules: self.rules.clone(),
+                agent_ids: self.agent_ids.clone(),
+            },
         }
     }
 
@@ -202,6 +208,7 @@ pub async fn patch_agent_skill_with_options(
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_body_validation_empty() {
@@ -211,25 +218,46 @@ mod tests {
     }
 
     #[test]
-    fn test_body_validation_valid() {
+    fn test_body_serialization_matches_official_schema() {
         let body = PatchAgentSkillBody {
-            name: Some("新技能名称".to_string()),
-            description: Some("更新描述".to_string()),
-            enable: Some(true),
+            agent_skill: AgentSkill {
+                name: Some("新技能名称".to_string()),
+                rules: Some(vec![AgentSkillRule {
+                    id: "rule_001".to_string(),
+                    selected_operator: 1,
+                    operand: json!("vip"),
+                    category: None,
+                }]),
+                agent_ids: Some(vec!["agent_001".to_string()]),
+            },
         };
-        let result = body.validate();
-        assert!(result.is_ok());
+        assert!(body.validate().is_ok());
+        assert_eq!(
+            serde_json::to_value(body).expect("序列化请求体失败"),
+            json!({
+                "agent_skill": {
+                    "name": "新技能名称",
+                    "rules": [{
+                        "id": "rule_001",
+                        "selected_operator": 1,
+                        "operand": "vip"
+                    }],
+                    "agent_ids": ["agent_001"]
+                }
+            })
+        );
     }
 
     #[test]
     fn test_body_validation_empty_name() {
         let body = PatchAgentSkillBody {
-            name: Some("".to_string()),
-            description: None,
-            enable: None,
+            agent_skill: AgentSkill {
+                name: Some(" ".to_string()),
+                rules: None,
+                agent_ids: None,
+            },
         };
-        let result = body.validate();
-        assert!(result.is_err());
+        assert!(body.validate().is_err());
     }
 
     #[test]
@@ -238,50 +266,65 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = PatchAgentSkillRequestBuilder::new(Arc::new(config), "skill_123".to_string());
+        let builder = PatchAgentSkillRequestBuilder::new(config, "skill_123".to_string());
 
         assert_eq!(builder.agent_skill_id, "skill_123");
         assert!(builder.name.is_none());
     }
 
-    /// 端到端：PATCH .../agent_skills/{agent_skill_id} → 强类型 PatchAgentSkillResponse 解析（双层 data 信封）。
+    /// 端到端：PATCH .../agent_skills/{agent_skill_id} → 强类型响应解析。
     #[tokio::test]
     async fn test_patch_agent_skill_returns_data_on_success() {
-        use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("PATCH"))
             .and(path("/open-apis/helpdesk/v1/agent_skills/skl_001"))
+            .and(body_json(json!({
+                "agent_skill": {
+                    "name": "更新后技能",
+                    "rules": [{
+                        "id": "rule_001",
+                        "selected_operator": 1,
+                        "operand": "vip"
+                    }],
+                    "agent_ids": ["agent_001"]
+                }
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "id": "skl_001", "name": "更新后技能", "enable": true } }
+                "data": { "id": "skl_001", "name": "更新后技能" }
             })))
             .mount(&server)
             .await;
 
-        let config = Arc::new(
-            Config::builder()
-                .app_id("ci_app_id")
-                .app_secret("ci_app_secret")
-                .base_url(server.uri())
-                .enable_token_cache(false)
-                .build(),
-        );
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
         let body = PatchAgentSkillBody {
-            name: Some("更新后技能".to_string()),
-            enable: Some(true),
-            description: None,
+            agent_skill: AgentSkill {
+                name: Some("更新后技能".to_string()),
+                rules: Some(vec![AgentSkillRule {
+                    id: "rule_001".to_string(),
+                    selected_operator: 1,
+                    operand: json!("vip"),
+                    category: None,
+                }]),
+                agent_ids: Some(vec!["agent_001".to_string()]),
+            },
         };
         let resp = PatchAgentSkillRequest::new(config, "skl_001".to_string())
             .execute(body)
             .await
             .expect("更新客服技能应成功");
-        assert!(resp.data.is_some());
+        assert_eq!(resp.id.as_deref(), Some("skl_001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
