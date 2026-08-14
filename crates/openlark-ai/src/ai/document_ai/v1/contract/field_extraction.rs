@@ -235,10 +235,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let config = Config::builder()
-            .app_id("a")
-            .app_secret("s")
-            .build();
+        let config = Config::builder().app_id("a").app_secret("s").build();
         let body = ContractFieldExtractionRequestBuilder::new(config)
             .file(b"data".to_vec())
             .file_name("a.pdf")

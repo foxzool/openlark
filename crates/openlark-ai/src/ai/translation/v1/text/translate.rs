@@ -227,10 +227,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let config = Config::builder()
-            .app_id("a")
-            .app_secret("s")
-            .build();
+        let config = Config::builder().app_id("a").app_secret("s").build();
         let body = TextTranslateRequestBuilder::new(config)
             .text("Hello")
             .source_language("en")

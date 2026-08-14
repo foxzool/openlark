@@ -247,10 +247,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let config = Config::builder()
-            .app_id("a")
-            .app_secret("s")
-            .build();
+        let config = Config::builder().app_id("a").app_secret("s").build();
         let body = StreamRecognizeRequestBuilder::new(config)
             .speech("b64")
             .stream_id("sid")

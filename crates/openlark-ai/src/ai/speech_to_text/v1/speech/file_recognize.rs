@@ -223,9 +223,7 @@ mod tests {
     #[test]
     fn test_body_validation() {
         let mut body = FileRecognizeBody {
-            speech: SpeechContent {
-                speech: "x".into(),
-            },
+            speech: SpeechContent { speech: "x".into() },
             config: FileRecognizeConfig {
                 file_id: "id".into(),
                 format: "pcm".into(),
@@ -239,10 +237,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let config = Config::builder()
-            .app_id("a")
-            .app_secret("s")
-            .build();
+        let config = Config::builder().app_id("a").app_secret("s").build();
         let body = FileRecognizeRequestBuilder::new(config)
             .speech("b64")
             .file_id("fid")
