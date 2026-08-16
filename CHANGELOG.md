@@ -61,6 +61,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **websocket：ACK data 对齐官方 base64 wire 格式 + card 帧文档化（#631）**：
+  长连接数据帧应答（ACK）payload 的 `data` 字段由 serde 对 `Vec<u8>` 默认的 JSON 数组
+  （`[1,2,3]`）改为 **base64 字符串**，与官方 SDK 一致（Go `[]byte`+`json.Marshal`、
+  Python `base64.b64encode`、Node `Buffer.toString("base64")`）；`Serialize`/`Deserialize`
+  对称（往返一致），无业务数据时省略 `data` 字段（Python/Java/Node 行为），序列化失败
+  fallback 不再输出 `"data":[]`。`base64` 为 `websocket` feature 下的 optional 依赖。
+  `type=card` 数据帧维持跳过（官方 Go/Python/Java/Node SDK 一律直接丢弃、不回 ACK），
+  由 `debug!` 升级为 `warn!` 并在代码注释记录官方依据；新版卡片回调
+  （`card.action.trigger`）官方路径是 `type=event` 帧 + payload `header.event_type`，
+  已由 `EventDispatcherHandler` 按 `event_type` 路由支持（补官方 schema 2.0 fixture 测试）。
+
 - **tools：字段核对跳过多分表单内部元数据 / 放宽「代码更严」门禁**：
   `verify_api_fields` 提取 Body 时跳过 serde 名以 `__` 开头的字段（如 multipart
   `__file_name`）；「文档选填但代码非 Option」由 warning 降为 info，不再阻断 `--fetch-docs`
