@@ -101,7 +101,7 @@ business_value × 0.50
 说明：
 
 - **实现形态**：均为 `*RequestBuilder` + `async fn execute` + `Transport::request_typed` 的可调用 typed API。`tenant` / `trust_party` 按 ADR-0001 **flat-by-design** 直路径访问（`crate::tenant::v2::*` / `crate::trust_party::v1::*`），`PlatformService` 故意不暴露 shell accessor；directory 侧经 `PlatformService::directory().v1().collaboration_share_entity()` 链可达。
-- **证据复现**：`python3 tools/validate_apis.py --crate openlark-platform` 后，platform `true_missing=0`、`priority_counts` 无 P1；回归锁在 `tools/tests/test_p1_platform_clear_or_disprove.py`。
+- **证据复现**：`python3 tools/validate_apis.py --crate openlark-platform` 后，platform `true_missing=0`、`priority_counts` 无 P1。
 - **硬门禁**：未下调 `tools/typed_coverage_release.toml` 阈值；core-business P0 仍为 0。
 
 ### 2.3 0.20 selective P2 slice（#571）
@@ -120,7 +120,6 @@ business_value × 0.50
 python3 tools/validate_apis.py --crate openlark-helpdesk  # true_missing=0, path_noise=1
 python3 tools/validate_apis.py --crate openlark-mail      # true_missing=0, path_noise=2
 python3 tools/validate_apis.py --crate openlark-hr        # true_missing=0, path_noise=25（OKR v2）
-python3 -m unittest tools.tests.test_p2_selective_slice -v
 ```
 
 - **选型清单**：写在 issue #571 评论（coding 前），本表为仓库内 SSOT 摘要。

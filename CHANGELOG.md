@@ -86,6 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **tools：删除休眠回归锁与平行 URL 解析器，fetch 栈就近 schema_cache（#635）**：
+  删除 `tools/check_api_urls.py`（659 行激进 URL 解析器，与 `rust_source` 的对齐仅靠
+  注释维持，零 CI/justfile 引用）；删除 7 个休眠验收测试（~1,046 行，断言冻结在历史
+  issue 事实上、无任何 runner 收集，含 `test_p1_platform_clear_or_disprove` /
+  `test_p2_selective_slice` 两条文档化回归锁）及其 docs 提及；`official.py` 死代码清理
+  （`split_method_path`、重复 `re.sub` 行）；`fetch_detail_payload` 等取数栈自
+  `api_contracts/official.py` 搬至 `tools/schema_cache/fetch.py`（唯一生产消费者是
+  schema_cache，codegen/okr v2 批量预取不受影响），`official.py` 回归纯 catalog seam。
+
 - **websocket：ACK data 对齐官方 base64 wire 格式 + card 帧文档化（#631）**：
   长连接数据帧应答（ACK）payload 的 `data` 字段由 serde 对 `Vec<u8>` 默认的 JSON 数组
   （`[1,2,3]`）改为 **base64 字符串**，与官方 SDK 一致（Go `[]byte`+`json.Marshal`、

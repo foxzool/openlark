@@ -185,8 +185,6 @@ CI 必须明确区分 hard strict gate 与 live monitor；monitor 不得通过�
 | Typed-coverage hard gates | `tools/typed_coverage_release.toml` + `docs/typed-coverage-release-criteria.md` | 阈值不得下调（见 #586 非目标） |
 | path_noise vs true_gap 分类 | `tools/validate_apis.py` 报告 + denoise 回归测试 | 分类保留；不得把噪音当「实现完成」删掉真相 |
 | Core-business P0 missing = 0 | release gate / `core_business` dashboard | 不得靠降低门槛伪装 PASS |
-| Platform P1 clear-or-disprove | `tools/tests/test_p1_platform_clear_or_disprove.py` | 锁仍绿 |
-| Selective P2 path_noise | `tools/tests/test_p2_selective_slice.py` | 锁仍绿 |
 
 本地复核 inventory（离线、秒级；不跑 live monitors）：
 

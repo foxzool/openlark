@@ -9,7 +9,6 @@ from tools.api_contracts.official import (
     expected_file_path,
     load_api_identities,
     normalize_endpoint_path,
-    split_method_path,
 )
 
 
@@ -27,13 +26,9 @@ class OfficialCatalogTests(unittest.TestCase):
             "base/bitable/v1/app/table/record/batch_create.rs",
         )
 
-    def test_split_and_normalize_endpoint_path(self):
-        method, path = split_method_path(
-            "GET:/open-apis/contact/v3/users/:user_id"
-        )
-        self.assertEqual(method, "GET")
+    def test_normalize_endpoint_path(self):
         self.assertEqual(
-            normalize_endpoint_path(path),
+            normalize_endpoint_path("/open-apis/contact/v3/users/:user_id"),
             "/open-apis/contact/v3/users/{param}",
         )
         self.assertEqual(

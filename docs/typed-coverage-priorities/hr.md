@@ -19,7 +19,7 @@
 | 历史缺口族 | 终端结论 | 证据 |
 |------------|----------|------|
 | CoreHR 时间轴 / 流程（曾记 5 项） | 已在磁盘有 strict 实现（0.19 后） | 当前 `true_missing=0` |
-| OKR v2（25 项） | **path noise**：CSV resource `okr.*` vs 磁盘 `okr/okr/v2/*` | `implementation_path_rewrites` + `tools/tests/test_p2_selective_slice.py` |
+| OKR v2（25 项） | **path noise**：CSV resource `okr.*` vs 磁盘 `okr/okr/v2/*` | `implementation_path_rewrites` |
 
 ## 默认频率顺序
 

@@ -5,8 +5,9 @@ Step 0 用途：揭晓飞书 get_detail 接口返回的 apiSchema 实际包含�
 （enum / items / 嵌套 properties / $ref / 顶层 parameters / format / response.data 结构），
 从而决定 Codegen IR 的 TypeExpr 支持范围。
 
-复用 tools.api_contracts.official 的 fetch_detail_payload / load_api_identities，
-不触网之外的副作用，纯只读勘察。产物落 samples/<api_id>.json（已 gitignore）。
+复用 tools.api_contracts.official 的 load_api_identities 与同包 fetch 的
+fetch_detail_payload，不触网之外的副作用，纯只读勘察。产物落
+samples/<api_id>.json（已 gitignore）。
 
 运行：python3 tools/schema_cache/dump_samples.py
 """
@@ -21,7 +22,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.api_contracts.official import fetch_detail_payload, load_api_identities  # noqa: E402
+from tools.api_contracts.official import load_api_identities  # noqa: E402
+from tools.schema_cache.fetch import fetch_detail_payload  # noqa: E402
 
 CSV_PATH = REPO_ROOT / "api_list_export.csv"
 OUT_DIR = Path(__file__).resolve().parent / "samples"
