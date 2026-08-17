@@ -21,11 +21,12 @@ use futures_util::{
 use lark_websocket_protobuf::pbbp2::Frame;
 use log::{debug, error, trace, warn};
 use prost::Message as ProstMessage;
-use tokio::net::TcpStream;
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc;
 use tokio::time::{Instant, Interval};
+use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::protocol::Message};
 
 use super::client::ClientConfig;
 use super::dispatcher::EventDispatcherHandler;
@@ -94,10 +95,15 @@ impl Default for SessionOptions {
 
 type HandlerOutcome = WsClientResult<Option<Frame>>;
 
-pub(crate) struct Session {
+/// 单一 WebSocket 会话（泛型于底层字节流，ADR-0006）。
+///
+/// 生产实例化 `S = MaybeTlsStream<TcpStream>`（`connect_async`）；测试用内存
+/// 双工流 + `from_raw_socket` 适配（tungstenite 成帧语义完整保留）。对 I/O 的
+/// 全部使用面仅 `stream.next()` 与 `sink.send()`（send 内含 flush）。
+pub(crate) struct Session<S> {
     service_id: i32,
-    sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, WsMessage>,
-    stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    sink: SplitSink<WebSocketStream<S>, WsMessage>,
+    stream: SplitStream<WebSocketStream<S>>,
     event_handler: EventDispatcherHandler,
     package_buffers: HashMap<String, FramePackageBuffer>,
     ping_frame_interval: Interval,
@@ -109,11 +115,14 @@ pub(crate) struct Session {
     pending_outbox: VecDeque<Frame>,
 }
 
-impl Session {
+impl<S> Session<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     pub(crate) fn new(
         service_id: i32,
         client_config: ClientConfig,
-        conn: WebSocketStream<MaybeTlsStream<TcpStream>>,
+        conn: WebSocketStream<S>,
         event_handler: EventDispatcherHandler,
         options: SessionOptions,
     ) -> Self {

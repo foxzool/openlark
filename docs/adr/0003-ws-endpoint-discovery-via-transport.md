@@ -1,6 +1,6 @@
 # ADR: ws 端点发现收口到 Transport（关闭 ws_client 第二条 HTTP 出口）
 
-- **状态**: Proposed（2026-07-24 `/improve-codebase-architecture` → `/grilling` 达成共识，待实施）
+- **状态**: Accepted（2026-07-24 决策；PR #525 随 0.19 落地，client.rs:77-82 doc 注释记录实施；2026-08-17 随 ADR-0006 回写状态头）
 - **日期**: 2026-07-24
 - **决策者**: 架构评审 + 用户 grilling 共识
 - **来源**: 架构评审候选 1（ws_client 端点发现绕过 core Transport）
