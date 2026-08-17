@@ -588,6 +588,60 @@ class FieldCliEvidenceTests(unittest.TestCase):
         self.assertIsInstance(policy, PreferSnapshotPolicy)
         self.assertEqual(policy.max_age_days, 7)
 
+    def test_response_data_struct_reaches_response_comparison(self):
+        """提取层回归（#639 Bugbot）：*ResponseData 必须经真实提取路径进对比。
+
+        auth 域以 UserAccessTokenV1ResponseData 命名文件内唯一响应 payload
+        struct；若提取层不收它，选择层 fallback 只能在空列表里挑选，full 模式
+        响应对比静默关闭、doc 字段缺失诊断消失。走 _run_single_api 真路径
+        （临时 crate 源文件 → extract_structs → _compare_evidence_against_code）。
+        """
+        api = api_identity()
+        collector = _FieldCollector(api)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "crates/openlark-workflow/src" / api.expected_file
+            source.parent.mkdir(parents=True)
+            # 文件内只有 *ResponseData 命名的响应 struct，且缺文档字段 result
+            source.write_text(
+                "pub struct UserAccessTokenV1ResponseData {\n"
+                "    pub expires_in: i32,\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            output = root / "reports"
+            argv = [
+                "verify_api_fields.py",
+                "--api-id",
+                api.api_id,
+                "--fetch-docs",
+                "--output-dir",
+                str(output),
+            ]
+            with (
+                mock.patch.object(sys, "argv", argv),
+                mock.patch.object(verify_api_fields, "REPO_ROOT", root),
+                mock.patch.object(
+                    verify_api_fields,
+                    "load_api_identities",
+                    return_value=[api],
+                ),
+                mock.patch.object(
+                    verify_api_fields,
+                    "compose_full",
+                    return_value=collector,
+                ),
+            ):
+                verify_api_fields.main()
+
+            report = json.loads(
+                (output / "summary.json").read_text(encoding="utf-8")
+            )
+        categories = [
+            issue["category"] for issue in report["apis"][0]["issues"]
+        ]
+        self.assertIn("missing_response_field", categories)
+
 
 class ResponseFieldDigitNameTests(unittest.TestCase):
     """#618: 响应示例字段名正则须保留含数字的名字（如 i18n_name）。"""

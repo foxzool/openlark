@@ -54,7 +54,7 @@ _BODY_STRUCT_SUFFIXES = ("Body", "RequestBody")
 # 会让 full 模式响应对比静默关闭）。嵌套 Result 先于 Response 定义时不能抢位，
 # 否则文档顶层字段会对到嵌套 payload 上。
 _RESPONSE_PRIMARY_SUFFIXES = ("Response",)
-_RESPONSE_FALLBACK_SUFFIXES = RESPONSE_STRUCT_SUFFIXES + ("ResponseData",)
+_RESPONSE_FALLBACK_SUFFIXES = RESPONSE_STRUCT_SUFFIXES
 
 
 # ---------------------------------------------------------------------------
