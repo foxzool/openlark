@@ -106,6 +106,33 @@ class RustField:
 
 
 @dataclass(frozen=True)
+class FieldInfo:
+    """单个字段信息（类型语义视图，供字段核对消费）。
+
+    由 rust_source 从 RustField 派生，或由调用方从官方 FieldObservation 构造。
+    """
+
+    name: str  # Rust 字段名（rename 前的 snake_case）
+    type_name: str  # 核心类型名（Vec<String> -> String，Option<i32> -> i32）
+    required: bool | None  # 是否必填；None=文档未标注（跳过必填对比）
+    rename: str | None = None  # serde rename 后的名字，无则 None
+    is_array: bool = False  # 是否数组（Vec / doc 的 T[]）
+
+    @property
+    def effective_name(self) -> str:
+        """对比时用的名字：rename 优先。"""
+        return self.rename or self.name
+
+
+@dataclass(frozen=True)
+class StructFields:
+    """一个 struct 提取出的字段集合。"""
+
+    name: str  # struct 名
+    fields: list[FieldInfo] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class ContractFinding:
     severity: str
     code: str

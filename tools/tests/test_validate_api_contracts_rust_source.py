@@ -4,11 +4,13 @@ from pathlib import Path
 
 from tools.api_contracts.rust_source import (
     EndpointResolver,
+    MULTIPART_FORM_STRUCT_NAME,
     extract_access_token_types,
     extract_endpoint_calls,
     extract_manual_auth_token,
     extract_rust_response_fields,
     extract_rust_fields,
+    extract_structs,
     load_endpoint_constants,
     load_enum_endpoints,
     load_enum_methods,
@@ -505,6 +507,215 @@ class ExtractManualAuthTokenTests(unittest.TestCase):
             REPO_ROOT / "crates/openlark-auth/src/auth/authen/v1/user_info/get.rs"
         ).read_text(encoding="utf-8")
         self.assertEqual(extract_manual_auth_token(source), "user_access_token")
+
+
+class ExtractStructsTypedTests(unittest.TestCase):
+    """分组类型语义视图（verify_api_fields 消费；#636 收口后唯一提取实现）。
+
+    由 tools/tests/test_verify_api_fields.py 的 ExtractStructFieldsTests 迁入并按
+    新语义改写（multipart 元字段用例改为 dunder 序列名版本，skip_serializing 的
+    file 字段用例并入 path params 用例与 MultipartForm 分组用例），另补齐收口
+    引入的新语义正测：rename_all / 括号配平 / 逗号泛型 / std::option / 版本尾缀。
+    """
+
+    def test_groups_body_and_response_with_type_semantics(self):
+        source = """
+pub struct DemoBody {
+    #[serde(rename = "type")]
+    pub task_type: String,
+    pub user_ids: Vec<String>,
+    pub comment: Option<String>,
+}
+pub struct DemoResponse {
+    pub result: String,
+}
+pub struct DemoRequest {
+    pub config: Config,
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual([item.name for item in structs], ["DemoBody", "DemoResponse"])
+        fields = {item.name: item for item in structs[0].fields}
+        self.assertEqual(fields["task_type"].effective_name, "type")
+        self.assertTrue(fields["user_ids"].required)
+        self.assertEqual(fields["user_ids"].type_name, "String")
+        self.assertTrue(fields["user_ids"].is_array)
+        self.assertFalse(fields["comment"].required)
+        self.assertFalse(fields["comment"].is_array)
+
+    def test_skips_absolute_skip_serializing_path_params(self):
+        source = """
+pub struct UpdateBody {
+    /// path param
+    #[serde(skip_serializing)]
+    pub card_id: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub sequence: i32,
+}
+"""
+        structs = extract_structs(source)
+        fields = {item.effective_name: item for item in structs[0].fields}
+        self.assertNotIn("card_id", fields)
+        self.assertIn("type", fields)
+        self.assertIn("uuid", fields)
+        self.assertFalse(fields["uuid"].required)
+        self.assertIn("sequence", fields)
+
+    def test_skips_dunder_serialized_fields(self):
+        source = """
+pub struct UploadBody {
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
+    pub pdf_page_limit: i32,
+}
+"""
+        structs = extract_structs(source)
+        fields = {item.effective_name: item for item in structs[0].fields}
+        self.assertNotIn("__file_name", fields)
+        self.assertNotIn("file_name", fields)
+        self.assertIn("pdf_page_limit", fields)
+
+    def test_rename_all_camel_case_feeds_effective_name(self):
+        source = """
+#[serde(rename_all = "camelCase")]
+pub struct DemoBody {
+    pub page_size: Option<i32>,
+}
+"""
+        structs = extract_structs(source)
+        fields = structs[0].fields
+        self.assertEqual(fields[0].effective_name, "pageSize")
+        self.assertFalse(fields[0].required)
+
+    def test_rename_survives_doc_comment_between_attr_and_field(self):
+        # 现实写法（whiteboard node create）：#[serde(rename)] 与字段之间夹 doc 注释
+        source = """
+pub struct DemoBody {
+    #[serde(rename = "type")]
+    /// 节点类型。
+    pub node_type: String,
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual(structs[0].fields[0].effective_name, "type")
+
+    def test_balanced_braces_in_doc_comment_do_not_truncate_fields(self):
+        # 旧 verify 正则 ([^}]*) 停在 doc 注释里的第一个 }（含平衡花括号），截断后续字段；
+        # 括号配平后平衡的 JSON 示例不再截断。不平衡的孤立 } 仍会截断（注释感知不在范围）。
+        source = '''
+pub struct DemoBody {
+    /// 示例 payload：{"a": 1} 与 {"b": 2} 的花括号会截断旧实现
+    pub keep_me: String,
+    pub also_kept: i32,
+}
+'''
+        structs = extract_structs(source)
+        self.assertEqual(
+            [item.effective_name for item in structs[0].fields],
+            ["keep_me", "also_kept"],
+        )
+
+    def test_comma_generic_type_stays_whole(self):
+        source = """
+pub struct DemoBody {
+    pub extra: HashMap<String, String>,
+}
+"""
+        flat = extract_rust_fields(source)
+        self.assertEqual(flat[0].type_name, "HashMap<String, String>")
+        typed = extract_structs(source)[0].fields
+        # 核心类型取首个泛型参数（HashMap<K, V> -> K），与旧 _parse_type 语义一致
+        self.assertEqual(typed[0].type_name, "String")
+        self.assertTrue(typed[0].required)
+
+    def test_std_option_prefix_is_optional(self):
+        source = """
+pub struct DemoBody {
+    pub flag: std::option::Option<bool>,
+}
+"""
+        structs = extract_structs(source)
+        self.assertFalse(structs[0].fields[0].required)
+
+    def test_suffix_match_excludes_substring_only_names(self):
+        # endswith 后缀匹配：BodyWrapper 含 "Body" 子串但不尾缀，不进入提取
+        source = """
+pub struct DemoBodyWrapper {
+    pub x: String,
+}
+pub struct DemoQuery {
+    pub page: Option<i32>,
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual([item.name for item in structs], ["DemoQuery"])
+
+    def test_versioned_suffix_structs_match(self):
+        # approval v4 用户级 / workflow v1 的版本尾缀命名（BodyV4/ResponseV1）
+        source = """
+pub struct AddCcInstanceBodyV4 {
+    pub instance_code: String,
+}
+pub struct UpdateTaskResponseV1 {
+    pub task_id: String,
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual(
+            [item.name for item in structs],
+            ["AddCcInstanceBodyV4", "UpdateTaskResponseV1"],
+        )
+        flat = extract_rust_fields(source)
+        self.assertEqual([item.serialized_name for item in flat], ["instance_code"])
+
+    def test_last_field_without_trailing_comma_is_captured(self):
+        source = """
+pub struct DemoBody {
+    pub a: String,
+    pub b: i32
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual(
+            [item.name for item in structs[0].fields], ["a", "b"]
+        )
+
+    def test_multipart_channels_join_as_synthetic_group(self):
+        source = """
+pub struct UploadAllResponse {
+    pub file_token: String,
+}
+
+pub async fn execute(self) -> SDKResult<UploadAllResponse> {
+    #[derive(Serialize)]
+    struct UploadMeta {
+        file_name: String,
+        parent_node: String,
+    }
+
+    let request = ApiRequest::<UploadAllResponse>::post(&api_endpoint.to_url())
+        .json_body(&meta)
+        .file_content(self.file);
+}
+"""
+        structs = extract_structs(source)
+        by_name = {item.name: item for item in structs}
+        self.assertIn(MULTIPART_FORM_STRUCT_NAME, by_name)
+        form_fields = {
+            item.effective_name for item in by_name[MULTIPART_FORM_STRUCT_NAME].fields
+        }
+        # 二进制 file 通道不进合成分组（官方 request_body 字段表不列它）
+        self.assertNotIn("file", form_fields)
+        self.assertIn("file_name", form_fields)
+        self.assertIn("parent_node", form_fields)
+        # 响应 struct 与合成分组并存，互不混入
+        self.assertEqual(
+            [item.effective_name for item in by_name["UploadAllResponse"].fields],
+            ["file_token"],
+        )
 
 
 if __name__ == "__main__":

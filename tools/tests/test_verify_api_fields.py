@@ -131,73 +131,6 @@ def field_evidence(
     )
 
 
-class ExtractStructFieldsTests(unittest.TestCase):
-    def test_extracts_required_optional_vec_and_serde_names(self):
-        source = '''
-pub struct DemoBody {
-    #[serde(rename = "type")]
-    pub task_type: String,
-    pub user_ids: Vec<String>,
-    pub comment: Option<String>,
-}
-pub struct DemoResponse {
-    pub result: String,
-}
-pub struct DemoRequest {
-    pub config: Config,
-}
-'''
-        structs = verify_api_fields.extract_structs(source)
-        self.assertEqual([item.name for item in structs], ["DemoBody", "DemoResponse"])
-        fields = {item.name: item for item in structs[0].fields}
-        self.assertEqual(fields["task_type"].effective_name, "type")
-        self.assertTrue(fields["user_ids"].required)
-        self.assertEqual(fields["user_ids"].type_name, "String")
-        self.assertTrue(fields["user_ids"].is_array)
-        self.assertFalse(fields["comment"].required)
-        self.assertFalse(fields["comment"].is_array)
-
-    def test_skips_absolute_skip_serializing_path_params(self):
-        source = '''
-pub struct UpdateBody {
-    /// path param
-    #[serde(skip_serializing)]
-    pub card_id: String,
-    #[serde(rename = "type")]
-    pub type_: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub uuid: Option<String>,
-    pub sequence: i32,
-}
-'''
-        structs = verify_api_fields.extract_structs(source)
-        fields = {item.effective_name: item for item in structs[0].fields}
-        self.assertNotIn("card_id", fields)
-        self.assertIn("type", fields)
-        self.assertIn("uuid", fields)
-        self.assertFalse(fields["uuid"].required)
-        self.assertIn("sequence", fields)
-
-    def test_skips_multipart_internal_meta_fields(self):
-        source = '''
-pub struct UploadBody {
-    #[serde(skip_serializing)]
-    pub file: Vec<u8>,
-    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
-    pub file_name: Option<String>,
-    pub pdf_page_limit: i32,
-    pub ocr_mode: String,
-}
-'''
-        structs = verify_api_fields.extract_structs(source)
-        fields = {item.effective_name: item for item in structs[0].fields}
-        self.assertNotIn("__file_name", fields)
-        self.assertNotIn("file_name", fields)
-        self.assertNotIn("file", fields)
-        self.assertIn("pdf_page_limit", fields)
-        self.assertIn("ocr_mode", fields)
-
-
 class SuspiciousPatternTests(unittest.TestCase):
     def test_user_level_extra_field_is_informational(self):
         api = api_identity(full_path="/document/x/reference/approval-v4/task/pass")
@@ -412,6 +345,58 @@ class ComparisonTests(unittest.TestCase):
             structs, field_evidence(api), issues
         )
         self.assertEqual(issues, [])
+
+    def test_response_data_fallback_enables_comparison(self):
+        """auth 域 *ResponseData 是文件内唯一响应 payload struct，须兜底命中。
+
+        无兜底时 code_response=[]，doc 有字段而 code 无的 missing_response_field
+        诊断会被静默跳过。
+        """
+        api = api_identity()
+        structs = [
+            verify_api_fields.StructFields(
+                "UserAccessTokenV1ResponseData",
+                [verify_api_fields.FieldInfo("expires_in", "i32", True)],
+            )
+        ]
+        evidence = OfficialDocumentEvidence(
+            api,
+            (
+                DimensionEvidence(
+                    dimension=EvidenceDimension.REQUEST_FIELDS,
+                    status=EvidenceStatus.TRUSTED,
+                    selected_source=EvidenceSource.STRUCTURED_DETAIL,
+                    observations=(),
+                    snapshot_provenance=None,
+                    interpretation_provenance=None,
+                    diagnostics=(),
+                    acquisition_trail=(),
+                ),
+                DimensionEvidence(
+                    dimension=EvidenceDimension.RESPONSE_FIELDS,
+                    status=EvidenceStatus.TRUSTED,
+                    selected_source=EvidenceSource.STRUCTURED_DETAIL,
+                    observations=(
+                        FieldObservation(
+                            ("access_token",),
+                            "response_body",
+                            None,
+                            "string",
+                            EvidenceSource.STRUCTURED_DETAIL,
+                        ),
+                    ),
+                    snapshot_provenance=None,
+                    interpretation_provenance=None,
+                    diagnostics=(),
+                    acquisition_trail=(),
+                ),
+            ),
+        )
+        issues = []
+        verify_api_fields._compare_evidence_against_code(structs, evidence, issues)
+        self.assertEqual(
+            [item.category for item in issues], ["missing_response_field"]
+        )
 
     def test_trusted_empty_request_evidence_preserves_nonpassing_semantics(self):
         api = api_identity()

@@ -7,7 +7,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .models import DEFAULT_ACCESS_TOKEN_TYPES, RustApiContract, RustEndpointCall, RustField
+from .models import (
+    DEFAULT_ACCESS_TOKEN_TYPES,
+    FieldInfo,
+    RustApiContract,
+    RustEndpointCall,
+    RustField,
+    StructFields,
+)
 
 
 # CatalogEndpoint / .to_request 解析（#568）— 实现见 catalog_endpoints；此处 re-export 供校验器/测试
@@ -668,11 +675,14 @@ def _extract_meta_struct_fields(struct_name: str, body: str, base_line: int) -> 
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped.startswith("//"):
+            # doc 注释不打断 attr 与字段的关联（rename 可夹在注释之间）
+            continue
         if stripped.startswith("#["):
             pending_attrs.append(stripped)
             continue
         # 兼容 "pub field: T," 与 "field: T," 两种写法
-        match = re.match(r"(?:pub\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,]+),", stripped)
+        match = re.match(r"(?:pub\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+?)\s*,?\s*$", stripped)
         if not match:
             pending_attrs.clear()
             continue
@@ -681,7 +691,7 @@ def _extract_meta_struct_fields(struct_name: str, body: str, base_line: int) -> 
         if "skip_serializing" in attrs and "skip_serializing_if" not in attrs:
             continue
         field_name = match.group(1)
-        type_name = match.group(2).strip()
+        type_name = _type_from_line(match.group(2))
         rename_match = re.search(r'rename\s*=\s*"([^"]+)"', attrs)
         serialized_name = rename_match.group(1) if rename_match else field_name
         fields.append(
@@ -732,22 +742,128 @@ def _extract_json_literal_fields(text: str) -> list[RustField]:
     return fields
 
 
+def matches_struct_suffix(struct_name: str, suffixes: tuple[str, ...]) -> bool:
+    """struct 名是否命中后缀组：直接尾缀，或尾缀+版本号（如 BodyV4/ResponseV1）。"""
+    for suffix in suffixes:
+        if struct_name.endswith(suffix) or re.fullmatch(rf".+{suffix}V\d+", struct_name):
+            return True
+    return False
+
+
 def extract_rust_struct_fields(text: str, suffixes: tuple[str, ...]) -> tuple[RustField, ...]:
     fields: list[RustField] = []
+    for struct_name, body, base_line, rename_all in _iter_matching_struct_bodies(text, suffixes):
+        fields.extend(extract_struct_fields(struct_name, body, base_line, rename_all))
+    return tuple(fields)
+
+
+def _iter_matching_struct_bodies(
+    text: str, suffixes: tuple[str, ...]
+) -> Iterable[tuple[str, str, int, str]]:
+    """产出 (struct_name, 括号配平的 struct 体, 起始行号, rename_all)。
+
+    suffix 匹配 + find_matching_brace 取体 + struct 前 attrs 的 rename_all，
+    flat（RustField）与分组（StructFields）两种视图共用本脚手架。
+    """
     for match in re.finditer(r"pub\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{", text):
         struct_name = match.group(1)
-        if not struct_name.endswith(suffixes):
+        if not matches_struct_suffix(struct_name, suffixes):
             continue
         open_brace = text.find("{", match.end() - 1)
         close_brace = find_matching_brace(text, open_brace)
         if close_brace < 0:
             continue
-        struct_attrs = preceding_attrs(text, match.start())
-        rename_all = serde_rename_all(struct_attrs)
-        body = text[open_brace + 1 : close_brace]
-        base_line = line_of(text, open_brace + 1)
-        fields.extend(extract_struct_fields(struct_name, body, base_line, rename_all))
-    return tuple(fields)
+        rename_all = serde_rename_all(preceding_attrs(text, match.start()))
+        yield struct_name, text[open_brace + 1 : close_brace], line_of(text, open_brace + 1), rename_all
+
+
+# multipart 文件的请求体字段（file/Meta struct/json! 字面量三通道）在分组视图里
+# 合成的 struct 名。不用 body 后缀，避免混入「必填数组缺校验」等 builder 类启发式。
+MULTIPART_FORM_STRUCT_NAME = "MultipartForm"
+
+
+def extract_structs(
+    text: str,
+    suffixes: tuple[str, ...] = REQUEST_STRUCT_SUFFIXES + RESPONSE_STRUCT_SUFFIXES,
+) -> list[StructFields]:
+    """按 struct 分组提取字段（类型语义视图，供 verify_api_fields 消费）。
+
+    struct 匹配与 extract_rust_struct_fields 同一 endswith 后缀规则；字段解析复用
+    extract_struct_fields（括号配平体、rename/rename_all、skip 规则、`__` 前缀跳过），
+    在其上派生 (required, 核心类型, is_array) 类型语义。multipart 文件追加一个
+    MULTIPART_FORM_STRUCT_NAME 合成分组（file_content/Meta/json! 三通道）。
+    """
+    structs: list[StructFields] = []
+    for struct_name, body, base_line, rename_all in _iter_matching_struct_bodies(text, suffixes):
+        structs.append(
+            StructFields(
+                name=struct_name,
+                fields=[
+                    rust_field_to_field_info(item)
+                    for item in extract_struct_fields(struct_name, body, base_line, rename_all)
+                ],
+            )
+        )
+    multipart_fields = [
+        item
+        for item in extract_file_content_fields(text)
+        # 二进制 file 通道是 wire 层产物：官方 request_body 字段表不列它，
+        # 注入会制造系统性 extra_field 假警告（live 实证：document_ai contract）
+        if item.struct_name != "MultipartFile"
+    ]
+    if multipart_fields:
+        structs.append(
+            StructFields(
+                name=MULTIPART_FORM_STRUCT_NAME,
+                fields=[rust_field_to_field_info(item) for item in multipart_fields],
+            )
+        )
+    return structs
+
+
+def rust_field_to_field_info(rust_field: RustField) -> FieldInfo:
+    """把 flat 视图的 RustField 派生成类型语义视图的 FieldInfo。"""
+    required, core_type, is_array = parse_field_type(rust_field.type_name)
+    rename = (
+        rust_field.serialized_name
+        if rust_field.serialized_name != rust_field.field_name
+        else None
+    )
+    return FieldInfo(
+        name=rust_field.field_name,
+        type_name=core_type,
+        required=required,
+        rename=rename,
+        is_array=is_array,
+    )
+
+
+def parse_field_type(raw: str) -> tuple[bool, str, bool]:
+    """解析类型字符串 → (是否必填, 核心类型名, 是否数组)。
+
+    Option<T> → 选填；Vec<T> → 必填数组；Option<Vec<T>> → 选填数组。
+    兼容 std::option::Option 全路径写法（与 is_optional_type 对齐）。
+    """
+    type_str = raw.strip()
+    opt_match = re.match(r"(?:std::option::)?Option<(.+)>$", type_str)
+    if opt_match:
+        inner = opt_match.group(1).strip()
+        vec_match = re.match(r"Vec<(.+)>$", inner)
+        if vec_match:
+            return False, _unwrap_generic(vec_match.group(1).strip()), True
+        return False, _unwrap_generic(inner), False
+    vec_match = re.match(r"Vec<(.+)>$", type_str)
+    if vec_match:
+        return True, _unwrap_generic(vec_match.group(1).strip()), True
+    return True, _unwrap_generic(type_str), False
+
+
+def _unwrap_generic(type_str: str) -> str:
+    """去掉外层泛型，取核心类型名（Vec<String> -> String，HashMap<K,V> -> K）。"""
+    inner_match = re.match(r"\w+<(.+)>$", type_str)
+    if inner_match:
+        return inner_match.group(1).split(",")[0].strip()
+    return type_str
 
 
 def preceding_attrs(text: str, start_index: int) -> str:
@@ -770,6 +886,11 @@ def serde_rename_all(attrs: str) -> str:
     return match.group(1) if match else ""
 
 
+def _type_from_line(raw: str) -> str:
+    """截掉行尾注释与尾逗号，保留完整类型（含泛型内逗号，如 HashMap<K, V>）。"""
+    return raw.split("//", 1)[0].rstrip().rstrip(",").rstrip()
+
+
 def extract_struct_fields(
     struct_name: str,
     body: str,
@@ -782,10 +903,13 @@ def extract_struct_fields(
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped.startswith("//"):
+            # doc 注释不打断 attr 与字段的关联（rename 可夹在注释之间）
+            continue
         if stripped.startswith("#["):
             pending_attrs.append(stripped)
             continue
-        match = re.match(r"pub\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,]+),", stripped)
+        match = re.match(r"pub\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+?)\s*,?\s*$", stripped)
         if not match:
             pending_attrs.clear()
             continue
@@ -794,9 +918,12 @@ def extract_struct_fields(
         if "skip_serializing" in attrs and "skip_serializing_if" not in attrs:
             continue
         field_name = match.group(1)
-        type_name = match.group(2).strip()
+        type_name = _type_from_line(match.group(2))
         rename_match = re.search(r'rename\s*=\s*"([^"]+)"', attrs)
         serialized_name = rename_match.group(1) if rename_match else apply_rename_rule(field_name, rename_all)
+        # multipart 内部元数据（如 __file_name）不参与官方字段对比
+        if field_name.startswith("__") or serialized_name.startswith("__"):
+            continue
         fields.append(
             RustField(
                 struct_name=struct_name,
