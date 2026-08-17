@@ -86,6 +86,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **websocket：Session 读写 seam 泛型化 + 内存 adapter，session 级测试下沉（#640，
+  ADR-0006）**：`Session` 泛型于底层字节流（`Session<S: AsyncRead + AsyncWrite +
+  Unpin + Send + 'static>`，字段为 `WebSocketStream<S>` split 半部）——生产实例化
+  `MaybeTlsStream<TcpStream>` 不变（client.rs 类型推断吃掉泛型，`LarkWsClient::open`
+  签名零变化，公开 API 零变化）。新增 `session_behavior_tests`（`#[cfg(test)]`
+  内联，`tokio::io::duplex` + `from_raw_socket` 双侧成帧）：16 个用例覆盖状态机
+  核心行为（close reason 保留、违约帧不覆盖原因、乱序/不完整/越界多包扣留、
+  BacklogFull、串行派发、panic 传播、超大帧守卫（精确断言 `Capacity(MessageTooLong)`，
+  宽三选一在守卫失效时会被解码错误兜住）、malformed pong）与 **callback ACK
+  session 级 round-trip**（base64 data 经真实 sink→对端逐字节验证，#634 缺口）。
+  同步以 channel/gate 原语替代 `thread::sleep` 排序、负向断言以后到事件的 ACK 作
+  正向同步点；串行派发用例以 500ms 有界反证窗口观察（「证明串行」的消极性质与
+  零等待不可兼得）。full_session_tests 24 测原样保留作 parity。随附
+  ADR-0006；ADR-0003 状态头回写 Accepted（实施早已落地，纯漂移修复）。
+
 - **tools：删除休眠回归锁与平行 URL 解析器，fetch 栈就近 schema_cache（#635）**：
   删除 `tools/check_api_urls.py`（659 行激进 URL 解析器，与 `rust_source` 的对齐仅靠
   注释维持，零 CI/justfile 引用）；删除 7 个休眠验收测试（~1,046 行，断言冻结在历史

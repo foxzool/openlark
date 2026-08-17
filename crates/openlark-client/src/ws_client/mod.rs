@@ -23,3 +23,6 @@ mod tests;
 
 #[cfg(test)]
 mod full_session_tests;
+
+#[cfg(test)]
+mod session_behavior_tests;
