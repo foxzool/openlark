@@ -671,6 +671,23 @@ pub struct UpdateTaskResponseV1 {
         flat = extract_rust_fields(source)
         self.assertEqual([item.serialized_name for item in flat], ["instance_code"])
 
+    def test_extracts_response_data_suffix_structs(self):
+        # auth 域 *ResponseData 是文件内唯一响应 payload，须进入默认提取
+        source = """
+pub struct UserAccessTokenV1ResponseData {
+    pub access_token: String,
+    pub expires_in: i32,
+}
+"""
+        structs = extract_structs(source)
+        self.assertEqual(
+            [item.name for item in structs], ["UserAccessTokenV1ResponseData"]
+        )
+        self.assertEqual(
+            [item.effective_name for item in structs[0].fields],
+            ["access_token", "expires_in"],
+        )
+
     def test_last_field_without_trailing_comma_is_captured(self):
         source = """
 pub struct DemoBody {

@@ -38,7 +38,8 @@ from .catalog_endpoints import (
 
 
 REQUEST_STRUCT_SUFFIXES = ("Body", "Query", "Params", "RequestBody")
-RESPONSE_STRUCT_SUFFIXES = ("Response", "Result", "Resp")
+# *ResponseData：auth 域若干 API 的唯一响应 payload（无 *Response 信封）
+RESPONSE_STRUCT_SUFFIXES = ("Response", "Result", "Resp", "ResponseData")
 
 # AccessTokenType 枚举变体 → 飞书凭证名（与 constants.rs 的 as_str/Display 一致）。
 # 用于把 Rust 声明的 token 类型翻译成可与官方 supportedAccessToken 直接比对的形态。
