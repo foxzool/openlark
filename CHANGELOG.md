@@ -86,6 +86,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **tools：Rust 合约提取收口为单一深 module（#636）**：`verify_api_fields`
+  删除内嵌提取栈（~105 行，正则停在首个 `}`、不认 `rename_all`），改为库消费
+  `api_contracts.rust_source`——`extract_structs` 成为唯一分组提取 interface，
+  `FieldInfo`/`StructFields` 模型移入 `models.py`。共享层修复与增强（两 CLI 同时
+  受益）：struct 体改为括号配平提取（平衡花括号的 doc 注释不再截断字段）；类型
+  整行捕获修复 `HashMap<String, String>` 逗号截断（161 处）；`#[serde(rename)]`
+  可跨 doc 注解生效；`std::option::Option` 前缀识别为选填；`__` 前缀内部字段
+  全局跳过；新增 `matches_struct_suffix` 支持版本尾缀命名（`*BodyV4`/`*ResponseV1`，
+  workflow 244 个字段恢复可见）；multipart 表单字段（Meta struct/`json!` 字面量）
+  以 `MultipartForm` 合成分组进入字段核对（二进制 `file` 通道除外——官方
+  request_body 字段表不列它，live 实证）。响应对比改为 `*Response` 优先、
+  `*Result`/`*Resp`/`*ResponseData` 兜底的确定性选择（auth 域 10 个
+  `*ResponseData` 唯一响应 struct 的文件恢复对比能力）。提取语义测试迁入
+  `test_validate_api_contracts_rust_source.py` 并补新语义正测；对拍验证：全仓
+  新旧提取 diff 零意外回归，1,628 个 API quick 模式问题集零漂移；两个 multipart
+  API live full 模式实跑通过。另发现既有 bug 另案跟踪（#638：weekly 门无
+  `--crate` 调用时扫描量为零）。
 - **websocket：Session 读写 seam 泛型化 + 内存 adapter，session 级测试下沉（#640，
   ADR-0006）**：`Session` 泛型于底层字节流（`Session<S: AsyncRead + AsyncWrite +
   Unpin + Send + 'static>`，字段为 `WebSocketStream<S>` split 半部）——生产实例化
