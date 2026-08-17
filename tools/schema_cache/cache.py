@@ -1,6 +1,6 @@
 """飞书 apiSchema 持久缓存。
 
-复用 tools.api_contracts.official.fetch_detail_payload 做实际取数（零鉴权 urllib +
+复用同包 fetch.fetch_detail_payload 做实际取数（零鉴权 urllib +
 指数退避 min(2**attempt,8)），本模块只加：落盘 + mtime + refresh + 失败隔离。
 
 缓存策略：默认永不过期，--refresh 强制重拉；损坏 JSON 静默重拉。
@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from tools.api_contracts.models import ApiIdentity
-from tools.api_contracts.official import extract_api_schema, fetch_detail_payload
+from tools.schema_cache.fetch import extract_api_schema, fetch_detail_payload
 
 DEFAULT_CACHE_DIR = Path(__file__).parent / ".cache"
 

@@ -82,8 +82,6 @@ just api-contracts                         # 全仓（CI 跑的就是这个）
 
 看 `reports/api_contracts/crates/<crate>.md`。重点盯 `E_ENDPOINT_*`（ERROR）。`W_ENDPOINT_UNRESOLVED` 不阻塞，但意味着该 API 的 URL 没被机器验证过——标记为待人工核（见第 4 层）。
 
-> 若 `validate_api_contracts` 对某个复杂 enum 路径报 `W_ENDPOINT_UNRESOLVED`，可用独立的 `tools/check_api_urls.py`（`python3 tools/check_api_urls.py --crate <name>`，输出 `reports/api_url_validation/`）深挖：它的 `ExprResolver` 对 `format!`/`replace`/字符串拼接/`to_url()` enum/变量赋值的展开比契约工具更激进，能解析更多动态路径。该工具无 just recipe、不进 CI，是一份独立的离线 URL 全量核对报告。
-
 ### 第 3 层：字段启发式（秒级，离线，不抓文档）
 
 ```bash
@@ -220,7 +218,6 @@ node .agents/skills/openlark-api-field-verify/scripts/fetch_doc.js \
 | 契约-fields | 同上 `--fields --live-fields` | ③④ | live | `just api-contract-fields <crate> <N>` |
 | 契约-tokens | 同上 `--tokens` | ⑤ | live | `just api-contract-tokens <crate>` |
 | 字段启发式 | `tools/verify_api_fields.py` | ③④ | 离线快速/live 完整 | `python3 tools/verify_api_fields.py --crate <name> [--fetch-docs]` |
-| URL 全量解析 | `tools/check_api_urls.py` | ② | 离线（更激进展开） | `python3 tools/check_api_urls.py --crate <name>` |
 | 文档渲染 | `.agents/skills/openlark-api-field-verify/scripts/fetch_doc.js` | 字段人工核对 | live(playwright) | `node fetch_doc.js <url> <out>` |
 
 ## 9. 相关文档
