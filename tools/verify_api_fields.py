@@ -13,7 +13,6 @@ API 字段核对工具：扫描代码字段、检测可疑模式、可选抓飞�
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,7 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.api_contracts.models import ApiIdentity
+from tools.api_contracts.models import ApiIdentity, FieldInfo, StructFields
 from tools.api_contracts.official import load_api_identities
 from tools.api_contracts.official_evidence import (
     EvidenceDimension,
@@ -37,150 +36,25 @@ from tools.api_contracts.report import (
     evidence_markdown_lines,
     evidence_to_jsonable,
 )
+from tools.api_contracts.rust_source import (
+    MULTIPART_FORM_STRUCT_NAME,
+    RESPONSE_STRUCT_SUFFIXES,
+    extract_structs,
+    matches_struct_suffix,
+)
+
 DEFAULT_CSV = REPO_ROOT / "api_list_export.csv"
 
-
-# ---------------------------------------------------------------------------
-# 数据模型
-# ---------------------------------------------------------------------------
-
-
-
-
-# ---------------------------------------------------------------------------
-# Rust 源码字段提取
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class FieldInfo:
-    """单个字段信息。"""
-
-    name: str  # Rust 字段名（rename 前的 snake_case）
-    type_name: str  # 核心类型名（Vec<String> -> String，Option<i32> -> i32）
-    required: Optional[bool]  # 是否必填；None=文档未标注（跳过必填对比）
-    rename: Optional[str] = None  # serde rename 后的名字，无则 None
-    is_array: bool = False  # 是否数组（Vec / doc 的 T[]）
-
-    @property
-    def effective_name(self) -> str:
-        """对比时用的名字：rename 优先。"""
-        return self.rename or self.name
-
-
-@dataclass
-class StructFields:
-    """一个 struct 提取出的字段集合。"""
-
-    name: str  # struct 名
-    fields: List[FieldInfo] = field(default_factory=list)
-
-
-def extract_structs(source: str) -> List[StructFields]:
-    """从 Rust 源码提取 Body/Response struct 的字段。
-
-    只提取名字含 Body 或 Response 的 struct（请求体/响应体），
-    跳过 Request struct（那是 builder，不是字段定义）。
-    """
-    results: List[StructFields] = []
-    # 匹配 pub struct Name { ... }，非贪婪到第一个 }
-    pattern = re.compile(r"pub\s+struct\s+(\w+)\s*\{([^}]*)\}", re.S)
-    for m in pattern.finditer(source):
-        name = m.group(1)
-        if "Body" not in name and "Response" not in name:
-            continue
-        body = m.group(2)
-        results.append(StructFields(name=name, fields=_extract_fields_from_block(body)))
-    return results
-
-
-def _extract_fields_from_block(block: str) -> List[FieldInfo]:
-    """从 struct 体内提取字段列表。"""
-    fields: List[FieldInfo] = []
-    lines = block.split("\n")
-    pending_rename: Optional[str] = None
-    # 纯 skip_serializing（路径参数）不进入请求体对比；skip_serializing_if 仍参与。
-    pending_skip_serializing = False
-    pending_attrs: List[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith("//"):
-            continue
-        if stripped.startswith("#["):
-            pending_attrs.append(stripped)
-            rename_match = re.search(
-                r'#\[serde\s*\([^)]*rename\s*=\s*"([^"]+)"', stripped
-            )
-            if rename_match:
-                pending_rename = rename_match.group(1)
-            # 与 tools/api_contracts/rust_source.py 对齐：仅绝对 skip_serializing 跳过
-            if "skip_serializing" in stripped and "skip_serializing_if" not in stripped:
-                pending_skip_serializing = True
-            continue
-        # 匹配 pub field_name: Type,
-        field_match = re.match(r"pub\s+(\w+)\s*:\s*(.+?),?\s*$", stripped)
-        if not field_match:
-            pending_rename = None
-            pending_skip_serializing = False
-            pending_attrs.clear()
-            continue
-        if pending_skip_serializing:
-            pending_rename = None
-            pending_skip_serializing = False
-            pending_attrs.clear()
-            continue
-        fname = field_match.group(1)
-        raw_type = field_match.group(2).strip().rstrip(",")
-        # multipart 内部元数据（如 __file_name）不参与官方字段对比
-        effective = pending_rename or fname
-        if effective.startswith("__"):
-            pending_rename = None
-            pending_skip_serializing = False
-            pending_attrs.clear()
-            continue
-        required, type_name, is_array = _parse_type(raw_type)
-        fields.append(
-            FieldInfo(
-                name=fname,
-                type_name=type_name,
-                required=required,
-                rename=pending_rename,
-                is_array=is_array,
-            )
-        )
-        pending_rename = None
-        pending_skip_serializing = False
-        pending_attrs.clear()
-    return fields
-
-
-def _parse_type(raw: str) -> Tuple[bool, str, bool]:
-    """解析类型字符串，返回 (是否必填, 规范化类型名, 是否数组)。"""
-    raw = raw.strip()
-    # Option<T> -> 选填，内部类型
-    opt_match = re.match(r"Option<(.+)>$", raw)
-    if opt_match:
-        inner = opt_match.group(1).strip()
-        vec_match = re.match(r"Vec<(.+)>$", inner)
-        if vec_match:
-            return False, _unwrap_generic(vec_match.group(1).strip()), True
-        return False, _unwrap_generic(inner), False
-    # Vec<T> -> 必填，元素类型
-    vec_match = re.match(r"Vec<(.+)>$", raw)
-    if vec_match:
-        return True, _unwrap_generic(vec_match.group(1).strip()), True
-    # 裸类型
-    return True, _unwrap_generic(raw), False
-
-
-def _unwrap_generic(type_str: str) -> str:
-    """去掉外层泛型，取核心类型名（Vec<String> -> String，HashMap<K,V> -> K）。"""
-    inner_match = re.match(r"\w+<(.+)>$", type_str)
-    if inner_match:
-        return inner_match.group(1).split(",")[0].strip()
-    return type_str
+# 请求体 struct 后缀：REQUEST_STRUCT_SUFFIXES 的 body 子集——Query/Params 是查询
+# 参数而非请求体，混入会把「GET+query 无 body」的 API 误报 doc_parse_empty。
+_BODY_STRUCT_SUFFIXES = ("Body", "RequestBody")
+# 响应对比优先取 *Response（信封 struct）；仅当文件没有 *Response 时才回落
+# *Result/*Resp/*ResponseData（如 baike 的 MatchEntityResp、auth 的
+# UserAccessTokenV1ResponseData——后者是文件内唯一响应 payload struct，不兜底
+# 会让 full 模式响应对比静默关闭）。嵌套 Result 先于 Response 定义时不能抢位，
+# 否则文档顶层字段会对到嵌套 payload 上。
+_RESPONSE_PRIMARY_SUFFIXES = ("Response",)
+_RESPONSE_FALLBACK_SUFFIXES = RESPONSE_STRUCT_SUFFIXES
 
 
 # ---------------------------------------------------------------------------
@@ -210,8 +84,10 @@ def detect_suspicious_patterns(
     """
     issues: List[FieldIssue] = []
 
-    # 收集所有 Body struct 的字段
-    body_structs = [s for s in structs if "Body" in s.name]
+    # 收集所有请求体 struct 的字段
+    body_structs = [
+        s for s in structs if matches_struct_suffix(s.name, _BODY_STRUCT_SUFFIXES)
+    ]
 
     # 红旗 1：用户级接口含 user_id / approval_code
     # 注意：is_user_level 基于 /reference/ 路径，但 reference 也含管理员级接口，
@@ -263,7 +139,9 @@ def detect_suspicious_patterns(
 
     # 红旗 3：GET 查询接口 Response 为空
     if api.official_method == "GET":
-        resp_structs = [s for s in structs if "Response" in s.name]
+        resp_structs = [
+            s for s in structs if matches_struct_suffix(s.name, _RESPONSE_PRIMARY_SUFFIXES)
+        ]
         for s in resp_structs:
             if not s.fields:
                 issues.append(
@@ -617,9 +495,22 @@ def _compare_evidence_against_code(
             and len(item.path) == 1
             and item.location == "request_body"
         ]
-        code_body = next(
-            (item.fields for item in structs if "Body" in item.name), []
+        # 请求体 = 首个 body 后缀 struct 的字段 + multipart 合成分组的表单字段
+        body_fields = next(
+            (
+                item.fields
+                for item in structs
+                if matches_struct_suffix(item.name, _BODY_STRUCT_SUFFIXES)
+            ),
+            [],
         )
+        multipart_fields = next(
+            (item.fields for item in structs if item.name == MULTIPART_FORM_STRUCT_NAME),
+            [],
+        )
+        # Body struct（强类型）在前：compare_fields 按名字建 dict 后写覆盖先写，
+        # 同名字段以 Body struct 的 required/类型语义为准，multipart 通道不静默盖掉
+        code_body = list(multipart_fields) + list(body_fields)
         if not doc_req and code_body:
             issues.append(
                 FieldIssue(
@@ -656,7 +547,19 @@ def _compare_evidence_against_code(
             if isinstance(item, FieldObservation) and len(item.path) == 1
         }
         code_response = next(
-            (item.fields for item in structs if "Response" in item.name), []
+            (
+                item.fields
+                for item in structs
+                if matches_struct_suffix(item.name, _RESPONSE_PRIMARY_SUFFIXES)
+            ),
+            next(
+                (
+                    item.fields
+                    for item in structs
+                    if matches_struct_suffix(item.name, _RESPONSE_FALLBACK_SUFFIXES)
+                ),
+                [],
+            ),
         )
         if doc_response_names and code_response:
             code_names = {item.effective_name for item in code_response}
