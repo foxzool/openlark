@@ -3,7 +3,7 @@
 //! 方法分发由 [`super::session::Session`] 完成；本模块不再二次 match method。
 
 use lark_websocket_protobuf::pbbp2::{Frame, Header};
-use log::{debug, error, trace};
+use log::{debug, error, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -34,11 +34,93 @@ pub(crate) enum ControlFrameError {
 }
 
 /// 数据帧事件应答（写回 peer 的 payload）。
+///
+/// wire 格式对齐官方 SDK（`ws/model.go` Response / `ws/client.py` Response）：
+/// `{"code":200,"headers":{...},"data":"<base64>"}`；无业务数据时省略 `data` 字段。
 #[derive(Serialize, Deserialize, Debug)]
 struct EventAck {
     code: u16,
     headers: std::collections::HashMap<String, String>,
-    data: Vec<u8>,
+    #[serde(
+        with = "ack_data_base64",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    data: Option<Vec<u8>>,
+}
+
+/// ACK `data` 字段编解码：base64 字符串。
+///
+/// 官方各家实现一致（Go `ws/model.go` `Response.Data []byte` 经 encoding/json、
+/// Python `ws/client.py` `base64.b64encode`、Node `ws-client/index.ts`
+/// `Buffer.toString("base64")`、Java `ws/model/Base64TypeAdapterFactory`），
+/// 业务数据以 `base64(JSON(handler 返回值))` 携带；
+/// serde 对 `Vec<u8>` 默认的 JSON 数组是错误格式。
+mod ack_data_base64 {
+    use base64::Engine;
+    use serde::{Deserializer, Serializer};
+
+    pub(super) fn serialize<S>(data: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match data {
+            Some(bytes) => {
+                serializer.serialize_str(&base64::engine::general_purpose::STANDARD.encode(bytes))
+            }
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = Option<Vec<u8>>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("base64 string or null")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                base64::engine::general_purpose::STANDARD
+                    .decode(value)
+                    .map(Some)
+                    .map_err(|e| E::custom(format!("invalid base64 in ack data: {e}")))
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                // serde_json 的 deserialize_option 对非 null 值走 visit_some；
+                // null 会在此处的 deserialize_str 里落到 visit_unit。
+                deserializer.deserialize_str(self)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(None)
+            }
+
+            fn visit_unit<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(None)
+            }
+        }
+
+        deserializer.deserialize_option(Visitor)
+    }
 }
 
 impl EventAck {
@@ -46,7 +128,7 @@ impl EventAck {
         Self {
             code: 200,
             headers: Default::default(),
-            data: Default::default(),
+            data: None,
         }
     }
 
@@ -54,7 +136,7 @@ impl EventAck {
         Self {
             code: 500,
             headers: Default::default(),
-            data: Default::default(),
+            data: None,
         }
     }
 }
@@ -135,14 +217,23 @@ impl FrameHandler {
 
                 frame.payload = Some(serde_json::to_vec(&response).unwrap_or_else(|e| {
                     error!("Failed to serialize EventAck: {e:?}");
-                    // 保证写回合法 JSON，避免空 payload 伪装成功
-                    br#"{"code":500,"headers":{},"data":[]}"#.to_vec()
+                    // 保证写回合法 JSON，避免空 payload 伪装成功（无业务数据，不带 data）
+                    br#"{"code":500,"headers":{}}"#.to_vec()
                 }));
 
                 Some(frame)
             }
+            // 官方 Go/Python/Java/Node SDK 对 type=card 帧一律丢弃（不分发、不回 ACK）：
+            // Go ws/client.go `case MessageTypeCard: return` 自 2023-10 初版至今未变，
+            // `WithCardHandler` 为被注释掉的死代码。新版卡片回调（card.action.trigger）
+            // 官方经 type=event 帧 + payload `header.event_type` 走 event 分支；
+            // 旧版消息卡片回调官方明示不支持长连接。若线上收到 card 帧，通常是应用
+            // 回调订阅配置未生效（参照 larksuite/oapi-sdk-python#126），重新发布配置后
+            // 回调会改经 event 帧到达，故打 warn 提示而非静默丢弃。
             "card" => {
-                debug!("Card frame received, skipping");
+                warn!(
+                    "Card frame received, skipping (official SDKs drop type=card frames; card callbacks arrive as type=event frames with header.event_type=card.action.trigger)"
+                );
                 None
             }
             other => {
@@ -387,6 +478,9 @@ mod tests {
 
     #[test]
     fn test_handle_data_frame_card() {
+        // 官方 Go/Python/Java/Node SDK 对 type=card 帧一律丢弃（不分发、不回 ACK）；
+        // 新版卡片回调官方路径是 type=event 帧 + payload header.event_type=card.action.trigger
+        //（见 test_event_frame_card_action_trigger_dispatches_by_event_type）。
         let event_handler = EventDispatcherHandler::builder().build();
         let frame = create_data_frame("card", Some(b"card data".to_vec()));
         assert!(FrameHandler::handle_data_frame(frame, &event_handler).is_none());
@@ -503,5 +597,72 @@ mod tests {
         assert_eq!(response.code, deserialized.code);
         assert_eq!(response.headers, deserialized.headers);
         assert_eq!(response.data, deserialized.data);
+    }
+
+    #[test]
+    fn test_event_ack_data_serializes_as_base64_string() {
+        // 官方 ACK wire 格式：data 为 base64 字符串（Go []byte+json.Marshal / Python
+        // b64encode / Node Buffer.toString("base64") / Java Base64TypeAdapterFactory 一致），
+        // 绝不是 serde 对 Vec<u8> 默认的 JSON 数组。
+        let response = EventAck {
+            code: 200,
+            headers: Default::default(),
+            data: Some(vec![1, 2, 3]),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains(r#""data":"AQID""#), "got: {json}");
+    }
+
+    #[test]
+    fn test_event_ack_data_base64_round_trip() {
+        let json = r#"{"code":200,"headers":{},"data":"AQID"}"#;
+        let ack: EventAck = serde_json::from_str(json).expect("base64 data 应可反序列化");
+        assert_eq!(ack.data, Some(vec![1, 2, 3]));
+        // Serialize/Deserialize 对称：往返后字节一致
+        assert_eq!(serde_json::to_string(&ack).unwrap(), json);
+    }
+
+    #[test]
+    fn test_event_ack_ok_omits_data_field() {
+        // 无业务数据时省略 data 字段（Python/Java/Node 行为；Go 输出 null，两者皆为官方变体）
+        let json = serde_json::to_string(&EventAck::ok()).unwrap();
+        assert!(!json.contains("data"), "got: {json}");
+        let json = serde_json::to_string(&EventAck::error()).unwrap();
+        assert!(!json.contains("data"), "got: {json}");
+    }
+
+    #[test]
+    fn test_event_ack_rejects_json_array_data() {
+        // 旧的错误 wire 格式（JSON 数组）必须被拒绝，防止回归
+        let json = r#"{"code":200,"headers":{},"data":[1,2,3]}"#;
+        assert!(serde_json::from_str::<EventAck>(json).is_err());
+    }
+
+    #[test]
+    fn test_event_frame_card_action_trigger_dispatches_by_event_type() {
+        // 官方长连接卡片回调路径 fixture（依官方文档《卡片回传交互回调》schema 2.0 结构）：
+        // type=event 帧 + payload header.event_type=card.action.trigger，
+        // 由 dispatcher 按 event_type 路由（对齐官方 OnP2CardActionTrigger/register_p2_card_action_trigger）。
+        let calls = Arc::new(AtomicUsize::new(0));
+        let event_handler = EventDispatcherHandler::builder()
+            .register_raw(
+                "card.action.trigger",
+                CountingHandler {
+                    calls: Arc::clone(&calls),
+                },
+            )
+            .expect("card.action.trigger handler should register")
+            .build();
+
+        let payload = br#"{"schema":"2.0","header":{"event_id":"f7984f25108f8137722bb63c1d00bd823c2","event_type":"card.action.trigger","create_time":"1603977298000000","token":"066zT6pS4QCbgj5Do145GfDbbagrRzvV3","app_id":"cli_a511af62e2b5d07f","tenant_key":"736588c9260f175d"},"event":{"operator":{"tenant_key":"736588c9260f175d","user_id":"on_8f6f0d15799e5c45","open_id":"ou_4063d88c980c9f2d"},"token":"c-295eed59e6dbb014b72cba6f2ff6d48da9971e99","action":{"value":{"key":"value"},"tag":"button","timezone":"8","name":"btn","form_value":{},"input_value":"","option":"","options":[],"checked":false},"host":"im_message","context":{"open_message_id":"om_dc0d7ab6d7b734d5bff5c0556e8e7616","open_chat_id":"oc_4d83f1dc8596c773a09e86f50a931b77"}}}"#.to_vec();
+        let frame = create_data_frame("event", Some(payload));
+
+        let result = FrameHandler::handle_data_frame(frame, &event_handler);
+        assert_eq!(calls.load(Ordering::SeqCst), 1, "卡片回调应经 event 帧分发");
+        let returned = result.expect("event 帧必须回写 ACK");
+        let body = String::from_utf8(returned.payload.expect("ACK payload")).unwrap();
+        assert!(body.contains(r#""code":200"#), "got: {body}");
+        // 当前 EventHandler 无返回值通道，业务响应恒为空 → 不携带 data 字段
+        assert!(!body.contains(r#""data":"#), "got: {body}");
     }
 }
