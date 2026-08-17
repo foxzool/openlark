@@ -72,6 +72,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ConvertCardIdBody` 仅保留官方 `message_id`（旧 `source_id_type`/`card_ids` 为错误推断）。
   - 多数写接口响应 `data` 为空对象，对应 Response 结构同步收敛。
 
+### Added
+
+- **websocket：callback 型事件处理器业务响应通道（#632）**：新增
+  `CallbackEventHandler` trait（`handle` 返回 `Option<serde_json::Value>`）与
+  `EventDispatcherHandler::register_callback(key, handler)`。卡片回传交互
+  （`card.action.trigger`）等 callback 型事件的业务响应（如 `{"toast": {...}}` /
+  `{"card": {...}}`）现经 ACK 帧 `data` 字段以 base64(JSON) 写回服务端（3 秒内），
+  对齐官方 Go `OnP2CardActionTrigger` / Python `register_p2_card_action_trigger`
+  的双 handler map 形态：callback 命中即短路，不再落 raw 处理器；`payload_sender`
+  转发不受影响。既有 `EventHandler` / `register_raw` / `do_without_validation`
+  签名不变，纯增量公开 API。
+
 ### Changed
 
 - **websocket：ACK data 对齐官方 base64 wire 格式 + card 帧文档化（#631）**：

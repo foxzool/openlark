@@ -14,7 +14,7 @@ mod session;
 /// 会话级公开 API。
 pub use client::LarkWsClient;
 #[cfg(feature = "websocket")]
-pub use dispatcher::{EventDispatcherHandler, EventHandler};
+pub use dispatcher::{CallbackEventHandler, EventDispatcherHandler, EventHandler};
 #[cfg(feature = "websocket")]
 pub use session::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
 
