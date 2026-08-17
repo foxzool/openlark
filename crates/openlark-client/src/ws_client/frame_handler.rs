@@ -132,6 +132,15 @@ impl EventAck {
         }
     }
 
+    /// 携带业务响应的成功应答（data 以 base64 写回，官方 callback 通道）。
+    fn ok_with_data(data: Vec<u8>) -> Self {
+        Self {
+            code: 200,
+            headers: Default::default(),
+            data: Some(data),
+        }
+    }
+
     fn error() -> Self {
         Self {
             code: 500,
@@ -245,11 +254,14 @@ impl FrameHandler {
 
     fn process_event(payload: &[u8], event_handler: &EventDispatcherHandler) -> EventAck {
         let start = Instant::now();
-        let result = event_handler.do_without_validation(payload);
+        let result = event_handler.dispatch_with_response(payload);
         let elapsed = start.elapsed().as_millis();
 
         let mut response = match result {
-            Ok(_) => EventAck::ok(),
+            // callback 型业务响应写入 ACK data（base64），对齐官方
+            // `if rsp != nil { resp.Data = json.Marshal(rsp) }`
+            Ok(Some(data)) => EventAck::ok_with_data(data),
+            Ok(None) => EventAck::ok(),
             Err(err) => {
                 error!("Failed to handle event: {err:?}");
                 EventAck::error()
@@ -284,6 +296,7 @@ impl FrameHandler {
 mod tests {
     use super::*;
     use crate::ws_client::EventHandler;
+    use base64::Engine;
     use lark_websocket_protobuf::pbbp2::Header;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -664,5 +677,225 @@ mod tests {
         assert!(body.contains(r#""code":200"#), "got: {body}");
         // 当前 EventHandler 无返回值通道，业务响应恒为空 → 不携带 data 字段
         assert!(!body.contains(r#""data":"#), "got: {body}");
+    }
+
+    /// 返回 toast 业务响应的 callback handler fixture（官方 CardActionTriggerResponse 形态）。
+    struct ToastCallback {
+        calls: Arc<AtomicUsize>,
+        response: Option<serde_json::Value>,
+    }
+
+    impl crate::ws_client::CallbackEventHandler for ToastCallback {
+        fn handle(
+            &self,
+            _payload: &[u8],
+        ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Ok(self.response.clone())
+        }
+    }
+
+    /// 官方 schema 2.0 的 card.action.trigger event 帧 payload。
+    fn card_action_trigger_payload() -> Vec<u8> {
+        br#"{"schema":"2.0","header":{"event_id":"f7984f25108f8137722bb63c1d00bd823c2","event_type":"card.action.trigger","create_time":"1603977298000000","token":"066zT6pS4QCbgj5Do145GfDbbagrRzvV3","app_id":"cli_a511af62e2b5d07f","tenant_key":"736588c9260f175d"},"event":{"operator":{"tenant_key":"736588c9260f175d","user_id":"on_8f6f0d15799e5c45","open_id":"ou_4063d88c980c9f2d"},"token":"c-295eed59e6dbb014b72cba6f2ff6d48da9971e99","action":{"value":{"key":"value"},"tag":"button","timezone":"8","name":"btn"},"host":"im_message","context":{"open_message_id":"om_dc0d7ab6d7b734d5bff5c0556e8e7616","open_chat_id":"oc_4d83f1dc8596c773a09e86f50a931b77"}}}"#.to_vec()
+    }
+
+    #[test]
+    fn test_callback_response_writes_base64_ack_data() {
+        // callback handler 返回业务响应（toast）→ ACK data = base64(JSON)，
+        // 对齐官方 Go ws/client.go `if rsp != nil { resp.Data = json.Marshal(rsp) }`。
+        let calls = Arc::new(AtomicUsize::new(0));
+        let toast = serde_json::json!({"toast": {"type": "success", "content": "卡片交互成功"}});
+        let event_handler = EventDispatcherHandler::builder()
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::clone(&calls),
+                    response: Some(toast.clone()),
+                },
+            )
+            .expect("callback handler should register")
+            .build();
+
+        let frame = create_data_frame("event", Some(card_action_trigger_payload()));
+        let returned =
+            FrameHandler::handle_data_frame(frame, &event_handler).expect("event 帧必须回写 ACK");
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+        let body: serde_json::Value =
+            serde_json::from_slice(&returned.payload.expect("ACK payload")).unwrap();
+        assert_eq!(body["code"], 200, "got: {body}");
+        // data 是 base64(JSON(toast))，解码后与 handler 返回值逐字节一致
+        let data_b64 = body["data"].as_str().expect("data 应为 base64 字符串");
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(data_b64)
+            .expect("data 应为合法 base64");
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&decoded).unwrap(),
+            toast
+        );
+    }
+
+    #[test]
+    fn test_callback_none_response_omits_ack_data() {
+        let event_handler = EventDispatcherHandler::builder()
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::new(AtomicUsize::new(0)),
+                    response: None,
+                },
+            )
+            .expect("callback handler should register")
+            .build();
+
+        let frame = create_data_frame("event", Some(card_action_trigger_payload()));
+        let returned =
+            FrameHandler::handle_data_frame(frame, &event_handler).expect("event 帧必须回写 ACK");
+        let body = String::from_utf8(returned.payload.expect("ACK payload")).unwrap();
+        assert!(body.contains(r#""code":200"#), "got: {body}");
+        assert!(
+            !body.contains(r#""data":"#),
+            "无业务响应应省略 data: {body}"
+        );
+    }
+
+    #[test]
+    fn test_callback_error_yields_ack_500() {
+        struct FailingCallback;
+        impl crate::ws_client::CallbackEventHandler for FailingCallback {
+            fn handle(
+                &self,
+                _payload: &[u8],
+            ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>
+            {
+                Err("callback failed".into())
+            }
+        }
+
+        let event_handler = EventDispatcherHandler::builder()
+            .register_callback("card.action.trigger", FailingCallback)
+            .expect("callback handler should register")
+            .build();
+
+        let frame = create_data_frame("event", Some(card_action_trigger_payload()));
+        let returned =
+            FrameHandler::handle_data_frame(frame, &event_handler).expect("event 帧必须回写 ACK");
+        let body = String::from_utf8(returned.payload.expect("ACK payload")).unwrap();
+        assert!(body.contains(r#""code":500"#), "got: {body}");
+    }
+
+    #[test]
+    fn test_callback_takes_precedence_over_raw_for_same_event_type() {
+        // 对齐官方 dispatcher.Do：callback map 命中即返回，不再走普通事件 handler
+        let callback_calls = Arc::new(AtomicUsize::new(0));
+        let raw_calls = Arc::new(AtomicUsize::new(0));
+        let event_handler = EventDispatcherHandler::builder()
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::clone(&callback_calls),
+                    response: None,
+                },
+            )
+            .expect("callback handler should register")
+            .register_raw(
+                "card.action.trigger",
+                CountingHandler {
+                    calls: Arc::clone(&raw_calls),
+                },
+            )
+            .expect("raw handler should register")
+            .build();
+
+        let payload = card_action_trigger_payload();
+        event_handler
+            .do_without_validation(&payload)
+            .expect("dispatch should succeed");
+        assert_eq!(callback_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            raw_calls.load(Ordering::SeqCst),
+            0,
+            "callback 命中不应落 raw"
+        );
+    }
+
+    #[test]
+    fn test_callback_unregistered_event_falls_back_to_raw() {
+        let raw_calls = Arc::new(AtomicUsize::new(0));
+        let event_handler = EventDispatcherHandler::builder()
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::new(AtomicUsize::new(0)),
+                    response: None,
+                },
+            )
+            .expect("callback handler should register")
+            .register_raw(
+                EventDispatcherHandler::RAW_EVENT_KEY,
+                CountingHandler {
+                    calls: Arc::clone(&raw_calls),
+                },
+            )
+            .expect("raw handler should register")
+            .build();
+
+        // 非 callback 事件照常走 raw 路径
+        let payload = br#"{"header":{"event_type":"im.message.receive_v1"}}"#;
+        event_handler
+            .do_without_validation(payload)
+            .expect("dispatch should succeed");
+        assert_eq!(raw_calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn test_register_callback_rejects_duplicate_key() {
+        let handler = EventDispatcherHandler::builder()
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::new(AtomicUsize::new(0)),
+                    response: None,
+                },
+            )
+            .expect("first registration should work");
+        assert!(
+            handler
+                .register_callback(
+                    "card.action.trigger",
+                    ToastCallback {
+                        calls: Arc::new(AtomicUsize::new(0)),
+                        response: None,
+                    },
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn test_callback_path_still_forwards_payload_sender() {
+        // payload_tx 转发在 callback 路径仍然发生（channel 消费方不应漏掉 callback 事件）
+        let (payload_tx, mut payload_rx) = mpsc::unbounded_channel::<Vec<u8>>();
+        let event_handler = EventDispatcherHandler::builder()
+            .payload_sender(payload_tx)
+            .register_callback(
+                "card.action.trigger",
+                ToastCallback {
+                    calls: Arc::new(AtomicUsize::new(0)),
+                    response: None,
+                },
+            )
+            .expect("callback handler should register")
+            .build();
+
+        let payload = card_action_trigger_payload();
+        event_handler
+            .do_without_validation(&payload)
+            .expect("dispatch should succeed");
+        assert_eq!(
+            payload_rx.try_recv().expect("payload should be forwarded"),
+            payload
+        );
     }
 }

@@ -231,7 +231,7 @@ mod test_utils;
 ///
 /// 提供与飞书 WebSocket 服务的实时连接与事件接收。
 /// 公开入口：[`ws_client::LarkWsClient`]、[`ws_client::EventDispatcherHandler`]、
-/// [`ws_client::EventHandler`]。
+/// [`ws_client::EventHandler`]、[`ws_client::CallbackEventHandler`]。
 #[cfg(feature = "websocket")]
 pub mod ws_client;
 
