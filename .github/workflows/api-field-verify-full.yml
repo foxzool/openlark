@@ -58,7 +58,11 @@ jobs:
           set -uo pipefail
           mkdir -p reports/api_field_verify
 
-          args=(--fetch-docs --output-dir reports/api_field_verify --max-age "${{ inputs.max_age }}")
+          args=(
+            full
+            --output-dir reports/api_field_verify
+            --max-age "${{ inputs.max_age }}"
+          )
           if [[ -n "${{ inputs.crate }}" ]]; then
             args+=(--crate "${{ inputs.crate }}")
           fi
@@ -66,9 +70,9 @@ jobs:
             args+=(--force-refresh)
           fi
 
-          echo "Running: python3 tools/verify_api_fields.py ${args[*]}"
+          echo "Running: python3 tools/run_field_verify_ci.py ${args[*]}"
           set +e
-          python3 tools/verify_api_fields.py "${args[@]}"
+          python3 tools/run_field_verify_ci.py "${args[@]}"
           status=$?
           set -e
           echo "exit_code=${status}" >> "$GITHUB_OUTPUT"

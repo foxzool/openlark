@@ -86,6 +86,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **tools：weekly/full 字段核对无 `--crate` 时扫描量为零（#638）**：
+  新增 `run_field_verify_ci.py` 作为 weekly/full 唯一入口：显式 `--crate`
+  产物仍在 output-dir 根（`summary.json` + `<crate>.md`）；全仓按
+  `api_coverage.toml` 逐 crate `--crate`（子目录）并合并 summary。coverage
+  清单为空则非零退出。CLI 无 `--crate` 默认路径不改。
+
 - **tools：Rust 合约提取收口为单一深 module（#636）**：`verify_api_fields`
   删除内嵌提取栈（~105 行，正则停在首个 `}`、不认 `rename_all`），改为库消费
   `api_contracts.rust_source`——`extract_structs` 成为唯一分组提取 interface，
