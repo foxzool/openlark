@@ -76,16 +76,6 @@ impl LocalSessionHarness {
         }
     }
 
-    fn config(&self) -> Config {
-        Config::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .base_url(self.mock_server.uri())
-            .allow_custom_base_url(true)
-            .req_timeout(Duration::from_secs(5))
-            .build()
-    }
-
     async fn accept_peer(&mut self) -> WebSocketStream<tokio::net::TcpStream> {
         let listener = self.listener.take().expect("listener already consumed");
         let (stream, _) = timeout(SESSION_TIMEOUT, listener.accept())
@@ -108,7 +98,7 @@ where
     Fut: Future<Output = T> + Send + 'static,
     T: Send + 'static,
 {
-    let config = Arc::new(harness.config());
+    let config = Arc::new(test_config(&harness.mock_server));
     let (peer_done_tx, peer_done_rx) = oneshot::channel::<T>();
 
     let peer_task = tokio::spawn(async move {
@@ -549,8 +539,8 @@ fn local_endpoint_client_config_shape_matches_production() {
     assert_eq!(cfg.ping_interval, 3600);
 }
 
-/// 端点发现错误用 config：复用 LocalSessionHarness 的构建规则，但不绑 WS listener。
-fn endpoint_only_config(mock_server: &MockServer) -> Config {
+/// 测试用 Config：允许自定义 base_url，短超时。harness 与端点-only 用例共用。
+fn test_config(mock_server: &MockServer) -> Config {
     Config::builder()
         .app_id("test_app_id")
         .app_secret("test_app_secret")
@@ -579,7 +569,7 @@ async fn open_endpoint_business_error_wraps_core_error_with_request_id() {
         .mount(&mock_server)
         .await;
 
-    let config = Arc::new(endpoint_only_config(&mock_server));
+    let config = Arc::new(test_config(&mock_server));
     let result = LarkWsClient::open(config, EventDispatcherHandler::builder().build()).await;
 
     match result {
@@ -612,7 +602,7 @@ async fn open_endpoint_success_without_url_is_unexpected_response() {
         .mount(&mock_server)
         .await;
 
-    let config = Arc::new(endpoint_only_config(&mock_server));
+    let config = Arc::new(test_config(&mock_server));
     let result = LarkWsClient::open(config, EventDispatcherHandler::builder().build()).await;
 
     match result {
