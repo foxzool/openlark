@@ -30,15 +30,15 @@ jobs:
 
       - name: Run verify_api_fields unit tests
         run: |
-          python3 -m unittest tools.tests.test_verify_api_fields
+          python3 -m unittest tools.tests.test_verify_api_fields tools.tests.test_verify_api_fields_ci_gates
 
       - name: Run quick-mode full-repo scan
         id: scan
         run: |
           set -euo pipefail
           mkdir -p reports/api_field_verify
-          # 快速模式恒 exit 0；工具崩溃才失败本 step
-          python3 tools/verify_api_fields.py --output-dir reports/api_field_verify
+          # 禁止无 --crate 空扫（#638）；清单来自 api_coverage.toml。
+          python3 tools/run_field_verify_ci.py quick --output-dir reports/api_field_verify
 
           python3 <<'PY'
           import json
