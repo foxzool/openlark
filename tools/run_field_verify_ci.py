@@ -58,7 +58,7 @@ def run_verify(crate: str, output_dir: Path, extra: list[str]) -> int:
     return subprocess.call(cmd)
 
 
-def merge_summaries(root: Path) -> dict:
+def merge_summaries(root: Path, *, mode: str) -> dict:
     paths = sorted(root.glob("*/summary.json"))
     if not paths:
         print("missing per-crate summary.json after scan", file=sys.stderr)
@@ -67,7 +67,7 @@ def merge_summaries(root: Path) -> dict:
     for path in paths:
         apis.extend(json.loads(path.read_text(encoding="utf-8")).get("apis", []))
     summary = {
-        "mode": "quick",
+        "mode": mode,
         "total_apis": len(apis),
         "apis_with_issues": sum(1 for api in apis if api.get("issues")),
         "apis": apis,
@@ -92,7 +92,7 @@ def cmd_quick(args: argparse.Namespace) -> int:
         crate_status = run_verify(crate, args.output_dir / crate, [])
         if crate_status != 0:
             status = crate_status
-    merge_summaries(args.output_dir)
+    merge_summaries(args.output_dir, mode="quick")
     return status
 
 
@@ -113,6 +113,7 @@ def cmd_full(args: argparse.Namespace) -> int:
         crate_status = run_verify(crate, args.output_dir / crate, extra)
         if crate_status != 0:
             status = crate_status
+    merge_summaries(args.output_dir, mode="full")
     return status
 
 

@@ -86,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **deps：升级 h2 0.4.14 → 0.4.16（RUSTSEC-2026-0258）**：修复空 DATA 帧无界排队。
+
 - **tools：weekly/full 字段核对无 `--crate` 时扫描量为零（#638）**：
   新增 `run_field_verify_ci.py` 作为 weekly/full 唯一入口：显式 `--crate`
   产物仍在 output-dir 根（`summary.json` + `<crate>.md`）；全仓按

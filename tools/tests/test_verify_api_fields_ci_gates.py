@@ -176,6 +176,41 @@ class FieldVerifyCiEntryTests(unittest.TestCase):
             summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
             self.assertTrue(summary["apis"][0]["file_exists"])
 
+    def test_full_all_crates_writes_root_summary_with_full_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            mapping = root / "coverage.toml"
+            mapping.write_text(
+                "[crates.openlark-workflow]\n"
+                'src = "crates/openlark-workflow/src"\n'
+                "[crates.openlark-docs]\n"
+                'src = "crates/openlark-docs/src"\n',
+                encoding="utf-8",
+            )
+            stub = root / "stub_verify.py"
+            _write_stub_verify(stub)
+            out = root / "reports"
+            result = self._run(
+                "full",
+                "--output-dir",
+                str(out),
+                mapping=mapping,
+                env={"FIELD_VERIFY_BIN": str(stub)},
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            root_summary = out / "summary.json"
+            self.assertTrue(
+                root_summary.is_file(),
+                "full all-crates must write merged summary.json at output-dir root",
+            )
+            summary = json.loads(root_summary.read_text(encoding="utf-8"))
+            self.assertEqual(summary["mode"], "full")
+            self.assertEqual(summary["total_apis"], 2)
+            crates = {api["crate"] for api in summary["apis"]}
+            self.assertEqual(crates, {"openlark-docs", "openlark-workflow"})
+            self.assertTrue((out / "openlark-workflow" / "summary.json").is_file())
+            self.assertTrue((out / "openlark-docs" / "summary.json").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
