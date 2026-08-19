@@ -86,6 +86,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **websocket：SessionState 收敛 CloseIntent + harness 瘦身（#641）**：
+  `SessionState{Active,Closing,Closed}` × `CloseIntent{None,WithoutReason,WithReason}`
+  两个必须手工对齐的字段收为 `SessionState::Closing(Option<WsCloseReason>)`。
+  stream 错误与 outcome 错误的 reason 保留镜像块收敛为单一
+  `fail_preserving_close_reason`。两枚举均私有，`InvalidStateKind` /
+  `WsClientError` 公开面不变。`full_session_tests` 删除被 #640 新层替代的
+  15 个用例（1478 → ~622 行），保留 B 组 6 个墙钟测试与 C 组 3 个端点发现测试。
+
 - **deps：升级 h2 0.4.14 → 0.4.16（RUSTSEC-2026-0258）**：修复空 DATA 帧无界排队。
 
 - **tools：weekly/full 字段核对无 `--crate` 时扫描量为零（#638）**：

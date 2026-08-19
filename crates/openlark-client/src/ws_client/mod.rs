@@ -10,12 +10,9 @@ mod headers;
 mod package;
 mod session;
 
-#[cfg(feature = "websocket")]
 /// 会话级公开 API。
 pub use client::LarkWsClient;
-#[cfg(feature = "websocket")]
 pub use dispatcher::{CallbackEventHandler, EventDispatcherHandler, EventHandler};
-#[cfg(feature = "websocket")]
 pub use session::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
 
 #[cfg(test)]

@@ -44,21 +44,33 @@ const PENDING_OUTBOX_CAP: usize = HANDLER_QUEUE_CAP;
 /// 会话结束后等待 worker 排空的最长时间。
 const WORKER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// 会话连接状态（#421 / #428）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// 会话连接状态（#421 / #428 / #641）。
+///
+/// 真实状态空间是 Active / Closing（排空中，可选远端 reason）/ Closed。
+/// reason 挂在 `Closing` 上，避免与独立 `CloseIntent` 手工对齐。
+#[derive(Debug, Clone)]
 enum SessionState {
     Active,
-    Closing,
+    /// 排空中。`Some` = 对端 Close 帧带来的 code/message，后续错误不得覆盖。
+    Closing(Option<WsCloseReason>),
     Closed,
 }
 
 impl SessionState {
-    fn as_str(self) -> &'static str {
+    fn as_str(&self) -> &'static str {
         match self {
             Self::Active => "Active",
-            Self::Closing => "Closing",
+            Self::Closing(_) => "Closing",
             Self::Closed => "Closed",
         }
+    }
+
+    fn is_active(&self) -> bool {
+        matches!(self, Self::Active)
+    }
+
+    fn is_closed(&self) -> bool {
+        matches!(self, Self::Closed)
     }
 }
 
@@ -66,16 +78,6 @@ impl SessionState {
 enum TrySendToWorker {
     Full(Box<Frame>),
     Closed,
-}
-
-/// 关闭意图：未开始 / 已 begin_close 且无远端 reason / 已 begin_close 且带 reason。
-#[derive(Debug, Clone)]
-enum CloseIntent {
-    None,
-    /// 超时或 EOF 等：无 WebSocket Close 载荷。
-    WithoutReason,
-    /// 对端 Close 帧带来的 code/message。
-    WithReason(WsCloseReason),
 }
 
 /// 会话运行选项（生产默认；测试可缩短心跳超时）。
@@ -109,7 +111,6 @@ pub(crate) struct Session<S> {
     ping_frame_interval: Interval,
     heartbeat_timeout: Duration,
     state: SessionState,
-    close_intent: CloseIntent,
     inflight_handlers: usize,
     /// worker 队列满时暂存的已组装帧（不丢弃；经 reserve 再入队）。
     pending_outbox: VecDeque<Frame>,
@@ -137,14 +138,13 @@ where
             ping_frame_interval: tokio::time::interval(Duration::from_secs(ping_secs)),
             heartbeat_timeout: options.heartbeat_timeout.max(Duration::from_millis(1)),
             state: SessionState::Active,
-            close_intent: CloseIntent::None,
             inflight_handlers: 0,
             pending_outbox: VecDeque::new(),
         }
     }
 
     fn ensure_active(&self) -> WsClientResult<()> {
-        if self.state != SessionState::Active {
+        if !self.state.is_active() {
             return Err(WsClientError::InvalidStateTransition {
                 kind: InvalidStateKind::ExpectedActive {
                     actual: self.state.as_str(),
@@ -155,41 +155,56 @@ where
     }
 
     fn begin_close(&mut self, reason: Option<WsCloseReason>) -> WsClientResult<()> {
-        match self.state {
+        match &self.state {
             SessionState::Closed => {
                 return Err(WsClientError::InvalidStateTransition {
                     kind: InvalidStateKind::AlreadyClosed,
                 });
             }
             // 幂等：保留首次 close 意图（远端 close reason 不被 EOF 覆盖）
-            SessionState::Closing => return Ok(()),
+            SessionState::Closing(_) => return Ok(()),
             SessionState::Active => {}
         }
-        self.state = SessionState::Closing;
-        self.close_intent = match reason {
-            Some(r) => CloseIntent::WithReason(r),
-            None => CloseIntent::WithoutReason,
-        };
+        self.state = SessionState::Closing(reason);
         Ok(())
     }
 
-    /// 取出并清空 close_intent 中的远端关闭原因（若有）。
-    fn drain_close_reason(&mut self) -> Option<WsCloseReason> {
-        match std::mem::replace(&mut self.close_intent, CloseIntent::None) {
-            CloseIntent::WithReason(r) => Some(r),
-            CloseIntent::WithoutReason | CloseIntent::None => None,
+    /// 后续错误不得覆盖已记录的远端 close reason（#421 US9）。
+    /// 无已记录 reason 时返回 `fallback`；两种错误入口共用。
+    fn fail_preserving_close_reason(
+        &mut self,
+        subsequent: impl std::fmt::Display,
+        fallback: WsClientError,
+    ) -> WsClientError {
+        let recorded = match std::mem::replace(&mut self.state, SessionState::Closed) {
+            SessionState::Closing(reason) => reason,
+            _ => None,
+        };
+        match recorded {
+            Some(reason) => {
+                warn!("{subsequent}; returning close reason");
+                WsClientError::ConnectionClosed {
+                    reason: Some(reason),
+                }
+            }
+            None => fallback,
         }
     }
 
     /// 若已进入 Closing 且 in-flight/outbox 均空，返回终态 `ConnectionClosed`。
     /// `None` 表示会话尚未结束，应继续 `select!`。
     fn take_connection_closed_if_idle(&mut self) -> Option<WsClientResult<()>> {
-        if self.state == SessionState::Closing
+        if matches!(self.state, SessionState::Closing(_))
             && self.inflight_handlers == 0
             && self.pending_outbox.is_empty()
         {
-            self.state = SessionState::Closed;
-            let reason = self.drain_close_reason();
+            let reason = match std::mem::replace(&mut self.state, SessionState::Closed) {
+                SessionState::Closing(reason) => reason,
+                other => {
+                    self.state = other;
+                    return None;
+                }
+            };
             return Some(Err(WsClientError::ConnectionClosed { reason }));
         }
         None
@@ -275,8 +290,7 @@ where
                 self.flush_outbox_try(&job_tx)?;
 
                 // Closing 时也要冲刷 outbox，否则 idle 检查永远等非空 outbox
-                let need_reserve =
-                    !self.pending_outbox.is_empty() && self.state != SessionState::Closed;
+                let need_reserve = !self.pending_outbox.is_empty() && !self.state.is_closed();
 
                 tokio::select! {
                     permit = job_tx.reserve(), if need_reserve => {
@@ -290,13 +304,13 @@ where
                             self.note_job_enqueued();
                         }
                     }
-                    item = self.stream.next(), if stream_open && self.state != SessionState::Closed => {
+                    item = self.stream.next(), if stream_open && !self.state.is_closed() => {
                         match item.transpose() {
                             Ok(Some(msg)) => {
                                 if msg.is_ping() {
                                     last_activity = Instant::now();
                                 }
-                                if self.state == SessionState::Closing {
+                                if matches!(self.state, SessionState::Closing(_)) {
                                     if matches!(msg, Message::Binary(_) | Message::Text(_)) {
                                         return Err(WsClientError::InvalidStateTransition {
                                             kind: InvalidStateKind::DataWhileClosing,
@@ -311,18 +325,8 @@ where
                                 self.begin_close(None)?;
                             }
                             Err(e) => {
-                                // 远端已正常 Close（带 reason）后，后续传输/协议错误不得
-                                // 覆盖已记录的关闭原因（#421 US9）；与 outcome-error 对称
-                                if let Some(reason) = self.drain_close_reason() {
-                                    self.state = SessionState::Closed;
-                                    warn!(
-                                        "stream error after remote close: {e}; returning close reason"
-                                    );
-                                    return Err(WsClientError::ConnectionClosed {
-                                        reason: Some(reason),
-                                    });
-                                }
-                                return Err(e.into());
+                                let msg = format!("stream error after remote close: {e}");
+                                return Err(self.fail_preserving_close_reason(msg, e.into()));
                             }
                         }
                     }
@@ -330,24 +334,14 @@ where
                         self.inflight_handlers = self.inflight_handlers.saturating_sub(1);
                         match outcome {
                             Ok(Some(response_frame)) => {
-                                if self.state == SessionState::Active {
+                                if self.state.is_active() {
                                     self.send_frame(response_frame).await?;
                                 }
                             }
                             Ok(None) => {}
                             Err(err) => {
-                                // 关闭排空中 handler 失败：优先返回已记录的远端关闭原因
-                                if matches!(self.close_intent, CloseIntent::WithReason(_)) {
-                                    self.state = SessionState::Closed;
-                                    let reason = self.drain_close_reason();
-                                    warn!(
-                                        "handler failed during close: {err}; returning close reason"
-                                    );
-                                    return Err(WsClientError::ConnectionClosed { reason });
-                                }
-                                self.state = SessionState::Closed;
-                                self.close_intent = CloseIntent::None;
-                                return Err(err);
+                                let msg = format!("handler failed during close: {err}");
+                                return Err(self.fail_preserving_close_reason(msg, err));
                             }
                         }
                         self.flush_outbox_try(&job_tx)?;
@@ -355,10 +349,10 @@ where
                             return done;
                         }
                     }
-                    _ = self.ping_frame_interval.tick(), if self.state == SessionState::Active => {
+                    _ = self.ping_frame_interval.tick(), if self.state.is_active() => {
                         self.send_app_ping().await?;
                     }
-                    _ = heartbeat_check_interval.tick(), if self.state == SessionState::Active => {
+                    _ = heartbeat_check_interval.tick(), if self.state.is_active() => {
                         if last_activity.elapsed() > self.heartbeat_timeout {
                             self.begin_close(None)?;
                         }

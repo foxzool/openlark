@@ -3,7 +3,7 @@
 - **状态**: Accepted（随 #640 落地）
 - **日期**: 2026-08-17
 - **决策者**: 架构评审 + 用户 grilling 共识（候选 B）
-- **相关 issue**: #640（seam + 测试下沉）、#641（CloseIntent 收敛 + harness 瘦身）
+- **相关 issue**: #640（seam + 测试下沉）、#641（CloseIntent 收敛 + harness 瘦身，已落地）
 - **来源**: `/improve-codebase-architecture` 候选 B（Session 状态机只有全链路一档测试 seam）
 
 ## 背景
@@ -67,12 +67,12 @@ adapter 用 `tokio::io::duplex` + 两侧 `WebSocketStream::from_raw_socket(Role:
 - Session 状态机测试脱离真实 TCP/wiremock/真实时间（close reason 保留、
   outbox、背压、串行、DataWhileClosing 均可在内存 seam 上确定性测试）。
 - callback ACK 的 session 级 round-trip（base64 data 经 sink→对端）可测（#634 缺口）。
-- harness 保留的时序/端点测试语义不变，作为 parity 与集成层。
+- harness 保留的时序/端点测试语义不变（#641 起不再承担状态机 parity，只测墙钟与端点）。
 
 ### 负面 / 残差
 
 - `Session<S>` 的泛型参数使 session.rs 内部签名略重（对外零暴露）。
-- B组墙钟测试（6 个）仍留 harness，测试总时长不因本 ADR 缩短。
+- B组墙钟测试（6 个）仍留 harness；#641 已收敛 CloseIntent 并删掉被新层替代的 15 个用例。
 
 ## 非目标
 
