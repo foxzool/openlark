@@ -36,6 +36,14 @@ from tools.api_contracts.report import (
     evidence_markdown_lines,
     evidence_to_jsonable,
 )
+from tools.api_contracts.rust_contract_resolution import (
+    Ambiguous,
+    Missing,
+    ResolutionConfigurationError,
+    Resolved,
+    Unmapped,
+    compose as compose_contract_resolution,
+)
 from tools.api_contracts.rust_source import (
     MULTIPART_FORM_STRUCT_NAME,
     RESPONSE_STRUCT_SUFFIXES,
@@ -173,11 +181,19 @@ class ApiFieldReport:
     structs: List[StructFields]
     issues: List[FieldIssue]
     evidence: List[dict] = field(default_factory=list)
+    resolution: str = "resolved"
+    target: str = ""
+    checked_candidates: Tuple[str, ...] = ()
+
+
+class FieldResolutionBlocked(RuntimeError):
+    """A target resolution cannot safely be consumed by field verification."""
 
 
 def run_quick_mode(
     csv_path: Path,
-    src_root: Path,
+    repository_root: Path,
+    resolver,
     output_md: Optional[Path] = None,
     output_json: Optional[Path] = None,
     filter_tags: Optional[List[str]] = None,
@@ -188,15 +204,26 @@ def run_quick_mode(
 
     for api in apis:
         rel_path = api.expected_file
-        full_path = src_root / rel_path
-        if not full_path.exists():
+        resolution = resolver.resolve(api)
+        if isinstance(resolution, Unmapped):
+            raise FieldResolutionBlocked(
+                f"Catalog Entry {api.api_id} ({api.biz_tag}) is Unmapped"
+            )
+        if isinstance(resolution, Ambiguous):
+            raise FieldResolutionBlocked(_ambiguous_message(resolution))
+        if isinstance(resolution, Missing):
             reports.append(
                 ApiFieldReport(
                     api=api, file_path=rel_path, file_exists=False,
                     structs=[], issues=[],
+                    resolution="missing",
+                    checked_candidates=tuple(
+                        sorted(path.as_posix() for path in resolution.checked_candidates)
+                    ),
                 )
             )
             continue
+        full_path = repository_root / Path(resolution.target.repository_path.as_posix())
         source = full_path.read_text(encoding="utf-8")
         structs = extract_structs(source)
         issues = detect_suspicious_patterns(api, structs, source)
@@ -204,8 +231,12 @@ def run_quick_mode(
             ApiFieldReport(
                 api=api, file_path=rel_path, file_exists=True,
                 structs=structs, issues=issues,
+                target=resolution.target.repository_path.as_posix(),
             )
         )
+
+    if not any(report.file_exists for report in reports):
+        raise FieldResolutionBlocked("scan produced zero Resolved Rust Contract Targets")
 
     md = _render_report(reports, mode="quick")
     if output_md:
@@ -264,6 +295,11 @@ def _render_report(reports: List[ApiFieldReport], mode: str) -> str:
         lines.append("")
         for r in missing:
             lines.append(f"- {r.api.name}: `{r.file_path}`")
+            if r.checked_candidates:
+                lines.append(
+                    "  - checked: "
+                    + ", ".join(f"`{path}`" for path in r.checked_candidates)
+                )
         lines.append("")
 
     lines.extend(
@@ -295,6 +331,9 @@ def _write_summary_json(reports: List[ApiFieldReport], path: Path, mode: str) ->
                 "url": r.api.url,
                 "file": r.file_path,
                 "file_exists": r.file_exists,
+                "resolution": r.resolution,
+                "target": r.target,
+                "checked_candidates": list(r.checked_candidates),
                 "issues": [
                     {"severity": i.severity, "category": i.category, "detail": i.detail}
                     for i in r.issues
@@ -602,7 +641,7 @@ def _resolve_evidence_policy(
     return PreferSnapshotPolicy(max_age_days=max_age_days)
 
 
-def main() -> int:
+def main(repository_root: Path | None = None) -> int:
     parser = argparse.ArgumentParser(description="API 字段核对工具")
     parser.add_argument("--csv", default=str(DEFAULT_CSV), help="API 清单 CSV 路径")
     parser.add_argument("--crate", help="指定单个 crate（如 openlark-workflow）")
@@ -629,6 +668,7 @@ def main() -> int:
     parser.add_argument("--output-dir", default="reports/api_field_verify", help="报告输出目录")
     parser.add_argument("--api-id", help="只核对单个 API（调试用，按 CSV id 过滤）")
     args = parser.parse_args()
+    root = Path(repository_root) if repository_root is not None else REPO_ROOT
 
     if args.max_age < 0:
         print("❌ --max-age 必须是非负整数")
@@ -641,10 +681,14 @@ def main() -> int:
         max_age_days=args.max_age,
         single_api=bool(args.api_id),
     )
+    try:
+        resolver = compose_contract_resolution(repository_root=root)
+    except ResolutionConfigurationError as exc:
+        print(f"❌ {exc}")
+        return 1
 
-    # 单 API 模式：按 id 过滤，src 根用 crates 目录。
+    # 单 API 模式：按 id 过滤，目标只通过 Rust Contract Resolution 获取。
     if args.api_id:
-        src_root = REPO_ROOT / "crates"
         crate_label = f"api-{args.api_id}"
         all_apis = load_api_identities(csv_path)
         if args.fetch_docs:
@@ -656,7 +700,8 @@ def main() -> int:
                 return _run_single_api(
                     args.api_id,
                     all_apis,
-                    src_root,
+                    root,
+                    resolver,
                     out_dir,
                     crate_label,
                     True,
@@ -666,7 +711,8 @@ def main() -> int:
         return _run_single_api(
             args.api_id,
             all_apis,
-            src_root,
+            root,
+            resolver,
             out_dir,
             crate_label,
             False,
@@ -676,17 +722,19 @@ def main() -> int:
 
     # 确定 src 根目录和 bizTag 过滤
     if args.crate:
-        src_root = REPO_ROOT / "crates" / args.crate / "src"
-        filter_tags = _load_crate_tags(args.crate)
+        source_display = root / "crates" / args.crate / "src"
+        filter_tags = _load_crate_tags(args.crate, root)
+        if not filter_tags:
+            print(f"❌ api_coverage.toml 中找不到 crate: {args.crate}")
+            return 1
         crate_label = args.crate
     else:
-        # 无参数：扫描整个 crates 目录（无 --all-crates 旗标）
-        src_root = REPO_ROOT / "crates"
+        source_display = root / "crates"
         filter_tags = None
         crate_label = "all"
 
     print(f"📂 CSV: {csv_path}")
-    print(f"📁 源码根: {src_root}")
+    print(f"📁 源码根: {source_display}")
     print(f"🏷️  过滤 bizTag: {filter_tags or '(全部)'}")
 
     if args.fetch_docs:
@@ -705,7 +753,8 @@ def main() -> int:
         ) as collector:
             return _run_full_mode(
                 csv_path,
-                src_root,
+                root,
+                resolver,
                 out_dir,
                 crate_label,
                 filter_tags,
@@ -715,13 +764,18 @@ def main() -> int:
 
     # 快速模式
     print("⚡ 快速模式（代码自检）")
-    md = run_quick_mode(
-        csv_path=csv_path,
-        src_root=src_root,
-        output_md=out_dir / f"{crate_label}.md",
-        output_json=out_dir / "summary.json",
-        filter_tags=filter_tags,
-    )
+    try:
+        run_quick_mode(
+            csv_path=csv_path,
+            repository_root=root,
+            resolver=resolver,
+            output_md=out_dir / f"{crate_label}.md",
+            output_json=out_dir / "summary.json",
+            filter_tags=filter_tags,
+        )
+    except FieldResolutionBlocked as exc:
+        print(f"❌ Rust contract resolution blocked: {exc}")
+        return 1
     print(f"✅ 报告: {out_dir / f'{crate_label}.md'}")
     return 0
 
@@ -729,7 +783,8 @@ def main() -> int:
 def _run_single_api(
     api_id,
     all_apis,
-    src_root,
+    repository_root,
+    resolver,
     out_dir,
     crate_label,
     fetch_docs,
@@ -743,24 +798,20 @@ def _run_single_api(
         return 1
     print(f"🔍 单 API 核对: {api.name} ({api.url})")
     rel_path = api.expected_file
-    # 单 API 模式：在所有 crate 的 src 目录下查找文件；多匹配时告警仍取第一个
-    matches: List[Path] = []
-    for crate_dir in sorted(src_root.iterdir(), key=lambda p: p.name):
-        if not crate_dir.is_dir():
-            continue
-        candidate = crate_dir / "src" / rel_path
-        if candidate.exists():
-            matches.append(candidate)
-    if not matches:
-        print(f"❌ 文件不存在（在所有 crate 中查找）: {rel_path}")
-        return 1
-    if len(matches) > 1:
-        listed = "\n".join(f"  - {path}" for path in matches)
-        print(
-            f"⚠️ 相对路径 {rel_path} 在多个 crate 中匹配，"
-            f"使用第一个：{matches[0]}\n候选：\n{listed}"
+    resolution = resolver.resolve(api)
+    if isinstance(resolution, Missing):
+        checked = ", ".join(
+            sorted(path.as_posix() for path in resolution.checked_candidates)
         )
-    full_path = matches[0]
+        print(f"❌ Rust Contract Target Missing: {checked}")
+        return 1
+    if isinstance(resolution, Unmapped):
+        print(f"❌ Rust Contract Target Unmapped: bizTag={api.biz_tag}")
+        return 1
+    if isinstance(resolution, Ambiguous):
+        print(f"❌ {_ambiguous_message(resolution)}")
+        return 1
+    full_path = repository_root / Path(resolution.target.repository_path.as_posix())
     source = full_path.read_text(encoding="utf-8")
     structs = extract_structs(source)
     issues = detect_suspicious_patterns(api, structs, source)
@@ -781,6 +832,7 @@ def _run_single_api(
         structs=structs,
         issues=issues,
         evidence=evidence_metadata,
+        target=resolution.target.repository_path.as_posix(),
     )
     md = _render_report([report], mode=mode)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -798,11 +850,11 @@ def _run_single_api(
 
 
 
-def _load_crate_tags(crate: str) -> Optional[List[str]]:
+def _load_crate_tags(crate: str, repository_root: Path = REPO_ROOT) -> Optional[List[str]]:
     """从 tools/api_coverage.toml 读 crate 的 biz_tags。"""
     import tomllib  # Python 3.11+
 
-    toml_path = REPO_ROOT / "tools" / "api_coverage.toml"
+    toml_path = repository_root / "tools" / "api_coverage.toml"
     if not toml_path.exists():
         return None
     with open(toml_path, "rb") as f:
@@ -813,7 +865,8 @@ def _load_crate_tags(crate: str) -> Optional[List[str]]:
 
 def _run_full_mode(
     csv_path,
-    src_root,
+    repository_root,
+    resolver,
     out_dir,
     crate_label,
     filter_tags,
@@ -827,12 +880,37 @@ def _run_full_mode(
     reports: List[ApiFieldReport] = []
     failed: List[Tuple[str, str]] = []
     policy = evidence_policy or PreferSnapshotPolicy(max_age_days=30)
+    resolved_count = 0
 
     for idx, api in enumerate(apis, 1):
         rel_path = api.expected_file
-        full_path = src_root / rel_path
-        if not full_path.exists():
+        resolution = resolver.resolve(api)
+        if isinstance(resolution, Unmapped):
+            print(
+                f"❌ Rust contract resolution blocked: Catalog Entry "
+                f"{api.api_id} ({api.biz_tag}) is Unmapped"
+            )
+            return 1
+        if isinstance(resolution, Ambiguous):
+            print(f"❌ Rust contract resolution blocked: {_ambiguous_message(resolution)}")
+            return 1
+        if isinstance(resolution, Missing):
+            reports.append(
+                ApiFieldReport(
+                    api=api,
+                    file_path=rel_path,
+                    file_exists=False,
+                    structs=[],
+                    issues=[],
+                    resolution="missing",
+                    checked_candidates=tuple(
+                        sorted(path.as_posix() for path in resolution.checked_candidates)
+                    ),
+                )
+            )
             continue
+        resolved_count += 1
+        full_path = repository_root / Path(resolution.target.repository_path.as_posix())
 
         source = full_path.read_text(encoding="utf-8")
         structs = extract_structs(source)
@@ -861,6 +939,7 @@ def _run_full_mode(
                 structs=structs,
                 issues=issues,
                 evidence=dimensions,
+                target=resolution.target.repository_path.as_posix(),
             )
         )
         print(f"⏳ [{idx}/{len(apis)}] {api.name} ({len(issues)} 问题)")
@@ -869,6 +948,10 @@ def _run_full_mode(
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{crate_label}.md").write_text(md, encoding="utf-8")
     _write_summary_json(reports, out_dir / "summary.json", mode="full")
+
+    if resolved_count == 0:
+        print("❌ Rust contract resolution produced zero Resolved targets")
+        return 1
 
     if failed:
         print(f"⚠️ {len(failed)} 个官方文档证据未通过，详见 failed.json")
@@ -886,6 +969,13 @@ def _run_full_mode(
             f"{out_dir / f'{crate_label}.md'}"
         )
     return exit_code
+
+
+def _ambiguous_message(resolution: Ambiguous) -> str:
+    candidates = ", ".join(
+        sorted(target.repository_path.as_posix() for target in resolution.candidates)
+    )
+    return f"Catalog Entry {resolution.entry.api_id} is Ambiguous: {candidates}"
 
 
 if __name__ == "__main__":

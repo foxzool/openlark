@@ -36,32 +36,26 @@ from tools.api_contracts.official_evidence import (
     compose,
 )
 from tools.api_contracts.report import evidence_to_jsonable, write_report, write_summary
+from tools.api_contracts.rust_contract_resolution import (
+    Ambiguous,
+    Missing,
+    ResolutionConfigurationError,
+    Resolved,
+    Unmapped,
+    compose as compose_contract_resolution,
+)
 from tools.api_contracts.rust_source import (
-    load_endpoint_constants,
-    load_enum_endpoints,
-    load_enum_methods,
-    scan_api_file,
+    RustSourceContractAdapter,
 )
 
 
-def implementation_path_candidates(expected_file: str, crate_config: dict) -> list[str]:
-    """Return the strict path plus explicitly registered legacy implementation paths."""
-    candidates = [expected_file]
-    alias = (crate_config.get("implementation_path_aliases") or {}).get(expected_file)
-    if alias:
-        candidates.append(str(alias))
-    for rewrite in crate_config.get("implementation_path_rewrites") or []:
-        source_prefix = str(rewrite.get("from", ""))
-        target_prefix = str(rewrite.get("to", ""))
-        if source_prefix and expected_file.startswith(source_prefix):
-            candidates.append(target_prefix + expected_file[len(source_prefix) :])
-    return list(dict.fromkeys(candidates))
+class ContractResolutionBlocked(RuntimeError):
+    """A non-reportable target resolution prevents contract comparison."""
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate endpoint-level API contracts.")
     parser.add_argument("--csv", default="api_list_export.csv", help="Official API CSV path")
-    parser.add_argument("--mapping", default="tools/api_coverage.toml", help="crate to bizTag mapping")
     parser.add_argument("--crate", dest="crate_name", help="Validate one mapped crate")
     parser.add_argument("--all-crates", action="store_true", help="Validate all mapped crates")
     parser.add_argument(
@@ -116,21 +110,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_mapping(path: Path) -> dict[str, dict]:
+def load_coverage(repository_root: Path) -> dict[str, dict]:
+    """Load only batch/filter metadata after resolver composition validated it."""
     if tomllib is None:
         raise SystemExit("Python 3.11+ is required for tomllib")
-    if not path.exists():
-        raise SystemExit(f"Mapping file does not exist: {path}")
+    path = repository_root / "tools" / "api_coverage.toml"
     data = tomllib.loads(path.read_text(encoding="utf-8"))
-    crates = data.get("crates", {})
-    if not isinstance(crates, dict) or not crates:
-        raise SystemExit(f"Mapping file lacks [crates.*] entries: {path}")
-    return crates
+    return data["crates"]
 
 
 def validate_crate(
     crate_name: str,
-    crate_config: dict,
+    biz_tags: list[str],
+    resolver,
+    rust_contracts: RustSourceContractAdapter,
     csv_path: Path,
     report_dir: Path,
     skip_old: bool,
@@ -143,9 +136,8 @@ def validate_crate(
     api_ids: set[str] | None = None,
 ) -> ContractReport:
     """核对一个 crate；官方事实只通过 collect seam 获取。"""
-    src_path = Path(crate_config["src"])
-    biz_tags = biz_tag_filter if biz_tag_filter else list(crate_config.get("biz_tags") or [])
-    apis = load_api_identities(csv_path, filter_tags=biz_tags, skip_old_versions=skip_old)
+    selected_tags = biz_tag_filter if biz_tag_filter else biz_tags
+    apis = load_api_identities(csv_path, filter_tags=selected_tags, skip_old_versions=skip_old)
     if api_ids:
         available_ids = {api.api_id for api in apis}
         missing_ids = api_ids - available_ids
@@ -155,27 +147,36 @@ def validate_crate(
                 + ", ".join(sorted(missing_ids))
             )
         apis = [api for api in apis if api.api_id in api_ids]
-    constants = load_endpoint_constants(src_path)
-    enum_endpoints = load_enum_endpoints(src_path, constants)
-    enum_methods = load_enum_methods(src_path)
     report = ContractReport(crate_name=crate_name, total_apis=len(apis))
 
     field_checks = 0
     for api in apis:
-        rust_contract = next(
-            (
-                contract
-                for candidate in implementation_path_candidates(api.expected_file, crate_config)
-                if (
-                    contract := scan_api_file(
-                        src_path, candidate, constants, enum_endpoints, enum_methods
-                    )
-                )
-                is not None
-            ),
-            None,
+        resolution = resolver.resolve(api)
+        if isinstance(resolution, Unmapped):
+            raise ContractResolutionBlocked(
+                f"Catalog Entry {api.api_id} ({api.biz_tag}) is Unmapped"
+            )
+        if isinstance(resolution, Ambiguous):
+            candidates = ", ".join(
+                sorted(target.repository_path.as_posix() for target in resolution.candidates)
+            )
+            raise ContractResolutionBlocked(
+                f"Catalog Entry {api.api_id} is Ambiguous: {candidates}"
+            )
+        resolved_crate = (
+            resolution.target.crate_name
+            if isinstance(resolution, Resolved)
+            else resolution.crate_name
         )
-        if rust_contract is not None:
+        if resolved_crate != crate_name:
+            raise ContractResolutionBlocked(
+                f"Catalog Entry {api.api_id} resolves to {resolved_crate}, "
+                f"outside requested crate {crate_name}"
+            )
+
+        rust_contract = None
+        if isinstance(resolution, Resolved):
+            rust_contract = rust_contracts.scan(resolution.target)
             report.checked_apis += 1
 
         should_check_fields = fields and (
@@ -222,8 +223,21 @@ def validate_crate(
                         api, EvidenceDimension.ENDPOINT, endpoint
                     )
                 )
-        for item in compare_endpoint(endpoint_api, rust_contract):
-            report.add(item)
+        if isinstance(resolution, Missing):
+            report.add(
+                finding(
+                    "WARN",
+                    "W_IMPLEMENTATION_FILE_MISSING",
+                    "No explicit Rust Contract Target exists.",
+                    api,
+                    rust=", ".join(
+                        sorted(path.as_posix() for path in resolution.checked_candidates)
+                    ),
+                )
+            )
+        else:
+            for item in compare_endpoint(endpoint_api, rust_contract):
+                report.add(item)
 
         if tokens:
             token_evidence = evidence.for_dimension(EvidenceDimension.TOKENS)
@@ -379,8 +393,9 @@ def _strict_exit_code(
     return 1 if has_contract_error or has_nontrusted_evidence else 0
 
 
-def main() -> int:
+def main(repository_root: Path | None = None) -> int:
     args = parse_args()
+    root = Path(repository_root) if repository_root is not None else REPO_ROOT
     if args.fields and not args.live_fields:
         print("Field validation requires --live-fields so official fields come from current docs.", file=sys.stderr)
         return 1
@@ -389,7 +404,6 @@ def main() -> int:
         print(f"CSV file does not exist: {csv_path}", file=sys.stderr)
         return 1
 
-    mapping = load_mapping(Path(args.mapping))
     if not args.all_crates and not args.crate_name:
         print("Specify --crate <name> or --all-crates", file=sys.stderr)
         return 1
@@ -397,13 +411,21 @@ def main() -> int:
         print("--api-id 必须配合 --crate 使用", file=sys.stderr)
         return 1
 
+    try:
+        resolver = compose_contract_resolution(repository_root=root)
+    except ResolutionConfigurationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    coverage = load_coverage(root)
+    rust_contracts = RustSourceContractAdapter(root)
+
     if args.crate_name:
-        if args.crate_name not in mapping:
+        if args.crate_name not in coverage:
             print(f"Unknown crate in mapping: {args.crate_name}", file=sys.stderr)
             return 1
         crate_names = [args.crate_name]
     else:
-        crate_names = sorted(mapping.keys())
+        crate_names = sorted(coverage.keys())
 
     report_dir = Path(args.report_dir)
     with compose(
@@ -411,24 +433,35 @@ def main() -> int:
         timeout_seconds=args.field_timeout,
         retries=args.field_retries,
     ) as collector:
-        reports = [
-            validate_crate(
-                crate_name,
-                mapping[crate_name],
-                csv_path,
-                report_dir,
-                args.skip_old,
-                collector,
-                live_endpoints=args.live_endpoints,
-                fields=args.fields,
-                max_field_apis=args.max_field_apis,
-                tokens=args.tokens,
-                biz_tag_filter=args.biz_tag,
-                api_ids=set(args.api_id or []),
-            )
-            for crate_name in crate_names
-        ]
+        reports = []
+        try:
+            for crate_name in crate_names:
+                reports.append(
+                    validate_crate(
+                        crate_name,
+                        list(coverage[crate_name].get("biz_tags") or []),
+                        resolver,
+                        rust_contracts,
+                        csv_path,
+                        report_dir,
+                        args.skip_old,
+                        collector,
+                        live_endpoints=args.live_endpoints,
+                        fields=args.fields,
+                        max_field_apis=args.max_field_apis,
+                        tokens=args.tokens,
+                        biz_tag_filter=args.biz_tag,
+                        api_ids=set(args.api_id or []),
+                    )
+                )
+        except ContractResolutionBlocked as exc:
+            print(f"Rust contract resolution blocked: {exc}", file=sys.stderr)
+            return 1
     write_summary(reports, report_dir / "summary.md", report_dir / "summary.json")
+
+    if sum(report.checked_apis for report in reports) == 0:
+        print("Rust contract resolution produced zero Resolved targets", file=sys.stderr)
+        return 1
 
     total_errors = sum(report.error_count for report in reports)
     total_warnings = sum(report.warn_count for report in reports)

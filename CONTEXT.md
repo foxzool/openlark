@@ -8,6 +8,14 @@ This context defines the language used to compare OpenLark's typed Rust contract
 The authoritative identity and metadata for one Feishu/Lark operation and its official document. Official Document Evidence is always produced for exactly one Catalog Entry.
 _Avoid_: API record, CSV row
 
+**Rust Contract Target**:
+The unique Rust source contract intended to implement one Catalog Entry. It is distinct from the contract extracted from that source and from any comparison result; no match or multiple candidates is not a resolved target.
+_Avoid_: implementation file, guessed path
+
+**Rust Contract Resolution**:
+The outcome of associating one Catalog Entry with a Rust Contract Target. `Resolved` names exactly one target; `Unmapped` has no owning crate, `Missing` has an owner but no existing target, and `Ambiguous` has multiple existing candidates.
+_Avoid_: path lookup, first match
+
 **Official Document Evidence**:
 Normalized observations derived from the authoritative official document for a Catalog entry, including provenance, document health, and confidence. It excludes the Rust contract comparison and any pass/fail verdict.
 _Avoid_: fetched document, page text, verification result

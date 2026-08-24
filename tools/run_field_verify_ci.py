@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""CI 入口：字段核对始终走 `--crate`，禁止空扫（#638）。
+"""CI 入口：按固定 coverage 清单逐 crate 核对并合并报告（#638）。
 
-无 `--crate` 时 `verify_api_fields` 的 src_root 是 `crates/`，与 crate 内相对
-`expected_file` 对不上。本入口：
+Rust Contract Resolution 已让全仓扫描安全可用；CI 仍按 crate 调度，以保留
+既有产物布局、失败隔离和进度粒度。本入口：
 
 - 显式 `--crate`：`--output-dir` 就是产物根（`summary.json` + `<crate>.md`）
-- 全仓：按 coverage 表逐 crate 调用，子目录再合并；清单为空则非零退出
+- 全仓：按固定 coverage 表逐 crate 调用，子目录再合并；清单为空则非零退出
 """
 
 from __future__ import annotations
@@ -20,17 +20,17 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MAPPING = REPO_ROOT / "tools" / "api_coverage.toml"
 DEFAULT_VERIFY = REPO_ROOT / "tools" / "verify_api_fields.py"
 
 
-def coverage_crates(mapping: Path) -> list[str]:
+def coverage_crates(repository_root: Path) -> list[str]:
+    mapping = repository_root / "tools" / "api_coverage.toml"
     data = tomllib.loads(mapping.read_text(encoding="utf-8"))
     return sorted(data.get("crates", {}))
 
 
-def require_coverage_crates(mapping: Path) -> list[str]:
-    crates = coverage_crates(mapping)
+def require_coverage_crates(repository_root: Path) -> list[str]:
+    crates = coverage_crates(repository_root)
     if not crates:
         print("coverage crate list is empty", file=sys.stderr)
         raise SystemExit(1)
@@ -80,13 +80,13 @@ def merge_summaries(root: Path, *, mode: str) -> dict:
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    for name in require_coverage_crates(args.mapping):
+    for name in require_coverage_crates(args.repository_root):
         print(name)
     return 0
 
 
 def cmd_quick(args: argparse.Namespace) -> int:
-    crates = require_coverage_crates(args.mapping)
+    crates = require_coverage_crates(args.repository_root)
     status = 0
     for crate in crates:
         crate_status = run_verify(crate, args.output_dir / crate, [])
@@ -107,7 +107,7 @@ def cmd_full(args: argparse.Namespace) -> int:
         # 与 main 上单 crate 调用相同：产物在 output-dir 根。
         return run_verify(args.crate, args.output_dir, extra)
 
-    crates = require_coverage_crates(args.mapping)
+    crates = require_coverage_crates(args.repository_root)
     status = 0
     for crate in crates:
         crate_status = run_verify(crate, args.output_dir / crate, extra)
@@ -117,14 +117,11 @@ def cmd_full(args: argparse.Namespace) -> int:
     return status
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    repository_root: Path | None = None,
+) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--mapping",
-        type=Path,
-        default=DEFAULT_MAPPING,
-        help="crate coverage table (default: tools/api_coverage.toml)",
-    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("list", help="print coverage crates; empty list exits 1")
@@ -139,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     full.add_argument("--force-refresh", action="store_true")
 
     args = parser.parse_args(argv)
+    args.repository_root = (
+        Path(repository_root) if repository_root is not None else REPO_ROOT
+    )
     if args.command == "list":
         return cmd_list(args)
     if args.command == "quick":

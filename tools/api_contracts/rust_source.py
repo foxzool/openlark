@@ -15,6 +15,7 @@ from .models import (
     RustField,
     StructFields,
 )
+from .rust_contract_resolution import RustContractTarget
 
 
 # CatalogEndpoint / .to_request 解析（#568）— 实现见 catalog_endpoints；此处 re-export 供校验器/测试
@@ -973,3 +974,51 @@ def scan_api_file(
         access_token_types=access_token_types,
         manual_auth_token=extract_manual_auth_token(text),
     )
+
+
+class RustSourceContractAdapter:
+    """Extract Rust contracts from resolved targets with per-crate index caching."""
+
+    def __init__(self, repository_root: Path) -> None:
+        self._repository_root = Path(repository_root).resolve()
+        self._indexes: dict[
+            str,
+            tuple[Path, dict[str, str], dict[str, str], dict[str, str]],
+        ] = {}
+
+    def scan(self, target: RustContractTarget) -> RustApiContract:
+        crate_src = self._repository_root / Path(target._crate_source.as_posix())
+        repository_path = self._repository_root / Path(
+            target.repository_path.as_posix()
+        )
+        try:
+            expected_file = repository_path.relative_to(crate_src).as_posix()
+        except ValueError as exc:
+            raise ValueError(
+                f"Rust Contract Target escapes crate source: {target.repository_path}"
+            ) from exc
+
+        cached = self._indexes.get(target.crate_name)
+        if cached is None:
+            constants = load_endpoint_constants(crate_src)
+            enum_endpoints = load_enum_endpoints(crate_src, constants)
+            enum_methods = load_enum_methods(crate_src)
+            cached = (crate_src, constants, enum_endpoints, enum_methods)
+            self._indexes[target.crate_name] = cached
+        cached_root, constants, enum_endpoints, enum_methods = cached
+        if cached_root != crate_src:
+            raise ValueError(
+                f"crate {target.crate_name!r} resolved to multiple source roots"
+            )
+        contract = scan_api_file(
+            crate_src,
+            expected_file,
+            constants,
+            enum_endpoints,
+            enum_methods,
+        )
+        if contract is None:
+            raise FileNotFoundError(
+                f"resolved Rust Contract Target disappeared: {target.repository_path}"
+            )
+        return contract

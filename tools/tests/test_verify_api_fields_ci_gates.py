@@ -1,21 +1,25 @@
-"""Pin field-verify CI so a no-`--crate` scan cannot silently go empty (#638).
+"""Pin field-verify CI to fixed coverage iteration and merged reports (#638).
 
-Without `--crate`, `verify_api_fields` sets src_root to `crates/` while CSV
-`expected_file` is crate-relative — every API lands `file_exists=False`.
-Weekly/full workflows must invoke the existing `--crate` entry per coverage
-crate. Dual-edit: changing the workflow invocation must update this test.
+Rust Contract Resolution prevents empty global path scans. Weekly/full workflows
+still invoke `--crate` per coverage crate to preserve artifact layout and failure
+isolation. Dual-edit: changing the workflow invocation must update this test.
 """
 
 from __future__ import annotations
 
 import json
+import io
 import os
 import stat
-import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
+
+from tools import run_field_verify_ci as ci_entry
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -114,23 +118,38 @@ out.mkdir(parents=True, exist_ok=True)
 
 
 class FieldVerifyCiEntryTests(unittest.TestCase):
-    def _run(self, *args: str, mapping: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-        merged = os.environ.copy()
-        if env:
-            merged.update(env)
-        return subprocess.run(
-            [sys.executable, str(CI_ENTRY), "--mapping", str(mapping), *args],
-            cwd=str(ROOT),
-            env=merged,
-            text=True,
-            capture_output=True,
+    def _run(
+        self,
+        *args: str,
+        repository_root: Path,
+        env: dict[str, str] | None = None,
+    ) -> SimpleNamespace:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            mock.patch.dict(os.environ, env or {}, clear=False),
+            redirect_stdout(stdout),
+            redirect_stderr(stderr),
+        ):
+            try:
+                returncode = ci_entry.main(list(args), repository_root)
+            except SystemExit as exc:
+                returncode = int(exc.code or 0)
+        return SimpleNamespace(
+            returncode=returncode,
+            stdout=stdout.getvalue(),
+            stderr=stderr.getvalue(),
         )
 
     def test_empty_coverage_list_exits_nonzero(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            mapping = Path(tmp) / "empty.toml"
+            root = Path(tmp)
+            mapping = root / "tools/api_coverage.toml"
+            mapping.parent.mkdir()
             mapping.write_text("# no crates\n", encoding="utf-8")
-            result = self._run("full", "--output-dir", tmp, mapping=mapping)
+            result = self._run(
+                "full", "--output-dir", tmp, repository_root=root
+            )
             self.assertNotEqual(result.returncode, 0, result.stdout)
             combined = f"{result.stdout}\n{result.stderr}".lower()
             self.assertRegex(
@@ -143,7 +162,8 @@ class FieldVerifyCiEntryTests(unittest.TestCase):
     def test_explicit_crate_keeps_root_artifact_layout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            mapping = root / "coverage.toml"
+            mapping = root / "tools/api_coverage.toml"
+            mapping.parent.mkdir()
             mapping.write_text(
                 '[crates.openlark-workflow]\nsrc = "crates/openlark-workflow/src"\n',
                 encoding="utf-8",
@@ -157,7 +177,7 @@ class FieldVerifyCiEntryTests(unittest.TestCase):
                 str(out),
                 "--crate",
                 "openlark-workflow",
-                mapping=mapping,
+                repository_root=root,
                 env={"FIELD_VERIFY_BIN": str(stub)},
             )
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -179,7 +199,8 @@ class FieldVerifyCiEntryTests(unittest.TestCase):
     def test_full_all_crates_writes_root_summary_with_full_mode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            mapping = root / "coverage.toml"
+            mapping = root / "tools/api_coverage.toml"
+            mapping.parent.mkdir()
             mapping.write_text(
                 "[crates.openlark-workflow]\n"
                 'src = "crates/openlark-workflow/src"\n'
@@ -194,7 +215,7 @@ class FieldVerifyCiEntryTests(unittest.TestCase):
                 "full",
                 "--output-dir",
                 str(out),
-                mapping=mapping,
+                repository_root=root,
                 env={"FIELD_VERIFY_BIN": str(stub)},
             )
             self.assertEqual(result.returncode, 0, result.stderr)

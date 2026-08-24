@@ -3,7 +3,7 @@ import json
 import sys
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 from tools.api_contracts.compare import (
@@ -33,6 +33,7 @@ from tools.api_contracts.official_evidence import (
     FieldObservation,
     OfficialDocumentEvidence,
 )
+from tools.api_contracts.rust_contract_resolution import Missing
 
 
 class _TrustedCollector:
@@ -408,19 +409,20 @@ class ContractCompareTests(unittest.TestCase):
                 )
 
         collector = RecordingCollector()
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            mock.patch.object(
-                cli, "load_api_identities", return_value=[first, second]
-            ),
-            mock.patch.object(cli, "load_endpoint_constants", return_value={}),
-            mock.patch.object(cli, "load_enum_endpoints", return_value={}),
-            mock.patch.object(cli, "load_enum_methods", return_value={}),
-            mock.patch.object(cli, "scan_api_file", return_value=None),
+        resolver = mock.Mock()
+        resolver.resolve.side_effect = lambda api: Missing(
+            api,
+            "fixture",
+            frozenset({PurePosixPath("crates/fixture/src/missing.rs")}),
+        )
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            cli, "load_api_identities", return_value=[first, second]
         ):
             report = cli.validate_crate(
                 "fixture",
-                {"src": directory, "biz_tags": ["ai"]},
+                ["ai"],
+                resolver,
+                mock.Mock(),
                 Path(directory) / "catalog.csv",
                 Path(directory) / "reports",
                 True,
@@ -462,7 +464,8 @@ class ContractCliTests(unittest.TestCase):
             )
             csv_path = root / "api_list_export.csv"
             self._write_csv(csv_path)
-            mapping_path = root / "api_coverage.toml"
+            mapping_path = root / "tools/api_coverage.toml"
+            mapping_path.parent.mkdir()
             mapping_path.write_text(
                 '[crates.openlark-ai]\n'
                 'src = "crates/openlark-ai/src"\n'
@@ -480,8 +483,6 @@ class ContractCliTests(unittest.TestCase):
                 "openlark-ai",
                 "--csv",
                 str(csv_path),
-                "--mapping",
-                str(mapping_path),
                 "--report-dir",
                 str(report_dir),
                 "--strict",
@@ -492,7 +493,7 @@ class ContractCliTests(unittest.TestCase):
 
                 os.chdir(root)
                 cli.compose = lambda **kwargs: _TrustedCollector()
-                exit_code = cli.main()
+                exit_code = cli.main(root)
                 self.assertEqual(exit_code, 0)
                 self.assertTrue((report_dir / "summary.md").exists())
                 self.assertIn(
@@ -524,7 +525,8 @@ class ContractCliTests(unittest.TestCase):
             )
             csv_path = root / "api_list_export.csv"
             self._write_csv(csv_path)
-            mapping_path = root / "api_coverage.toml"
+            mapping_path = root / "tools/api_coverage.toml"
+            mapping_path.parent.mkdir()
             mapping_path.write_text(
                 '[crates.openlark-ai]\n'
                 'src = "crates/openlark-ai/src"\n'
@@ -543,8 +545,6 @@ class ContractCliTests(unittest.TestCase):
                 "openlark-ai",
                 "--csv",
                 str(csv_path),
-                "--mapping",
-                str(mapping_path),
                 "--report-dir",
                 str(report_dir),
                 "--strict",
@@ -555,7 +555,7 @@ class ContractCliTests(unittest.TestCase):
 
                 cli.compose = lambda **kwargs: _TrustedCollector()
                 os.chdir(root)
-                exit_code = cli.main()
+                exit_code = cli.main(root)
             finally:
                 cli.compose = original_compose
                 os.chdir(original_cwd)
@@ -589,7 +589,8 @@ class ContractCliTests(unittest.TestCase):
             )
             csv_path = root / "api_list_export.csv"
             self._write_csv(csv_path)
-            mapping_path = root / "api_coverage.toml"
+            mapping_path = root / "tools/api_coverage.toml"
+            mapping_path.parent.mkdir()
             mapping_path.write_text(
                 '[crates.openlark-ai]\n'
                 'src = "crates/openlark-ai/src"\n'
@@ -607,8 +608,6 @@ class ContractCliTests(unittest.TestCase):
                 "openlark-ai",
                 "--csv",
                 str(csv_path),
-                "--mapping",
-                str(mapping_path),
                 "--report-dir",
                 str(report_dir),
                 "--fields",
@@ -623,7 +622,7 @@ class ContractCliTests(unittest.TestCase):
 
                 cli.compose = lambda **kwargs: _TrustedCollector()
                 os.chdir(root)
-                exit_code = cli.main()
+                exit_code = cli.main(root)
                 self.assertEqual(exit_code, 0)
                 report_text = (report_dir / "crates" / "openlark-ai.md").read_text(encoding="utf-8")
                 self.assertIn("E_REQUIRED_REQUEST_FIELD_MISSING", report_text)

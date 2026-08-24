@@ -58,6 +58,23 @@ def api_identity(*, method: str = "POST", full_path: str = "") -> ApiIdentity:
     )
 
 
+def write_resolution_mapping(root: Path, *, include_hr: bool = False) -> None:
+    mapping = (
+        "[crates.openlark-workflow]\n"
+        'src = "crates/openlark-workflow/src"\n'
+        'biz_tags = ["approval"]\n'
+    )
+    if include_hr:
+        mapping += (
+            "[crates.openlark-hr]\n"
+            'src = "crates/openlark-hr/src"\n'
+            'biz_tags = ["feishu_people"]\n'
+        )
+    path = root / "tools/api_coverage.toml"
+    path.parent.mkdir()
+    path.write_text(mapping, encoding="utf-8")
+
+
 def field_evidence(
     api: ApiIdentity,
     request_status: EvidenceStatus = EvidenceStatus.TRUSTED,
@@ -474,6 +491,7 @@ class FieldCliEvidenceTests(unittest.TestCase):
                 "}\n",
                 encoding="utf-8",
             )
+            write_resolution_mapping(root)
             output = root / "reports"
             argv = [
                 "verify_api_fields.py",
@@ -530,7 +548,7 @@ class FieldCliEvidenceTests(unittest.TestCase):
                 evidence["acquisition_trail"][0]["status"], "trusted"
             )
 
-    def test_single_api_warns_on_multiple_crate_matches(self):
+    def test_single_api_uses_mapping_owner_instead_of_global_path_guess(self):
         api = api_identity()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -541,6 +559,7 @@ class FieldCliEvidenceTests(unittest.TestCase):
                     "pub struct PassBody {\n    pub instance_code: String,\n}\n",
                     encoding="utf-8",
                 )
+            write_resolution_mapping(root, include_hr=True)
             output = root / "reports"
             argv = [
                 "verify_api_fields.py",
@@ -557,17 +576,17 @@ class FieldCliEvidenceTests(unittest.TestCase):
                     "load_api_identities",
                     return_value=[api],
                 ),
-                mock.patch("builtins.print") as printed,
             ):
                 exit_code = verify_api_fields.main()
 
             self.assertEqual(exit_code, 0)
-            warning_text = "\n".join(
-                str(call.args[0]) for call in printed.call_args_list if call.args
+            report = json.loads(
+                (output / "summary.json").read_text(encoding="utf-8")
             )
-            self.assertIn("多个 crate 中匹配", warning_text)
-            self.assertIn("openlark-hr", warning_text)
-            self.assertIn("openlark-workflow", warning_text)
+            self.assertEqual(
+                report["apis"][0]["target"],
+                "crates/openlark-workflow/src/approval/approval/v4/task/pass.rs",
+            )
 
     def test_resolve_evidence_policy_defaults(self):
         self.assertIsInstance(
@@ -609,6 +628,7 @@ class FieldCliEvidenceTests(unittest.TestCase):
                 "}\n",
                 encoding="utf-8",
             )
+            write_resolution_mapping(root)
             output = root / "reports"
             argv = [
                 "verify_api_fields.py",
