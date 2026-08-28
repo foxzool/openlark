@@ -182,6 +182,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 可选：approval instance/task subscription 模块 `docPath` 注释对齐新 `fullPath` slug；
     wire method/path 与 Request/Response 形状不变。
 
+### Fixed
+
+- **api：必填列表非空校验 + 快速模式假阳性（#646）**：
+  批量删除补充信息在空 `user_ids` 时于 Transport 前返回校验错误。
+  `detect_suspicious_patterns` 认字段级 `validate_required!`（与
+  `validate_required_list!` / `{field}.is_empty()` 同等效力）；
+  `skip_serializing_if = "Vec::is_empty"` 的可选列表不再报
+  `missing_list_validation`。人员组成员 write 的空 add/remove 仍为合法 no-op。
+
 ## [0.20.0] - 2026-07-27
 
 > Content freeze for the 0.20 release window (parent #566). Package identity + dated

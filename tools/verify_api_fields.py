@@ -13,6 +13,7 @@ API 字段核对工具：扫描代码字段、检测可疑模式、可选抓飞�
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -79,6 +80,30 @@ class FieldIssue:
     detail: str  # 人可读的描述
 
 
+def _has_field_list_nonempty_check(source: str, field_name: str) -> bool:
+    """字段级非空校验：validate_required! / validate_required_list! / {field}.is_empty()。"""
+    if f"{field_name}.is_empty()" in source:
+        return True
+    return (
+        re.search(
+            rf"validate_required(?:_list)?!\([^;]*\b{re.escape(field_name)}\b",
+            source,
+        )
+        is not None
+    )
+
+
+def _vec_skips_empty_on_wire(source: str, field_name: str) -> bool:
+    """空 Vec 跳过序列化 → 该字段在 wire 上可选，空列表合法。"""
+    return (
+        re.search(
+            rf'#\[serde\([^)]*skip_serializing_if\s*=\s*"Vec::is_empty"[^)]*\)\]\s*(?:pub\s+)?{re.escape(field_name)}\s*:',
+            source,
+        )
+        is not None
+    )
+
+
 def detect_suspicious_patterns(
     api: ApiIdentity, structs: List[StructFields], source: str
 ) -> List[FieldIssue]:
@@ -87,7 +112,9 @@ def detect_suspicious_patterns(
     红旗依据：
       1. 用户级接口 Body 含 user_id/approval_code（弱启发式，info 级——
          /reference/ 路径也含管理员级接口，需人工判断）
-      2. 必填 Vec 字段缺非空校验（认 validate_required_list! 或 is_empty()）
+      2. 必填 Vec 字段缺非空校验（认字段级 validate_required! /
+         validate_required_list! 或 is_empty()；skip_serializing_if =
+         Vec::is_empty 视为可选）
       3. GET 查询接口 Response 为空（可能漏建响应字段）
     """
     issues: List[FieldIssue] = []
@@ -117,8 +144,7 @@ def detect_suspicious_patterns(
                     )
 
     # 红旗 2：必填 Vec 字段缺非空校验
-    # 认两种校验写法：validate_required_list! 宏 或 if xxx.is_empty() 手写
-    has_list_macro = "validate_required_list!" in source
+    # 认字段级校验：validate_required! / validate_required_list! / {field}.is_empty()
     for s in body_structs:
         # 只检查必填的数组字段（Option<Vec> 是选填，不报）
         vec_fields = [
@@ -131,16 +157,16 @@ def detect_suspicious_patterns(
             )
         ]
         for f in vec_fields:
-            # 检查字段名是否在 is_empty() 校验里出现
-            has_manual_check = f"{f.name}.is_empty()" in source
-            if not has_list_macro and not has_manual_check:
+            if _vec_skips_empty_on_wire(source, f.name):
+                continue
+            if not _has_field_list_nonempty_check(source, f.name):
                 issues.append(
                     FieldIssue(
                         severity="warning",
                         category="missing_list_validation",
                         detail=(
                             f"Body {s.name} 的必填数组字段 {f.name} "
-                            "缺少非空校验（validate_required_list! 或 is_empty()）"
+                            "缺少非空校验（validate_required! / validate_required_list! 或 is_empty()）"
                         ),
                     )
                 )
