@@ -473,6 +473,18 @@ pub enum VcApiV1 {
     /// GET /open-apis/vc/v1/bots/events
     BotEvents,
 
+    /// 加入会议
+    /// POST /open-apis/vc/v1/bots/join
+    BotJoin,
+
+    /// 离开会议
+    /// POST /open-apis/vc/v1/bots/leave
+    BotLeave,
+
+    /// 发送会中消息
+    /// POST /open-apis/vc/v1/bots/message
+    BotMessage,
+
     /// 获取用户活跃会议
     /// GET /open-apis/vc/v1/bots/user_active_meeting
     BotUserActiveMeeting,
@@ -661,6 +673,9 @@ impl VcApiV1 {
 
             // Bot
             VcApiV1::BotEvents => "/open-apis/vc/v1/bots/events".to_string(),
+            VcApiV1::BotJoin => "/open-apis/vc/v1/bots/join".to_string(),
+            VcApiV1::BotLeave => "/open-apis/vc/v1/bots/leave".to_string(),
+            VcApiV1::BotMessage => "/open-apis/vc/v1/bots/message".to_string(),
             VcApiV1::BotUserActiveMeeting => {
                 "/open-apis/vc/v1/bots/user_active_meeting".to_string()
             }
@@ -934,6 +949,11 @@ mod tests {
             VcApiV1::ScopeConfigGet("id1".to_string()).to_url(),
             VcApiV1::ScopeConfigList.to_url(),
             VcApiV1::ScopeConfigPatch("id1".to_string()).to_url(),
+            VcApiV1::BotEvents.to_url(),
+            VcApiV1::BotJoin.to_url(),
+            VcApiV1::BotLeave.to_url(),
+            VcApiV1::BotMessage.to_url(),
+            VcApiV1::BotUserActiveMeeting.to_url(),
             VcApiV1::AlertList.to_url(),
             VcApiV1::AlertGet("id1".to_string()).to_url(),
             VcApiV1::MeetingListList.to_url(),
