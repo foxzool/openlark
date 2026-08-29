@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **meeting：VC 会议机器人加入/离开/发送会中消息（#645）**：
+  catalog 同步 2026-08-24（1737→1740，+3 APIs）。`openlark-meeting`
+  `vc/v1/bot` 新增 `JoinBotRequest` / `LeaveBotRequest` / `SendBotMessageRequest`，
+  对应 `POST /open-apis/vc/v1/bots/{join,leave,message}`。凭证默认 User+Tenant。
+  现有 `events` / `user_active_meeting` 读接口未改。
+
 - **websocket：callback 型事件处理器业务响应通道（#632）**：新增
   `CallbackEventHandler` trait（`handle` 返回 `Option<serde_json::Value>`）与
   `EventDispatcherHandler::register_callback(key, handler)`。卡片回传交互
