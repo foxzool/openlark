@@ -2,6 +2,7 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
+#[cfg(feature = "minutes")]
 use openlark_core::constants::AccessTokenType;
 
 /// Minutes API V1 端点枚举
