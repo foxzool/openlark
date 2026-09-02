@@ -46,7 +46,7 @@
 | `base` | 52 | 52 | 0 |
 | `helpdesk` | 50 | 50 | 0 |
 | `app_engine` | 49 | 49 | 0 |
-| `approval` | 46 | 69 | 23 |
+| `approval` | 47 | 70 | 23 |
 | `calendar` | 44 | 44 | 0 |
 | `attendance` | 39 | 39 | 0 |
 | `okr` | 37 | 37 | 0 |
@@ -65,7 +65,7 @@
 | `payroll` | 12 | 12 | 0 |
 | `auth` | 10 | 11 | 1 |
 | `cardkit` | 10 | 10 | 0 |
-| `minutes` | 8 | 8 | 0 |
+| `minutes` | 10 | 10 | 0 |
 | `board` | 7 | 7 | 0 |
 | `personal_settings` | 6 | 6 | 0 |
 | `trust_party` | 5 | 5 | 0 |
@@ -81,7 +81,7 @@
 | `moments` | 1 | 1 | 0 |
 | `verification_information` | 1 | 1 | 0 |
 | `meeting_room` | 0 | 17 | 17 |
-| **合计** | 1631 | 1740 | 109 |
+| **合计** | 1634 | 1743 | 109 |
 
 ## 工具用法
 

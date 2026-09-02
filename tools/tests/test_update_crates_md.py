@@ -21,17 +21,19 @@ class UpdateCratesMdTests(unittest.TestCase):
     def test_stats_include_spark_and_expected_totals(self):
         stats = update_crates_md.compute_biz_tag_stats()
 
-        # 与 checked-in api_list_export.csv 对齐（#645 catalog sync 后：1740 总行，
+        # 与 checked-in api_list_export.csv 对齐（#648 catalog sync 后：1743 总行，
         # 其中 meta.Version=old 不计入 non-old；spark 妙搭域当前为 24 条）。
         self.assertEqual(stats["spark"], (24, 24, 0))
         self.assertEqual(stats["vc"], (67, 67, 0))
+        self.assertEqual(stats["approval"], (47, 70, 23))
+        self.assertEqual(stats["minutes"], (10, 10, 0))
         self.assertEqual(
             sum(non_old for non_old, _, _ in stats.values()),
-            1631,
+            1634,
         )
         self.assertEqual(
             sum(total for _, total, _ in stats.values()),
-            1740,
+            1743,
         )
 
 

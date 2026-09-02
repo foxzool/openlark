@@ -4,3 +4,5 @@ expression: "catalog_semantics_snapshot::<MinutesExtraApiV1>()"
 ---
 Search | Post | /open-apis/minutes/v1/minutes/search | Some([User, Tenant])
 Artifacts("") | Get | /open-apis/minutes/v1/minutes//artifacts | Some([User, Tenant])
+Clip("") | Post | /open-apis/minutes/v1/minutes//clip | Some([User])
+Upload | Post | /open-apis/minutes/v1/minutes/upload | Some([User])

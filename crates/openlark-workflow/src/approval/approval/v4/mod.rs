@@ -16,8 +16,10 @@ pub mod task;
 
 pub use approval::{
     CreateApprovalBodyV4, CreateApprovalRequestV4, CreateApprovalResponseV4, GetApprovalRequestV4,
-    GetApprovalResponseV4, SubscribeApprovalRequestV4, SubscribeApprovalResponseV4,
-    UnsubscribeApprovalRequestV4, UnsubscribeApprovalResponseV4,
+    GetApprovalResponseV4, LaunchableApprovalV4, SearchLaunchableApprovalBodyV4,
+    SearchLaunchableApprovalRequestV4, SearchLaunchableApprovalResponseV4,
+    SubscribeApprovalRequestV4, SubscribeApprovalResponseV4, UnsubscribeApprovalRequestV4,
+    UnsubscribeApprovalResponseV4,
 };
 // external_approval 模块显式导出
 pub use external_approval::{
