@@ -184,6 +184,55 @@ class SuspiciousPatternTests(unittest.TestCase):
         )
         self.assertNotIn("missing_list_validation", [item.category for item in issues])
 
+    def test_validate_required_macro_suppresses_warning(self):
+        api = api_identity()
+        structs = [
+            verify_api_fields.StructFields(
+                "PassBody",
+                [verify_api_fields.FieldInfo("user_ids", "String", True)],
+            )
+        ]
+        issues = verify_api_fields.detect_suspicious_patterns(
+            api,
+            structs,
+            'validate_required!(self.body.user_ids, "user_ids 不能为空");',
+        )
+        self.assertNotIn("missing_list_validation", [item.category for item in issues])
+
+    def test_unrelated_list_macro_does_not_suppress_other_field(self):
+        api = api_identity()
+        structs = [
+            verify_api_fields.StructFields(
+                "PassBody",
+                [verify_api_fields.FieldInfo("user_ids", "String", True)],
+            )
+        ]
+        issues = verify_api_fields.detect_suspicious_patterns(
+            api, structs, 'validate_required_list!(self.other_ids, 50, "other_ids");'
+        )
+        self.assertIn("missing_list_validation", [item.category for item in issues])
+
+    def test_skip_serializing_empty_vec_does_not_warn(self):
+        api = api_identity()
+        structs = [
+            verify_api_fields.StructFields(
+                "WriteRequestBody",
+                [
+                    verify_api_fields.FieldInfo("add_user_ids", "String", True),
+                    verify_api_fields.FieldInfo("remove_user_ids", "String", True),
+                ],
+            )
+        ]
+        source = """
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub add_user_ids: Vec<String>,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub remove_user_ids: Vec<String>,
+        """
+        issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
+        self.assertNotIn("missing_list_validation", [item.category for item in issues])
+
+
     def test_empty_get_response_is_informational(self):
         api = api_identity(method="GET")
         structs = [verify_api_fields.StructFields("GetResponse", [])]

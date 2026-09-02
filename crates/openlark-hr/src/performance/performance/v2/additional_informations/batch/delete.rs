@@ -53,6 +53,7 @@ impl DeleteRequest {
 
         // 1. 验证必填字段
         validate_required!(self.cycle_id.trim(), "cycle_id");
+        validate_required!(self.user_ids, "user_ids 不能为空");
 
         // 2. 构建端点
         let api_endpoint = PerformanceApiV1::AdditionalInformationsBatchDelete;
@@ -139,6 +140,7 @@ mod tests {
             .build();
 
         let data = DeleteRequest::new(config, "cycle_001".to_string())
+            .add_user_id("user_001".to_string())
             .execute()
             .await
             .expect("performance_v2_additional_informations_batch_delete 应成功");
@@ -151,5 +153,22 @@ mod tests {
             received[0].url.path(),
             "/open-apis/performance/v2/additional_informations/batch"
         );
+    }
+
+    #[tokio::test]
+    async fn test_performance_v2_additional_informations_batch_delete_rejects_empty_user_ids() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url("https://127.0.0.1:9")
+            .enable_token_cache(false)
+            .build();
+
+        let err = DeleteRequest::new(config, "cycle_001".to_string())
+            .execute()
+            .await
+            .expect_err("空 user_ids 应在发请求前校验失败");
+
+        assert!(err.to_string().contains("user_ids"));
     }
 }
