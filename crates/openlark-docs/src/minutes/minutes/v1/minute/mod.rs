@@ -34,5 +34,14 @@ pub use transcript::GetMinuteTranscriptRequest;
 pub use unsubscription::UnsubscribeMinuteRequest;
 /// artifacts 模块。
 pub mod artifacts;
+/// 创建妙记片段接口。
+pub mod clip;
 /// search 模块。
 pub mod search;
+/// 云空间文件生成妙记接口。
+pub mod upload;
+
+/// 重新导出创建妙记片段类型。
+pub use clip::{MinuteClipBody, MinuteClipRequest, MinuteClipResponse, MinuteTimeRange};
+/// 重新导出云空间文件生成妙记类型。
+pub use upload::{MinuteUploadBody, MinuteUploadRequest, MinuteUploadResponse};

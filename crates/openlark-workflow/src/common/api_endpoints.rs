@@ -2,6 +2,9 @@
 //!
 //! 本模块提供基于枚举的 API 端点定义，用于生产代码中的类型安全调用。
 
+use openlark_core::api::{ApiRequest, HttpMethod};
+use openlark_core::constants::AccessTokenType;
+
 /// 任务 API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
 pub enum TaskApiV1 {
@@ -636,6 +639,42 @@ impl ApprovalApiV4 {
     }
 }
 
+/// 不扩展公开 `ApprovalApiV4` 的补充端点，避免破坏下游穷举匹配。
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum ApprovalExtraApiV4 {
+    /// 搜索可发起的审批定义
+    SearchLaunchable,
+}
+
+impl ApprovalExtraApiV4 {
+    /// 生成对应的 URL。
+    pub(crate) fn to_url(&self) -> String {
+        match self {
+            Self::SearchLaunchable => {
+                "/open-apis/approval/v4/approvals/search_launchable".to_string()
+            }
+        }
+    }
+
+    fn method(&self) -> HttpMethod {
+        HttpMethod::Post
+    }
+
+    /// 返回配置了稳定请求语义的请求。
+    pub(crate) fn to_request<R>(&self) -> ApiRequest<R> {
+        let mut req = match self.method() {
+            HttpMethod::Post => ApiRequest::post(self.to_url()),
+            HttpMethod::Get => ApiRequest::get(self.to_url()),
+            HttpMethod::Put => ApiRequest::put(self.to_url()),
+            HttpMethod::Patch => ApiRequest::patch(self.to_url()),
+            HttpMethod::Delete => ApiRequest::delete(self.to_url()),
+            other => unreachable!("ApprovalExtraApiV4 不支持 HTTP 方法 {other:?}"),
+        };
+        req = req.with_supported_access_token_types(vec![AccessTokenType::User]);
+        req
+    }
+}
+
 /// 白板 API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
 pub enum BoardApiV1 {
@@ -1130,6 +1169,26 @@ mod tests {
         for (api, expected) in cases {
             assert_eq!(api.to_url(), expected);
         }
+    }
+
+    #[test]
+    fn approval_extra_search_launchable_is_user_only_post() {
+        let endpoint = ApprovalExtraApiV4::SearchLaunchable;
+        assert_eq!(
+            endpoint.to_url(),
+            "/open-apis/approval/v4/approvals/search_launchable"
+        );
+        assert_eq!(endpoint.method(), HttpMethod::Post);
+        let request: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(request.method(), &HttpMethod::Post);
+        assert_eq!(
+            request.api_path(),
+            "/open-apis/approval/v4/approvals/search_launchable"
+        );
+        assert_eq!(
+            request.supported_access_token_types(),
+            vec![AccessTokenType::User]
+        );
     }
 
     #[test]

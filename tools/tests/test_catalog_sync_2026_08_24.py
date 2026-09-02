@@ -77,7 +77,7 @@ def _load_csv_by_id() -> dict[str, dict[str, str]]:
 class CatalogSync20260824Tests(unittest.TestCase):
     def test_checked_in_catalog_includes_three_vc_bot_write_apis(self) -> None:
         rows = _load_csv_by_id()
-        self.assertEqual(len(rows), 1740)
+        self.assertEqual(len(rows), 1743)
         for api_id, expected in NEW_API_EXPECTATIONS.items():
             with self.subTest(api_id=api_id):
                 self.assertIn(api_id, rows, f"缺少 API id={api_id}")

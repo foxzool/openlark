@@ -2,6 +2,8 @@
 
 use super::CatalogEndpoint;
 use openlark_core::api::{ApiRequest, HttpMethod};
+#[cfg(feature = "minutes")]
+use openlark_core::constants::AccessTokenType;
 
 /// Minutes API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -76,6 +78,10 @@ pub(crate) enum MinutesExtraApiV1 {
     Search,
     /// 获取妙记 AI 产物。
     Artifacts(String),
+    /// 创建妙记片段。
+    Clip(String),
+    /// 云空间文件生成妙记。
+    Upload,
 }
 
 #[cfg(feature = "minutes")]
@@ -94,17 +100,28 @@ impl CatalogEndpoint for MinutesExtraApiV1 {
             Self::Artifacts(minute_token) => {
                 format!("/open-apis/minutes/v1/minutes/{minute_token}/artifacts")
             }
+            Self::Clip(minute_token) => {
+                format!("/open-apis/minutes/v1/minutes/{minute_token}/clip")
+            }
+            Self::Upload => "/open-apis/minutes/v1/minutes/upload".to_string(),
         }
     }
 
     fn method(&self) -> HttpMethod {
         match self {
-            Self::Search => HttpMethod::Post,
+            Self::Search | Self::Clip(_) | Self::Upload => HttpMethod::Post,
             Self::Artifacts(_) => HttpMethod::Get,
         }
     }
 
-    // supported_access_token_types 使用 trait 默认实现（User + Tenant）
+    fn supported_access_token_types(&self) -> Option<Vec<AccessTokenType>> {
+        match self {
+            Self::Search | Self::Artifacts(_) => {
+                Some(vec![AccessTokenType::User, AccessTokenType::Tenant])
+            }
+            Self::Clip(_) | Self::Upload => Some(vec![AccessTokenType::User]),
+        }
+    }
 }
 
 #[cfg(test)]

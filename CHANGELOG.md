@@ -74,6 +74,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **workflow/docs：审批可发起定义搜索 + 妙记片段/上传（#648）**：
+  catalog 同步 2026-08-31（1740→1743，+3 APIs）。
+  `openlark-workflow` 新增 `SearchLaunchableApprovalRequestV4`
+  （`POST /open-apis/approval/v4/approvals/search_launchable`）；
+  `openlark-docs` `minutes/v1/minute` 新增 `MinuteClipRequest` /
+  `MinuteUploadRequest`（`POST .../minutes/:minute_token/clip`、
+  `POST .../minutes/upload`）。三接口均为 User token only；
+  新端点走 crate-private extra catalog，不扩展公开 `ApprovalApiV4` /
+  `MinutesApiV1`。现有审批定义 CRUD/订阅与妙记 get/search/artifacts
+  等读接口未改。
+
 - **meeting：VC 会议机器人加入/离开/发送会中消息（#645）**：
   catalog 同步 2026-08-24（1737→1740，+3 APIs）。`openlark-meeting`
   `vc/v1/bot` 新增 `JoinBotRequest` / `LeaveBotRequest` / `SendBotMessageRequest`，
