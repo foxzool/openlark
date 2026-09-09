@@ -1,5 +1,11 @@
+/// analytics_overview 模块。
+pub mod analytics_overview;
+/// available_scope 模块。
+pub mod available_scope;
 /// create 模块。
 pub mod create;
+/// credit_usage 模块。
+pub mod credit_usage;
 /// enum 模块。
 pub mod r#enum;
 /// get_app_visibility 模块。
@@ -10,6 +16,8 @@ pub mod icon;
 pub mod list;
 /// patch 模块。
 pub mod patch;
+/// query_analytics_data 模块。
+pub mod query_analytics_data;
 /// sql_commands 模块。
 pub mod sql_commands;
 /// storage 模块。
@@ -26,11 +34,15 @@ pub mod view;
 use crate::PlatformConfig;
 use std::sync::Arc;
 
+pub use analytics_overview::GetSparkAppAnalyticsOverviewRequest;
+pub use available_scope::{GetMiaodaAvailableScopeRequest, UpdateMiaodaAvailableScopeRequest};
 pub use create::CreateSparkAppRequest;
+pub use credit_usage::GetSparkAppCreditUsageRequest;
 pub use get_app_visibility::GetSparkAppVisibilityRequest;
 pub use icon::UploadSparkAppIconRequest;
 pub use list::ListSparkAppsRequest;
 pub use patch::PatchSparkAppRequest;
+pub use query_analytics_data::QuerySparkAppAnalyticsDataRequest;
 pub use update_app_visibility::UpdateSparkAppVisibilityRequest;
 pub use upload_html_code_and_release::UploadHtmlCodeAndReleaseRequest;
 
@@ -85,5 +97,36 @@ impl SparkAppService {
         app_id: impl Into<String>,
     ) -> UploadHtmlCodeAndReleaseRequest {
         UploadHtmlCodeAndReleaseRequest::new(self.config.clone(), app_id)
+    }
+
+    /// 获取妙搭应用运营数据总览。
+    pub fn analytics_overview(
+        &self,
+        app_id: impl Into<String>,
+    ) -> GetSparkAppAnalyticsOverviewRequest {
+        GetSparkAppAnalyticsOverviewRequest::new(self.config.clone(), app_id)
+    }
+
+    /// 获取妙搭应用消耗 AI 额度。
+    pub fn credit_usage(&self, app_id: impl Into<String>) -> GetSparkAppCreditUsageRequest {
+        GetSparkAppCreditUsageRequest::new(self.config.clone(), app_id)
+    }
+
+    /// 获取妙搭应用运营数据趋势。
+    pub fn query_analytics_data(
+        &self,
+        app_id: impl Into<String>,
+    ) -> QuerySparkAppAnalyticsDataRequest {
+        QuerySparkAppAnalyticsDataRequest::new(self.config.clone(), app_id)
+    }
+
+    /// 获取妙搭产品使用权限。
+    pub fn get_available_scope(&self) -> GetMiaodaAvailableScopeRequest {
+        GetMiaodaAvailableScopeRequest::new(self.config.clone())
+    }
+
+    /// 修改妙搭产品使用权限。
+    pub fn update_available_scope(&self) -> UpdateMiaodaAvailableScopeRequest {
+        UpdateMiaodaAvailableScopeRequest::new(self.config.clone())
     }
 }

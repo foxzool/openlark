@@ -42,6 +42,7 @@ jobs:
           - "analytics"
           - "user"
           - "bot"
+          - "pay"
           - "docs-base"
           - "docs-bitable"
 

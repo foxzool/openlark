@@ -63,6 +63,7 @@ PUBLISH_ORDER=(
     "openlark-helpdesk"
     "openlark-mail"
     "openlark-bot"
+    "openlark-pay"
     "openlark-workflow"
     "openlark-analytics"
     "openlark-user"

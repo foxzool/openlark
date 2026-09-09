@@ -77,6 +77,9 @@ pub use openlark_mail as mail;
 #[cfg(feature = "bot")]
 pub use openlark_bot as bot;
 
+#[cfg(feature = "pay")]
+pub use openlark_pay as pay;
+
 #[cfg(feature = "meeting")]
 pub use openlark_meeting as meeting;
 

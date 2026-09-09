@@ -36,6 +36,7 @@ FEATURE_ROW_SPECS = [
     ("`helpdesk`", "openlark-helpdesk"),
     ("`mail`", "openlark-mail"),
     ("`application`", "openlark-application"),
+    ("`pay`", "openlark-pay"),
 ]
 
 

@@ -42,6 +42,7 @@ fn count_enabled_catalog_features() -> usize {
         cfg!(feature = "user"),
         cfg!(feature = "security"),
         cfg!(feature = "bot"),
+        cfg!(feature = "pay"),
     ]
     .into_iter()
     .filter(|b| *b)
@@ -86,6 +87,7 @@ fn client_public_field_order_remains_compatible() {
         "user",
         "security",
         "bot",
+        "pay",
     ];
 
     let mut previous = 0;

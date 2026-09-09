@@ -17,6 +17,7 @@
 | `openlark-communication` | `im`, `contact`, `moments`, `aily`, `event` |
 | `openlark-cardkit` | `cardkit` |
 | `openlark-bot` | `bot` |
+| `openlark-pay` | `pay` |
 | `openlark-hr` | `hire`, `feishu_people`, `attendance`, `compensation_management`, `performance`, `payroll`, `okr`, `ehr` |
 | `openlark-security` | `acs`, `security_and_compliance` |
 | `openlark-ai` | `ai` |
@@ -109,3 +110,4 @@
 | `helpdesk` | `openlark-helpdesk` | `helpdesk` |
 | `mail` | `openlark-mail` | `mail` |
 | `application` | `openlark-application` | `application`, `workplace` |
+| `pay` | `openlark-pay` | `pay` |

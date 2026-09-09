@@ -318,6 +318,9 @@ pub use openlark_mail::MailClient;
 #[cfg(feature = "bot")]
 pub use openlark_bot::BotClient;
 
+#[cfg(feature = "pay")]
+pub use openlark_pay::PayClient;
+
 #[cfg(feature = "analytics")]
 pub use openlark_analytics::AnalyticsClient;
 
@@ -445,6 +448,9 @@ pub mod prelude {
 
     #[cfg(feature = "bot")]
     pub use crate::BotClient;
+
+    #[cfg(feature = "pay")]
+    pub use crate::PayClient;
 
     #[cfg(feature = "analytics")]
     pub use crate::AnalyticsClient;

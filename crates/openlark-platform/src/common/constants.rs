@@ -17,6 +17,20 @@ pub mod endpoints {
     /// 妙搭和飞书用户 ID 转换
     pub const SPARK_V1_DIRECTORY_USER_ID_CONVERT: &str =
         "/open-apis/spark/v1/directory/user/id_convert";
+
+    /// 获取妙搭应用运营数据总览
+    pub const SPARK_V1_APPS_ANALYTICS_OVERVIEW: &str =
+        "/open-apis/spark/v1/apps/{app_id}/analytics/overview";
+
+    /// 获取妙搭应用消耗 AI 额度
+    pub const SPARK_V1_APPS_CREDIT_USAGE: &str = "/open-apis/spark/v1/apps/{app_id}/credit_usage";
+
+    /// 获取妙搭应用运营数据趋势
+    pub const SPARK_V1_APPS_QUERY_ANALYTICS_DATA: &str =
+        "/open-apis/spark/v1/apps/{app_id}/query_analytics_data";
+
+    /// 妙搭产品使用权限
+    pub const SPARK_V1_AVAILABLE_SCOPE: &str = "/open-apis/spark/v1/available_scope";
 }
 
 /// 应用状态常量

@@ -485,6 +485,10 @@ pub enum VcApiV1 {
     /// POST /open-apis/vc/v1/bots/message
     BotMessage,
 
+    /// 会中倒计时
+    /// POST /open-apis/vc/v1/bots/countdown
+    BotCountdown,
+
     /// 获取用户活跃会议
     /// GET /open-apis/vc/v1/bots/user_active_meeting
     BotUserActiveMeeting,
@@ -676,6 +680,7 @@ impl VcApiV1 {
             VcApiV1::BotJoin => "/open-apis/vc/v1/bots/join".to_string(),
             VcApiV1::BotLeave => "/open-apis/vc/v1/bots/leave".to_string(),
             VcApiV1::BotMessage => "/open-apis/vc/v1/bots/message".to_string(),
+            VcApiV1::BotCountdown => "/open-apis/vc/v1/bots/countdown".to_string(),
             VcApiV1::BotUserActiveMeeting => {
                 "/open-apis/vc/v1/bots/user_active_meeting".to_string()
             }
@@ -953,6 +958,7 @@ mod tests {
             VcApiV1::BotJoin.to_url(),
             VcApiV1::BotLeave.to_url(),
             VcApiV1::BotMessage.to_url(),
+            VcApiV1::BotCountdown.to_url(),
             VcApiV1::BotUserActiveMeeting.to_url(),
             VcApiV1::AlertList.to_url(),
             VcApiV1::AlertGet("id1".to_string()).to_url(),
