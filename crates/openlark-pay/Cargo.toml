@@ -1,0 +1,29 @@
+[package]
+name = "openlark-pay"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+description = "OpenLark 商店付费模块 - 查询订单详情、订单列表与开通范围"
+keywords = ["feishu", "lark", "pay", "sdk", "api"]
+categories = ["api-bindings", "web-programming"]
+
+[lints]
+workspace = true
+
+[dependencies]
+openlark-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+wiremock = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+default = ["v1"]
+v1 = []

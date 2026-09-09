@@ -519,15 +519,28 @@ def _compare_evidence_against_code(
     structs: List[StructFields],
     evidence,
     issues: List[FieldIssue],
+    api: ApiIdentity | None = None,
 ) -> None:
     """消费顶层 Field Observations，保留既有 Rust comparison 语义。"""
     request = evidence.for_dimension(EvidenceDimension.REQUEST_FIELDS)
     response = evidence.for_dimension(EvidenceDimension.RESPONSE_FIELDS)
+    has_body_struct = any(
+        matches_struct_suffix(item.name, _BODY_STRUCT_SUFFIXES) for item in structs
+    )
     nonpassing = [
         item
         for item in (request, response)
         if item.status is not EvidenceStatus.TRUSTED
     ]
+    # GET 无 query/body 时官方文档常缺 Request body / Query parameters 段，
+    # request_fields 会 incomplete；代码也没有 *Body 时不按门禁失败。
+    if (
+        api is not None
+        and api.official_method == "GET"
+        and not has_body_struct
+        and request.status is EvidenceStatus.INCOMPLETE
+    ):
+        nonpassing = [item for item in nonpassing if item is not request]
     if nonpassing:
         hard_failure = any(
             item.status in (EvidenceStatus.UNAVAILABLE, EvidenceStatus.REJECTED)
@@ -716,7 +729,8 @@ def main(repository_root: Path | None = None) -> int:
     # 单 API 模式：按 id 过滤，目标只通过 Rust Contract Resolution 获取。
     if args.api_id:
         crate_label = f"api-{args.api_id}"
-        all_apis = load_api_identities(csv_path)
+        # 单 API 按 id 查找，不能跳过 meta.Version=old（pay 等旧文档体系）。
+        all_apis = load_api_identities(csv_path, skip_old_versions=False)
         if args.fetch_docs:
             with compose_full(
                 snapshot_directory=out_dir / "official_evidence",
@@ -849,7 +863,7 @@ def _run_single_api(
         policy = evidence_policy or FreshOfficialPolicy()
         evidence = _collect_field_evidence(collector, api, policy)
         evidence_metadata = evidence_to_jsonable(evidence)["dimensions"]
-        _compare_evidence_against_code(structs, evidence, issues)
+        _compare_evidence_against_code(structs, evidence, issues, api)
 
     report = ApiFieldReport(
         api=api,
@@ -943,7 +957,7 @@ def _run_full_mode(
         issues = detect_suspicious_patterns(api, structs, source)
         evidence = _collect_field_evidence(collector, api, policy)
         dimensions = evidence_to_jsonable(evidence)["dimensions"]
-        _compare_evidence_against_code(structs, evidence, issues)
+        _compare_evidence_against_code(structs, evidence, issues, api)
         nonpassing = [
             item
             for item in evidence.dimensions

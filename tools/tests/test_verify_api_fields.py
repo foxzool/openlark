@@ -504,6 +504,27 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(issues[0].category, "doc_parse_empty")
         self.assertEqual(verify_api_fields._exit_code_for_issues(issues), 1)
 
+    def test_get_without_body_allows_incomplete_request_evidence(self):
+        api = api_identity(method="GET")
+        issues = []
+        verify_api_fields._compare_evidence_against_code(
+            [
+                verify_api_fields.StructFields(
+                    "GetResponse",
+                    [
+                        verify_api_fields.FieldInfo(
+                            "available_scope", "String", False
+                        )
+                    ],
+                )
+            ],
+            field_evidence(api, request_status=EvidenceStatus.INCOMPLETE),
+            issues,
+            api,
+        )
+        self.assertFalse(any(item.severity in ("error", "warning") for item in issues))
+        self.assertEqual(verify_api_fields._exit_code_for_issues(issues), 0)
+
     def test_unavailable_evidence_maps_to_fetch_failure(self):
         issues = []
         verify_api_fields._compare_evidence_against_code(

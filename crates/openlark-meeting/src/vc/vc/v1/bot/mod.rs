@@ -1,5 +1,6 @@
 //! 会议机器人（bot）模块
 
+pub mod countdown;
 pub mod events;
 pub mod join;
 pub mod leave;
@@ -7,6 +8,8 @@ pub mod message;
 pub mod models;
 pub mod user_active_meeting;
 
+/// 会中倒计时请求与模型。
+pub use countdown::{BotCountdownAction, BotCountdownBody, BotCountdownRequest};
 /// 获取会议事件请求。
 pub use events::GetBotEventsRequest;
 /// 加入会议请求与模型。

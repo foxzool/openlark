@@ -161,6 +161,15 @@ macro_rules! for_each_compiled_capability {
                     openlark_bot::BotClient::new(_core_config.clone())
                 },
             },
+            {
+                feature: "pay",
+                field: pay,
+                ty: openlark_pay::PayClient,
+                doc: "Pay 入口：client.pay.get_order() / list_orders() / check_user()",
+                init: |_core_config, _base_core_config| {
+                    openlark_pay::PayClient::new(_core_config.clone())
+                },
+            },
         }
     };
 }

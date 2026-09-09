@@ -8,8 +8,9 @@
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_meeting::vc::vc::v1::bot::{
-    GetBotEventsRequest, GetUserActiveMeetingRequest, JoinBotBody, JoinBotRequest, JoinIdentify,
-    LeaveBotBody, LeaveBotRequest, SendBotMessageBody, SendBotMessageRequest,
+    BotCountdownAction, BotCountdownBody, BotCountdownRequest, GetBotEventsRequest,
+    GetUserActiveMeetingRequest, JoinBotBody, JoinBotRequest, JoinIdentify, LeaveBotBody,
+    LeaveBotRequest, SendBotMessageBody, SendBotMessageRequest,
 };
 use serde_json::json;
 use wiremock::{
@@ -282,4 +283,94 @@ async fn existing_user_active_meeting_get_path_is_unchanged() {
         .execute_with_options(tenant_option())
         .await
         .expect("获取用户活跃会议应成功");
+}
+
+#[tokio::test]
+async fn countdown_rejects_empty_meeting_id_before_sending_request() {
+    let server = MockServer::start().await;
+
+    let result = BotCountdownRequest::new(test_config(server.uri()))
+        .execute(BotCountdownBody {
+            meeting_id: "  ".to_string(),
+            action: BotCountdownAction::Set.as_str().to_string(),
+            duration: Some("5".to_string()),
+            ..Default::default()
+        })
+        .await;
+
+    let error = result.expect_err("空 meeting_id 应在发起网络请求前被拒绝");
+    assert!(error.to_string().contains("meeting_id"));
+    assert_no_http(&server).await;
+}
+
+#[tokio::test]
+async fn countdown_rejects_missing_action_before_sending_request() {
+    let server = MockServer::start().await;
+
+    let result = BotCountdownRequest::new(test_config(server.uri()))
+        .execute(BotCountdownBody {
+            meeting_id: "om_join".to_string(),
+            action: String::new(),
+            duration: Some("5".to_string()),
+            ..Default::default()
+        })
+        .await;
+
+    let error = result.expect_err("缺 action 应在发起网络请求前被拒绝");
+    assert!(error.to_string().contains("action"));
+    assert_no_http(&server).await;
+}
+
+#[tokio::test]
+async fn countdown_rejects_set_without_duration_before_sending_request() {
+    let server = MockServer::start().await;
+
+    let result = BotCountdownRequest::new(test_config(server.uri()))
+        .execute(BotCountdownBody {
+            meeting_id: "om_join".to_string(),
+            action: BotCountdownAction::Set.as_str().to_string(),
+            duration: None,
+            ..Default::default()
+        })
+        .await;
+
+    let error = result.expect_err("action=set 缺 duration 应在发起网络请求前被拒绝");
+    assert!(error.to_string().contains("duration"));
+    assert_no_http(&server).await;
+}
+
+#[tokio::test]
+async fn countdown_posts_official_contract_and_empty_data() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/open-apis/vc/v1/bots/countdown"))
+        .and(header("authorization", "Bearer tenant-token"))
+        .and(body_json(json!({
+            "meeting_id": "om_join",
+            "action": "set",
+            "duration": "5",
+            "need_play_audio_at_end": true,
+            "reminder_before_end": "1"
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code": 0,
+            "msg": "success",
+            "data": {}
+        })))
+        .mount(&server)
+        .await;
+
+    BotCountdownRequest::new(test_config(server.uri()))
+        .execute_with_options(
+            BotCountdownBody {
+                meeting_id: "om_join".to_string(),
+                action: BotCountdownAction::Set.as_str().to_string(),
+                duration: Some("5".to_string()),
+                need_play_audio_at_end: Some(true),
+                reminder_before_end: Some("1".to_string()),
+            },
+            tenant_option(),
+        )
+        .await
+        .expect("会中倒计时应成功");
 }

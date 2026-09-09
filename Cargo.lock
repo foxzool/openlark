@@ -1464,6 +1464,7 @@ dependencies = [
  "openlark-hr",
  "openlark-mail",
  "openlark-meeting",
+ "openlark-pay",
  "openlark-platform",
  "openlark-security",
  "openlark-user",
@@ -1612,6 +1613,7 @@ dependencies = [
  "openlark-hr",
  "openlark-mail",
  "openlark-meeting",
+ "openlark-pay",
  "openlark-platform",
  "openlark-security",
  "openlark-user",
@@ -1764,6 +1766,17 @@ dependencies = [
  "thiserror",
  "tokio",
  "uuid",
+ "wiremock",
+]
+
+[[package]]
+name = "openlark-pay"
+version = "0.20.0"
+dependencies = [
+ "openlark-core",
+ "serde",
+ "serde_json",
+ "tokio",
  "wiremock",
 ]
 
