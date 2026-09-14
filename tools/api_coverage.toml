@@ -35,8 +35,9 @@ biz_tags = ["bot"]
 [crates.openlark-pay]
 src = "crates/openlark-pay/src"
 biz_tags = ["pay"]
-# CSV meta.Version=old + meta.Resource=default → expected pay/pay/old/default/v1/...
-# On-disk layout drops the old/default prefix and extra project segment.
+# CSV 3 条均为 meta.Version=old + meta.Resource=default
+# → expected pay/pay/old/default/v1/... ；落盘丢掉 old/default 与多余 project 段。
+# crate 扫描默认 skip old；pay 过滤后为空时 verify_api_fields 会回退加载 old 行。
 implementation_path_rewrites = [
   { from = "pay/pay/old/default/", to = "pay/" },
 ]
