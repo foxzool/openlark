@@ -1,0 +1,3 @@
+# Keep artifacts and local run state out of git
+artifacts/
+.run-state/

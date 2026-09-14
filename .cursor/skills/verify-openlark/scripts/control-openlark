@@ -1,0 +1,398 @@
+#!/usr/bin/env bash
+# control-openlark — verification harness for the OpenLark Rust SDK.
+# Invoked by .cursor/skills/verify-openlark/SKILL.md. Prefer this over ad-hoc cargo.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# .cursor/skills/verify-openlark → repo root is three levels up
+REPO_ROOT="$(cd "${SKILL_DIR}/../../.." && pwd)"
+
+ARTIFACTS_ROOT="${VERIFY_OPENLARK_ARTIFACTS:-${SKILL_DIR}/artifacts}"
+RUN_ID="${VERIFY_OPENLARK_RUN_ID:-}"
+STATE_DIR="${SKILL_DIR}/.run-state"
+
+usage() {
+  cat <<'EOF'
+control-openlark — OpenLark verification harness
+
+Usage:
+  control-openlark doctor
+  control-openlark launch [--target-dir DIR]
+  control-openlark test [--package PKG] [--lib] [-- -- TEST_FILTER]
+  control-openlark example run NAME [--features FEATS]
+  control-openlark example check
+  control-openlark api-coverage [--crate NAME|--all-crates]
+  control-openlark field-verify --crate NAME [--fetch-docs] [--api-id ID]
+  control-openlark lint
+  control-openlark evidence-init [RUN_ID]
+  control-openlark evidence-path
+  control-openlark cleanup [--purge-target]
+
+Environment:
+  VERIFY_OPENLARK_ARTIFACTS  Evidence root (default: skill artifacts/)
+  VERIFY_OPENLARK_RUN_ID     Fixed run id (default: generated)
+  CARGO_TARGET_DIR           Optional isolated target dir for this run
+  OPENLARK_APP_ID / OPENLARK_APP_SECRET  Optional; examples fall back to placeholders
+EOF
+}
+
+die() { echo "control-openlark: $*" >&2; exit 1; }
+
+require_repo() {
+  [[ -f "${REPO_ROOT}/Cargo.toml" ]] || die "REPO_ROOT=${REPO_ROOT} is not the OpenLark workspace"
+  [[ -d "${REPO_ROOT}/crates/openlark-core" ]] || die "missing crates/openlark-core under ${REPO_ROOT}"
+}
+
+ensure_run_id() {
+  mkdir -p "${STATE_DIR}"
+  if [[ -z "${RUN_ID}" ]]; then
+    if [[ -f "${STATE_DIR}/run_id" ]]; then
+      RUN_ID="$(cat "${STATE_DIR}/run_id")"
+    else
+      RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+      echo "${RUN_ID}" >"${STATE_DIR}/run_id"
+    fi
+  else
+    echo "${RUN_ID}" >"${STATE_DIR}/run_id"
+  fi
+  export VERIFY_OPENLARK_RUN_ID="${RUN_ID}"
+  EVIDENCE_DIR="${ARTIFACTS_ROOT}/${RUN_ID}"
+  mkdir -p "${EVIDENCE_DIR}"
+}
+
+log_cmd() {
+  local log_file="$1"
+  shift
+  {
+    echo "\$ $*"
+    "$@"
+  } 2>&1 | tee -a "${log_file}"
+  return "${PIPESTATUS[0]}"
+}
+
+cmd_doctor() {
+  require_repo
+  ensure_run_id
+  local out="${EVIDENCE_DIR}/doctor.txt"
+  {
+    echo "repo_root=${REPO_ROOT}"
+    echo "run_id=${RUN_ID}"
+    echo "evidence_dir=${EVIDENCE_DIR}"
+    echo "cargo_target_dir=${CARGO_TARGET_DIR:-<default ${REPO_ROOT}/target>}"
+    echo "pwd=$(pwd)"
+    command -v rustc >/dev/null || die "rustc not on PATH"
+    command -v cargo >/dev/null || die "cargo not on PATH"
+    command -v python3 >/dev/null || die "python3 not on PATH"
+    local rustc_ver
+    rustc_ver="$(rustc --version)"
+    echo "rustc=${rustc_ver}"
+    # MSRV is 1.88+
+    local major minor
+    major="$(rustc --version | sed -n 's/^rustc \([0-9]*\)\.\([0-9]*\).*/\1/p')"
+    minor="$(rustc --version | sed -n 's/^rustc \([0-9]*\)\.\([0-9]*\).*/\2/p')"
+    if [[ "${major}" -lt 1 ]] || { [[ "${major}" -eq 1 ]] && [[ "${minor}" -lt 88 ]]; }; then
+      die "MSRV requires rustc >= 1.88 (got ${rustc_ver}). Run: rustup default stable && rustup update stable"
+    fi
+    echo "cargo=$(cargo --version)"
+    echo "python3=$(python3 --version 2>&1)"
+    echo "edition_check=ok (Cargo.toml edition 2024 / rust-version 1.88)"
+    if [[ -n "${OPENLARK_USER_SEARCH_NAME:-}" ]] || [[ -n "${OPENLARK_CHAT_SEARCH_NAME:-}" ]]; then
+      echo "live_lookup_env=SET (examples may call Feishu; unset for dry-run proofs)"
+    else
+      echo "live_lookup_env=unset (client_setup stays offline)"
+    fi
+    # Smoke: metadata parses
+    (cd "${REPO_ROOT}" && cargo metadata --no-deps --format-version 1 >/dev/null)
+    echo "cargo_metadata=ok"
+    echo "doctor=PASS"
+  } | tee "${out}"
+}
+
+cmd_launch() {
+  require_repo
+  ensure_run_id
+  local target_dir=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target-dir)
+        target_dir="$2"
+        shift 2
+        ;;
+      *)
+        die "unknown launch arg: $1"
+        ;;
+    esac
+  done
+  if [[ -n "${target_dir}" ]]; then
+    export CARGO_TARGET_DIR="${target_dir}"
+    echo "${target_dir}" >"${STATE_DIR}/cargo_target_dir"
+  elif [[ -f "${STATE_DIR}/cargo_target_dir" ]]; then
+    export CARGO_TARGET_DIR="$(cat "${STATE_DIR}/cargo_target_dir")"
+  fi
+  local out="${EVIDENCE_DIR}/launch-build.txt"
+  cd "${REPO_ROOT}"
+  echo "Building workspace (all features)…"
+  if log_cmd "${out}" cargo build --workspace --all-features; then
+    echo "READY workspace build finished" | tee -a "${out}"
+    echo "READY" >"${STATE_DIR}/ready"
+  else
+    rm -f "${STATE_DIR}/ready"
+    die "launch build failed; see ${out}"
+  fi
+}
+
+cmd_test() {
+  require_repo
+  ensure_run_id
+  [[ -f "${STATE_DIR}/ready" ]] || echo "control-openlark: warning: launch not marked ready; continuing" >&2
+  if [[ -f "${STATE_DIR}/cargo_target_dir" ]]; then
+    export CARGO_TARGET_DIR="$(cat "${STATE_DIR}/cargo_target_dir")"
+  fi
+  local pkg="" lib=0
+  local -a extra=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --package|-p)
+        pkg="$2"
+        shift 2
+        ;;
+      --lib)
+        lib=1
+        shift
+        ;;
+      --)
+        shift
+        extra+=("$@")
+        break
+        ;;
+      *)
+        extra+=("$1")
+        shift
+        ;;
+    esac
+  done
+  local out="${EVIDENCE_DIR}/test.txt"
+  cd "${REPO_ROOT}"
+  local -a cmd=(cargo test)
+  if [[ -n "${pkg}" ]]; then
+    cmd+=(-p "${pkg}")
+  else
+    cmd+=(--workspace --all-features)
+  fi
+  if [[ "${lib}" -eq 1 ]]; then
+    cmd+=(--lib)
+  fi
+  if [[ ${#extra[@]} -gt 0 ]]; then
+    cmd+=(-- "${extra[@]}")
+  fi
+  log_cmd "${out}" "${cmd[@]}"
+}
+
+cmd_example_run() {
+  require_repo
+  ensure_run_id
+  if [[ -f "${STATE_DIR}/cargo_target_dir" ]]; then
+    export CARGO_TARGET_DIR="$(cat "${STATE_DIR}/cargo_target_dir")"
+  fi
+  local name="${1:-}"
+  [[ -n "${name}" ]] || die "example run requires NAME"
+  shift
+  local features="auth,communication"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --features)
+        features="$2"
+        shift 2
+        ;;
+      *)
+        die "unknown example run arg: $1"
+        ;;
+    esac
+  done
+  local out="${EVIDENCE_DIR}/example-${name}.txt"
+  cd "${REPO_ROOT}"
+  # Prefer placeholders; do not invent live credentials
+  export OPENLARK_APP_ID="${OPENLARK_APP_ID:-cli_demo}"
+  export OPENLARK_APP_SECRET="${OPENLARK_APP_SECRET:-demo_secret}"
+  unset OPENLARK_USER_SEARCH_NAME OPENLARK_CHAT_SEARCH_NAME || true
+  log_cmd "${out}" cargo run --example "${name}" --features "${features}"
+}
+
+cmd_example_check() {
+  require_repo
+  ensure_run_id
+  if [[ -f "${STATE_DIR}/cargo_target_dir" ]]; then
+    export CARGO_TARGET_DIR="$(cat "${STATE_DIR}/cargo_target_dir")"
+  fi
+  local out="${EVIDENCE_DIR}/example-check.txt"
+  cd "${REPO_ROOT}"
+  log_cmd "${out}" bash scripts/check-public-examples.sh
+}
+
+cmd_api_coverage() {
+  require_repo
+  ensure_run_id
+  local scope="--all-crates"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --crate)
+        scope="--crate $2"
+        shift 2
+        ;;
+      --all-crates)
+        scope="--all-crates"
+        shift
+        ;;
+      *)
+        die "unknown api-coverage arg: $1"
+        ;;
+    esac
+  done
+  local out="${EVIDENCE_DIR}/api-coverage.txt"
+  cd "${REPO_ROOT}"
+  # shellcheck disable=SC2086
+  log_cmd "${out}" python3 tools/validate_apis.py ${scope}
+  if [[ -d "${REPO_ROOT}/reports/api_validation" ]]; then
+    mkdir -p "${EVIDENCE_DIR}/api_validation"
+    cp -a "${REPO_ROOT}/reports/api_validation/." "${EVIDENCE_DIR}/api_validation/" 2>/dev/null || true
+  fi
+}
+
+cmd_field_verify() {
+  require_repo
+  ensure_run_id
+  local crate="" fetch=0 api_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --crate)
+        crate="$2"
+        shift 2
+        ;;
+      --fetch-docs)
+        fetch=1
+        shift
+        ;;
+      --api-id)
+        api_id="$2"
+        shift 2
+        ;;
+      *)
+        die "unknown field-verify arg: $1"
+        ;;
+    esac
+  done
+  local out="${EVIDENCE_DIR}/field-verify.txt"
+  cd "${REPO_ROOT}"
+  local -a cmd=(python3 tools/verify_api_fields.py)
+  if [[ -n "${api_id}" ]]; then
+    cmd+=(--api-id "${api_id}")
+  elif [[ -n "${crate}" ]]; then
+    cmd+=(--crate "${crate}")
+  else
+    die "field-verify requires --crate NAME or --api-id ID"
+  fi
+  if [[ "${fetch}" -eq 1 ]]; then
+    cmd+=(--fetch-docs)
+  fi
+  log_cmd "${out}" "${cmd[@]}"
+}
+
+cmd_lint() {
+  require_repo
+  ensure_run_id
+  if [[ -f "${STATE_DIR}/cargo_target_dir" ]]; then
+    export CARGO_TARGET_DIR="$(cat "${STATE_DIR}/cargo_target_dir")"
+  fi
+  local out="${EVIDENCE_DIR}/lint.txt"
+  cd "${REPO_ROOT}"
+  {
+    echo "\$ cargo clippy --workspace --all-targets --all-features -- -Dwarnings"
+    cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+    echo "\$ cargo clippy --workspace --all-targets --no-default-features -- -Dwarnings"
+    cargo clippy --workspace --all-targets --no-default-features -- -Dwarnings
+  } 2>&1 | tee "${out}"
+}
+
+cmd_evidence_init() {
+  if [[ $# -gt 0 ]]; then
+    RUN_ID="$1"
+  fi
+  ensure_run_id
+  echo "${EVIDENCE_DIR}"
+}
+
+cmd_evidence_path() {
+  ensure_run_id
+  echo "${EVIDENCE_DIR}"
+}
+
+cmd_cleanup() {
+  require_repo
+  local purge_target=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --purge-target)
+        purge_target=1
+        shift
+        ;;
+      *)
+        die "unknown cleanup arg: $1"
+        ;;
+    esac
+  done
+  # Preserve evidence under ARTIFACTS_ROOT
+  local preserved="${ARTIFACTS_ROOT}"
+  echo "control-openlark: preserving evidence at ${preserved}"
+  # Remove only run-state (readiness markers), never artifacts
+  if [[ -d "${STATE_DIR}" ]]; then
+    local target_file="${STATE_DIR}/cargo_target_dir"
+    local isolated=""
+    if [[ -f "${target_file}" ]]; then
+      isolated="$(cat "${target_file}")"
+    fi
+    rm -rf "${STATE_DIR}"
+    if [[ "${purge_target}" -eq 1 ]] && [[ -n "${isolated}" ]]; then
+      case "${isolated}" in
+        /tmp/openlark-verify-*|"${SKILL_DIR}"/scratch-target*)
+          echo "control-openlark: removing isolated target ${isolated}"
+          rm -rf "${isolated}"
+          ;;
+        *)
+          echo "control-openlark: refusing to purge non-isolated CARGO_TARGET_DIR=${isolated}" >&2
+          ;;
+      esac
+    fi
+  fi
+  echo "control-openlark: cleanup done (evidence retained)"
+}
+
+main() {
+  local cmd="${1:-}"
+  [[ -n "${cmd}" ]] || { usage; exit 1; }
+  shift || true
+  case "${cmd}" in
+    doctor) cmd_doctor "$@" ;;
+    launch) cmd_launch "$@" ;;
+    test) cmd_test "$@" ;;
+    example)
+      local sub="${1:-}"
+      shift || true
+      case "${sub}" in
+        run) cmd_example_run "$@" ;;
+        check) cmd_example_check "$@" ;;
+        *) die "example subcommand must be run|check" ;;
+      esac
+      ;;
+    api-coverage) cmd_api_coverage "$@" ;;
+    field-verify) cmd_field_verify "$@" ;;
+    lint) cmd_lint "$@" ;;
+    evidence-init) cmd_evidence_init "$@" ;;
+    evidence-path) cmd_evidence_path "$@" ;;
+    cleanup) cmd_cleanup "$@" ;;
+    -h|--help|help) usage ;;
+    *) die "unknown command: ${cmd}" ;;
+  esac
+}
+
+main "$@"
