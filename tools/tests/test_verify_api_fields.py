@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import sys
 import tempfile
@@ -10,6 +11,7 @@ from unittest import mock
 
 from tools import verify_api_fields
 from tools.api_contracts.models import ApiIdentity
+from tools.api_contracts.rust_contract_resolution import compose
 from tools.api_contracts.official_evidence import (
     AcquisitionAttempt,
     DimensionEvidence,
@@ -773,6 +775,176 @@ class ResponseFieldDigitNameTests(unittest.TestCase):
         self.assertNotIn("code", names)
         self.assertNotIn("msg", names)
         self.assertNotIn("data", names)
+
+
+_CSV_FIELDS = [
+    "id",
+    "name",
+    "bizTag",
+    "meta.Project",
+    "meta.Version",
+    "meta.Resource",
+    "meta.Name",
+    "url",
+    "docPath",
+    "fullPath",
+]
+
+
+def _write_catalog_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=_CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _catalog_row(
+    *,
+    api_id: str,
+    biz_tag: str,
+    version: str,
+    resource: str,
+    name: str,
+    project: str | None = None,
+) -> dict[str, str]:
+    return {
+        "id": api_id,
+        "name": name,
+        "bizTag": biz_tag,
+        "meta.Project": project or biz_tag,
+        "meta.Version": version,
+        "meta.Resource": resource,
+        "meta.Name": name,
+        "url": f"GET:/open-apis/{biz_tag}/{name}",
+        "docPath": "",
+        "fullPath": "",
+    }
+
+
+class ScanIdentityOldCatalogTests(unittest.TestCase):
+    """crate 扫描在 catalog 全是 meta.Version=old 时必须回退加载（pay CI）。"""
+
+    def test_falls_back_when_filtered_catalog_is_entirely_old(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "apis.csv"
+            _write_catalog_csv(
+                csv_path,
+                [
+                    _catalog_row(
+                        api_id="pay-get",
+                        biz_tag="pay",
+                        version="old",
+                        resource="default",
+                        name="v1/order/get",
+                    )
+                ],
+            )
+            apis = verify_api_fields._load_scan_identities(csv_path, ["pay"])
+        self.assertEqual([api.api_id for api in apis], ["pay-get"])
+        self.assertEqual(
+            apis[0].expected_file,
+            "pay/pay/old/default/v1/order/get.rs",
+        )
+
+    def test_keeps_skipping_old_when_current_version_exists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "apis.csv"
+            _write_catalog_csv(
+                csv_path,
+                [
+                    _catalog_row(
+                        api_id="current",
+                        biz_tag="approval",
+                        version="v4",
+                        resource="task",
+                        name="pass",
+                    ),
+                    _catalog_row(
+                        api_id="legacy",
+                        biz_tag="approval",
+                        version="old",
+                        resource="default",
+                        name="legacy_pass",
+                    ),
+                ],
+            )
+            apis = verify_api_fields._load_scan_identities(csv_path, ["approval"])
+        self.assertEqual([api.api_id for api in apis], ["current"])
+
+    def test_quick_mode_resolves_old_pay_layout_via_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "tools").mkdir()
+            (root / "tools/api_coverage.toml").write_text(
+                "[crates.openlark-pay]\n"
+                'src = "crates/openlark-pay/src"\n'
+                'biz_tags = ["pay"]\n'
+                "implementation_path_rewrites = [\n"
+                '  { from = "pay/pay/old/default/", to = "pay/" },\n'
+                "]\n",
+                encoding="utf-8",
+            )
+            source = (
+                root / "crates/openlark-pay/src/pay/v1/order/get.rs"
+            )
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "pub struct GetOrderRequest {}\n"
+                "pub struct GetOrderResponse { pub order_id: String }\n",
+                encoding="utf-8",
+            )
+            csv_path = root / "apis.csv"
+            _write_catalog_csv(
+                csv_path,
+                [
+                    _catalog_row(
+                        api_id="6907569742384037890",
+                        biz_tag="pay",
+                        version="old",
+                        resource="default",
+                        name="v1/order/get",
+                    )
+                ],
+            )
+            output = root / "reports"
+            resolver = compose(repository_root=root)
+            verify_api_fields.run_quick_mode(
+                csv_path=csv_path,
+                repository_root=root,
+                resolver=resolver,
+                output_md=output / "openlark-pay.md",
+                output_json=output / "summary.json",
+                filter_tags=["pay"],
+            )
+            summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(summary["total_apis"], 1)
+        self.assertTrue(summary["apis"][0]["file_exists"])
+        self.assertEqual(
+            summary["apis"][0]["target"],
+            "crates/openlark-pay/src/pay/v1/order/get.rs",
+        )
+
+    def test_real_openlark_pay_crate_quick_scan_resolves_targets(self):
+        root = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            argv = [
+                "verify_api_fields.py",
+                "--crate",
+                "openlark-pay",
+                "--output-dir",
+                str(output),
+            ]
+            with mock.patch.object(sys, "argv", argv):
+                exit_code = verify_api_fields.main(repository_root=root)
+
+            self.assertEqual(exit_code, 0)
+            summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+
+        resolved = [api for api in summary["apis"] if api.get("file_exists")]
+        self.assertGreaterEqual(len(resolved), 3)
+        self.assertTrue(all(api.get("target") for api in resolved))
 
 
 if __name__ == "__main__":

@@ -225,7 +225,7 @@ def run_quick_mode(
     filter_tags: Optional[List[str]] = None,
 ) -> str:
     """快速模式：扫描代码字段 + 可疑模式检测，不抓文档。返回报告文本。"""
-    apis = load_api_identities(csv_path, filter_tags)
+    apis = _load_scan_identities(csv_path, filter_tags)
     reports: List[ApiFieldReport] = []
 
     for api in apis:
@@ -730,6 +730,7 @@ def main(repository_root: Path | None = None) -> int:
     if args.api_id:
         crate_label = f"api-{args.api_id}"
         # 单 API 按 id 查找，不能跳过 meta.Version=old（pay 等旧文档体系）。
+        # crate 扫描见 _load_scan_identities：默认 skip old，过滤为空时回退。
         all_apis = load_api_identities(csv_path, skip_old_versions=False)
         if args.fetch_docs:
             with compose_full(
@@ -890,6 +891,24 @@ def _run_single_api(
 
 
 
+def _load_scan_identities(
+    csv_path: Path,
+    filter_tags: Optional[List[str]] = None,
+) -> List[ApiIdentity]:
+    """crate / 全仓扫描用的 catalog 加载。
+
+    默认跳过 ``meta.Version=old``，避免 weekly 报告被未实现的旧接口刷屏。
+    但过滤后若一个 identity 都没有（``openlark-pay`` 的 3 条全是 old），
+    再以 ``skip_old_versions=False`` 重载——否则会触发
+    「scan produced zero Resolved Rust Contract Targets」。
+    单 API 模式已对 pay 等旧文档体系关闭 skip（见 ``main()``）。
+    """
+    apis = load_api_identities(csv_path, filter_tags)
+    if apis:
+        return apis
+    return load_api_identities(csv_path, filter_tags, skip_old_versions=False)
+
+
 def _load_crate_tags(crate: str, repository_root: Path = REPO_ROOT) -> Optional[List[str]]:
     """从 tools/api_coverage.toml 读 crate 的 biz_tags。"""
     import tomllib  # Python 3.11+
@@ -916,7 +935,7 @@ def _run_full_mode(
     """完整模式：复用同一个 collect 行为核对所有字段。"""
     import json
 
-    apis = load_api_identities(csv_path, filter_tags)
+    apis = _load_scan_identities(csv_path, filter_tags)
     reports: List[ApiFieldReport] = []
     failed: List[Tuple[str, str]] = []
     policy = evidence_policy or PreferSnapshotPolicy(max_age_days=30)
