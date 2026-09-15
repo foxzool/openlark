@@ -33,6 +33,8 @@
 ## bizTag API 数量（排除 meta.Version=old）
 
 > 数据来源：`api_list_export.csv`。统计口径：按 `bizTag` 分组计数，仅统计 `meta.Version != old` 的行（old 版本不计入“有效 API 数”）。
+>
+> 实现覆盖率用同一口径跑 `python3 tools/validate_apis.py --all-crates`：2026-09-15 为 **1,640 / 1,640（100%）**，与下表合计一致。
 
 | bizTag | API 数量（排除 old） | API 总数 | old 数量 |
 |---|---:|---:|---:|

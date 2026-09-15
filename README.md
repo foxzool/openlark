@@ -5,7 +5,7 @@
 
 # 飞书开放平台非官方SDK - 企业级高覆盖率Rust实现
 
-> 🏗️ 18 个业务模块，1,560+ 个 API，企业级质量保证。
+> 🏗️ 18 个业务模块，**1,640** 个目录 API（排除 `meta.Version=old`），企业级质量保证。
 >
 > 🎯 测试覆盖率 ~47%，已通过工作区 check/test，全模块 Builder 模式统一。
 
@@ -174,25 +174,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | 模块 | 状态 | API 数量 | 说明 |
 |------|------|---------|------|
-| openlark-core | ✅ 完成 | - | 核心基础设施，HTTP 客户端，错误处理 |
-| openlark-client | ✅ 完成 | - | 单入口 + capability catalog（meta 链式字段访问） |
-| lark-websocket-protobuf | ✅ 完成 | - | WebSocket protobuf 协议（预生成源码） |
+| openlark-core | ✅ 完成 | — | 核心基础设施，HTTP 客户端，错误处理（非目录 crate） |
+| openlark-client | ✅ 完成 | — | 单入口 + capability catalog（meta 链式字段访问） |
+| lark-websocket-protobuf | ✅ 完成 | — | WebSocket protobuf 协议（预生成源码） |
 | openlark-auth | ✅ 完成 | 15 | Token 管理，认证服务 |
-| openlark-hr | ✅ 完成 | 562 | 招聘、CoreHR、考勤、薪酬等 |
-| openlark-docs | ✅ 完成 | 158 | 云文档、多维表格、知识库、会议纪要 |
-| openlark-communication | ✅ 完成 | 175 | IM 消息、联系人、群组 |
-| openlark-workflow | ✅ 完成 | 117 | 任务、审批、看板 |
-| openlark-meeting | ✅ 完成 | 117 | 视频会议、日历 |
-| openlark-platform | ✅ 完成 | 102 | 平台服务、Transport API |
-| openlark-application | ✅ 完成 | 83 | 应用管理 |
-| openlark-mail | ✅ 完成 | 68 | 邮件服务 |
-| openlark-helpdesk | ✅ 完成 | 56 | 帮助台 |
-| openlark-security | ✅ 完成 | 38 | 安全服务 |
-| openlark-ai | ✅ 完成 | 29 | AI 智能助手 |
-| openlark-analytics | ✅ 完成 | 20 | 数据分析 |
+| openlark-hr | ✅ 完成 | 583 | 招聘、CoreHR、考勤、薪酬等 |
+| openlark-docs | ✅ 完成 | 216 | 云文档、多维表格、知识库、会议纪要 |
+| openlark-communication | ✅ 完成 | 179 | IM 消息、联系人、群组 |
+| openlark-workflow | ✅ 完成 | 134 | 任务、审批、看板 |
+| openlark-meeting | ✅ 完成 | 112 | 视频会议、日历（会议室均为 old） |
+| openlark-platform | ✅ 完成 | 124 | 平台服务、Transport API |
+| openlark-mail | ✅ 完成 | 107 | 邮件服务 |
+| openlark-helpdesk | ✅ 完成 | 50 | 帮助台 |
+| openlark-application | ✅ 完成 | 35 | 应用管理 |
+| openlark-security | ✅ 完成 | 27 | 安全服务 |
+| openlark-ai | ✅ 完成 | 23 | AI 智能助手 |
+| openlark-analytics | ✅ 完成 | 18 | 数据分析 |
 | openlark-cardkit | ✅ 完成 | 10 | 卡片组件 |
-| openlark-webhook | ✅ 完成 | 8 | 自定义机器人、Webhook |
-| openlark-user | ✅ 完成 | 7 | 个人设置 system_status |
+| openlark-user | ✅ 完成 | 6 | 个人设置 |
+| openlark-bot | ✅ 完成 | 1 | 机器人目录 API |
+| openlark-pay | ✅ 完成 | 0 | 目录仅 3 条 old，当前口径为 0 |
+| openlark-webhook | ✅ 完成 | — | 自定义机器人 HTTP 入口，**不在** `api_list_export.csv` |
+
+API 数量口径：`python3 tools/validate_apis.py --all-crates`（默认 `--skip-old`），对比 `api_list_export.csv` 与 `tools/api_coverage.toml` 映射的 17 个业务 crate。2026-09-15 测得 **1,640 / 1,640（100%）**；bizTag 拆分见 [`crates.md`](crates.md)，方法见 [`docs/typed-api-coverage.md`](docs/typed-api-coverage.md)。
 
 ### 新架构特点
 
@@ -239,12 +243,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 **已完成**：
 - ✅ 核心基础设施（core、client、lark-websocket-protobuf、auth）
-- ✅ 18 个业务模块全部实现，共 1,560+ 个 API
-- ✅ openlark-hr 562 个 API（招聘、CoreHR、考勤、薪酬）
-- ✅ openlark-communication 175 个 API
-- ✅ openlark-docs 158 个 API（云文档、多维表格、知识库）
-- ✅ openlark-workflow 117 个 API（任务、审批、看板）
-- ✅ openlark-meeting 117 个 API（视频会议、日历）
+- ✅ 18 个业务模块全部实现，目录 API **1,640**（排除 old，见上表口径）
+- ✅ openlark-hr 583 个 API（招聘、CoreHR、考勤、薪酬）
+- ✅ openlark-communication 179 个 API
+- ✅ openlark-docs 216 个 API（云文档、多维表格、知识库）
+- ✅ openlark-workflow 134 个 API（任务、审批、看板）
+- ✅ openlark-meeting 112 个 API（视频会议、日历）
 - ✅ 链式调用架构 + Builder 模式统一
 - ✅ Feature flags 按需编译
 - ✅ 测试覆盖率 ~47%

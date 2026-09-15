@@ -1,30 +1,30 @@
 # openlark-docs Knowledge Base
 
 **Crate**: Document Services  
-**APIs**: 254 个 | **Status**: 生产就绪  
+**APIs**: 216 个（排除 old；`validate_apis.py --crate openlark-docs`） | **Status**: 生产就绪  
 **Coverage**: 100%
 
 ## OVERVIEW
 
-飞书文档服务模块，提供云文档、多维表格、知识库等完整能力。最大的业务模块，已实现全部 254 个 API。
+飞书文档服务模块，提供云文档、多维表格、知识库等完整能力。已实现目录内全部 216 个 API（另有 49 条 CCM old，不计入）。
 
 ## STRUCTURE
 
 ```
 src/
 ├── lib.rs                    # 模块入口
-├── ccm/                      # 云文档 (174 APIs)
+├── ccm/                      # 云文档 (127 APIs，另 49 old)
 │   ├── drive/v1/            # 云盘（文件上传下载）
 │   ├── doc/v1/              # 旧版文档
 │   ├── docx/v1/             # 新版文档
 │   ├── sheet/v3/            # 电子表格
 │   ├── wiki/v2/             # 知识空间
 │   └── ...
-├── base/                     # 多维表格 (49 APIs)
+├── base/                     # 多维表格 (52 APIs)
 │   └── bitable/v1/          # 表格、视图、记录
 ├── baike/                    # 知识库 (27 APIs)
 │   └── v1/                  # 词条、分类
-├── minutes/                  # 会议纪要 (4 APIs)
+├── minutes/                  # 会议纪要 (10 APIs)
 └── common/                   # 共享代码
     ├── api_endpoints.rs     # 端点常量
     └── mod.rs

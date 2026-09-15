@@ -4,6 +4,8 @@
 
 **当前版本：** workspace `0.20.0` · **MSRV：** Rust 1.88 · **许可：** Apache-2.0
 
+**目录 API 数量：** `python3 tools/validate_apis.py --all-crates`（排除 old）于 2026-09-15 测得 **1,640 / 1,640**。按 crate / bizTag 见 [`../crates.md`](../crates.md)；口径说明见 [`typed-api-coverage.md`](typed-api-coverage.md)。[`../ARCHITECTURE.md`](../ARCHITECTURE.md) 是历史叙事，不要用它对数。
+
 ## 入门与贡献
 
 | 文档 | 说明 |
