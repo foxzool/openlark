@@ -9,11 +9,18 @@ mod frame_handler;
 mod headers;
 mod package;
 mod session;
+mod typed;
 
 /// 会话级公开 API。
 pub use client::LarkWsClient;
 pub use dispatcher::{CallbackEventHandler, EventDispatcherHandler, EventHandler};
 pub use session::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
+pub use typed::{
+    CardAction, CardActionCard, CardActionTrigger, CardActionTriggerEvent,
+    CardActionTriggerHandler, CardActionTriggerResponse, CardContext, CardOperator, CardToast,
+    EventHeader, ImMention, ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler,
+    ImMessageSender, ImReceivedMessage, ImSenderId,
+};
 
 #[cfg(test)]
 mod tests;
