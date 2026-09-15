@@ -92,7 +92,7 @@ struct FuzzyHeader {
 /// HTTP 事件入站处理器。
 ///
 /// 解密 / Challenge / 验签后，把明文事件交给 [`EventDispatcherHandler`] 路由，
-/// 以便与 WS 路径共享同一套 `register_raw` / callback 注册。
+/// 以便与 WS 路径共享同一套 `register_raw` / typed / callback 注册。
 #[derive(Debug, Clone)]
 pub struct HttpEventInbound {
     encrypt_key: String,
@@ -404,5 +404,48 @@ mod tests {
             .handle(&HttpEventRequest::new(HashMap::new(), body.to_vec()))
             .expect("handle");
         assert_eq!(seen.lock().expect("lock").as_deref(), Some("om_typed"));
+    }
+
+    #[test]
+    fn typed_card_callback_via_http_inbound() {
+        use crate::ws_client::{
+            CardActionTrigger, CardActionTriggerHandler, CardActionTriggerResponse, CardToast,
+        };
+
+        struct Toast;
+        impl CardActionTriggerHandler for Toast {
+            fn handle(
+                &self,
+                event: CardActionTrigger,
+            ) -> std::result::Result<
+                Option<CardActionTriggerResponse>,
+                Box<dyn std::error::Error + Send + Sync>,
+            > {
+                assert_eq!(event.header.event_type, "card.action.trigger");
+                Ok(Some(CardActionTriggerResponse {
+                    toast: Some(CardToast {
+                        r#type: "success".into(),
+                        title: None,
+                        content: Some("ok".into()),
+                    }),
+                    card: None,
+                }))
+            }
+        }
+
+        let dispatcher = EventDispatcherHandler::builder()
+            .register_card_action_trigger(Toast)
+            .expect("register");
+        let inbound = HttpEventInbound::builder("tok", "")
+            .dispatcher(dispatcher)
+            .build();
+        let body = br#"{"schema":"2.0","header":{"event_type":"card.action.trigger","token":"tok"},"event":{"action":{"tag":"button","name":"btn"}}}"#;
+        let resp = inbound
+            .handle(&HttpEventRequest::new(HashMap::new(), body.to_vec()))
+            .expect("handle");
+        assert_eq!(resp.status, 200);
+        let v: serde_json::Value = serde_json::from_slice(&resp.body).expect("json");
+        assert_eq!(v["toast"]["content"], "ok");
+        assert_eq!(v["toast"]["type"], "success");
     }
 }

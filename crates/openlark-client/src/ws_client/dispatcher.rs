@@ -54,11 +54,13 @@ pub trait CallbackEventHandler: Send + Sync + 'static {
 
 /// WebSocket 事件分发处理器。
 ///
-/// 目前支持三类分发目标：
+/// 分发目标：
 ///
 /// - `payload_sender(...)`：把原始负载转发到 channel
 /// - `register_raw(...)`：注册原始事件处理器
 /// - `register_callback(...)`：注册可返回业务响应的回调型处理器
+/// - [`Self::register_im_message_receive_v1`] / [`Self::register_card_action_trigger`]：
+///   typed 糖，分别写入 raw map 与 callback map，不另开注册表
 #[derive(Clone)]
 pub struct EventDispatcherHandler {
     payload_tx: Option<mpsc::UnboundedSender<Vec<u8>>>,

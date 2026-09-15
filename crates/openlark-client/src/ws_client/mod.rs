@@ -16,10 +16,10 @@ pub use client::LarkWsClient;
 pub use dispatcher::{CallbackEventHandler, EventDispatcherHandler, EventHandler};
 pub use session::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
 pub use typed::{
-    CardAction, CardActionTrigger, CardActionTriggerEvent, CardActionTriggerHandler,
-    CardActionTriggerResponse, CardContext, CardOperator, CardToast, EventHeader,
-    ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler, ImMessageSender,
-    ImReceivedMessage, ImSenderId,
+    CardAction, CardActionCard, CardActionTrigger, CardActionTriggerEvent,
+    CardActionTriggerHandler, CardActionTriggerResponse, CardContext, CardOperator, CardToast,
+    EventHeader, ImMention, ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler,
+    ImMessageSender, ImReceivedMessage, ImSenderId,
 };
 
 #[cfg(test)]
