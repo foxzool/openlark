@@ -23,6 +23,15 @@ cargo check --example workflow_api_example --no-default-features --features "wor
 echo "Checking websocket example..."
 cargo check --example websocket_echo_bot --no-default-features --features "communication,websocket"
 
+echo "Checking HTTP event inbound example..."
+cargo check --example http_event_inbound --no-default-features --features "event-http"
+
+echo "Checking websocket typed handler example..."
+cargo check --example websocket_typed_handler --no-default-features --features "communication,websocket"
+
+echo "Checking OAuth user token example..."
+cargo check --example oauth_user_token --no-default-features --features "auth,communication"
+
 echo "Checking openlark-client README examples..."
 cargo check -p openlark-client --example client_readme_examples --no-default-features --features "communication,docs"
 
