@@ -1685,7 +1685,7 @@ mod tests {
 
     #[cfg(feature = "im")]
     #[test]
-    fn test_build_card_message_body() {
+    fn test_send_card_builds_interactive_message_body() {
         let card = serde_json::json!({"elements":[{"tag":"div","text":{"tag":"plain_text","content":"hi"}}]});
         let body = ImClient::build_card_body(MessageRecipient::open_id("ou_xxx"), card.clone())
             .expect("card body should build");
@@ -1699,7 +1699,7 @@ mod tests {
 
     #[cfg(feature = "im")]
     #[test]
-    fn test_build_card_rejects_empty() {
+    fn test_send_card_rejects_empty() {
         let err = ImClient::build_card_body(
             MessageRecipient::open_id("ou_xxx"),
             serde_json::Value::Object(serde_json::Map::new()),
