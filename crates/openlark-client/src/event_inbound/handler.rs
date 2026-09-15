@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::error::{validation_error, Result};
+use crate::error::{Result, validation_error};
 use crate::ws_client::EventDispatcherHandler;
 
 use super::crypto::{
-    decrypt_event, verify_inbound_signature, HEADER_REQUEST_NONCE, HEADER_REQUEST_TIMESTAMP,
-    HEADER_SIGNATURE,
+    HEADER_REQUEST_NONCE, HEADER_REQUEST_TIMESTAMP, HEADER_SIGNATURE, decrypt_event,
+    verify_inbound_signature,
 };
 
 const REQ_TYPE_CHALLENGE: &str = "url_verification";
@@ -183,10 +183,7 @@ impl HttpEventInbound {
         }
         match serde_json::from_str::<EncryptEnvelope>(body_str) {
             Ok(env) if !env.encrypt.is_empty() => Ok((env.encrypt, true)),
-            Ok(_) => Err(validation_error(
-                "encrypt",
-                "encrypted message is blank",
-            )),
+            Ok(_) => Err(validation_error("encrypt", "encrypted message is blank")),
             Err(_) => {
                 // 非 envelope：当作明文 JSON（便于单测 / 无加密配置）
                 Ok((body_str.to_string(), false))
@@ -265,7 +262,9 @@ impl HttpEventInboundBuilder {
 mod tests {
     use super::*;
     use crate::event_inbound::crypto::test_support::encrypt_event_for_test;
-    use crate::event_inbound::crypto::{inbound_signature, HEADER_REQUEST_NONCE, HEADER_REQUEST_TIMESTAMP, HEADER_SIGNATURE};
+    use crate::event_inbound::crypto::{
+        HEADER_REQUEST_NONCE, HEADER_REQUEST_TIMESTAMP, HEADER_SIGNATURE, inbound_signature,
+    };
     use crate::ws_client::{EventDispatcherHandler, EventHandler};
     use std::sync::{Arc, Mutex};
 
@@ -274,7 +273,10 @@ mod tests {
     }
 
     impl EventHandler for CaptureHandler {
-        fn handle(&self, payload: &[u8]) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        fn handle(
+            &self,
+            payload: &[u8],
+        ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
             self.seen.lock().expect("lock").extend_from_slice(payload);
             Ok(())
         }
@@ -326,7 +328,8 @@ mod tests {
     #[test]
     fn ciphertext_event_decrypts_and_dispatches() {
         let key = "enc-key-1";
-        let plain = br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
+        let plain =
+            br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
         let encrypt = encrypt_event_for_test(plain, key, &[3u8; 16]);
         let envelope = format!(r#"{{"encrypt":"{encrypt}"}}"#);
 
@@ -360,7 +363,8 @@ mod tests {
     #[test]
     fn bad_signature_rejected() {
         let key = "enc-key-1";
-        let plain = br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
+        let plain =
+            br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
         let encrypt = encrypt_event_for_test(plain, key, &[3u8; 16]);
         let envelope = format!(r#"{{"encrypt":"{encrypt}"}}"#);
         let inbound = HttpEventInbound::builder("tok", key).build();

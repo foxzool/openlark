@@ -19,9 +19,7 @@ mod crypto;
 mod handler;
 
 pub use crypto::{
-    decrypt_event, inbound_signature, verify_inbound_signature, HEADER_REQUEST_NONCE,
-    HEADER_REQUEST_TIMESTAMP, HEADER_SIGNATURE,
+    HEADER_REQUEST_NONCE, HEADER_REQUEST_TIMESTAMP, HEADER_SIGNATURE, decrypt_event,
+    inbound_signature, verify_inbound_signature,
 };
-pub use handler::{
-    HttpEventInbound, HttpEventInboundBuilder, HttpEventRequest, HttpEventResponse,
-};
+pub use handler::{HttpEventInbound, HttpEventInboundBuilder, HttpEventRequest, HttpEventResponse};
