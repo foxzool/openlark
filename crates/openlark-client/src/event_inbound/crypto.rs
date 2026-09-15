@@ -1,8 +1,12 @@
-//! `encrypt_key` AES-CBC 解密与入站签名（对齐官方 Go `larkevent`）。
+//! `encrypt_key` AES-CBC 解密与入站签名。
+//!
+//! 解密对齐官方文档 / Python `AESCipher`（PKCS7）。不采用官方 Go
+//! `EventDecrypt` 的 `{`…`}` 截取（该写法对 JSON 事件碰巧可用，但无法通过
+//! 官方 `hello world` 固定向量）。
 
 use aes::Aes256;
 use base64::Engine;
-use cbc::cipher::{BlockDecryptMut, KeyIvInit, block_padding::NoPadding};
+use cbc::cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7};
 use openlark_core::error::CoreError;
 use sha2::{Digest, Sha256};
 
@@ -19,43 +23,33 @@ type Aes256CbcDec = cbc::Decryptor<Aes256>;
 
 /// 解密事件密文字符串。
 ///
-/// 步骤（与 Go `EventDecrypt` 一致）
 /// 1. Base64 解码
-/// 2. `key = SHA256(encrypt_key)`
-/// 3. 前 16 字节为 IV，其余为密文
-/// 4. AES-256-CBC 解密后截取首个 `{` 到末个 `}`
+/// 2. 拒绝长度小于 32 或非 16 倍数（对齐 Python `AESCipher.decrypt`）
+/// 3. `key = SHA256(encrypt_key)`
+/// 4. 前 16 字节为 IV，其余为密文
+/// 5. AES-256-CBC + PKCS7 去填充
 pub fn decrypt_event(encrypt_b64: &str, encrypt_key: &str) -> Result<Vec<u8>, CoreError> {
     let buf = base64::engine::general_purpose::STANDARD
         .decode(encrypt_b64.trim())
         .map_err(|e| validation_error("encrypt", format!("base64 decode failed: {e}")))?;
 
-    if buf.len() < 16 {
-        return Err(validation_error("encrypt", "cipher too short"));
+    if buf.len() < 32 || !buf.len().is_multiple_of(16) {
+        return Err(validation_error(
+            "encrypt",
+            "cipher length must be >= 32 and a multiple of 16",
+        ));
     }
 
     let key = Sha256::digest(encrypt_key.as_bytes());
     let iv = &buf[..16];
     let mut cipher_body = buf[16..].to_vec();
 
-    if cipher_body.is_empty() || !cipher_body.len().is_multiple_of(16) {
-        return Err(validation_error(
-            "encrypt",
-            "ciphertext is not a multiple of the block size",
-        ));
-    }
-
-    Aes256CbcDec::new_from_slices(key.as_slice(), iv)
+    let plain = Aes256CbcDec::new_from_slices(key.as_slice(), iv)
         .map_err(|e| validation_error("encrypt", format!("AES cipher init failed: {e}")))?
-        .decrypt_padded_mut::<NoPadding>(&mut cipher_body)
-        .map_err(|e| validation_error("encrypt", format!("AES decrypt failed: {e}")))?;
+        .decrypt_padded_mut::<Pkcs7>(&mut cipher_body)
+        .map_err(|e| validation_error("encrypt", format!("AES decrypt/unpad failed: {e}")))?;
 
-    let text = String::from_utf8_lossy(&cipher_body);
-    let start = text.find('{').unwrap_or(0);
-    let end = text.rfind('}').unwrap_or(cipher_body.len().saturating_sub(1));
-    if end < start {
-        return Err(validation_error("encrypt", "decrypted payload has no JSON object"));
-    }
-    Ok(cipher_body[start..=end].to_vec())
+    Ok(plain.to_vec())
 }
 
 /// 计算入站签名（小写十六进制 SHA256）。
@@ -128,13 +122,14 @@ pub(crate) mod test_support {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::test_support::encrypt_event_for_test;
+    use super::*;
 
     #[test]
     fn decrypt_round_trip_json() {
         let key = "test_encrypt_key";
-        let plain = br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
+        let plain =
+            br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1"},"event":{}}"#;
         let iv = [7u8; 16];
         let cipher = encrypt_event_for_test(plain, key, &iv);
         let out = decrypt_event(&cipher, key).expect("decrypt");
@@ -142,9 +137,21 @@ mod tests {
     }
 
     #[test]
+    fn decrypt_official_hello_world_fixture() {
+        // 飞书开放平台 encrypt_key 文档固定向量（Python AESCipher / openssl 可复现）
+        let out = decrypt_event("P37w+VZImNgPEO1RBhJ6RtKl7n6zymIbEG1pReEzghk=", "test key")
+            .expect("official fixture");
+        assert_eq!(out, b"hello world");
+    }
+
+    #[test]
     fn decrypt_rejects_short_cipher() {
         let err = decrypt_event("AAAA", "k").expect_err("short");
-        assert!(err.to_string().contains("short") || err.to_string().contains("base64"));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("length") || msg.contains("base64") || msg.contains("multiple"),
+            "unexpected err: {msg}"
+        );
     }
 
     #[test]
@@ -152,7 +159,13 @@ mod tests {
         let sig = inbound_signature("ts", "nonce", "key", r#"{"a":1}"#);
         assert_eq!(sig.len(), 64);
         assert!(sig.chars().all(|c| c.is_ascii_hexdigit()));
-        assert!(verify_inbound_signature("ts", "nonce", "key", r#"{"a":1}"#, &sig));
+        assert!(verify_inbound_signature(
+            "ts",
+            "nonce",
+            "key",
+            r#"{"a":1}"#,
+            &sig
+        ));
         assert!(!verify_inbound_signature(
             "ts",
             "nonce",

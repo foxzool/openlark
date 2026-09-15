@@ -11,8 +11,9 @@
 //! | 签名 | `SHA256(timestamp+nonce+encrypt_key+body)` 十六进制 | `HMAC-SHA256` base64（`timestamp\\nsecret`） |
 //! | 加密 | `encrypt_key` AES-CBC | 无 |
 //!
-//! 算法对齐官方 Go SDK `larkevent.EventDecrypt` / `Signature`
-//!（`larksuite/oapi-sdk-go` `event/event.go`）。
+//! 算法对齐官方文档 / Python `AESCipher`（AES-256-CBC + PKCS7）与入站签名
+//! `SHA256(timestamp+nonce+encrypt_key+body)`。不采用官方 Go `EventDecrypt` 的
+//! `{`…`}` 截取。
 
 mod crypto;
 mod handler;
