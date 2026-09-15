@@ -12,6 +12,9 @@
 | `docs_helpers` | 演示 docs helper：分页遍历、查找 sheet、批量读范围、多维表格全量读取 | `auth,docs-bitable` |
 | `docs_workflows` | 用 3 个任务流演示 Drive / Sheets / Wiki / Bitable helper 的组合方式 | `auth,docs-bitable` |
 | `websocket_echo_bot` | 长连接接收并回显文本消息 | `communication,websocket` |
+| `http_event_inbound` | HTTP 事件入站（challenge / typed 分发 fixture；非 `openlark-webhook` 出站） | `event-http` |
+| `websocket_typed_handler` | WS typed `im.message.receive_v1` fixture（可选真实长连接） | `communication,websocket` |
+| `oauth_user_token` | 显式 `RequestOption.user_access_token`（不自动刷新） | `auth,communication` |
 | `workflow_api_example` | 工作流模块调用 | `workflow` |
 
 ## 校验约定
@@ -52,6 +55,9 @@ cargo run --example communication_workflows --features "auth,communication,workf
 cargo run --example docs_helpers --features "auth,docs-bitable"
 cargo run --example docs_workflows --features "auth,docs-bitable"
 cargo run --example websocket_echo_bot --features "communication,websocket"
+cargo run --example http_event_inbound --features "event-http"
+cargo run --example websocket_typed_handler --features "communication,websocket"
+cargo run --example oauth_user_token --features "auth,communication"
 cargo run --example workflow_api_example --features "workflow"
 ```
 
