@@ -58,7 +58,7 @@ archived-with: 2026-07-01-feature-naming-convention
 ```markdown
 # Feature 命名规范
 
-飞书 SDK 各 crate 的 Cargo feature 命名遵循「**模块 feature 为主、版本 feature 为单 API 版本 crate 的合法例外**」原则。本规范与 [`CLIENT_NAMING_CONVENTION.md`](./CLIENT_NAMING_CONVENTION.md) 同级，供 code-review / design-review skill 与贡献者参照。
+飞书 SDK 各 crate 的 Cargo feature 命名遵循「**模块 feature 为主、版本 feature 为单 API 版本 crate 的合法例外**」原则。本规范与 [`CLIENT_NAMING_CONVENTION.md`](../../CLIENT_NAMING_CONVENTION.md) 同级，供 code-review / design-review skill 与贡献者参照。
 
 ## 原则
 

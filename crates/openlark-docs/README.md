@@ -301,11 +301,11 @@ request = request.folder_token("folder_token");
 
 ## 许可证
 
-[项目许可证](LICENSE)
+[Apache-2.0](../../LICENSE-APACHE)
 
 ## 贡献
 
-欢迎贡献！请参阅 [贡献指南](CONTRIBUTING.md)。
+欢迎贡献！请参阅 [贡献指南](../../CONTRIBUTING.md)。
 
 ## 支持与反馈
 

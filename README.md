@@ -1,11 +1,11 @@
 [![crates.io](https://img.shields.io/crates/v/openlark)](https://crates.io/crates/openlark)
-[![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/foxzool/openlark#license)
+[![Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/foxzool/openlark/blob/main/LICENSE-APACHE)
 [![Quality](https://github.com/foxzool/openlark/actions/workflows/quality.yml/badge.svg)](https://github.com/foxzool/openlark/actions/workflows/quality.yml)
 [![Documentation](https://docs.rs/openlark/badge.svg)](https://docs.rs/openlark)
 
 # 飞书开放平台非官方SDK - 企业级高覆盖率Rust实现
 
-> 🏗️ 19 个业务模块，1,560+ 个 API，企业级质量保证。
+> 🏗️ 18 个业务模块，1,560+ 个 API，企业级质量保证。
 >
 > 🎯 测试覆盖率 ~47%，已通过工作区 check/test，全模块 Builder 模式统一。
 
@@ -263,4 +263,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 📄 许可证
 
-MIT OR Apache-2.0
+[Apache-2.0](LICENSE-APACHE)
+
+## 📚 更多文档
+
+维护者文档索引见 [`docs/README.md`](docs/README.md)。
