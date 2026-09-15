@@ -186,6 +186,17 @@ impl<H: ImMessageReceiveV1Handler> EventHandler for ImMessageReceiveV1Adapter<H>
         })?;
         self.0.handle(event)
     }
+
+    fn handle_from_value(
+        &self,
+        value: &Value,
+        _payload: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let event: ImMessageReceiveV1 = ImMessageReceiveV1::deserialize(value).map_err(|e| {
+            serialization_error(format!("反序列化 im.message.receive_v1 失败: {e}"))
+        })?;
+        self.0.handle(event)
+    }
 }
 
 /// `card.action.trigger` 完整 envelope。
@@ -359,6 +370,19 @@ impl<H: CardActionTriggerHandler> CallbackEventHandler for CardActionTriggerAdap
         payload: &[u8],
     ) -> Result<Option<Value>, Box<dyn std::error::Error + Send + Sync>> {
         let event: CardActionTrigger = serde_json::from_slice(payload)
+            .map_err(|e| serialization_error(format!("反序列化 card.action.trigger 失败: {e}")))?;
+        match self.0.handle(event)? {
+            Some(resp) => Ok(Some(serde_json::to_value(resp)?)),
+            None => Ok(None),
+        }
+    }
+
+    fn handle_from_value(
+        &self,
+        value: &Value,
+        _payload: &[u8],
+    ) -> Result<Option<Value>, Box<dyn std::error::Error + Send + Sync>> {
+        let event: CardActionTrigger = CardActionTrigger::deserialize(value)
             .map_err(|e| serialization_error(format!("反序列化 card.action.trigger 失败: {e}")))?;
         match self.0.handle(event)? {
             Some(resp) => Ok(Some(serde_json::to_value(resp)?)),
@@ -614,23 +638,58 @@ mod tests {
 
     #[test]
     fn typed_im_dispatch_1000_under_budget() {
-        let handler = EventDispatcherHandler::builder()
+        let fixture = IM_FIXTURE.as_bytes();
+        let raw = EventDispatcherHandler::builder()
+            .register_raw("im.message.receive_v1", {
+                struct Noop;
+                impl EventHandler for Noop {
+                    fn handle(
+                        &self,
+                        _payload: &[u8],
+                    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        Ok(())
+                    }
+                }
+                Noop
+            })
+            .expect("raw")
+            .build();
+        let typed = EventDispatcherHandler::builder()
             .register_im_message_receive_v1(|event: ImMessageReceiveV1| {
                 assert_eq!(event.event.message.message_id, "om_hello");
                 Ok(())
             })
             .expect("register")
             .build();
-        let start = Instant::now();
-        for _ in 0..1000 {
-            handler
-                .do_without_validation(IM_FIXTURE.as_bytes())
-                .expect("dispatch");
+
+        for _ in 0..100 {
+            raw.do_without_validation(fixture).expect("warm raw");
+            typed.do_without_validation(fixture).expect("warm typed");
         }
-        let elapsed = start.elapsed();
+
+        let raw_started = Instant::now();
+        for _ in 0..1000 {
+            raw.do_without_validation(fixture).expect("raw");
+        }
+        let raw_elapsed = raw_started.elapsed();
+
+        let typed_started = Instant::now();
+        for _ in 0..1000 {
+            typed.do_without_validation(fixture).expect("typed");
+        }
+        let typed_elapsed = typed_started.elapsed();
+
+        eprintln!(
+            "perf668 raw={raw_elapsed:?} typed={typed_elapsed:?} ratio={:.3}",
+            typed_elapsed.as_secs_f64() / raw_elapsed.as_secs_f64().max(1e-12)
+        );
         assert!(
-            elapsed.as_millis() < 500,
-            "1000 typed dispatches took {elapsed:?}"
+            typed_elapsed.as_millis() < 500,
+            "1000 typed dispatches took {typed_elapsed:?}"
+        );
+        assert!(
+            typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 2.0,
+            "typed {typed_elapsed:?} exceeds 2x raw {raw_elapsed:?}"
         );
     }
 }
