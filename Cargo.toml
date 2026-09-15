@@ -281,6 +281,21 @@ name = "readme_quick_start"
 path = "examples/01_getting_started/readme_quick_start.rs"
 required-features = ["auth", "docs-bitable"]
 
+[[example]]
+name = "http_event_inbound"
+path = "examples/01_getting_started/http_event_inbound.rs"
+required-features = ["event-http"]
+
+[[example]]
+name = "websocket_typed_handler"
+path = "examples/01_getting_started/websocket_typed_handler.rs"
+required-features = ["communication", "websocket"]
+
+[[example]]
+name = "oauth_user_token"
+path = "examples/01_getting_started/oauth_user_token.rs"
+required-features = ["auth", "communication"]
+
 [features]
 default = ["auth"]
 
@@ -370,7 +385,7 @@ full = [
 websocket = ["openlark-client/websocket"]  # WebSocket 支持
 # HTTP 事件入站（encrypt_key / url_verification / 入站签名）。复用 WS 分发器类型，故依赖 websocket。
 # 与 `webhook`（自定义机器人出站 HMAC）不同。
-event-http = ["openlark-client/event-http"]
+event-http = ["openlark-client/event-http", "websocket"]
 
 [package.metadata.docs.rs]
 all-features = true
