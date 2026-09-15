@@ -74,6 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **communication：`ImClient::send_card`（#669）**：发送 `msg_type=interactive`
+  卡片 JSON（非完整 Block Kit DSL）。HTTP 卡片回传 ACK 走 `event-http` 上既有的
+  `register_card_action_trigger`，本票不另起 servlet。
+
 - **websocket：高频 typed 事件（#668）**：`EventDispatcherHandler` 新增
   `register_im_message_receive_v1` 与 `register_card_action_trigger`，公开 payload
   为具名 struct（`ImMessageReceiveV1` / `CardActionTrigger` / `CardActionTriggerResponse`），
