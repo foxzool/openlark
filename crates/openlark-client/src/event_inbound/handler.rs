@@ -376,4 +376,33 @@ mod tests {
             .expect_err("sig");
         assert!(err.to_string().contains("signature") || err.to_string().contains("verification"));
     }
+
+    #[test]
+    fn typed_im_handler_via_http_inbound() {
+        use crate::ws_client::{ImMessageReceiveV1, ImMessageReceiveV1Handler};
+
+        struct Capture(Arc<Mutex<Option<String>>>);
+        impl ImMessageReceiveV1Handler for Capture {
+            fn handle(
+                &self,
+                event: ImMessageReceiveV1,
+            ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                *self.0.lock().expect("lock") = Some(event.event.message.message_id);
+                Ok(())
+            }
+        }
+
+        let seen = Arc::new(Mutex::new(None));
+        let dispatcher = EventDispatcherHandler::builder()
+            .register_im_message_receive_v1(Capture(Arc::clone(&seen)))
+            .expect("register");
+        let inbound = HttpEventInbound::builder("tok", "")
+            .dispatcher(dispatcher)
+            .build();
+        let body = br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1","token":"tok"},"event":{"message":{"message_id":"om_typed"}}}"#;
+        inbound
+            .handle(&HttpEventRequest::new(HashMap::new(), body.to_vec()))
+            .expect("handle");
+        assert_eq!(seen.lock().expect("lock").as_deref(), Some("om_typed"));
+    }
 }
