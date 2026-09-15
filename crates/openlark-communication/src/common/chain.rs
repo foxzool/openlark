@@ -1175,6 +1175,21 @@ impl ImClient {
             .await
     }
 
+    /// 发送消息卡片 helper（`msg_type=interactive`）。
+    ///
+    /// `card` 为卡片 JSON 对象，不是完整 Block Kit DSL。HTTP 卡片回传复用
+    /// `event-http` 入站适配器上的 `register_card_action_trigger`，不另起 servlet。
+    pub async fn send_card(
+        &self,
+        recipient: MessageRecipient,
+        card: serde_json::Value,
+    ) -> SDKResult<serde_json::Value> {
+        let body = Self::build_card_body(recipient, card)?;
+        Self::create_message_request(self.config.clone(), body.receive_id_type())
+            .execute(body.into())
+            .await
+    }
+
     /// 搜索可见群聊并自动处理分页。
     pub async fn search_chats_all(&self, query: impl AsRef<str>) -> SDKResult<Vec<ChatLookupItem>> {
         let query = query.as_ref().trim().to_string();
@@ -1264,6 +1279,23 @@ impl ImClient {
     ) -> SDKResult<HelperMessageBody> {
         validate_required!(content, "content 不能为空");
         Ok(HelperMessageBody::new(recipient, msg_type, content))
+    }
+
+    fn build_card_body(
+        recipient: MessageRecipient,
+        card: serde_json::Value,
+    ) -> SDKResult<HelperMessageBody> {
+        if card.is_null() || (card.is_object() && card.as_object().is_some_and(|o| o.is_empty())) {
+            return Err(validation_error("card", "card 不能为空"));
+        }
+        if !card.is_object() && !card.is_array() {
+            return Err(validation_error("card", "card 必须是 JSON 对象或数组"));
+        }
+        Ok(HelperMessageBody::new(
+            recipient,
+            "interactive",
+            card.to_string(),
+        ))
     }
 
     fn build_reply_text_body(target: ReplyTarget, text: String) -> SDKResult<HelperReplyBody> {
@@ -1649,6 +1681,31 @@ mod tests {
         assert_eq!(request_body.msg_type, "file");
         assert_eq!(request_body.receive_id, "oc_xxx");
         assert_eq!(request_body.content, r#"{"file_key":"file_xxx"}"#);
+    }
+
+    #[cfg(feature = "im")]
+    #[test]
+    fn test_build_card_message_body() {
+        let card = serde_json::json!({"elements":[{"tag":"div","text":{"tag":"plain_text","content":"hi"}}]});
+        let body = ImClient::build_card_body(MessageRecipient::open_id("ou_xxx"), card.clone())
+            .expect("card body should build");
+        let request_body: CreateMessageBody = body.into();
+        assert_eq!(request_body.msg_type, "interactive");
+        assert_eq!(request_body.receive_id, "ou_xxx");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&request_body.content).expect("content json");
+        assert_eq!(parsed, card);
+    }
+
+    #[cfg(feature = "im")]
+    #[test]
+    fn test_build_card_rejects_empty() {
+        let err = ImClient::build_card_body(
+            MessageRecipient::open_id("ou_xxx"),
+            serde_json::Value::Object(serde_json::Map::new()),
+        )
+        .expect_err("empty card");
+        assert!(err.to_string().contains("card"));
     }
 
     #[cfg(feature = "im")]
