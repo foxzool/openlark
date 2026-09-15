@@ -4,9 +4,11 @@
 
 ## 模块与 API 数量
 
-- **calendar**：日历功能 API
-- **vc**：视频会议功能 API
-- **meeting_room**：会议室历史版本 API
+口径：`python3 tools/validate_apis.py --crate openlark-meeting`（默认排除 old）。当前 **112 / 112（100%）**。
+
+- **calendar**：44
+- **vc**：68
+- **meeting_room**：0（目录 17 条均为 `meta.Version=old`，实现仍在源码中但不计入当前覆盖率）
 
 ## 目录结构说明
 
@@ -351,4 +353,4 @@ let error_context = create_error_context(
 
 ## 许可证
 
-MIT OR Apache-2.0
+[Apache-2.0](../../LICENSE-APACHE)

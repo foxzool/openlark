@@ -1,6 +1,6 @@
 # 🤝 贡献指南
 
-欢迎参与 open-lark 项目！本指南将帮助你了解如何为项目做出贡献。
+欢迎参与 openlark 项目！本指南将帮助你了解如何为项目做出贡献。
 
 ---
 
@@ -32,13 +32,13 @@
 ```bash
 # 克隆项目
 git clone https://github.com/foxzool/openlark.git
-cd open-lark
+cd openlark
 
-# 安装依赖
-cargo build --all-features
+# 安装依赖（edition 2024，MSRV 1.88+）
+cargo build --workspace --all-features
 
 # 运行测试
-cargo test --all-features
+cargo test --workspace --all-features
 ```
 
 ### 2. 开发环境配置
@@ -46,10 +46,12 @@ cargo test --all-features
 # 复制环境配置
 cp .env-example .env
 
-# 安装开发工具（可选）
+# 可选：安装 just，然后用 justfile 中的目标
 cargo install just
 just --list  # 查看可用命令
 ```
+
+若未安装 `just`，可直接使用等价 cargo 命令（见 [`AGENTS.md`](AGENTS.md) Cursor Cloud 说明）。
 
 ### 3. 代码规范检查
 ```bash
@@ -114,208 +116,33 @@ docs(api): 更新认证接口文档
 ## 🛠️ 开发指南
 
 ### 📁 项目结构
+
+当前仓库是 **Cargo workspace**（不是早期单体 `src/service/` 布局）。概览：
+
 ```
-open-lark/
-├── src/
-│   ├── service/          # 服务模块
-│   ├── core/            # 核心功能
-│   ├── client/          # 客户端实现
-│   ├── event/           # 事件处理
-│   └── card/            # 卡片组件
-├── examples/            # 示例代码
-├── docs/               # 文档
-├── reports/            # 技术报告
-└── tests/              # 测试文件
+openlark/
+├── crates/                 # 业务与基础设施 crates（openlark-*）
+├── src/                    # 根 crate `openlark` 导出
+├── examples/               # 可编译公开示例
+├── docs/                   # 维护者文档（索引：docs/README.md）
+├── tests/                  # 集成测试
+├── tools/                  # 开发/校验脚本
+└── AGENTS.md               # 结构、约定与常用命令
 ```
+
+新增 API / 模块布局的权威说明见 [`AGENTS.md`](AGENTS.md) 与 [`docs/README.md`](docs/README.md)。
+
+运行时生成的覆盖率等报告写在 gitignored 的 `reports/` 下，不作为仓库文档入口。
 
 ### 🎯 新服务模块开发
 
-#### 1. 创建模块结构
-```
-src/service/your_service/
-├── mod.rs              # 模块入口
-├── models/            # 数据模型
-│   └── mod.rs
-├── v1/                # API版本
-│   ├── mod.rs
-│   └── your_api.rs
-└── README.md          # 模块文档
-```
+按业务域在对应 `crates/openlark-<domain>/` 下按版本目录添加 API（`v1/`、`v2/` 等），请求使用 Builder 模式，模型用 Serde，校验统一走 `CoreError` / `validate_required!`。完整模板见：
 
-#### 2. 实现基础结构
-```rust
-// src/service/your_service/mod.rs
-//! 你的服务模块
-//!
-//! 详细的模块描述和功能说明
-//!
-//! # 核心功能
-//! - 功能1
-//! - 功能2
-//!
-//! # 使用示例
-//! ```rust
-//! // 示例代码
-//! ```
+- [`.agents/skills/openlark-api/`](.agents/skills/openlark-api/)
+- [`docs/api-implementation-template.md`](docs/api-implementation-template.md)
+- [`docs/API_DESIGN_SPECIFICATION.md`](docs/API_DESIGN_SPECIFICATION.md)
 
-pub mod models;
-pub mod v1;
-
-use crate::core::config::Config;
-
-/// 你的服务
-pub struct YourService {
-    pub v1: v1::V1,
-}
-
-impl YourService {
-    pub fn new(config: Config) -> Self {
-        Self {
-            v1: v1::V1::new(config),
-        }
-    }
-}
-```
-
-#### 3. 数据模型定义
-```rust
-// src/service/your_service/models/mod.rs
-use serde::{Deserialize, Serialize};
-
-/// 请求结构体
-#[derive(Debug, Serialize, Deserialize)]
-pub struct YourRequest {
-    pub param1: String,
-    pub param2: Option<i32>,
-}
-
-/// 响应结构体  
-#[derive(Debug, Serialize, Deserialize)]
-pub struct YourResponse {
-    pub data: YourData,
-}
-
-/// 数据结构体
-#[derive(Debug, Serialize, Deserialize)]
-pub struct YourData {
-    pub id: String,
-    pub name: String,
-}
-```
-
-#### 4. API实现
-```rust
-// src/service/your_service/v1/your_api.rs
-use crate::core::{config::Config, http::HttpClient, api_resp::StandardResponse};
-use super::models::*;
-
-/// API服务结构体
-pub struct YourApiService {
-    http_client: HttpClient,
-}
-
-impl YourApiService {
-    pub fn new(config: Config) -> Self {
-        Self {
-            http_client: HttpClient::new(config),
-        }
-    }
-
-    /// API方法实现
-    pub async fn your_method(
-        &self, 
-        request: YourRequest,
-        option_data: Option<&str>
-    ) -> Result<StandardResponse<YourResponse>, crate::core::error::LarkAPIError> {
-        // 实现逻辑
-    }
-}
-```
-
-### 📝 文档编写规范
-
-#### 模块级文档
-```rust
-//! 模块标题
-//!
-//! 模块功能概述，说明业务价值和应用场景
-//!
-//! # 核心功能
-//!
-//! ## 功能分类1  
-//! - 🎯 具体功能1
-//! - 📊 具体功能2
-//!
-//! # 使用示例
-//!
-//! ```rust
-//! use open_lark::prelude::*;
-//!
-//! // 完整的示例代码
-//! ```
-//!
-//! # API版本
-//!
-//! 当前支持的版本和特性说明
-//!
-//! # 特性说明
-//!
-//! 技术特性和业务特点
-```
-
-#### 函数级文档
-```rust
-/// 函数功能简述
-///
-/// 详细描述函数的作用、行为和注意事项
-///
-/// # 参数
-/// - `param1`: 参数1的说明
-/// - `param2`: 参数2的说明
-///
-/// # 返回值
-/// 返回值的说明
-///
-/// # 错误
-/// 可能出现的错误情况
-///
-/// # 示例
-/// ```rust
-/// // 使用示例
-/// ```
-pub async fn your_function() -> Result<T, E> {
-    // 实现
-}
-```
-
-### 🧪 测试编写
-
-#### 单元测试
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_your_function() {
-        // 测试逻辑
-    }
-}
-```
-
-#### 文档测试
-```rust
-/// 函数说明
-///
-/// # 示例
-/// ```rust
-/// use open_lark::prelude::*;
-///
-/// let result = function_call();
-/// assert_eq!(result, expected);
-/// ```
-pub fn your_function() {}
-```
+文档与测试约定见 [`TESTING.md`](TESTING.md)；公开示例见 [`examples/README.md`](examples/README.md)。
 
 ---
 
@@ -378,20 +205,18 @@ pub fn your_function() {}
 ### 🔗 联系方式
 - **GitHub Issues**: [提出问题](https://github.com/foxzool/openlark/issues)
 - **GitHub Discussions**: [社区讨论](https://github.com/foxzool/openlark/discussions)
-- **Discord社区**: [实时交流](#)
-- **邮件联系**: 重要事项可发送邮件
 
 ### 📚 学习资源
-- **API文档**: [docs.rs/open-lark](https://docs.rs/open-lark)
+- **API文档**: [docs.rs/openlark](https://docs.rs/openlark)
 - **示例代码**: [examples目录](examples/)
-- **技术报告**: [reports目录](reports/)
+- **维护者文档索引**: [docs/README.md](docs/README.md)
 - **Rust学习**: [Rust官方文档](https://doc.rust-lang.org/)
 
 ---
 
 ## 🎉 致谢
 
-感谢你对 open-lark 项目的关注和贡献！每一个贡献都让这个项目变得更好。
+感谢你对 openlark 项目的关注和贡献！每一个贡献都让这个项目变得更好。
 
 **贡献类型**: 🌟 所有贡献都同样重要  
 **响应时间**: ⚡ 我们会尽快回复你的贡献  
