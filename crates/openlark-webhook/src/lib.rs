@@ -1,11 +1,16 @@
 //! OpenLark Webhook Module
 //!
-//! 飞书 Webhook 自定义机器人模块，提供通过 webhook URL 发送消息的功能。
+//! 飞书 **自定义机器人出站** 模块：通过 webhook URL（`bot/v2/hook`）向群聊发消息。
+//!
+//! 这与平台「将事件发送至开发者服务器」的 **HTTP 事件入站** 不是同一能力。
+//! 入站解密 / Challenge / `X-Lark-Signature` 验签见根 crate `event-http` feature
+//!（`openlark_client::event_inbound`）。本 crate 的签名是出站 HMAC
+//!（`timestamp\\nsecret` → base64）。
 //!
 //! ## 主要功能
 //!
 //! - **消息发送**: 支持文本、卡片、图片、文件、富文本等多种消息类型
-//! - **签名验证**: 可选的 HMAC-SHA256 签名验证（通过 `signature` feature）
+//! - **签名验证**: 可选的出站 HMAC-SHA256（通过 `signature` feature）
 //! - **Builder 模式**: 流畅的链式调用 API
 //! - **类型安全**: 编译时验证所有参数
 //!
