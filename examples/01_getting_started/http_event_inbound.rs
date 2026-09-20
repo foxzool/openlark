@@ -13,9 +13,7 @@
 use std::collections::HashMap;
 
 use open_lark::event_inbound::{HttpEventInbound, HttpEventRequest};
-use open_lark::ws_client::{
-    EventDispatcherHandler, ImMessageReceiveV1, ImMessageReceiveV1Handler,
-};
+use open_lark::ws_client::{EventDispatcherHandler, ImMessageReceiveV1, ImMessageReceiveV1Handler};
 
 struct LoggingIm;
 
@@ -60,8 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let event_body = br#"{"schema":"2.0","header":{"event_type":"im.message.receive_v1","token":"demo_token"},"event":{"message":{"message_id":"om_demo","content":"{\"text\":\"hi\"}"}}}"#;
-    let event_resp =
-        inbound.handle(&HttpEventRequest::new(HashMap::new(), event_body.to_vec()))?;
+    let event_resp = inbound.handle(&HttpEventRequest::new(HashMap::new(), event_body.to_vec()))?;
     println!(
         "事件响应 status={} body={}",
         event_resp.status,

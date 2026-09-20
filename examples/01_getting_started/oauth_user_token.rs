@@ -8,10 +8,10 @@
 //! cargo run --example oauth_user_token --no-default-features --features "auth,communication"
 //! ```
 
+use open_lark::RequestOption;
 use open_lark::communication::im::v1::message::create::{CreateMessageBody, CreateMessageRequest};
 use open_lark::communication::im::v1::message::models::ReceiveIdType;
 use open_lark::prelude::*;
-use open_lark::RequestOption;
 
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
