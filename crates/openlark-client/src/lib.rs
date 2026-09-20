@@ -235,6 +235,14 @@ mod test_utils;
 #[cfg(feature = "websocket")]
 pub mod ws_client;
 
+/// HTTP 事件入站适配器（平台推送到开发者服务器）。
+///
+/// 与根 crate / `openlark-webhook` 的**出站**自定义机器人 HMAC 不同：本模块做
+/// `encrypt_key` 解密、`url_verification` 与入站 `X-Lark-Signature` 校验，并复用
+/// [`ws_client::EventDispatcherHandler`] 做事件路由。
+#[cfg(feature = "event-http")]
+pub mod event_inbound;
+
 // ============================================================================
 // 核心类型重新导出
 // ============================================================================

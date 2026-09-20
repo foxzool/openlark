@@ -102,6 +102,8 @@ http = "1.0"
 hmac = "0.12.1"
 sha2 = "0.10.8"
 base64 = "0.22.1"
+aes = "0.8"
+cbc = "0.1"
 
 # === 日志与追踪 (Logging & Tracing) ===
 log = "0.4.21"
@@ -366,6 +368,9 @@ full = [
 
 # === 技术特性 (Technical Features) ===
 websocket = ["openlark-client/websocket"]  # WebSocket 支持
+# HTTP 事件入站（encrypt_key / url_verification / 入站签名）。复用 WS 分发器类型，故依赖 websocket。
+# 与 `webhook`（自定义机器人出站 HMAC）不同。
+event-http = ["openlark-client/event-http"]
 
 [package.metadata.docs.rs]
 all-features = true

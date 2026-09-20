@@ -40,6 +40,15 @@ pub mod ws_client {
     pub use openlark_client::ws_client::*;
 }
 
+#[cfg(feature = "event-http")]
+/// HTTP 事件入站（需启用 `event-http` feature）。
+///
+/// 对接控制台「将事件发送至开发者服务器」。这与 `webhook` feature（自定义机器人
+/// **出站** `bot/v2/hook`）不是同一条路径。
+pub mod event_inbound {
+    pub use openlark_client::event_inbound::*;
+}
+
 // ============================================================================
 // 业务命名空间导出
 // ============================================================================

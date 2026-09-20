@@ -32,6 +32,11 @@ url = { workspace = true }
 prost = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
+# HTTP 事件入站（AES-CBC encrypt_key + SHA256 入站签名）
+aes = { workspace = true, optional = true }
+cbc = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+
 # P0 Phase 1 业务模块依赖
 openlark-auth = { workspace = true, optional = true }
 openlark-communication = { workspace = true, optional = true }
@@ -89,6 +94,9 @@ websocket = [
     "log",
     "dep:base64",
 ]
+# 平台 HTTP 事件入站。复用 `ws_client::EventDispatcherHandler`，因此依赖 `websocket`。
+# 与根 crate `webhook` feature（出站自定义机器人）无关。
+event-http = ["websocket", "dep:aes", "dep:cbc", "dep:sha2", "dep:base64"]
 
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
