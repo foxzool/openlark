@@ -33,6 +33,13 @@ struct RawEventHeader {
 pub trait EventHandler: Send + Sync + 'static {
     /// 处理原始事件负载。
     fn handle(&self, payload: &[u8]) -> EventHandlerResult;
+
+    /// 在分发器已解析出 [`serde_json::Value`] 时复用，避免 typed 路径二次 tokenize。
+    ///
+    /// 默认回退到 [`Self::handle`]。
+    fn handle_from_value(&self, _value: &serde_json::Value, payload: &[u8]) -> EventHandlerResult {
+        self.handle(payload)
+    }
 }
 
 /// 回调型事件处理器。
@@ -50,15 +57,26 @@ pub trait CallbackEventHandler: Send + Sync + 'static {
         &self,
         payload: &[u8],
     ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>;
+
+    /// 在分发器已解析出 [`serde_json::Value`] 时复用，避免 typed 路径二次 tokenize。
+    fn handle_from_value(
+        &self,
+        _value: &serde_json::Value,
+        payload: &[u8],
+    ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>> {
+        self.handle(payload)
+    }
 }
 
 /// WebSocket 事件分发处理器。
 ///
-/// 目前支持三类分发目标：
+/// 分发目标：
 ///
 /// - `payload_sender(...)`：把原始负载转发到 channel
 /// - `register_raw(...)`：注册原始事件处理器
 /// - `register_callback(...)`：注册可返回业务响应的回调型处理器
+/// - [`Self::register_im_message_receive_v1`] / [`Self::register_card_action_trigger`]：
+///   typed 糖，分别写入 raw map 与 callback map，不另开注册表
 #[derive(Clone)]
 pub struct EventDispatcherHandler {
     payload_tx: Option<mpsc::UnboundedSender<Vec<u8>>>,
@@ -151,6 +169,15 @@ impl EventDispatcherHandler {
         Ok(self)
     }
 
+    fn event_type_from_value(value: &serde_json::Value) -> Option<String> {
+        value
+            .get("header")
+            .and_then(|header| header.get("event_type"))
+            .and_then(|event_type| event_type.as_str())
+            .map(str::to_string)
+            .filter(|event_type| !event_type.trim().is_empty())
+    }
+
     fn extract_event_type(payload: &[u8]) -> Option<String> {
         serde_json::from_slice::<RawEventEnvelope>(payload)
             .ok()
@@ -162,6 +189,20 @@ impl EventDispatcherHandler {
         if let Some(handler) = self.raw_handlers.get(key) {
             handler
                 .handle(payload)
+                .map_err(|err| format!("处理原始事件 {key} 失败: {err}"))?;
+        }
+        Ok(())
+    }
+
+    fn dispatch_raw_handler_from_value(
+        &self,
+        key: &str,
+        value: &serde_json::Value,
+        payload: &[u8],
+    ) -> Result<(), String> {
+        if let Some(handler) = self.raw_handlers.get(key) {
+            handler
+                .handle_from_value(value, payload)
                 .map_err(|err| format!("处理原始事件 {key} 失败: {err}"))?;
         }
         Ok(())
@@ -190,11 +231,20 @@ impl EventDispatcherHandler {
                 .map_err(|e| format!("转发事件负载失败: {e}"))?;
         }
 
-        if let Some(event_type) = Self::extract_event_type(payload) {
+        // 先解析成 Value，typed 回调可 `deserialize` 复用，避免二次 tokenize。
+        let parsed = serde_json::from_slice::<serde_json::Value>(payload).ok();
+        let event_type = parsed
+            .as_ref()
+            .and_then(Self::event_type_from_value)
+            .or_else(|| Self::extract_event_type(payload));
+
+        if let Some(event_type) = event_type {
             if let Some(handler) = self.callback_handlers.get(&event_type) {
-                let value = handler
-                    .handle(payload)
-                    .map_err(|err| format!("处理回调事件 {event_type} 失败: {err}"))?;
+                let value = match &parsed {
+                    Some(parsed) => handler.handle_from_value(parsed, payload),
+                    None => handler.handle(payload),
+                }
+                .map_err(|err| format!("处理回调事件 {event_type} 失败: {err}"))?;
                 return match value {
                     Some(v) => serde_json::to_vec(&v)
                         .map(Some)
@@ -202,10 +252,20 @@ impl EventDispatcherHandler {
                     None => Ok(None),
                 };
             }
-            self.dispatch_raw_handler(&event_type, payload)?;
+            match &parsed {
+                Some(parsed) => {
+                    self.dispatch_raw_handler_from_value(&event_type, parsed, payload)?
+                }
+                None => self.dispatch_raw_handler(&event_type, payload)?,
+            }
         }
 
-        self.dispatch_raw_handler(Self::RAW_EVENT_KEY, payload)?;
+        match &parsed {
+            Some(parsed) => {
+                self.dispatch_raw_handler_from_value(Self::RAW_EVENT_KEY, parsed, payload)?
+            }
+            None => self.dispatch_raw_handler(Self::RAW_EVENT_KEY, payload)?,
+        }
 
         Ok(None)
     }

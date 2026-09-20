@@ -74,6 +74,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **websocket：高频 typed 事件（#668）**：`EventDispatcherHandler` 新增
+  `register_im_message_receive_v1` 与 `register_card_action_trigger`，公开 payload
+  为具名 struct（`ImMessageReceiveV1` / `CardActionTrigger` / `CardActionTriggerResponse`），
+  不是单独的 `serde_json::Value`。typed 方法写入既有 raw / callback map：
+  `register_raw` 仍可用；`card.action.trigger` 仍走 callback ACK（toast / 卡片）。
+  `url.preview.get` 本票不做 typed，继续 `register_callback`。HTTP `event-http`
+  入站复用同一套 typed 注册。
+
 - **workflow/docs：审批可发起定义搜索 + 妙记片段/上传（#648）**：
   catalog 同步 2026-08-31（1740→1743，+3 APIs）。
   `openlark-workflow` 新增 `SearchLaunchableApprovalRequestV4`
