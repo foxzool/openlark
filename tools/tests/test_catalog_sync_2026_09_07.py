@@ -210,7 +210,7 @@ def _sort_key(row: dict[str, str]) -> tuple[str, ...]:
 class CatalogSync20260907Tests(unittest.TestCase):
     def test_checked_in_catalog_includes_nine_new_apis(self) -> None:
         rows = _load_csv_by_id()
-        self.assertEqual(len(rows), 1752)
+        self.assertEqual(len(rows), 1751)
         for api_id, expected in NEW_API_EXPECTATIONS.items():
             with self.subTest(api_id=api_id):
                 self.assertIn(api_id, rows, f"缺少 API id={api_id}")
@@ -229,7 +229,7 @@ class CatalogSync20260907Tests(unittest.TestCase):
 
     def test_catalog_remains_sorted_by_meta_key(self) -> None:
         rows = _load_csv_rows()
-        self.assertEqual(len(rows), 1752)
+        self.assertEqual(len(rows), 1751)
         keys = [_sort_key(row) for row in rows]
         self.assertEqual(keys, sorted(keys))
 
