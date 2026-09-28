@@ -115,6 +115,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **catalog：同步 2026-09-21 飞书 API 目录（#678）**：
+  live 二次导出与 watch 快照一致（基准 1752 → 当前 1751；新增 0 / 删除 1 / 字段变化 0）。
+  - 刷新 `api_list_export.csv`：删除 id `7563551656446263298`
+    （获取客户端设备认证信息 /
+    `GET:/open-apis/security_and_compliance/v2/device_records/mine`）。
+  - **device_records.mine**：live 目录列表已无。CSV 与 live 对齐移除该行；
+    **SDK 公开 API 默认冻结保留**（`openlark-security`
+    `device_records.mine` 不删不改），按「catalog 外 extra 实现」口径处理
+    （#581 同款），不触发 missing 补齐。
+
 - **websocket：SessionState 收敛 CloseIntent + harness 瘦身（#641）**：
   `SessionState{Active,Closing,Closed}` × `CloseIntent{None,WithoutReason,WithReason}`
   两个必须手工对齐的字段收为 `SessionState::Closing(Option<WsCloseReason>)`。

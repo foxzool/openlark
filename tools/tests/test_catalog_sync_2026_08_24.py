@@ -12,6 +12,7 @@ import csv
 import unittest
 from pathlib import Path
 
+from tools.tests.catalog_row_count import CURRENT_CATALOG_ROW_COUNT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = REPO_ROOT / "api_list_export.csv"
@@ -77,7 +78,7 @@ def _load_csv_by_id() -> dict[str, dict[str, str]]:
 class CatalogSync20260824Tests(unittest.TestCase):
     def test_checked_in_catalog_includes_three_vc_bot_write_apis(self) -> None:
         rows = _load_csv_by_id()
-        self.assertEqual(len(rows), 1752)
+        self.assertEqual(len(rows), CURRENT_CATALOG_ROW_COUNT)
         for api_id, expected in NEW_API_EXPECTATIONS.items():
             with self.subTest(api_id=api_id):
                 self.assertIn(api_id, rows, f"缺少 API id={api_id}")
