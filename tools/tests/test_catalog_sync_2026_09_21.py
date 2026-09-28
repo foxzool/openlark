@@ -1,9 +1,7 @@
 """#678 飞书 API 目录同步（2026-09-21）验收测试。
 
-Seams（公开边界）:
-1. checked-in catalog 行数从 1752 减至 1751
-2. id 7563551656446263298（device_records.mine）已从 catalog 移除
-3. 其余 5 个 device_record 身份（url / meta.Name）不变
+Seams（公开边界）: 其余 5 个 device_record 身份（url / meta.Name）不变；
+`device_records.mine`（id 7563551656446263298）已从 catalog 移除。
 """
 
 from __future__ import annotations
@@ -12,6 +10,7 @@ import csv
 import unittest
 from pathlib import Path
 
+from tools.tests.catalog_row_count import CURRENT_CATALOG_ROW_COUNT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = REPO_ROOT / "api_list_export.csv"
@@ -50,7 +49,7 @@ def _load_csv_by_id() -> dict[str, dict[str, str]]:
 class CatalogSync20260921Tests(unittest.TestCase):
     def test_mine_row_removed_and_remaining_device_records_unchanged(self) -> None:
         rows = _load_csv_by_id()
-        self.assertEqual(len(rows), 1751)
+        self.assertEqual(len(rows), CURRENT_CATALOG_ROW_COUNT)
         self.assertNotIn(DELETED_MINE_ID, rows)
         for api_id, expected in DEVICE_RECORD_EXPECTATIONS.items():
             with self.subTest(api_id=api_id):

@@ -3,6 +3,10 @@ import sys
 import unittest
 from pathlib import Path
 
+from tools.tests.catalog_row_count import (
+    CURRENT_CATALOG_NON_OLD_ROW_COUNT,
+    CURRENT_CATALOG_ROW_COUNT,
+)
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "update_crates_md.py"
 SPEC = importlib.util.spec_from_file_location("update_crates_md", MODULE_PATH)
@@ -21,8 +25,7 @@ class UpdateCratesMdTests(unittest.TestCase):
     def test_stats_include_spark_and_expected_totals(self):
         stats = update_crates_md.compute_biz_tag_stats()
 
-        # 与 checked-in api_list_export.csv 对齐（#678 catalog sync 后：1751 总行，
-        # 其中 meta.Version=old 不计入 non-old；spark 妙搭域 29 条；pay 3 条均为 old）。
+        # meta.Version=old 不计入 non-old；spark 妙搭域 29 条；pay 3 条均为 old。
         self.assertEqual(stats["spark"], (29, 29, 0))
         self.assertEqual(stats["vc"], (68, 68, 0))
         self.assertEqual(stats["pay"], (0, 3, 3))
@@ -30,11 +33,11 @@ class UpdateCratesMdTests(unittest.TestCase):
         self.assertEqual(stats["minutes"], (10, 10, 0))
         self.assertEqual(
             sum(non_old for non_old, _, _ in stats.values()),
-            1639,
+            CURRENT_CATALOG_NON_OLD_ROW_COUNT,
         )
         self.assertEqual(
             sum(total for _, total, _ in stats.values()),
-            1751,
+            CURRENT_CATALOG_ROW_COUNT,
         )
 
 

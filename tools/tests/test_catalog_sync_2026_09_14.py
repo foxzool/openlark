@@ -2,7 +2,7 @@
 
 Seams（公开边界）:
 1. 5 个已有 Catalog Entry 的 supportAppTypes 从 ["custom"] 扩为 ["isv", "custom"]
-2. checked-in catalog 行数保持 1751
+2. 该次 sync 不改行数（当时保持 1752）
 3. 对应 minutes/vc 身份（name/url/meta.Name）不变
 """
 
@@ -12,6 +12,7 @@ import csv
 import unittest
 from pathlib import Path
 
+from tools.tests.catalog_row_count import CURRENT_CATALOG_ROW_COUNT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = REPO_ROOT / "api_list_export.csv"
@@ -66,7 +67,7 @@ def _load_csv_by_id() -> dict[str, dict[str, str]]:
 class CatalogSync20260914Tests(unittest.TestCase):
     def test_five_apis_gain_isv_support_app_types(self) -> None:
         rows = _load_csv_by_id()
-        self.assertEqual(len(rows), 1751)
+        self.assertEqual(len(rows), CURRENT_CATALOG_ROW_COUNT)
         for api_id, expected in SUPPORT_APP_TYPES_EXPECTATIONS.items():
             with self.subTest(api_id=api_id):
                 self.assertIn(api_id, rows, f"缺少 API id={api_id}")
