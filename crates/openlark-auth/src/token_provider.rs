@@ -107,8 +107,11 @@ impl AuthTokenProvider {
     ) -> String {
         match token_type {
             AccessTokenType::Tenant => {
-                let tenant_key = request.tenant_key.as_deref().unwrap_or("default");
-                format!("{token_type:?}_{app_type:?}_{tenant_key}")
+                // 将租户与 app_ticket 一起纳入缓存上下文，避免票据轮换后复用旧 token。
+                // 哈希 Option 元组以区分缺失值和字面值，并避免在 Debug 中泄露上下文。
+                let mut hasher = DefaultHasher::new();
+                (request.tenant_key.as_deref(), request.app_ticket.as_deref()).hash(&mut hasher);
+                format!("{token_type:?}_{app_type:?}_ctx_{:016x}", hasher.finish())
             }
             AccessTokenType::App if app_type == &AppType::Marketplace => {
                 let app_ticket = request.app_ticket.as_deref().unwrap_or("default");

@@ -37,12 +37,44 @@ async fn tenant_token_fetch_no_longer_uses_noop_provider() {
 }
 
 #[tokio::test]
-async fn tenant_cache_key_should_include_tenant_key() {
+async fn tenant_cache_key_should_include_tenant_context() {
     let request = TokenRequest::tenant().tenant_key("tenant_key_001");
 
     let key = AuthTokenProvider::cache_key(&AccessTokenType::Tenant, &AppType::SelfBuild, &request);
 
-    assert_eq!(key, "Tenant_SelfBuild_tenant_key_001");
+    assert!(key.starts_with("Tenant_SelfBuild_ctx_"));
+    assert!(!key.contains("tenant_key_001"));
+    assert_eq!(
+        key,
+        AuthTokenProvider::cache_key(&AccessTokenType::Tenant, &AppType::SelfBuild, &request)
+    );
+    for different_request in [
+        TokenRequest::tenant().tenant_key("tenant_key_002"),
+        TokenRequest::tenant()
+            .tenant_key("tenant_key_001")
+            .app_ticket("ticket_001"),
+    ] {
+        assert_ne!(
+            key,
+            AuthTokenProvider::cache_key(
+                &AccessTokenType::Tenant,
+                &AppType::SelfBuild,
+                &different_request
+            )
+        );
+    }
+    assert_ne!(
+        AuthTokenProvider::cache_key(
+            &AccessTokenType::Tenant,
+            &AppType::Marketplace,
+            &TokenRequest::tenant()
+        ),
+        AuthTokenProvider::cache_key(
+            &AccessTokenType::Tenant,
+            &AppType::Marketplace,
+            &TokenRequest::tenant().tenant_key("default")
+        )
+    );
 }
 
 #[tokio::test]
@@ -57,6 +89,99 @@ async fn app_cache_key_should_include_app_ticket_for_marketplace() {
         key,
         AuthTokenProvider::cache_key(&AccessTokenType::App, &AppType::Marketplace, &request)
     );
+    assert_ne!(
+        key,
+        AuthTokenProvider::cache_key(
+            &AccessTokenType::App,
+            &AppType::Marketplace,
+            &TokenRequest::app().app_ticket("ticket_002")
+        )
+    );
+}
+
+#[tokio::test]
+async fn self_build_app_cache_key_should_remain_stable() {
+    assert_eq!(
+        AuthTokenProvider::cache_key(
+            &AccessTokenType::App,
+            &AppType::SelfBuild,
+            &TokenRequest::app()
+        ),
+        AuthTokenProvider::cache_key(
+            &AccessTokenType::App,
+            &AppType::SelfBuild,
+            &TokenRequest::app()
+                .tenant_key("tenant_001")
+                .app_ticket("ticket_001")
+        )
+    );
+}
+
+#[tokio::test]
+async fn marketplace_cache_isolates_tenants_and_ticket_rotation() {
+    let server = MockServer::start().await;
+    for (ticket, app_token) in [("ticket_a", "app-token-a"), ("ticket_b", "app-token-b")] {
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/app_access_token"))
+            .and(body_json(json!({
+                "app_id": "test_app_id",
+                "app_secret": "test_app_secret",
+                "app_ticket": ticket
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "app_access_token": app_token, "expire": 7200
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+    let contexts = [
+        ("tenant_a", "ticket_a", "app-token-a", "tenant-token-a"),
+        ("tenant_b", "ticket_a", "app-token-a", "tenant-token-b"),
+        (
+            "tenant_a",
+            "ticket_b",
+            "app-token-b",
+            "tenant-token-rotated",
+        ),
+    ];
+    for (tenant, _, app_token, tenant_token) in contexts {
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/tenant_access_token"))
+            .and(body_json(json!({
+                "app_access_token": app_token, "tenant_key": tenant
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "tenant_access_token": tenant_token, "expire": 7200
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+    let provider = AuthTokenProvider::new(marketplace_config(server.uri()));
+    for _ in 0..2 {
+        for (tenant, ticket, _, tenant_token) in contexts {
+            let token = provider
+                .get_token(TokenRequest::tenant().tenant_key(tenant).app_ticket(ticket))
+                .await
+                .expect("tenant token should be fetched or reused within its own context");
+            assert_eq!(token, tenant_token);
+        }
+    }
+    let debug_output = format!("{provider:?}");
+    for sensitive in [
+        "tenant_a",
+        "tenant_b",
+        "ticket_a",
+        "ticket_b",
+        "app-token-a",
+        "app-token-b",
+        "tenant-token-a",
+        "tenant-token-b",
+        "tenant-token-rotated",
+    ] {
+        assert!(!debug_output.contains(sensitive));
+    }
 }
 
 #[tokio::test]
