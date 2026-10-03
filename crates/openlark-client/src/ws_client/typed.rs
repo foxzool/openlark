@@ -641,16 +641,19 @@ mod tests {
         let fixture = IM_FIXTURE.as_bytes();
         let raw = EventDispatcherHandler::builder()
             .register_raw("im.message.receive_v1", {
-                struct Noop;
-                impl EventHandler for Noop {
+                // raw 使用者手动反序列化相同事件，确保比较的是相同处理工作。
+                struct DeserializeImMessage;
+                impl EventHandler for DeserializeImMessage {
                     fn handle(
                         &self,
-                        _payload: &[u8],
+                        payload: &[u8],
                     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        let event: ImMessageReceiveV1 = serde_json::from_slice(payload)?;
+                        assert_eq!(event.event.message.message_id, "om_hello");
                         Ok(())
                     }
                 }
-                Noop
+                DeserializeImMessage
             })
             .expect("raw")
             .build();
@@ -687,6 +690,7 @@ mod tests {
             typed_elapsed.as_millis() < 500,
             "1000 typed dispatches took {typed_elapsed:?}"
         );
+        // 两条路径都在命中后解析相同类型，typed 注册糖仍应满足原来的 2x 预算。
         assert!(
             typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 2.0,
             "typed {typed_elapsed:?} exceeds 2x raw {raw_elapsed:?}"
