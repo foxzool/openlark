@@ -641,16 +641,19 @@ mod tests {
         let fixture = IM_FIXTURE.as_bytes();
         let raw = EventDispatcherHandler::builder()
             .register_raw("im.message.receive_v1", {
-                struct Noop;
-                impl EventHandler for Noop {
+                // raw 使用者手动反序列化相同事件，确保比较的是相同处理工作。
+                struct DeserializeImMessage;
+                impl EventHandler for DeserializeImMessage {
                     fn handle(
                         &self,
-                        _payload: &[u8],
+                        payload: &[u8],
                     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        let event: ImMessageReceiveV1 = serde_json::from_slice(payload)?;
+                        assert_eq!(event.event.message.message_id, "om_hello");
                         Ok(())
                     }
                 }
-                Noop
+                DeserializeImMessage
             })
             .expect("raw")
             .build();
@@ -687,12 +690,10 @@ mod tests {
             typed_elapsed.as_millis() < 500,
             "1000 typed dispatches took {typed_elapsed:?}"
         );
-        // typed 路径在命中后直接从字节反序列化，避免为所有事件预先
-        // 物化完整 Value 树带来的内存放大。因此它会比只做路由解析的 raw 路径
-        // 多一次有界的解析，但仍应保持在宽松的相对性能预算内。
+        // 两条路径都在命中后解析相同类型，typed 注册糖仍应满足原来的 2x 预算。
         assert!(
-            typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 3.0,
-            "typed {typed_elapsed:?} exceeds 3x raw {raw_elapsed:?}"
+            typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 2.0,
+            "typed {typed_elapsed:?} exceeds 2x raw {raw_elapsed:?}"
         );
     }
 }
