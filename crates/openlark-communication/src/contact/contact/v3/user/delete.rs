@@ -1,14 +1,13 @@
 //! 删除用户
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    contact::contact::v3::user::models::UserIdType,
+    common::models::EmptyData, contact::contact::v3::user::models::UserIdType,
     endpoints::CONTACT_V3_USERS,
 };
 
@@ -59,7 +58,7 @@ impl DeleteUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -80,8 +79,7 @@ impl DeleteUserRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除用户")
+        Transport::request_typed(req, &self.config, Some(option), "删除用户").await
     }
 }
 

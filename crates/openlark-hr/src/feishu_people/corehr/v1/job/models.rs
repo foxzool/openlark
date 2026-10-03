@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 职务基础数据结构
-// ============================================================================
 
 /// 职务信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -52,9 +50,7 @@ pub struct CustomField {
     pub field_value: serde_json::Value,
 }
 
-// ============================================================================
 // 创建职务相关模型
-// ============================================================================
 
 /// 创建职务请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,9 +86,7 @@ pub struct CreateResponse {
     pub job_id: String,
 }
 
-// ============================================================================
 // 删除职务相关模型
-// ============================================================================
 
 /// 删除职务请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,9 +102,7 @@ pub struct DeleteResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 查询单个职务相关模型
-// ============================================================================
 
 /// 查询单个职务请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,9 +118,7 @@ pub struct GetResponse {
     pub job: Job,
 }
 
-// ============================================================================
 // 批量查询职务相关模型
-// ============================================================================
 
 /// 批量查询职务请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,9 +155,7 @@ pub struct ListResponse {
     pub page_token: Option<String>,
 }
 
-// ============================================================================
 // 更新职务相关模型
-// ============================================================================
 
 /// 更新职务请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -204,25 +192,4 @@ pub struct PatchRequestBody {
 pub struct PatchResponse {
     /// 更新结果
     pub result: bool,
-}
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

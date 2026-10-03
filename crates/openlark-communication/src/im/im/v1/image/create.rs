@@ -1,13 +1,12 @@
 //! 上传图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/image/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/create>
 
-use openlark_core::{api::ApiRequest, config::Config, error, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_IMAGES,
-    im::im::v1::image::models::{CreateImageResponse, ImageType},
+    im::v1::image::models::{CreateImageResponse, ImageType},
 };
 
 /// 上传图片请求
@@ -60,7 +59,7 @@ impl CreateImageRequest {
     ///
     /// 说明：该接口为 multipart 上传，请直接传入图片二进制内容。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/image/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/create>
     pub async fn execute(self, image_bytes: Vec<u8>) -> SDKResult<CreateImageResponse> {
         self.execute_with_options(
             image_bytes,
@@ -102,9 +101,7 @@ impl CreateImageRequest {
             .body(body)
             .file_content(image_bytes);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "上传图片")
+        Transport::request_typed(req, &self.config, Some(option), "上传图片").await
     }
 }
 

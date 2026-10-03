@@ -2,13 +2,14 @@
 //!
 //! 此接口用于创建知识空间。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +25,10 @@ pub struct CreateWikiSpaceRequest {
     name: String,
     /// 知识空间描述
     description: Option<String>,
+    /// 是否开启知识库分享（可选）
+    ///
+    /// 官方字段 `open_sharing`：开启后知识库可被组织外用户访问。
+    open_sharing: Option<String>,
 }
 
 /// 创建知识空间请求体（内部使用）
@@ -32,6 +37,8 @@ struct CreateWikiSpaceRequestBody {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    open_sharing: Option<String>,
 }
 
 /// 创建知识空间响应
@@ -54,6 +61,7 @@ impl CreateWikiSpaceRequest {
             config,
             name: String::new(),
             description: None,
+            open_sharing: None,
         }
     }
 
@@ -66,6 +74,12 @@ impl CreateWikiSpaceRequest {
     /// 设置知识空间描述
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
+        self
+    }
+
+    /// 设置是否开启知识库分享（官方字段 `open_sharing`）
+    pub fn open_sharing(mut self, open_sharing: impl Into<String>) -> Self {
+        self.open_sharing = Some(open_sharing.into());
         self
     }
 
@@ -89,30 +103,16 @@ impl CreateWikiSpaceRequest {
         let request_body = CreateWikiSpaceRequestBody {
             name: self.name,
             description: self.description,
+            open_sharing: self.open_sharing,
         };
 
-        let api_request: ApiRequest<CreateWikiSpaceResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&request_body, "创建知识空间")?);
+        let api_request: ApiRequest<CreateWikiSpaceResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&request_body, "创建知识空间")?);
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建知识空间")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建知识空间").await
     }
-}
-
-/// 创建知识空间请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 CreateWikiSpaceRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateWikiSpaceParams {
-    /// 知识空间名称
-    pub name: String,
-    /// 知识空间描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
 }
 
 #[cfg(test)]
@@ -176,18 +176,5 @@ mod tests {
             .description(&long_desc);
 
         assert_eq!(request.description.unwrap().len(), long_desc.len());
-    }
-
-    /// 测试已弃用的参数结构（保留以测试向后兼容性）
-    #[test]
-    #[allow(deprecated)]
-    fn test_deprecated_params() {
-        let params = CreateWikiSpaceParams {
-            name: "旧API知识库".to_string(),
-            description: Some("使用旧API创建".to_string()),
-        };
-
-        assert_eq!(params.name, "旧API知识库");
-        assert_eq!(params.description, Some("使用旧API创建".to_string()));
     }
 }

@@ -1,12 +1,13 @@
 //! 批量获取候选人ID
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/batch_get_id
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/batch_get_id>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required_list, SDKResult,
+    validate_required_list,
 };
 
 use super::models::{BatchGetIdRequestBody, BatchGetIdResponse};
@@ -72,20 +73,18 @@ impl BatchGetIdRequest {
         let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?);
 
         // 4. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 5. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量获取候选人ID响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量获取候选人ID响应数据为空",
+        )
+        .await
     }
 }
 

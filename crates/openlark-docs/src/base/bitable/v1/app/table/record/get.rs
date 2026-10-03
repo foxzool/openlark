@@ -1,6 +1,6 @@
 //! Bitable 检索记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -142,8 +142,8 @@ impl GetRecordRequest {
             self.record_id,
         );
 
-        let mut api_request: ApiRequest<GetRecordResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #424: GET from catalog
+        let mut api_request: ApiRequest<GetRecordResponse> = api_endpoint.to_request();
 
         api_request = api_request.query_opt(
             "text_field_as_array",
@@ -163,10 +163,7 @@ impl GetRecordRequest {
             self.automatic_fields.map(|v| v.to_string()),
         );
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 检索记录").await
     }
 }
 
@@ -253,5 +250,17 @@ mod tests {
     #[test]
     fn test_response_trait() {
         assert_eq!(GetRecordResponse::data_format(), ResponseFormat::Data);
+    }
+
+    #[test]
+    fn test_get_uses_get_method_from_catalog_424() {
+        // 验证迁移后叶子使用 catalog 的 method（#424）
+        let ep = crate::common::api_endpoints::BitableApiV1::RecordGet(
+            "app".into(),
+            "tbl".into(),
+            "rec".into(),
+        );
+        let req: openlark_core::api::ApiRequest<GetRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Get);
     }
 }

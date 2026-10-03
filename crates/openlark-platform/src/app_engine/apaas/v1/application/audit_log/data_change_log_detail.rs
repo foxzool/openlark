@@ -1,19 +1,20 @@
 //! 查询数据变更日志详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_log_detail
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_log_detail>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/application-audit_log/data_change_log_detail>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询数据变更日志详情 Builder
 #[derive(Debug, Clone)]
-pub struct DataChangeLogDetailBuilder {
+pub struct DataChangeLogDetailRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -21,7 +22,7 @@ pub struct DataChangeLogDetailBuilder {
     log_id: String,
 }
 
-impl DataChangeLogDetailBuilder {
+impl DataChangeLogDetailRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>, log_id: impl Into<String>) -> Self {
         Self {
@@ -33,17 +34,7 @@ impl DataChangeLogDetailBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<DataChangeLogDetailResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/audit_log/data_change_log_detail",
-            self.namespace
-        );
-
-        let mut req: ApiRequest<DataChangeLogDetailResponse> = ApiRequest::get(&url);
-        req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询数据变更日志详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -58,10 +49,7 @@ impl DataChangeLogDetailBuilder {
 
         let mut req: ApiRequest<DataChangeLogDetailResponse> = ApiRequest::get(&url);
         req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询数据变更日志详情", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询数据变更日志详情").await
     }
 }
 
@@ -99,7 +87,7 @@ pub struct DataChangeLogDetail {
 pub struct DataChangeLogDetailResponse {
     /// 数据变更日志详情
     #[serde(rename = "data_change_log")]
-    data_change_log: DataChangeLogDetail,
+    pub data_change_log: DataChangeLogDetail,
 }
 
 impl ApiResponseTrait for DataChangeLogDetailResponse {
@@ -108,23 +96,69 @@ impl ApiResponseTrait for DataChangeLogDetailResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to DataChangeLogDetailRequestBuilder, will be removed in v1.0 (#271)")]
+pub type DataChangeLogDetailBuilder = DataChangeLogDetailRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../audit_log/data_change_log_detail?log_id=... → DataChangeLogDetailResponse。
+    #[tokio::test]
+    async fn test_get_data_change_log_detail_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/apaas/v1/applications/ns_test/audit_log/data_change_log_detail",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data_change_log": {
+                        "log_id": "log_001",
+                        "change_type": "UPDATE",
+                        "object_type": "record",
+                        "object_id": "obj_001",
+                        "operator": "u_001",
+                        "change_time": 1717000000,
+                        "before_data": {"name": "old"},
+                        "after_data": {"name": "new"}
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DataChangeLogDetailRequestBuilder::new(config, "ns_test", "log_001")
+            .execute()
+            .await
+            .expect("查询数据变更日志详情应成功");
+        assert_eq!(resp.data_change_log.log_id, "log_001");
+        assert_eq!(resp.data_change_log.change_type, "UPDATE");
+        assert_eq!(resp.data_change_log.object_id, "obj_001");
+        assert_eq!(resp.data_change_log.operator, "u_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/audit_log/data_change_log_detail"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("log_id=log_001"));
     }
 }

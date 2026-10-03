@@ -1,12 +1,13 @@
 //! 关闭职位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/close
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/close>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,7 +15,6 @@ use std::collections::HashMap;
 
 /// 关闭职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CloseRequest {
     job_id: String,
     /// 配置信息
@@ -44,14 +44,7 @@ impl CloseRequest {
 
         let api_endpoint = HireApiV1::JobClose(self.job_id);
         let request = ApiRequest::<CloseResponse>::post(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "关闭职位响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "关闭职位响应数据为空").await
     }
 }
 

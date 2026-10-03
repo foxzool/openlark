@@ -1,7 +1,9 @@
 # Open-Lark 架构设计文档
 
-> ⚠️ **免责声明：架构设计文档状态说明"
-> 
+> **文档定位：** 本文是历史架构叙事（篇幅长，部分段落仍用早期「Open-Lark」称呼，文中 API 数量可能过时）。日常导航与当前模块/覆盖率请优先看 [`AGENTS.md`](AGENTS.md) 与 [`docs/README.md`](docs/README.md)；勿把本文当作公开入口或 API 计数的权威来源。
+
+> ⚠️ **免责声明：架构设计文档状态说明**
+>
 > 本文档包含两部分内容：
 > - **✅ 当前已实现架构**：核心业务模块、API调用模式、错误处理系统、服务生命周期管理等已落地的实现
 > - **🚧 规划中的高级设计**：熔断器、部分可观测性组件、智能重试中间件等高级特性（标记为「规划中」）
@@ -14,7 +16,7 @@
 
 ## 项目概览
 
-**Open-Lark** 是为飞书开放平台构建的高覆盖率 Rust SDK，提供对 1,688+ 个 API 的类型安全访问。本文档描述了重构后的模块化架构设计。
+**Open-Lark** 是为飞书开放平台构建的高覆盖率 Rust SDK，提供对 1,560+ 个 API 的类型安全访问。本文档描述了重构后的模块化架构设计。
 
 ## 设计理念
 
@@ -40,7 +42,6 @@
 - ✅ 功能标志(Feature flags)按需编译
 - ✅ HTTP 客户端和基础认证管理
 - ✅ 请求/响应序列化和基础验证
-- ✅ ServiceLifecycle trait（服务生命周期管理：`crates/openlark-client/src/traits/service.rs`）
 - ✅ RetryPolicy（重试策略配置：`crates/openlark-core/src/error/core.rs`）
 - ✅ 基础可观测性（OperationTracker/HttpTracker：`crates/openlark-core/src/observability.rs`）
 
@@ -54,7 +55,7 @@
 - 🚧 ApiEndpoint trait（Enum+Builder API Endpoint 系统）
 - 🚧 GracefulShutdownManager（优雅关闭管理）
 - 🚧 TokenBucketRateLimiter（令牌桶限流器）
-- 🚧 动态服务发现和热加载机制
+- ~~🚧 动态服务发现和热加载机制~~（**0.18 否决**：registry 为编译期 metadata-only 诊断，见 #423 / #437）
 - 🚧 完整的指标收集和告警系统（MetricsCollector/AlertManager）
 - 🚧 性能剖析系统
 #### 代码示例说明
@@ -99,11 +100,63 @@
 │ └─────────────┴─────────────┴─────────────┴─────────────┘      │
 ├─────────────────────────────────────────────────────────────────┤
 │                       基础设施层 (Core Layer)                   │
-│           openlark-core + openlark-protocol                     │
+│      openlark-core + lark-websocket-protobuf                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## 模块详细设计
+
+### Transport HTTP 边界
+
+> 架构约定：`openlark_core::http::Transport<T>` 是 OpenLark 的**唯一 HTTP 出口**。
+> 业务 crate 经 `Transport` 抽象发请求，**不在各自 `Cargo.toml` 声明 reqwest 依赖、不在源码使用 reqwest 类型**。
+> 此边界由 `tools/check_reqwest_boundary.sh` 机器检验（`just reqwest-boundary` / CI lint job），防止分层泄漏复发（见 issue #270）。
+>
+> **作用域澄清**：守卫只检**业务 crate** 的 `Cargo.toml`（`openlark-core` 在白名单——它是 Transport 抽象本体，合法碰 reqwest）。「唯一出口」对业务 crate 由 `Transport::request` 收口；core 内部的副作用请求（如 app_ticket resend）经 **ADR-0002** 收口走 `UnifiedRequestBuilder` bootstrap 旁路（`auth::app_ticket::resend_app_ticket`），不再有 ad-hoc `config.http_client().post()` 路径。
+
+### 鉴权 concern 归属（ADR-0002 Accepted）
+
+「给一个请求做鉴权」整条链（决策 / 获取 / 恢复）**同居** `openlark_core::auth/`；`Transport` 与 `request_execution` 只按名委托，不重编码 marketplace / token-cache 规则，也不自建第二条 HTTP 出口。
+
+| 子 concern | 模块 | 关键入口 | 调用方 |
+|------------|------|----------|--------|
+| 决策 + 授权校验 | `auth/policy.rs` | `determine_token_type` / `validate_token_type` / `validate_authorization` | `Transport::request`（α-delegate） |
+| 获取（TokenProvider adapter） | `auth/acquisition.rs` | `AuthHandler::apply_auth` | `request_execution::UnifiedRequestBuilder` |
+| 恢复（app_ticket 10012） | `auth/app_ticket.rs` | `recover_app_ticket_if_needed` → `resend_app_ticket`（`UnifiedRequestBuilder` None-token bootstrap） | `Transport::do_request`（α-delegate） |
+| 令牌抽象 | `auth/token_provider.rs` | `TokenProvider` trait | acquisition + 业务 provider 实现 |
+
+分层：`auth/` ← `request_execution/`（URL/header/body/multipart 编排，调 `AuthHandler`）← `http::Transport`（HTTP 入口）。  
+回归锁：`crates/openlark-core/tests/adr0002_locality_lock.rs` + 行为测 `transport_app_ticket_invalid_triggers_resend`。  
+**禁止**：把 policy 自由函数搬回 `http.rs`；在 `request_execution/` 复活 `auth_handler.rs`；对 resend 再开 `reqwest::Client::new` / `http_client().post()` ad-hoc 路径；把 `resend_app_ticket` / `recover_app_ticket_if_needed` 升为 `pub`。
+
+**调用路径**（仅 core 碰 reqwest）：
+
+```
+*Request::execute()
+  └─> openlark_core::http::Transport::request(req, &config, option)
+        ├─> auth::policy::{validate_token_type, determine_token_type, validate_authorization}
+        ├─> request_execution::UnifiedRequestBuilder
+        │     └─> auth::AuthHandler::apply_auth  →  reqwest::RequestBuilder
+        └─> (响应后) auth::app_ticket::recover_app_ticket_if_needed
+              └─> resend via UnifiedRequestBuilder bootstrap（非 ad-hoc client）
+```
+
+**Cargo 依赖边界**：
+
+| crate | 可否声明 reqwest | 原因 |
+|-------|----------------|------|
+| `openlark-core` | ✅ 声明 | Transport 抽象本体，reqwest 实现细节收敛于此 |
+| `openlark-client` | ✅ 声明（optional，websocket feature 引用） | 客户端装配 + WebSocket 升级握手 |
+| `openlark-webhook` | ✅ 声明 | by-design 性能例外（见下） |
+| 其余业务 crate（hr/communication/docs/workflow/...） | ❌ 禁止 | 须经 `Transport::request()` 发请求 |
+
+**webhook by-design 例外**：
+
+`openlark-webhook` 直接使用 `reqwest::Client`（`crates/openlark-webhook/src/robot/v1/send.rs::shared_client()`，进程级 `OnceLock` 共享单个 `Client` 复用连接池），**不经 core `Transport`**。原因：webhook 自定义机器人**不是飞书开放平台 API**——目标 URL 是用户配置的绝对地址、鉴权用 URL 携带的签名密钥（非 Bearer token）、响应体是 `{code,msg}` 非标准包装，与 `Transport` 固定的 `/open-apis/` 基址、强制 token 注入、`ApiResponse<R>` 解析三者均不兼容。这是**有意保留的独立 reqwest 路径**（调研见 GitHub issue #214），**不视为分层泄漏**。详见 `send` 模块文档注释。
+
+**Transport 中间件 / 熔断 / 智能重试中间件 — 规划中（future change）**
+
+本文档部分章节（如服务层重构草案、CircuitBreaker、AsyncMiddlewareChain）描述了 Transport 中间件链 / 熔断器 / 智能重试中间件的**目标形态**。这些设计**当前未实现**——实际重试能力是 `openlark_core::error::RetryPolicy` 的配置模式（无中间件链、无熔断器）。本文档顶部「文档内容分级」已将这些标注为 `🚧 规划中`。中间件/熔断/重试链的落地属**独立的 future change**，不属本次 #270 边界澄清范围。
 
 ### 核心模块 (Core Modules)
 
@@ -117,7 +170,9 @@
 
 **错误码对齐与优先级**
 - 优先级：`飞书通用 code` > `HTTP status` > `内部业务码`（同一响应仅选一层）。  
-- 核心映射：响应体含 `code` 时优先调用 `ErrorCode::from_feishu_code`；未命中再用 `status`；都缺省时使用内部业务码。  
+- **唯一映射路径**：`ErrorCode::from_code(raw_code: i32)`（HTTP 臂 + 飞书通用码臂 + 内部业务码臂）。  
+  解码接通后 `ApiError.raw_code` 原样携带飞书 `code`（不经 `u16` 截断），再经 `from_code` 分类；  
+  未知码 → `ErrorCode::Unknown`。构造入口为 core `api_error(raw_code, …)` / `CoreError::Api`。  
 - 观测：`log_id` 写入 `ErrorContext.request_id`，`feishu_code` 写入上下文 `feishu_code` 键，便于链路与告警。  
 - 关键通用码（示例）：
   - 99991661：AccessToken 格式/内容无效  
@@ -136,11 +191,11 @@
 - 异步接口抽象
 - 构建器模式API
 
-#### 3. openlark-protocol
+#### 3. lark-websocket-protobuf
 **职责**: 协议定义
-- WebSocket protobuf定义
-- 消息协议和事件处理
-- 数据序列化/反序列化
+- WebSocket protobuf 消息定义
+- 发布预生成 Rust 源码，不把 `protoc` 依赖泄漏给消费者
+- `Frame` / `Header` 数据序列化与反序列化
 
 ### 业务模块 (Business Modules)
 
@@ -240,7 +295,7 @@ graph TD
     N --> C
     O --> C
 
-    C --> P["openlark-protocol"]
+    C --> P["lark-websocket-protobuf"]
 
     style C fill:#e1f5fe
     style P fill:#f3e5f5
@@ -248,6 +303,14 @@ graph TD
 ```
 
 ## openlark-client 服务层重构方案（crates/openlark-client/src/services）
+
+> ⚠️ **本节为早期设计草案，实际未按此实现。** 当前 `openlark-client`（0.18 / #423–#437）采用：
+> - **capability catalog**（`crates/openlark-client/src/capability/catalog.rs`）为 Client 字段与
+>   registry 诊断元数据的**单一事实来源**
+> - **字段挂载** meta 链（`client.rs` + `declare_client!` 由 catalog 投影）
+> - **metadata-only** `registry/`（`mod.rs` + `bootstrap.rs` 委托 catalog；**无** `registry/catalog.rs`）
+>
+> **未引入**本节描述的 `Service` trait / `ServiceContext` / 依赖解算 / 热加载。保留本节仅作设计演进的历史记录（见 issue #269）。
 
 ### 重构目标
 - 消除重复：统一 `services/` 与 `registry/` 的能力，避免双重工厂/注册逻辑。
@@ -415,90 +478,73 @@ impl ClientBuilder {
 }
 ```
 
-#### 6.1.2 服务注册与发现机制
+#### 6.1.2 业务入口与编译能力诊断（0.18）
 
-客户端采用服务注册表模式，支持动态服务发现和依赖管理：
+> **现行模型**（#434–#437 / #471）：业务经 `Client` 的 **meta 字段链**访问。
+> `registry` / `traits` / `lazy` 等诊断半边曾位于 `openlark-client`，因零外部消费者
+> 已于 **0.19（#471）整体移除**；能力是否编译改由 Cargo feature +
+> `openlark-capability-unique` trybuild（编译期）判断，不再有 runtime registry。
+> 迁移见 `docs/migration-guide.md`。
 
 ```rust
-// 服务注册表结构
+// Client 挂载 feature-gated 字段（由 capability catalog 生成；无 registry 字段）
 pub struct Client {
-    config: Arc<Config>,
-    registry: Arc<DefaultServiceRegistry>,
-}
-
-impl Client {
-    // 🔐 访问认证服务（需要 auth feature）
+    config: Config,
     #[cfg(feature = "auth")]
-    pub fn auth(&self) -> crate::services::AuthService {
-        crate::services::AuthService::new(&self.config)
-    }
-
-    // 📡 访问通讯服务（需要 communication feature）
+    pub auth: AuthClient,
     #[cfg(feature = "communication")]
-    pub fn communication(&self) -> Result<crate::services::CommunicationService<'_>> {
-        crate::services::CommunicationService::new(&self.config, &self.registry)
-    }
-
-    // 📄 访问文档服务（需要 docs feature）
+    pub communication: CommunicationClient,
     #[cfg(feature = "docs")]
-    pub fn docs(&self) -> crate::services::DocsService<'_> {
-        crate::services::DocsService::new(&self.config)
-    }
-
-    // 📊 访问多维表格服务（需要 bitable feature）
-    #[cfg(feature = "docs")]
-    pub fn bitable(&self) -> &'static str {
-        "BitableService 尚未实现"
-    }
-}
-```
-
-#### 6.1.3 服务生命周期管理
-
-服务采用分层注册机制，按优先级和依赖关系管理：
-
-```rust
-// 分层服务注册
-fn load_enabled_services(config: &Config, registry: &mut DefaultServiceRegistry) -> Result<()> {
-    // 核心层服务（优先级1-2）
-    register_core_services(config, registry)?;
-
-    // 专业层服务（优先级3-4）
-    register_professional_services(config, registry)?;
-
-    // 企业层服务（优先级5-6）
-    register_enterprise_services(config, registry)?;
+    pub docs: DocsClient,
+    // ... 其余业务域同理
 }
 
-// 服务元数据管理
-let metadata = ServiceMetadata {
-    name: "communication".to_string(),
-    version: "1.0.0".to_string(),
-    description: Some("飞书通讯服务，提供消息、联系人、群组等功能".to_string()),
-    dependencies: vec!["auth".to_string()],
-    provides: vec!["im".to_string(), "contacts".to_string()],
-    status: ServiceStatus::Uninitialized,
-    priority: 2,
-};
+// 业务调用：字段链（唯一入口）
+#[cfg(feature = "docs")]
+let _ = &client.docs;
 ```
 
-#### 6.1.4 功能标志和依赖解析
+#### 6.1.3 [已删除/历史文档] 能力元数据（0.19 #471 移除）
 
-支持编译时功能标志和运行时依赖解析：
+> **已移除**：整个 registry 半边（`ServiceMetadata` / `ServiceEntry` /
+> `Client::registry()`）于 0.19（#471）删除（零外部消费者）。下方为 0.18 历史形态，
+> 仅作记录；现行能力诊断走 Cargo feature + trybuild（编译期）。
+
+构造期由 catalog 写入不可变元数据；**无** `ServiceStatus` / instance / 公开 register。
+文档示例也从 registry 读取 catalog 投影，不复制名称与描述字面量：
 
 ```rust
-// 编译时功能控制
+pub struct ServiceMetadata {
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub dependencies: Vec<String>, // 须与 Cargo feature 关系一致
+    pub provides: Vec<String>,
+    pub priority: u32,
+}
+
+// 诊断数据来自唯一 catalog，不在文档中另建一份 metadata。
+let entry = client.registry().get_service("communication")?;
+println!(
+    "{}: {:?}, deps={:?}, provides={:?}, priority={}",
+    entry.metadata.name,
+    entry.metadata.description,
+    entry.metadata.dependencies,
+    entry.metadata.provides,
+    entry.metadata.priority,
+);
+```
+
+#### 6.1.4 功能标志（编译时）
+
+能力由 Cargo feature 决定字段是否存在；依赖关系写在 catalog 的 `dependencies` 中供诊断：
+
+```rust
+// Cargo.toml（openlark-client）
+// communication = ["auth", "dep:openlark-communication"]
+
 #[cfg(feature = "communication")]
-pub fn communication(&self) -> Result<CommunicationService<'_>> {
-    CommunicationService::new(&self.config, &self.registry)
-}
-
-// 依赖关系定义
-impl CommunicationService {
-    pub fn dependencies() -> &'static [&'static str] {
-        &["auth"]  // 依赖认证服务
-    }
-}
+// client.communication 字段可用；registry.has_service("communication") == true
 ```
 
 ### 6.2 请求构建模式
@@ -549,7 +595,7 @@ impl UnifiedRequestBuilder {
         // 2. 构建请求头
         req_builder = HeaderBuilder::build_headers(req_builder, config, option);
 
-        // 3. 处理认证
+        // 3. 认证获取：委托 auth::AuthHandler（ADR-0002；定义在 auth/acquisition.rs）
         req_builder = AuthHandler::apply_auth(req_builder, access_token_type, config, option).await?;
 
         // 4. 处理请求体和文件
@@ -564,13 +610,20 @@ impl UnifiedRequestBuilder {
 }
 ```
 
-#### 6.2.2 认证处理机制
+> Token **类型决策**不在本 builder：由 `Transport` 先调 `auth::policy`，再把结果传入 `build`。
 
-支持多种令牌类型和自动认证处理：
+#### 6.2.2 认证处理机制（`auth/`，ADR-0002）
+
+认证**不**作为 `request_execution` 子模块或 `Transport` 内自由逻辑存在。归属：
+
+- **决策**：`openlark_core::auth::policy`（`determine_token_type` / `validate_token_type` / `validate_authorization`）——由 `Transport` 按名调用。
+- **获取**：`openlark_core::auth::acquisition::AuthHandler`——由 `UnifiedRequestBuilder` 委托；内部走 `TokenProvider`（Static / NoOp 等 adapter）。
+- **恢复**：`openlark_core::auth::app_ticket`——`recover_app_ticket_if_needed` 在 `do_request` 收到业务码 10012 时触发；`resend_app_ticket` 经 `UnifiedRequestBuilder` None-token bootstrap，禁止 ad-hoc `reqwest` 出口。
 
 ```rust
-// 认证处理器
-pub struct AuthHandler;
+// 位置：crates/openlark-core/src/auth/acquisition.rs（pub(crate)）
+// request_execution 仅 `use crate::auth::AuthHandler`，不再持有 auth_handler 子模块。
+pub(crate) struct AuthHandler;
 
 impl AuthHandler {
     pub async fn apply_auth(
@@ -578,24 +631,11 @@ impl AuthHandler {
         token_type: AccessTokenType,
         config: &Config,
         option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
+    ) -> Result<RequestBuilder, CoreError> {
         match token_type {
-            AccessTokenType::User => {
-                if let Some(token) = &option.user_access_token {
-                    Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-                } else {
-                    // 自动获取用户令牌
-                    Self::get_user_access_token(config).await
-                }
-            },
-            AccessTokenType::App => {
-                // 应用级令牌处理
-                Self::get_app_access_token(config).await
-            },
-            AccessTokenType::Tenant => {
-                // 租户级令牌处理
-                Self::get_tenant_access_token(config).await
-            },
+            AccessTokenType::User => Self::apply_user_auth(req_builder, option),
+            AccessTokenType::App => Self::apply_app_auth(req_builder, config, option).await,
+            AccessTokenType::Tenant => Self::apply_tenant_auth(req_builder, config, option).await,
             AccessTokenType::None => Ok(req_builder),
         }
     }
@@ -672,13 +712,16 @@ impl MultipartBuilder {
 
 类型安全的响应处理系统：
 
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。  
+> **错误码（ADR-0004 / #542）**：`api_error` 收 `raw_code: i32`，**禁止** `code as u16` 截断；分类经 `ErrorCode::from_code(raw_code)`。
+
 ```rust
 use openlark_core::api::{Response, RawResponse};
 
 // 原始响应结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawResponse {
-    pub code: i32,
+    pub code: i32, // 双域共槽：飞书业务码或合成 HTTP status
     pub msg: String,
     pub request_id: Option<String>,
     pub data: Option<serde_json::Value>,
@@ -701,7 +744,7 @@ impl<T> Response<T> {
         }
     }
 
-    // 转换为结果类型
+    // 转换为结果类型（历史 API；现行用 Response::decode）
     pub fn into_result(self) -> Result<T, LarkAPIError> {
         if self.raw_response.is_success() {
             match self.data {
@@ -709,8 +752,9 @@ impl<T> Response<T> {
                 None => Err(api_error(0, "response", "响应数据为空", self.raw_response.request_id)),
             }
         } else {
+            // 传 i32 原值，禁止 as u16（飞书 9 位码会截断成垃圾值）
             Err(api_error(
-                self.raw_response.code as u16,
+                self.raw_response.code,
                 "response",
                 self.raw_response.msg,
                 self.raw_response.request_id,
@@ -723,6 +767,8 @@ impl<T> Response<T> {
 #### 6.3.2 类型安全转换
 
 强类型的API响应处理：
+
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
 
 ```rust
 // API响应特征
@@ -1013,7 +1059,7 @@ impl Middleware for RetryMiddleware {
 OpenLark的ClientBuilder采用流畅API设计，提供类型安全和配置验证：
 
 ```rust
-use openlark_client::{Client, Config, Result};
+use openlark_client::{Client, CoreConfig as Config, Result};
 use std::time::Duration;
 
 // 🔥 快速创建 - 从环境变量
@@ -1096,7 +1142,8 @@ impl ClientBuilder {
 
     /// 构建客户端实例
     pub fn build(self) -> Result<Client> {
-        let result = Client::with_config(self.config);
+        // Config 即 openlark_core::config::Config（client::Config 已在 v0.18 移除）
+        let result = Client::with_core_config(self.config);
         if let Err(ref error) = result {
             tracing::error!(
                 "客户端构建失败: {}",
@@ -1148,42 +1195,28 @@ impl Config {
 
 #### 7.1.3 功能标志控制
 
-编译时功能标志控制服务可用性：
+编译时功能标志通过 capability catalog 控制 Client 上的 meta 字段是否出现（0.18 现行模型）：
 
 ```rust
-// 功能标志检查宏
-macro_rules! require_feature {
-    ($feature:literal, $service:literal) => {
-        if !cfg!(feature = $feature) {
-            compile_error!(concat!(
-                "启用 ", $service, " 服务需要启用 '",
-                $feature, "' feature"
-            ));
-        }
-    };
-}
-
-// 服务访问器
-impl Client {
-    #[cfg(feature = "communication")]
-    pub fn communication(&self) -> Result<CommunicationService<'_>> {
-        require_feature!("communication", "通讯");
-        CommunicationService::new(&self.config, &self.registry)
-    }
-
-    #[cfg(feature = "docs")]
-    pub fn docs(&self) -> DocsService<'_> {
-        require_feature!("docs", "文档");
-        DocsService::new(&self.config)
-    }
+// Client 上的业务字段由 catalog 宏 + cfg(feature) 生成（非方法式访问器；无 registry 字段）
+pub struct Client {
+    config: openlark_core::config::Config,
 
     #[cfg(feature = "auth")]
-    pub fn auth(&self) -> AuthService {
-        require_feature!("auth", "认证");
-        AuthService::new(&self.config)
-    }
+    pub auth: AuthClient,
+    #[cfg(feature = "communication")]
+    pub communication: CommunicationClient,
+    #[cfg(feature = "docs")]
+    pub docs: DocsClient,
+    // 其余域同理，由 crates/openlark-client/src/capability/catalog.rs 统一声明
 }
+
+// 用法：字段访问（启用对应 feature 方可编译）
+#[cfg(feature = "docs")]
+let _ = &client.docs;
 ```
+
+旧的 `fn communication(&self)` / `require_feature!` 宏访问器模式已在 0.18 废弃，详见 §6.1.2 与 crates/openlark-client/AGENTS.md。
 
 #### 7.1.4 错误处理和上下文管理
 
@@ -1200,101 +1233,53 @@ impl Client {
         let result = f.await;
         with_operation_context(result, operation, "Client")
     }
-
-    /// 处理错误并添加客户端上下文
-    pub fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T> {
-        with_operation_context(result, operation, "Client")
-    }
 }
 
-// 错误上下文扩展
-pub trait ClientErrorHandling {
-    fn handle_error<T>(&self, result: Result<T>, operation: &str) -> Result<T>;
-    async fn handle_async_error<T, F>(&self, f: F, operation: &str) -> Result<T>
-    where
-        F: std::future::Future<Output = Result<T>>;
-}
+// 注：`handle_error` 方法与 `ClientErrorHandling` trait（含 `handle_async_error`）
+// 已于 0.19（#471）移除——零消费者的 speculative 表面。等价能力用上面的
+// `execute_with_context`（inherent 方法）。
 ```
 
 ### 7.2 服务注册机制
 
-#### 7.2.1 ServiceRegistry注册表
+#### 7.2.1 [已删除/历史文档] ServiceRegistry（0.19 #471 移除）
 
-服务注册表管理所有可用服务和依赖关系：
+> **已移除**（#471）：`Client::registry()` / `DefaultServiceRegistry` /
+> `ServiceMetadata` / `ServiceEntry` / `ServiceRegistry` trait 全部删除——零外部消费者。
+> 下方为 0.18 形态，仅作历史记录；现行能力诊断走 Cargo feature + trybuild（编译期）。
+> 0.18 之前的删除项（`FeatureLoader`、`ServiceStatus`、typed-instance、
+> `update_service_status`、公开 `register_service`）仍记录于此。迁移见
+> `docs/migration-guide.md`。
 
 ```rust
-// 服务注册表
-pub struct ServiceRegistry {
-    services: HashMap<String, ServiceEntry>,
-    // [已删除] factories: HashMap<String, Box<dyn ServiceFactoryTrait>>,
-}
-    services: HashMap<String, ServiceEntry>,
-    factories: HashMap<String, Box<dyn ServiceFactoryTrait>>,
-}
+// 现行形状（简化）
+pub struct DefaultServiceRegistry { /* 内部 HashMap */ }
 
-#[derive(Debug, Clone)]
-pub struct ServiceEntry {
+pub struct ServiceMetadata {
     pub name: String,
     pub version: String,
     pub description: Option<String>,
     pub dependencies: Vec<String>,
     pub provides: Vec<String>,
-    pub status: ServiceStatus,
     pub priority: u32,
+    // 无 status / instance / 时间戳
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ServiceStatus {
-    Uninitialized,
-    Initializing,
-    Ready,
-    Failed(String),
-    Stopped,
+pub struct ServiceEntry {
+    pub metadata: ServiceMetadata,
 }
 
-impl ServiceRegistry {
-    pub fn register_service(&mut self, metadata: ServiceMetadata) -> Result<()> {
-        // 检查循环依赖
-        self.check_circular_dependencies(&metadata.dependencies)?;
+pub trait ServiceRegistry: Send + Sync {
+    fn get_service(&self, name: &str) -> RegistryResult<&ServiceEntry>;
+    fn list_services(&self) -> Vec<&ServiceEntry>; // 稳定顺序：priority, name
+    fn has_service(&self, name: &str) -> bool;
+    fn get_dependency_graph(&self) -> HashMap<String, Vec<String>>;
+}
 
-        // 验证依赖存在
-        for dep in &metadata.dependencies {
-            if !self.services.contains_key(dep) {
-                return Err(service_error(
-                    "dependency_missing",
-                    &format!("依赖服务 '{}' 不存在", dep)
-                ));
-            }
-        }
-
-        let entry = ServiceEntry {
-            name: metadata.name,
-            version: metadata.version,
-            description: metadata.description,
-            dependencies: metadata.dependencies,
-            provides: metadata.provides,
-            status: ServiceStatus::Uninitialized,
-            priority: metadata.priority,
-        };
-
-        self.services.insert(entry.name.clone(), entry);
-        Ok(())
-    }
-
-    fn check_circular_dependencies(&self, deps: &[String]) -> Result<()> {
-        for dep in deps {
-            if let Some(entry) = self.services.get(dep) {
-                // 检查是否存在反向依赖
-                if self.has_reverse_dependency(dep) {
-                    return Err(service_error(
-                        "circular_dependency",
-                        &format!("检测到循环依赖: {}", dep)
-                    ));
-                }
-            }
-        }
-        Ok(())
-    }
+// 使用
+if client.registry().has_service("docs") { /* feature 已编译 */ }
+for entry in client.registry().list_services() {
+    println!("{}", entry.metadata.name);
 }
 ```
 
@@ -1424,53 +1409,20 @@ impl DependencyResolver {
 }
 ```
 
-#### 7.2.4 动态服务发现
+#### 7.2.4 动态服务发现（0.18：已否决）
 
-运行时服务发现和热加载支持：
+> **不再实现**。0.18 明确 registry 为编译期 capability catalog 的不可变诊断投影，
+> 不提供运行时热加载 / ServiceWatcher / `ServiceStatus` 生命周期。能力是否可用
+> 仅取决于 Cargo feature + `client.registry().has_service`。
 
-```rust
-// 动态服务发现
-pub struct ServiceDiscovery {
-    registry: Arc<RwLock<ServiceRegistry>>,
-    watchers: Vec<Box<dyn ServiceWatcher>>,
-}
+### 7.3 服务生命周期管理（0.18：已否决，整个章节为历史设计）
 
-pub trait ServiceWatcher: Send + Sync {
-    fn on_service_added(&self, service: &ServiceEntry);
-    fn on_service_removed(&self, service_name: &str);
-    fn on_service_status_changed(&self, service_name: &str, status: ServiceStatus);
-}
+> **警告**：本节描述的 `Service` trait、`ServiceLifecycleManager`、`ServiceState`、
+> 健康检查容器等在 0.18 已被明确否决（见 7.2.1 与 AGENTS.md: metadata-only 规则）。
+> 当前 Client 不包含运行时生命周期管理；registry 仅提供不可变元数据诊断。
+> 以下代码片段仅作历史存档，请勿视作现行架构。
 
-impl ServiceDiscovery {
-    pub async fn discover_services(&self) -> Vec<String> {
-        let registry = self.registry.read().await;
-        registry.services.keys().cloned().collect()
-    }
-
-    pub async fn get_service_status(&self, service_name: &str) -> Option<ServiceStatus> {
-        let registry = self.registry.read().await;
-        registry.services.get(service_name).map(|s| s.status.clone())
-    }
-
-    pub async fn add_service(&self, metadata: ServiceMetadata) -> Result<()> {
-        let mut registry = self.registry.write().await;
-
-        // 验证并注册服务
-        registry.register_service(metadata)?;
-
-        // 通知观察者
-        if let Some(entry) = registry.services.get(&metadata.name) {
-            for watcher in &self.watchers {
-                watcher.on_service_added(entry);
-            }
-        }
-
-        Ok(())
-    }
-}
-```
-
-### 7.3 服务生命周期管理
+> 违反 crates/openlark-client/AGENTS.md 规定的 metadata-only 规则的旧描述已保留仅供参考。
 
 #### 7.3.1 Service trait定义
 
@@ -1801,6 +1753,8 @@ impl GracefulShutdownManager {
 #### 7.4.1 AsyncLarkClient trait
 
 异步客户端接口定义：
+
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。
 
 ```rust
 // 异步客户端特征
@@ -2238,85 +2192,36 @@ impl UnifiedRequestBuilder {
 }
 ```
 
-#### 8.1.2 AuthHandler认证处理器
+#### 8.1.2 AuthHandler 认证处理器（`auth/acquisition`，ADR-0002）
 
-认证处理器支持多种令牌类型和自动令牌管理：
+> **本地化**：`AuthHandler` 定义在 `crates/openlark-core/src/auth/acquisition.rs`（`pub(crate)`），由 `request_execution::UnifiedRequestBuilder` 导入使用。  
+> **不要**在 `request_execution/` 下再建 `auth_handler.rs`，也不要在 Transport 内联 token 获取。  
+> Token 类型**决策**在 `auth/policy.rs`；app_ticket **恢复**在 `auth/app_ticket.rs`。详见上文「鉴权 concern 归属」。
 
 ```rust
-// 认证处理器
-pub struct AuthHandler;
+// crates/openlark-core/src/auth/acquisition.rs
+pub(crate) struct AuthHandler;
 
 impl AuthHandler {
-    /// 应用认证到请求
+    /// 应用认证到请求（经 Config.token_provider 获取 token）
     pub async fn apply_auth(
-        mut req_builder: RequestBuilder,
+        req_builder: RequestBuilder,
         token_type: AccessTokenType,
         config: &Config,
         option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
+    ) -> Result<RequestBuilder, CoreError> {
         match token_type {
-            AccessTokenType::User => Self::apply_user_auth(req_builder, option).await,
+            AccessTokenType::User => Self::apply_user_auth(req_builder, option),
             AccessTokenType::App => Self::apply_app_auth(req_builder, config, option).await,
             AccessTokenType::Tenant => Self::apply_tenant_auth(req_builder, config, option).await,
             AccessTokenType::None => Ok(req_builder),
         }
     }
-
-    /// 应用用户认证
-    async fn apply_user_auth(
-        req_builder: RequestBuilder,
-        option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        if let Some(token) = &option.user_access_token {
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        } else {
-            // 自动获取用户访问令牌
-            Self::auto_fetch_user_token(req_builder).await
-        }
-    }
-
-    /// 应用应用认证
-    async fn apply_app_auth(
-        req_builder: RequestBuilder,
-        config: &Config,
-        option: &RequestOption,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        if let Some(token) = &option.app_access_token {
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        } else {
-            // 获取应用访问令牌
-            let token = Self::fetch_app_access_token(config).await?;
-            Ok(req_builder.header("Authorization", format!("Bearer {}", token)))
-        }
-    }
-
-    /// 自动获取用户令牌
-    async fn auto_fetch_user_token(
-        req_builder: RequestBuilder,
-    ) -> Result<RequestBuilder, LarkAPIError> {
-        // 实现OAuth流程或从缓存获取令牌
-        // 这里简化处理，实际实现会更复杂
-        Err(authentication_error("用户令牌未提供且无法自动获取"))
-    }
-
-    /// 获取应用访问令牌
-    async fn fetch_app_access_token(config: &Config) -> Result<String, LarkAPIError> {
-        let token_request = serde_json::json!({
-            "app_id": config.app_id,
-            "app_secret": config.app_secret
-        });
-
-        let response = config.http_client
-            .post(&format!("{}/open-apis/auth/v3/app_access_token/internal", config.base_url))
-            .json(&token_request)
-            .send()
-            .await?;
-
-        let token_response: AppAccessTokenResponse = response.json().await?;
-        Ok(token_response.app_access_token)
-    }
+    // apply_*_auth → TokenProvider::get_token → Authorization: Bearer …
 }
 ```
+
+Token 获取走 `TokenProvider`（`auth/token_provider.rs`），**禁止**在 Transport / acquisition 外手搓 `http_client().post()` 换 token。app_ticket 失效恢复见 `auth/app_ticket.rs`（`UnifiedRequestBuilder` bootstrap）。
 
 #### 8.1.3 HeaderBuilder头部构建器
 
@@ -2913,6 +2818,9 @@ impl Default for RawResponse {
 
 类型安全的响应包装器：
 
+> 历史示意：`into_result` 已随 #505 移除，现行 finisher 为 `Response::decode(context)`；以下为设计示意伪代码，与现行 API 有漂移。  
+> **错误码（ADR-0004 / #542）**：`api_error` 收 `raw_code: i32`，**禁止** `code as u16` 截断。
+
 ```rust
 // 类型安全的响应包装
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3022,8 +2930,9 @@ impl<T> Response<T> {
                 )),
             }
         } else {
+            // 传 i32 原值，禁止 as u16（飞书 9 位码会截断成垃圾值）
             Err(api_error(
-                self.raw_response.code as u16,
+                self.raw_response.code,
                 "response",
                 self.raw_response.msg.clone(),
                 self.raw_response.request_id,
@@ -4008,133 +3917,38 @@ pub enum ErrorSeverity {
    - 用户身份：99992351/52/53（ID非法）
    - 应用相关：10003（未安装）、19001（权限不足）
 
-**错误码映射实现**：
+**错误码映射实现**（`from_code` 单路径 + `raw_code`）：
 ```rust
-// 飞书错误码映射器
-pub struct FeishuErrorMapper;
+// 唯一映射：ErrorCode::from_code(raw_code)；未知 → Unknown
+// 构造入口：core::api_error(raw_code, endpoint, message, request_id)
+// ApiError 携带 raw_code: i32（飞书 body code 原样，不经 u16 截断）
 
-impl FeishuErrorMapper {
-    pub fn map_auth_error(
-        feishu_code: i32,
-        message: &str,
-        request_id: Option<&str>,
-    ) -> CoreError {
-        let mut ctx = ErrorContext::new();
-        if let Some(req_id) = request_id {
-            ctx.set_request_id(req_id);
-        }
-        ctx.add_context("feishu_code", feishu_code.to_string());
+// 响应体含飞书 code 时：
+let err = openlark_core::error::api_error(
+    feishu_code,           // raw_code: i32
+    endpoint,
+    message,
+    request_id,
+);
+// err 内：code = ErrorCode::from_code(feishu_code)
 
-        // 优先映射飞书通用错误码
-        match ErrorCode::from_feishu_code(feishu_code) {
-            Some(ErrorCode::AccessTokenExpiredV2) => {
-                CoreError::Authentication {
-                    message: format!("访问令牌已过期: {}", message),
-                    code: ErrorCode::AccessTokenExpiredV2,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::PermissionMissing) => {
-                CoreError::Authentication {
-                    message: format!("权限不足: {}", message),
-                    code: ErrorCode::PermissionMissing,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::InvalidToken) => {
-                CoreError::Authentication {
-                    message: format!("访问令牌无效: {}", message),
-                    code: ErrorCode::InvalidToken,
-                    ctx,
-                }
-            },
-            Some(ErrorCode::UserNotFound) => {
-                CoreError::Validation {
-                    field: "user_id".into(),
-                    message: format!("用户不存在: {}", message),
-                    code: ErrorCode::UserNotFound,
-                    ctx,
-                }
-            },
-            // ... 更多映射规则
-            _ => {
-                // 回退到HTTP状态码或内部业务码
-                CoreError::Api(ApiError {
-                    status: feishu_code as u16,
-                    endpoint: "auth".into(),
-                    message: message.to_string(),
-                    source: None,
-                    code: ErrorCode::from_feishu_code(feishu_code)
-                        .unwrap_or(ErrorCode::InternalError),
-                    ctx,
-                })
-            }
-        }
-    }
+// HTTP status 回退（无 body code）时，同样走 from_code：
+let err = openlark_core::error::api_error(
+    status as i32,
+    endpoint,
+    message,
+    request_id,
+);
 
-    // 业务API错误映射
-    pub fn map_api_error(
-        status: u16,
-        endpoint: &str,
-        message: &str,
-        request_id: Option<&str>,
-    ) -> CoreError {
-        let mut ctx = ErrorContext::new();
-        if let Some(req_id) = request_id {
-            ctx.set_request_id(req_id);
-        }
-        ctx.add_context("endpoint", endpoint);
-        ctx.add_context("http_status", status.to_string());
-
-        match status {
-            400 => CoreError::Validation {
-                field: "request".into(),
-                message: format!("请求参数不正确: {}", message),
-                code: ErrorCode::ValidationError,
-                ctx,
-            },
-            401 => CoreError::Authentication {
-                message: "认证失败，请检查访问令牌".to_string(),
-                code: ErrorCode::InvalidToken,
-                ctx,
-            },
-            403 => CoreError::Authentication {
-                message: "权限不足，无法访问该资源".to_string(),
-                code: ErrorCode::PermissionMissing,
-                ctx,
-            },
-            404 => CoreError::Api(ApiError {
-                status,
-                endpoint: endpoint.into(),
-                message: format!("资源不存在: {}", message),
-                source: None,
-                code: ErrorCode::NotFound,
-                ctx,
-            }),
-            429 => CoreError::RateLimit {
-                limit: 0,
-                window: Duration::from_secs(60),
-                reset_after: Some(Duration::from_secs(60)),
-                code: ErrorCode::RateLimitExceeded,
-                ctx,
-            },
-            500..=599 => CoreError::ServiceUnavailable {
-                service: endpoint.into(),
-                retry_after: Some(Duration::from_secs(30)),
-                code: ErrorCode::ServiceUnavailable,
-                ctx,
-            },
-            _ => CoreError::Api(ApiError {
-                status,
-                endpoint: endpoint.into(),
-                message: message.to_string(),
-                source: None,
-                code: ErrorCode::InternalError,
-                ctx,
-            }),
-        }
-    }
-}
+// 等价字段示意（请优先用 api_error 工厂，勿手写并行映射）：
+// CoreError::Api(Box::new(ApiError {
+//     raw_code,
+//     endpoint: endpoint.into(),
+//     message: message.to_string(),
+//     source: None,
+//     code: ErrorCode::from_code(raw_code),
+//     ctx,
+// }))
 ```
 
 ### 9.2 业务层错误处理模式
@@ -5191,27 +5005,22 @@ LARK_LOG_LEVEL=info
 
 **敏感信息保护**：
 ```rust
-use openlark_client::security::{SecurityConfig, CredentialManager};
+// v0.18+ 注意：旧 SecurityConfig / with_security_config 已移除。
+// 当前使用 openlark_core::config::Config + SecurityClient::new(config)
+// （或根 Client::with_core_config(config)）。
+// 迁移说明见 CHANGELOG。
 
-// 安全配置示例
-pub fn create_secure_client() -> SDKResult<Client> {
-    let security_config = SecurityConfig::builder()
-        .enable_https_only(true)
-        .verify_ssl_certificates(true)
-        .credential_rotation_interval(Duration::from_hours(24))
-        .enable_request_signing(true)
-        .allowed_ip_ranges(vec![
-            "203.119.0.0/16".parse().unwrap(),
-            "66.220.0.0/16".parse().unwrap(),
-        ])
+use openlark_core::config::Config;
+use openlark_client::{Client, Result};
+
+pub fn create_secure_client() -> Result<Client> {
+    let config = Config::builder()
+        .app_id("your_app_id")
+        .app_secret("your_app_secret")
+        // 默认 base URL 使用 HTTPS；重试、超时等也由 core Config 统一配置。
         .build();
 
-    Client::builder()
-        .with_security_config(security_config)
-        .credential_manager(Box::new(
-            CredentialManager::from_secure_storage()?
-        ))
-        .build()
+    Client::with_core_config(config)
 }
 
 // 令牌安全存储
@@ -5928,17 +5737,11 @@ impl Service for CustomNotificationService {
     }
 }
 
-// 在客户端中注册自定义服务
-let mut client = Client::builder()
-    .from_env()?
-    .build()?;
-
-let notification_service = CustomNotificationService::new(
-    client.clone(),
-    CustomConfig::default()
-);
-
-client.register_service("custom_notification", Box::new(notification_service));
+// [0.18 已删除] client.register_service(...) — 无运行时服务容器。
+// 业务能力经 client.<domain> meta 链访问（0.19 #471 起 registry 已整体移除）。
+let client = Client::builder().from_env()?.build()?;
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
 ```
 
 #### 10.4.2 中间件开发
@@ -6296,11 +6099,8 @@ pub mod hr;
 #[cfg(feature = "communication")]
 pub mod communication;
 
-// 客户端中的条件注册
-#[cfg(feature = "hr")]
-fn register_hr_services(client: &mut LarkClient) {
-    client.register_service("hr", HRService::new(client.config.clone()));
-}
+// 0.18：条件编译控制 Client 字段（capability catalog），无 register_service
+// #[cfg(feature = "hr")] → client.hr 字段存在；registry.has_service("hr") == true
 ```
 
 ### 依赖优化

@@ -1,17 +1,18 @@
 //! Bitable 创建多维表格API
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use super::models::{App, CreateAppRequest as CreateAppRequestBody};
 use super::AppService;
+use super::models::{App, CreateAppRequest as CreateAppRequestBody};
 
 /// 创建多维表格请求。
 pub struct CreateAppRequest {
@@ -95,17 +96,20 @@ impl CreateAppRequest {
             app_settings: None,
         };
 
-        // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<CreateAppResponse> = ApiRequest::post(&api_endpoint.to_url())
-            .body(openlark_core::api::RequestData::Binary(serde_json::to_vec(
-                &request_body,
-            )?));
+        // #439: method 来自 catalog；叶子不再重复声明稳定请求语义
+        let api_request: ApiRequest<CreateAppResponse> =
+            api_endpoint.to_request::<CreateAppResponse>().body(
+                openlark_core::api::RequestData::Binary(serde_json::to_vec(&request_body)?),
+            );
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 创建多维表格API",
+        )
+        .await
     }
 }
 
@@ -138,21 +142,53 @@ impl AppService {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST /open-apis/bitable/v1/apps → CreateAppResponse。
+    /// 完整断言 method、path、auth（来自 catalog #439）和响应。
+    #[tokio::test]
+    async fn test_create_app_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/bitable/v1/apps"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "app": { "app_token": "app001", "name": "测试应用" } }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
+        let resp = CreateAppRequest::new(config)
+            .name("测试应用")
+            .execute_with_options(option)
+            .await
+            .expect("创建多维表格应成功");
+        assert_eq!(resp.app.app_token, "app001");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "POST");
+        assert_eq!(received[0].url.path(), "/open-apis/bitable/v1/apps");
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(body["name"], "测试应用");
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
+        );
     }
 }

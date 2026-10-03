@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 人员类型基础数据结构
-// ============================================================================
 
 /// 人员类型信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -32,9 +30,7 @@ pub struct EmployeeType {
     pub updated_time: Option<i64>,
 }
 
-// ============================================================================
 // 创建人员类型相关模型
-// ============================================================================
 
 /// 创建人员类型请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,9 +49,7 @@ pub struct CreateResponse {
     pub employee_type_id: String,
 }
 
-// ============================================================================
 // 删除人员类型相关模型
-// ============================================================================
 
 /// 删除人员类型响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -64,9 +58,7 @@ pub struct DeleteResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 查询单个人员类型相关模型
-// ============================================================================
 
 /// 查询单个人员类型响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -75,9 +67,7 @@ pub struct GetResponse {
     pub employee_type: EmployeeType,
 }
 
-// ============================================================================
 // 批量查询人员类型相关模型
-// ============================================================================
 
 /// 批量查询人员类型请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,9 +93,7 @@ pub struct ListResponse {
     pub has_more: Option<bool>,
 }
 
-// ============================================================================
 // 更新人员类型相关模型
-// ============================================================================
 
 /// 更新人员类型请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,23 +116,4 @@ pub struct PatchRequestBody {
 pub struct PatchResponse {
     /// 更新结果
     pub result: bool,
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

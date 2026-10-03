@@ -1,12 +1,13 @@
 //! payroll tests 集成测试。
+#![cfg(feature = "payroll")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::payroll::payroll::v1::*;
 use rstest::rstest;
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> Config {

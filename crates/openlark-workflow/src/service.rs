@@ -1,13 +1,44 @@
-#[path = "approval/approval/v4/task/approve.rs"]
-mod approval_task_approve;
-#[path = "approval/approval/v4/task/query.rs"]
-mod approval_task_query;
-#[path = "approval/approval/v4/task/reject.rs"]
-mod approval_task_reject;
-#[path = "approval/approval/v4/task/resubmit.rs"]
-mod approval_task_resubmit;
+// approval v4 用户级接口（用户态，需 user_access_token）
 
-use openlark_core::{config::Config, SDKResult};
+// approval v4 用户级接口的公开类型重新导出
+// 这些 Request/Body/Response 类型供用户直接 new() + builder + execute() 使用
+// （用户态接口需 user_access_token，不适合封装成 service helper）
+pub use crate::approval::approval::v4::instance::add_cc::{
+    AddCcInstanceBodyV4, AddCcInstanceRequestV4, AddCcInstanceResponseV4,
+};
+pub use crate::approval::approval::v4::instance::detail::{
+    DetailInstanceRequestV4, DetailInstanceResponseV4, DetailInstanceTaskV4,
+};
+pub use crate::approval::approval::v4::instance::initiated::{
+    InitiatedInstanceItemV4, InitiatedInstanceRequestV4, InitiatedInstanceResponseV4,
+    InstanceSummaryV4,
+};
+pub use crate::approval::approval::v4::instance::recall::{
+    RecallInstanceBodyV4, RecallInstanceRequestV4, RecallInstanceResponseV4,
+};
+pub use crate::approval::approval::v4::instance::remind::{
+    RemindInstanceBodyV4, RemindInstanceRequestV4, RemindInstanceResponseV4,
+};
+pub use crate::approval::approval::v4::task::add_sign::{
+    AddSignTaskBodyV4, AddSignTaskRequestV4, AddSignTaskResponseV4,
+};
+pub use crate::approval::approval::v4::task::forward::{
+    ForwardTaskBodyV4, ForwardTaskRequestV4, ForwardTaskResponseV4,
+};
+pub use crate::approval::approval::v4::task::list::{
+    ListTaskItemV4, ListTaskRequestV4, ListTaskResponseV4, TaskSummaryV4,
+};
+pub use crate::approval::approval::v4::task::pass::{
+    PassTaskBodyV4, PassTaskRequestV4, PassTaskResponseV4,
+};
+pub use crate::approval::approval::v4::task::refuse::{
+    RefuseTaskBodyV4, RefuseTaskRequestV4, RefuseTaskResponseV4,
+};
+pub use crate::approval::approval::v4::task::rollback::{
+    RollbackTaskBodyV4, RollbackTaskRequestV4, RollbackTaskResponseV4,
+};
+
+use openlark_core::{SDKResult, config::Config};
 use std::sync::Arc;
 
 use crate::common::constants::MAX_PAGE_SIZE;
@@ -67,6 +98,106 @@ impl WorkflowTaskListQuery {
     /// 设置分页大小。
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
+        self
+    }
+}
+
+/// 任务创建 helper。
+///
+/// 只覆盖高频创建字段（标题、描述、截止、优先级、执行者、所属清单等），
+/// 不试图替代完整 typed `CreateTaskRequest`（自定义字段 / 子任务 / 重复规则等仍走 typed API）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorkflowTaskCreate {
+    /// 任务标题（必填）。
+    pub summary: String,
+    /// 任务描述。
+    pub description: Option<String>,
+    /// 开始时间。
+    pub start: Option<String>,
+    /// 截止时间。
+    pub due: Option<String>,
+    /// 优先级。
+    pub priority: Option<i32>,
+    /// 执行者。
+    pub assignee: Option<String>,
+    /// 任务清单 GUID。
+    pub tasklist_guid: Option<String>,
+    /// 分组 GUID。
+    pub section_guid: Option<String>,
+    /// 关注者。
+    pub followers: Option<Vec<String>>,
+    /// 提醒时间。
+    pub remind_time: Option<String>,
+}
+
+impl WorkflowTaskCreate {
+    /// 以必填标题创建任务描述。
+    pub fn new(summary: impl Into<String>) -> Self {
+        Self {
+            summary: summary.into(),
+            description: None,
+            start: None,
+            due: None,
+            priority: None,
+            assignee: None,
+            tasklist_guid: None,
+            section_guid: None,
+            followers: None,
+            remind_time: None,
+        }
+    }
+
+    /// 设置任务描述。
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// 设置开始时间。
+    pub fn start(mut self, start: impl Into<String>) -> Self {
+        self.start = Some(start.into());
+        self
+    }
+
+    /// 设置截止时间。
+    pub fn due(mut self, due: impl Into<String>) -> Self {
+        self.due = Some(due.into());
+        self
+    }
+
+    /// 设置优先级。
+    pub fn priority(mut self, priority: i32) -> Self {
+        self.priority = Some(priority);
+        self
+    }
+
+    /// 设置执行者。
+    pub fn assignee(mut self, assignee: impl Into<String>) -> Self {
+        self.assignee = Some(assignee.into());
+        self
+    }
+
+    /// 设置任务清单 GUID。
+    pub fn tasklist_guid(mut self, tasklist_guid: impl Into<String>) -> Self {
+        self.tasklist_guid = Some(tasklist_guid.into());
+        self
+    }
+
+    /// 设置分组 GUID。
+    pub fn section_guid(mut self, section_guid: impl Into<String>) -> Self {
+        self.section_guid = Some(section_guid.into());
+        self
+    }
+
+    /// 设置关注者列表。
+    pub fn followers(mut self, followers: Vec<String>) -> Self {
+        self.followers = Some(followers);
+        self
+    }
+
+    /// 设置提醒时间。
+    pub fn remind_time(mut self, remind_time: impl Into<String>) -> Self {
+        self.remind_time = Some(remind_time.into());
         self
     }
 }
@@ -249,20 +380,12 @@ impl ApprovalTaskAction {
 }
 
 /// 审批任务条目类型别名。
-pub type ApprovalTaskItem = approval_task_query::TaskItemV4;
-
-/// 审批任务动作结果 helper。
-#[derive(Debug, Clone, PartialEq)]
-pub struct ApprovalTaskActionResult {
-    /// 操作是否成功。
-    pub success: bool,
-}
+pub type ApprovalTaskItem = crate::approval::approval::v4::task::query::TaskItemV4;
 
 /// WorkflowService：工作流服务的统一入口
 ///
 /// 提供对任务、审批、看板 API 的访问能力
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct WorkflowService {
     config: Arc<Config>,
 }
@@ -285,18 +408,6 @@ impl WorkflowService {
     /// 返回 v2 任务服务入口。
     pub fn v2(&self) -> crate::v2::TaskV2 {
         crate::v2::TaskV2::new(self.config.clone())
-    }
-
-    #[cfg(feature = "v2")]
-    /// 返回 v2 任务资源入口。
-    pub fn task(&self) -> crate::v2::task::Task {
-        crate::v2::task::Task::new(self.config.clone())
-    }
-
-    #[cfg(feature = "v2")]
-    /// 返回 v2 任务清单资源入口。
-    pub fn tasklist(&self) -> crate::v2::tasklist::Tasklist {
-        crate::v2::tasklist::Tasklist::new(self.config.clone())
     }
 
     /// 列取任务并自动处理分页。
@@ -343,6 +454,49 @@ impl WorkflowService {
         }
 
         Ok(items)
+    }
+
+    /// 使用 helper 风格创建任务（高频字段）。
+    ///
+    /// 在 typed `CreateTaskRequest` 之上固化常见创建动作，返回业务结果
+    /// `CreateTaskResponse`，而不是底层响应壳。
+    #[cfg(feature = "v2")]
+    pub async fn create_task(
+        &self,
+        create: WorkflowTaskCreate,
+    ) -> SDKResult<crate::v2::task::models::CreateTaskResponse> {
+        use crate::v2::task::create::CreateTaskRequest;
+
+        let mut request = CreateTaskRequest::new(self.config.clone()).summary(create.summary);
+        if let Some(description) = create.description {
+            request = request.description(description);
+        }
+        if let Some(start) = create.start {
+            request = request.start(start);
+        }
+        if let Some(due) = create.due {
+            request = request.due(due);
+        }
+        if let Some(priority) = create.priority {
+            request = request.priority(priority);
+        }
+        if let Some(assignee) = create.assignee {
+            request = request.assignee(assignee);
+        }
+        if let Some(tasklist_guid) = create.tasklist_guid {
+            request = request.tasklist_guid(tasklist_guid);
+        }
+        if let Some(section_guid) = create.section_guid {
+            request = request.section_guid(section_guid);
+        }
+        if let Some(followers) = create.followers {
+            request = request.followers(followers);
+        }
+        if let Some(remind_time) = create.remind_time {
+            request = request.remind_time(remind_time);
+        }
+
+        request.execute().await
     }
 
     /// 使用 helper 风格更新任务高频字段。
@@ -412,10 +566,12 @@ impl WorkflowService {
         let mut page_token: Option<String> = None;
 
         loop {
-            let mut request = approval_task_query::QueryTaskRequestV4::new(self.config.clone())
-                .user_id(query.user_id.clone())
-                .topic(query.topic.clone())
-                .page_size(query.page_size.unwrap_or(MAX_PAGE_SIZE));
+            let mut request = crate::approval::approval::v4::task::query::QueryTaskRequestV4::new(
+                self.config.clone(),
+            )
+            .user_id(query.user_id.clone())
+            .topic(query.topic.clone())
+            .page_size(query.page_size.unwrap_or(MAX_PAGE_SIZE));
 
             if let Some(user_id_type) = &query.user_id_type {
                 request = request.user_id_type(user_id_type.clone());
@@ -444,15 +600,17 @@ impl WorkflowService {
     }
 
     /// 同意审批任务 helper。
-    pub async fn approve_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
-        let mut request = approval_task_approve::ApproveTaskRequestV4::new(self.config.clone())
-            .approval_code(action.approval_code)
-            .instance_code(action.instance_code)
-            .user_id(action.user_id)
-            .task_id(action.task_id);
+    ///
+    /// 成功/失败由 `SDKResult` 表达：飞书 approval v4 同意接口响应 data 为空，
+    /// 不再伪造恒为 `true` 的 `success` 字段（#350 P9 接口形状撒谎修正）。
+    pub async fn approve_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
+        let mut request = crate::approval::approval::v4::task::approve::ApproveTaskRequestV4::new(
+            self.config.clone(),
+        )
+        .approval_code(action.approval_code)
+        .instance_code(action.instance_code)
+        .user_id(action.user_id)
+        .task_id(action.task_id);
         if let Some(user_id_type) = action.user_id_type {
             request = request.user_id_type(user_id_type);
         }
@@ -462,21 +620,21 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 
     /// 拒绝审批任务 helper。
-    pub async fn reject_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
-        let mut request = approval_task_reject::RejectTaskRequestV4::new(self.config.clone())
-            .approval_code(action.approval_code)
-            .instance_code(action.instance_code)
-            .user_id(action.user_id)
-            .task_id(action.task_id);
+    ///
+    /// 成功/失败由 `SDKResult` 表达；响应 data 为空时不伪造 `success: true`。
+    pub async fn reject_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
+        let mut request = crate::approval::approval::v4::task::reject::RejectTaskRequestV4::new(
+            self.config.clone(),
+        )
+        .approval_code(action.approval_code)
+        .instance_code(action.instance_code)
+        .user_id(action.user_id)
+        .task_id(action.task_id);
         if let Some(user_id_type) = action.user_id_type {
             request = request.user_id_type(user_id_type);
         }
@@ -486,17 +644,18 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 
     /// 重新提交审批任务 helper。
-    pub async fn resubmit_task(
-        &self,
-        action: ApprovalTaskAction,
-    ) -> SDKResult<ApprovalTaskActionResult> {
-        let mut request = approval_task_resubmit::ResubmitTaskRequestV4::new(self.config.clone())
+    ///
+    /// 成功/失败由 `SDKResult` 表达；响应 data 为空时不伪造 `success: true`。
+    pub async fn resubmit_task(&self, action: ApprovalTaskAction) -> SDKResult<()> {
+        let mut request =
+            crate::approval::approval::v4::task::resubmit::ResubmitTaskRequestV4::new(
+                self.config.clone(),
+            )
             .approval_code(action.approval_code)
             .instance_code(action.instance_code)
             .user_id(action.user_id)
@@ -510,9 +669,8 @@ impl WorkflowService {
         if let Some(form) = action.form {
             request = request.form(form);
         }
-        let response = request.execute().await?;
-        let _ = response;
-        Ok(ApprovalTaskActionResult { success: true })
+        request.execute().await?;
+        Ok(())
     }
 }
 
@@ -521,21 +679,6 @@ impl WorkflowService {
 mod tests {
     use super::*;
     use serde_json::json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 
     #[test]
     fn test_task_list_query_builder() {
@@ -575,6 +718,34 @@ mod tests {
     }
 
     #[test]
+    fn test_task_create_builder() {
+        let create = WorkflowTaskCreate::new("编写 release notes")
+            .description("补齐 0.20 create_task helper")
+            .due("2026-08-01T18:00:00Z")
+            .start("2026-07-27T09:00:00Z")
+            .priority(2)
+            .assignee("ou_owner")
+            .tasklist_guid("tasklist_abc")
+            .section_guid("section_xyz")
+            .followers(vec!["ou_follower".to_string()])
+            .remind_time("2026-07-31T09:00:00Z");
+
+        assert_eq!(create.summary, "编写 release notes");
+        assert_eq!(
+            create.description.as_deref(),
+            Some("补齐 0.20 create_task helper")
+        );
+        assert_eq!(create.due.as_deref(), Some("2026-08-01T18:00:00Z"));
+        assert_eq!(create.start.as_deref(), Some("2026-07-27T09:00:00Z"));
+        assert_eq!(create.priority, Some(2));
+        assert_eq!(create.assignee.as_deref(), Some("ou_owner"));
+        assert_eq!(create.tasklist_guid.as_deref(), Some("tasklist_abc"));
+        assert_eq!(create.section_guid.as_deref(), Some("section_xyz"));
+        assert_eq!(create.followers, Some(vec!["ou_follower".to_string()]));
+        assert_eq!(create.remind_time.as_deref(), Some("2026-07-31T09:00:00Z"));
+    }
+
+    #[test]
     fn test_approval_task_query_builder() {
         let query = ApprovalTaskQuery::new("ou_xxx", "1")
             .user_id_type("open_id")
@@ -605,5 +776,193 @@ mod tests {
         assert_eq!(action.user_id_type.as_deref(), Some("open_id"));
         assert_eq!(action.comment.as_deref(), Some("已确认"));
         assert_eq!(action.form.as_deref(), Some("[{}]"));
+    }
+
+    /// #572：create_task helper 透传高频字段并返回业务 CreateTaskResponse。
+    #[cfg(feature = "v2")]
+    #[tokio::test]
+    async fn test_create_task_helper_posts_high_frequency_fields() {
+        use wiremock::matchers::{body_partial_json, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/task/v2/tasks"))
+            .and(body_partial_json(json!({
+                "summary": "编写 release notes",
+                "description": "补齐 0.20 create_task helper",
+                "priority": 2,
+                "assignee": "ou_owner",
+                "tasklist_guid": "tasklist_abc"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "task_guid": "task_created_001",
+                    "summary": "编写 release notes",
+                    "description": "补齐 0.20 create_task helper",
+                    "status": "todo",
+                    "tasklist_guid": "tasklist_abc",
+                    "section_guid": null,
+                    "created_at": "2026-07-27T00:00:00Z",
+                    "updated_at": "2026-07-27T00:00:00Z"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let response = service
+            .create_task(
+                WorkflowTaskCreate::new("编写 release notes")
+                    .description("补齐 0.20 create_task helper")
+                    .priority(2)
+                    .assignee("ou_owner")
+                    .tasklist_guid("tasklist_abc"),
+            )
+            .await
+            .expect("create_task 应在飞书成功响应时返回业务结果");
+
+        assert_eq!(response.task_guid, "task_created_001");
+        assert_eq!(response.summary, "编写 release notes");
+        assert_eq!(response.status, "todo");
+        assert_eq!(response.tasklist_guid.as_deref(), Some("tasklist_abc"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/task/v2/tasks");
+    }
+
+    /// #350：approve/reject/resubmit 成功时返回 `Ok(())`，不再伪造恒真 `success`。
+    #[tokio::test]
+    async fn test_approve_reject_resubmit_helpers_return_unit_on_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let paths = [
+            "/open-apis/approval/v4/tasks/approve",
+            "/open-apis/approval/v4/tasks/reject",
+            "/open-apis/approval/v4/tasks/resubmit",
+        ];
+        for p in paths {
+            Mock::given(method("POST"))
+                .and(path(p))
+                .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": {}
+                })))
+                .mount(&server)
+                .await;
+        }
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let action =
+            ApprovalTaskAction::new("approval_code", "instance_code", "ou_xxx", "task_123")
+                .user_id_type("open_id")
+                .comment("ok")
+                .form("[]");
+
+        service
+            .approve_task(action.clone())
+            .await
+            .expect("approve_task 应在飞书成功响应时返回 Ok(())");
+        service
+            .reject_task(action.clone())
+            .await
+            .expect("reject_task 应在飞书成功响应时返回 Ok(())");
+        service
+            .resubmit_task(action)
+            .await
+            .expect("resubmit_task 应在飞书成功响应时返回 Ok(())");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(
+            received.len(),
+            3,
+            "三个 helper 应各打一次飞书 approval v4 端点"
+        );
+        let hit: Vec<_> = received.iter().map(|r| r.url.path().to_string()).collect();
+        for p in paths {
+            assert!(
+                hit.iter().any(|h| h == p),
+                "missing request to {p}; got {hit:?}"
+            );
+        }
+    }
+
+    /// #350：底层失败时 helper 传播 Err，而非恒真 success。
+    ///
+    /// `ApproveTaskRequestV4` 对飞书 `code != 0` 且无 `data` 的响应走
+    /// `missing_response_data`（Validation），而不是把 `msg` 映射成 `CoreError::Api`。
+    /// 本测试锁定 helper 契约：`Err` 必须向上抛出，不能伪装 `Ok(())`。
+    #[tokio::test]
+    async fn test_approve_task_helper_propagates_api_error() {
+        use openlark_core::error::CoreError;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/approval/v4/tasks/approve"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 99991400,
+                "msg": "invalid approval task"
+            })))
+            .mount(&server)
+            .await;
+
+        let service = WorkflowService::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let err = service
+            .approve_task(ApprovalTaskAction::new(
+                "approval_code",
+                "instance_code",
+                "ou_xxx",
+                "task_123",
+            ))
+            .await
+            .expect_err("飞书失败响应应传播为 Err，不得伪装 Ok(())");
+        assert!(
+            matches!(err, CoreError::Validation { .. } | CoreError::Api(_)),
+            "expected Validation (missing data on non-zero code) or Api, got {err:?}"
+        );
+        let msg = err.to_string();
+        assert!(
+            msg.contains("服务器没有返回有效的数据") || msg.contains("invalid approval task"),
+            "error should surface leaf validation or Feishu msg, got: {err}"
+        );
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/approval/v4/tasks/approve"
+        );
     }
 }

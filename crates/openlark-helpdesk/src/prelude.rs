@@ -1,1 +1,1 @@
-pub use openlark_core::{config::Config, SDKResult};
+pub use openlark_core::{SDKResult, config::Config};

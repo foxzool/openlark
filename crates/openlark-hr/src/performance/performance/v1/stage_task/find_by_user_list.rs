@@ -1,19 +1,18 @@
 //! 获取周期任务（指定用户）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v1/stage_task/find_by_user_list
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v1/stage_task/find_by_user_list>
 
-use openlark_core::validate_required;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
+use openlark_core::{validate_required, validate_required_list};
 use serde::{Deserialize, Serialize};
 
 /// 获取周期任务（指定用户）请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct FindByUserListRequest {
     /// 绩效周期 ID（必填）
     cycle_id: String,
@@ -53,7 +52,7 @@ impl FindByUserListRequest {
         use crate::common::api_endpoints::PerformanceApiV1;
 
         validate_required!(self.cycle_id.trim(), "cycle_id");
-        validate_required!(self.user_ids, "user_ids");
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
 
         // 1. 构建端点
         let api_endpoint = PerformanceApiV1::StageTaskFindByUserList;
@@ -67,21 +66,19 @@ impl FindByUserListRequest {
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?;
         let request = request.body(request_body_json);
 
         // 3. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 4. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取周期任务响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取周期任务响应数据为空",
+        )
+        .await
     }
 }
 
@@ -120,21 +117,51 @@ impl ApiResponseTrait for FindByUserListResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use openlark_core::config::Config;
 
-    use serde_json;
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_performance_v1_stage_task_find_by_user_list_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/performance/v1/stage_tasks/find_by_user_list",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = FindByUserListRequest::new(config, "cycle_001".to_string())
+            .add_user_id("user_001".to_string())
+            .execute()
+            .await
+            .expect("performance_v1_stage_task_find_by_user_list 应成功");
+
+        assert!(data.items.is_empty());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/performance/v1/stage_tasks/find_by_user_list"
+        );
     }
 }

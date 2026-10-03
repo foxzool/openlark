@@ -2,17 +2,18 @@
 //!
 //! 刷新云文档的密码保护设置（平台自动生成新密码）。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 刷新云文档密码请求
 #[derive(Debug, Clone)]
@@ -46,12 +47,7 @@ impl UpdatePermissionPublicPasswordRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UpdatePermissionPublicPasswordResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
         if self.r#type.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "type",
@@ -80,12 +76,11 @@ impl UpdatePermissionPublicPasswordRequest {
         }
 
         let api_endpoint = DriveApi::UpdatePublicPassword(self.token);
-        let request =
-            ApiRequest::<UpdatePermissionPublicPasswordResponse>::put(&api_endpoint.to_url())
-                .query("type", self.r#type);
+        let request = api_endpoint
+            .to_request::<UpdatePermissionPublicPasswordResponse>()
+            .query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新")
+        Transport::request_typed(request, &self.config, Some(option), "更新").await
     }
 }
 

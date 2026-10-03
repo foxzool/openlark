@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 序列基础数据结构
-// ============================================================================
 
 /// 序列信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -35,9 +33,7 @@ pub struct JobFamily {
     pub updated_time: Option<i64>,
 }
 
-// ============================================================================
 // 创建序列相关模型
-// ============================================================================
 
 /// 创建序列请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,9 +55,7 @@ pub struct CreateResponse {
     pub job_family_id: String,
 }
 
-// ============================================================================
 // 删除序列相关模型
-// ============================================================================
 
 /// 删除序列响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -70,9 +64,7 @@ pub struct DeleteResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 查询单个序列相关模型
-// ============================================================================
 
 /// 查询单个序列响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -81,9 +73,7 @@ pub struct GetResponse {
     pub job_family: JobFamily,
 }
 
-// ============================================================================
 // 批量查询序列相关模型
-// ============================================================================
 
 /// 批量查询序列请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,9 +99,7 @@ pub struct ListResponse {
     pub has_more: Option<bool>,
 }
 
-// ============================================================================
 // 更新序列相关模型
-// ============================================================================
 
 /// 更新序列请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,24 +125,4 @@ pub struct PatchRequestBody {
 pub struct PatchResponse {
     /// 更新结果
     pub result: bool,
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

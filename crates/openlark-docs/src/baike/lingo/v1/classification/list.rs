@@ -1,13 +1,13 @@
 //! 获取词典分类
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/classification/list
+//! docPath: <https://open.feishu.cn/document/lingo-v1/classification/list>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -83,7 +83,7 @@ impl ListClassificationRequest {
     ) -> SDKResult<ListClassificationResp> {
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<ListClassificationResp> =
-            ApiRequest::get(&LingoApiV1::ClassificationList.to_url());
+            LingoApiV1::ClassificationList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }
@@ -95,11 +95,7 @@ impl ListClassificationRequest {
         }
 
         // ===== 发送请求 =====
-        let response: Response<ListClassificationResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词典分类").await
     }
 }
 

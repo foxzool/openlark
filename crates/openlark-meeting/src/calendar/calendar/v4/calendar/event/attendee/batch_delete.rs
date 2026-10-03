@@ -1,16 +1,13 @@
 //! 删除日程参与人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/batch_delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CALENDAR_V4_CALENDARS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CALENDAR_V4_CALENDARS};
 
 /// 删除日程参与人请求
 pub struct BatchDeleteCalendarEventAttendeeRequest {
@@ -20,6 +17,7 @@ pub struct BatchDeleteCalendarEventAttendeeRequest {
 }
 
 impl BatchDeleteCalendarEventAttendeeRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -42,7 +40,7 @@ impl BatchDeleteCalendarEventAttendeeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/batch_delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/batch_delete>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -64,28 +62,55 @@ impl BatchDeleteCalendarEventAttendeeRequest {
         ))
         .body(serialize_params(&body, "删除日程参与人")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除日程参与人")
+        Transport::request_typed(req, &self.config, Some(option), "删除日程参与人").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../events/{event_id}/attendees/batch_delete → 裸 Value 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_batch_delete_calendar_event_attendee_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/attendees/batch_delete",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "deleted": true }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = BatchDeleteCalendarEventAttendeeRequest::new(config)
+            .calendar_id("cal_001")
+            .event_id("evt_001")
+            .execute(json!({ "need_notification": false }))
+            .await
+            .expect("删除日程参与人应成功");
+        assert_eq!(resp["deleted"], json!(true));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/attendees/batch_delete"
+        );
     }
 }

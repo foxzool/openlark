@@ -15,8 +15,8 @@
 //!
 //! ```rust,no_run
 //! use openlark_workflow::{
-//!     ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-//!     WorkflowTaskMutation,
+//!     ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+//!     WorkflowTaskListQuery, WorkflowTaskMutation,
 //! };
 //! use openlark_core::config::Config;
 //!
@@ -28,6 +28,15 @@
 //!
 //! let workflow_service = WorkflowService::new(config);
 //!
+//! // 创建任务
+//! let created = workflow_service
+//!     .create_task(
+//!         WorkflowTaskCreate::new("完成项目文档")
+//!             .priority(3)
+//!             .tasklist_guid("tasklist_guid"),
+//!     )
+//!     .await?;
+//!
 //! // 列取任务清单中的任务
 //! let tasks = workflow_service
 //!     .list_tasks_all(WorkflowTaskListQuery::for_tasklist("tasklist_guid"))
@@ -36,7 +45,7 @@
 //! // 更新任务
 //! let result = workflow_service
 //!     .mutate_task(
-//!         "task_guid",
+//!         &created.task_guid,
 //!         WorkflowTaskMutation::new()
 //!             .summary("完成项目文档")
 //!             .priority(3),
@@ -89,15 +98,36 @@ pub mod v2;
 /// 白板/看板模块。
 pub mod board;
 
+// 审批模块（v4 审批定义/实例/任务、外部审批）
+/// 审批 API 模块。
+pub mod approval;
+
 // Prelude 模块
 /// 常用工作流类型预导出模块。
 pub mod prelude;
 
 // 重新导出核心服务
 pub use service::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-    WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+    WorkflowTaskListQuery, WorkflowTaskMutation,
 };
+
+// 重新导出 approval v4 用户级接口类型（用户态，需 user_access_token）
+// 用户可直接 new() + builder + execute_with_options(option) 调用
+pub use service::{
+    AddCcInstanceBodyV4, AddCcInstanceRequestV4, AddCcInstanceResponseV4, AddSignTaskBodyV4,
+    AddSignTaskRequestV4, AddSignTaskResponseV4, DetailInstanceRequestV4, DetailInstanceResponseV4,
+    DetailInstanceTaskV4, ForwardTaskBodyV4, ForwardTaskRequestV4, ForwardTaskResponseV4,
+    InitiatedInstanceItemV4, InitiatedInstanceRequestV4, InitiatedInstanceResponseV4,
+    InstanceSummaryV4, ListTaskItemV4, ListTaskRequestV4, ListTaskResponseV4, PassTaskBodyV4,
+    PassTaskRequestV4, PassTaskResponseV4, RecallInstanceBodyV4, RecallInstanceRequestV4,
+    RecallInstanceResponseV4, RefuseTaskBodyV4, RefuseTaskRequestV4, RefuseTaskResponseV4,
+    RemindInstanceBodyV4, RemindInstanceRequestV4, RemindInstanceResponseV4, RollbackTaskBodyV4,
+    RollbackTaskRequestV4, RollbackTaskResponseV4, TaskSummaryV4,
+};
+
+/// 工作流服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type WorkflowClient = WorkflowService;
 
 /// 工作流模块版本信息
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -109,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 }
 
@@ -154,21 +184,5 @@ mod service_tests {
         let config = create_test_config();
         let service = WorkflowService::new(config);
         let _v2 = service.v2();
-    }
-
-    #[cfg(feature = "v2")]
-    #[test]
-    fn test_workflow_service_task() {
-        let config = create_test_config();
-        let service = WorkflowService::new(config);
-        let _task = service.task();
-    }
-
-    #[cfg(feature = "v2")]
-    #[test]
-    fn test_workflow_service_tasklist() {
-        let config = create_test_config();
-        let service = WorkflowService::new(config);
-        let _tasklist = service.tasklist();
     }
 }

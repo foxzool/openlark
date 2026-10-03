@@ -2,17 +2,18 @@
 //!
 //! 查询文件的订阅状态。
 //!
-//! docPath: https://open.feishu.cn/document/docs/drive-v1/event/get_subscribe
+//! docPath: <https://open.feishu.cn/document/docs/drive-v1/event/get_subscribe>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取文件的订阅状态请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,18 +66,8 @@ impl GetSubscribeRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetSubscribeResponse> {
         // ===== 参数校验 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
         match self.file_type.as_str() {
             "doc" | "docx" | "sheet" | "bitable" | "file" | "folder" | "slides" => {}
             _ => {
@@ -113,7 +104,7 @@ impl GetSubscribeRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::GetFileSubscribe(self.file_token.clone());
-        let mut request = ApiRequest::<GetSubscribeResponse>::get(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<GetSubscribeResponse>();
 
         request = request.query("file_type", &self.file_type);
         if let Some(et) = &self.event_type {
@@ -121,8 +112,7 @@ impl GetSubscribeRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "订阅文件")
+        Transport::request_typed(request, &self.config, Some(option), "订阅文件").await
     }
 }
 

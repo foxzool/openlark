@@ -2,14 +2,15 @@
 //!
 //! 提供文本语言检测服务，检测给定文本的语言类型。
 //!
-//! docPath: https://open.feishu.cn/document/translation-v1/text_detect
+//! docPath: <https://open.feishu.cn/document/translation-v1/text_detect>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::TRANSLATION_V1_TEXT_DETECT;
 
 /// 文本语言检测请求体
@@ -21,10 +22,8 @@ pub struct TextDetectBody {
 
 impl TextDetectBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.text.trim().is_empty() {
-            return Err("text 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.text, "text 不能为空");
         Ok(())
     }
 }
@@ -74,14 +73,12 @@ impl TextDetectRequest {
         body: TextDetectBody,
         option: RequestOption,
     ) -> SDKResult<TextDetectResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<TextDetectResponse> = ApiRequest::post(TRANSLATION_V1_TEXT_DETECT)
             .body(serialize_params(&body, "文本语言检测")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "文本语言检测")
+        Transport::request_typed(req, &self.config, Some(option), "文本语言检测").await
     }
 }
 
@@ -132,7 +129,7 @@ impl TextDetectRequestBuilder {
 
 /// 执行文本语言检测
 ///
-/// docPath: https://open.feishu.cn/document/translation-v1/text_detect
+/// docPath: <https://open.feishu.cn/document/translation-v1/text_detect>
 pub async fn text_detect(config: &Config, body: TextDetectBody) -> SDKResult<TextDetectResponse> {
     text_detect_with_options(config, body, RequestOption::default()).await
 }
@@ -143,14 +140,12 @@ pub async fn text_detect_with_options(
     body: TextDetectBody,
     option: RequestOption,
 ) -> SDKResult<TextDetectResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<TextDetectResponse> =
         ApiRequest::post(TRANSLATION_V1_TEXT_DETECT).body(serialize_params(&body, "文本语言检测")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "文本语言检测")
+    Transport::request_typed(req, config, Some(option), "文本语言检测").await
 }
 
 #[cfg(test)]

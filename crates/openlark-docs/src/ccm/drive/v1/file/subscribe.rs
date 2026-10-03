@@ -2,17 +2,18 @@
 //!
 //! 订阅文件的更新通知。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/event/subscribe
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/event/subscribe>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 订阅文件请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,18 +66,8 @@ impl SubscribeFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<SubscribeFileResponse> {
         // ===== 参数校验 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
         match self.file_type.as_str() {
             "doc" | "docx" | "sheet" | "bitable" | "file" | "folder" | "slides" => {}
             _ => {
@@ -113,7 +104,7 @@ impl SubscribeFileRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::SubscribeFile(self.file_token.clone());
-        let mut request = ApiRequest::<SubscribeFileResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<SubscribeFileResponse>();
 
         request = request.query("file_type", &self.file_type);
         if let Some(et) = &self.event_type {
@@ -121,8 +112,7 @@ impl SubscribeFileRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "订阅文件")
+        Transport::request_typed(request, &self.config, Some(option), "订阅文件").await
     }
 }
 

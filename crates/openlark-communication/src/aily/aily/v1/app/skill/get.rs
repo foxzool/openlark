@@ -1,10 +1,10 @@
 //! 获取技能信息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/get
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/get>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILL};
+use crate::endpoints::AILY_V1_SKILL;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 获取技能信息请求
@@ -55,7 +55,7 @@ impl GetSkillRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/get
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -78,8 +78,7 @@ impl GetSkillRequest {
             .replace("{skill_id}", &self.skill_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取技能信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取技能信息").await
     }
 }
 
@@ -116,11 +115,15 @@ mod tests {
 
     #[test]
     fn test_get_skill_request_url_construction() {
-        let request = GetSkillRequest::new(Config::default())
-            .app_id("app_1")
-            .skill_id("skill_1");
-        assert_eq!(request.app_id, "app_1");
-        assert_eq!(request.skill_id, "skill_1");
+        use crate::endpoints::aily::AILY_V1_SKILL;
+        let url = AILY_V1_SKILL
+            .replace("{app_id}", "app_1")
+            .replace("{skill_id}", "skill_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills/skill_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 
     #[test]

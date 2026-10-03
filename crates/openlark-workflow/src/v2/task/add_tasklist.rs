@@ -1,12 +1,13 @@
 //! 任务加入清单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task-add_tasklist/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task-add_tasklist/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -87,9 +88,13 @@ impl AddTasklistRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "任务加入清单")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "任务加入清单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "任务加入清单",
+        )
+        .await
     }
 }
 

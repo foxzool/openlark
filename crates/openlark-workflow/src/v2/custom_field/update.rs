@@ -1,13 +1,14 @@
 //! 更新自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/update>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::custom_field::models::{UpdateCustomFieldBody, UpdateCustomFieldResponse};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -16,8 +17,6 @@ use std::sync::Arc;
 pub struct UpdateCustomFieldRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 字段 GUID
     field_guid: String,
     /// 请求体
@@ -26,10 +25,9 @@ pub struct UpdateCustomFieldRequest {
 
 impl UpdateCustomFieldRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String, field_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, field_guid: String) -> Self {
         Self {
             config,
-            tasklist_guid,
             field_guid,
             body: UpdateCustomFieldBody::default(),
         }
@@ -59,19 +57,21 @@ impl UpdateCustomFieldRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UpdateCustomFieldResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
         validate_required!(self.field_guid.trim(), "字段GUID不能为空");
 
-        let api_endpoint =
-            TaskApiV2::CustomFieldUpdate(self.tasklist_guid.clone(), self.field_guid.clone());
-        let mut request = ApiRequest::<UpdateCustomFieldResponse>::put(api_endpoint.to_url());
+        let api_endpoint = TaskApiV2::CustomFieldUpdate(self.field_guid.clone());
+        let mut request = ApiRequest::<UpdateCustomFieldResponse>::patch(api_endpoint.to_url());
 
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "更新自定义字段")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新自定义字段")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新自定义字段",
+        )
+        .await
     }
 }
 
@@ -97,14 +97,9 @@ mod tests {
                 .build(),
         );
 
-        let request = UpdateCustomFieldRequest::new(
-            config,
-            "tasklist_123".to_string(),
-            "field_456".to_string(),
-        )
-        .name("更新的字段名");
+        let request =
+            UpdateCustomFieldRequest::new(config, "field_456".to_string()).name("更新的字段名");
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.field_guid, "field_456");
         assert_eq!(request.body.name, Some("更新的字段名".to_string()));
     }

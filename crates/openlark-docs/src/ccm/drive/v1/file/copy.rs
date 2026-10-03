@@ -2,13 +2,14 @@
 //!
 //! 将文件复制到用户云空间的其他文件夹中。不支持复制文件夹。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/copy
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/copy>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -130,18 +131,8 @@ impl CopyFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CopyFileResponse> {
         // === 必填字段验证 ===
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.folder_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "folder_token",
-                "folder_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.folder_token, "folder_token 不能为空");
 
         // === 枚举值验证 ===
         // 文档说明：type 为必填（请忽略必填列的"否"），为空会导致接口失败
@@ -189,13 +180,13 @@ impl CopyFileRequest {
             for (idx, prop) in extra.iter().enumerate() {
                 if prop.key.trim().is_empty() {
                     return Err(openlark_core::error::validation_error(
-                        &format!("extra[{}].key", idx),
+                        &format!("extra[{idx}].key"),
                         "key 不能为空",
                     ));
                 }
                 if prop.value.trim().is_empty() {
                     return Err(openlark_core::error::validation_error(
-                        &format!("extra[{}].value", idx),
+                        &format!("extra[{idx}].value"),
                         "value 不能为空",
                     ));
                 }
@@ -203,7 +194,7 @@ impl CopyFileRequest {
         }
 
         let api_endpoint = DriveApi::CopyFile(self.file_token.clone());
-        let mut request = ApiRequest::<CopyFileResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<CopyFileResponse>();
 
         if let Some(user_id_type) = &self.user_id_type {
             request = request.query("user_id_type", user_id_type);
@@ -229,8 +220,7 @@ impl CopyFileRequest {
             "复制文件",
         )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "复制文件")
+        Transport::request_typed(request, &self.config, Some(option), "复制文件").await
     }
 }
 

@@ -1,16 +1,15 @@
 //! 查询用户的任务列表（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-
-use crate::common::api_utils::missing_response_data_error;
 
 /// 审批任务列表项（v4）
 #[derive(Debug, Clone, Deserialize)]
@@ -58,6 +57,7 @@ pub struct QueryTaskRequestV4 {
 }
 
 impl QueryTaskRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -69,26 +69,31 @@ impl QueryTaskRequestV4 {
         }
     }
 
+    /// 设置用户 ID。
     pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
         self.user_id = user_id.into();
         self
     }
 
+    /// 设置主题。
     pub fn topic(mut self, topic: impl Into<String>) -> Self {
         self.topic = topic.into();
         self
     }
 
+    /// 设置用户 ID 类型。
     pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
         self.user_id_type = Some(user_id_type.into());
         self
     }
 
+    /// 设置分页大小。
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
     }
 
+    /// 设置分页标记。
     pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
         self.page_token = Some(page_token.into());
         self
@@ -123,11 +128,13 @@ impl QueryTaskRequestV4 {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error("查询审批任务", response.raw_response.request_id.clone())
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询审批任务",
+        )
+        .await
     }
 }
 

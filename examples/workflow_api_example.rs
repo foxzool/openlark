@@ -2,11 +2,11 @@
 //!
 //! 此示例展示如何通过 openlark 根 crate 使用任务型 workflow / approval helper。
 
-use open_lark::workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskListQuery,
-    WorkflowTaskMutation,
-};
 use open_lark::CoreConfig;
+use open_lark::workflow::{
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowService, WorkflowTaskCreate,
+    WorkflowTaskListQuery, WorkflowTaskMutation,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,6 +17,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
 
     let workflow_service = WorkflowService::new(config);
+
+    let created = workflow_service
+        .create_task(
+            WorkflowTaskCreate::new("完成项目文档")
+                .description("编写并完成 OpenLark SDK 的工作流模块文档")
+                .priority(3)
+                .tasklist_guid("tasklist_guid"),
+        )
+        .await?;
+    println!("任务创建成功: {}", created.task_guid);
 
     let tasks = workflow_service
         .list_tasks_all(
@@ -30,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = workflow_service
         .mutate_task(
-            "task_guid",
+            &created.task_guid,
             WorkflowTaskMutation::new()
                 .summary("完成项目文档")
                 .description("编写并完成 OpenLark SDK 的工作流模块文档")
@@ -50,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("待审批任务数量: {}", approval_tasks.len());
 
     if let Some(task) = approval_tasks.first() {
-        let result = workflow_service
+        workflow_service
             .approve_task(
                 ApprovalTaskAction::new(
                     task.approval_code.clone(),
@@ -62,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .comment("自动化示例通过"),
             )
             .await?;
-        println!("审批处理结果: {}", result.success);
+        println!("审批处理成功");
     }
 
     Ok(())

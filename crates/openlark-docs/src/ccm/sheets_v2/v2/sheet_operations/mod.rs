@@ -9,11 +9,12 @@
 /// - merge_cells: 合并单元格
 /// - unmerge_cells: 取消合并单元格
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use crate::common::{api_endpoints::CcmSheetApiOld, api_utils::*};
@@ -122,12 +123,12 @@ pub async fn delete_range_with_options(
     let api_endpoint = CcmSheetApiOld::DeleteRange(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteRangeResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除范围")?);
+    let api_request: ApiRequest<DeleteRangeResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "删除范围")
+    Transport::request_typed(api_request, config, Some(option), "删除范围").await
 }
 
 /// 插入行列
@@ -160,12 +161,12 @@ pub async fn insert_dimension_with_options(
     let api_endpoint = CcmSheetApiOld::InsertDimension(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<InsertDimensionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "插入行列")?);
+    let api_request: ApiRequest<InsertDimensionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "插入行列")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "插入行列")
+    Transport::request_typed(api_request, config, Some(option), "插入行列").await
 }
 
 /// 移动行列
@@ -198,12 +199,12 @@ pub async fn move_dimension_with_options(
     let api_endpoint = CcmSheetApiOld::MoveDimension(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<MoveDimensionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "移动行列")?);
+    let api_request: ApiRequest<MoveDimensionResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "移动行列")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "移动行列")
+    Transport::request_typed(api_request, config, Some(option), "移动行列").await
 }
 
 /// 替换范围
@@ -236,12 +237,12 @@ pub async fn replace_range_with_options(
     let api_endpoint = CcmSheetApiOld::ReplaceRange(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<ReplaceRangeResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "替换范围")?);
+    let api_request: ApiRequest<ReplaceRangeResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "替换范围")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "替换范围")
+    Transport::request_typed(api_request, config, Some(option), "替换范围").await
 }
 
 /// 查找替换
@@ -275,12 +276,12 @@ pub async fn find_replace_with_options(
     let api_endpoint = CcmSheetApiOld::FindReplace(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<FindReplaceResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "查找替换")?);
+    let api_request: ApiRequest<FindReplaceResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "查找替换")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查找替换")
+    Transport::request_typed(api_request, config, Some(option), "查找替换").await
 }
 
 /// 合并单元格
@@ -313,12 +314,12 @@ pub async fn merge_cells_with_options(
     let api_endpoint = CcmSheetApiOld::MergeCells(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<MergeCellsResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "合并单元格")?);
+    let api_request: ApiRequest<MergeCellsResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "合并单元格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "合并单元格")
+    Transport::request_typed(api_request, config, Some(option), "合并单元格").await
 }
 
 /// 取消合并单元格
@@ -351,12 +352,12 @@ pub async fn unmerge_cells_with_options(
     let api_endpoint = CcmSheetApiOld::UnmergeCells(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UnmergeCellsResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "取消合并单元格")?);
+    let api_request: ApiRequest<UnmergeCellsResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "取消合并单元格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "取消合并单元格")
+    Transport::request_typed(api_request, config, Some(option), "取消合并单元格").await
 }
 
 // API函数已经在模块中定义，不需要重复导出
@@ -365,21 +366,47 @@ pub async fn unmerge_cells_with_options(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../dimensionRange/delete → DeleteRangeResponse。
+    #[tokio::test]
+    async fn test_delete_range_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/sheets/v3/spreadsheets/token001/dimensionRange/delete",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = delete_range(
+            &config,
+            "token001",
+            DeleteRangeParams {
+                range: "Sheet1!A1:A5".into(),
+                dimension: "ROWS".into(),
+            },
+        )
+        .await
+        .expect("删除范围应成功");
+        assert!(resp.data.is_none());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/token001/dimensionRange/delete"
+        );
     }
 }

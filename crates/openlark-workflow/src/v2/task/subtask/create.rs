@@ -1,12 +1,13 @@
 //! 创建子任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task-subtask/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task-subtask/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -132,9 +133,13 @@ impl CreateSubtaskRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建子任务")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建子任务")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建子任务",
+        )
+        .await
     }
 }
 

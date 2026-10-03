@@ -1,5 +1,5 @@
-#![cfg(all(feature = "vc", feature = "calendar"))]
 //! 视频会议和日历核心 request/response 模型的序列化契约测试。
+#![cfg(all(feature = "vc", feature = "calendar"))]
 
 use openlark_meeting::calendar::calendar::v4::calendar::models::{
     Calendar, CalendarPermissions, CreateCalendarResponse, GetCalendarResponse,
@@ -14,9 +14,9 @@ use openlark_meeting::vc::vc::v1::responses::{
     CreateRoomResponse, DeviceInfo, GetRoomResponse as VcGetRoomResponse, ListRoomResponse,
     MgetRoomResponse, PatchRoomResponse, RoomInfo, SearchRoomResponse,
 };
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where

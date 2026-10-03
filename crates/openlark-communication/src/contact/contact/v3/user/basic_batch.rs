@@ -1,19 +1,19 @@
 //! 获取用户姓名
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/basic_batch
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/basic_batch>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     error,
     http::Transport,
-    SDKResult,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    contact::contact::v3::user::models::UserIdType,
+    common::api_utils::serialize_params, contact::contact::v3::user::models::UserIdType,
     endpoints::CONTACT_V3_USERS_BASIC_BATCH,
 };
 
@@ -117,12 +117,7 @@ impl BasicBatchUsersRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BasicBatchUsersResponse> {
-        if self.user_ids.is_empty() {
-            return Err(error::validation_error(
-                "user_ids 不能为空".to_string(),
-                "请至少传入 1 个 user_id".to_string(),
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空");
         if self.user_ids.len() > 10 {
             return Err(error::validation_error(
                 "user_ids 超出上限".to_string(),
@@ -141,8 +136,7 @@ impl BasicBatchUsersRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户姓名")
+        Transport::request_typed(req, &self.config, Some(option), "获取用户姓名").await
     }
 }
 
@@ -187,7 +181,8 @@ mod tests {
                 }
             }]
         }"#;
-        let response: BasicBatchUsersResponse = serde_json::from_str(json).expect("JSON 反序列化失败");
+        let response: BasicBatchUsersResponse =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.users.len(), 1);
         assert_eq!(response.users[0].name.as_deref(), Some("张三"));
         assert_eq!(
@@ -205,9 +200,7 @@ mod tests {
             .execute_with_options(RequestOption::default())
             .await;
         assert!(result.is_err());
-        let error = result
-            .expect_err("缺少 user_ids 应该返回错误")
-            .to_string();
+        let error = result.expect_err("缺少 user_ids 应该返回错误").to_string();
         assert!(error.contains("user_ids"));
     }
 

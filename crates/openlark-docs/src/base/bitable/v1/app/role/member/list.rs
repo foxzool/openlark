@@ -1,6 +1,6 @@
 //! Bitable 列出协作者（自定义角色）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -75,21 +75,20 @@ impl ListRoleMembersRequest {
         validate_required!(self.role_id.trim(), "role_id");
 
         // === 边界值验证 ===
-        if let Some(page_size) = self.page_size {
-            if page_size < 1 || page_size > 100 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~100 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && (page_size < 1 || page_size > 100)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~100 之间",
+            ));
         }
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint =
             BitableApiV1::RoleMemberList(self.app_token.clone(), self.role_id.clone());
 
-        let mut api_request: ApiRequest<ListRoleMembersResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListRoleMembersResponse> = api_endpoint.to_request();
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
@@ -98,10 +97,13 @@ impl ListRoleMembersRequest {
             api_request = api_request.query("page_token", page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 列出协作者（自定义角色）",
+        )
+        .await
     }
 }
 

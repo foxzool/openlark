@@ -2,14 +2,15 @@
 //!
 //! 更新知识空间中节点的标题。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/update_title
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/update_title>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -86,33 +87,61 @@ impl UpdateWikiSpaceNodeTitleRequest {
             WikiApiV2::SpaceNodeUpdateTitle(self.space_id.clone(), self.node_token.clone());
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<UpdateWikiSpaceNodeTitleResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "更新知识空间节点标题")?);
+        let api_request: ApiRequest<UpdateWikiSpaceNodeTitleResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "更新知识空间节点标题")?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新知识空间节点标题")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "更新知识空间节点标题",
+        )
+        .await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../nodes/{node_token}/update_title → UpdateWikiSpaceNodeTitleResponse（空 data）。
+    #[tokio::test]
+    async fn test_update_wiki_space_node_title_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/wiki/v2/spaces/sp001/nodes/nt001/update_title",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        UpdateWikiSpaceNodeTitleRequest::new(config)
+            .space_id("sp001")
+            .node_token("nt001")
+            .execute(UpdateWikiSpaceNodeTitleParams {
+                title: "新标题".into(),
+            })
+            .await
+            .expect("更新节点标题应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/wiki/v2/spaces/sp001/nodes/nt001/update_title"
+        );
     }
 }

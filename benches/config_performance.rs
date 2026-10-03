@@ -3,8 +3,9 @@
 //! 说明：
 //! - 该基准用于 CI 中的 `cargo bench --bench config_performance`，避免 “无 bench 目标” 导致工作流失败
 //! - 选择 `openlark_core::config::Config` 的构建与克隆路径，确保不依赖外部环境变量与网络
+#![allow(missing_docs)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use openlark_core::config::Config;
 
 fn bench_config_build(c: &mut Criterion) {

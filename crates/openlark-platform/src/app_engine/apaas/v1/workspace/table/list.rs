@@ -1,25 +1,26 @@
 //! 获取工作空间下的数据表列表
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables
+//! docPath:
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取数据表列表 Builder
 #[derive(Debug, Clone)]
-pub struct TableListBuilder {
+pub struct TableListRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
 }
 
-impl TableListBuilder {
+impl TableListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, workspace_id: impl Into<String>) -> Self {
         Self {
@@ -41,9 +42,7 @@ impl TableListBuilder {
         );
 
         let req: ApiRequest<TableListResponse> = ApiRequest::get(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -69,16 +68,16 @@ pub struct TableInfo {
 pub struct TableListResponse {
     /// 数据表列表
     #[serde(rename = "items")]
-    items: Vec<TableInfo>,
+    pub items: Vec<TableInfo>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for TableListResponse {
@@ -86,6 +85,10 @@ impl ApiResponseTrait for TableListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableListBuilder = TableListRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -97,7 +100,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = TableListBuilder::new(config.clone(), "test".to_string());
+        let request = TableListRequestBuilder::new(config.clone(), "test".to_string());
         let _ = request;
     }
 }

@@ -1,12 +1,13 @@
 //! 查询统计字段定义
 //!
-//! docPath: https://open.feishu.cn/document/attendance-v1/user_stats_field/query
+//! docPath: <https://open.feishu.cn/document/attendance-v1/user_stats_field/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required_list,
 };
 
 use super::models::{QueryRequestBody, QueryResponse};
@@ -110,12 +111,7 @@ impl QueryRequest {
 
         // 1. 验证必填字段
         // 至少需要指定考勤组 ID 或用户 ID
-        if self.unit_id.is_none() && self.user_ids.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "查询条件不能为空",
-                "至少需要指定考勤组 ID 或用户 ID",
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "查询条件不能为空");
 
         // 验证用户 ID 数量
         if self.user_ids.len() > 50 {
@@ -149,20 +145,18 @@ impl QueryRequest {
         request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?);
 
         // 5. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 6. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询统计字段定义响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询统计字段定义响应数据为空",
+        )
+        .await
     }
 }
 
@@ -176,6 +170,7 @@ impl ApiResponseTrait for QueryResponse {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
     use openlark_core::testing::prelude::TestConfigBuilder;
 
     #[test]
@@ -183,5 +178,50 @@ mod tests {
         let request =
             QueryRequest::new(TestConfigBuilder::new().build()).unit_id("test".to_string());
         let _ = request;
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_attendance_v1_user_stats_field_query_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"stat_fields": [], "has_more": false}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/attendance/v1/user_stats_fields/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = QueryRequest::new(config)
+            .add_user_id("id_001".to_string())
+            .start_date("20240101".to_string())
+            .end_date("20240131".to_string())
+            .execute()
+            .await
+            .expect("attendance_v1_user_stats_field_query 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/attendance/v1/user_stats_fields/query"
+        );
     }
 }

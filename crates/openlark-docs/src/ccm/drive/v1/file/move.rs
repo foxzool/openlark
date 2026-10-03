@@ -2,13 +2,14 @@
 //!
 //! 将文件或者文件夹移动到用户云空间的其他位置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/move
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/move>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -96,18 +97,8 @@ impl MoveFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<MoveFileResponse> {
         // === 必填字段验证 ===
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.folder_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "folder_token",
-                "folder_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.folder_token, "folder_token 不能为空");
 
         // === 枚举值验证 ===
         if self.r#type.is_empty() {
@@ -133,8 +124,9 @@ impl MoveFileRequest {
             r#type: String,
             folder_token: String,
         }
-        let request =
-            ApiRequest::<MoveFileResponse>::post(&api_endpoint.to_url()).body(serialize_params(
+        let request = api_endpoint
+            .to_request::<MoveFileResponse>()
+            .body(serialize_params(
                 &MoveFileBody {
                     r#type: self.r#type,
                     folder_token: self.folder_token,
@@ -142,8 +134,7 @@ impl MoveFileRequest {
                 "移动文件或文件夹",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "移动文件或文件夹")
+        Transport::request_typed(request, &self.config, Some(option), "移动文件或文件夹").await
     }
 }
 

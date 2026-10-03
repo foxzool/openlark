@@ -7,10 +7,17 @@
 //! - 用户访问令牌申请与刷新
 //! - OIDC 访问令牌相关接口
 
-// v1 模块显式导出
+// v1 模块显式导出（新名）
 pub use v1::{
-    AuthenServiceV1, OidcAccessTokenBuilder, OidcRefreshAccessTokenBuilder, OidcService,
-    RefreshUserAccessTokenV1Builder, UserAccessTokenV1Builder, UserInfoBuilder, UserInfoService,
+    AuthenServiceV1, OidcAccessTokenRequestBuilder, OidcRefreshAccessTokenRequestBuilder,
+    OidcService, RefreshUserAccessTokenV1RequestBuilder, UserAccessTokenV1RequestBuilder,
+    UserInfoRequestBuilder, UserInfoService,
+};
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use v1::{
+    OidcAccessTokenBuilder, OidcRefreshAccessTokenBuilder, RefreshUserAccessTokenV1Builder,
+    UserAccessTokenV1Builder, UserInfoBuilder,
 };
 
 pub mod v1;

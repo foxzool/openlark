@@ -1,18 +1,18 @@
 //! 获取预约
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 
 /// 获取预约请求
 
@@ -71,7 +71,7 @@ impl GetReserveRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/reserve/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/reserve/get>
     pub async fn execute(self) -> SDKResult<GetReserveResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -91,28 +91,58 @@ impl GetReserveRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取预约")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取预约").await
     }
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../vc/v1/reserves/{reserve_id} → 强类型 GetReserveResponse 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_get_reserve_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/vc/v1/reserves/r_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "reserve_id": "r_001",
+                    "meeting_id": "m_001",
+                    "topic": "周会",
+                    "start_time": "2026-07-08 10:00",
+                    "end_time": "2026-07-08 11:00"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetReserveRequest::new(config)
+            .reserve_id("r_001")
+            .execute()
+            .await
+            .expect("获取预约应成功");
+        assert_eq!(resp.reserve_id, "r_001");
+        assert_eq!(resp.meeting_id, "m_001");
+        assert_eq!(resp.topic, "周会");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/vc/v1/reserves/r_001");
     }
 }

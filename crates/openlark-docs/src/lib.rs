@@ -43,7 +43,7 @@
 //!     let client = DocsClient::new(config);
 //!
 //!     // 获取配置后构建 Request
-//!     let config = client.ccm.config().clone();
+//!     let config = client.config().clone();
 //!     // 使用 openlark_docs::ccm::drive::v1::file::UploadAllRequest
 //!
 //!     // 高频读取场景也可以直接使用 helper
@@ -81,10 +81,6 @@
 //! - ✅ **构建器模式** - 流畅的 API 调用体验
 //! - ✅ **标准架构** - 严格按照 bizTag/project/version/resource/name.rs 模式组织
 
-// Include macros first - 对所有功能都启用宏
-#[macro_use]
-mod macros;
-
 // Core modules
 /// 通用文档数据模型。
 pub mod models;
@@ -105,11 +101,6 @@ pub mod baike;
 #[cfg(feature = "minutes")]
 /// 会议纪要模块。
 pub mod minutes;
-
-// API版本模块
-#[cfg(any(feature = "v1", feature = "v2", feature = "v3"))]
-/// 版本兼容入口模块。
-pub mod versions;
 
 // 通用模块 - 工具宏和类型
 /// 通用工具、链式 helper 与端点定义。
@@ -137,8 +128,8 @@ pub use common::chain::{FolderChildrenPage, FolderChildrenPager, SheetRange, She
 //
 // 1. **DocsClient** (公开入口)
 //    - 唯一推荐的公开入口
-//    - 提供配置获取：`docs.ccm.config()`, `docs.base.bitable.config()`
-//    - 按业务域分组：`docs.ccm`, `docs.base`, `docs.baike`, `docs.minutes`
+//    - 提供配置获取：`docs.config()`（直路径，ADR 0001 扁平收口）
+//    - 业务域 config-holder 子客户端（CcmClient/BaseClient/BitableClient/BaikeClient/MinutesClient）已移除
 //    - 自动根据 feature 裁剪编译
 //
 // 2. **使用方式**
@@ -155,12 +146,12 @@ pub use common::chain::{FolderChildrenPage, FolderChildrenPager, SheetRange, She
 // let docs = DocsClient::new(config);
 //
 // // 访问云盘服务
-// let config = docs.ccm.config().clone();
+// let config = docs.config().clone();
 // let request = UploadAllRequest::new(config, ...);
 // let file = request.execute().await?;
 //
 // // 访问多维表格
-// let config = docs.base.bitable.config().clone();
+// let config = docs.config().clone();
 // let request = CreateTableRequest::new(config, ...);
 // let table = request.execute().await?;
 //
@@ -202,21 +193,5 @@ mod client_tests {
         let client = DocsClient::new(config);
         let cloned = client.clone();
         assert_eq!(cloned.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "ccm-core")]
-    #[test]
-    fn test_docs_client_ccm() {
-        let config = create_test_config();
-        let client = DocsClient::new(config);
-        assert_eq!(client.ccm.config().app_id(), "test_app");
-    }
-
-    #[cfg(any(feature = "base", feature = "bitable"))]
-    #[test]
-    fn test_docs_client_base() {
-        let config = create_test_config();
-        let client = DocsClient::new(config);
-        let _base = &client.base;
     }
 }

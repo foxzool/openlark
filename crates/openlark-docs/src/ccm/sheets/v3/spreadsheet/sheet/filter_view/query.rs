@@ -3,16 +3,16 @@
 /// 查询子表内所有的筛选视图基本信息，包括 id、name 和 range。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/sheets-v3/spreadsheet-sheet-filter_view/query
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use super::FilterView;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 查询筛选视图响应体 data。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,29 +51,59 @@ pub async fn query_filter_views_with_options(
 ) -> SDKResult<QueryFilterViewsResponse> {
     let api_endpoint =
         SheetsApiV3::QueryFilterViews(spreadsheet_token.to_string(), sheet_id.to_string());
-    let api_request: ApiRequest<QueryFilterViewsResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<QueryFilterViewsResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查询筛选视图")
+    Transport::request_typed(api_request, config, Some(option), "查询筛选视图").await
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET .../sheets/{sheet_id}/filter_views/query → QueryFilterViewsResponse（items）。
+    #[tokio::test]
+    async fn test_query_filter_views_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views/query",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        { "filter_view_id": "fv001", "name": "视图1", "range": "A1:A10" },
+                        { "filter_view_id": "fv002", "name": "视图2", "range": "B1:B10" }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = query_filter_views(&config, "tokenAbc", "sheetId001")
+            .await
+            .expect("查询筛选视图应成功");
+        assert_eq!(resp.items.len(), 2);
+        assert_eq!(resp.items[0].filter_view_id, "fv001");
+        assert_eq!(resp.items[1].range, "B1:B10");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter_views/query"
+        );
     }
 }

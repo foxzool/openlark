@@ -1,12 +1,13 @@
 //! 更新人才在职状态
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/onboard_status
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/onboard_status>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,7 +15,6 @@ use std::collections::HashMap;
 
 /// 更新人才在职状态请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OnboardStatusRequest {
     /// 配置信息
     config: Config,
@@ -65,13 +65,13 @@ impl OnboardStatusRequest {
             request = request.body(request_body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "更新人才在职状态响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新人才在职状态响应数据为空",
+        )
+        .await
     }
 }
 

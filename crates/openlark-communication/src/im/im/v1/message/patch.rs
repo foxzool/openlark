@@ -1,15 +1,13 @@
 //! 更新已发送的消息卡片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/patch>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    endpoints::IM_V1_MESSAGES,
+    common::api_utils::serialize_params, common::models::EmptyData, endpoints::IM_V1_MESSAGES,
 };
 
 /// 更新已发送的消息卡片请求
@@ -66,7 +64,7 @@ impl PatchMessageCardRequest {
     /// 1) `{"content": "..."}` 传入卡片 JSON（需为 JSON 序列化后的字符串）
     /// 2) `{"type":"template","data":{...}}` 传入卡片模板（搭建工具）
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/patch>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -86,9 +84,7 @@ impl PatchMessageCardRequest {
             ApiRequest::patch(format!("{}/{}", IM_V1_MESSAGES, self.message_id))
                 .body(serialize_params(&body, "更新已发送的消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新已发送的消息卡片")
+        Transport::request_typed(req, &self.config, Some(option), "更新已发送的消息卡片").await
     }
 }
 

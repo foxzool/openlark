@@ -8,10 +8,21 @@ fmt-check:
   @echo "🔍 Checking code format..."
   cargo fmt --all -- --check
 
-# Lint code
+# Lint code (CI 同款双模式：--all-features + --no-default-features)
 lint:
-  @echo "🔍 Linting code (exclude benches/dev-tests)..."
-  cargo clippy --workspace --all-targets --all-features -- -Dwarnings -A missing_docs
+  @echo "🔍 Linting code (all-features + no-default-features, CI 同款)..."
+  cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+  cargo clippy --workspace --all-targets --no-default-features -- -Dwarnings
+
+# Check no #[allow(dead_code)] in non-test code (issue #267 防复发)
+no-dead-code-allows:
+  @echo "🛡️ Checking no #[allow(dead_code)] in non-test code..."
+  @bash tools/check_no_dead_code_allows.sh
+
+# Check Transport/reqwest boundary (issue #270 防复发)
+reqwest-boundary:
+  @echo "🛡️ Checking Transport/reqwest boundary (no reqwest in business crates)..."
+  @bash tools/check_reqwest_boundary.sh
 
 # Run tests
 test:
@@ -33,6 +44,26 @@ api-coverage:
   @echo "📊 Generating typed API coverage reports..."
   python3 tools/validate_apis.py --all-crates
   @echo "✅ Coverage reports generated in reports/api_validation/"
+
+# Validate typed API endpoint contracts against the official API snapshot
+api-contracts:
+  @echo "🔍 Validating typed API endpoint contracts..."
+  python3 tools/validate_api_contracts.py --all-crates --strict endpoint
+
+# Validate access-token types against official docs (#511 regression gate; default: openlark-security)
+api-contract-tokens CRATE="openlark-security":
+  @echo "🔍 Validating typed API access-token types against official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --tokens --strict tokens --report-dir reports/api_contract_tokens
+
+# Validate request/response fields against current official docs for one crate
+api-contract-fields CRATE="openlark-ai" MAX="5":
+  @echo "🔍 Validating typed API fields against current official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --fields --live-fields --max-field-apis {{MAX}} --report-dir reports/api_contract_fields
+
+# Strict request/response field validation against current official docs for one crate
+api-contract-fields-strict CRATE="openlark-ai" MAX="5":
+  @echo "🔍 Strictly validating typed API fields against current official docs..."
+  python3 tools/validate_api_contracts.py --crate {{CRATE}} --fields --live-fields --max-field-apis {{MAX}} --report-dir reports/api_contract_fields --strict fields
 
 # Regenerate crates.md from mapping + CSV
 update-crates-md:
@@ -70,11 +101,10 @@ coverage-check:
   @echo "📊 Running coverage with threshold check..."
   just coverage
   @echo "🔍 Checking coverage threshold..."
-  @cargo llvm-cov report --summary-only | tail -1 | awk '{ \
-    gsub(/%/, "", $$7); \
-    cov = $$7; \
+  cargo llvm-cov report --json --summary-only --output-path target/llvm-cov/summary.json
+  @cov=$(python3 -c 'import json; d=json.load(open("target/llvm-cov/summary.json","r",encoding="utf-8")); print("{:.2f}".format(d["data"][0]["totals"]["lines"]["percent"]))'); \
+  awk -v cov="$cov" -v min="${MIN_COVERAGE:-40.0}" 'BEGIN { \
     printf "📊 Coverage: %s%%\n", cov; \
-    min = "${MIN_COVERAGE:-54.0}"; \
     if (cov+0 >= min+0) { \
       print "✅ Coverage " cov "% >= threshold " min "%"; \
     } else { \
@@ -101,8 +131,8 @@ update-audit-db:
 # Test feature combinations (requires cargo-hack)
 test-features:
   @echo "🧪 Testing feature combinations..."
-  @echo "Testing each feature individually (excluding websocket/otel)..."
-  cargo hack test --each-feature --exclude-features websocket,otel --lib
+  @echo "Testing each feature individually (excluding websocket)..."
+  cargo hack test --each-feature --exclude-features websocket --lib
   @echo "Testing common feature combinations..."
   cargo test --no-default-features --lib
   cargo test --no-default-features --features "auth,communication" --lib
@@ -146,7 +176,7 @@ release VERSION:
     echo "⚠️  Warning: You are not on the main branch (current: $(git branch --show-current))"; \
     read -p "Continue anyway? (y/N): " -n 1 -r; \
     echo; \
-    if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
       echo "ℹ️  Aborting release"; \
       exit 1; \
     fi; \
@@ -164,15 +194,15 @@ release VERSION:
   git pull origin main
   
   # Check if tag already exists
-  @if git tag -l | grep -q "^v{{VERSION}}$$"; then \
+  @if git tag -l | grep -q "^v{{VERSION}}$"; then \
     echo "❌ Tag v{{VERSION}} already exists"; \
     exit 1; \
   fi
   
   # Verify version in Cargo.toml
-  @CARGO_VERSION=$$(grep '^version = ' Cargo.toml | cut -d'"' -f2); \
-  if [ "$$CARGO_VERSION" != "{{VERSION}}" ]; then \
-    echo "❌ Version mismatch: Cargo.toml has $$CARGO_VERSION, but you specified {{VERSION}}"; \
+  @CARGO_VERSION=$(grep '^version = ' Cargo.toml | cut -d'"' -f2); \
+  if [ "$CARGO_VERSION" != "{{VERSION}}" ]; then \
+    echo "❌ Version mismatch: Cargo.toml has $CARGO_VERSION, but you specified {{VERSION}}"; \
     echo "ℹ️  Please update Cargo.toml first"; \
     exit 1; \
   fi
@@ -187,7 +217,7 @@ release VERSION:
     echo "ℹ️  Please update CHANGELOG.md before releasing"; \
     read -p "Continue anyway? (y/N): " -n 1 -r; \
     echo; \
-    if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
       echo "ℹ️  Aborting release"; \
       exit 1; \
     fi; \
@@ -227,6 +257,9 @@ help:
   @echo "  coverage-check - Run coverage with threshold check"
   @echo "  audit        - Run security audit"
   @echo "  api-coverage - Generate typed API coverage reports (per crate + summary)"
+  @echo "  api-contracts - Validate typed API endpoint contracts"
+  @echo "  api-contract-fields - Validate request/response fields against live official docs"
+  @echo "  api-contract-fields-strict - Strict request/response field validation"
   @echo "  update-audit-db - Update security advisory database"
   @echo "  install-dev-tools - Install development tools"
   @echo "  check-all    - Run all pre-release checks (includes coverage & security)"

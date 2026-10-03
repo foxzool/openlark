@@ -1,23 +1,23 @@
 //! 获取人工任务列表 API
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取审批实例列表的请求构建器。
-pub struct ListInstanceBuilder {
+pub struct ListInstanceRequestBuilder {
     page_size: Option<u32>,
     page_token: Option<String>,
     user_id: Option<String>,
     config: Config,
 }
 
-impl ListInstanceBuilder {
+impl ListInstanceRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -60,13 +60,13 @@ impl ListInstanceBuilder {
         let mut params = Vec::new();
 
         if let Some(size) = self.page_size {
-            params.push(format!("page_size={}", size));
+            params.push(format!("page_size={size}"));
         }
         if let Some(token) = self.page_token {
-            params.push(format!("page_token={}", token));
+            params.push(format!("page_token={token}"));
         }
         if let Some(uid) = self.user_id {
-            params.push(format!("user_id={}", uid));
+            params.push(format!("user_id={uid}"));
         }
 
         if !params.is_empty() {
@@ -76,10 +76,7 @@ impl ListInstanceBuilder {
 
         let api_request: ApiRequest<ListInstanceResponse> = ApiRequest::get(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取人工任务列表", "响应数据为空")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取人工任务列表").await
     }
 }
 
@@ -113,6 +110,10 @@ impl ApiResponseTrait for ListInstanceResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ListInstanceRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ListInstanceBuilder = ListInstanceRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,7 +124,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = ListInstanceBuilder::new(config.clone())
+        let request = ListInstanceRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

@@ -17,8 +17,7 @@ pub use create::{
 
 pub use list::{ListWikiSpaceNodesParams, ListWikiSpaceNodesRequest, ListWikiSpaceNodesResponse};
 
-#[allow(deprecated)]
-pub use move_docs_to_wiki::{MoveDocsToWikiParams, MoveDocsToWikiRequest, MoveDocsToWikiResponse};
+pub use move_docs_to_wiki::{MoveDocsToWikiRequest, MoveDocsToWikiResponse};
 
 pub use r#move::{MoveWikiSpaceNodeParams, MoveWikiSpaceNodeRequest, MoveWikiSpaceNodeResponse};
 

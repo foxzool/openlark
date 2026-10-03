@@ -1,13 +1,14 @@
 //! 清空评论（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance-comment/remove
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance-comment/remove>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 清空评论响应（v4）
@@ -25,6 +26,7 @@ pub struct RemoveInstanceCommentRequestV4 {
 }
 
 impl RemoveInstanceCommentRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, instance_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -51,11 +53,13 @@ impl RemoveInstanceCommentRequestV4 {
         );
         let request = ApiRequest::<RemoveInstanceCommentResponseV4>::post(url);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -68,16 +72,18 @@ impl ApiResponseTrait for RemoveInstanceCommentResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
+    use super::*;
+    use std::sync::Arc;
 
     #[test]
     fn test_instance_comment_remove_v4_url() {
         let request = RemoveInstanceCommentRequestV4::new(
-            openlark_core::config::Config::builder()
-                .app_id("test_app_id")
-                .app_secret("test_app_secret")
-                .build()
-                .expect("测试配置构建失败"),
+            Arc::new(
+                openlark_core::config::Config::builder()
+                    .app_id("test_app_id")
+                    .app_secret("test_app_secret")
+                    .build(),
+            ),
             "test_instance_id".to_string(),
         );
         // Just verify it doesn't panic

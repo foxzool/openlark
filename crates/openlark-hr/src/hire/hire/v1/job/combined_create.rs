@@ -1,12 +1,12 @@
 //! 新建职位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/combined_create
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/combined_create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 新建职位请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CombinedCreateRequest {
     request_body: CombinedCreateRequestBody,
     /// 配置信息
@@ -56,17 +55,10 @@ impl CombinedCreateRequest {
         let request = request.body(serde_json::to_value(&self.request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?);
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "新建职位响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "新建职位响应数据为空").await
     }
 }
 

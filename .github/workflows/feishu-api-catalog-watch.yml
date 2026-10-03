@@ -1,0 +1,76 @@
+name: Feishu API Catalog Watch
+
+on:
+  schedule:
+    # 每周一 10:00（Asia/Shanghai）刷新飞书服务端 API 清单并检测变动。
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: feishu-api-catalog-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Refresh and diff Feishu API catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run catalog tooling tests
+        run: |
+          python3 -m unittest \
+            tools.tests.test_export_server_api_list \
+            tools.tests.test_compare_api_catalogs
+
+      - name: Refresh Feishu API catalog
+        run: |
+          python3 tools/export_server_api_list.py \
+            --output "$RUNNER_TEMP/api_list_export.current.csv" \
+            --max-workers 16 \
+            --timeout 30 \
+            --retries 3
+
+      - name: Compare with checked-in catalog
+        id: compare
+        run: |
+          python3 tools/compare_api_catalogs.py \
+            --baseline api_list_export.csv \
+            --current "$RUNNER_TEMP/api_list_export.current.csv" \
+            --report "$RUNNER_TEMP/feishu-api-catalog-changes.md" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Upload catalog diff artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feishu-api-catalog-watch
+          path: |
+            ${{ runner.temp }}/api_list_export.current.csv
+            ${{ runner.temp }}/feishu-api-catalog-changes.md
+          retention-days: 14
+
+      - name: Create GitHub issue for catalog changes
+        if: steps.compare.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          report="$RUNNER_TEMP/feishu-api-catalog-changes.md"
+          title="飞书 API 变动检测：$(date -u +%Y-%m-%d)"
+
+          gh issue create \
+            --title "$title" \
+            --body-file "$report"

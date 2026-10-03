@@ -4,9 +4,13 @@ pub mod create;
 pub mod delete;
 /// patch 子模块。
 pub mod patch;
+/// query_multi_timeline 模块。
+pub mod query_multi_timeline;
 /// query_recent_change 子模块。
 pub mod query_recent_change;
 /// search 子模块。
 pub mod search;
+/// tree 模块。
+pub mod tree;
 /// version 子模块。
 pub mod version;

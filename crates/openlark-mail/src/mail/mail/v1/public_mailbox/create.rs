@@ -1,15 +1,16 @@
 //! 创建公共邮箱
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/mail-v1/public_mailbox/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/mail-v1/public_mailbox/create>
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::public_mailbox::models::{
     CreatePublicMailboxBody, CreatePublicMailboxResponse,
 };
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -69,9 +70,13 @@ impl CreatePublicMailboxRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建公共邮箱")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建公共邮箱")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建公共邮箱",
+        )
+        .await
     }
 }
 

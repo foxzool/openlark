@@ -24,8 +24,8 @@ async fn main() -> Result<()> {
             println!("Response message: {}", response.msg);
         }
         Err(e) => {
-            eprintln!("Failed to send message: {}", e);
-            eprintln!("Error type: {:?}", e);
+            eprintln!("Failed to send message: {e}");
+            eprintln!("Error type: {e:?}");
         }
     }
 

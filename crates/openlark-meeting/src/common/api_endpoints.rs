@@ -139,14 +139,14 @@ impl CalendarApiV4 {
         match self {
             // Calendar 资源
             CalendarApiV4::CalendarGet(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}")
             }
             CalendarApiV4::CalendarCreate => "/open-apis/calendar/v4/calendars".to_string(),
             CalendarApiV4::CalendarDelete(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}")
             }
             CalendarApiV4::CalendarPatch(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}")
             }
             CalendarApiV4::CalendarList => "/open-apis/calendar/v4/calendars".to_string(),
             CalendarApiV4::CalendarBatchGet => {
@@ -166,63 +166,39 @@ impl CalendarApiV4 {
 
             // Event
             CalendarApiV4::EventGet(calendar_id, event_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/{}",
-                    calendar_id, event_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/{event_id}")
             }
             CalendarApiV4::EventCreate(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}/events", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events")
             }
             CalendarApiV4::EventDelete(calendar_id, event_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/{}",
-                    calendar_id, event_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/{event_id}")
             }
             CalendarApiV4::EventPatch(calendar_id, event_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/{}",
-                    calendar_id, event_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/{event_id}")
             }
             CalendarApiV4::EventList(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}/events", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events")
             }
             CalendarApiV4::EventSearch(calendar_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/search",
-                    calendar_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/search")
             }
             CalendarApiV4::EventBatchGet(calendar_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/batch_get",
-                    calendar_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/batch_get")
             }
             CalendarApiV4::EventReply(calendar_id, event_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/events/{}/reply",
-                    calendar_id, event_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/events/{event_id}/reply")
             }
 
             // ACL
             CalendarApiV4::CalendarAclCreate(calendar_id) => {
-                format!("/open-apis/calendar/v4/calendars/{}/acls", calendar_id)
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/acls")
             }
             CalendarApiV4::CalendarAclSubscription(calendar_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/acls/subscription",
-                    calendar_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/acls/subscription")
             }
             CalendarApiV4::CalendarAclUnsubscription(calendar_id) => {
-                format!(
-                    "/open-apis/calendar/v4/calendars/{}/acls/unsubscription",
-                    calendar_id
-                )
+                format!("/open-apis/calendar/v4/calendars/{calendar_id}/acls/unsubscription")
             }
 
             // Exchange Binding
@@ -299,6 +275,14 @@ pub enum VcApiV1 {
     /// 获取会议列表
     /// GET /open-apis/vc/v1/meetings
     MeetingList,
+
+    /// 订阅会议变更事件
+    /// POST /open-apis/vc/v1/meetings/subscription
+    MeetingSubscription,
+
+    /// 取消订阅会议变更事件
+    /// POST /open-apis/vc/v1/meetings/unsubscription
+    MeetingUnsubscription,
 
     /// 获取会议录制
     /// GET /open-apis/vc/v1/meetings/:meeting_id/recordings/:recording_id
@@ -475,6 +459,40 @@ pub enum VcApiV1 {
     /// PATCH /open-apis/vc/v1/scope_config/:scope_config_id
     ScopeConfigPatch(String),
 
+    // ========== Note 纪要 ==========
+    /// 订阅纪要变更事件
+    /// POST /open-apis/vc/v1/notes/subscription
+    NoteSubscription,
+
+    /// 取消订阅纪要变更事件
+    /// POST /open-apis/vc/v1/notes/unsubscription
+    NoteUnsubscription,
+
+    // ========== Bot 会议机器人 ==========
+    /// 获取会议事件
+    /// GET /open-apis/vc/v1/bots/events
+    BotEvents,
+
+    /// 加入会议
+    /// POST /open-apis/vc/v1/bots/join
+    BotJoin,
+
+    /// 离开会议
+    /// POST /open-apis/vc/v1/bots/leave
+    BotLeave,
+
+    /// 发送会中消息
+    /// POST /open-apis/vc/v1/bots/message
+    BotMessage,
+
+    /// 会中倒计时
+    /// POST /open-apis/vc/v1/bots/countdown
+    BotCountdown,
+
+    /// 获取用户活跃会议
+    /// GET /open-apis/vc/v1/bots/user_active_meeting
+    BotUserActiveMeeting,
+
     // ========== Alert 告警 ==========
     /// 获取告警列表
     /// GET /open-apis/vc/v1/alerts
@@ -508,65 +526,63 @@ impl VcApiV1 {
         match self {
             // Room
             VcApiV1::RoomCreate => "/open-apis/vc/v1/rooms".to_string(),
-            VcApiV1::RoomGet(room_id) => format!("/open-apis/vc/v1/rooms/{}", room_id),
-            VcApiV1::RoomDelete(room_id) => format!("/open-apis/vc/v1/rooms/{}", room_id),
+            VcApiV1::RoomGet(room_id) => format!("/open-apis/vc/v1/rooms/{room_id}"),
+            VcApiV1::RoomDelete(room_id) => format!("/open-apis/vc/v1/rooms/{room_id}"),
             VcApiV1::RoomList => "/open-apis/vc/v1/rooms".to_string(),
             VcApiV1::RoomBatchGet => "/open-apis/vc/v1/rooms/batch_get".to_string(),
             VcApiV1::RoomSearch => "/open-apis/vc/v1/rooms/search".to_string(),
-            VcApiV1::RoomPatch(room_id) => format!("/open-apis/vc/v1/rooms/{}", room_id),
+            VcApiV1::RoomPatch(room_id) => format!("/open-apis/vc/v1/rooms/{room_id}"),
 
             // Meeting
             VcApiV1::MeetingGet(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}")
             }
             VcApiV1::MeetingInvite(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/invite", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/invite")
             }
             VcApiV1::MeetingKickout(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/kickout", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/kickout")
             }
             VcApiV1::MeetingEnd(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/end", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/end")
             }
             VcApiV1::MeetingSetHost(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/set_host", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/set_host")
             }
             VcApiV1::MeetingList => "/open-apis/vc/v1/meetings".to_string(),
+            VcApiV1::MeetingSubscription => "/open-apis/vc/v1/meetings/subscription".to_string(),
+            VcApiV1::MeetingUnsubscription => {
+                "/open-apis/vc/v1/meetings/unsubscription".to_string()
+            }
             VcApiV1::MeetingRecordingGet(meeting_id, recording_id) => {
-                format!(
-                    "/open-apis/vc/v1/meetings/{}/recordings/{}",
-                    meeting_id, recording_id
-                )
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/recordings/{recording_id}")
             }
             VcApiV1::MeetingRecordingList(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/recordings", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/recordings")
             }
             VcApiV1::MeetingRecordingStart(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/recording/start", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/recording/start")
             }
             VcApiV1::MeetingRecordingStop(meeting_id) => {
-                format!("/open-apis/vc/v1/meetings/{}/recording/stop", meeting_id)
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/recording/stop")
             }
             VcApiV1::MeetingRecordingSetPermission(meeting_id) => {
-                format!(
-                    "/open-apis/vc/v1/meetings/{}/recording/set_permission",
-                    meeting_id
-                )
+                format!("/open-apis/vc/v1/meetings/{meeting_id}/recording/set_permission")
             }
 
             // Reserve
             VcApiV1::ReserveCreate => "/open-apis/vc/v1/reserves".to_string(),
             VcApiV1::ReserveDelete(reserve_id) => {
-                format!("/open-apis/vc/v1/reserves/{}", reserve_id)
+                format!("/open-apis/vc/v1/reserves/{reserve_id}")
             }
             VcApiV1::ReserveGet(reserve_id) => {
-                format!("/open-apis/vc/v1/reserves/{}", reserve_id)
+                format!("/open-apis/vc/v1/reserves/{reserve_id}")
             }
             VcApiV1::ReserveGetActiveMeeting(reserve_id) => {
-                format!("/open-apis/vc/v1/reserves/{}/active_meeting", reserve_id)
+                format!("/open-apis/vc/v1/reserves/{reserve_id}/active_meeting")
             }
             VcApiV1::ReservePatch(reserve_id) => {
-                format!("/open-apis/vc/v1/reserves/{}", reserve_id)
+                format!("/open-apis/vc/v1/reserves/{reserve_id}")
             }
 
             // Report
@@ -575,10 +591,10 @@ impl VcApiV1 {
 
             // Export
             VcApiV1::ExportGet(export_id) => {
-                format!("/open-apis/vc/v1/exports/{}", export_id)
+                format!("/open-apis/vc/v1/exports/{export_id}")
             }
             VcApiV1::ExportDownload(export_id) => {
-                format!("/open-apis/vc/v1/exports/{}/download", export_id)
+                format!("/open-apis/vc/v1/exports/{export_id}/download")
             }
             VcApiV1::ExportMeetingList => "/open-apis/vc/v1/exports/meeting_list".to_string(),
             VcApiV1::ExportParticipantList => {
@@ -594,27 +610,27 @@ impl VcApiV1 {
             // Room Level
             VcApiV1::RoomLevelCreate => "/open-apis/vc/v1/room_levels".to_string(),
             VcApiV1::RoomLevelDelete(room_level_id) => {
-                format!("/open-apis/vc/v1/room_levels/{}", room_level_id)
+                format!("/open-apis/vc/v1/room_levels/{room_level_id}")
             }
             VcApiV1::RoomLevelGet(room_level_id) => {
-                format!("/open-apis/vc/v1/room_levels/{}", room_level_id)
+                format!("/open-apis/vc/v1/room_levels/{room_level_id}")
             }
             VcApiV1::RoomLevelList => "/open-apis/vc/v1/room_levels".to_string(),
             VcApiV1::RoomLevelPatch(room_level_id) => {
-                format!("/open-apis/vc/v1/room_levels/{}", room_level_id)
+                format!("/open-apis/vc/v1/room_levels/{room_level_id}")
             }
 
             // Room Config
             VcApiV1::RoomConfigCreate => "/open-apis/vc/v1/room_configs".to_string(),
             VcApiV1::RoomConfigDelete(room_config_id) => {
-                format!("/open-apis/vc/v1/room_configs/{}", room_config_id)
+                format!("/open-apis/vc/v1/room_configs/{room_config_id}")
             }
             VcApiV1::RoomConfigGet(room_config_id) => {
-                format!("/open-apis/vc/v1/room_configs/{}", room_config_id)
+                format!("/open-apis/vc/v1/room_configs/{room_config_id}")
             }
             VcApiV1::RoomConfigList => "/open-apis/vc/v1/room_configs".to_string(),
             VcApiV1::RoomConfigPatch(room_config_id) => {
-                format!("/open-apis/vc/v1/room_configs/{}", room_config_id)
+                format!("/open-apis/vc/v1/room_configs/{room_config_id}")
             }
             VcApiV1::RoomConfigSetRoomAccessCode => {
                 "/open-apis/vc/v1/room_configs/set_room_access_code".to_string()
@@ -623,50 +639,55 @@ impl VcApiV1 {
             // Reserve Config
             VcApiV1::ReserveConfigCreate => "/open-apis/vc/v1/reserve_configs".to_string(),
             VcApiV1::ReserveConfigDelete(reserve_config_id) => {
-                format!("/open-apis/vc/v1/reserve_configs/{}", reserve_config_id)
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}")
             }
             VcApiV1::ReserveConfigGet(reserve_config_id) => {
-                format!("/open-apis/vc/v1/reserve_configs/{}", reserve_config_id)
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}")
             }
             VcApiV1::ReserveConfigList => "/open-apis/vc/v1/reserve_configs".to_string(),
             VcApiV1::ReserveConfigPatch(reserve_config_id) => {
-                format!("/open-apis/vc/v1/reserve_configs/{}", reserve_config_id)
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}")
             }
             VcApiV1::ReserveConfigAdminPatch(reserve_config_id) => {
-                format!(
-                    "/open-apis/vc/v1/reserve_configs/{}/admin",
-                    reserve_config_id
-                )
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}/admin")
             }
             VcApiV1::ReserveConfigFormPatch(reserve_config_id) => {
-                format!(
-                    "/open-apis/vc/v1/reserve_configs/{}/form",
-                    reserve_config_id
-                )
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}/form")
             }
             VcApiV1::ReserveConfigDisableInformPatch(reserve_config_id) => {
-                format!(
-                    "/open-apis/vc/v1/reserve_configs/{}/disable_inform",
-                    reserve_config_id
-                )
+                format!("/open-apis/vc/v1/reserve_configs/{reserve_config_id}/disable_inform")
             }
 
             // Scope Config
             VcApiV1::ScopeConfigCreate => "/open-apis/vc/v1/scope_config".to_string(),
             VcApiV1::ScopeConfigDelete(scope_config_id) => {
-                format!("/open-apis/vc/v1/scope_config/{}", scope_config_id)
+                format!("/open-apis/vc/v1/scope_config/{scope_config_id}")
             }
             VcApiV1::ScopeConfigGet(scope_config_id) => {
-                format!("/open-apis/vc/v1/scope_config/{}", scope_config_id)
+                format!("/open-apis/vc/v1/scope_config/{scope_config_id}")
             }
             VcApiV1::ScopeConfigList => "/open-apis/vc/v1/scope_config".to_string(),
             VcApiV1::ScopeConfigPatch(scope_config_id) => {
-                format!("/open-apis/vc/v1/scope_config/{}", scope_config_id)
+                format!("/open-apis/vc/v1/scope_config/{scope_config_id}")
+            }
+
+            // Note
+            VcApiV1::NoteSubscription => "/open-apis/vc/v1/notes/subscription".to_string(),
+            VcApiV1::NoteUnsubscription => "/open-apis/vc/v1/notes/unsubscription".to_string(),
+
+            // Bot
+            VcApiV1::BotEvents => "/open-apis/vc/v1/bots/events".to_string(),
+            VcApiV1::BotJoin => "/open-apis/vc/v1/bots/join".to_string(),
+            VcApiV1::BotLeave => "/open-apis/vc/v1/bots/leave".to_string(),
+            VcApiV1::BotMessage => "/open-apis/vc/v1/bots/message".to_string(),
+            VcApiV1::BotCountdown => "/open-apis/vc/v1/bots/countdown".to_string(),
+            VcApiV1::BotUserActiveMeeting => {
+                "/open-apis/vc/v1/bots/user_active_meeting".to_string()
             }
 
             // Alert
             VcApiV1::AlertList => "/open-apis/vc/v1/alerts".to_string(),
-            VcApiV1::AlertGet(alert_id) => format!("/open-apis/vc/v1/alerts/{}", alert_id),
+            VcApiV1::AlertGet(alert_id) => format!("/open-apis/vc/v1/alerts/{alert_id}"),
 
             // List
             VcApiV1::MeetingListList => "/open-apis/vc/v1/meeting_list".to_string(),
@@ -782,14 +803,14 @@ impl MeetingRoomApi {
             // Building
             MeetingRoomApi::BuildingCreate => "/open-apis/meeting_room/buildings".to_string(),
             MeetingRoomApi::BuildingDelete(building_id) => {
-                format!("/open-apis/meeting_room/buildings/{}", building_id)
+                format!("/open-apis/meeting_room/buildings/{building_id}")
             }
             MeetingRoomApi::BuildingGet(building_id) => {
-                format!("/open-apis/meeting_room/buildings/{}", building_id)
+                format!("/open-apis/meeting_room/buildings/{building_id}")
             }
             MeetingRoomApi::BuildingList => "/open-apis/meeting_room/buildings".to_string(),
             MeetingRoomApi::BuildingPatch(building_id) => {
-                format!("/open-apis/meeting_room/buildings/{}", building_id)
+                format!("/open-apis/meeting_room/buildings/{building_id}")
             }
             MeetingRoomApi::BuildingBatchGet => {
                 "/open-apis/meeting_room/buildings/batch_get".to_string()
@@ -801,14 +822,14 @@ impl MeetingRoomApi {
             // Room
             MeetingRoomApi::RoomCreate => "/open-apis/meeting_room/rooms".to_string(),
             MeetingRoomApi::RoomDelete(room_id) => {
-                format!("/open-apis/meeting_room/rooms/{}", room_id)
+                format!("/open-apis/meeting_room/rooms/{room_id}")
             }
             MeetingRoomApi::RoomGet(room_id) => {
-                format!("/open-apis/meeting_room/rooms/{}", room_id)
+                format!("/open-apis/meeting_room/rooms/{room_id}")
             }
             MeetingRoomApi::RoomList => "/open-apis/meeting_room/rooms".to_string(),
             MeetingRoomApi::RoomPatch(room_id) => {
-                format!("/open-apis/meeting_room/rooms/{}", room_id)
+                format!("/open-apis/meeting_room/rooms/{room_id}")
             }
             MeetingRoomApi::RoomBatchGet => "/open-apis/meeting_room/rooms/batch_get".to_string(),
             MeetingRoomApi::RoomBatchGetId => {
@@ -820,7 +841,7 @@ impl MeetingRoomApi {
                 "/open-apis/meeting_room/instances/batch_get_freebusy".to_string()
             }
             MeetingRoomApi::InstanceReply(instance_id) => {
-                format!("/open-apis/meeting_room/instances/{}/reply", instance_id)
+                format!("/open-apis/meeting_room/instances/{instance_id}/reply")
             }
 
             // 其他
@@ -889,6 +910,8 @@ mod tests {
             VcApiV1::MeetingEnd("id1".to_string()).to_url(),
             VcApiV1::MeetingSetHost("id1".to_string()).to_url(),
             VcApiV1::MeetingList.to_url(),
+            VcApiV1::MeetingSubscription.to_url(),
+            VcApiV1::MeetingUnsubscription.to_url(),
             VcApiV1::MeetingRecordingGet("id1".to_string(), "id2".to_string()).to_url(),
             VcApiV1::MeetingRecordingList("id1".to_string()).to_url(),
             VcApiV1::MeetingRecordingStart("id1".to_string()).to_url(),
@@ -931,6 +954,12 @@ mod tests {
             VcApiV1::ScopeConfigGet("id1".to_string()).to_url(),
             VcApiV1::ScopeConfigList.to_url(),
             VcApiV1::ScopeConfigPatch("id1".to_string()).to_url(),
+            VcApiV1::BotEvents.to_url(),
+            VcApiV1::BotJoin.to_url(),
+            VcApiV1::BotLeave.to_url(),
+            VcApiV1::BotMessage.to_url(),
+            VcApiV1::BotCountdown.to_url(),
+            VcApiV1::BotUserActiveMeeting.to_url(),
             VcApiV1::AlertList.to_url(),
             VcApiV1::AlertGet("id1".to_string()).to_url(),
             VcApiV1::MeetingListList.to_url(),

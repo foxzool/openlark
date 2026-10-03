@@ -1,5 +1,5 @@
-#![cfg(all(feature = "im", feature = "contact"))]
 //! Representative contract tests for high-frequency communication request/response models.
+#![cfg(all(feature = "im", feature = "contact"))]
 
 use openlark_communication::contact::contact::v3::user::batch::BatchGetUsersResponse;
 use openlark_communication::im::v1::chat::models::GetChatLinkResponse;
@@ -7,9 +7,9 @@ use openlark_communication::im::v1::file::models::CreateFileResponse;
 use openlark_communication::im::v1::image::models::CreateImageResponse;
 use openlark_communication::im::v1::message::create::CreateMessageBody;
 use openlark_communication::im::v1::message::reply::ReplyMessageBody;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where

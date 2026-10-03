@@ -3,11 +3,11 @@
 /// 更新电子表格的基本信息，如标题、时区、语言等。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/sheets-v3/spreadsheet/patch
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use super::models::*;
@@ -43,10 +43,10 @@ pub async fn update_spreadsheet_with_options(
     let api_endpoint = SheetsApiV3::PatchSpreadsheet(spreadsheet_token.to_string());
 
     // 创建API请求 - 使用类型安全的URL生成和标准化的参数序列化
-    let api_request: ApiRequest<UpdateSpreadsheetResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(&params, "更新电子表格")?);
+    let api_request: ApiRequest<UpdateSpreadsheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新电子表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新电子表格")
+    Transport::request_typed(api_request, config, Some(option), "更新电子表格").await
 }

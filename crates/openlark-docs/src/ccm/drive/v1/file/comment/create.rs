@@ -24,9 +24,9 @@
 //! let comment = create_comment(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/create>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use serde::{Deserialize, Serialize};
 
@@ -123,13 +123,12 @@ pub async fn create_comment(
 
     let api_endpoint = DriveApi::CreateComment(request.file_token.clone());
 
-    let mut api_request: ApiRequest<Comment> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
-            &CreateCommentRequestBody {
-                reply_list: request.reply_list,
-            },
-            "添加全文评论",
-        )?);
+    let mut api_request: ApiRequest<Comment> = api_endpoint.to_request().body(serialize_params(
+        &CreateCommentRequestBody {
+            reply_list: request.reply_list,
+        },
+        "添加全文评论",
+    )?);
 
     api_request = api_request.query("file_type", &request.file_type);
 
@@ -138,9 +137,7 @@ pub async fn create_comment(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "添加全文评论")
+    Transport::request_typed(api_request, config, option, "添加全文评论").await
 }
 
 #[cfg(test)]

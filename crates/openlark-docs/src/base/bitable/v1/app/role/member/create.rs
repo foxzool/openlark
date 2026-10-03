@@ -1,6 +1,6 @@
 //! Bitable 新增协作者（自定义角色）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -81,12 +81,12 @@ impl CreateRoleMemberRequest {
         let api_endpoint =
             BitableApiV1::RoleMemberCreate(self.app_token.clone(), self.role_id.clone());
 
-        let mut api_request: ApiRequest<CreateRoleMemberResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&CreateRoleMemberRequestBody {
-            member_id: self.member_id,
-        })?);
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<CreateRoleMemberResponse> = api_endpoint
+            .to_request::<CreateRoleMemberResponse>()
+            .body(serde_json::to_vec(&CreateRoleMemberRequestBody {
+                member_id: self.member_id,
+            })?);
 
         // query 参数需要字符串值（open_id / user_id / ...），这里用枚举做一次映射。
         if let Some(member_id_type) = self.member_id_type {
@@ -101,10 +101,13 @@ impl CreateRoleMemberRequest {
             api_request = api_request.query("member_id_type", member_id_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 新增协作者（自定义角色）",
+        )
+        .await
     }
 }
 

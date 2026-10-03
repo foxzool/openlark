@@ -1,20 +1,32 @@
 // WebSocket 客户端模块
 //
-// 提供WebSocket连接和事件处理功能
+// 公开入口仅暴露会话级类型（LarkWsClient / EventHandler 等）。
+// 会话协议在单一 `session` loop 中实现；frame / package 为内部细节。
 
 mod client;
+mod dispatcher;
 mod frame_handler;
-mod state_machine;
+mod headers;
+mod package;
+mod session;
+mod typed;
 
-#[cfg(feature = "websocket")]
-// client 模块显式导出
-pub use client::{
-    ClientConfig, EndPointResponse, EventDispatcherHandler, EventHandler, LarkWsClient,
-    WsClientError, WsClientResult, WsCloseReason, WsEvent,
+/// 会话级公开 API。
+pub use client::LarkWsClient;
+pub use dispatcher::{CallbackEventHandler, EventDispatcherHandler, EventHandler};
+pub use session::{InvalidStateKind, WsClientError, WsClientResult, WsCloseReason};
+pub use typed::{
+    CardAction, CardActionCard, CardActionTrigger, CardActionTriggerEvent,
+    CardActionTriggerHandler, CardActionTriggerResponse, CardContext, CardOperator, CardToast,
+    EventHeader, ImMention, ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler,
+    ImMessageSender, ImReceivedMessage, ImSenderId,
 };
-
-pub use frame_handler::{FrameHandler, FrameType};
-pub use state_machine::{ConnectionState, StateMachineEvent, WebSocketStateMachine};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod full_session_tests;
+
+#[cfg(test)]
+mod session_behavior_tests;

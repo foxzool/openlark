@@ -1,24 +1,26 @@
 //! 人工任务加签 API
 //!
-//! API文档: https://open.feishu.cn/document/server-docs/apaas-v1/flow/user-task/add_assignee
+//! API文档: <https://open.feishu.cn/document/server-docs/apaas-v1/flow/user-task/add_assignee>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/flow/user-task/add_assignee>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 人工任务加签的请求构建器。
-pub struct AddAssigneeBuilder {
+pub struct AddAssigneeRequestBuilder {
     approval_task_id: String,
     user_ids: Vec<String>,
     config: Config,
 }
 
-impl AddAssigneeBuilder {
+impl AddAssigneeRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -63,10 +65,7 @@ impl AddAssigneeBuilder {
         let api_request: ApiRequest<AddAssigneeResponse> =
             ApiRequest::post(url).body(serde_json::to_value(&request_body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("人工任务加签", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "人工任务加签").await
     }
 }
 
@@ -88,23 +87,55 @@ impl ApiResponseTrait for AddAssigneeResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AddAssigneeRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AddAssigneeBuilder = AddAssigneeRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../approval_tasks/{id}/add_assignee → 强类型 AddAssigneeResponse。
+    #[tokio::test]
+    async fn test_add_assignee_approval_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/apaas/v1/approval_tasks/task_001/add_assignee",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "result": "success" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = AddAssigneeRequestBuilder::new(config)
+            .approval_task_id("task_001")
+            .user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .execute()
+            .await
+            .expect("人工任务加签应成功");
+        assert_eq!(resp.result, "success");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/approval_tasks/task_001/add_assignee"
+        );
     }
 }

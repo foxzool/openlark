@@ -1,19 +1,20 @@
 //! 退回人工任务
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/flow/user-task/rollback
+//! 文档: <https://open.feishu.cn/document/apaas-v1/flow/user-task/rollback>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/flow/user-task/rollback>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 退回人工任务 Builder
 #[derive(Debug, Clone)]
-pub struct RollbackTaskBuilder {
+pub struct RollbackTaskRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
@@ -23,7 +24,7 @@ pub struct RollbackTaskBuilder {
     reason: Option<String>,
 }
 
-impl RollbackTaskBuilder {
+impl RollbackTaskRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, task_id: impl Into<String>, node_id: impl Into<String>) -> Self {
         Self {
@@ -59,9 +60,7 @@ impl RollbackTaskBuilder {
 
         let req: ApiRequest<RollbackTaskResponse> =
             ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -81,13 +80,13 @@ struct RollbackTaskRequest {
 pub struct RollbackTaskResponse {
     /// 任务 ID
     #[serde(rename = "task_id")]
-    task_id: String,
+    pub task_id: String,
     /// 退回结果
     #[serde(rename = "result")]
-    result: bool,
+    pub result: bool,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for RollbackTaskResponse {
@@ -96,23 +95,58 @@ impl ApiResponseTrait for RollbackTaskResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RollbackTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RollbackTaskBuilder = RollbackTaskRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../user_tasks/{id}/rollback → 强类型 RollbackTaskResponse。
+    #[tokio::test]
+    async fn test_rollback_user_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/apaas/v1/user_tasks/task_001/rollback"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "task_id": "task_001",
+                    "result": true,
+                    "message": "退回成功"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = RollbackTaskRequestBuilder::new(config, "task_001", "node_1")
+            .reason("信息需补充")
+            .execute()
+            .await
+            .expect("退回人工任务应成功");
+        assert_eq!(resp.task_id, "task_001");
+        assert!(resp.result);
+        assert_eq!(resp.message, "退回成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/user_tasks/task_001/rollback"
+        );
     }
 }

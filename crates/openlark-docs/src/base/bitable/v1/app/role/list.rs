@@ -1,6 +1,6 @@
 //! Bitable 列出自定义角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -66,27 +66,30 @@ impl ListAppRoleRequest {
         validate_required!(self.app_token.trim(), "app_token");
 
         // === 边界值验证 ===
-        if let Some(page_size) = self.page_size {
-            if page_size <= 0 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须大于 0",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && page_size <= 0
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须大于 0",
+            ));
         }
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::RoleList(self.app_token.clone());
+        // #439: method 来自 catalog
 
-        let mut api_request: ApiRequest<ListAppRoleResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListAppRoleResponse> = api_endpoint.to_request();
         api_request = api_request.query_opt("page_token", self.page_token);
         api_request = api_request.query_opt("page_size", self.page_size.map(|v| v.to_string()));
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 列出自定义角色",
+        )
+        .await
     }
 }
 

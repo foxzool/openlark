@@ -1,12 +1,13 @@
 //! 封存发薪活动
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity/archive
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/payment_activity/archive>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,15 +49,13 @@ impl ArchiveRequest {
         let request = ApiRequest::<ArchiveResponse>::post(api_endpoint.to_url());
 
         // 2. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 3. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "封存发薪活动响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "封存发薪活动响应数据为空",
+        )
+        .await
     }
 }
 
@@ -79,21 +78,52 @@ impl ApiResponseTrait for ArchiveResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use openlark_core::config::Config;
 
-    use serde_json;
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_archive_payment_activity_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"success": true, "activity_id": "act_001", "archived_at": 1700000000}"#,
+        )
+        .unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/payroll/v1/payment_activitys/archive"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = ArchiveRequest::new(config, "act_001".to_string())
+            .execute()
+            .await
+            .expect("封存发薪活动应成功");
+
+        assert!(data.success);
+        assert_eq!(data.activity_id, "act_001");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/payroll/v1/payment_activitys/archive"
+        );
     }
 }

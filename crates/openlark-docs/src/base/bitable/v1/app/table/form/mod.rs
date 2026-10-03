@@ -15,9 +15,13 @@ pub mod upgrade;
 /// 重新导出相关类型。
 pub use field::{
     FormFieldQuestion, ListFormFieldQuestionRequest, ListFormFieldQuestionResponse,
-    PatchFormFieldQuestionBuilder, PatchFormFieldQuestionRequest, PatchFormFieldQuestionResponse,
-    PatchFormFieldRequest, PatchedFormFieldQuestion,
+    PatchFormFieldQuestionRequest, PatchFormFieldQuestionRequestBuilder,
+    PatchFormFieldQuestionResponse, PatchFormFieldRequest, PatchedFormFieldQuestion,
 };
+
+// 旧名兼容别名（deprecated alias，v1.0 移除）
+#[allow(deprecated)]
+pub use field::PatchFormFieldQuestionBuilder;
 
 /// 重新导出相关类型。
 pub use get::{GetFormRequest, GetFormResponse};

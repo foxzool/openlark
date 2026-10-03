@@ -1,16 +1,16 @@
 //! 获取妙记信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/minutes-v1/minute/get
+//! docPath: <https://open.feishu.cn/document/server-docs/minutes-v1/minute/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::MinutesApiV1, api_utils::*};
+use crate::common::api_endpoints::MinutesApiV1;
 
 /// 获取妙记信息请求。
 #[derive(Debug, Clone)]
@@ -77,16 +77,14 @@ impl GetMinuteRequest {
 
         // ===== 构建请求 =====
         let api_endpoint = MinutesApiV1::Get(minute_token);
-        let mut api_request: ApiRequest<GetMinuteResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetMinuteResponse> = api_endpoint.to_request();
 
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type);
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 

@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 假期余额基础数据结构
-// ============================================================================
 
 /// 假期余额信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -50,9 +48,7 @@ pub struct LeaveBalance {
     pub updated_time: Option<i64>,
 }
 
-// ============================================================================
 // 根据适用条件获取工作日历 ID 相关模型
-// ============================================================================
 
 /// 根据适用条件获取工作日历 ID 请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,9 +77,7 @@ pub struct CalendarByScopeResponse {
     pub calendar_id: String,
 }
 
-// ============================================================================
 // 批量查询员工假期余额相关模型
-// ============================================================================
 
 /// 批量查询员工假期余额请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,25 +109,4 @@ pub struct LeaveBalancesResponse {
     /// 分页标记，用于获取下一页数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

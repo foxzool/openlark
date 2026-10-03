@@ -1,6 +1,6 @@
 //! Bitable 列出视图
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/list>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -112,23 +112,21 @@ impl ListViewsRequest {
 
         // === 业务规则验证 ===
         // 验证分页大小
-        if let Some(page_size) = self.page_size {
-            if page_size <= 0 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "分页大小必须大于0",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && page_size <= 0
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "分页大小必须大于0",
+            ));
         }
 
         // 🚀 使用新的enum+builder系统生成API端点
         // 替代传统的字符串拼接方式，提供类型安全和IDE自动补全
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::ViewList(self.app_token.clone(), self.table_id.clone());
-
-        // 创建API请求 - 使用类型安全的URL生成
-        let mut api_request: ApiRequest<ListViewsResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let mut api_request: ApiRequest<ListViewsResponse> = api_endpoint.to_request();
 
         // 构建查询参数
         if let Some(ref user_id_type) = self.user_id_type {
@@ -144,10 +142,7 @@ impl ListViewsRequest {
         }
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 列出视图").await
     }
 }
 

@@ -2,19 +2,18 @@
 //!
 //! 获取指定推送通知的详情。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/get
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取指定推送通知响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,11 +67,19 @@ impl GetNotificationRequest {
 
     /// 执行获取指定推送通知请求
     pub async fn execute(self) -> SDKResult<GetNotificationResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<GetNotificationResponse> {
         let api_endpoint = HelpdeskApiV1::NotificationGet(self.notification_id.clone());
         let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取指定推送通知")
+        Transport::request_typed(request, &self.config, Some(option), "获取指定推送通知").await
     }
 }
 
@@ -97,8 +104,7 @@ impl GetNotificationRequestBuilder {
         let api_endpoint = HelpdeskApiV1::NotificationGet(self.notification_id.clone());
         let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取指定推送通知")
+        Transport::request_typed(request, &self.config, None, "获取指定推送通知").await
     }
 }
 
@@ -110,8 +116,7 @@ pub async fn get_notification(
     let api_endpoint = HelpdeskApiV1::NotificationGet(notification_id);
     let request = ApiRequest::<GetNotificationResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取指定推送通知")
+    Transport::request_typed(request, config, None, "获取指定推送通知").await
 }
 
 #[cfg(test)]
@@ -128,5 +133,47 @@ mod tests {
         let builder = GetNotificationRequestBuilder::new(Arc::new(config), "notif_123".to_string());
 
         assert_eq!(builder.notification_id, "notif_123");
+    }
+
+    /// 端到端：GET .../notifications/{id} → 强类型 GetNotificationResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_notification_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/notifications/ntf_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "id": "ntf_001", "title": "系统维护通知", "status": "draft" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetNotificationRequest::new(config, "ntf_001".to_string())
+            .execute()
+            .await
+            .expect("获取指定推送通知应成功");
+        assert_eq!(resp.data.unwrap().id.as_deref(), Some("ntf_001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/notifications/ntf_001"
+        );
     }
 }

@@ -1,17 +1,18 @@
 //! 列出自定义角色
 //!
-//! docPath: https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2
+//! docPath: <https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2>
 
 use crate::base::base::v2::models::AppRole;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::*;
+use crate::common::api_endpoints::{BaseApiV2, CatalogEndpoint};
 
 /// 列出自定义角色
 #[derive(Debug)]
@@ -91,24 +92,23 @@ impl List {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResp> {
         validate_required!(self.app_token, "app_token 不能为空");
-        if let Some(page_size) = self.req.page_size {
-            if page_size <= 0 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须为正整数",
-                ));
-            }
+        if let Some(page_size) = self.req.page_size
+            && page_size <= 0
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须为正整数",
+            ));
         }
 
-        use crate::common::api_endpoints::BaseApiV2;
         let api_endpoint = BaseApiV2::RoleList(self.app_token);
 
-        let mut api_request: ApiRequest<ListResp> = ApiRequest::get(&api_endpoint.to_url());
+        // #438: method 来自 catalog
+        let mut api_request: ApiRequest<ListResp> = api_endpoint.to_request();
         api_request = api_request.query_opt("page_size", self.req.page_size.map(|v| v.to_string()));
         api_request = api_request.query_opt("page_token", self.req.page_token);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列出自定义角色")
+        Transport::request_typed(api_request, &self.config, Some(option), "列出自定义角色").await
     }
 }
 
@@ -120,21 +120,67 @@ impl ApiResponseTrait for ListResp {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    /// 端到端：GET .../roles → ListResp。
+    /// 同时断言 method、path、auth（catalog 提供）和响应（#438）。
+    #[tokio::test]
+    async fn test_list_roles_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/base/v2/apps/app001/roles"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "items": [], "has_more": false }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .build();
+        let resp = List::new(config)
+            .app_token("app001")
+            .execute_with_options(option)
+            .await
+            .expect("列出角色应成功");
+        assert!(resp.items.is_empty());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "GET");
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/base/v2/apps/app001/roles"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
+        );
     }
 
     #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    fn test_list_roles_uses_get_from_catalog_438() {
+        let ep = BaseApiV2::RoleList("app".into());
+        let req: openlark_core::api::ApiRequest<ListResp> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Get);
+        assert_eq!(
+            req.supported_access_token_types(),
+            vec![
+                openlark_core::constants::AccessTokenType::User,
+                openlark_core::constants::AccessTokenType::Tenant
+            ]
+        );
     }
 }

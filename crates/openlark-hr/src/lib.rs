@@ -12,18 +12,15 @@
 //!
 //! ## 使用示例
 //!
-//! ```rust,ignore
-//! use openlark_hr::prelude::*;
+//! ```no_run
 //! use openlark_hr::HrClient;
-//!
+//! use openlark_hr::attendance::attendance::v1::group::CreateGroupRequest;
+//! # let config: openlark_core::config::Config = unimplemented!();
 //! let client = HrClient::new(config);
-//! // 推荐：字段式 meta 入口
-//! client.attendance.v1().group().create()
-//!     .group_name("技术部".to_string())
-//!     .execute()
-//!     .await?;
-//!
-//! // 字段访问是当前推荐方式；旧方法式入口只保留兼容职责。
+//! // 真实资源直达：Config-direct Request 自带 builder + execute()
+//! let _request = CreateGroupRequest::new(client.config().clone())
+//!     .group_name("技术部".to_string());
+//! // .execute().await?  // 发送请求（需 async runtime，示例省略）
 //! ```
 //!
 //! ## API 端点
@@ -64,54 +61,26 @@ pub mod payroll;
 /// 绩效模块。
 pub mod performance;
 
-// 端点保留（已废弃，请使用 common::api_endpoints 中的枚举系统）
-#[allow(deprecated)]
-mod endpoints;
-
 /// 常用类型预导出模块。
 pub mod prelude {
-    pub use openlark_core::{config::Config, SDKResult};
+    pub use openlark_core::{SDKResult, config::Config};
 }
 
 use openlark_core::config::Config;
 use std::sync::Arc;
 
-/// HRClient：统一入口，提供 project-version-resource 链式访问
+/// HRClient：统一入口。
+///
+/// - `config()` 直达底层 `Config`，用于构造各域 leaf 请求
+///   （attendance/corehr/payroll/performance/compensation/hire/ehr）。
+/// - `okr` 保留 fluent v2 路由（`client.okr.v2()`）。
 #[derive(Debug, Clone)]
 pub struct HrClient {
     config: Arc<Config>,
 
-    #[cfg(feature = "attendance")]
-    /// 考勤入口。
-    pub attendance: attendance::Attendance,
-
-    #[cfg(feature = "corehr")]
-    /// 核心人力入口。
-    pub corehr: feishu_people::Corehr,
-
-    #[cfg(feature = "compensation")]
-    /// 薪酬管理入口。
-    pub compensation: compensation_management::CompensationManagement,
-
-    #[cfg(feature = "payroll")]
-    /// 薪资入口。
-    pub payroll: payroll::Payroll,
-
-    #[cfg(feature = "performance")]
-    /// 绩效入口。
-    pub performance: performance::Performance,
-
     #[cfg(feature = "okr")]
     /// OKR 入口。
     pub okr: okr::Okr,
-
-    #[cfg(feature = "hire")]
-    /// 招聘入口。
-    pub hire: hire::Hire,
-
-    #[cfg(feature = "ehr")]
-    /// 员工档案入口。
-    pub ehr: ehr::Ehr,
 }
 
 impl HrClient {
@@ -119,22 +88,8 @@ impl HrClient {
     pub fn new(config: Config) -> Self {
         let config = Arc::new(config);
         Self {
-            #[cfg(feature = "attendance")]
-            attendance: attendance::Attendance::new((*config).clone()),
-            #[cfg(feature = "corehr")]
-            corehr: feishu_people::Corehr::new((*config).clone()),
-            #[cfg(feature = "compensation")]
-            compensation: compensation_management::CompensationManagement::new((*config).clone()),
-            #[cfg(feature = "payroll")]
-            payroll: payroll::Payroll::new((*config).clone()),
-            #[cfg(feature = "performance")]
-            performance: performance::Performance::new((*config).clone()),
             #[cfg(feature = "okr")]
             okr: okr::Okr::new((*config).clone()),
-            #[cfg(feature = "hire")]
-            hire: hire::Hire::new((*config).clone()),
-            #[cfg(feature = "ehr")]
-            ehr: ehr::Ehr::new((*config).clone()),
             config,
         }
     }
@@ -142,86 +97,6 @@ impl HrClient {
     /// 返回底层配置引用。
     pub fn config(&self) -> &Config {
         &self.config
-    }
-
-    #[cfg(feature = "attendance")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `attendance` field directly (`client.attendance`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回考勤模块客户端。
-    pub fn attendance(&self) -> attendance::Attendance {
-        self.attendance.clone()
-    }
-
-    #[cfg(feature = "corehr")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `corehr` field directly (`client.corehr`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回核心人力模块客户端。
-    pub fn corehr(&self) -> feishu_people::Corehr {
-        self.corehr.clone()
-    }
-
-    #[cfg(feature = "compensation")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `compensation` field directly (`client.compensation`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回薪酬管理模块客户端。
-    pub fn compensation(&self) -> compensation_management::CompensationManagement {
-        self.compensation.clone()
-    }
-
-    #[cfg(feature = "payroll")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `payroll` field directly (`client.payroll`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回薪资模块客户端。
-    pub fn payroll(&self) -> payroll::Payroll {
-        self.payroll.clone()
-    }
-
-    #[cfg(feature = "performance")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `performance` field directly (`client.performance`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回绩效模块客户端。
-    pub fn performance(&self) -> performance::Performance {
-        self.performance.clone()
-    }
-
-    #[cfg(feature = "okr")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `okr` field directly (`client.okr`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回 OKR 模块客户端。
-    pub fn okr(&self) -> okr::Okr {
-        self.okr.clone()
-    }
-
-    #[cfg(feature = "hire")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `hire` field directly (`client.hire`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回招聘模块客户端。
-    pub fn hire(&self) -> hire::Hire {
-        self.hire.clone()
-    }
-
-    #[cfg(feature = "ehr")]
-    #[deprecated(
-        since = "0.15.0",
-        note = "Use the `ehr` field directly (`client.ehr`) instead of the compatibility accessor method."
-    )]
-    /// 兼容旧接口：返回员工档案模块客户端。
-    pub fn ehr(&self) -> ehr::Ehr {
-        self.ehr.clone()
     }
 }
 
@@ -253,77 +128,11 @@ mod tests {
         assert!(cloned.config().app_id() == "test_app");
     }
 
-    #[cfg(feature = "attendance")]
-    #[test]
-    fn test_hr_client_attendance_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.attendance.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "attendance")]
-    #[test]
-    #[allow(deprecated)]
-    fn test_hr_client_attendance_method() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        let attendance = client.attendance();
-        assert_eq!(attendance.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "corehr")]
-    #[test]
-    fn test_hr_client_corehr_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.corehr.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "compensation")]
-    #[test]
-    fn test_hr_client_compensation_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.compensation.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "payroll")]
-    #[test]
-    fn test_hr_client_payroll_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.payroll.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "performance")]
-    #[test]
-    fn test_hr_client_performance_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.performance.config().app_id(), "test_app");
-    }
-
     #[cfg(feature = "okr")]
     #[test]
     fn test_hr_client_okr_field() {
         let config = create_test_config();
         let client = HrClient::new(config);
         assert_eq!(client.okr.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "hire")]
-    #[test]
-    fn test_hr_client_hire_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.hire.config().app_id(), "test_app");
-    }
-
-    #[cfg(feature = "ehr")]
-    #[test]
-    fn test_hr_client_ehr_field() {
-        let config = create_test_config();
-        let client = HrClient::new(config);
-        assert_eq!(client.ehr.config().app_id(), "test_app");
     }
 }

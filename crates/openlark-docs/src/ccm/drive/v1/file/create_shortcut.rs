@@ -2,13 +2,14 @@
 //!
 //! 创建文件快捷方式，用于访问云空间的文件。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/create_shortcut
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/create_shortcut>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -119,12 +120,7 @@ impl CreateFileShortcutRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateFileShortcutResponse> {
-        if self.parent_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_token",
-                "parent_token 不能为空",
-            ));
-        }
+        validate_required!(self.parent_token, "parent_token 不能为空");
         if self.refer_entity.refer_token.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "refer_entity.refer_token",
@@ -159,7 +155,7 @@ impl CreateFileShortcutRequest {
         }
 
         let api_endpoint = DriveApi::CreateShortcut;
-        let mut request = ApiRequest::<CreateFileShortcutResponse>::post(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<CreateFileShortcutResponse>();
 
         if let Some(user_id_type) = &self.user_id_type {
             request = request.query("user_id_type", user_id_type);
@@ -167,8 +163,7 @@ impl CreateFileShortcutRequest {
 
         request = request.body(serialize_params(&self, "创建文件快捷方式")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建文件快捷方式")
+        Transport::request_typed(request, &self.config, Some(option), "创建文件快捷方式").await
     }
 }
 

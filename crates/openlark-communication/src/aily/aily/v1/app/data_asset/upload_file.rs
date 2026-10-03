@@ -1,10 +1,10 @@
 //! 上传文件用于数据知识管理
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_UPLOAD_FILE};
+use crate::endpoints::AILY_V1_UPLOAD_FILE;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 上传文件用于数据知识管理请求
@@ -53,7 +53,7 @@ impl UploadFileRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/upload_file>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -74,8 +74,7 @@ impl UploadFileRequest {
         let url = AILY_V1_UPLOAD_FILE.replace("{app_id}", &self.app_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "上传文件用于数据知识管理")
+        Transport::request_typed(req, &self.config, Some(option), "上传文件用于数据知识管理").await
     }
 }
 
@@ -114,5 +113,16 @@ mod tests {
             "file_type": "pdf"
         });
         assert_eq!(body["file_name"], "document.pdf");
+    }
+
+    #[test]
+    fn test_upload_file_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_UPLOAD_FILE;
+        let url = AILY_V1_UPLOAD_FILE.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets/upload_file");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

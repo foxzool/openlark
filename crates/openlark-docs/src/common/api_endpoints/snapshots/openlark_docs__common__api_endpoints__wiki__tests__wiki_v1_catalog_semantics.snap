@@ -1,0 +1,5 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/wiki.rs
+expression: "catalog_semantics_snapshot::<WikiApiV1>()"
+---
+NodeSearch | Post | /open-apis/wiki/v1/nodes/search | Some([User, Tenant])

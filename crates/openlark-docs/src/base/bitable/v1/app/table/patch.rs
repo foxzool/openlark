@@ -1,6 +1,6 @@
 //! Bitable 更新数据表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/patch>
 //!
 //! 说明：
 //! - 该接口用于更新数据表的基本信息（当前主要是更新数据表名称）。
@@ -137,14 +137,18 @@ impl PatchTableRequest {
         let request_body = PatchTableRequestBody { name };
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<PatchTableResponse> =
-            ApiRequest::patch(&api_endpoint.to_url()).body(serde_json::to_vec(&request_body)?);
+        let api_request: ApiRequest<PatchTableResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&request_body)?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 更新数据表",
+        )
+        .await
     }
 }
 
@@ -170,21 +174,41 @@ impl ApiResponseTrait for PatchTableResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：PATCH .../tables/{table_id} → PatchTableResponse。
+    #[tokio::test]
+    async fn test_patch_table_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/bitable/v1/apps/app001/tables/tbl001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        PatchTableRequest::new(config)
+            .app_token("app001".into())
+            .table_id("tbl001".into())
+            .name("新表名".into())
+            .execute()
+            .await
+            .expect("更新数据表应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app001/tables/tbl001"
+        );
     }
 }

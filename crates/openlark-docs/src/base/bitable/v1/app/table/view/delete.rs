@@ -1,6 +1,6 @@
 //! Bitable 删除视图
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -102,14 +102,10 @@ impl DeleteViewRequest {
         );
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<DeleteViewResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteViewResponse> = api_endpoint.to_request();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 删除视图").await
     }
 }
 

@@ -35,8 +35,8 @@ pub mod mock_server;
 ///
 /// 包含常用的测试配置构建器和运行时工具
 pub mod prelude {
-    pub use super::fixtures::{test_config, TestConfigBuilder};
-    pub use super::mock_context::{test_runtime, TestRuntime};
+    pub use super::fixtures::{TestConfigBuilder, test_config};
+    pub use super::mock_context::{TestRuntime, test_runtime};
 
     #[cfg(test)]
     pub use super::mock_server::TestServer;

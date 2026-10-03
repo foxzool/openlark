@@ -1,11 +1,12 @@
 //! 获取邮件组列表
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/list>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::mailgroup::models::MailGroupListResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use std::sync::Arc;
 
@@ -61,9 +62,13 @@ impl MailGroupListRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取邮件组列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取邮件组列表",
+        )
+        .await
     }
 }
 

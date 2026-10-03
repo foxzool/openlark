@@ -2,17 +2,18 @@
 //!
 //! 上传指定文件到指定目录中，支持单次上传文件。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/upload_all
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/upload_all>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 上传文件请求
 ///
@@ -155,12 +156,7 @@ impl UploadAllRequest {
         }
 
         // 验证父节点 token (必填)
-        if self.parent_node.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_node",
-                "parent_node 不能为空",
-            ));
-        }
+        validate_required!(self.parent_node, "parent_node 不能为空");
 
         // 验证文件大小范围
         if self.size == 0 || self.size > 20 * 1024 * 1024 {
@@ -201,12 +197,12 @@ impl UploadAllRequest {
 
         // 使用 json_body 传递元数据，使用 file_content 传递文件
         // UnifiedRequestBuilder 会将其组合成 multipart 请求
-        let request = ApiRequest::<UploadAllResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadAllResponse>()
             .json_body(&meta)
             .file_content(self.file);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传文件")
+        Transport::request_typed(request, &self.config, Some(option), "上传文件").await
     }
 }
 

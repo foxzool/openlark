@@ -1,10 +1,10 @@
 //! 获取 Aily 消息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_MESSAGES};
+use crate::endpoints::AILY_V1_MESSAGES;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 获取 Aily 消息请求
@@ -55,7 +55,7 @@ impl GetMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -75,8 +75,7 @@ impl GetMessageRequest {
             + &self.aily_message_id;
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取 Aily 消息")
+        Transport::request_typed(req, &self.config, Some(option), "获取 Aily 消息").await
     }
 }
 
@@ -113,11 +112,13 @@ mod tests {
 
     #[test]
     fn test_get_message_request_url_construction() {
-        let request = GetMessageRequest::new(Config::default())
-            .aily_session_id("sess_1")
-            .aily_message_id("msg_1");
-        assert_eq!(request.aily_session_id, "sess_1");
-        assert_eq!(request.aily_message_id, "msg_1");
+        use crate::endpoints::aily::AILY_V1_MESSAGES;
+        let url = AILY_V1_MESSAGES.replace("{session_id}", "sess_1") + "/msg_1";
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/messages/msg_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 
     #[test]

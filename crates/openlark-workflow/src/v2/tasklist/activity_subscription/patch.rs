@@ -1,6 +1,6 @@
 //! 更新动态订阅
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/patch>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::tasklist::activity_subscription::models::{
@@ -8,9 +8,10 @@ use crate::v2::tasklist::activity_subscription::models::{
     UpdateActivitySubscriptionResponse,
 };
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -91,9 +92,13 @@ impl UpdateActivitySubscriptionRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "更新动态订阅")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新动态订阅")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新动态订阅",
+        )
+        .await
     }
 }
 

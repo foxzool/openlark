@@ -2,16 +2,15 @@
 //!
 //! 删除指定的知识库。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 删除知识库响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,8 +53,7 @@ impl DeleteFaqRequest {
         let req: ApiRequest<DeleteFaqResponse> =
             ApiRequest::delete(HelpdeskApiV1::FaqDelete(self.id.clone()).to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除知识库")
+        Transport::request_typed(req, &self.config, Some(option), "删除知识库").await
     }
 }
 
@@ -102,8 +100,7 @@ pub async fn delete_faq_with_options(
     let req: ApiRequest<DeleteFaqResponse> =
         ApiRequest::delete(HelpdeskApiV1::FaqDelete(id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "删除知识库")
+    Transport::request_typed(req, config, Some(option), "删除知识库").await
 }
 
 #[cfg(test)]
@@ -120,5 +117,47 @@ mod tests {
         let builder = DeleteFaqRequestBuilder::new(Arc::new(config), "faq_123".to_string());
 
         assert_eq!(builder.id, "faq_123");
+    }
+
+    /// 端到端：DELETE .../faqs/{id} → 强类型 DeleteFaqResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_delete_faq_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/helpdesk/v1/faqs/faq_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "success": true } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = DeleteFaqRequest::new(config, "faq_001".to_string())
+            .execute()
+            .await
+            .expect("删除知识库应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/faqs/faq_001"
+        );
     }
 }

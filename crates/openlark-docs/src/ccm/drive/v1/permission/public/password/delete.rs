@@ -2,17 +2,18 @@
 //!
 //! 该接口用于根据 filetoken 停用云文档密码。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/delete>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 停用云文档密码请求。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,12 +48,7 @@ impl DeletePermissionPublicPasswordRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DeletePermissionPublicPasswordResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
         if self.r#type.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "type",
@@ -82,10 +78,9 @@ impl DeletePermissionPublicPasswordRequest {
 
         let api_endpoint = DriveApi::DeletePublicPassword(self.token);
         let api_request: ApiRequest<DeletePermissionPublicPasswordResponse> =
-            ApiRequest::delete(&api_endpoint.to_url()).query("type", self.r#type);
+            api_endpoint.to_request().query("type", self.r#type);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除").await
     }
 }
 

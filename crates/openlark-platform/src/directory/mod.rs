@@ -26,18 +26,16 @@ impl DirectoryService {
     }
 
     /// V1 版本 API
-    #[cfg(feature = "v1")]
-    pub fn v1(&self) -> crate::directory::directory::v1::DirectoryV1 {
-        crate::directory::directory::v1::DirectoryV1::new(self.config.clone())
+    pub fn v1(&self) -> crate::directory::v1::DirectoryV1 {
+        crate::directory::v1::DirectoryV1::new(self.config.clone())
     }
 }
 
-#[cfg(feature = "v1")]
-pub mod directory;
+pub mod v1;
 
 #[cfg(test)]
 mod tests {
-    use crate::{directory::DirectoryService, PlatformConfig};
+    use crate::{PlatformConfig, directory::DirectoryService};
 
     #[test]
     fn test_service_creation() {

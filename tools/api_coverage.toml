@@ -28,6 +28,20 @@ dashboard_groups = ["core_business"]
 src = "crates/openlark-cardkit/src"
 biz_tags = ["cardkit"]
 
+[crates.openlark-bot]
+src = "crates/openlark-bot/src"
+biz_tags = ["bot"]
+
+[crates.openlark-pay]
+src = "crates/openlark-pay/src"
+biz_tags = ["pay"]
+# CSV 3 条均为 meta.Version=old + meta.Resource=default
+# → expected pay/pay/old/default/v1/... ；落盘丢掉 old/default 与多余 project 段。
+# crate 扫描默认 skip old；pay 过滤后为空时 verify_api_fields 会回退加载 old 行。
+implementation_path_rewrites = [
+  { from = "pay/pay/old/default/", to = "pay/" },
+]
+
 [crates.openlark-hr]
 src = "crates/openlark-hr/src"
 biz_tags = [
@@ -41,11 +55,26 @@ biz_tags = [
   "ehr",
 ]
 dashboard_groups = ["core_business"]
+# OKR v2 CSV resources are `okr.<sub>` → expected `okr/okr/v2/okr/<sub>/...`.
+# On-disk layout drops the redundant resource-prefix segment (project is already `okr`).
+# See #571 selective P2 slice / docs/typed-api-coverage.md §2.3.
+implementation_path_rewrites = [
+  { from = "okr/okr/v2/okr/", to = "okr/okr/v2/" },
+]
 
 [crates.openlark-security]
 src = "crates/openlark-security/src"
 biz_tags = ["acs", "security_and_compliance"]
 dashboard_groups = ["core_business"]
+implementation_path_rewrites = [
+  { from = "security_and_compliance/security_and_compliance/v1/multi_geo_entity/", to = "security/security_and_compliance/v1/multi_geo_entity/" },
+  { from = "security_and_compliance/security_and_compliance/v1/openapi_log/", to = "security/security_and_compliance/v1/openapi_logs/" },
+  { from = "security_and_compliance/security_and_compliance/v1/user_migration/", to = "security/security_and_compliance/v1/user_migrations/" },
+  { from = "security_and_compliance/security_and_compliance/v2/device_record/", to = "security/security_and_compliance/v2/device_records/" },
+]
+
+[crates.openlark-security.implementation_path_aliases]
+"security_and_compliance/security_and_compliance/v2/device_apply_record/update.rs" = "security/security_and_compliance/v2/device_apply_records/approve.rs"
 
 [crates.openlark-ai]
 src = "crates/openlark-ai/src"
@@ -58,11 +87,27 @@ biz_tags = ["auth", "passport", "verification_information", "human_authenticatio
 [crates.openlark-platform]
 src = "crates/openlark-platform/src"
 biz_tags = ["admin", "directory", "app_engine", "trust_party", "tenant", "mdm", "spark"]
+# 新 5 条落在既有 spark/v1/ 单层布局；按文件 alias 解析，避免 spark/ 前缀 rewrite 波及既有 24 条。
+[crates.openlark-platform.implementation_path_aliases]
+"spark/spark/v1/app/open_api_analytics_overview.rs" = "spark/v1/app/analytics_overview.rs"
+"spark/spark/v1/app/open_api_credit_usage.rs" = "spark/v1/app/credit_usage.rs"
+"spark/spark/v1/app/query_analytics_data.rs" = "spark/v1/app/query_analytics_data.rs"
+"spark/spark/v1/app/available_scope/open_api_get_miaoda_available_scope.rs" = "spark/v1/app/available_scope/get.rs"
+"spark/spark/v1/app/available_scope/open_api_update_miaoda_available_scope.rs" = "spark/v1/app/available_scope/update.rs"
 
 [crates.openlark-workflow]
 src = "crates/openlark-workflow/src"
 biz_tags = ["task", "approval", "board"]
 dashboard_groups = ["core_business"]
+implementation_path_rewrites = [
+  { from = "task/task/", to = "" },
+]
+
+[crates.openlark-workflow.implementation_path_aliases]
+"task/task/v1/task/batch_delete_collaborator.rs" = "v1/task/collaborator/batch_delete.rs"
+"task/task/v1/task/batch_delete_follower.rs" = "v1/task/follower/batch_delete.rs"
+"task/task/v2/comment/patch.rs" = "v2/comment/update.rs"
+"task/task/v2/custom_field/patch.rs" = "v2/custom_field/update.rs"
 
 [crates.openlark-analytics]
 src = "crates/openlark-analytics/src"
@@ -75,10 +120,19 @@ biz_tags = ["personal_settings"]
 [crates.openlark-mail]
 src = "crates/openlark-mail/src"
 biz_tags = ["mail"]
+# CSV uses meta.Resource=sent_message; on-disk layout nests under message/recall/
+# (matches Feishu URL /messages/:id/recall). See #571 selective P2 slice.
+[crates.openlark-mail.implementation_path_aliases]
+"mail/mail/v1/user_mailbox/sent_message/get_recall_detail.rs" = "mail/mail/v1/user_mailbox/message/recall/get_recall_detail.rs"
+"mail/mail/v1/user_mailbox/sent_message/recall.rs" = "mail/mail/v1/user_mailbox/message/recall/recall.rs"
 
 [crates.openlark-helpdesk]
 src = "crates/openlark-helpdesk/src"
 biz_tags = ["helpdesk"]
+# CSV meta.Name=faq_image → expected faq_image.rs; leaf is image.rs (docPath faq_image).
+# See #571 selective P2 slice.
+[crates.openlark-helpdesk.implementation_path_aliases]
+"helpdesk/helpdesk/v1/faq/faq_image.rs" = "helpdesk/helpdesk/v1/faq/image.rs"
 
 [crates.openlark-application]
 src = "crates/openlark-application/src"

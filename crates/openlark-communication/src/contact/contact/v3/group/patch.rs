@@ -1,17 +1,14 @@
 //! 更新用户组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/patch>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     contact::contact::v3::user::models::{DepartmentIdType, UserIdType},
     endpoints::CONTACT_V3_GROUP,
 };
@@ -111,7 +108,7 @@ impl PatchGroupRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/patch
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/patch>
     pub async fn execute(self, body: PatchGroupBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -139,9 +136,7 @@ impl PatchGroupRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新用户组")
+        Transport::request_typed(req, &self.config, Some(option), "更新用户组").await
     }
 }
 

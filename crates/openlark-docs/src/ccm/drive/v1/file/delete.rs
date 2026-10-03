@@ -2,19 +2,20 @@
 //!
 //! 删除用户在云空间内的文件或者文件夹。文件或者文件夹被删除后，会进入用户回收站里。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/delete>
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
+/// 删除文件或文件夹请求体
 #[derive(Debug, Clone, Serialize)]
-/// 公开项说明。
 pub struct DeleteFileRequest {
     #[serde(skip)]
     config: Config,
@@ -63,12 +64,11 @@ impl DeleteFileRequest {
         }
 
         let api_endpoint = DriveApi::DeleteFile(self.file_token);
-        let mut request = ApiRequest::<DeleteFileResponse>::delete(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<DeleteFileResponse>();
 
         request = request.query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除文件或文件夹")
+        Transport::request_typed(request, &self.config, Some(option), "删除文件或文件夹").await
     }
 }
 

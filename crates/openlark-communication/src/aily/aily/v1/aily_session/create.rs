@@ -1,13 +1,13 @@
 //! 创建会话
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSIONS};
+use crate::endpoints::AILY_V1_SESSIONS;
 
 /// 创建会话请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,7 +68,7 @@ impl CreateSessionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session/create>
     pub async fn execute(self, body: CreateSessionBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -86,8 +86,7 @@ impl CreateSessionRequest {
         let req: ApiRequest<CreateSessionBody> =
             ApiRequest::post(AILY_V1_SESSIONS).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建会话")
+        Transport::request_typed(req, &self.config, Some(option), "创建会话").await
     }
 }
 
@@ -131,5 +130,16 @@ mod tests {
         };
         assert_eq!(body.name, "完整会话");
         assert_eq!(body.description, Some("包含所有字段".to_string()));
+    }
+
+    #[test]
+    fn test_create_session_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SESSIONS;
+        let url = AILY_V1_SESSIONS.to_string();
+        assert_eq!(url, "/open-apis/aily/v1/sessions");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

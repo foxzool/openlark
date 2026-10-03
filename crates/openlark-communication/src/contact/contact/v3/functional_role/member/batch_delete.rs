@@ -1,14 +1,14 @@
 //! 删除角色下的成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         functional_role::member::models::BatchDeleteMembersResponse, user::models::UserIdType,
     },
@@ -96,7 +96,7 @@ impl BatchDeleteRoleMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/batch_delete>
     pub async fn execute(
         self,
         body: BatchDeleteMembersBody,
@@ -125,9 +125,7 @@ impl BatchDeleteRoleMembersRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "删除角色下的成员")
+        Transport::request_typed(req, &self.config, Some(option), "删除角色下的成员").await
     }
 }
 

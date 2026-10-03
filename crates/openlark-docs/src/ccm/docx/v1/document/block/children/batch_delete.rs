@@ -2,13 +2,14 @@
 ///
 /// 指定需要操作的块，删除其指定范围的子块。如果操作成功，接口将返回应用删除操作后的文档版本号。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/batch_delete
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/batch_delete
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document-block-children/batch_delete>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -83,36 +84,85 @@ impl BatchDeleteDocumentBlockChildrenRequest {
             params.block_id.clone(),
         );
 
-        let mut api_request: ApiRequest<BatchDeleteDocumentBlockChildrenResponse> =
-            ApiRequest::delete(&api_endpoint.to_url()).body(serialize_params(&params, "删除块")?);
+        let mut api_request: ApiRequest<BatchDeleteDocumentBlockChildrenResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "删除块")?);
 
         if let Some(document_revision_id) = params.document_revision_id {
             api_request =
                 api_request.query("document_revision_id", &document_revision_id.to_string());
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除块")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除块").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：DELETE .../blocks/{block_id}/children/batch_delete → BatchDeleteDocumentBlockChildrenResponse（document_revision_id）。
+    #[tokio::test]
+    async fn test_batch_delete_document_block_children_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/docx/v1/documents/doc1/blocks/blk1/children/batch_delete",
+            ))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "document_revision_id": 2, "client_token": "ct001" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = BatchDeleteDocumentBlockChildrenRequest::new(config)
+            .execute_with_options(
+                BatchDeleteDocumentBlockChildrenParams {
+                    document_id: "doc1".into(),
+                    block_id: "blk1".into(),
+                    document_revision_id: Some(-1),
+                    start_index: 0,
+                    end_index: 1,
+                },
+                RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
+            .await
+            .expect("删除子块应成功");
+        assert_eq!(resp.document_revision_id, 2);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/documents/doc1/blocks/blk1/children/batch_delete"
+        );
+        let query: std::collections::HashMap<_, _> = received[0]
+            .url
+            .query_pairs()
+            .map(|(key, value)| (key.into_owned(), value.into_owned()))
+            .collect();
+        assert_eq!(
+            query.get("document_revision_id").map(String::as_str),
+            Some("-1")
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["start_index"], 0);
+        assert_eq!(body["end_index"], 1);
     }
 }

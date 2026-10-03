@@ -2,18 +2,19 @@
 //!
 //! 获取知识空间的节点列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::ccm::wiki::v2::models::WikiSpaceNode;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取知识空间节点列表请求
 ///
@@ -88,8 +89,7 @@ impl ListWikiSpaceNodesRequest {
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceNodeList(self.space_id.clone());
 
-        let mut api_request: ApiRequest<ListWikiSpaceNodesResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListWikiSpaceNodesResponse> = api_endpoint.to_request();
 
         // 设置查询参数
         if let Some(params) = params {
@@ -105,8 +105,13 @@ impl ListWikiSpaceNodesRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识空间节点列表")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取知识空间节点列表",
+        )
+        .await
     }
 }
 

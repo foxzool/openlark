@@ -1,19 +1,20 @@
 //! 查询席位活跃详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/seat_activity/list
+//! 文档: <https://open.feishu.cn/document/apaas-v1/seat_activity/list>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/seat_activity/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询席位活跃详情 Builder
 #[derive(Debug, Clone)]
-pub struct SeatActivityListBuilder {
+pub struct SeatActivityListRequestBuilder {
     config: Config,
     /// 页码
     page: Option<u32>,
@@ -25,7 +26,7 @@ pub struct SeatActivityListBuilder {
     end_time: Option<i64>,
 }
 
-impl SeatActivityListBuilder {
+impl SeatActivityListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -63,25 +64,7 @@ impl SeatActivityListBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<SeatActivityListResponse> {
-        let url = "/open-apis/apaas/v1/seat_activities";
-
-        let mut req: ApiRequest<SeatActivityListResponse> = ApiRequest::get(url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        if let Some(start_time) = self.start_time {
-            req = req.query("start_time", start_time.to_string());
-        }
-        if let Some(end_time) = self.end_time {
-            req = req.query("end_time", end_time.to_string());
-        }
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位活跃详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -104,10 +87,7 @@ impl SeatActivityListBuilder {
         if let Some(end_time) = self.end_time {
             req = req.query("end_time", end_time.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位活跃详情", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询席位活跃详情").await
     }
 }
 
@@ -133,16 +113,16 @@ pub struct SeatActivity {
 pub struct SeatActivityListResponse {
     /// 席位活跃列表
     #[serde(rename = "items")]
-    items: Vec<SeatActivity>,
+    pub items: Vec<SeatActivity>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for SeatActivityListResponse {
@@ -150,6 +130,10 @@ impl ApiResponseTrait for SeatActivityListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to SeatActivityListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type SeatActivityListBuilder = SeatActivityListRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -161,7 +145,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = SeatActivityListBuilder::new(config.clone())
+        let request = SeatActivityListRequestBuilder::new(config.clone())
             .page(1)
             .page_size(1);
         let _ = request;

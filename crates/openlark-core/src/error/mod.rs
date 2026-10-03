@@ -7,14 +7,14 @@ use uuid::Uuid;
 // 暴露错误体系（CoreError 为主要错误类型）
 pub use self::codes::{ErrorCategory, ErrorCode};
 pub use self::context::{ErrorContext, ErrorContextBuilder};
+pub use self::core::{ApiError, BuilderKind, CoreError, ErrorBuilder, ErrorRecord};
+pub use self::core::{RecoveryStrategy, RetryPolicy};
 pub use self::core::{
     api_error, authentication_error, business_error, configuration_error, network_error,
     network_error_with_details, permission_missing_error, rate_limit_error, serialization_error,
     service_unavailable_error, sso_token_invalid_error, timeout_error, token_expired_error,
     token_invalid_error, user_identity_invalid_error, validation_error,
 };
-pub use self::core::{ApiError, BuilderKind, CoreError, ErrorBuilder, ErrorRecord};
-pub use self::core::{RecoveryStrategy, RetryPolicy};
 pub use self::traits::{ErrorContextTrait, ErrorFormatTrait, ErrorTrait, FullErrorTrait};
 pub use self::traits::{ErrorSeverity, ErrorType};
 
@@ -162,11 +162,13 @@ mod tests {
 
         assert!(error.is_auth_error());
         assert!(error.context().has_context("required_scopes"));
-        assert!(error
-            .context()
-            .get_context("required_scopes")
-            .unwrap()
-            .contains("contact:user:read"));
+        assert!(
+            error
+                .context()
+                .get_context("required_scopes")
+                .unwrap()
+                .contains("contact:user:read")
+        );
     }
 
     /// 测试 sso_token_invalid_error 创建
@@ -361,7 +363,7 @@ mod tests {
     #[test]
     fn test_error_builder_api_error() {
         let error = CoreError::api_builder()
-            .status(429)
+            .raw_code(429)
             .endpoint("/api/rate-limited")
             .message("请求过于频繁")
             .request_id("req-rate-001")
@@ -491,11 +493,11 @@ mod tests {
     #[test]
     fn test_core_error_display() {
         let error = network_error("连接失败");
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("网络错误"));
 
         let error = validation_error("field", "无效值");
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("验证错误"));
     }
 
@@ -593,7 +595,7 @@ mod tests {
     #[test]
     fn test_recovery_strategy_debug() {
         let strategy = RecoveryStrategy::Reauthenticate;
-        let debug_str = format!("{:?}", strategy);
+        let debug_str = format!("{strategy:?}");
         assert!(debug_str.contains("Reauthenticate"));
     }
 
@@ -882,7 +884,7 @@ mod tests {
     #[test]
     fn test_builder_kind_debug() {
         let kind = BuilderKind::Api;
-        let debug = format!("{:?}", kind);
+        let debug = format!("{kind:?}");
         assert!(debug.contains("Api"));
     }
 }

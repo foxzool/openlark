@@ -3,9 +3,7 @@
 //! 现代化、类型安全的API请求和响应处理系统。
 //! 完全独立，不依赖已弃用的api_req/api_resp模块。
 
-// ============================================================================
 // 核心类型定义
-// ============================================================================
 
 pub use responses::RawResponse;
 use std::{collections::HashMap, time::Duration};
@@ -110,6 +108,7 @@ pub struct ApiRequest<R> {
     pub(crate) body: Option<RequestData>,
     pub(crate) file: Option<Vec<u8>>,
     pub(crate) timeout: Option<Duration>,
+    pub(crate) supported_access_token_types: Option<Vec<crate::constants::AccessTokenType>>,
     pub(crate) _phantom: std::marker::PhantomData<R>,
 }
 
@@ -124,6 +123,7 @@ impl<R> ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -138,6 +138,7 @@ impl<R> ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -152,6 +153,7 @@ impl<R> ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -166,6 +168,7 @@ impl<R> ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -180,6 +183,7 @@ impl<R> ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -249,6 +253,15 @@ impl<R> ApiRequest<R> {
         self
     }
 
+    /// 覆盖当前请求支持的访问令牌类型。
+    pub fn with_supported_access_token_types(
+        mut self,
+        token_types: Vec<crate::constants::AccessTokenType>,
+    ) -> Self {
+        self.supported_access_token_types = Some(token_types);
+        self
+    }
+
     /// 构建完整 URL（包含查询参数）
     pub fn build_url(&self) -> String {
         if self.query.is_empty() {
@@ -282,6 +295,10 @@ impl<R> ApiRequest<R> {
 
     /// 获取支持的访问令牌类型
     pub fn supported_access_token_types(&self) -> Vec<crate::constants::AccessTokenType> {
+        if let Some(token_types) = &self.supported_access_token_types {
+            return token_types.clone();
+        }
+
         // 默认返回用户和租户令牌类型
         vec![
             crate::constants::AccessTokenType::User,
@@ -363,6 +380,7 @@ impl<R> Default for ApiRequest<R> {
             body: None,
             file: None,
             timeout: None,
+            supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -372,23 +390,17 @@ impl<R> Default for ApiRequest<R> {
 /// API 响应类型别名
 pub type ApiResponse<R> = Response<R>;
 
-// ============================================================================
 // 子模块
-// ============================================================================
 
+pub mod helpers;
 pub mod prelude;
 pub mod responses;
-pub mod traits;
 
-// ============================================================================
 // 重新导出
-// ============================================================================
 
-pub use traits::{AsyncApiClient, SyncApiClient};
+pub use helpers::serialize_params;
 
-// ============================================================================
 // 测试
-// ============================================================================
 
 #[cfg(test)]
 mod tests {
@@ -435,5 +447,16 @@ mod tests {
         assert_eq!(delete_req.method.as_str(), "DELETE");
 
         println!("✅ All HTTP methods test passed!");
+    }
+
+    #[test]
+    fn test_supported_access_token_types_override() {
+        let request: ApiRequest<()> = ApiRequest::post("/open-apis/authen/v1/access_token")
+            .with_supported_access_token_types(vec![crate::constants::AccessTokenType::App]);
+
+        assert_eq!(
+            request.supported_access_token_types(),
+            vec![crate::constants::AccessTokenType::App]
+        );
     }
 }

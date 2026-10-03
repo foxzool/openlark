@@ -1,13 +1,14 @@
 //! 解除 Exchange 账户绑定
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_EXCHANGE_BINDINGS};
+use super::models::DeleteExchangeBindingResponse;
+use crate::endpoints::CALENDAR_V4_EXCHANGE_BINDINGS;
 
 /// 解除 Exchange 账户绑定请求
 pub struct DeleteExchangeBindingRequest {
@@ -31,44 +32,71 @@ impl DeleteExchangeBindingRequest {
     }
 
     /// 执行请求
-    ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/exchange_binding/delete>
+    pub async fn execute(self) -> SDKResult<DeleteExchangeBindingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    /// 使用自定义请求选项执行请求。
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteExchangeBindingResponse> {
         validate_required!(self.exchange_binding_id, "exchange_binding_id 不能为空");
 
         // url: DELETE:/open-apis/calendar/v4/exchange_bindings/:exchange_binding_id
-        let req: ApiRequest<serde_json::Value> = ApiRequest::delete(format!(
+        let req: ApiRequest<DeleteExchangeBindingResponse> = ApiRequest::delete(format!(
             "{}/{}",
             CALENDAR_V4_EXCHANGE_BINDINGS, self.exchange_binding_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "解除 Exchange 账户绑定")
+        Transport::request_typed(req, &self.config, Some(option), "解除 Exchange 账户绑定").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：DELETE .../calendar/v4/exchange_bindings/{id} → DeleteExchangeBindingResponse（data.deleted）。
+    #[tokio::test]
+    async fn test_delete_exchange_binding_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/calendar/v4/exchange_bindings/binding_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "deleted": true }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DeleteExchangeBindingRequest::new(config)
+            .exchange_binding_id("binding_001")
+            .execute()
+            .await
+            .expect("解除 Exchange 绑定应成功");
+        assert_eq!(resp.deleted, Some(true));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/exchange_bindings/binding_001"
+        );
+        assert_eq!(received[0].method, "DELETE");
     }
 }

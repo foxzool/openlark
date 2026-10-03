@@ -1,17 +1,15 @@
 //! 更新用户 ID
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/user/update_user_id
+//! docPath: <https://open.feishu.cn/document/contact-v3/user/update_user_id>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    contact::contact::v3::user::models::UserIdType,
-    endpoints::CONTACT_V3_USERS,
+    common::api_utils::serialize_params, common::models::EmptyData,
+    contact::contact::v3::user::models::UserIdType, endpoints::CONTACT_V3_USERS,
 };
 
 /// 更新用户 ID 请求体
@@ -85,7 +83,7 @@ impl UpdateUserIdRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/user/update_user_id
+    /// docPath: <https://open.feishu.cn/document/contact-v3/user/update_user_id>
     pub async fn execute(self, body: UpdateUserIdBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -113,9 +111,7 @@ impl UpdateUserIdRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新用户 ID")
+        Transport::request_typed(req, &self.config, Some(option), "更新用户 ID").await
     }
 }
 

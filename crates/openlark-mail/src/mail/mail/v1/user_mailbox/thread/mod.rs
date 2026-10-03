@@ -1,0 +1,12 @@
+/// batch_modify 模块。
+pub mod batch_modify;
+/// batch_trash 模块。
+pub mod batch_trash;
+/// get 模块。
+pub mod get;
+/// list 模块。
+pub mod list;
+/// modify 模块。
+pub mod modify;
+/// trash 模块。
+pub mod trash;

@@ -1,10 +1,10 @@
 //! 创建运行
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/create>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_RUNS};
+use crate::endpoints::AILY_V1_RUNS;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 创建运行请求
@@ -52,7 +52,7 @@ impl CreateRunRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -67,11 +67,10 @@ impl CreateRunRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_RUNS.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_RUNS.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建运行")
+        Transport::request_typed(req, &self.config, Some(option), "创建运行").await
     }
 }
 
@@ -111,4 +110,15 @@ mod tests {
         });
         assert_eq!(body["skill_id"], "skill_123");
     }
+}
+
+#[test]
+fn test_create_run_url_construction() {
+    use crate::endpoints::aily::AILY_V1_RUNS;
+    let url = AILY_V1_RUNS.replace("{session_id}", "session_123");
+    assert_eq!(url, "/open-apis/aily/v1/sessions/session_123/runs");
+    assert!(
+        !url.contains("{session_id}"),
+        "URL should not contain unreplaced placeholder"
+    );
 }

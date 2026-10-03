@@ -1,19 +1,20 @@
 //! 查询环境变量列表
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-environment_variable/query
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-environment_variable/query>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/application-environment_variable/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询环境变量列表 Builder
 #[derive(Debug, Clone)]
-pub struct EnvironmentVariableQueryBuilder {
+pub struct EnvironmentVariableQueryRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -23,7 +24,7 @@ pub struct EnvironmentVariableQueryBuilder {
     page_size: Option<u32>,
 }
 
-impl EnvironmentVariableQueryBuilder {
+impl EnvironmentVariableQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>) -> Self {
         Self {
@@ -68,9 +69,7 @@ impl EnvironmentVariableQueryBuilder {
 
         let req: ApiRequest<EnvironmentVariableQueryResponse> =
             ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -107,16 +106,16 @@ pub struct EnvironmentVariableInfo {
 pub struct EnvironmentVariableQueryResponse {
     /// 环境变量列表
     #[serde(rename = "items")]
-    items: Vec<EnvironmentVariableInfo>,
+    pub items: Vec<EnvironmentVariableInfo>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for EnvironmentVariableQueryResponse {
@@ -125,23 +124,74 @@ impl ApiResponseTrait for EnvironmentVariableQueryResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to EnvironmentVariableQueryRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type EnvironmentVariableQueryBuilder = EnvironmentVariableQueryRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../environment_variables/query → EnvironmentVariableQueryResponse。
+    #[tokio::test]
+    async fn test_query_environment_variable_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/apaas/v1/applications/ns_test/environment_variables/query",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "api_name": "env_var_001",
+                            "name": "ENV_NAME",
+                            "value": "value_001",
+                            "description": "测试变量"
+                        }
+                    ],
+                    "has_more": false,
+                    "page": 1,
+                    "page_size": 20
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = EnvironmentVariableQueryRequestBuilder::new(config, "ns_test")
+            .page(1)
+            .page_size(20)
+            .execute()
+            .await
+            .expect("查询环境变量列表应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].api_name, "env_var_001");
+        assert_eq!(resp.items[0].value, "value_001");
+        assert!(!resp.has_more);
+        assert_eq!(resp.page, 1);
+        assert_eq!(resp.page_size, 20);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/environment_variables/query"
+        );
     }
 }

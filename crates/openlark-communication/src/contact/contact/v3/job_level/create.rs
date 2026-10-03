@@ -1,14 +1,14 @@
 //! 创建职级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::job_level::models::{I18nContent, JobLevelResponse},
     endpoints::CONTACT_V3_JOB_LEVELS,
 };
@@ -48,7 +48,7 @@ impl CreateJobLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_level/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_level/create>
     pub async fn execute(self, body: CreateJobLevelBody) -> SDKResult<JobLevelResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -66,9 +66,7 @@ impl CreateJobLevelRequest {
         let req: ApiRequest<JobLevelResponse> =
             ApiRequest::post(CONTACT_V3_JOB_LEVELS).body(serialize_params(&body, "创建职级")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建职级")
+        Transport::request_typed(req, &self.config, Some(option), "创建职级").await
     }
 }
 

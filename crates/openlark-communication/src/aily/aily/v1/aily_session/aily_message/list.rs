@@ -1,12 +1,12 @@
 //! 列出 Aily 消息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list>
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_MESSAGES};
+use crate::endpoints::AILY_V1_MESSAGES;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 列出 Aily 消息请求
@@ -61,7 +61,7 @@ impl ListAilyMessagesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -75,13 +75,12 @@ impl ListAilyMessagesRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_MESSAGES.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_MESSAGES.replace("{session_id}", &self.aily_session_id);
         let mut req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
         for (k, v) in self.query {
             req = req.query(&k, &v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "列出 Aily 消息")
+        Transport::request_typed(req, &self.config, Some(option), "列出 Aily 消息").await
     }
 }
 
@@ -132,5 +131,16 @@ mod tests {
     fn test_list_aily_messages_request_empty_query() {
         let request = ListAilyMessagesRequest::new(Config::default()).aily_session_id("test_id");
         assert!(request.query.is_empty());
+    }
+
+    #[test]
+    fn test_list_aily_messages_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_MESSAGES;
+        let url = AILY_V1_MESSAGES.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/messages");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

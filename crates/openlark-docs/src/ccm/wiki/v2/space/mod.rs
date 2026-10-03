@@ -34,7 +34,7 @@ pub use node::{
     CopyWikiSpaceNodeParams, CopyWikiSpaceNodeRequest, CopyWikiSpaceNodeResponse,
     CreateWikiSpaceNodeParams, CreateWikiSpaceNodeRequest, CreateWikiSpaceNodeResponse,
     ListWikiSpaceNodesParams, ListWikiSpaceNodesRequest, ListWikiSpaceNodesResponse,
-    MoveDocsToWikiParams, MoveDocsToWikiRequest, MoveDocsToWikiResponse, MoveWikiSpaceNodeParams,
+    MoveDocsToWikiRequest, MoveDocsToWikiResponse, MoveWikiSpaceNodeParams,
     MoveWikiSpaceNodeRequest, MoveWikiSpaceNodeResponse, UpdateWikiSpaceNodeTitleParams,
     UpdateWikiSpaceNodeTitleRequest, UpdateWikiSpaceNodeTitleResponse,
 };

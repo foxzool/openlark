@@ -478,7 +478,7 @@ mod tests {
 
 ## 12. 相关文档
 
-- [标准示例](.agents/skills/openlark-api/references/standard-example.md) - 代码模板
+- [标准示例](../.agents/skills/openlark-api/references/standard-example.md) - 代码模板
 - [EXECUTE_REFACTORING_ANALYSIS.md](../crates/openlark-docs/docs/EXECUTE_REFACTORING_ANALYSIS.md) - 重构分析
 - [PUBLIC_REEXPORT_POLICY.md](PUBLIC_REEXPORT_POLICY.md) - 公开 API 策略
 - [AGENTS.md](../AGENTS.md) - 项目知识库

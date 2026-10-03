@@ -193,6 +193,8 @@ pub enum ErrorType {
     ServiceUnavailable,
     /// 内部系统错误
     Internal,
+    /// 响应体过大错误
+    ResponseTooLarge,
 }
 
 impl Display for ErrorType {
@@ -209,6 +211,7 @@ impl Display for ErrorType {
             Self::RateLimit => write!(f, "RateLimit"),
             Self::ServiceUnavailable => write!(f, "ServiceUnavailable"),
             Self::Internal => write!(f, "Internal"),
+            Self::ResponseTooLarge => write!(f, "ResponseTooLarge"),
         }
     }
 }
@@ -245,6 +248,7 @@ impl From<ErrorCode> for ErrorType {
             | ErrorCode::BadGateway
             | ErrorCode::CacheServiceUnavailable => ErrorType::ServiceUnavailable,
             ErrorCode::ConfigurationError => ErrorType::Configuration,
+            ErrorCode::ResponseTooLarge => ErrorType::ResponseTooLarge,
             ErrorCode::Success => ErrorType::Api,
             _ => ErrorType::Internal,
         }

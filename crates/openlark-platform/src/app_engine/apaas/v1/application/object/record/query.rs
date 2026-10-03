@@ -1,19 +1,20 @@
 //! 获取记录详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/query
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/query>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/application-object-record/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取记录详情 Builder
 #[derive(Debug, Clone)]
-pub struct RecordQueryBuilder {
+pub struct RecordQueryRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -25,7 +26,7 @@ pub struct RecordQueryBuilder {
     fields: Vec<String>,
 }
 
-impl RecordQueryBuilder {
+impl RecordQueryRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -75,9 +76,7 @@ impl RecordQueryBuilder {
 
         let req: ApiRequest<RecordQueryResponse> =
             ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -94,16 +93,16 @@ struct RecordQueryRequest {
 pub struct RecordQueryResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 记录数据
     #[serde(rename = "data")]
-    data: serde_json::Value,
+    pub data: serde_json::Value,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 impl ApiResponseTrait for RecordQueryResponse {
@@ -112,23 +111,61 @@ impl ApiResponseTrait for RecordQueryResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordQueryRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordQueryBuilder = RecordQueryRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../records/{record_id}/query → 强类型 RecordQueryResponse。
+    #[tokio::test]
+    async fn test_query_record_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/apaas/v1/applications/ns_test/objects/obj_test/records/rec_001/query",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "id": "rec_001",
+                    "data": { "name": "记录一" },
+                    "created_time": 1700000000,
+                    "updated_time": 1700000001
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = RecordQueryRequestBuilder::new(config, "ns_test", "obj_test", "rec_001")
+            .field("name")
+            .execute()
+            .await
+            .expect("获取记录详情应成功");
+        assert_eq!(resp.id, "rec_001");
+        assert_eq!(resp.created_time, 1700000000);
+        assert_eq!(resp.updated_time, 1700000001);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/objects/obj_test/records/rec_001/query"
+        );
     }
 }

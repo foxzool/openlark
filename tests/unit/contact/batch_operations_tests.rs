@@ -7,6 +7,7 @@
 //! - 批量请求在缺少 ID 集合时的显式校验失败
 
 use open_lark::{
+    CoreConfig, RequestOption,
     communication::contact::contact::v3::{
         department::batch::BatchGetDepartmentsRequest,
         user::{
@@ -14,13 +15,12 @@ use open_lark::{
             models::{DepartmentIdType, UserIdType},
         },
     },
-    CoreConfig, RequestOption,
 };
 use serde::de::DeserializeOwned;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use wiremock::{
-    matchers::{method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> CoreConfig {

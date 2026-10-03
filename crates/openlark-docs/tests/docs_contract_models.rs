@@ -1,5 +1,5 @@
-#![cfg(all(feature = "ccm-core", feature = "bitable", feature = "v3"))]
 //! Representative contract tests for high-frequency Docs request/response models.
+#![cfg(all(feature = "ccm-core", feature = "bitable"))]
 
 use openlark_core::config::Config;
 use openlark_docs::base::bitable::v1::{SearchRecordRequestBody, SearchRecordResponse};
@@ -9,9 +9,9 @@ use openlark_docs::ccm::docx::v1::document::{
 use openlark_docs::ccm::drive::v1::file::{UploadPrepareRequest, UploadPrepareResponse};
 use openlark_docs::ccm::sheets::v3::{CreateSpreadsheetParams, GetSpreadsheetResponse};
 use openlark_docs::ccm::wiki::v2::get_node::{GetWikiSpaceNodeParams, GetWikiSpaceNodeResponse};
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where

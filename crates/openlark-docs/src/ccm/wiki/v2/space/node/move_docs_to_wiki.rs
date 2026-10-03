@@ -2,13 +2,14 @@
 //!
 //! 该接口允许移动云空间文档至知识空间，并挂载在指定位置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/move_docs_to_wiki
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/task/move_docs_to_wiki>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +28,11 @@ pub struct MoveDocsToWikiRequest {
     obj_type: String,
     /// 目标父节点 wiki token
     parent_wiki_token: String,
+    /// 是否直接执行移动（可选，官方字段 `apply`）
+    ///
+    /// - `true`（默认）：同步执行移动
+    /// - `false`：仅创建移动任务，返回 `task_id` 供后续查询
+    apply: Option<bool>,
 }
 
 /// 移动云空间文档至知识空间请求体（内部使用）
@@ -35,6 +41,8 @@ struct MoveDocsToWikiRequestBody {
     obj_token: String,
     obj_type: String,
     parent_wiki_token: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apply: Option<bool>,
 }
 
 /// 移动云空间文档至知识空间响应
@@ -44,6 +52,9 @@ pub struct MoveDocsToWikiResponse {
     pub wiki_token: Option<String>,
     /// 操作未完成时返回的异步任务 ID
     pub task_id: Option<String>,
+    /// 是否已直接执行移动（官方字段 `applied`，仅 apply=true 时返回）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub applied: Option<bool>,
 }
 
 impl ApiResponseTrait for MoveDocsToWikiResponse {
@@ -61,6 +72,7 @@ impl MoveDocsToWikiRequest {
             obj_token: String::new(),
             obj_type: String::new(),
             parent_wiki_token: String::new(),
+            apply: None,
         }
     }
 
@@ -88,6 +100,15 @@ impl MoveDocsToWikiRequest {
         self
     }
 
+    /// 设置是否直接执行移动（官方字段 `apply`）
+    ///
+    /// - `true`（默认）：同步执行移动
+    /// - `false`：仅创建移动任务，返回 `task_id`
+    pub fn apply(mut self, apply: bool) -> Self {
+        self.apply = Some(apply);
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<MoveDocsToWikiResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
@@ -110,49 +131,58 @@ impl MoveDocsToWikiRequest {
             obj_token: self.obj_token,
             obj_type: self.obj_type,
             parent_wiki_token: self.parent_wiki_token,
+            apply: self.apply,
         };
 
-        let api_request: ApiRequest<MoveDocsToWikiResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&request_body, "移动云空间文档至知识空间")?);
+        let api_request: ApiRequest<MoveDocsToWikiResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&request_body, "移动云空间文档至知识空间")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "节点")
+        Transport::request_typed(api_request, &self.config, Some(option), "节点").await
     }
-}
-
-/// 移动云空间文档至知识空间请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 MoveDocsToWikiRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MoveDocsToWikiParams {
-    /// 源文档 token
-    pub obj_token: String,
-    /// 源文档类型（例如 doc、docx 等）
-    pub obj_type: String,
-    /// 目标父节点 wiki token
-    pub parent_wiki_token: String,
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../nodes/move_docs_to_wiki → MoveDocsToWikiResponse。
+    #[tokio::test]
+    async fn test_move_docs_to_wiki_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/wiki/v2/spaces/sp001/nodes/move_docs_to_wiki",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "wiki_token": "wt001" }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = MoveDocsToWikiRequest::new(config)
+            .space_id("sp001")
+            .obj_token("obj001")
+            .obj_type("docx")
+            .parent_wiki_token("pwt001")
+            .execute()
+            .await
+            .expect("移动云文档至知识空间应成功");
+        assert_eq!(resp.wiki_token.as_deref(), Some("wt001"));
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/wiki/v2/spaces/sp001/nodes/move_docs_to_wiki"
+        );
     }
 }

@@ -1,17 +1,15 @@
 //! 查询会议室配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/room_config/query
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/room_config/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::common::api_utils::extract_response_data;
 
 /// 查询会议室配置请求
 
@@ -51,7 +49,7 @@ impl QueryRoomConfigRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_config/query
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_config/query>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<QueryRoomConfigResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -66,28 +64,57 @@ impl QueryRoomConfigRequest {
         let api_request: ApiRequest<QueryRoomConfigResponse> =
             ApiRequest::get("/open-apis/vc/v1/room_configs/query").body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询会议室配置")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询会议室配置").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../room_configs/query → QueryRoomConfigResponse 解析（data 信封）。
+    #[tokio::test]
+    async fn test_query_room_config_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/vc/v1/room_configs/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "configs": [
+                        { "config_id": "rc_001", "name": "默认配置" }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = QueryRoomConfigRequest::new(config)
+            .execute(json!({ "room_id": "room_001" }))
+            .await
+            .expect("查询会议室配置应成功");
+        assert_eq!(resp.configs.len(), 1);
+        assert_eq!(resp.configs[0].config_id, "rc_001");
+        assert_eq!(resp.configs[0].name, "默认配置");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/vc/v1/room_configs/query"
+        );
     }
 }

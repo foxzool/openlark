@@ -1,5 +1,5 @@
-#![cfg(feature = "v1")]
 //! 邮件模块代表性契约测试，覆盖核心 request/response 模型的序列化/反序列化双向一致性。
+#![cfg(feature = "v1")]
 
 use openlark_mail::mail::mail::v1::mailgroup::alias::list::{
     ListMailGroupAliasData, MailGroupAlias,
@@ -25,9 +25,9 @@ use openlark_mail::mail::mail::v1::public_mailbox::models::{
     UpdatePublicMailboxResponse,
 };
 use openlark_mail::mail::mail::v1::user_mailbox::message::get::MessageData;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where

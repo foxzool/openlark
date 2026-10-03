@@ -1,15 +1,15 @@
 //! Pin 消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/pin/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/pin/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_PINS,
-    im::im::v1::pin::models::{CreatePinBody, CreatePinResponse},
+    im::v1::pin::models::{CreatePinBody, CreatePinResponse},
 };
 
 /// Pin 消息请求
@@ -39,7 +39,7 @@ impl CreatePinRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/pin/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/pin/create>
     pub async fn execute(self, body: CreatePinBody) -> SDKResult<CreatePinResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -58,9 +58,7 @@ impl CreatePinRequest {
         let req: ApiRequest<CreatePinResponse> =
             ApiRequest::post(IM_V1_PINS).body(serialize_params(&body, "Pin 消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "Pin 消息")
+        Transport::request_typed(req, &self.config, Some(option), "Pin 消息").await
     }
 }
 

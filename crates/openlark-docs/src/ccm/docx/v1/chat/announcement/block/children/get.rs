@@ -2,18 +2,19 @@
 ///
 /// 获取群公告中指定块的所有子块的富文本内容并分页返回。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/get
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/get
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/get>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::ccm::docx::models::common_types::DocxBlock;
-use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
+use crate::common::api_endpoints::DocxApiV1;
 
 /// 获取所有子块请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,7 +89,7 @@ impl GetChatAnnouncementBlockChildrenRequest {
         );
 
         let mut api_request: ApiRequest<GetChatAnnouncementBlockChildrenResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+            api_endpoint.to_request();
 
         if let Some(page_size) = params.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
@@ -97,28 +98,56 @@ impl GetChatAnnouncementBlockChildrenRequest {
             api_request = api_request.query("page_token", &page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取所有子块")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取所有子块").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET .../blocks/{block_id}/children → GetChatAnnouncementBlockChildrenResponse（items）。
+    #[tokio::test]
+    async fn test_get_chat_announcement_block_children_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/docx/v1/chats/chat001/announcement/blocks/blk1/children",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "items": [{ "block_id": "blk1", "block_type": 1 }] }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = GetChatAnnouncementBlockChildrenRequest::new(config)
+            .execute(GetChatAnnouncementBlockChildrenParams {
+                chat_id: "chat001".into(),
+                block_id: "blk1".into(),
+                page_size: None,
+                page_token: None,
+            })
+            .await
+            .expect("获取群公告子块应成功");
+        assert_eq!(resp.items.len(), 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/chats/chat001/announcement/blocks/blk1/children"
+        );
     }
 }

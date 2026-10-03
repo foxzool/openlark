@@ -1,13 +1,14 @@
 //! 部分更新公共邮箱
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/patch>
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use crate::mail::mail::v1::public_mailbox::models::{
     PatchPublicMailboxBody, PatchPublicMailboxResponse,
 };
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use std::sync::Arc;
 
@@ -58,9 +59,13 @@ impl PatchPublicMailboxRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "部分更新公共邮箱")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "部分更新公共邮箱")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "部分更新公共邮箱",
+        )
+        .await
     }
 }
 

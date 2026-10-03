@@ -9,6 +9,7 @@
 //! - 部门模型的 contract 兼容性（含 i18n / extra 透传）
 
 use open_lark::{
+    CoreConfig, RequestOption,
     communication::contact::contact::v3::{
         department::{
             children::ListDepartmentChildrenRequest,
@@ -17,13 +18,12 @@ use open_lark::{
         },
         user::models::{DepartmentIdType, UserIdType},
     },
-    CoreConfig, RequestOption,
 };
 use serde::de::DeserializeOwned;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use wiremock::{
-    matchers::{method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> CoreConfig {

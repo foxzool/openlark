@@ -94,8 +94,10 @@
 
 - **任务流 helper**：
   - `WorkflowTaskListQuery`
+  - `WorkflowTaskCreate`
   - `WorkflowTaskMutation`
   - `list_tasks_all`
+  - `create_task`
   - `mutate_task`
   - `complete_task`
   - `reopen_task`
@@ -103,9 +105,7 @@
   - `ApprovalTaskQuery`
   - `ApprovalTaskAction`
   - `query_approval_tasks`
-  - `approve_task`
-  - `reject_task`
-  - `resubmit_task`
+  - `approve_task` / `reject_task` / `resubmit_task`（返回 `SDKResult<()>`；成功/失败只由 `Result` 表达，不伪造 `success: bool`，见 #350）
 
 ### 4.3 Workflow helper 设计规则
 
@@ -178,7 +178,7 @@
 
 | 能力 | 应留层级 | 原因 |
 |------|----------|------|
-| list/mutate/complete/reopen task | helper | 典型任务流动作 |
+| create/list/mutate/complete/reopen task | helper | 典型任务流动作 |
 | query/approve/reject/resubmit approval task | helper | 高频审批动作，但必须保留官方必填字段 |
 | approval instance/comment/external instance 深度能力 | typed API | 契约复杂、频率相对低 |
 

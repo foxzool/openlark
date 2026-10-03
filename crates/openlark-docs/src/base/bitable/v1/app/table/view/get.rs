@@ -1,6 +1,6 @@
 //! Bitable 获取视图
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-view/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -102,13 +102,10 @@ impl GetViewRequest {
         );
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<GetViewResponse> = ApiRequest::get(&api_endpoint.to_url());
+        let api_request: ApiRequest<GetViewResponse> = api_endpoint.to_request();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 获取视图").await
     }
 }
 

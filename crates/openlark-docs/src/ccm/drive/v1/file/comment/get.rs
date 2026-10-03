@@ -18,13 +18,13 @@
 //! let comment = get_comment(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/get>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::Comment;
 
@@ -114,7 +114,7 @@ pub async fn get_comment(
 
     let api_endpoint = DriveApi::GetComment(request.file_token.clone(), request.comment_id.clone());
 
-    let mut api_request: ApiRequest<GetCommentResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<GetCommentResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 
@@ -123,9 +123,7 @@ pub async fn get_comment(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取全文评论")
+    Transport::request_typed(api_request, config, option, "获取全文评论").await
 }
 
 #[cfg(test)]

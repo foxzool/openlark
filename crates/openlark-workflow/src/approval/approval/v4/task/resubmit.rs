@@ -1,16 +1,17 @@
 //! 重新提交审批任务（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/task/resubmit
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/task/resubmit>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::common::api_utils::{missing_response_data_error, request_serialization_error};
+use crate::common::api_utils::request_serialization_error;
 
 /// 重新提交审批任务请求体（v4）
 #[derive(Debug, Clone, Serialize, Default)]
@@ -43,6 +44,7 @@ pub struct ResubmitTaskRequestV4 {
 }
 
 impl ResubmitTaskRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -122,14 +124,13 @@ impl ResubmitTaskRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error(
-                "重新提交审批任务",
-                response.raw_response.request_id.clone(),
-            )
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "重新提交审批任务",
+        )
+        .await
     }
 }
 

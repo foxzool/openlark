@@ -1,12 +1,13 @@
 //! 列取任务所在清单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task-tasklists/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task-tasklists/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -72,9 +73,13 @@ impl GetTaskTasklistsRequest {
         let api_endpoint = TaskApiV2::TaskGetTasklists(self.task_guid.clone());
         let request = ApiRequest::<GetTaskTasklistsResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列取任务所在清单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "列取任务所在清单",
+        )
+        .await
     }
 }
 

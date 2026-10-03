@@ -1,16 +1,16 @@
 //! 获取群分享链接
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/link
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/link>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_CHATS,
-    im::im::v1::chat::models::{ChatLinkValidityPeriod, GetChatLinkResponse},
+    im::v1::chat::models::{ChatLinkValidityPeriod, GetChatLinkResponse},
 };
 
 /// 获取群分享链接请求
@@ -80,8 +80,7 @@ impl GetChatLinkRequest {
             ApiRequest::post(format!("{}/{}/link", IM_V1_CHATS, self.chat_id))
                 .body(serialize_params(&body, "获取群分享链接")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群分享链接")
+        Transport::request_typed(req, &self.config, Some(option), "获取群分享链接").await
     }
 }
 

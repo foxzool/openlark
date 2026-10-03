@@ -1,25 +1,26 @@
 //! 获取关联组织列表
 //!
-//! 文档: https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/list
+//! 文档: <https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/list>
+//! docPath: <https://open.feishu.cn/document/trust_party-v1/-collaboraiton-organization/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取关联组织列表 Builder
 #[derive(Debug, Clone)]
-pub struct CollaborationTenantListBuilder {
+pub struct CollaborationTenantListRequestBuilder {
     config: Config,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
 
-impl CollaborationTenantListBuilder {
+impl CollaborationTenantListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -56,10 +57,10 @@ impl CollaborationTenantListBuilder {
         // 添加查询参数
         let mut params = Vec::new();
         if let Some(page_size) = self.page_size {
-            params.push(format!("page_size={}", page_size));
+            params.push(format!("page_size={page_size}"));
         }
         if let Some(ref page_token) = self.page_token {
-            params.push(format!("page_token={}", page_token));
+            params.push(format!("page_token={page_token}"));
         }
         if !params.is_empty() {
             url.push('?');
@@ -67,9 +68,7 @@ impl CollaborationTenantListBuilder {
         }
 
         let req: ApiRequest<CollaborationTenantListResponse> = ApiRequest::get(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -101,6 +100,12 @@ pub struct CollaborationTenant {
 
 impl ApiResponseTrait for CollaborationTenantListResponse {}
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to CollaborationTenantListRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type CollaborationTenantListBuilder = CollaborationTenantListRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,7 +116,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = CollaborationTenantListBuilder::new(config.clone())
+        let request = CollaborationTenantListRequestBuilder::new(config.clone())
             .page_size(1)
             .page_token("test".to_string());
         let _ = request;

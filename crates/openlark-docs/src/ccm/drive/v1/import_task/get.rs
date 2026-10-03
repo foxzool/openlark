@@ -2,17 +2,18 @@
 //!
 //! 获取导入任务的执行状态。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/import_task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/import_task/get>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取导入任务请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,19 +46,13 @@ impl GetImportTaskRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetImportTaskResponse> {
         // ===== 验证必填字段 =====
-        if self.ticket.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "ticket",
-                "ticket 不能为空",
-            ));
-        }
+        validate_required!(self.ticket, "ticket 不能为空");
 
         let api_endpoint = DriveApi::GetImportTask(self.ticket.clone());
 
-        let api_request = ApiRequest::<GetImportTaskResponse>::get(&api_endpoint.to_url());
+        let api_request = api_endpoint.to_request::<GetImportTaskResponse>();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 
@@ -99,7 +94,6 @@ impl ApiResponseTrait for GetImportTaskResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -115,23 +109,6 @@ mod tests {
         assert_eq!(GetImportTaskResponse::data_format(), ResponseFormat::Data);
     }
 
-    /// 测试 ticket 为空时的验证
-    #[test]
-    fn test_empty_ticket_validation() {
-        let config = Config::default();
-        let request = GetImportTaskRequest::new(config, "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
     /// 测试 ticket 边界值
     #[test]
     fn test_ticket_boundaries() {
@@ -145,5 +122,56 @@ mod tests {
         let long_ticket = "a".repeat(100);
         let request2 = GetImportTaskRequest::new(config, long_ticket);
         assert_eq!(request2.ticket.len(), 100);
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/import_tasks/{ticket} → GetImportTaskResponse（result）。
+    #[tokio::test]
+    async fn test_get_import_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/v1/import_tasks/import_ticket_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "result": {
+                        "ticket": "import_ticket_001",
+                        "type": "docx",
+                        "job_status": 0,
+                        "token": "doccnXxXxXxXxXxXxXxXxXxXxXxXxXxX",
+                        "url": "https://example.feishu.cn/docx/doccnXxXxXxXxXxXxXxXxXxXxXxXxXxX"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetImportTaskRequest::new(config, "import_ticket_001")
+            .execute()
+            .await
+            .expect("查询导入任务应成功");
+        let result = resp.result.expect("响应应包含 result");
+        assert_eq!(result.ticket.as_deref(), Some("import_ticket_001"));
+        assert_eq!(result.r#type, "docx");
+        assert_eq!(result.job_status, Some(0));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/import_tasks/import_ticket_001"
+        );
     }
 }

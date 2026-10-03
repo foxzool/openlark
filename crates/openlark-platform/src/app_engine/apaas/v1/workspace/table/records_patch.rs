@@ -1,19 +1,20 @@
 //! 按条件更新数据表中的记录
 //!
 //! URL: PATCH:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
+//! docPath:
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 按条件更新记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsPatchBuilder {
+pub struct TableRecordsPatchRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -25,7 +26,7 @@ pub struct TableRecordsPatchBuilder {
     data: serde_json::Value,
 }
 
-impl TableRecordsPatchBuilder {
+impl TableRecordsPatchRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -62,9 +63,13 @@ impl TableRecordsPatchBuilder {
 
         let req: ApiRequest<TableRecordsPatchResponse> =
             ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(RequestOption::default())).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(RequestOption::default()),
+            "Operation",
+        )
+        .await
     }
 
     /// 使用选项执行请求
@@ -84,9 +89,7 @@ impl TableRecordsPatchBuilder {
 
         let req: ApiRequest<TableRecordsPatchResponse> =
             ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -106,10 +109,10 @@ struct TableRecordsPatchRequest {
 pub struct TableRecordsPatchResponse {
     /// 更新的记录数量
     #[serde(rename = "updated_count")]
-    updated_count: u32,
+    pub updated_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for TableRecordsPatchResponse {
@@ -118,23 +121,59 @@ impl ApiResponseTrait for TableRecordsPatchResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableRecordsPatchRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableRecordsPatchBuilder = TableRecordsPatchRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：PATCH .../tables/{table}/records → 强类型 TableRecordsPatchResponse。
+    #[tokio::test]
+    async fn test_patch_records_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path(
+                "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "updated_count": 3,
+                    "message": "OK"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = TableRecordsPatchRequestBuilder::new(config, "ws_001", "user", "age > 18")
+            .data(json!({"status": "active"}))
+            .execute()
+            .await
+            .expect("按条件更新记录应成功");
+        assert_eq!(resp.updated_count, 3);
+        assert_eq!(resp.message, "OK");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records"
+        );
+        assert_eq!(received[0].method, "PATCH");
     }
 }

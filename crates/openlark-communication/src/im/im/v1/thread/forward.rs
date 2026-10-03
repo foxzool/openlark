@@ -1,16 +1,15 @@
 //! 转发话题
 //!
-//! docPath: https://open.feishu.cn/document/im-v1/message/forward-2
+//! docPath: <https://open.feishu.cn/document/im-v1/message/forward-2>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_THREADS,
-    im::im::v1::message::models::ReceiveIdType,
+    common::api_utils::serialize_params, endpoints::IM_V1_THREADS,
+    im::v1::message::models::ReceiveIdType,
 };
 
 /// 转发话题请求体
@@ -103,7 +102,7 @@ impl ForwardThreadRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v1/message/forward-2
+    /// docPath: <https://open.feishu.cn/document/im-v1/message/forward-2>
     pub async fn execute(self, body: ForwardThreadBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -135,9 +134,7 @@ impl ForwardThreadRequest {
             req = req.query("uuid", uuid);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "转发话题")
+        Transport::request_typed(req, &self.config, Some(option), "转发话题").await
     }
 }
 

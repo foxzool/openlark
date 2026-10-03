@@ -1,6 +1,6 @@
 //! Bitable 批量新增协作者（自定义角色）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/batch_create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/batch_create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -90,17 +90,20 @@ impl BatchCreateRoleMemberRequest {
         let api_endpoint =
             BitableApiV1::RoleMemberBatchCreate(self.app_token.clone(), self.role_id.clone());
 
-        let api_request: ApiRequest<BatchCreateRoleMemberResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&BatchCreateRoleMemberRequestBody {
-            member_list: self.member_list,
-        })?);
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<BatchCreateRoleMemberResponse> = api_endpoint
+            .to_request::<BatchCreateRoleMemberResponse>()
+            .body(serde_json::to_vec(&BatchCreateRoleMemberRequestBody {
+                member_list: self.member_list,
+            })?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 批量新增协作者（自定义角色）",
+        )
+        .await
     }
 }
 
@@ -122,21 +125,46 @@ impl ApiResponseTrait for BatchCreateRoleMemberResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../members/batch_create → BatchCreateRoleMemberResponse。
+    #[tokio::test]
+    async fn test_batch_create_role_member_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/bitable/v1/apps/app001/roles/role001/members/batch_create",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        BatchCreateRoleMemberRequest::new(config)
+            .app_token("app001".into())
+            .role_id("role001".into())
+            .member_list(vec![RoleMemberId {
+                id_type: Default::default(),
+                id: "ou001".into(),
+            }])
+            .execute()
+            .await
+            .expect("批量添加角色成员应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app001/roles/role001/members/batch_create"
+        );
     }
 }

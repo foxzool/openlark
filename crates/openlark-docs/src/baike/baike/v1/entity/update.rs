@@ -1,21 +1,22 @@
 //! 更新免审词条
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/entity/update
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/entity/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::baike::baike::v1::models::{Entity, OuterInfo, RelatedMeta, Term, UserIdType};
 use crate::common::api_endpoints::BaikeApiV1;
 
+/// 更新免审词条请求体
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-/// 公开项说明。
 pub struct UpdateEntityReq {
     /// 词条名
     pub main_keys: Vec<Term>,
@@ -40,7 +41,7 @@ pub struct UpdateEntityReq {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateEntityResp {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 公开项说明。
+    /// 更新后的词条实体信息
     pub entity: Option<Entity>,
 }
 
@@ -94,7 +95,7 @@ impl UpdateEntityRequest {
         for (idx, term) in self.req.main_keys.iter().enumerate() {
             if term.key.trim().is_empty() {
                 return Err(openlark_core::error::validation_error(
-                    &format!("main_keys[{}].key", idx),
+                    &format!("main_keys[{idx}].key"),
                     "key 不能为空",
                 ));
             }
@@ -103,7 +104,7 @@ impl UpdateEntityRequest {
             for (idx, term) in aliases.iter().enumerate() {
                 if term.key.trim().is_empty() {
                     return Err(openlark_core::error::validation_error(
-                        &format!("aliases[{}].key", idx),
+                        &format!("aliases[{idx}].key"),
                         "key 不能为空",
                     ));
                 }
@@ -123,19 +124,17 @@ impl UpdateEntityRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443）
         let mut api_request: ApiRequest<UpdateEntityResp> =
-            ApiRequest::put(&BaikeApiV1::EntityUpdate(self.entity_id).to_url())
+            BaikeApiV1::EntityUpdate(self.entity_id)
+                .to_request()
                 .body(serde_json::to_value(&self.req)?);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<UpdateEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "更新免审词条").await
     }
 }
 
@@ -211,10 +210,12 @@ mod tests {
             ..Default::default()
         };
         let request = UpdateEntityRequest::new(config.clone(), "", req);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 main_keys 为空
         let req2 = UpdateEntityReq {
@@ -222,10 +223,12 @@ mod tests {
             ..Default::default()
         };
         let request2 = UpdateEntityRequest::new(config.clone(), "entity_123", req2);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 description 和 rich_text 都为空
         let req3 = UpdateEntityReq {
@@ -241,10 +244,12 @@ mod tests {
             ..Default::default()
         };
         let request3 = UpdateEntityRequest::new(config, "entity_123", req3);
-        assert!(request3
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request3
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

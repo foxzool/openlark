@@ -3,7 +3,7 @@
 //! 集中导出最常用的类型和特征，简化导入。
 
 // 重新导出核心类型
-pub use openlark_core::{config::Config, SDKResult};
+pub use openlark_core::{SDKResult, config::Config};
 
 // 重新导出通用工具
 pub use crate::common::chain::CommunicationClient;

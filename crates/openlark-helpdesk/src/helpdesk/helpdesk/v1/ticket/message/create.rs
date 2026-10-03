@@ -2,16 +2,16 @@
 //!
 //! 发送工单消息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/create
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/ticket-management/ticket-message/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 发送工单消息请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -19,16 +19,14 @@ pub struct CreateTicketMessageBody {
     /// 消息内容
     pub content: String,
     /// 消息类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub msg_type: Option<String>,
+    pub msg_type: String,
 }
 
 impl CreateTicketMessageBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.content.is_empty() {
-            return Err("content is required".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.msg_type, "msg_type 不能为空");
+        validate_required!(self.content, "content 不能为空");
         Ok(())
     }
 }
@@ -36,31 +34,23 @@ impl CreateTicketMessageBody {
 /// 发送工单消息响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTicketMessageResponse {
-    /// 响应数据。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CreateTicketMessageResult>,
-}
-
-impl openlark_core::api::ApiResponseTrait for CreateTicketMessageResponse {}
-
-/// 发送工单消息结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateTicketMessageResult {
     /// 消息ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
 }
 
+impl openlark_core::api::ApiResponseTrait for CreateTicketMessageResponse {}
+
 /// 发送工单消息请求
 #[derive(Debug, Clone)]
 pub struct CreateTicketMessageRequest {
-    config: Arc<Config>,
+    config: Config,
     ticket_id: String,
 }
 
 impl CreateTicketMessageRequest {
     /// 创建新的发送工单消息请求
-    pub fn new(config: Arc<Config>, ticket_id: String) -> Self {
+    pub fn new(config: Config, ticket_id: String) -> Self {
         Self { config, ticket_id }
     }
 
@@ -79,22 +69,20 @@ impl CreateTicketMessageRequest {
         body: CreateTicketMessageBody,
         option: RequestOption,
     ) -> SDKResult<CreateTicketMessageResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<CreateTicketMessageResponse> =
             ApiRequest::post(HelpdeskApiV1::TicketMessageCreate(self.ticket_id.clone()).to_url())
                 .body(serialize_params(&body, "发送工单消息")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "发送工单消息")
+        Transport::request_typed(req, &self.config, Some(option), "发送工单消息").await
     }
 }
 
 /// 发送工单消息请求构建器
 #[derive(Debug, Clone)]
 pub struct CreateTicketMessageRequestBuilder {
-    config: Arc<Config>,
+    config: Config,
     ticket_id: String,
     content: Option<String>,
     msg_type: Option<String>,
@@ -102,7 +90,7 @@ pub struct CreateTicketMessageRequestBuilder {
 
 impl CreateTicketMessageRequestBuilder {
     /// 创建新的构建器
-    pub fn new(config: Arc<Config>, ticket_id: String) -> Self {
+    pub fn new(config: Config, ticket_id: String) -> Self {
         Self {
             config,
             ticket_id,
@@ -125,12 +113,10 @@ impl CreateTicketMessageRequestBuilder {
 
     /// 构建请求体
     pub fn body(&self) -> Result<CreateTicketMessageBody, String> {
-        let content = self.content.clone().ok_or("content is required")?;
+        let msg_type = self.msg_type.clone().ok_or("msg_type 不能为空")?;
+        let content = self.content.clone().ok_or("content 不能为空")?;
 
-        Ok(CreateTicketMessageBody {
-            content,
-            msg_type: self.msg_type.clone(),
-        })
+        Ok(CreateTicketMessageBody { content, msg_type })
     }
 
     /// 执行请求
@@ -159,15 +145,13 @@ pub async fn create_ticket_message_with_options(
     body: CreateTicketMessageBody,
     option: RequestOption,
 ) -> SDKResult<CreateTicketMessageResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<CreateTicketMessageResponse> =
         ApiRequest::post(HelpdeskApiV1::TicketMessageCreate(ticket_id).to_url())
             .body(serialize_params(&body, "发送工单消息")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "发送工单消息")
+    Transport::request_typed(req, config, Some(option), "发送工单消息").await
 }
 
 #[cfg(test)]
@@ -179,7 +163,7 @@ mod tests {
     fn test_body_validation_valid() {
         let body = CreateTicketMessageBody {
             content: "这是一条测试消息".to_string(),
-            msg_type: Some("text".to_string()),
+            msg_type: "text".to_string(),
         };
         let result = body.validate();
         assert!(result.is_ok());
@@ -189,10 +173,19 @@ mod tests {
     fn test_body_validation_empty_content() {
         let body = CreateTicketMessageBody {
             content: "".to_string(),
-            msg_type: None,
+            msg_type: "text".to_string(),
         };
         let result = body.validate();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_body_validation_empty_msg_type() {
+        let body = CreateTicketMessageBody {
+            content: "消息内容".to_string(),
+            msg_type: String::new(),
+        };
+        assert!(body.validate().is_err());
     }
 
     #[test]
@@ -201,10 +194,53 @@ mod tests {
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder =
-            CreateTicketMessageRequestBuilder::new(Arc::new(config), "ticket_123".to_string());
+        let builder = CreateTicketMessageRequestBuilder::new(config, "ticket_123".to_string());
 
         assert_eq!(builder.ticket_id, "ticket_123");
         assert!(builder.content.is_none());
+    }
+
+    /// 端到端：POST .../tickets/{id}/messages → 强类型 CreateTicketMessageResponse 解析。
+    #[tokio::test]
+    async fn test_create_ticket_message_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/tickets/tk_001/messages"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "id": "msg_001" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let body = CreateTicketMessageBody {
+            content: "您好，请问需要什么帮助？".to_string(),
+            msg_type: "text".to_string(),
+        };
+        let resp = CreateTicketMessageRequest::new(config, "tk_001".to_string())
+            .execute(body)
+            .await
+            .expect("发送工单消息应成功");
+        assert_eq!(resp.id.as_deref(), Some("msg_001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/tickets/tk_001/messages"
+        );
     }
 }

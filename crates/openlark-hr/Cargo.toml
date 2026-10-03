@@ -2,9 +2,10 @@
 name = "openlark-hr"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "OpenLark 人力资源模块 - 招聘、CoreHR、考勤、薪酬等 562 个 API"
+description = "OpenLark 人力资源模块 - 招聘、CoreHR、考勤、薪酬等 583 个 API"
 repository.workspace = true
 homepage.workspace = true
 keywords = ["feishu", "lark", "hr", "sdk", "api"]
@@ -35,13 +36,16 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 async-trait = { workspace = true }
-reqwest = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
 
 [dev-dependencies]
+openlark-core = { workspace = true, features = ["testing"] }
 rstest = { workspace = true }
 wiremock = { workspace = true }
 mockall = { workspace = true }
 serial_test = "3.2"
 tempfile = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["anyhow", "async-trait", "log", "thiserror"]

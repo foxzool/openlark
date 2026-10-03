@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+
 /// CCM Drive Explorer V2 API 模块
 ///
 /// 云盘浏览器API实现，包含8个API：
@@ -10,11 +12,12 @@
 /// - folder_children: 获取文件夹下的文档清单
 /// - folder: 新建文件夹
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::Deserialize;
 
@@ -97,7 +100,6 @@ impl GetRootFolderMetaRequest {
     }
 
     /// 使用默认请求选项执行请求。
-    /// 使用默认请求选项执行请求。
     pub async fn execute(self) -> SDKResult<FolderMetaResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -108,9 +110,14 @@ impl GetRootFolderMetaRequest {
         option: RequestOption,
     ) -> SDKResult<FolderMetaResponse> {
         let api_endpoint = CcmDriveExplorerApiOld::RootFolderMeta;
-        let api_request: ApiRequest<FolderMetaResponse> = ApiRequest::get(&api_endpoint.to_url());
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取根文件夹元信息")
+        let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取根文件夹元信息",
+        )
+        .await
     }
 }
 
@@ -143,9 +150,8 @@ impl GetFolderMetaRequest {
         validate_required!(self.folder_token.trim(), "文件夹Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FolderMeta(self.folder_token);
-        let api_request: ApiRequest<FolderMetaResponse> = ApiRequest::get(&api_endpoint.to_url());
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文件夹元信息")
+        let api_request: ApiRequest<FolderMetaResponse> = api_endpoint.to_request();
+        Transport::request_typed(api_request, &self.config, Some(option), "获取文件夹元信息").await
     }
 }
 
@@ -182,11 +188,11 @@ impl CreateFileRequest {
         validate_required!(self.params.parent_type.trim(), "文件类型不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::File(self.folder_token);
-        let api_request: ApiRequest<CreateFileResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<CreateFileResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.params, "新建文件")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新建文件")
+        Transport::request_typed(api_request, &self.config, Some(option), "新建文件").await
     }
 }
 
@@ -219,11 +225,11 @@ impl CopyFileRequest {
         validate_required!(self.params.folder_token.trim(), "目标文件夹Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileCopy(self.file_token);
-        let api_request: ApiRequest<CopyFileResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<CopyFileResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&self.params, "复制文档")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "复制文档")
+        Transport::request_typed(api_request, &self.config, Some(option), "复制文档").await
     }
 }
 
@@ -256,11 +262,9 @@ impl DeleteDocRequest {
         validate_required!(self.doc_token.trim(), "文档Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileDocs(self.doc_token);
-        let api_request: ApiRequest<DeleteFileResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除Doc")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除Doc").await
     }
 }
 
@@ -293,11 +297,9 @@ impl DeleteSheetRequest {
         validate_required!(self.spreadsheet_token.trim(), "表格Token不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::FileSpreadsheets(self.spreadsheet_token);
-        let api_request: ApiRequest<DeleteFileResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteFileResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除Sheet")
+        Transport::request_typed(api_request, &self.config, Some(option), "删除Sheet").await
     }
 }
 
@@ -335,8 +337,9 @@ impl GetFolderChildrenRequest {
     ) -> SDKResult<GetFolderChildrenResponse> {
         validate_required!(self.folder_token.trim(), "文件夹Token不能为空");
 
-        let mut api_request: ApiRequest<DriveListFilesData> =
-            ApiRequest::get(&DriveApi::ListFiles.to_url()).query("folder_token", self.folder_token);
+        let mut api_request: ApiRequest<DriveListFilesData> = DriveApi::ListFiles
+            .to_request()
+            .query("folder_token", self.folder_token);
 
         if let Some(params) = self.params {
             api_request =
@@ -347,8 +350,9 @@ impl GetFolderChildrenRequest {
             }
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        let data: DriveListFilesData = extract_response_data(response, "获取文件夹子项")?;
+        let data: DriveListFilesData =
+            Transport::request_typed(api_request, &self.config, Some(option), "获取文件夹子项")
+                .await?;
 
         let items = data
             .files
@@ -423,12 +427,11 @@ impl CreateFolderRequest {
         validate_required!(self.params.title.trim(), "文件夹标题不能为空");
 
         let api_endpoint = CcmDriveExplorerApiOld::Folder(self.folder_token);
-        let api_request: ApiRequest<CreateFolderResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "新建文件夹")?);
+        let api_request: ApiRequest<CreateFolderResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "新建文件夹")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新建文件夹")
+        Transport::request_typed(api_request, &self.config, Some(option), "新建文件夹").await
     }
 }
 
@@ -436,107 +439,52 @@ impl CreateFolderRequest {
 ///
 /// 获取 "我的空间" 的元信息。
 /// docPath: /document/server-docs/docs/drive-v1/folder/get-root-folder-meta
-pub async fn get_root_folder_meta(config: &Config) -> SDKResult<FolderMetaResponse> {
-    GetRootFolderMetaRequest::new(config.clone())
-        .execute()
-        .await
-}
-
-/// 获取文件夹元数据
-///
-/// 根据 folderToken 获取该文件夹的元信息。
-/// docPath: /document/server-docs/docs/drive-v1/folder/get-folder-meta
-pub async fn get_folder_meta(config: &Config, folder_token: &str) -> SDKResult<FolderMetaResponse> {
-    GetFolderMetaRequest::new(config.clone(), folder_token)
-        .execute()
-        .await
-}
-
-/// 新建文件
-///
-/// 根据 folderToken 创建 Doc、Sheet 或 Bitable。
-/// docPath: /document/server-docs/docs/drive-v1/file/create-online-document
-pub async fn create_file(
-    config: &Config,
-    folder_token: &str,
-    params: CreateFileParams,
-) -> SDKResult<CreateFileResponse> {
-    CreateFileRequest::new(config.clone(), folder_token, params)
-        .execute()
-        .await
-}
-
-/// 复制文档
-///
-/// 根据文件 token 复制 Doc 或 Sheet 到目标文件夹中。
-/// docPath: /document/server-docs/historic-version/docs/drive/file/copy-a-doc-or-sheet
-pub async fn copy_file(
-    config: &Config,
-    file_token: &str,
-    params: CopyFileParams,
-) -> SDKResult<CopyFileResponse> {
-    CopyFileRequest::new(config.clone(), file_token, params)
-        .execute()
-        .await
-}
-
-/// 删除Doc
-///
-/// 根据 docToken 删除对应的 Docs 文档。
-/// docPath: /document/server-docs/historic-version/docs/drive/file/delete-a-doc
-pub async fn delete_doc(config: &Config, doc_token: &str) -> SDKResult<DeleteFileResponse> {
-    DeleteDocRequest::new(config.clone(), doc_token)
-        .execute()
-        .await
-}
-
-/// 删除Sheet
-///
-/// 根据 spreadsheetToken 删除对应的 sheet 文档。
-/// docPath: /document/server-docs/historic-version/docs/drive/file/delete-sheet
-pub async fn delete_sheet(
-    config: &Config,
-    spreadsheet_token: &str,
-) -> SDKResult<DeleteFileResponse> {
-    DeleteSheetRequest::new(config.clone(), spreadsheet_token)
-        .execute()
-        .await
-}
-
-/// 获取文件夹下的文档清单
-///
-/// 根据 folderToken 获取该文件夹的文档清单，如 doc、sheet、file、bitable、folder。
-/// docPath: /document/server-docs/historic-version/docs/drive/folder/get-folder-children
-pub async fn get_folder_children(
-    config: &Config,
-    folder_token: &str,
-    params: Option<GetFolderChildrenParams>,
-) -> SDKResult<GetFolderChildrenResponse> {
-    GetFolderChildrenRequest::new(config.clone(), folder_token, params)
-        .execute()
-        .await
-}
-
-/// 新建文件夹
-///
-/// 根据 folderToken 在该 folder 下创建文件夹。
-/// docPath: /document/server-docs/historic-version/docs/drive/folder/create-a-new-folder
-pub async fn create_folder(
-    config: &Config,
-    folder_token: &str,
-    params: CreateFolderParams,
-) -> SDKResult<CreateFolderResponse> {
-    CreateFolderRequest::new(config.clone(), folder_token, params)
-        .execute()
-        .await
-}
-
-// API函数已经在模块中定义，不需要重复导出
-
-/// 重新导出 Explorer v2 模型。
 pub use models::{
     CopyFileParams, CopyFileResponse, CopyResult, CreateFileParams, CreateFileResponse,
     CreateFolderParams, CreateFolderResponse, DeleteFileResponse, DeleteResult, FileInfo, FileItem,
     FolderChildrenData, FolderMeta, FolderMetaResponse, GetFolderChildrenParams,
     GetFolderChildrenResponse, NewFolderInfo, UserInfo,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::test_utils::tenant_test_transport;
+    use serde_json::json;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    #[tokio::test]
+    async fn get_root_folder_meta_uses_catalog_request_semantics() {
+        let (server, config, option) = tenant_test_transport().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/explorer/v2/root_folder/meta"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data": {
+                        "folder_token": "root_token",
+                        "title": "我的空间",
+                        "folder_type": "root",
+                        "create_time": 1,
+                        "update_time": 2,
+                        "owner": null
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let response = GetRootFolderMetaRequest::new(config)
+            .execute_with_options(option)
+            .await
+            .expect("获取根文件夹元信息应成功");
+
+        assert_eq!(
+            response.data.expect("响应应包含根文件夹").folder_token,
+            "root_token"
+        );
+    }
+}

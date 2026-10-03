@@ -1,11 +1,12 @@
 //! 获取公共邮箱别名列表
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/list>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::public_mailbox::alias::models::PublicMailboxAliasListResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use std::sync::Arc;
 
@@ -64,9 +65,13 @@ impl PublicMailboxAliasListRequest {
             request = request.query("page_size", page_size.to_string());
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取公共邮箱别名列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取公共邮箱别名列表",
+        )
+        .await
     }
 }
 

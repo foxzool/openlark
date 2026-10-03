@@ -36,7 +36,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     // 访问 communication 模块的常量
     let endpoint = IM_V1_MESSAGES;
-    println!("消息API端点: {}", endpoint);
+    println!("消息API端点: {endpoint}");
 
     if let Ok(user_name) = std::env::var("OPENLARK_USER_SEARCH_NAME") {
         if !user_name.trim().is_empty() {
@@ -73,9 +73,11 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         "text": "Hello from openlark SDK!"
     });
 
-    println!("\n📤 消息内容: {}", message);
+    println!("\n📤 消息内容: {message}");
     println!("\n✅ 示例完成 - 这是一个客户端初始化 / helper 配置演示");
-    println!("   如果你想触发真实的 lookup 请求，请设置 OPENLARK_USER_SEARCH_NAME / OPENLARK_CHAT_SEARCH_NAME 后再运行本示例");
+    println!(
+        "   如果你想触发真实的 lookup 请求，请设置 OPENLARK_USER_SEARCH_NAME / OPENLARK_CHAT_SEARCH_NAME 后再运行本示例"
+    );
 
     Ok(())
 }

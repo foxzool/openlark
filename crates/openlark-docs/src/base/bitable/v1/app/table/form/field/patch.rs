@@ -1,6 +1,6 @@
 //! Bitable 更新表单问题
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/patch>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -108,9 +108,7 @@ impl PatchFormFieldQuestionRequest {
         validate_required!(self.table_id.trim(), "table_id");
         validate_required!(self.form_id.trim(), "form_id");
         validate_required!(self.field_id.trim(), "field_id");
-        self.body
-            .validate()
-            .map_err(|msg| openlark_core::error::validation_error("body", msg))?;
+        self.body.validate()?;
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FormFieldPatch(
@@ -120,22 +118,26 @@ impl PatchFormFieldQuestionRequest {
             self.field_id,
         );
 
-        let api_request: ApiRequest<PatchFormFieldQuestionResponse> =
-            ApiRequest::patch(&api_endpoint.to_url()).body(serde_json::to_vec(&self.body)?);
+        let api_request: ApiRequest<PatchFormFieldQuestionResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&self.body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 更新表单问题",
+        )
+        .await
     }
 }
 
 /// 更新表单问题 Builder
-pub struct PatchFormFieldQuestionBuilder {
+pub struct PatchFormFieldQuestionRequestBuilder {
     request: PatchFormFieldQuestionRequest,
 }
 
-impl PatchFormFieldQuestionBuilder {
+impl PatchFormFieldQuestionRequestBuilder {
     /// 创建新的表单问题更新 builder。
     pub fn new(config: Config) -> Self {
         Self {
@@ -225,6 +227,9 @@ pub struct PatchedFormFieldQuestion {
 pub struct PatchFormFieldQuestionResponse {
     /// 更新后的问题配置。
     pub field: PatchedFormFieldQuestion,
+    /// 字段附加属性（官方 optional object，结构多变，用 Value 透传）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for PatchFormFieldQuestionResponse {
@@ -233,23 +238,50 @@ impl ApiResponseTrait for PatchFormFieldQuestionResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to PatchFormFieldQuestionRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type PatchFormFieldQuestionBuilder = PatchFormFieldQuestionRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：PATCH .../forms/{form_id}/fields/{field_id} → PatchFormFieldResponse。
+    #[tokio::test]
+    async fn test_patch_form_field_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/bitable/v1/apps/app001/tables/tbl001/forms/form001/fields/fld001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "field": { "title": "标题", "required": false, "visible": true } }
+            })))
+            .mount(&server).await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        PatchFormFieldQuestionRequest::new(config)
+            .app_token("app001".into())
+            .table_id("tbl001".into())
+            .form_id("form001".into())
+            .field_id("fld001".into())
+            .title("标题".into())
+            .execute()
+            .await
+            .expect("更新表单字段应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app001/tables/tbl001/forms/form001/fields/fld001"
+        );
     }
 }

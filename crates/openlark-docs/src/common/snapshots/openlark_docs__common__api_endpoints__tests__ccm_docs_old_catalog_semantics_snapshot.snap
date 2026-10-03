@@ -1,0 +1,6 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints.rs
+expression: "catalog_semantics_snapshot::<CcmDocsApiOld>()"
+---
+SearchObject | Post | /open-apis/suite/docs-api/search/object | Some([User, Tenant])
+Meta | Get | /open-apis/suite/docs-api/meta | Some([User, Tenant])

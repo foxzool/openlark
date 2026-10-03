@@ -1,13 +1,13 @@
 //! 取消订阅审批事件（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/unsubscribe
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/unsubscribe>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 取消订阅审批事件响应（v4）
@@ -25,6 +25,7 @@ pub struct UnsubscribeApprovalRequestV4 {
 }
 
 impl UnsubscribeApprovalRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -48,11 +49,13 @@ impl UnsubscribeApprovalRequestV4 {
         );
         let request = ApiRequest::<UnsubscribeApprovalResponseV4>::post(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -65,7 +68,6 @@ impl ApiResponseTrait for UnsubscribeApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_approval_unsubscribe_v4_url() {

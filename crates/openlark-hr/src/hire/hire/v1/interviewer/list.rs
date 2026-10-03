@@ -1,13 +1,13 @@
 //! 查询面试官信息列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/interviewer/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/interviewer/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     error,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -94,22 +94,22 @@ impl ListRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResponse> {
-        if let Some(page_size) = self.page_size {
-            if !(1..=200).contains(&page_size) {
-                return Err(error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1-200 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=200).contains(&page_size)
+        {
+            return Err(error::validation_error(
+                "page_size",
+                "page_size 必须在 1-200 之间",
+            ));
         }
 
-        if let Some(ref user_ids) = self.user_ids {
-            if user_ids.len() > 50 {
-                return Err(error::validation_error(
-                    "user_ids",
-                    "user_ids 不能超过 50 个",
-                ));
-            }
+        if let Some(ref user_ids) = self.user_ids
+            && user_ids.len() > 50
+        {
+            return Err(error::validation_error(
+                "user_ids",
+                "user_ids 不能超过 50 个",
+            ));
         }
 
         let mut request = ApiRequest::<ListResponse>::get("/open-apis/hire/v1/interviewers");
@@ -123,7 +123,7 @@ impl ListRequest {
             request = request.query(
                 "user_ids",
                 serde_json::to_string(&user_ids).map_err(|e| {
-                    error::validation_error("user_ids", format!("无法序列化数组查询参数: {}", e))
+                    error::validation_error("user_ids", format!("无法序列化数组查询参数: {e}"))
                 })?,
             );
         }
@@ -139,10 +139,13 @@ impl ListRequest {
         if let Some(user_id_type) = self.user_id_type {
             request = request.query("user_id_type", user_id_type);
         }
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            error::validation_error("查询面试官信息列表响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询面试官信息列表响应数据为空",
+        )
+        .await
     }
 }
 
@@ -184,18 +187,38 @@ impl ApiResponseTrait for ListResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
-    #[test]
-    fn test_serialization_roundtrip() {
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：GET /open-apis/hire/v1/interviewers
+    #[tokio::test]
+    async fn test_list_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/hire/v1/interviewers"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {  }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        ListRequest::new(config)
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

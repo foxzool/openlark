@@ -1,12 +1,11 @@
 //! 查询会议室层级列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/list
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::VC_V1_ROOM_LEVELS;
 
 /// 查询会议室层级列表请求
@@ -32,7 +31,7 @@ impl ListRoomLevelRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -45,8 +44,7 @@ impl ListRoomLevelRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询会议室层级列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询会议室层级列表").await
     }
 }
 

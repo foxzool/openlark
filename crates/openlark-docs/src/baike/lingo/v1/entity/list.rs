@@ -1,13 +1,13 @@
 //! 获取词条列表
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/list
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/list>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -95,18 +95,17 @@ impl ListEntityRequest {
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListEntityResp> {
         // ===== 参数校验 =====
-        if let Some(page_size) = self.page_size {
-            if !(1..=100).contains(&page_size) {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 取值范围必须为 1~100",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=100).contains(&page_size)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 取值范围必须为 1~100",
+            ));
         }
 
         // ===== 构建请求 =====
-        let mut api_request: ApiRequest<ListEntityResp> =
-            ApiRequest::get(&LingoApiV1::EntityList.to_url());
+        let mut api_request: ApiRequest<ListEntityResp> = LingoApiV1::EntityList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }
@@ -124,11 +123,7 @@ impl ListEntityRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<ListEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词条列表").await
     }
 }
 
@@ -180,16 +175,20 @@ mod tests {
 
         // 测试 page_size 超出范围
         let request = ListEntityRequest::new(config.clone()).page_size(0);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         let request2 = ListEntityRequest::new(config.clone()).page_size(101);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

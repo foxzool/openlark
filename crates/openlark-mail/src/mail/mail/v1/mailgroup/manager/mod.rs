@@ -2,9 +2,9 @@
 
 use crate::common::{api_endpoints::MailApiV1, api_utils::*};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -132,9 +132,13 @@ impl BatchCreateMailGroupManagerRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "批量创建邮件组管理员")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "批量创建邮件组管理员")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量创建邮件组管理员",
+        )
+        .await
     }
 }
 
@@ -186,9 +190,13 @@ impl BatchDeleteMailGroupManagerRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "批量删除邮件组管理员")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "批量删除邮件组管理员")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量删除邮件组管理员",
+        )
+        .await
     }
 }
 
@@ -251,9 +259,13 @@ impl MailGroupManagerListRequest {
             request = request.query("page_size", page_size.to_string());
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取邮件组管理员列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取邮件组管理员列表",
+        )
+        .await
     }
 }
 
@@ -287,3 +299,7 @@ mod tests {
         assert_eq!(request.body.managers.len(), 2);
     }
 }
+
+pub mod batch_create;
+pub mod batch_delete;
+pub mod list;

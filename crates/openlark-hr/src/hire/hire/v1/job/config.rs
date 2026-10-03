@@ -1,12 +1,13 @@
 //! 获取职位设置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/config
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/config>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +15,6 @@ use crate::hire::hire::common_models::JobConfigInfo;
 
 /// 获取职位设置请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConfigRequest {
     job_id: String,
     /// 配置信息
@@ -44,14 +44,13 @@ impl ConfigRequest {
 
         let api_endpoint = HireApiV1::JobConfig(self.job_id);
         let request = ApiRequest::<ConfigResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取职位设置响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取职位设置响应数据为空",
+        )
+        .await
     }
 }
 

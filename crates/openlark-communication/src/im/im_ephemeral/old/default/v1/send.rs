@@ -1,17 +1,14 @@
 //! 发送仅特定人可见的消息卡片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/send-message-cards-that-are-only-visible-to-certain-people
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/send-message-cards-that-are-only-visible-to-certain-people>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::EPHEMERAL_V1_SEND,
-};
+use crate::{common::api_utils::serialize_params, endpoints::EPHEMERAL_V1_SEND};
 
 /// 发送仅特定人可见的消息卡片请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,7 +33,7 @@ impl SendEphemeralRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-card/send-message-cards-that-are-only-visible-to-certain-people
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-card/send-message-cards-that-are-only-visible-to-certain-people>
     pub async fn execute(self, body: SendEphemeralBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -55,28 +52,52 @@ impl SendEphemeralRequest {
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(EPHEMERAL_V1_SEND)
             .body(serialize_params(&body, "发送仅特定人可见的消息卡片")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "发送仅特定人可见的消息卡片")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "发送仅特定人可见的消息卡片",
+        )
+        .await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST /open-apis/ephemeral/v1/send
+    #[tokio::test]
+    async fn test_send_ephemeral_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/ephemeral/v1/send"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let body: SendEphemeralBody =
+            serde_json::from_value(json!({ "user_id_list": ["test001"], "card": {} }))
+                .expect("body 构造");
+        SendEphemeralRequest::new(config)
+            .execute(body)
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

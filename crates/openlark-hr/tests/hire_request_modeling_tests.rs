@@ -1,4 +1,5 @@
 //! openlark-hr 招聘请求建模测试。
+#![cfg(feature = "hire")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::hire::hire::{
@@ -7,8 +8,8 @@ use openlark_hr::hire::hire::{
 };
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> Config {

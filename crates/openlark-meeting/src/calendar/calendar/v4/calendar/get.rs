@@ -1,16 +1,16 @@
 //! 查询日历信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
-use crate::common::api_utils::{extract_response_data, validate_required_field};
+use crate::common::api_utils::validate_required_field;
 use serde::{Deserialize, Serialize};
 
 use crate::endpoints::CALENDAR_V4_CALENDARS;
@@ -25,6 +25,7 @@ pub struct GetCalendarRequest {
 /// 查询日历信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetCalendarResponse {
+    /// 日历。
     pub calendar: CalendarData,
 }
 
@@ -63,6 +64,7 @@ impl ApiResponseTrait for GetCalendarResponse {
 }
 
 impl GetCalendarRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -85,13 +87,16 @@ impl GetCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/get>
     pub async fn execute(self) -> SDKResult<GetCalendarResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<GetCalendarResponse> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<GetCalendarResponse> {
         validate_required_field("calendar_id", Some(&self.calendar_id), "日历 ID 不能为空")?;
 
         let url = format!("{}/{}", CALENDAR_V4_CALENDARS, self.calendar_id);
@@ -101,8 +106,7 @@ impl GetCalendarRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询日历信息")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询日历信息").await
     }
 }
 
@@ -119,7 +123,10 @@ mod tests {
 
         assert_eq!(request.calendar_id, "cal_123");
         assert_eq!(request.query_params.len(), 1);
-        assert_eq!(request.query_params[0], ("user_id_type".to_string(), "open_id".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("user_id_type".to_string(), "open_id".to_string())
+        );
     }
 
     #[test]
@@ -134,8 +141,7 @@ mod tests {
     #[test]
     fn test_get_calendar_request_only_id() {
         let config = Config::default();
-        let request = GetCalendarRequest::new(config)
-            .calendar_id("cal_abc");
+        let request = GetCalendarRequest::new(config).calendar_id("cal_abc");
 
         assert_eq!(request.calendar_id, "cal_abc");
         assert!(request.query_params.is_empty());

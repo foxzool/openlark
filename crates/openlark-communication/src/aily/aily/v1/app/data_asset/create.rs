@@ -1,10 +1,10 @@
 //! 创建数据知识
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/create>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSETS};
+use crate::endpoints::AILY_V1_DATA_ASSETS;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -97,7 +97,7 @@ impl CreateDataAssetRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/create>
     pub async fn execute(self, body: CreateDataAssetBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -118,8 +118,7 @@ impl CreateDataAssetRequest {
         let url = AILY_V1_DATA_ASSETS.replace("{app_id}", &self.app_id);
         let req: ApiRequest<CreateDataAssetBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建数据知识")
+        Transport::request_typed(req, &self.config, Some(option), "创建数据知识").await
     }
 }
 
@@ -164,5 +163,16 @@ mod tests {
         let body = CreateDataAssetBody::new("知识库").tags(vec!["标签1".to_string()]);
         assert!(body.tags.is_some());
         assert_eq!(body.description, None);
+    }
+
+    #[test]
+    fn test_create_data_asset_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_DATA_ASSETS;
+        let url = AILY_V1_DATA_ASSETS.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

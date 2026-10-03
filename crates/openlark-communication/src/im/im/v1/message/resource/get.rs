@@ -1,12 +1,12 @@
 //! 获取消息中的资源文件
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message-resource/get
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message-resource/get>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES};
+use crate::endpoints::IM_V1_MESSAGES;
 
 /// 消息资源类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,7 +85,7 @@ impl GetMessageResourceRequest {
 
     /// 执行请求（返回二进制内容）
     ///
-    /// docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message-resource/get
+    /// docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message-resource/get>
     pub async fn execute(self) -> SDKResult<Vec<u8>> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -113,8 +113,7 @@ impl GetMessageResourceRequest {
         ))
         .query("type", resource_type.as_str());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取消息中的资源文件")
+        Transport::request_typed(req, &self.config, Some(option), "获取消息中的资源文件").await
     }
 }
 

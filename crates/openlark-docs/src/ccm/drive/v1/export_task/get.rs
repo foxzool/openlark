@@ -2,17 +2,18 @@
 //!
 //! 获取导出任务的执行状态。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/export_task/get>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取导出任务请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,14 +48,7 @@ impl GetExportTaskRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetExportTaskResponse> {
-        // ===== 验证必填字段 =====
-        if self.ticket.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "ticket",
-                "ticket 不能为空",
-            ));
-        }
-        // ===== 验证字段长度 =====
+        validate_required!(self.ticket, "ticket 不能为空");
         let token_len = self.token.len();
         if token_len == 0 || token_len > 27 {
             return Err(openlark_core::error::validation_error(
@@ -65,11 +59,11 @@ impl GetExportTaskRequest {
 
         let api_endpoint = DriveApi::GetExportTask(self.ticket.clone());
 
-        let api_request = ApiRequest::<GetExportTaskResponse>::get(&api_endpoint.to_url())
+        let api_request = api_endpoint
+            .to_request::<GetExportTaskResponse>()
             .query("token", &self.token);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 
@@ -109,7 +103,6 @@ impl ApiResponseTrait for GetExportTaskResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -126,56 +119,6 @@ mod tests {
         assert_eq!(GetExportTaskResponse::data_format(), ResponseFormat::Data);
     }
 
-    /// 测试 ticket 为空时的验证
-    #[test]
-    fn test_empty_ticket_validation() {
-        let config = Config::default();
-        let request = GetExportTaskRequest::new(config, "", "token");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 token 长度验证
-    #[test]
-    fn test_token_length_validation() {
-        let config = Config::default();
-
-        // 空字符串
-        let request1 = GetExportTaskRequest::new(config.clone(), "ticket", "");
-
-        let result1 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request1.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result1.is_ok());
-
-        // 超过 27 字节
-        let long_token = "a".repeat(28);
-        let request2 = GetExportTaskRequest::new(config, "ticket", long_token);
-
-        let result2 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result2.is_ok());
-    }
-
     /// 测试 token 边界值
     #[test]
     fn test_token_boundaries() {
@@ -189,5 +132,65 @@ mod tests {
         let token27 = "a".repeat(27);
         let request2 = GetExportTaskRequest::new(config, "ticket", token27);
         assert_eq!(request2.token.len(), 27);
+    }
+
+    /// 端到端：GET .../export_tasks/{ticket}?token=... → 强类型 GetExportTaskResponse（单层 data 信封）。
+    #[tokio::test]
+    async fn test_get_export_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/v1/export_tasks/ticket_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "result": {
+                        "file_extension": "pdf",
+                        "type": "docx",
+                        "file_name": "导出文件.pdf",
+                        "file_token": "ftk001",
+                        "file_size": 1024,
+                        "job_error_msg": "",
+                        "job_status": 0
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetExportTaskRequest::new(config, "ticket_001", "boxcnBj8N4yKVRhiMtDBTsXfQqb")
+            .execute()
+            .await
+            .expect("查询导出任务应成功");
+        let result = resp.result.expect("result 应非空");
+        assert_eq!(result.file_extension, "pdf");
+        assert_eq!(result.r#type, "docx");
+        assert_eq!(result.file_token.as_deref(), Some("ftk001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/export_tasks/ticket_001"
+        );
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or("")
+                .contains("token=boxcnBj8N4yKVRhiMtDBTsXfQqb")
+        );
     }
 }

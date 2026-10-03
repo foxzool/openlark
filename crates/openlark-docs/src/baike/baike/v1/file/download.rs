@@ -1,13 +1,14 @@
 //! 下载图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/file/download
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/file/download>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, Response},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use crate::common::api_endpoints::BaikeApiV1;
@@ -37,29 +38,49 @@ impl DownloadFileRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<Response<Vec<u8>>> {
         validate_required!(self.file_token, "file_token 不能为空");
 
+        // 使用 catalog 提供 method + path + auth（#443）
         let api_request: ApiRequest<Vec<u8>> =
-            ApiRequest::get(&BaikeApiV1::FileDownload(self.file_token).to_url());
+            BaikeApiV1::FileDownload(self.file_token).to_request();
         Transport::request(api_request, &self.config, Some(option)).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET /open-apis/baike/v1/files/{file_token}/download → 二进制内容。
+    #[tokio::test]
+    async fn test_download_file_returns_data_on_success() {
+        let server = MockServer::start().await;
+        let body = b"baike binary payload".to_vec();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/baike/v1/files/ftk001/download"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body.clone()))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = DownloadFileRequest::new(config, "ftk001")
+            .execute()
+            .await
+            .expect("下载文件应成功");
+        let data = resp.data.expect("响应应包含二进制数据");
+        assert_eq!(data, body);
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/baike/v1/files/ftk001/download"
+        );
     }
 }

@@ -1,6 +1,6 @@
 //! 升级旧版表单
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-form/upgrade
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-form/upgrade>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -132,12 +132,9 @@ impl UpgradeFormRequest {
             display_mode,
         };
         let api_request: ApiRequest<UpgradeFormResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "升级旧版表单").await
     }
 }
 

@@ -3,12 +3,11 @@
 //! 提供数据分析相关的服务入口
 
 use crate::AnalyticsConfig;
-use openlark_core::SDKResult;
 use std::sync::Arc;
 
 /// 数据分析服务
 ///
-/// 提供搜索、数据分析等功能的统一入口。
+/// 数据分析服务的统一入口（search API 经 `crate::search::search::v2::*` 直路径访问，ADR 0001 扁平收口）。
 #[derive(Debug, Clone)]
 pub struct AnalyticsService {
     /// 客户端配置
@@ -16,32 +15,19 @@ pub struct AnalyticsService {
 }
 
 impl AnalyticsService {
-    /// 创建新的数据分析服务实例
+    /// 创建新的数据分析服务实例。
     ///
-    /// # 参数
-    ///
-    /// * `config` - 数据分析服务配置
-    ///
-    /// # 返回
-    ///
-    /// 返回数据分析服务实例或错误
-    pub fn new(config: AnalyticsConfig) -> SDKResult<Self> {
-        Ok(Self {
+    /// 构造不会失败，故返回 `Self`（非 `SDKResult`）——#350 P9 接口形状撒谎修正，
+    /// 与 `PlatformService::new` / `UserService::new` 一致。
+    pub fn new(config: AnalyticsConfig) -> Self {
+        Self {
             config: Arc::new(config),
-        })
+        }
     }
 
     /// 获取客户端配置
     pub fn config(&self) -> Arc<AnalyticsConfig> {
         self.config.clone()
-    }
-
-    /// 搜索服务
-    ///
-    /// 提供全文搜索、智能搜索等功能。
-    #[cfg(feature = "search")]
-    pub fn search(&self) -> crate::search::search::Search {
-        crate::search::search::Search::new(self.config.clone())
     }
 }
 
@@ -58,6 +44,6 @@ mod tests {
             .build();
 
         let service = AnalyticsService::new(config);
-        assert!(service.is_ok());
+        assert_eq!(service.config().app_id(), "test_app_id");
     }
 }

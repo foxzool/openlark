@@ -1,13 +1,12 @@
 //! 获取单个用户信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/get
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/get>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::user::create::UserResponse,
     contact::contact::v3::user::models::{DepartmentIdType, UserIdType},
     endpoints::CONTACT_V3_USERS,
@@ -73,7 +72,7 @@ impl GetUserRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/user/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/user/get>
     pub async fn execute(self) -> SDKResult<UserResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -98,8 +97,7 @@ impl GetUserRequest {
         if let Some(department_id_type) = self.department_id_type {
             req = req.query("department_id_type", department_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单个用户信息")
+        Transport::request_typed(req, &self.config, Some(option), "获取单个用户信息").await
     }
 }
 

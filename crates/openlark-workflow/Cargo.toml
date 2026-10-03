@@ -2,6 +2,7 @@
 name = "openlark-workflow"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -16,13 +17,13 @@ workspace = true
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 tokio = { workspace = true, optional = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
 insta = { workspace = true }
+wiremock = { workspace = true }
 
 [features]
 default = ["v1", "v2", "async", "board"]
@@ -37,3 +38,6 @@ board = []
 
 # 完整功能集
 full = ["v1", "v2", "async", "board"]
+
+[package.metadata.cargo-machete]
+ignored = ["tokio", "tracing"]

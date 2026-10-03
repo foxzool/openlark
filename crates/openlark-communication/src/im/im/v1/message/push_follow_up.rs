@@ -1,17 +1,14 @@
 //! 添加跟随气泡
 //!
-//! docPath: https://open.feishu.cn/document/im-v1/message/push_follow_up
+//! docPath: <https://open.feishu.cn/document/im-v1/message/push_follow_up>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_MESSAGES,
 };
 
@@ -111,7 +108,7 @@ impl PushFollowUpRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/im-v1/message/push_follow_up
+    /// docPath: <https://open.feishu.cn/document/im-v1/message/push_follow_up>
     pub async fn execute(self, body: PushFollowUpBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -139,9 +136,7 @@ impl PushFollowUpRequest {
         ))
         .body(serialize_params(&body, "添加跟随气泡")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "添加跟随气泡")
+        Transport::request_typed(req, &self.config, Some(option), "添加跟随气泡").await
     }
 }
 

@@ -2,13 +2,14 @@
 //!
 //! 更新指定云文档的公共访问与协作权限设置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/patch>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -79,12 +80,7 @@ impl PatchPublicPermissionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<PatchPublicPermissionResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
         if self.r#type.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "type",
@@ -182,15 +178,15 @@ impl PatchPublicPermissionRequest {
         }
 
         let api_endpoint = DriveApi::UpdatePublicPermission(self.token);
-        let request = ApiRequest::<PatchPublicPermissionResponse>::patch(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<PatchPublicPermissionResponse>()
             .query("type", self.r#type)
             .body(serialize_params(
                 &self.permission_public_request,
                 "更新云文档权限设置",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新")
+        Transport::request_typed(request, &self.config, Some(option), "更新").await
     }
 }
 

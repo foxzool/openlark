@@ -1,14 +1,14 @@
 //! 创建用户组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         group::models::CreateGroupResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -98,7 +98,7 @@ impl CreateGroupRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/create>
     pub async fn execute(self, body: CreateGroupBody) -> SDKResult<CreateGroupResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -125,9 +125,7 @@ impl CreateGroupRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建用户组")
+        Transport::request_typed(req, &self.config, Some(option), "创建用户组").await
     }
 }
 

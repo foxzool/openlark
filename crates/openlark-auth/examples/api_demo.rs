@@ -20,9 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let oauth_service = OAuthService::new(config.clone());
 
     println!("✅ 服务创建成功！");
-    println!("  Auth Service: {:?}", auth_service);
-    println!("  Authen Service: {:?}", authen_service);
-    println!("  OAuth Service: {:?}", oauth_service);
+    println!("  Auth Service: {auth_service:?}");
+    println!("  Authen Service: {authen_service:?}");
+    println!("  OAuth Service: {oauth_service:?}");
 
     // 演示API构建器创建（不实际发送请求）
     println!("\n🔧 API 构建器演示：");
@@ -32,13 +32,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .v3()
         .app_access_token()
         .app_id("demo_app_id")
-        .app_secret("demo_app_secret");
+        .app_secret("demo_app_secret")
+        .app_ticket("demo_app_ticket");
 
     let _tenant_token_builder = auth_service
         .v3()
         .tenant_access_token()
-        .app_id("demo_app_id")
-        .app_secret("demo_app_secret");
+        .app_access_token("demo_app_access_token")
+        .tenant_key("demo_tenant_key");
 
     let _app_ticket_builder = auth_service
         .v3()

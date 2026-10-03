@@ -38,10 +38,11 @@ jobs:
           - "workflow"
           - "application"
           - "websocket"
-          - "otel"
           - "platform"
           - "analytics"
           - "user"
+          - "bot"
+          - "pay"
           - "docs-base"
           - "docs-bitable"
 
@@ -70,12 +71,6 @@ jobs:
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build with feature combination
         run: |
           echo "Testing feature combination: ${{ matrix.features }}"
@@ -91,10 +86,12 @@ jobs:
         run: |
           if [ -z "${{ matrix.features }}" ]; then
             echo "Testing with no features"
-            timeout 10m cargo test --no-default-features --lib
+            timeout 10m cargo test -p openlark -p openlark-client --no-default-features --lib
           else
             echo "Testing with features: ${{ matrix.features }}"
-            timeout 10m cargo test --no-default-features --features "${{ matrix.features }}" --lib
+            # 同时选择根 crate 与 client：root-only feature 由 openlark 解析，并通过
+            # 依赖关系把对应 client feature 传播给 catalog contract tests。
+            timeout 10m cargo test -p openlark -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib
           fi
 
   # Advanced feature matrix testing using cargo-hack
@@ -116,12 +113,6 @@ jobs:
 
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Test each feature individually
       - name: Test each feature individually

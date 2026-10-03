@@ -24,59 +24,37 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct CustomField {
     config: Arc<Config>,
-    tasklist_guid: String,
 }
 
 impl CustomField {
     /// 创建新的实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            tasklist_guid: String::new(),
-        }
-    }
-
-    /// 绑定任务清单上下文。
-    pub fn with_tasklist(mut self, tasklist_guid: impl Into<String>) -> Self {
-        self.tasklist_guid = tasklist_guid.into();
-        self
+        Self { config }
     }
 
     /// 创建新建请求。
-    pub fn create(&self) -> create::CreateCustomFieldRequest {
-        create::CreateCustomFieldRequest::new(self.config.clone(), self.tasklist_guid.clone())
+    pub fn create(&self, resource_id: impl Into<String>) -> create::CreateCustomFieldRequest {
+        create::CreateCustomFieldRequest::new(self.config.clone(), resource_id.into())
     }
 
     /// 创建获取详情请求。
     pub fn get(&self, field_guid: impl Into<String>) -> get::GetCustomFieldRequest {
-        get::GetCustomFieldRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            field_guid.into(),
-        )
+        get::GetCustomFieldRequest::new(self.config.clone(), field_guid.into())
     }
 
     /// 创建更新请求。
     pub fn update(&self, field_guid: impl Into<String>) -> update::UpdateCustomFieldRequest {
-        update::UpdateCustomFieldRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            field_guid.into(),
-        )
+        update::UpdateCustomFieldRequest::new(self.config.clone(), field_guid.into())
     }
 
     /// 创建删除请求。
     pub fn delete(&self, field_guid: impl Into<String>) -> delete::DeleteCustomFieldRequest {
-        delete::DeleteCustomFieldRequest::new(
-            self.config.clone(),
-            self.tasklist_guid.clone(),
-            field_guid.into(),
-        )
+        delete::DeleteCustomFieldRequest::new(self.config.clone(), field_guid.into())
     }
 
     /// 创建列表请求。
     pub fn list(&self) -> list::ListCustomFieldsRequest {
-        list::ListCustomFieldsRequest::new(self.config.clone(), self.tasklist_guid.clone())
+        list::ListCustomFieldsRequest::new(self.config.clone())
     }
 
     /// 获取自定义字段选项资源（不需要 tasklist_guid）
@@ -122,49 +100,41 @@ mod tests {
     #[test]
     fn test_custom_field_new() {
         let config = create_test_config();
-        let field = CustomField::new(config);
-        assert!(field.tasklist_guid.is_empty());
-    }
-
-    #[test]
-    fn test_custom_field_with_tasklist() {
-        let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
-        assert_eq!(field.tasklist_guid, "tasklist_123");
+        let _field = CustomField::new(config);
     }
 
     #[test]
     fn test_custom_field_create() {
         let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
-        let _request = field.create();
+        let field = CustomField::new(config);
+        let _request = field.create("tasklist_123");
     }
 
     #[test]
     fn test_custom_field_get() {
         let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
+        let field = CustomField::new(config);
         let _request = field.get("field_456");
     }
 
     #[test]
     fn test_custom_field_update() {
         let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
+        let field = CustomField::new(config);
         let _request = field.update("field_456");
     }
 
     #[test]
     fn test_custom_field_delete() {
         let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
+        let field = CustomField::new(config);
         let _request = field.delete("field_456");
     }
 
     #[test]
     fn test_custom_field_list() {
         let config = create_test_config();
-        let field = CustomField::new(config).with_tasklist("tasklist_123");
+        let field = CustomField::new(config);
         let _request = field.list();
     }
 

@@ -2,15 +2,10 @@
 //!
 //! 使用该接口可以下载在云空间目录下的文件（不含飞书文档/电子表格/多维表格等在线文档）。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/download/download
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/download/download>
 
 use crate::common::api_endpoints::DriveApi;
-use openlark_core::{
-    api::{ApiRequest, Response},
-    config::Config,
-    http::Transport,
-    SDKResult,
-};
+use openlark_core::{SDKResult, api::Response, config::Config, http::Transport, validate_required};
 
 /// 下载文件请求
 ///
@@ -39,6 +34,8 @@ pub struct DownloadFileRequest {
     pub file_token: String,
     /// Range HTTP header，用于分片下载（可选），格式如 "bytes=0-100"
     pub range: Option<String>,
+    /// 最大允许下载大小（字节）
+    max_size: usize,
 }
 
 impl DownloadFileRequest {
@@ -59,6 +56,7 @@ impl DownloadFileRequest {
             config,
             file_token: file_token.into(),
             range: None,
+            max_size: 100 * 1024 * 1024,
         }
     }
 
@@ -71,6 +69,12 @@ impl DownloadFileRequest {
     /// - `range`: Range 头值，例如 "bytes=0-100" 或 "bytes=0-"
     pub fn range(mut self, range: impl Into<String>) -> Self {
         self.range = Some(range.into());
+        self
+    }
+
+    /// 设置最大下载大小（字节）
+    pub fn max_size(mut self, max_size: usize) -> Self {
+        self.max_size = max_size;
         self
     }
 
@@ -92,12 +96,7 @@ impl DownloadFileRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<Response<Vec<u8>>> {
         // === 必填字段验证 ===
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
 
         // === 业务规则验证 ===
         // Range 格式验证
@@ -138,13 +137,26 @@ impl DownloadFileRequest {
         }
 
         let api_endpoint = DriveApi::DownloadFile(self.file_token.clone());
-        let mut request = ApiRequest::<Vec<u8>>::get(&api_endpoint.to_url());
+        let mut request = api_endpoint.to_request::<Vec<u8>>();
 
         if let Some(r) = &self.range {
             request = request.header("Range", r);
         }
 
-        Transport::request(request, &self.config, Some(option)).await
+        let result = Transport::request(request, &self.config, Some(option)).await;
+        match result {
+            Ok(response) => {
+                let data_len = response.data.as_ref().map_or(0, <Vec<u8>>::len);
+                if data_len > self.max_size {
+                    return Err(openlark_core::error::validation_error(
+                        "max_size",
+                        &format!("下载文件大小 {} 超过限制 {}", data_len, self.max_size),
+                    ));
+                }
+                Ok(response)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 

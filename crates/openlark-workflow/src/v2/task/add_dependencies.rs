@@ -1,12 +1,13 @@
 //! 添加任务依赖
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/task-add_dependencies/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task-add_dependencies/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -93,9 +94,13 @@ impl AddDependenciesRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "添加任务依赖")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "添加任务依赖")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "添加任务依赖",
+        )
+        .await
     }
 }
 

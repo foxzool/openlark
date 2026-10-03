@@ -1,13 +1,12 @@
 //! 查询禁用状态变更通知
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-4
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-4>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::VC_V1_RESERVE_CONFIGS;
 
 /// 查询禁用状态变更通知请求
@@ -41,7 +40,7 @@ impl GetDisableInformRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-4
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/scope_config/get-4>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -59,28 +58,55 @@ impl GetDisableInformRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询禁用状态变更通知")
+        Transport::request_typed(req, &self.config, Some(option), "查询禁用状态变更通知").await
     }
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../vc/v1/reserve_configs/{reserve_config_id}/disable_inform → serde_json::Value 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_get_disable_inform_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/vc/v1/reserve_configs/rc_001/disable_inform",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "disable_inform": true }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GetDisableInformRequest::new(config)
+            .reserve_config_id("rc_001")
+            .execute()
+            .await
+            .expect("查询禁用状态变更通知应成功");
+        assert_eq!(resp["disable_inform"], true);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/vc/v1/reserve_configs/rc_001/disable_inform"
+        );
     }
 }

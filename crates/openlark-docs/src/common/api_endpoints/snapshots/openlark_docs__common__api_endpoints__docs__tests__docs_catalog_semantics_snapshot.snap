@@ -1,0 +1,5 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/docs.rs
+expression: "catalog_semantics_snapshot::<DocsApiV1>()"
+---
+ContentGet | Get | /open-apis/docs/v1/content | Some([User, Tenant])

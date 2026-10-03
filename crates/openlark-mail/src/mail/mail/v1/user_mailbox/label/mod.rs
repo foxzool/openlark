@@ -1,0 +1,10 @@
+/// create 模块。
+pub mod create;
+/// delete 模块。
+pub mod delete;
+/// get 模块。
+pub mod get;
+/// list 模块。
+pub mod list;
+/// patch 模块。
+pub mod patch;

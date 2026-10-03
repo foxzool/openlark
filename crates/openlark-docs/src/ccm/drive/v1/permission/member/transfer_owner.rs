@@ -2,13 +2,14 @@
 //!
 //! 将文件或文件夹的所有者转移给其他用户。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/transfer_owner
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/transfer_owner>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,30 +104,10 @@ impl TransferOwnerRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<TransferOwnerResponse> {
         // ===== 验证必填字段 =====
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.member_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_type",
-                "member_type 不能为空",
-            ));
-        }
-        if self.member_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_id",
-                "member_id 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required!(self.member_type, "member_type 不能为空");
+        validate_required!(self.member_id, "member_id 不能为空");
         // ===== 验证字段枚举值 =====
         match self.file_type.as_str() {
             "doc" | "sheet" | "file" | "wiki" | "bitable" | "docx" | "folder" | "mindnote"
@@ -173,7 +154,7 @@ impl TransferOwnerRequest {
         };
 
         let mut api_request: ApiRequest<TransferOwnerResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).query("type", &self.file_type);
+            api_endpoint.to_request().query("type", &self.file_type);
 
         if let Some(need_notification) = self.need_notification {
             api_request = api_request.query("need_notification", need_notification.to_string());
@@ -190,8 +171,7 @@ impl TransferOwnerRequest {
 
         api_request = api_request.body(serialize_params(&body, "转移云文档所有者")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "转移")
+        Transport::request_typed(api_request, &self.config, Some(option), "转移").await
     }
 }
 
@@ -209,7 +189,6 @@ impl ApiResponseTrait for TransferOwnerResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -231,74 +210,6 @@ mod tests {
     #[test]
     fn test_response_trait() {
         assert_eq!(TransferOwnerResponse::data_format(), ResponseFormat::Data);
-    }
-
-    /// 测试 token 为空时的验证
-    #[test]
-    fn test_empty_token_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "", "docx", "openid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 file_type 枚举值验证
-    #[test]
-    fn test_file_type_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "invalid", "openid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 member_type 枚举值验证
-    #[test]
-    fn test_member_type_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "docx", "invalid", "ou_xxx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 member_id 为空时的验证
-    #[test]
-    fn test_empty_member_id_validation() {
-        let config = Config::default();
-        let request = TransferOwnerRequest::new(config, "token", "docx", "openid", "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
     }
 
     /// 测试支持的 file_type 类型
@@ -348,5 +259,51 @@ mod tests {
         assert!(request.remove_old_owner.is_none());
         assert!(request.stay_put.is_none());
         assert!(request.old_owner_perm.is_none());
+    }
+
+    /// 端到端：POST /open-apis/drive/v1/permissions/{token}/members/transfer_owner → TransferOwnerResponse。
+    #[tokio::test]
+    async fn test_transfer_owner_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/drive/v1/permissions/file_token_001/members/transfer_owner",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        TransferOwnerRequest::new(config, "file_token_001", "docx", "openid", "ou_new_owner")
+            .execute()
+            .await
+            .expect("转移所有者应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/permissions/file_token_001/members/transfer_owner"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(
+            query.contains("type=docx"),
+            "query 应携带 type=docx，实际：{query}"
+        );
     }
 }

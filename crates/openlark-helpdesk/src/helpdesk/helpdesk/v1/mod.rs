@@ -20,6 +20,8 @@ pub mod faq;
 pub mod notification;
 /// 工单接口。
 pub mod ticket;
+/// 工单自定义字段接口。
+pub mod ticket_customized_field;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -39,6 +41,11 @@ impl HelpdeskV1 {
     /// 访问工单 API。
     pub fn ticket(&self) -> ticket::Ticket {
         ticket::Ticket::new(self.config.clone())
+    }
+
+    /// 访问工单自定义字段 API。
+    pub fn ticket_customized_field(&self) -> ticket_customized_field::TicketCustomizedField {
+        ticket_customized_field::TicketCustomizedField::new(self.config.clone())
     }
 
     /// agent。
@@ -84,25 +91,5 @@ impl HelpdeskV1 {
     /// bot。
     pub fn bot(&self) -> bot::Bot {
         bot::Bot::new(self.config.clone())
-    }
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
     }
 }

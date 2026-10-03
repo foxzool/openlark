@@ -1,13 +1,11 @@
 //! 获取日程参与人列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list-2
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list-2>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
-
-use crate::common::api_utils::extract_response_data;
 
 /// 获取日程参与人列表请求
 pub struct ListCalendarEventAttendeeRequest {
@@ -18,6 +16,7 @@ pub struct ListCalendarEventAttendeeRequest {
 }
 
 impl ListCalendarEventAttendeeRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -47,7 +46,7 @@ impl ListCalendarEventAttendeeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list-2>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -66,19 +65,20 @@ impl ListCalendarEventAttendeeRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取日程参与人列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取日程参与人列表").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = ListCalendarEventAttendeeRequest::new(config.clone())
             .calendar_id("test".to_string())
             .event_id("test".to_string());

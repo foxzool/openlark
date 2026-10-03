@@ -40,18 +40,14 @@ CSV 对应行（示例）：
 ```rust,no_run
 use openlark_client::prelude::*;
 use openlark_cardkit::cardkit::cardkit::v1::card::create::CreateCardBody;
-use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let client = Client::from_env()?;
 
     let req = CreateCardBody {
-        card_content: json!({"elements": []}),
-        card_type: None,
-        template_id: None,
-        temp: None,
-        temp_expire_time: None,
+        type_: "card_json".into(),
+        data: r#"{"schema":"2.0","body":{"elements":[]}}"#.into(),
     };
 
     let resp = client.cardkit.v1.card.create(req).await?;
@@ -95,9 +91,9 @@ use serde_json::json;
 async fn main() -> Result<()> {
     let client = Client::from_env()?;
 
-    // 会议：字段链式入口（Room 资源提供 Builder）
-    let req = client.meeting.vc.v1.room.create().build();
-    let _resp = req.execute(json!({"name": "demo"})).await?;
+    // 会议：字段链式入口（note 资源已接线；room/meeting/reserve 经 strict 路径访问）
+    let req = client.meeting.vc.v1.note.get("note_id");
+    let _resp = req.execute().await?;
 
     Ok(())
 }

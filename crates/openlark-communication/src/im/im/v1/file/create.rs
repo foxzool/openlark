@@ -1,16 +1,15 @@
 //! 上传文件
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/file/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/file/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_FILES,
-    im::im::v1::file::models::CreateFileResponse,
+    common::api_utils::serialize_params, endpoints::IM_V1_FILES,
+    im::v1::file::models::CreateFileResponse,
 };
 
 /// 上传文件请求体（multipart 表单字段）
@@ -93,7 +92,7 @@ impl CreateFileRequest {
     ///
     /// 说明：该接口为 multipart 上传，请传入文件元信息 + 文件二进制内容。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/file/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/file/create>
     pub async fn execute(
         self,
         body: CreateFileBody,
@@ -129,8 +128,7 @@ impl CreateFileRequest {
             .body(serialize_params(&body, "上传文件")?)
             .file_content(file_bytes);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "上传文件")
+        Transport::request_typed(req, &self.config, Some(option), "上传文件").await
     }
 }
 

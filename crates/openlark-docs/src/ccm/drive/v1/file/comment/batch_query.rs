@@ -2,13 +2,13 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/batch_query
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/batch_query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
@@ -158,7 +158,7 @@ pub async fn batch_query_comment(
     let api_endpoint = DriveApi::BatchQueryComments(request.file_token.clone());
 
     let mut api_request: ApiRequest<BatchQueryCommentResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &BatchQueryCommentRequestBody {
                 comment_ids: request.comment_ids,
             },
@@ -172,9 +172,7 @@ pub async fn batch_query_comment(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "批量获取评论")
+    Transport::request_typed(api_request, config, option, "批量获取评论").await
 }
 
 #[cfg(test)]

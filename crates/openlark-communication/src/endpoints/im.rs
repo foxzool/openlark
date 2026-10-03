@@ -19,6 +19,9 @@
 /// 基础消息发送和管理
 pub const IM_V1_MESSAGES: &str = "/open-apis/im/v1/messages";
 
+/// IM消息搜索 v1
+pub const IM_V1_MESSAGES_SEARCH: &str = "/open-apis/im/v1/messages/search";
+
 /// IM聊天管理 v1
 /// 聊天会话的创建和管理
 pub const IM_V1_CHATS: &str = "/open-apis/im/v1/chats";
@@ -30,6 +33,10 @@ pub const IM_V1_BATCH_MESSAGES: &str = "/open-apis/im/v1/batch_messages";
 /// IM话题（thread）v1
 /// 话题消息相关接口
 pub const IM_V1_THREADS: &str = "/open-apis/im/v1/threads";
+
+/// IM 消息 COT v1
+/// COT（消息协作）创建/完成/事件写入
+pub const IM_V1_MESSAGE_COT: &str = "/open-apis/im/v1/message_cot";
 
 /// IM Pin 消息 v1
 /// 群内 Pin 消息管理
@@ -85,6 +92,11 @@ pub const EPHEMERAL_V1_SEND: &str = "/open-apis/ephemeral/v1/send";
 
 /// IM 交互式卡片 - 延时更新消息卡片
 pub const INTERACTIVE_V1_CARD_UPDATE: &str = "/open-apis/interactive/v1/card/update";
+
+// ==================== IM v2 群组搜索 ====================
+
+/// IM v2 群组搜索
+pub const IM_V2_CHATS_SEARCH: &str = "/open-apis/im/v2/chats/search";
 
 #[cfg(test)]
 #[allow(unused_imports)]

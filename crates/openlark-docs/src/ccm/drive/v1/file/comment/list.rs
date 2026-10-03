@@ -2,18 +2,18 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::Comment;
 
@@ -199,7 +199,7 @@ pub async fn list_comments(
     // ===== 构建请求 =====
     let api_endpoint = DriveApi::ListFileComments(request.file_token.clone());
 
-    let mut api_request: ApiRequest<ListCommentsResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<ListCommentsResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 
@@ -231,9 +231,7 @@ pub async fn list_comments(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取云文档所有评论")
+    Transport::request_typed(api_request, config, option, "获取云文档所有评论").await
 }
 
 #[cfg(test)]
@@ -277,12 +275,16 @@ mod tests {
                 .expect("user_id_type should be set when .user_id_type() is called"),
             "open_id"
         );
-        assert!(request
-            .is_whole
-            .expect("is_whole should be set when .is_whole() is called"));
-        assert!(!request
-            .is_solved
-            .expect("is_solved should be set when .is_solved() is called"));
+        assert!(
+            request
+                .is_whole
+                .expect("is_whole should be set when .is_whole() is called")
+        );
+        assert!(
+            !request
+                .is_solved
+                .expect("is_solved should be set when .is_solved() is called")
+        );
     }
 
     #[test]

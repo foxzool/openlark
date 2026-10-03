@@ -1,10 +1,10 @@
 //! 执行数据知识问答
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/ask
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/ask>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_KNOWLEDGE_ASK};
+use crate::endpoints::AILY_V1_KNOWLEDGE_ASK;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -82,7 +82,7 @@ impl AskKnowledgeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/ask
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/ask>
     pub async fn execute(self, body: AskKnowledgeBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -103,8 +103,7 @@ impl AskKnowledgeRequest {
         let url = AILY_V1_KNOWLEDGE_ASK.replace("{app_id}", &self.app_id);
         let req: ApiRequest<AskKnowledgeBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "执行数据知识问答")
+        Transport::request_typed(req, &self.config, Some(option), "执行数据知识问答").await
     }
 }
 
@@ -145,5 +144,16 @@ mod tests {
         let config = Config::default();
         let request = AskKnowledgeRequest::new(config).app_id("app_123");
         assert_eq!(request.app_id, "app_123");
+    }
+
+    #[test]
+    fn test_ask_knowledge_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_KNOWLEDGE_ASK;
+        let url = AILY_V1_KNOWLEDGE_ASK.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/knowledges/ask");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

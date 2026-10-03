@@ -2,13 +2,14 @@
 //!
 //! 搜索 Wiki，用户通过关键词查询 Wiki，只能查找自己可见的 Wiki。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/search_wiki
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/search_wiki>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -131,50 +132,57 @@ impl SearchWikiRequest {
             page_token: self.page_token,
         };
 
-        let api_request: ApiRequest<SearchWikiResponse> = ApiRequest::post(&api_endpoint.to_url())
+        let api_request: ApiRequest<SearchWikiResponse> = api_endpoint
+            .to_request()
             .body(serialize_params(&request_body, "搜索Wiki")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "搜索")
+        Transport::request_typed(api_request, &self.config, Some(option), "搜索").await
     }
-}
-
-/// 搜索 Wiki 请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 SearchWikiRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchWikiParams {
-    /// 搜索关键词
-    pub query: String,
-    /// 空间ID（可选）
-    pub space_id: Option<String>,
-    /// 节点ID（可选）
-    pub node_id: Option<String>,
-    /// 每页大小
-    pub page_size: Option<i32>,
-    /// 页面标记
-    pub page_token: Option<String>,
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST /open-apis/wiki/v1/nodes/search → SearchWikiResponse（items）。
+    #[tokio::test]
+    async fn test_search_wiki_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/wiki/v1/nodes/search"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "items": [], "has_more": false }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = SearchWikiRequest::new(config)
+            .query("测试")
+            .page_size(20)
+            .execute_with_options(
+                openlark_core::req_option::RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
+            .await
+            .expect("搜索Wiki应成功");
+        assert!(resp.items.is_empty());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/wiki/v1/nodes/search");
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["query"], "测试");
+        assert_eq!(body["page_size"], 20);
     }
 }

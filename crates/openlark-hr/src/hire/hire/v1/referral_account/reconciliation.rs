@@ -1,13 +1,13 @@
 //! 内推账户提现数据对账
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/referral_account/reconciliation
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/referral_account/reconciliation>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     error,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -127,17 +127,17 @@ impl ReconciliationRequest {
                 trade_details: self.trade_details,
             })
             .map_err(|e| {
-                error::validation_error("request_body", format!("无法序列化请求体: {}", e))
+                error::validation_error("request_body", format!("无法序列化请求体: {e}"))
             })?,
         );
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            error::validation_error(
-                "内推账户提现数据对账响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "内推账户提现数据对账响应数据为空",
+        )
+        .await
     }
 }
 
@@ -176,18 +176,40 @@ impl ApiResponseTrait for ReconciliationResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
-    #[test]
-    fn test_serialization_roundtrip() {
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST /open-apis/hire/v1/referral_account/reconciliation
+    #[tokio::test]
+    async fn test_reconciliation_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/hire/v1/referral_account/reconciliation"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {  }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        ReconciliationRequest::new(config)
+            .start_trans_time("test001".to_string())
+            .end_trans_time("test001".to_string())
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

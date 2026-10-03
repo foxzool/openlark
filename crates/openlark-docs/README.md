@@ -1,21 +1,22 @@
 # openlark-docs
 
-飞书开放平台云文档服务模块 - 文档、表格、知识库 API（202 APIs，100% 覆盖，不含旧版本）
+飞书开放平台云文档服务模块 - 文档、表格、知识库 API（216 APIs，100% 覆盖，不含旧版本）
 
 ## 功能概览
 
-| 模块 | API 数量 | 描述 |
+口径：`python3 tools/validate_apis.py --crate openlark-docs`（默认排除 `meta.Version=old`）。CCM 另有 49 条 old，不计入下表。
+
+| 模块（bizTag） | API 数量 | 描述 |
 |------|---------|------|
-| CCM | 174 | 云文档协同（文档、云盘、表格、知识库） |
-| Bitable | 49 | 多维表格 |
-| Base | 0 | 基础服务 |
-| Baike | 27 | 知识库 |
-| Minutes | 4 | 会议纪要 |
-| **总计** | **202** | **100% 覆盖** |
+| CCM | 127 | 云文档协同（文档、云盘、表格、知识空间） |
+| Base | 52 | 多维表格（bitable） |
+| Baike | 27 | 企业百科 / 词典 |
+| Minutes | 10 | 会议纪要 |
+| **总计** | **216** | **100% 覆盖** |
 
 ## 特性
 
-- ✅ **完整覆盖**: 202 个 API，100% 实现覆盖率（排除 old 版本）
+- ✅ **完整覆盖**: 216 个 API，100% 实现覆盖率（排除 old 版本）
 - ✅ **类型安全**: 基于 enum 的端点系统，编译时检查
 - ✅ **流式 API**: Builder 模式，链式调用
 - ✅ **统一入口**: `DocsClient` 作为唯一公开入口
@@ -301,11 +302,11 @@ request = request.folder_token("folder_token");
 
 ## 许可证
 
-[项目许可证](LICENSE)
+[Apache-2.0](../../LICENSE-APACHE)
 
 ## 贡献
 
-欢迎贡献！请参阅 [贡献指南](CONTRIBUTING.md)。
+欢迎贡献！请参阅 [贡献指南](../../CONTRIBUTING.md)。
 
 ## 支持与反馈
 

@@ -1,12 +1,13 @@
 //! 将自定义字段移出资源
 //!
-//! docPath: https://open.feishu.cn/document/task-v2/custom_field/remove
+//! docPath: <https://open.feishu.cn/document/task-v2/custom_field/remove>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -69,9 +70,13 @@ impl RemoveCustomFieldRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "将自定义字段移出资源")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "将自定义字段移出资源")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "将自定义字段移出资源",
+        )
+        .await
     }
 }
 

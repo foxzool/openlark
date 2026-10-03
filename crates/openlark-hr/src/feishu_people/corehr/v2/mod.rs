@@ -26,6 +26,8 @@ pub mod draft;
 pub mod employee;
 /// employees 子模块。
 pub mod employees;
+/// 枚举值查询子模块（`enum` 为 Rust 关键字，用 `r#enum`）。
+pub mod r#enum;
 /// job 子模块。
 pub mod job;
 /// job_change 子模块。
@@ -54,6 +56,8 @@ pub mod probation;
 pub mod process;
 /// process_revoke 子模块。
 pub mod process_revoke;
+/// 流程发起子模块。
+pub mod process_start;
 /// process_withdraw 子模块。
 pub mod process_withdraw;
 /// report_detail_row 子模块。

@@ -1,13 +1,14 @@
 //! 上传图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/file/upload
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/file/upload>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -104,16 +105,13 @@ impl UploadFileRequest {
         });
 
         // ===== 构建请求并发送 =====
-        let api_request: ApiRequest<UploadFileResponse> =
-            ApiRequest::post(&BaikeApiV1::FileUpload.to_url())
-                .body(body)
-                .file_content(self.file);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let api_request: ApiRequest<UploadFileResponse> = BaikeApiV1::FileUpload
+            .to_request()
+            .body(body)
+            .file_content(self.file);
 
-        let response: Response<UploadFileResponse> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "上传图片").await
     }
 }
 

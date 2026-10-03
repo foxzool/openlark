@@ -1,18 +1,20 @@
 /// CCM Drive Permission V2 API 模块
 ///
-/// 文档权限管理API实现，包含3个API：
-/// - member_permitted: 判断协作者是否有某权限
-/// - member_transfer: 转移拥有者
-/// - public: 获取云文档权限设置V2
+/// 文档权限管理API实现，包含3个API构建器：
+/// - CheckMemberPermissionRequest: 判断协作者是否有某权限
+/// - TransferOwnerRequest: 转移拥有者
+/// - GetPublicPermissionRequest: 获取云文档权限设置V2
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 
-use crate::common::{api_endpoints::PermissionApiOld, api_utils::*};
+use crate::common::api_endpoints::PermissionApiOld;
+use crate::common::api_utils::*;
 
 /// 权限接口模型模块。
 pub mod models;
@@ -62,12 +64,11 @@ impl CheckMemberPermissionRequest {
         validate_required!(self.params.permission.trim(), "权限类型不能为空");
 
         let api_endpoint = PermissionApiOld::MemberPermitted;
-        let api_request: ApiRequest<CheckMemberPermissionResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "检查成员权限")?);
+        let api_request: ApiRequest<CheckMemberPermissionResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "检查成员权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "检查成员权限")
+        Transport::request_typed(api_request, &self.config, Some(option), "检查成员权限").await
     }
 }
 
@@ -99,12 +100,12 @@ impl TransferOwnerRequest {
         validate_required!(self.params.member_id_type.trim(), "用户ID类型不能为空");
 
         let api_endpoint = PermissionApiOld::MemberTransfer;
-        let api_request: ApiRequest<TransferOwnerResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "转移拥有者")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "转移拥有者")
+        let api_request: ApiRequest<TransferOwnerResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "转移拥有者")?);
+
+        Transport::request_typed(api_request, &self.config, Some(option), "转移拥有者").await
     }
 }
 
@@ -134,55 +135,14 @@ impl GetPublicPermissionRequest {
         validate_required!(self.params.obj_token.trim(), "文件Token不能为空");
 
         let api_endpoint = PermissionApiOld::Public;
-        let api_request: ApiRequest<GetPublicPermissionResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&self.params, "获取公开权限设置")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取公开权限设置")
+        // #440: method 来自 catalog
+        let api_request: ApiRequest<GetPublicPermissionResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&self.params, "获取公开权限设置")?);
+
+        Transport::request_typed(api_request, &self.config, Some(option), "获取公开权限设置").await
     }
-}
-
-/// 判断协作者是否有某权限
-///
-/// 根据filetoken判断当前登录用户是否具有某权限。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/querying-if-a-collaborator-has-a-specific-permission
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/querying-if-a-collaborator-has-a-specific-permission
-pub async fn check_member_permission(
-    config: &Config,
-    params: CheckMemberPermissionParams,
-) -> SDKResult<CheckMemberPermissionResponse> {
-    CheckMemberPermissionRequest::new(config.clone(), params)
-        .execute()
-        .await
-}
-
-/// 转移拥有者
-///
-/// 根据文档信息和用户信息转移文档的所有者。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/transfer-ownership
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/transfer-ownership
-pub async fn transfer_owner(
-    config: &Config,
-    params: TransferOwnerParams,
-) -> SDKResult<TransferOwnerResponse> {
-    TransferOwnerRequest::new(config.clone(), params)
-        .execute()
-        .await
-}
-
-/// 获取云文档权限设置V2
-///
-/// 根据filetoken获取文档的公共设置。
-/// docPath: /document/server-docs/historic-version/docs/drive/permission/get-document-sharing-settings-v2
-/// doc: https://open.feishu.cn/document/server-docs/historic-version/docs/drive/permission/get-document-sharing-settings-v2
-pub async fn get_public_permission(
-    config: &Config,
-    params: GetPublicPermissionParams,
-) -> SDKResult<GetPublicPermissionResponse> {
-    GetPublicPermissionRequest::new(config.clone(), params)
-        .execute()
-        .await
 }
 
 // API函数已经在模块中定义，不需要重复导出
@@ -193,3 +153,54 @@ pub use models::{
     GetPublicPermissionResponse, PermissionCheckResult, PublicPermission, TransferOwnerParams,
     TransferOwnerResponse, TransferResult, UserInfo,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::test_utils::tenant_test_transport;
+    use serde_json::json;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    #[tokio::test]
+    async fn check_member_permission_uses_catalog_request_semantics() {
+        let (server, config, option) = tenant_test_transport().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/drive/v1/permission/member/permitted"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data": {
+                        "permitted": true,
+                        "permission": "view"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let params = CheckMemberPermissionParams {
+            obj_token: "doc_token".to_string(),
+            permission: "view".to_string(),
+            member_id: Some("ou_test".to_string()),
+            member_id_type: Some("open_id".to_string()),
+        };
+
+        let response = CheckMemberPermissionRequest::new(config, params)
+            .execute_with_options(option)
+            .await
+            .expect("检查成员权限应成功");
+        assert!(response.data.expect("响应应包含权限结果").permitted);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["obj_token"], "doc_token");
+        assert_eq!(body["permission"], "view");
+        assert_eq!(body["member_id"], "ou_test");
+        assert_eq!(body["member_id_type"], "open_id");
+    }
+}

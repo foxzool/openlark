@@ -1,19 +1,20 @@
 //! 查询视图数据记录
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/views/:view_name/records
+//! docPath:
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询视图记录 Builder
 #[derive(Debug, Clone)]
-pub struct ViewsGetBuilder {
+pub struct ViewsGetRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -27,7 +28,7 @@ pub struct ViewsGetBuilder {
     filter: Option<String>,
 }
 
-impl ViewsGetBuilder {
+impl ViewsGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -64,24 +65,7 @@ impl ViewsGetBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<ViewsGetResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/workspaces/{}/views/{}/records",
-            self.workspace_id, self.view_name
-        );
-
-        let mut req: ApiRequest<ViewsGetResponse> = ApiRequest::get(&url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        if let Some(filter) = self.filter {
-            req = req.query("filter", &filter);
-        }
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询视图记录", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -101,9 +85,7 @@ impl ViewsGetBuilder {
         if let Some(filter) = self.filter {
             req = req.query("filter", &filter);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("查询视图记录", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "查询视图记录").await
     }
 }
 
@@ -129,16 +111,16 @@ pub struct ViewRecord {
 pub struct ViewsGetResponse {
     /// 记录列表
     #[serde(rename = "items")]
-    items: Vec<ViewRecord>,
+    pub items: Vec<ViewRecord>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for ViewsGetResponse {
@@ -147,23 +129,76 @@ impl ApiResponseTrait for ViewsGetResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to ViewsGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type ViewsGetBuilder = ViewsGetRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../apaas/v1/workspaces/{ws}/views/{view_name}/records → 强类型 ViewsGetResponse。
+    #[tokio::test]
+    async fn test_get_views_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/apaas/v1/workspaces/ws_001/views/active/records",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {"id": "r1", "data": {"name": "alice"}, "created_time": 1700000000, "updated_time": 1700000050}
+                    ],
+                    "has_more": false,
+                    "page": 1,
+                    "page_size": 20
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ViewsGetRequestBuilder::new(config, "ws_001", "active")
+            .page(1)
+            .page_size(20)
+            .execute()
+            .await
+            .expect("查询视图记录应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].id, "r1");
+        assert!(!resp.has_more);
+        assert_eq!(resp.page, 1);
+        assert_eq!(resp.page_size, 20);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/views/active/records"
+        );
+        assert_eq!(received[0].method, "GET");
+        let query = received[0].url.query().unwrap_or("");
+        assert!(
+            query.contains("page=1"),
+            "query should contain page=1: {query}"
+        );
+        assert!(
+            query.contains("page_size=20"),
+            "query should contain page_size=20: {query}"
+        );
     }
 }

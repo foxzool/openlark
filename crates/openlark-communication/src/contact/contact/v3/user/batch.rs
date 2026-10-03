@@ -1,18 +1,17 @@
 //! 批量获取用户信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/user/batch
+//! docPath: <https://open.feishu.cn/document/contact-v3/user/batch>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    error,
     http::Transport,
-    SDKResult,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::user::models::{DepartmentIdType, User, UserIdType},
     endpoints::CONTACT_V3_USERS_BATCH,
 };
@@ -92,7 +91,7 @@ impl BatchGetUsersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/user/batch
+    /// docPath: <https://open.feishu.cn/document/contact-v3/user/batch>
     pub async fn execute(self) -> SDKResult<BatchGetUsersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -105,12 +104,7 @@ impl BatchGetUsersRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetUsersResponse> {
         // === 必填字段验证 ===
-        if self.user_ids.is_empty() {
-            return Err(error::validation_error(
-                "user_ids 不能为空".to_string(),
-                "请至少传入 1 个 user_ids（最多 50 个）".to_string(),
-            ));
-        }
+        validate_required_list!(self.user_ids, 50, "user_ids 不能为空");
 
         // url: GET:/open-apis/contact/v3/users/batch
         let mut req: ApiRequest<BatchGetUsersResponse> = ApiRequest::get(CONTACT_V3_USERS_BATCH);
@@ -125,8 +119,7 @@ impl BatchGetUsersRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量获取用户信息")
+        Transport::request_typed(req, &self.config, Some(option), "批量获取用户信息").await
     }
 }
 

@@ -1,15 +1,15 @@
 //! 获取登录预授权码 API
 use crate::models::oauth::*;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/obtain-code
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/login-state-management/obtain-code>
 ///
 /// 应用请求用户身份验证时，需构造登录链接，并引导用户跳转至此链接。
 /// 用户登录成功后会生成登录预授权码 code，并作为参数追加到重定向URL。
-use openlark_core::{config::Config, req_option::RequestOption, validate_required, SDKResult};
+use openlark_core::{SDKResult, config::Config, req_option::RequestOption, validate_required};
 use serde::{Deserialize, Serialize};
 
 /// 授权码请求构建器
-pub struct AuthorizationBuilder {
+pub struct AuthorizationRequestBuilder {
     app_id: String,
     redirect_uri: String,
     scope: Option<String>,
@@ -41,7 +41,7 @@ pub struct AuthorizationUrlResponse {
     pub state: Option<String>,
 }
 
-impl AuthorizationBuilder {
+impl AuthorizationRequestBuilder {
     /// 创建 authorization 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -179,32 +179,44 @@ impl OAuthServiceOld {
     }
 
     /// 获取授权码
-    pub fn authorization(&self) -> AuthorizationBuilder {
-        AuthorizationBuilder::new(self.config.clone())
+    pub fn authorization(&self) -> AuthorizationRequestBuilder {
+        AuthorizationRequestBuilder::new(self.config.clone())
     }
 
     /// 获取登录预授权码（index方法别名）
-    pub fn index(&self) -> AuthorizationBuilder {
+    pub fn index(&self) -> AuthorizationRequestBuilder {
         self.authorization()
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuthorizationRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuthorizationBuilder = AuthorizationRequestBuilder;
+
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// OAuth 授权是重定向流程（无 HTTP 调用），验证构建的授权 URL 含必填参数。
+    #[tokio::test]
+    async fn test_authorization_url_contains_required_params() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = AuthorizationRequestBuilder::new(config)
+            .app_id("test_app")
+            .redirect_uri("http://localhost/cb")
+            .execute()
+            .await
+            .expect("构建授权 URL 应成功");
+
+        let url = resp.data.authorization_url;
+        assert!(url.contains("app_id="), "URL 应含 app_id: {url}");
+        assert!(
+            url.contains("redirect_uri="),
+            "URL 应含 redirect_uri: {url}"
+        );
     }
 }

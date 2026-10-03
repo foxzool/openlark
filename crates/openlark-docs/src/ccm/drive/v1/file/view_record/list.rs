@@ -6,18 +6,18 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-view_record/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-view_record/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取文件查看记录请求
 
@@ -172,9 +172,8 @@ pub async fn get_file_view_records(
     }
 
     // ===== 构建请求 =====
-    let url = DriveApi::ListFileViewRecords(request.file_token.clone()).to_url();
-
-    let mut api_request: ApiRequest<GetFileViewRecordsResponse> = ApiRequest::get(&url);
+    let mut api_request: ApiRequest<GetFileViewRecordsResponse> =
+        DriveApi::ListFileViewRecords(request.file_token.clone()).to_request();
 
     api_request = api_request.query("page_size", &request.page_size.to_string());
 
@@ -200,9 +199,7 @@ pub async fn get_file_view_records(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取文件访问记录")
+    Transport::request_typed(api_request, config, option, "获取文件访问记录").await
 }
 
 #[cfg(test)]

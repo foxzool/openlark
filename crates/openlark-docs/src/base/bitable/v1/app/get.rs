@@ -1,18 +1,18 @@
 //! Bitable 获取多维表格详情API
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use super::models::App;
 use super::AppService;
-use crate::common::api_utils::missing_response_data_error;
+use super::models::App;
 
 /// 获取多维表格请求。
 #[derive(Debug, Clone)]
@@ -71,14 +71,11 @@ impl GetAppRequest {
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::AppGet(self.app_token.clone());
 
-        // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<GetAppResponse> = ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<GetAppResponse> = api_endpoint.to_request::<GetAppResponse>();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            missing_response_data_error("获取多维表格", response.raw_response.request_id.clone())
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "获取多维表格").await
     }
 }
 
@@ -96,21 +93,55 @@ impl AppService {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：GET /open-apis/bitable/v1/apps/{app_token} → GetAppResponse。
+    /// 完整断言 method、path、auth（来自 catalog #439）和响应。
+    #[tokio::test]
+    async fn test_get_app_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/bitable/v1/apps/app%20token"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .and(header("X-Test-Option", "preserved"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "app": { "app_token": "app token", "name": "测试" } }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let option = openlark_core::req_option::RequestOption::builder()
+            .tenant_access_token("test-tenant-token")
+            .add_header("X-Test-Option", "preserved")
+            .build();
+        let resp = GetAppRequest::new(config)
+            .app_token("app token")
+            .execute_with_options(option)
+            .await
+            .expect("获取多维表格应成功");
+        assert_eq!(resp.app.app_token, "app token");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].method, "GET");
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/bitable/v1/apps/app%20token"
+        );
+        assert_eq!(
+            received[0]
+                .headers
+                .get("authorization")
+                .and_then(|h| h.to_str().ok()),
+            Some("Bearer test-tenant-token")
+        );
     }
 }

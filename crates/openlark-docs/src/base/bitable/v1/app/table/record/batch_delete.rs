@@ -1,6 +1,6 @@
 //! Bitable 删除多条记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -99,17 +99,21 @@ impl BatchDeleteRecordRequest {
         let api_endpoint =
             BitableApiV1::RecordBatchDelete(self.app_token.clone(), self.table_id.clone());
 
-        let api_request: ApiRequest<BatchDeleteRecordResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&BatchDeleteRecordRequestBody {
-            record_ids: self.record_ids,
-        })?);
+        // #424 catalog POST for batch delete
+        let api_request: ApiRequest<BatchDeleteRecordResponse> =
+            api_endpoint
+                .to_request()
+                .body(serde_json::to_vec(&BatchDeleteRecordRequestBody {
+                    record_ids: self.record_ids,
+                })?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除多条记录",
+        )
+        .await
     }
 }
 
@@ -208,7 +212,7 @@ mod tests {
     #[test]
     fn test_record_ids_exceeds_limit() {
         let config = Config::default();
-        let record_ids: Vec<String> = (0..501).map(|i| format!("rec{}", i)).collect();
+        let record_ids: Vec<String> = (0..501).map(|i| format!("rec{i}")).collect();
         let request = BatchDeleteRecordRequest::new(config)
             .app_token("app_token".to_string())
             .table_id("table_id".to_string())
@@ -219,7 +223,7 @@ mod tests {
     #[test]
     fn test_record_ids_at_limit() {
         let config = Config::default();
-        let record_ids: Vec<String> = (0..500).map(|i| format!("rec{}", i)).collect();
+        let record_ids: Vec<String> = (0..500).map(|i| format!("rec{i}")).collect();
         let request = BatchDeleteRecordRequest::new(config)
             .app_token("app_token".to_string())
             .table_id("table_id".to_string())

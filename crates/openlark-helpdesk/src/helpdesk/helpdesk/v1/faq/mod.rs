@@ -5,8 +5,6 @@
 pub mod create;
 /// 删除接口。
 pub mod delete;
-/// faq_image 模块。
-pub mod faq_image;
 /// 获取接口。
 pub mod get;
 /// image 模块。
@@ -40,7 +38,7 @@ impl Faq {
 
     /// 创建知识库
     pub fn create(&self) -> create::CreateFaqRequest {
-        create::CreateFaqRequest::new(self.config.clone())
+        create::CreateFaqRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定知识库
@@ -50,7 +48,7 @@ impl Faq {
 
     /// 更新指定知识库
     pub fn patch(&self, id: impl Into<String>) -> patch::PatchFaqRequest {
-        patch::PatchFaqRequest::new(self.config.clone(), id.into())
+        patch::PatchFaqRequest::new(self.config.as_ref().clone(), id.into())
     }
 
     /// 删除指定知识库
@@ -80,23 +78,3 @@ pub use image::{GetFaqImageRequest, GetFaqImageRequestBuilder};
 pub use list::{ListFaqRequest, ListFaqRequestBuilder};
 pub use patch::{PatchFaqRequest, PatchFaqRequestBuilder};
 pub use search::{SearchFaqRequest, SearchFaqRequestBuilder};
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

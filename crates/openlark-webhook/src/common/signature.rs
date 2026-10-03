@@ -9,7 +9,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// 算法为 `base64(hmac_sha256("{timestamp}\n{secret}"))`。
 pub fn sign(timestamp: i64, secret: &str) -> String {
     use base64::engine::Engine;
-    let content = format!("{}\n{}", timestamp, secret);
+    let content = format!("{timestamp}\n{secret}");
     // SAFETY: HMAC-SHA256 的 new_from_slice 只有在密钥长度超过 128GB 时才会失败，
     // 这在实际使用中是不可能的。secret 是用户配置的 webhook 密钥，通常为几十字节。
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).expect(
@@ -30,10 +30,24 @@ pub fn current_timestamp() -> i64 {
         .as_secs() as i64
 }
 
+/// Constant-time byte comparison to prevent timing side-channel attacks
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut result = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        result |= x ^ y;
+    }
+    result == 0
+}
+
 /// 校验飞书 webhook 签名是否匹配。
+///
+/// Uses constant-time comparison to prevent timing side-channel attacks.
 pub fn verify_signature(timestamp: i64, secret: &str, signature: &str) -> bool {
     let computed = sign(timestamp, secret);
-    computed == signature
+    constant_time_eq(computed.as_bytes(), signature.as_bytes())
 }
 
 #[cfg(test)]
@@ -108,5 +122,20 @@ mod tests {
         // Timestamp should be positive and reasonable (after 2020)
         assert!(ts > 1577836800); // 2020-01-01
         assert!(ts < 2000000000); // Before year 2033
+    }
+
+    #[test]
+    fn test_constant_time_eq_equal() {
+        assert!(constant_time_eq(b"abc", b"abc"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_not_equal() {
+        assert!(!constant_time_eq(b"abc", b"abd"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_different_lengths() {
+        assert!(!constant_time_eq(b"abc", b"abcd"));
     }
 }

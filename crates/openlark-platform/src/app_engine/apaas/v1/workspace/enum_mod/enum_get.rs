@@ -1,19 +1,22 @@
 //! 获取自定义枚举详细信息
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums/:enum_name
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-enum/enum_get>
+//!
+//! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums/:enum_name
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取枚举详情 Builder
 #[derive(Debug, Clone)]
-pub struct EnumGetBuilder {
+pub struct EnumGetRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -21,7 +24,7 @@ pub struct EnumGetBuilder {
     enum_name: String,
 }
 
-impl EnumGetBuilder {
+impl EnumGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -48,9 +51,7 @@ impl EnumGetBuilder {
         );
 
         let req: ApiRequest<EnumGetResponse> = ApiRequest::get(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -59,19 +60,19 @@ impl EnumGetBuilder {
 pub struct EnumGetResponse {
     /// 枚举名称
     #[serde(rename = "enum_name")]
-    enum_name: String,
+    pub enum_name: String,
     /// 枚举描述
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
     /// 枚举值列表
     #[serde(rename = "values")]
-    values: Vec<EnumValue>,
+    pub values: Vec<EnumValue>,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
     /// 更新时间
     #[serde(rename = "updated_time")]
-    updated_time: i64,
+    pub updated_time: i64,
 }
 
 /// 枚举值
@@ -94,23 +95,65 @@ impl ApiResponseTrait for EnumGetResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EnumGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EnumGetBuilder = EnumGetRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../apaas/v1/workspaces/{ws}/enums/{enum_name} → 强类型 EnumGetResponse。
+    #[tokio::test]
+    async fn test_get_enum_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/apaas/v1/workspaces/ws_001/enums/priority"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "enum_name": "priority",
+                    "description": "优先级枚举",
+                    "values": [
+                        {"value_id": "v1", "value_name": "高", "is_default": true},
+                        {"value_id": "v2", "value_name": "低", "is_default": false}
+                    ],
+                    "created_time": 1700000000,
+                    "updated_time": 1700000100
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = EnumGetRequestBuilder::new(config, "ws_001", "priority")
+            .execute()
+            .await
+            .expect("获取枚举详情应成功");
+        assert_eq!(resp.enum_name, "priority");
+        assert_eq!(resp.description.as_deref(), Some("优先级枚举"));
+        assert_eq!(resp.values.len(), 2);
+        assert_eq!(resp.values[0].value_id, "v1");
+        assert_eq!(resp.created_time, 1700000000);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/enums/priority"
+        );
+        assert_eq!(received[0].method, "GET");
     }
 }

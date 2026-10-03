@@ -2,18 +2,17 @@
 ///
 /// 获取文档的纯文本内容。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/raw_content
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/raw_content
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/raw_content>
 use crate::common::api_endpoints::DocxApiV1;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::common::api_utils::*;
 
 /// 获取文档纯文本内容请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,36 +73,72 @@ impl GetDocumentRawContentRequest {
         let api_endpoint = DocxApiV1::DocumentRawContent(params.document_id.clone());
 
         // 创建API请求
-        let mut api_request: ApiRequest<GetDocumentRawContentResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetDocumentRawContentResponse> = api_endpoint.to_request();
 
         if let Some(lang) = params.lang {
             api_request = api_request.query("lang", &lang.to_string());
         }
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文档纯文本内容")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取文档纯文本内容",
+        )
+        .await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET .../documents/{document_id}/raw_content → GetDocumentRawContentResponse（content）。
+    #[tokio::test]
+    async fn test_get_document_raw_content_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/docx/v1/documents/doc%201/raw_content"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "content": "文档纯文本内容" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = GetDocumentRawContentRequest::new(config)
+            .execute_with_options(
+                GetDocumentRawContentParams {
+                    document_id: "doc 1".into(),
+                    lang: Some(0),
+                },
+                RequestOption::builder()
+                    .tenant_access_token("test-tenant-token")
+                    .build(),
+            )
+            .await
+            .expect("获取文档纯文本应成功");
+        assert_eq!(resp.content, "文档纯文本内容");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/documents/doc%201/raw_content"
+        );
+        assert_eq!(received[0].url.query(), Some("lang=0"));
     }
 }

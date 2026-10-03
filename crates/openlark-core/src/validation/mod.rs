@@ -9,6 +9,6 @@ pub mod validatable;
 
 // Re-export commonly used types
 pub use core::{
-    validate_required_list_length, validate_string_length, ValidateBuilder, ValidationResult,
+    ValidateBuilder, ValidationResult, validate_required_list_length, validate_string_length,
 };
 pub use validatable::Validatable;

@@ -1,8 +1,9 @@
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 
 /// 获取云文档的点赞者列表
@@ -11,7 +12,7 @@ use openlark_core::{
 /// docPath: /document/ukTMukTMukTM/uIzNzUjLyczM14iM3MTN/drive-v2/file-like/list
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取点赞者列表请求
 #[derive(Debug, Clone)]
@@ -75,39 +76,34 @@ impl ListFileLikesRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListFileLikesResponse> {
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
         match self.file_type.as_str() {
             "doc" | "docx" | "file" => {}
             _ => {
                 return Err(openlark_core::error::validation_error(
                     "file_type",
                     "file_type 仅支持 doc/docx/file",
-                ))
-            }
-        }
-        if let Some(page_size) = self.page_size {
-            if !(1..=50).contains(&page_size) {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~50 之间",
                 ));
             }
         }
+        if let Some(page_size) = self.page_size
+            && !(1..=50).contains(&page_size)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~50 之间",
+            ));
+        }
 
         let api_endpoint = DriveApi::ListFileLikes(self.file_token);
-        let request = ApiRequest::<ListFileLikesResponse>::get(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<ListFileLikesResponse>()
             .query("file_type", self.file_type)
             .query_opt("page_size", self.page_size.map(|v| v.to_string()))
             .query_opt("page_token", self.page_token)
             .query_opt("user_id_type", self.user_id_type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列表")
+        Transport::request_typed(request, &self.config, Some(option), "列表").await
     }
 }
 

@@ -1,13 +1,14 @@
 //! 词条高亮
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/highlight
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/highlight>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -88,14 +89,10 @@ impl HighlightEntityRequest {
         })?;
 
         let api_request: ApiRequest<HighlightEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntityHighlight.to_url()).body(body);
+            LingoApiV1::EntityHighlight.to_request().body(body);
 
         // ===== 发送请求 =====
-        let response: Response<HighlightEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "词条高亮").await
     }
 }
 

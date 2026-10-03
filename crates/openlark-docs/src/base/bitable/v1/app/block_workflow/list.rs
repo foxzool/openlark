@@ -1,13 +1,14 @@
 //! 列出工作流
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-block_workflow/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-block_workflow/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -72,13 +73,10 @@ impl ListBlockWorkflowRequest {
         validate_required!(self.app_token.trim(), "app_token 不能为空");
 
         let api_endpoint = BitableApiV1::BlockWorkflowList(self.app_token);
-        let api_request: ApiRequest<ListBlockWorkflowResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<ListBlockWorkflowResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "列出工作流").await
     }
 }
 

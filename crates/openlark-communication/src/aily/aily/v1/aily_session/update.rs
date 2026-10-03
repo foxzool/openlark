@@ -1,10 +1,10 @@
 //! 更新会话
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session/update
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/update>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSION};
+use crate::endpoints::AILY_V1_SESSION;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -84,7 +84,7 @@ impl UpdateSessionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session/update
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session/update>
     pub async fn execute(self, body: UpdateSessionBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -99,11 +99,10 @@ impl UpdateSessionRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_SESSION.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<UpdateSessionBody> = ApiRequest::put(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新会话")
+        Transport::request_typed(req, &self.config, Some(option), "更新会话").await
     }
 }
 
@@ -147,5 +146,16 @@ mod tests {
         let body = UpdateSessionBody::new().name("仅名称");
         assert_eq!(body.name, Some("仅名称".to_string()));
         assert_eq!(body.description, None);
+    }
+
+    #[test]
+    fn test_update_session_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SESSION;
+        let url = AILY_V1_SESSION.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

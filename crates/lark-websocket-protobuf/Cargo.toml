@@ -1,0 +1,19 @@
+[package]
+name = "lark-websocket-protobuf"
+version = "0.1.2"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Lark/Feishu websocket client protobuf definitions."
+readme = "README.md"
+keywords = ["sdk", "feishu", "lark", "websocket"]
+categories = ["api-bindings"]
+documentation = "https://docs.rs/lark-websocket-protobuf"
+repository.workspace = true
+license = "MIT OR Apache-2.0"
+
+[lints]
+workspace = true
+
+[dependencies]
+prost = { workspace = true }

@@ -14,6 +14,7 @@ pub mod reaction;
 pub mod read_users;
 pub mod reply;
 pub mod resource;
+pub mod search;
 pub mod update;
 pub mod urgent_app;
 pub mod urgent_phone;

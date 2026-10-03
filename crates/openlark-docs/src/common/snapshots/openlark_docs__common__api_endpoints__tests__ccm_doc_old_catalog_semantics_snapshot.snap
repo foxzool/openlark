@@ -1,0 +1,10 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints.rs
+expression: "catalog_semantics_snapshot::<CcmDocApiOld>()"
+---
+Create | Post | /open-apis/doc/v2/create | Some([User, Tenant])
+Meta("") | Get | /open-apis/doc/v2/meta/ | Some([User, Tenant])
+SheetMeta("") | Get | /open-apis/doc/v2//sheet_meta | Some([User, Tenant])
+RawContent("") | Get | /open-apis/doc/v2//raw_content | Some([User, Tenant])
+Content("") | Get | /open-apis/doc/v2//content | Some([User, Tenant])
+BatchUpdate("") | Post | /open-apis/doc/v2//batch_update | Some([User, Tenant])

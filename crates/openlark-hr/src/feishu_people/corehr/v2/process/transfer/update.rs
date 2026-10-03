@@ -1,19 +1,19 @@
 //! 转交审批任务
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/process.transfer/update
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process.transfer/update>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// 转交审批任务请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct UpdateRequest {
     /// 配置信息
     config: Config,
@@ -58,19 +58,14 @@ impl UpdateRequest {
         validate_required!(process_id.trim(), "process_id 不能为空");
 
         let mut request = ApiRequest::<UpdateResponse>::put(format!(
-            "/open-apis/corehr/v2/processes/{}/transfer",
-            process_id
+            "/open-apis/corehr/v2/processes/{process_id}/transfer"
         ));
 
         if let Some(body) = self.body {
             request = request.body(body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("接口响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
 }
 
@@ -99,21 +94,38 @@ impl ApiResponseTrait for UpdateResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：PUT /open-apis/corehr/v2/processes/test001/transfer
+    #[tokio::test]
+    async fn test_update_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("PUT"))
+            .and(path("/open-apis/corehr/v2/processes/test001/transfer"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {  }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        UpdateRequest::new(config)
+            .process_id("test001".to_string())
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

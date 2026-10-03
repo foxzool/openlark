@@ -134,7 +134,7 @@ mod tests {
     fn test_app_type_debug_clone() {
         let app_type = AppType::Marketplace;
         let cloned = app_type;
-        assert_eq!(format!("{:?}", app_type), "Marketplace");
+        assert_eq!(format!("{app_type:?}"), "Marketplace");
         assert_eq!(cloned, AppType::Marketplace);
     }
 
@@ -162,7 +162,7 @@ mod tests {
     fn test_access_token_type_debug_clone() {
         let token_type = AccessTokenType::App;
         let cloned = token_type;
-        assert_eq!(format!("{:?}", token_type), "App");
+        assert_eq!(format!("{token_type:?}"), "App");
         assert_eq!(cloned, AccessTokenType::App);
     }
 

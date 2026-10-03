@@ -1,18 +1,17 @@
 //! 创建薪资档案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/archive/create
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/archive/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 创建薪资档案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,
@@ -39,14 +38,13 @@ impl CreateRequest {
 
         let api_endpoint = CompensationApiV1::ArchiveCreate;
         let request = ApiRequest::<CreateResponse>::post(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "创建薪资档案响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建薪资档案响应数据为空",
+        )
+        .await
     }
 }
 
@@ -62,25 +60,57 @@ impl ApiResponseTrait for CreateResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
+
+    /// 官方成功响应可能无 `data`；全 Option 字段时声明空成功（非 `{}` 探测）。
+    fn empty_success() -> Option<Self> {
+        Some(Self { archive_id: None })
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use openlark_core::config::Config;
 
-    use serde_json;
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_create_archive_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/compensation/v1/archives"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = CreateRequest::new(config)
+            .execute()
+            .await
+            .expect("创建薪资档案应成功");
+
+        assert!(data.archive_id.is_none());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/compensation/v1/archives"
+        );
     }
 }

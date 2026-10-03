@@ -21,13 +21,13 @@
 //! update_reply(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/update>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
@@ -158,8 +158,8 @@ pub async fn update_reply(
         request.reply_id.clone(),
     );
 
-    let mut api_request: ApiRequest<UpdateReplyResponse> = ApiRequest::put(&api_endpoint.to_url())
-        .body(serialize_params(
+    let mut api_request: ApiRequest<UpdateReplyResponse> =
+        api_endpoint.to_request().body(serialize_params(
             &UpdateReplyRequestBody {
                 content: request.content,
             },
@@ -173,9 +173,7 @@ pub async fn update_reply(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "更新回复的内容")
+    Transport::request_typed(api_request, config, option, "更新回复的内容").await
 }
 
 #[cfg(test)]

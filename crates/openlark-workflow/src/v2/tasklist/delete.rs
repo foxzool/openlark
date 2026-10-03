@@ -1,13 +1,14 @@
 //! 删除任务清单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/delete>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::tasklist::models::DeleteTasklistResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -46,9 +47,13 @@ impl DeleteTasklistRequest {
         let api_endpoint = TaskApiV2::TasklistDelete(self.tasklist_guid.clone());
         let request = ApiRequest::<DeleteTasklistResponse>::delete(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除任务清单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "删除任务清单",
+        )
+        .await
     }
 }
 

@@ -1,5 +1,5 @@
-#![cfg(all(feature = "im", feature = "contact"))]
 //! Snapshot tests for high-value communication helper outputs.
+#![cfg(all(feature = "im", feature = "contact"))]
 
 use insta::assert_json_snapshot;
 use openlark_communication::{

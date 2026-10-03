@@ -1,16 +1,15 @@
 //! Bitable 列出表单问题
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form-field/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::common::api_utils::*;
 
 /// 表单问题项
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -99,13 +98,13 @@ impl ListFormFieldQuestionRequest {
         validate_required!(self.form_id.trim(), "表单ID不能为空");
 
         // === 边界值验证 ===
-        if let Some(page_size) = self.page_size {
-            if page_size < 1 || page_size > 100 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~100 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && (page_size < 1 || page_size > 100)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~100 之间",
+            ));
         }
 
         use crate::common::api_endpoints::BitableApiV1;
@@ -115,8 +114,7 @@ impl ListFormFieldQuestionRequest {
             self.form_id.clone(),
         );
 
-        let mut api_request: ApiRequest<ListFormFieldQuestionResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListFormFieldQuestionResponse> = api_endpoint.to_request();
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
@@ -125,8 +123,7 @@ impl ListFormFieldQuestionRequest {
             api_request = api_request.query("page_token", page_token);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列出表单问题")
+        Transport::request_typed(api_request, &self.config, Some(option), "列出表单问题").await
     }
 }
 

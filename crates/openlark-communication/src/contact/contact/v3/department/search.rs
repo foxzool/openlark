@@ -1,14 +1,14 @@
 //! 搜索部门
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/search
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/search>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         department::models::DepartmentListResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -102,7 +102,7 @@ impl SearchDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/search
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/search>
     pub async fn execute(self, body: SearchDepartmentsBody) -> SDKResult<DepartmentListResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -123,13 +123,13 @@ impl SearchDepartmentsRequest {
                 "搜索关键词不可为空字符串".to_string(),
             ));
         }
-        if let Some(page_size) = self.page_size {
-            if !(1..=50).contains(&page_size) {
-                return Err(error::validation_error(
-                    "page_size 不合法".to_string(),
-                    "page_size 取值范围为 1~50".to_string(),
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=50).contains(&page_size)
+        {
+            return Err(error::validation_error(
+                "page_size 不合法".to_string(),
+                "page_size 取值范围为 1~50".to_string(),
+            ));
         }
 
         // url: POST:/open-apis/contact/v3/departments/search
@@ -150,9 +150,7 @@ impl SearchDepartmentsRequest {
             req = req.query("page_size", page_size.to_string());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "搜索部门")
+        Transport::request_typed(req, &self.config, Some(option), "搜索部门").await
     }
 }
 

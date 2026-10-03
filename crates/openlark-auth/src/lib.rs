@@ -26,7 +26,7 @@
 //! let config = Config::builder()
 //!     .app_id("your_app_id")
 //!     .app_secret("your_app_secret")
-//!     .base_url("https://open.feishu.cn")
+//!     .base_url("<https://open.feishu.cn>")
 //!     .build();
 //!
 //! // 企业自建应用认证（这里只演示构建请求，不发送网络请求）
@@ -51,7 +51,7 @@
 //!     .old()
 //!     .authorization()
 //!     .app_id("your_app_id")
-//!     .redirect_uri("https://example.com/callback")
+//!     .redirect_uri("<https://example.com/callback>")
 //!     .build_url();
 //! ```
 
@@ -63,6 +63,7 @@ pub mod passport;
 pub mod services;
 pub mod token_provider;
 pub mod verification;
+pub mod verification_information;
 
 // 重新导出核心类型，方便用户使用
 pub use services::{AuthService, AuthenService, OAuthService};
@@ -85,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 
     #[test]

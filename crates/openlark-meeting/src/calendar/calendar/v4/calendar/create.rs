@@ -1,13 +1,13 @@
 //! 创建共享日历
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +22,7 @@ pub struct CreateCalendarRequest {
 /// 创建共享日历响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateCalendarResponse {
+    /// 日历。
     pub calendar: CalendarData,
 }
 
@@ -60,6 +61,7 @@ impl ApiResponseTrait for CreateCalendarResponse {
 }
 
 impl CreateCalendarRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -77,9 +79,10 @@ impl CreateCalendarRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateCalendarResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -91,9 +94,9 @@ impl CreateCalendarRequest {
         let api_request: ApiRequest<serde_json::Value> =
             ApiRequest::post(CALENDAR_V4_CALENDARS).body(body);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        let data: CreateCalendarResponse =
-            serde_json::from_value(response.data.unwrap_or_default())?;
+        let data: CreateCalendarResponse = serde_json::from_value(
+            Transport::request_typed(api_request, &self.config, Some(option), "创建日历").await?,
+        )?;
         Ok(data)
     }
 }
@@ -105,11 +108,13 @@ mod tests {
     #[test]
     fn test_create_calendar_request_builder() {
         let config = Config::default();
-        let request = CreateCalendarRequest::new(config)
-            .query_param("user_id_type", "open_id");
+        let request = CreateCalendarRequest::new(config).query_param("user_id_type", "open_id");
 
         assert_eq!(request.query_params.len(), 1);
-        assert_eq!(request.query_params[0], ("user_id_type".to_string(), "open_id".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("user_id_type".to_string(), "open_id".to_string())
+        );
     }
 
     #[test]
@@ -128,7 +133,13 @@ mod tests {
             .query_param("key2", "value2");
 
         assert_eq!(request.query_params.len(), 2);
-        assert_eq!(request.query_params[0], ("key1".to_string(), "value1".to_string()));
-        assert_eq!(request.query_params[1], ("key2".to_string(), "value2".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("key1".to_string(), "value1".to_string())
+        );
+        assert_eq!(
+            request.query_params[1],
+            ("key2".to_string(), "value2".to_string())
+        );
     }
 }

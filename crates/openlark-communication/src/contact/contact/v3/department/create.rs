@@ -1,16 +1,16 @@
 //! 创建部门
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/create>
 
 use std::collections::HashMap;
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         department::models::DepartmentResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -110,7 +110,7 @@ impl CreateDepartmentRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/create>
     pub async fn execute(self, body: CreateDepartmentBody) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -147,8 +147,7 @@ impl CreateDepartmentRequest {
             req = req.query("client_token", client_token);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建部门")
+        Transport::request_typed(req, &self.config, Some(option), "创建部门").await
     }
 }
 

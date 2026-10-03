@@ -1,12 +1,13 @@
 //! 获取职位信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,7 +17,6 @@ use crate::hire::hire::common_models::JobRecruiterRecord;
 
 /// 获取职位信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GetRequest {
     job_id: String,
     /// 配置信息
@@ -55,14 +55,13 @@ impl GetRequest {
 
         let api_endpoint = HireApiV1::JobGet(self.job_id);
         let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url());
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取职位信息响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取职位信息响应数据为空",
+        )
+        .await
     }
 }
 

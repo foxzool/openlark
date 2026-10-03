@@ -180,26 +180,26 @@ impl ErrorContext {
         }
 
         if let Some(component) = &self.component {
-            parts.push(format!("组件: {}", component));
+            parts.push(format!("组件: {component}"));
         }
 
         if let Some(operation) = &self.operation {
-            parts.push(format!("操作: {}", operation));
+            parts.push(format!("操作: {operation}"));
         }
 
         if let Some(request_id) = &self.request_id {
-            parts.push(format!("请求ID: {}", request_id));
+            parts.push(format!("请求ID: {request_id}"));
         }
 
         if !self.context.is_empty() {
             parts.push("上下文:".to_string());
             for (key, value) in &self.context {
-                parts.push(format!("  {}: {}", key, value));
+                parts.push(format!("  {key}: {value}"));
             }
         }
 
         if let Some(message) = &self.user_message {
-            parts.push(format!("用户消息: {}", message));
+            parts.push(format!("用户消息: {message}"));
         }
 
         parts.join("\n")

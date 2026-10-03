@@ -1,13 +1,13 @@
 //! 订阅审批事件（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/subscribe
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/event/event-interface/subscribe>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
 /// 订阅审批事件响应（v4）
@@ -25,6 +25,7 @@ pub struct SubscribeApprovalRequestV4 {
 }
 
 impl SubscribeApprovalRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -48,11 +49,13 @@ impl SubscribeApprovalRequestV4 {
         );
         let request = ApiRequest::<SubscribeApprovalResponseV4>::post(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -65,12 +68,12 @@ impl ApiResponseTrait for SubscribeApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_approval_subscribe_v4_url() {
-        let endpoint =
-            crate::common::api_endpoints::ApprovalApiV4::ApprovalSubscribe("approval_123".to_string());
+        let endpoint = crate::common::api_endpoints::ApprovalApiV4::ApprovalSubscribe(
+            "approval_123".to_string(),
+        );
         assert_eq!(
             endpoint.to_url(),
             "/open-apis/approval/v4/approvals/approval_123/subscribe"

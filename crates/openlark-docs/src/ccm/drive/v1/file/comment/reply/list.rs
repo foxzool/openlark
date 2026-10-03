@@ -22,18 +22,18 @@
 //! let response = list_comment_reply(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/list-2
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/list-2>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::ReplyInfo;
 
@@ -159,13 +159,13 @@ pub async fn list_comment_reply(
 
     super::super::validate_comment_file_type_for_list_like(&request.file_type)?;
 
-    if let Some(page_size) = request.page_size {
-        if !(1..=100).contains(&page_size) {
-            return Err(openlark_core::error::validation_error(
-                "page_size",
-                "page_size 必须在 1~100 之间",
-            ));
-        }
+    if let Some(page_size) = request.page_size
+        && !(1..=100).contains(&page_size)
+    {
+        return Err(openlark_core::error::validation_error(
+            "page_size",
+            "page_size 必须在 1~100 之间",
+        ));
     }
 
     // ========== 构建 API 请求 ==========
@@ -173,8 +173,7 @@ pub async fn list_comment_reply(
     let api_endpoint =
         DriveApi::ListCommentReplies(request.file_token.clone(), request.comment_id.clone());
 
-    let mut api_request: ApiRequest<ListCommentReplyResponse> =
-        ApiRequest::get(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<ListCommentReplyResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 
@@ -191,9 +190,7 @@ pub async fn list_comment_reply(
     }
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取回复信息")
+    Transport::request_typed(api_request, config, option, "获取回复信息").await
 }
 
 #[cfg(test)]

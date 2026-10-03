@@ -1,13 +1,13 @@
 //! 解绑会议群
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/delete
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 解绑会议群请求
 pub struct DeleteMeetingChatRequest {
@@ -40,7 +40,7 @@ impl DeleteMeetingChatRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/delete
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/delete>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -56,28 +56,55 @@ impl DeleteMeetingChatRequest {
             CALENDAR_V4_CALENDARS, self.calendar_id, self.event_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "解绑会议群")
+        Transport::request_typed(req, &self.config, Some(option), "解绑会议群").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：DELETE .../events/{event_id}/meeting_chat → 裸 Value 解析（单层 data 信封）。
+    #[tokio::test]
+    async fn test_delete_meeting_chat_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/meeting_chat",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "unbound": true }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DeleteMeetingChatRequest::new(config)
+            .calendar_id("cal_001")
+            .event_id("evt_001")
+            .execute()
+            .await
+            .expect("解绑会议群应成功");
+        assert_eq!(resp["unbound"], json!(true));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/meeting_chat"
+        );
     }
 }

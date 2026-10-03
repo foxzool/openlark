@@ -1,6 +1,6 @@
 //! Bitable 获取表单API
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-form/get>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -68,12 +68,16 @@ impl GetFormRequest {
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::FormGet(self.app_token, self.table_id, self.form_id);
+        // #439: method 来自 catalog
 
-        let api_request: ApiRequest<GetFormResponse> = ApiRequest::get(&api_endpoint.to_url());
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        let api_request: ApiRequest<GetFormResponse> = api_endpoint.to_request();
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 获取表单API",
+        )
+        .await
     }
 }
 

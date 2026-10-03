@@ -2,9 +2,11 @@
 resolver = "2"
 members = [
     # === 核心基础设施 (Core Infrastructure) ===
+    "crates/lark-websocket-protobuf", # WebSocket protobuf 协议定义（crates.io 权威源码）
     "crates/openlark-core",           # 核心 HTTP 客户端和错误处理
-    "crates/openlark-protocol",       # WebSocket 协议定义
     "crates/openlark-client",         # 高级客户端接口
+    # 内部 trybuild：catalog 唯一性 compile-fail（publish=false；openlark-client 不依赖本 crate）
+    "crates/openlark-capability-unique",
 
     # === 生产就绪模块 (Production Ready) ===
     # 认证与安全
@@ -41,14 +43,16 @@ members = [
     # 专业服务
     "crates/openlark-helpdesk",       # 帮助台
     "crates/openlark-mail",           # 邮件服务
+    "crates/openlark-bot",            # 机器人服务
+    "crates/openlark-pay",            # 商店付费
     "crates/openlark-analytics",      # 数据分析
     "crates/openlark-user",           # 用户设置
 ]
 
 [workspace.package]
-version = "0.15.0"
-edition = "2021"
-rust-version = "1.75"
+version = "0.20.0"
+edition = "2024"
+rust-version = "1.88"
 authors = ["ZoOL <zhooul@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/foxzool/openlark"
@@ -69,6 +73,9 @@ all = { level = "warn", priority = -1 }
 multiple_crate_versions = "allow"
 module_name_repetitions = "allow"
 
+[workspace.lints.rustdoc]
+bare_urls = "deny"
+
 [workspace.dependencies]
 # === 核心运行时 (Core Runtime) ===
 tokio = { version = "1.38", features = ["rt", "rt-multi-thread", "macros"] }
@@ -81,29 +88,26 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_repr = "0.1.19"
 chrono = { version = "0.4.38", features = ["serde"] }
-uuid = { version = "=1.6.1", features = ["v4", "serde"] }
-url = { version = "=2.5.0", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+url = { version = "2.5", features = ["serde"] }
 prost = { version = "0.13" }
 
 # === 网络与HTTP (Networking & HTTP) ===
-reqwest = { version = "=0.12.7", default-features = false, features = ["json", "multipart", "rustls-tls"] }
-tokio-tungstenite = { version = "0.23", features = ["rustls-tls-native-roots"] }
-lark-websocket-protobuf = "0.1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls", "stream", "query"] }
+tokio-tungstenite = { version = "0.29", features = ["rustls-tls-native-roots"] }
+lark-websocket-protobuf = { path = "crates/lark-websocket-protobuf", version = "0.1.2" }
 http = "1.0"
 
 # === 加密与安全 (Cryptography & Security) ===
 hmac = "0.12.1"
 sha2 = "0.10.8"
 base64 = "0.22.1"
+aes = "0.8"
+cbc = "0.1"
 
 # === 日志与追踪 (Logging & Tracing) ===
 log = "0.4.21"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tracing-opentelemetry = { version = "0.25" }
-opentelemetry = { version = "0.24" }
-opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.17" }
 
 # === 工具库 (Utilities) ===
 anyhow = "1.0.86"
@@ -117,33 +121,34 @@ urlencoding = "2.1"
 quick_cache = { version = "0.6.3", features = [] }
 walkdir = "2.4"
 num_cpus = "1.16"
-serde_with = { version = "=3.4.0", default-features = false, features = ["macros"] }
+serde_with = { version = "3", default-features = false, features = ["macros"] }
 
 # === 工作空间内部依赖 (Internal Workspace Dependencies) ===
 # 核心基础设施模块
-openlark-core = { path = "crates/openlark-core", version = "0.15.0" }
-openlark-protocol = { path = "crates/openlark-protocol", version = "0.15.0", default-features = false }
-openlark-client = { path = "crates/openlark-client", version = "0.15.0", default-features = false }
+openlark-core = { path = "crates/openlark-core", version = "0.20.0" }
+openlark-client = { path = "crates/openlark-client", version = "0.20.0", default-features = false }
 
 # 生产就绪服务模块
-openlark-auth = { path = "crates/openlark-auth", version = "0.15.0" }
-openlark-security = { path = "crates/openlark-security", version = "0.15.0" }
-openlark-communication = { path = "crates/openlark-communication", version = "0.15.0" }
-openlark-cardkit = { path = "crates/openlark-cardkit", version = "0.15.0" }
-openlark-webhook = { path = "crates/openlark-webhook", version = "0.15.0" }
-openlark-docs = { path = "crates/openlark-docs", version = "0.15.0" }
-openlark-hr = { path = "crates/openlark-hr", version = "0.15.0" }
+openlark-auth = { path = "crates/openlark-auth", version = "0.20.0" }
+openlark-security = { path = "crates/openlark-security", version = "0.20.0" }
+openlark-communication = { path = "crates/openlark-communication", version = "0.20.0" }
+openlark-cardkit = { path = "crates/openlark-cardkit", version = "0.20.0" }
+openlark-webhook = { path = "crates/openlark-webhook", version = "0.20.0" }
+openlark-docs = { path = "crates/openlark-docs", version = "0.20.0" }
+openlark-hr = { path = "crates/openlark-hr", version = "0.20.0" }
 
 # 开发中服务模块
-openlark-ai = { path = "crates/openlark-ai", version = "0.15.0" }
-openlark-application = { path = "crates/openlark-application", version = "0.15.0" }
-openlark-platform = { path = "crates/openlark-platform", version = "0.15.0" }
-openlark-helpdesk = { path = "crates/openlark-helpdesk", version = "0.15.0" }
-openlark-mail = { path = "crates/openlark-mail", version = "0.15.0" }
-openlark-meeting = { path = "crates/openlark-meeting", version = "0.15.0" }
-openlark-workflow = { path = "crates/openlark-workflow", version = "0.15.0" }
-openlark-analytics = { path = "crates/openlark-analytics", version = "0.15.0" }
-openlark-user = { path = "crates/openlark-user", version = "0.15.0" }
+openlark-ai = { path = "crates/openlark-ai", version = "0.20.0" }
+openlark-application = { path = "crates/openlark-application", version = "0.20.0" }
+openlark-platform = { path = "crates/openlark-platform", version = "0.20.0" }
+openlark-helpdesk = { path = "crates/openlark-helpdesk", version = "0.20.0" }
+openlark-mail = { path = "crates/openlark-mail", version = "0.20.0" }
+openlark-bot = { path = "crates/openlark-bot", version = "0.20.0" }
+openlark-pay = { path = "crates/openlark-pay", version = "0.20.0" }
+openlark-meeting = { path = "crates/openlark-meeting", version = "0.20.0" }
+openlark-workflow = { path = "crates/openlark-workflow", version = "0.20.0" }
+openlark-analytics = { path = "crates/openlark-analytics", version = "0.20.0" }
+openlark-user = { path = "crates/openlark-user", version = "0.20.0" }
 
 # Test dependencies shared across workspace
 rstest = "=0.19.0"
@@ -166,6 +171,7 @@ criterion = "0.5"
 name = "openlark"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 readme = "README.md"
 description = "飞书开放平台 Rust SDK - 企业级高覆盖率 API 客户端，极简依赖一条命令"
@@ -200,6 +206,8 @@ openlark-application = { workspace = true, optional = true }
 openlark-platform = { workspace = true, optional = true }
 openlark-helpdesk = { workspace = true, optional = true }
 openlark-mail = { workspace = true, optional = true }
+openlark-bot = { workspace = true, optional = true }
+openlark-pay = { workspace = true, optional = true }
 openlark-meeting = { workspace = true, optional = true }
 openlark-workflow = { workspace = true, optional = true }
 openlark-analytics = { workspace = true, optional = true }
@@ -273,6 +281,21 @@ name = "readme_quick_start"
 path = "examples/01_getting_started/readme_quick_start.rs"
 required-features = ["auth", "docs-bitable"]
 
+[[example]]
+name = "http_event_inbound"
+path = "examples/01_getting_started/http_event_inbound.rs"
+required-features = ["event-http"]
+
+[[example]]
+name = "websocket_typed_handler"
+path = "examples/01_getting_started/websocket_typed_handler.rs"
+required-features = ["communication", "websocket"]
+
+[[example]]
+name = "oauth_user_token"
+path = "examples/01_getting_started/oauth_user_token.rs"
+required-features = ["auth", "communication"]
+
 [features]
 default = ["auth"]
 
@@ -305,16 +328,12 @@ docs-ccm = [
     "dep:openlark-docs",
     "openlark-client/docs",
     "openlark-docs/ccm-core",
-    "openlark-docs/v2",
-    "openlark-docs/v3",
 ]
 docs-base = ["docs-ccm", "openlark-docs/base"]
 docs-bitable = ["docs-ccm", "openlark-docs/bitable"]
 docs-drive = ["docs-ccm", "openlark-docs/ccm-drive"]
 docs-explorer = ["docs-ccm"]
 docs-sheets = ["docs-ccm"]
-docs-sheets-v2 = ["docs-ccm", "openlark-docs/v2"]
-docs-sheets-v3 = ["docs-ccm", "openlark-docs/v3"]
 docs-full = [
     "docs-ccm",
     "docs-base",
@@ -332,6 +351,8 @@ platform = ["auth", "dep:openlark-platform", "openlark-client/platform"]
 application = ["auth", "dep:openlark-application", "openlark-client/application"]
 helpdesk = ["auth", "dep:openlark-helpdesk", "openlark-client/helpdesk"]
 mail = ["auth", "dep:openlark-mail", "openlark-client/mail"]
+bot = ["auth", "dep:openlark-bot", "openlark-client/bot"]
+pay = ["auth", "dep:openlark-pay", "openlark-client/pay"]
 analytics = ["auth", "dep:openlark-analytics", "openlark-client/analytics"]
 user = ["auth", "dep:openlark-user", "openlark-client/user"]
 
@@ -362,4 +383,13 @@ full = [
 
 # === 技术特性 (Technical Features) ===
 websocket = ["openlark-client/websocket"]  # WebSocket 支持
-otel = ["openlark-core/otel"]  # OpenTelemetry 支持
+# HTTP 事件入站（encrypt_key / url_verification / 入站签名）。复用 WS 分发器类型，故依赖 websocket。
+# 与 `webhook`（自定义机器人出站 HMAC）不同。
+event-http = ["openlark-client/event-http", "websocket"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.cargo-machete]
+ignored = ["serde_repr"]

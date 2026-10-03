@@ -1,12 +1,13 @@
 //! 获取候选人信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/get
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use super::models::{GetRequestBody, GetResponse};
@@ -71,20 +72,18 @@ impl GetRequest {
         let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?);
 
         // 4. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 5. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取候选人信息响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取候选人信息响应数据为空",
+        )
+        .await
     }
 }
 

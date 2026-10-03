@@ -2,16 +2,16 @@
 //!
 //! 下载各种类型文档中的素材（如电子表格图片、附件等），支持通过 Range 分片下载。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/download
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/download>
 
 use crate::common::api_endpoints::DriveApi;
 use openlark_core::{
-    api::{ApiRequest, Response},
-    config::Config,
-    http::Transport,
-    req_option::RequestOption,
-    SDKResult,
+    SDKResult, api::Response, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
+
+/// 默认最大下载大小限制（100MB）
+const DEFAULT_MAX_DOWNLOAD_SIZE: usize = 100 * 1024 * 1024;
 
 /// 下载素材请求
 #[derive(Debug)]
@@ -23,6 +23,8 @@ pub struct DownloadMediaRequest {
     pub extra: Option<String>,
     /// Range HTTP header（可选），示例：bytes=0-1024
     pub range: Option<String>,
+    /// 最大允许下载大小（字节）
+    max_size: usize,
 }
 
 impl DownloadMediaRequest {
@@ -33,6 +35,7 @@ impl DownloadMediaRequest {
             file_token: file_token.into(),
             extra: None,
             range: None,
+            max_size: DEFAULT_MAX_DOWNLOAD_SIZE,
         }
     }
 
@@ -48,6 +51,12 @@ impl DownloadMediaRequest {
         self
     }
 
+    /// 设置最大下载大小（字节）
+    pub fn max_size(mut self, max_size: usize) -> Self {
+        self.max_size = max_size;
+        self
+    }
+
     /// 执行下载请求，返回二进制内容
     pub async fn execute(self) -> SDKResult<Response<Vec<u8>>> {
         self.execute_with_options(RequestOption::default()).await
@@ -56,38 +65,47 @@ impl DownloadMediaRequest {
     /// 执行下载请求，返回二进制内容（带请求选项）
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<Response<Vec<u8>>> {
         // ===== 验证必填字段 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
         // ===== 验证字段格式 =====
-        if let Some(range) = &self.range {
-            if !range.starts_with("bytes=") || !range.contains('-') {
-                return Err(openlark_core::error::validation_error(
-                    "range",
-                    "range 格式必须为 bytes=start-end（例如 bytes=0-1024）",
-                ));
-            }
+        if let Some(range) = &self.range
+            && (!range.starts_with("bytes=") || !range.contains('-'))
+        {
+            return Err(openlark_core::error::validation_error(
+                "range",
+                "range 格式必须为 bytes=start-end（例如 bytes=0-1024）",
+            ));
         }
 
         let api_endpoint = DriveApi::DownloadMedia(self.file_token.clone());
-        let mut request =
-            ApiRequest::<Vec<u8>>::get(&api_endpoint.to_url()).query_opt("extra", self.extra);
+        let mut request = api_endpoint
+            .to_request::<Vec<u8>>()
+            .query_opt("extra", self.extra);
 
         if let Some(r) = self.range {
             request = request.header("Range", &r);
         }
 
-        Transport::request(request, &self.config, Some(option)).await
+        let result = Transport::request(request, &self.config, Some(option)).await;
+        match result {
+            Ok(response) => {
+                // 检查下载大小是否超过限制
+                let data_len = response.data.as_ref().map_or(0, <Vec<u8>>::len);
+                if data_len > self.max_size {
+                    return Err(openlark_core::error::validation_error(
+                        "max_size",
+                        &format!("下载文件大小 {} 超过限制 {}", data_len, self.max_size),
+                    ));
+                }
+                Ok(response)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -100,55 +118,6 @@ mod tests {
         assert_eq!(request.file_token, "media_token");
         assert_eq!(request.extra, Some("extra".to_string()));
         assert_eq!(request.range, Some("bytes=0-100".to_string()));
-    }
-
-    /// 测试 file_token 为空时的验证
-    #[test]
-    fn test_empty_file_token_validation() {
-        let config = Config::default();
-        let request = DownloadMediaRequest::new(config, "");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 range 格式验证
-    #[test]
-    fn test_range_format_validation() {
-        let config = Config::default();
-
-        // 缺少 bytes= 前缀
-        let request1 = DownloadMediaRequest::new(config.clone(), "token").range("0-100");
-
-        let result1 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request1.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result1.is_ok());
-
-        // 缺少连字符
-        let request2 = DownloadMediaRequest::new(config.clone(), "token").range("bytes=0100");
-
-        let result2 = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request2.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result2.is_ok());
     }
 
     /// 测试有效的 range 格式
@@ -186,5 +155,56 @@ mod tests {
         // 带 range
         let request3 = DownloadMediaRequest::new(config, "token").range("bytes=0-100");
         assert_eq!(request3.range, Some("bytes=0-100".to_string()));
+    }
+
+    #[test]
+    fn test_download_media_default_max_size() {
+        let config = Config::default();
+        let request = DownloadMediaRequest::new(config, "media_token");
+        assert_eq!(request.max_size, 100 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_download_media_custom_max_size() {
+        let config = Config::default();
+        let request = DownloadMediaRequest::new(config, "media_token").max_size(512);
+        assert_eq!(request.max_size, 512);
+    }
+
+    /// 端到端：GET /open-apis/drive/v1/medias/{file_token}/download → 二进制 Response<Vec<u8>>。
+    #[tokio::test]
+    async fn test_download_media_returns_data_on_success() {
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let body = b"hello download binary payload".to_vec();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/drive/v1/medias/media_token_001/download"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body.clone()))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DownloadMediaRequest::new(config, "media_token_001")
+            .execute()
+            .await
+            .expect("下载素材应成功");
+        let data = resp.data.expect("响应应包含二进制数据");
+        assert_eq!(data, body);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/medias/media_token_001/download"
+        );
     }
 }

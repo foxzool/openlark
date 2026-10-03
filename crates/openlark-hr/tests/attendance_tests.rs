@@ -1,4 +1,5 @@
 //! attendance tests 集成测试。
+#![cfg(feature = "attendance")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::attendance::attendance::v1::{
@@ -8,8 +9,8 @@ use openlark_hr::attendance::attendance::v1::{
 use rstest::rstest;
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> Config {
@@ -149,18 +150,21 @@ mod builder_tests {
         user_task_remedy::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
             "ou_1".to_string(),
-            1735689600,
-            1735693200,
+            20_210_701,
+            0,
+            1,
+            "2021-07-01 08:00".to_string(),
             "补卡".to_string(),
         )
     );
     smoke_builder!(
         test_query_user_task_remedy_request_builder,
-        user_task_remedy::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .user_id("ou_1".to_string())
-            .start_time(1735689600)
-            .end_time(1735776000)
-            .page_size(20)
+        user_task_remedy::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            "1566641088".to_string(),
+            "1592561088".to_string(),
+        )
     );
     smoke_builder!(
         test_query_user_allowed_remedys_request_builder,
@@ -192,19 +196,21 @@ mod builder_tests {
     );
     smoke_builder!(
         test_get_approval_info_request_builder,
-        user_approval::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .user_id("ou_1".to_string())
-            .approval_type(1)
-            .page_size(20)
+        user_approval::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            20_190_817,
+            20_190_820,
+        )
     );
     smoke_builder!(
         test_process_approval_request_builder,
         approval_info::process::ProcessRequest::new(
             test_config("https://open.feishu.cn"),
             "ins_1".to_string(),
-            1,
+            "remedy".to_string(),
+            4,
         )
-        .comment("通过".to_string())
     );
 
     smoke_builder!(
@@ -758,26 +764,14 @@ mod serialization_tests {
         test_create_user_task_remedy_response_serialization,
         user_task_remedy::create::CreateResponse,
         user_task_remedy::create::CreateResponse {
-            success: true,
-            remedy_id: "r_1".to_string(),
-            approval_instance_id: "ins_1".to_string(),
+            user_remedy: Some(serde_json::json!({ "remedy_id": "r_1" })),
         }
     );
     roundtrip_eq!(
         test_query_user_task_remedy_response_serialization,
         user_task_remedy::query::QueryResponse,
         user_task_remedy::query::QueryResponse {
-            items: vec![user_task_remedy::query::RemedyRecord {
-                remedy_id: "r_1".to_string(),
-                user_id: "ou_1".to_string(),
-                original_time: 1735689600,
-                remedy_time: 1735693200,
-                reason: "补卡".to_string(),
-                approval_status: 1,
-                created_at: 1735696800,
-            }],
-            has_more: false,
-            page_token: None,
+            user_remedys: vec![serde_json::json!({ "remedy_id": "r_1" })],
         }
     );
     roundtrip_eq!(
@@ -829,24 +823,18 @@ mod serialization_tests {
         test_query_user_approval_response_serialization,
         user_approval::query::QueryResponse,
         user_approval::query::QueryResponse {
-            items: vec![user_approval::query::UserApproval {
-                approval_id: "a_1".to_string(),
-                user_id: "ou_1".to_string(),
-                approval_type: 1,
-                status: 1,
-                approval_time: 1735689600,
-                content: Some(json!({"reason":"正常"})),
-            }],
-            has_more: false,
-            page_token: None,
+            user_approvals: vec![json!({"approval_id": "a_1"})],
         }
     );
     roundtrip_eq!(
         test_process_approval_response_serialization,
         approval_info::process::ProcessResponse,
         approval_info::process::ProcessResponse {
-            success: true,
-            approval_instance_id: "ins_1".to_string(),
+            approval_info: approval_info::process::ApprovalInfo {
+                approval_id: "ins_1".to_string(),
+                approval_type: "remedy".to_string(),
+                status: 0,
+            },
         }
     );
 

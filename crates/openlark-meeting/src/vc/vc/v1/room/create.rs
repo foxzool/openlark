@@ -1,18 +1,17 @@
 //! 创建会议室
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/create
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 创建会议室请求
 #[derive(Debug, Clone)]
@@ -42,7 +41,7 @@ impl CreateRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateRoomResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -58,8 +57,7 @@ impl CreateRoomRequest {
         let api_request: ApiRequest<CreateRoomResponse> =
             ApiRequest::post(api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建会议室")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建会议室").await
     }
 }
 

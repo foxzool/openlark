@@ -58,7 +58,7 @@ impl Ticket {
 
     /// 拉起服务请求。
     pub fn start_service(&self) -> start_service::StartServiceRequest {
-        start_service::StartServiceRequest::new(self.config.clone())
+        start_service::StartServiceRequest::new(self.config.as_ref().clone())
     }
 
     /// 回复用户提问请求。
@@ -66,7 +66,7 @@ impl Ticket {
         &self,
         ticket_id: impl Into<String>,
     ) -> answer_user_query::AnswerUserQueryRequest {
-        answer_user_query::AnswerUserQueryRequest::new(self.config.clone(), ticket_id)
+        answer_user_query::AnswerUserQueryRequest::new(self.config.as_ref().clone(), ticket_id)
     }
 
     /// 获取工单图片请求。
@@ -84,7 +84,6 @@ impl Ticket {
     }
 
     /// 访问工单消息 API。
-    #[allow(mismatched_lifetime_syntaxes)]
     pub fn message(&self) -> message::TicketMessage<'_> {
         message::TicketMessage::new(self)
     }
@@ -107,23 +106,3 @@ pub use models::{
 pub use start_service::StartServiceRequest;
 pub use ticket_image::GetTicketImageRequest;
 pub use update::UpdateTicketRequest;
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

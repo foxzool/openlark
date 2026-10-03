@@ -1,6 +1,6 @@
 //! Bitable 删除一个数据表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -72,16 +72,17 @@ impl DeleteTableRequest {
         // 替代传统的字符串拼接方式，提供类型安全和IDE自动补全
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::TableDelete(self.app_token.clone(), self.table_id.clone());
-
-        // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<DeleteTableResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        // #439: method 来自 catalog
+        let api_request: ApiRequest<DeleteTableResponse> = api_endpoint.to_request();
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除一个数据表",
+        )
+        .await
     }
 }
 

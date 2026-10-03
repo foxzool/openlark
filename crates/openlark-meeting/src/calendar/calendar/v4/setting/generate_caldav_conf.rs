@@ -1,12 +1,10 @@
 //! 生成 CalDAV 配置
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
-
-use crate::common::api_utils::extract_response_data;
 
 /// 生成 CalDAV 配置请求
 pub struct GenerateCaldavConfRequest {
@@ -21,7 +19,7 @@ impl GenerateCaldavConfRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/setting/generate_caldav_conf>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -33,28 +31,55 @@ impl GenerateCaldavConfRequest {
         let req: ApiRequest<serde_json::Value> =
             ApiRequest::post("/open-apis/calendar/v4/settings/generate_caldav_conf");
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "生成 CalDAV 配置")
+        Transport::request_typed(req, &self.config, Some(option), "生成 CalDAV 配置").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../calendar/v4/settings/generate_caldav_conf → 裸 Value 解析（data.caldav_url）。
+    #[tokio::test]
+    async fn test_generate_caldav_conf_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/calendar/v4/settings/generate_caldav_conf"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "caldav_url": "https://caldav.example.com/dav",
+                    "username": "user_001"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = GenerateCaldavConfRequest::new(config)
+            .execute()
+            .await
+            .expect("生成 CalDAV 配置应成功");
+        assert_eq!(resp["caldav_url"], json!("https://caldav.example.com/dav"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/calendar/v4/settings/generate_caldav_conf"
+        );
+        assert_eq!(received[0].method, "POST");
     }
 }

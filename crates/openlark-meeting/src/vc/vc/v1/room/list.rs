@@ -1,18 +1,17 @@
 //! 查询会议室列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/list
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 查询会议室列表请求
 
@@ -69,7 +68,7 @@ impl ListRoomRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room/list>
     pub async fn execute(self) -> SDKResult<ListRoomResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -83,8 +82,7 @@ impl ListRoomRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询会议室列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询会议室列表").await
     }
 }
 

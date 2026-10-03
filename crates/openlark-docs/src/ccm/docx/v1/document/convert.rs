@@ -2,14 +2,16 @@
 ///
 /// 将 Markdown/HTML 格式的内容转换为文档块，以便于将 Markdown/HTML 格式的内容插入到文档中。目前支持转换为的块类型包含文本、一到九级标题、无序列表、有序列表、代码块、引用、待办事项、图片、表格、表格单元格。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/convert
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/convert
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/document/convert>
+use crate::ccm::docx::models::common_types::DocxBlock;
 use crate::common::api_endpoints::DocxApiV1;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -41,6 +43,12 @@ pub struct ConvertContentToBlocksResponse {
     /// 一级块 ID 列表。
     #[serde(default)]
     pub first_level_block_ids: Vec<String>,
+    /// 转换后的完整块列表（部分场景返回）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<DocxBlock>>,
+    /// 块 ID 到图片 URL 的映射（含图片的转换结果）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_id_to_image_urls: Option<serde_json::Value>,
 }
 
 impl ApiResponseTrait for ConvertContentToBlocksResponse {
@@ -90,33 +98,66 @@ impl ConvertContentToBlocksRequest {
         let api_endpoint = DocxApiV1::DocumentConvert;
 
         // 创建API请求
-        let api_request: ApiRequest<ConvertContentToBlocksResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "Markdown/HTML 内容转换为文档块")?);
+        let api_request: ApiRequest<ConvertContentToBlocksResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "Markdown/HTML 内容转换为文档块")?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "Markdown/HTML 内容转换为文档块")
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Markdown/HTML 内容转换为文档块",
+        )
+        .await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：POST /open-apis/docx/documents/blocks/convert → ConvertContentToBlocksResponse（first_level_block_ids）。
+    #[tokio::test]
+    async fn test_convert_content_to_blocks_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/docx/documents/blocks/convert"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "first_level_block_ids": ["blk1", "blk2"] }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = ConvertContentToBlocksRequest::new(config)
+            .execute(ConvertContentToBlocksParams {
+                content_type: ContentType::Markdown,
+                content: "# 标题".into(),
+            })
+            .await
+            .expect("转换内容应成功");
+        assert_eq!(resp.first_level_block_ids.len(), 2);
+        assert_eq!(resp.first_level_block_ids[0], "blk1");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/documents/blocks/convert"
+        );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["content_type"], "markdown");
     }
 }

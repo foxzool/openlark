@@ -1,18 +1,17 @@
 //! 根据方案ID和生效日期批量查询参保方案
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/compensation-v1/social_plan/query
+//! docPath: <https://open.feishu.cn/document/server-docs/compensation-v1/social_plan/query>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 根据方案ID和生效日期批量查询参保方案请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QueryRequest {
     /// 方案 ID 列表（必填）
     plan_ids: Vec<String>,
@@ -75,21 +74,19 @@ impl QueryRequest {
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?;
         let request = request.body(request_body_json);
 
         // 3. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 4. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "查询参保方案响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "查询参保方案响应数据为空",
+        )
+        .await
     }
 }
 
@@ -195,5 +192,46 @@ mod tests {
             1_706_000_000,
         );
         assert!(valid_request.validate().is_ok());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_query_social_plans_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/compensation/v1/social_plans/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = QueryRequest::new(config, vec!["plan_001".to_string()], 1_700_000_000)
+            .execute()
+            .await
+            .expect("批量查询参保方案应成功");
+
+        assert!(data.items.is_empty());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/compensation/v1/social_plans/query"
+        );
     }
 }

@@ -1,0 +1,5 @@
+error[E0609]: no field `auth` on type `Client`
+  --> tests/ui/disabled_client_field.rs:11:20
+   |
+11 |         let _ = &c.auth;
+   |                    ^^^^ unknown field

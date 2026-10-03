@@ -1,13 +1,13 @@
 //! Bitable 更新多条记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/batch_update>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     error::SDKResult,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -111,26 +111,18 @@ impl BatchUpdateRecordRequest {
         // === 必填字段验证 ===
         validate_required!(self.app_token.trim(), "app_token");
         validate_required!(self.table_id.trim(), "table_id");
-        validate_required!(self.records, "records");
-
-        // === 业务规则验证 ===
-        if self.records.len() > 500 {
-            return Err(openlark_core::error::validation_error(
-                "records",
-                "单次最多更新 500 条记录",
-            ));
-        }
+        validate_required_list!(self.records, 1000, "records 不能为空且单次最多 1000 条");
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint =
             BitableApiV1::RecordBatchUpdate(self.app_token.clone(), self.table_id.clone());
 
-        let mut api_request: ApiRequest<BatchUpdateRecordResponse> = ApiRequest::post(
-            &api_endpoint.to_url(),
-        )
-        .body(serde_json::to_vec(&BatchUpdateRecordRequestBody {
-            records: self.records,
-        })?);
+        // #424: POST via catalog for batch update
+        let mut api_request: ApiRequest<BatchUpdateRecordResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&BatchUpdateRecordRequestBody {
+                records: self.records,
+            })?);
 
         api_request = api_request.query_opt("user_id_type", self.user_id_type);
         api_request = api_request.query_opt(
@@ -138,10 +130,13 @@ impl BatchUpdateRecordRequest {
             self.ignore_consistency_check.map(|v| v.to_string()),
         );
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 更新多条记录",
+        )
+        .await
     }
 }
 
@@ -255,7 +250,7 @@ mod tests {
         let config = Config::default();
         let records: Vec<UpdateRecordItem> = (0..501)
             .map(|i| UpdateRecordItem {
-                record_id: format!("rec{}", i),
+                record_id: format!("rec{i}"),
                 fields: json!({}),
             })
             .collect();
@@ -271,7 +266,7 @@ mod tests {
         let config = Config::default();
         let records: Vec<UpdateRecordItem> = (0..500)
             .map(|i| UpdateRecordItem {
-                record_id: format!("rec{}", i),
+                record_id: format!("rec{i}"),
                 fields: json!({}),
             })
             .collect();

@@ -1,15 +1,12 @@
 //! 获取群内 Pin 消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/pin/list
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/pin/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_PINS,
-    im::im::v1::pin::models::ListPinsResponse,
-};
+use crate::{endpoints::IM_V1_PINS, im::v1::pin::models::ListPinsResponse};
 
 /// 获取群内 Pin 消息请求
 ///
@@ -86,7 +83,7 @@ impl ListPinsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/pin/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/pin/list>
     pub async fn execute(self) -> SDKResult<ListPinsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -116,8 +113,7 @@ impl ListPinsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取群内 Pin 消息")
+        Transport::request_typed(req, &self.config, Some(option), "获取群内 Pin 消息").await
     }
 }
 

@@ -1,17 +1,15 @@
 //! # OpenLark 用户设置模块
 //!
-//! OpenLark SDK 的用户设置模块，提供飞书个人设置和用户偏好相关 API 的完整访问。
+//! OpenLark SDK 的用户设置模块，提供飞书个人设置（system_status）相关 API 的访问。
 //!
 //! ## 功能特性
 //!
-//! - **个人设置**: 通知设置、隐私设置、界面设置
-//! - **用户偏好**: 个人偏好、自定义选项、快捷键设置
+//! - **个人设置**: system_status 资源（list / create / patch / delete / batch_open / batch_close）
 //!
 //! ## 模块组织
 //!
 //! 本模块按功能域组织：
-//! - `settings` - 个人设置相关 API
-//! - `preferences` - 用户偏好相关 API
+//! - `personal_settings` - 个人设置 system_status API（`UserService::system_status()` 直达）
 //!
 //! ## 使用示例
 //!
@@ -24,31 +22,20 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let user_service = UserService::new(config).unwrap();
+//! let user_service = UserService::new(config);
 //!
-//! // 获取设置服务
-//! # #[cfg(feature = "settings")]
-//! let settings_service = user_service.settings();
-//!
-//! // 获取偏好服务
-//! # #[cfg(feature = "preferences")]
-//! let preferences_service = user_service.preferences();
+//! // 经 system_status() 直达（6 个真实构建器）
+//! let system_status = user_service.system_status();
+//! let _list_req = system_status.list();
 //! ```
 
 mod service;
 
 // 通用模块
-/// 用户设置与偏好共享模型。
+/// 用户设置共享模型。
 pub mod common;
-
-// 功能域模块
-#[cfg(feature = "settings")]
-/// 个人设置能力模块。
-pub mod settings;
-
-#[cfg(feature = "preferences")]
-/// 用户偏好能力模块。
-pub mod preferences;
+/// 个人设置模块（system_status）。
+pub mod personal_settings;
 
 // Prelude 模块
 /// 常用类型预导出模块。
@@ -58,7 +45,8 @@ pub mod prelude;
 /// 用户服务统一入口。
 pub use service::UserService;
 
-// 配置类型
+/// 用户服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type UserClient = UserService;
 /// `openlark-core` 配置类型的便捷导出。
 pub use openlark_core::config::Config;
 
@@ -75,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 
     #[test]

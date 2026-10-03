@@ -1,11 +1,12 @@
 //! 转交审批任务（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/task/transfer
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/task/transfer>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -37,6 +38,7 @@ pub struct TransferTaskRequestV4 {
 }
 
 impl TransferTaskRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -88,11 +90,13 @@ impl TransferTaskRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -105,7 +109,6 @@ impl ApiResponseTrait for TransferTaskResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_task_transfer_v4_url() {

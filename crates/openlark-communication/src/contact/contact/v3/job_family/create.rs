@@ -1,14 +1,14 @@
 //! 创建序列
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_family/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_family/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::job_family::models::{I18nContent, JobFamilyResponse},
     endpoints::CONTACT_V3_JOB_FAMILIES,
 };
@@ -125,7 +125,7 @@ impl CreateJobFamilyRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_family/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_family/create>
     pub async fn execute(self, body: CreateJobFamilyBody) -> SDKResult<JobFamilyResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -145,9 +145,7 @@ impl CreateJobFamilyRequest {
         let req: ApiRequest<JobFamilyResponse> =
             ApiRequest::post(CONTACT_V3_JOB_FAMILIES).body(serialize_params(&body, "创建序列")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建序列")
+        Transport::request_typed(req, &self.config, Some(option), "创建序列").await
     }
 }
 

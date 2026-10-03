@@ -1,11 +1,10 @@
 //! 获取部门信息列表
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         department::models::DepartmentListResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -97,7 +96,7 @@ impl ListDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list
+    /// docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/list>
     pub async fn execute(self) -> SDKResult<DepartmentListResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -129,8 +128,7 @@ impl ListDepartmentsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取部门信息列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取部门信息列表").await
     }
 }
 

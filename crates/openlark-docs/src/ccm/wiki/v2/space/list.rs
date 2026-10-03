@@ -2,18 +2,18 @@
 //!
 //! 此接口用于获取有权限访问的知识空间列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use super::super::models::WikiSpace;
-use crate::common::{api_endpoints::WikiApiV2, api_utils::*};
+use crate::common::api_endpoints::WikiApiV2;
 
 /// 获取知识空间列表请求（流式 Builder 模式）
 ///
@@ -78,20 +78,19 @@ impl ListWikiSpacesRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListWikiSpacesResponse> {
         // ===== 参数校验 =====
-        if let Some(page_size) = self.page_size {
-            if page_size < 1 || page_size > 50 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~50 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && (page_size < 1 || page_size > 50)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~50 之间",
+            ));
         }
 
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceList;
 
-        let mut api_request: ApiRequest<ListWikiSpacesResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<ListWikiSpacesResponse> = api_endpoint.to_request();
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
@@ -101,22 +100,8 @@ impl ListWikiSpacesRequest {
         }
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取知识空间列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取知识空间列表").await
     }
-}
-
-/// 获取知识空间列表请求参数（兼容旧 API，已弃用）
-#[deprecated(
-    since = "0.16.0",
-    note = "请使用 ListWikiSpacesRequest 的流式 Builder 模式"
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ListWikiSpacesParams {
-    /// 每页大小（最大 50）
-    pub page_size: Option<i32>,
-    /// 分页标记
-    pub page_token: Option<String>,
 }
 
 #[cfg(test)]
@@ -195,18 +180,5 @@ mod tests {
         let request = ListWikiSpacesRequest::new(config).page_token("custom_token_456");
 
         assert_eq!(request.page_token, Some("custom_token_456".to_string()));
-    }
-
-    /// 测试已弃用的参数结构（保留以测试向后兼容性）
-    #[test]
-    #[allow(deprecated)]
-    fn test_deprecated_params() {
-        let params = ListWikiSpacesParams {
-            page_size: Some(30),
-            page_token: Some("old_token".to_string()),
-        };
-
-        assert_eq!(params.page_size, Some(30));
-        assert_eq!(params.page_token, Some("old_token".to_string()));
     }
 }

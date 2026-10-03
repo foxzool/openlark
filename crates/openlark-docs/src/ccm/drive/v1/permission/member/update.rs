@@ -2,13 +2,14 @@
 //!
 //! 更新文件或文件夹中指定协作者的权限。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-member/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-member/update>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -137,36 +138,11 @@ impl UpdatePermissionMemberRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UpdatePermissionMemberResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.member_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_id",
-                "member_id 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.member_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "member_type",
-                "member_type 不能为空",
-            ));
-        }
-        if self.perm.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "perm",
-                "perm 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.member_id, "member_id 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required!(self.member_type, "member_type 不能为空");
+        validate_required!(self.perm, "perm 不能为空");
 
         // === 枚举值验证 ===
         match self.file_type.as_str() {
@@ -255,7 +231,7 @@ impl UpdatePermissionMemberRequest {
         }
 
         let mut api_request: ApiRequest<UpdatePermissionMemberResponse> =
-            ApiRequest::put(&api_endpoint.to_url()).query("type", &self.file_type);
+            api_endpoint.to_request().query("type", &self.file_type);
 
         if let Some(need_notification) = self.need_notification {
             api_request = api_request.query("need_notification", need_notification.to_string());
@@ -270,8 +246,7 @@ impl UpdatePermissionMemberRequest {
 
         api_request = api_request.body(serialize_params(&body, "更新协作者权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新")
+        Transport::request_typed(api_request, &self.config, Some(option), "更新").await
     }
 }
 

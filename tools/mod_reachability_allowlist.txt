@@ -1,0 +1,7 @@
+# mod 可达性守卫 allowlist（存量孤儿基线）
+# 由 `python3 tools/check_mod_reachability.py --update-allowlist` 生成。
+# CI 只对【新增】孤儿失败；各 crate 修复死代码后从此文件删除对应行，
+# 再跑 --update-allowlist 或直接编辑收敛。
+# 当前存量孤儿：1 个
+
+openlark-docs: crates/openlark-docs/src/common/test_utils.rs

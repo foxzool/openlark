@@ -1,14 +1,14 @@
 //! 批量设置角色成员管理范围
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         functional_role::member::models::PatchMembersScopesResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -114,7 +114,7 @@ impl PatchRoleMembersScopesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/functional_role-member/scopes>
     pub async fn execute(
         self,
         body: PatchMembersScopesBody,
@@ -158,9 +158,7 @@ impl PatchRoleMembersScopesRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量设置角色成员管理范围")
+        Transport::request_typed(req, &self.config, Some(option), "批量设置角色成员管理范围").await
     }
 }
 

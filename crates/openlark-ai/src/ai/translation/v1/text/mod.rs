@@ -10,7 +10,6 @@ use std::sync::Arc;
 /// Text translation API
 #[derive(Clone)]
 pub struct Text {
-    #[allow(dead_code)]
     config: Arc<Config>,
 }
 
@@ -19,25 +18,14 @@ impl Text {
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
     }
-}
 
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    /// 文本翻译（对齐 URL /translation/v1/text/translate）。
+    pub fn translate(&self) -> translate::TextTranslateRequestBuilder {
+        translate::TextTranslateRequestBuilder::new((*self.config).clone())
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 语种检测（对齐 URL /translation/v1/text/detect）。
+    pub fn detect(&self) -> detect::TextDetectRequestBuilder {
+        detect::TextDetectRequestBuilder::new((*self.config).clone())
     }
 }

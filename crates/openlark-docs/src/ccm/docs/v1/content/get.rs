@@ -1,17 +1,18 @@
 /// 获取云文档内容
 ///
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/docs-v1/content/get
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/docs-v1/content/get
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/docs-v1/content/get>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DocsApiV1, api_utils::*};
+use crate::common::api_endpoints::DocsApiV1;
 
 /// 获取云文档内容请求
 
@@ -64,7 +65,7 @@ impl GetDocsContentRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct GetDocsContentResponse {
-    /// 公开项说明。
+    /// 导出的云文档内容（按请求的 content_type 返回，如 markdown / html）
     pub content: String,
 }
 
@@ -90,15 +91,14 @@ pub async fn get_docs_content(
 
     let api_endpoint = DocsApiV1::ContentGet;
 
-    let api_request: ApiRequest<GetDocsContentResponse> = ApiRequest::get(&api_endpoint.to_url())
+    let api_request: ApiRequest<GetDocsContentResponse> = api_endpoint
+        .to_request()
         .query("doc_token", &request.doc_token)
         .query("doc_type", &request.doc_type)
         .query("content_type", &request.content_type)
         .query_opt("lang", request.lang);
 
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "获取云文档内容")
+    Transport::request_typed(api_request, config, option, "获取云文档内容").await
 }
 
 #[cfg(test)]

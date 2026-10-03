@@ -1,19 +1,20 @@
 //! 删除数据表中的记录
 //!
 //! URL: DELETE:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
+//! docPath:
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 删除数据表记录 Builder
 #[derive(Debug, Clone)]
-pub struct TableRecordsDeleteBuilder {
+pub struct TableRecordsDeleteRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
@@ -23,7 +24,7 @@ pub struct TableRecordsDeleteBuilder {
     record_ids: Vec<String>,
 }
 
-impl TableRecordsDeleteBuilder {
+impl TableRecordsDeleteRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -53,23 +54,7 @@ impl TableRecordsDeleteBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<TableRecordsDeleteResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/workspaces/{}/tables/{}/records",
-            self.workspace_id, self.table_name
-        );
-
-        use serde_json::json;
-
-        let request = json!({
-            "record_ids": self.record_ids,
-        });
-
-        let mut api_request = ApiRequest::<TableRecordsDeleteResponse>::delete(&url);
-        api_request = api_request.body(request);
-
-        let resp = Transport::request(api_request, &self.config, None).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除数据表记录", "响应数据为空"))
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -91,9 +76,7 @@ impl TableRecordsDeleteBuilder {
         let mut api_request = ApiRequest::<TableRecordsDeleteResponse>::delete(&url);
         api_request = api_request.body(request);
 
-        let resp = Transport::request(api_request, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("删除数据表记录", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "删除数据表记录").await
     }
 }
 
@@ -102,10 +85,10 @@ impl TableRecordsDeleteBuilder {
 pub struct TableRecordsDeleteResponse {
     /// 删除的记录数量
     #[serde(rename = "deleted_count")]
-    deleted_count: u32,
+    pub deleted_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for TableRecordsDeleteResponse {
@@ -114,23 +97,60 @@ impl ApiResponseTrait for TableRecordsDeleteResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TableRecordsDeleteRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TableRecordsDeleteBuilder = TableRecordsDeleteRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：DELETE .../tables/{table}/records → 强类型 TableRecordsDeleteResponse。
+    #[tokio::test]
+    async fn test_delete_records_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "deleted_count": 2,
+                    "message": "OK"
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = TableRecordsDeleteRequestBuilder::new(config, "ws_001", "user")
+            .record_id("r1")
+            .record_id("r2")
+            .execute()
+            .await
+            .expect("删除数据表记录应成功");
+        assert_eq!(resp.deleted_count, 2);
+        assert_eq!(resp.message, "OK");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records"
+        );
+        assert_eq!(received[0].method, "DELETE");
     }
 }

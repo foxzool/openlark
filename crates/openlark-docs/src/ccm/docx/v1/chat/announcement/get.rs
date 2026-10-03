@@ -2,17 +2,18 @@
 ///
 /// 此接口用于获取指定群聊的群公告基本信息。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement/get
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement/get
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement/get>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::common::{api_endpoints::DocxApiV1, api_utils::*};
+use crate::common::api_endpoints::DocxApiV1;
 
 /// 获取群公告基本信息请求
 ///
@@ -102,35 +103,56 @@ impl GetChatAnnouncementRequest {
         validate_required!(self.chat_id, "群聊ID不能为空");
 
         let api_endpoint = DocxApiV1::ChatAnnouncementGet(self.chat_id.clone());
-        let mut api_request: ApiRequest<GetChatAnnouncementResponse> =
-            ApiRequest::get(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<GetChatAnnouncementResponse> = api_endpoint.to_request();
 
         if let Some(user_id_type) = self.user_id_type {
             api_request = api_request.query("user_id_type", &user_id_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(api_request, &self.config, Some(option), "获取").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET .../chats/{chat_id}/announcement → GetChatAnnouncementResponse（revision_id）。
+    #[tokio::test]
+    async fn test_get_chat_announcement_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/docx/v1/chats/chat001/announcement"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "revision_id": 1, "create_time": 100, "update_time": 200 }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = GetChatAnnouncementRequest::new(config)
+            .chat_id("chat001")
+            .execute()
+            .await
+            .expect("获取群公告应成功");
+        assert_eq!(resp.revision_id, 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/chats/chat001/announcement"
+        );
     }
 }

@@ -1,18 +1,15 @@
 //! 更新群信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/update-2
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/update-2>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_CHATS,
-    im::im::v1::message::models::UserIdType,
+    im::v1::message::models::UserIdType,
 };
 
 /// 更新群信息请求
@@ -74,7 +71,7 @@ impl UpdateChatRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/update-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/update-2>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -98,9 +95,7 @@ impl UpdateChatRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新群信息")
+        Transport::request_typed(req, &self.config, Some(option), "更新群信息").await
     }
 }
 

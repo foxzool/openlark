@@ -188,6 +188,10 @@ pub enum ErrorCode {
     /// 请求频率限制
     RateLimitExceeded = 999060,
 
+    // 响应大小错误码
+    /// 响应体大小超过限制
+    ResponseTooLarge = 41300,
+
     // 缓存错误码
     /// 缓存未命中
     CacheMiss = 999070,
@@ -305,6 +309,9 @@ impl ErrorCode {
             // 限流错误码
             999060 => Self::RateLimitExceeded,
 
+            // 响应大小错误码
+            41300 => Self::ResponseTooLarge,
+
             // 缓存错误码
             999070 => Self::CacheMiss,
             999071 => Self::CacheServiceUnavailable,
@@ -420,6 +427,9 @@ impl ErrorCode {
             // 限流错误码描述
             Self::RateLimitExceeded => "请求频率限制",
 
+            // 响应大小错误码描述
+            Self::ResponseTooLarge => "响应体大小超过限制",
+
             // 缓存错误码描述
             Self::CacheMiss => "缓存未命中",
             Self::CacheServiceUnavailable => "缓存服务不可用",
@@ -519,6 +529,8 @@ impl ErrorCode {
             Self::ResourceExhausted => "系统资源耗尽，请稍后重试或增加资源配额",
 
             Self::RateLimitExceeded => "请求频率超过限制，请降低请求频率后重试",
+
+            Self::ResponseTooLarge => "响应体大小超过限制，请减小请求范围或联系管理员调整限制",
 
             Self::CacheMiss => "缓存中未找到数据，将从数据源获取",
             Self::CacheServiceUnavailable => "缓存服务不可用，将直接访问数据源",
@@ -635,41 +647,22 @@ impl ErrorCode {
 
     /// 获取HTTP状态码
     pub fn http_status(&self) -> Option<u16> {
-        let code = *self as i32;
-        if (100..=599).contains(&code) {
-            Some(code as u16)
-        } else {
-            None
+        match self {
+            Self::ResponseTooLarge => Some(413),
+            _ => {
+                let code = *self as i32;
+                if (100..=599).contains(&code) {
+                    Some(code as u16)
+                } else {
+                    None
+                }
+            }
         }
     }
 
     /// 从HTTP状态码创建错误码
     pub fn from_http_status(status: u16) -> Self {
         Self::from_code(status as i32)
-    }
-
-    /// 按飞书通用错误码映射（仅飞书返回体的 code 字段，未知返回 None）
-    pub fn from_feishu_code(code: i32) -> Option<Self> {
-        match code {
-            99991661 => Some(Self::AccessTokenFormatInvalid),
-            99991663 => Some(Self::TenantAccessTokenInvalid),
-            99991664 => Some(Self::AppAccessTokenInvalid),
-            99991670 => Some(Self::SsoTokenInvalid),
-            99991671 => Some(Self::AccessTokenInvalid),
-            99991672 => Some(Self::PermissionMissing),
-            99991676 => Some(Self::AccessTokenNoPermission),
-            99991677 => Some(Self::AccessTokenExpiredV2),
-            99991641 => Some(Self::UserSessionInvalid),
-            99991642 => Some(Self::UserSessionNotFound),
-            99991645 => Some(Self::UserSessionTimeout),
-            99991669 => Some(Self::UserIdentityInvalid),
-            99991674 => Some(Self::UserTypeNotSupportedV2),
-            99991675 => Some(Self::UserIdentityMismatch),
-            99992351 => Some(Self::UserIdInvalid),
-            99992352 => Some(Self::OpenIdInvalid),
-            99992353 => Some(Self::UnionIdInvalid),
-            _ => None,
-        }
     }
 
     // === 与thiserror CoreError配合的新方法 ===
@@ -874,7 +867,8 @@ impl ErrorCode {
             | Self::ValidationError
             | Self::MissingRequiredParameter
             | Self::InvalidParameterFormat
-            | Self::ParameterOutOfRange => ErrorSeverity::Warning,
+            | Self::ParameterOutOfRange
+            | Self::ResponseTooLarge => ErrorSeverity::Warning,
 
             // 认证和权限错误是错误级别
             Self::Unauthorized
@@ -919,6 +913,7 @@ impl ErrorCode {
             Self::InternalServerError => "系统内部错误，请联系技术支持",
             Self::ValidationError => "请检查输入参数格式",
             Self::ConfigurationError => "请检查系统配置",
+            Self::ResponseTooLarge => "请减小请求范围或联系管理员调整响应大小限制",
             Self::Unknown => "发生未知错误，请联系技术支持",
             _ => "请稍后重试，如问题持续请联系技术支持",
         }
@@ -1097,7 +1092,8 @@ impl ErrorCode {
             | Self::DataFormatError
             | Self::EncodingError
             | Self::ConfigurationError
-            | Self::ResourceExhausted => ErrorCategory::System,
+            | Self::ResourceExhausted
+            | Self::ResponseTooLarge => ErrorCategory::System,
 
             // 限流相关
             Self::TooManyRequests | Self::RateLimitExceeded => ErrorCategory::RateLimit,
@@ -1117,6 +1113,39 @@ mod tests {
         assert_eq!(ErrorCode::from_code(0), ErrorCode::Success);
         assert_eq!(ErrorCode::from_code(404), ErrorCode::NotFound);
         assert_eq!(ErrorCode::from_code(999999), ErrorCode::Unknown);
+    }
+
+    /// `from_code` 是飞书通用码的唯一映射路径（#546 映射收敛 seam）。
+    #[test]
+    fn from_code_is_sole_feishu_common_code_mapper() {
+        let cases = [
+            (99991661, ErrorCode::AccessTokenFormatInvalid),
+            (99991663, ErrorCode::TenantAccessTokenInvalid),
+            (99991664, ErrorCode::AppAccessTokenInvalid),
+            (99991670, ErrorCode::SsoTokenInvalid),
+            (99991671, ErrorCode::AccessTokenInvalid),
+            (99991672, ErrorCode::PermissionMissing),
+            (99991676, ErrorCode::AccessTokenNoPermission),
+            (99991677, ErrorCode::AccessTokenExpiredV2),
+            (99991641, ErrorCode::UserSessionInvalid),
+            (99991642, ErrorCode::UserSessionNotFound),
+            (99991645, ErrorCode::UserSessionTimeout),
+            (99991669, ErrorCode::UserIdentityInvalid),
+            (99991674, ErrorCode::UserTypeNotSupportedV2),
+            (99991675, ErrorCode::UserIdentityMismatch),
+            (99992351, ErrorCode::UserIdInvalid),
+            (99992352, ErrorCode::OpenIdInvalid),
+            (99992353, ErrorCode::UnionIdInvalid),
+        ];
+        for (raw, expected) in cases {
+            assert_eq!(
+                ErrorCode::from_code(raw),
+                expected,
+                "from_code({raw}) must be the sole feishu-code mapping path"
+            );
+        }
+        // 未知码：from_code → Unknown（不再有 Option::None 的并行路径）
+        assert_eq!(ErrorCode::from_code(12345678), ErrorCode::Unknown);
     }
 
     #[test]
@@ -1159,7 +1188,7 @@ mod tests {
     #[test]
     fn test_error_code_display() {
         let error = ErrorCode::AccessTokenInvalid;
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("访问令牌无效"));
         assert!(display.contains("99991671"));
     }

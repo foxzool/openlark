@@ -11,8 +11,8 @@ pub mod create;
 pub mod execute_send;
 /// 获取接口。
 pub mod get;
-/// 列表接口。
-pub mod list;
+/// 推送通知共享模型。
+pub mod models;
 /// 更新接口。
 pub mod patch;
 /// preview 模块。
@@ -33,11 +33,6 @@ impl Notification {
     /// 创建新的推送通知服务实例
     pub fn new(config: Arc<Config>) -> Self {
         Self { config }
-    }
-
-    /// 获取推送通知列表
-    pub fn list(&self) -> list::ListNotificationRequest {
-        list::ListNotificationRequest::new(self.config.clone())
     }
 
     /// 创建推送通知
@@ -112,29 +107,9 @@ pub use cancel_send::{CancelSendNotificationRequest, CancelSendNotificationReque
 pub use create::{CreateNotificationRequest, CreateNotificationRequestBuilder};
 pub use execute_send::{ExecuteSendNotificationRequest, ExecuteSendNotificationRequestBuilder};
 pub use get::{GetNotificationRequest, GetNotificationRequestBuilder};
-pub use list::{ListNotificationRequest, ListNotificationRequestBuilder};
+pub use models::{NotificationChat, NotificationDepartment, NotificationUser};
 pub use patch::{PatchNotificationRequest, PatchNotificationRequestBuilder};
 pub use preview::{PreviewNotificationRequest, PreviewNotificationRequestBuilder};
 pub use submit_approve::{
     SubmitApproveNotificationRequest, SubmitApproveNotificationRequestBuilder,
 };
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

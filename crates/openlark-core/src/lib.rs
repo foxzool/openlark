@@ -15,25 +15,23 @@ pub mod error;
 /// HTTP 客户端模块（Transport、请求构建等）
 pub mod http;
 pub(crate) mod observability;
-pub(crate) mod query_params;
 /// 请求选项模块（RequestOption、自定义头部、租户键等）
 pub mod req_option;
-pub(crate) mod request_builder;
+pub(crate) mod request_execution;
+/// Security utilities for handling sensitive data
+pub mod security;
 #[cfg(feature = "testing")]
 pub mod testing;
-pub mod trait_system;
 pub mod validation;
 
 // crate 内部实现细节：不对外暴露（避免把 core 变成"全家桶"）
 // 已移动到 auth::app_ticket
 mod content_disposition;
 mod performance;
-mod req_translator;
-mod response_handler;
 mod utils;
 
 // Re-export commonly used types from crate root
-pub use error::{validation_error, CoreError, SDKResult};
+pub use error::{CoreError, SDKResult, validation_error};
 pub use validation::Validatable;
 
 // Re-export validate_required macro for docs module
@@ -87,7 +85,7 @@ pub mod prelude {
     // Re-export commonly used core modules directly（最小集合）
     pub use crate::config::Config;
     pub use crate::constants::*;
-    pub use crate::error::{validation_error, CoreError, SDKResult};
+    pub use crate::error::{CoreError, SDKResult, validation_error};
     pub use crate::http::Transport;
     pub use crate::req_option::*;
     pub use crate::validate_required;

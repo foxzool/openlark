@@ -1,13 +1,14 @@
 //! 创建免审词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/create
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,7 @@ use crate::common::api_endpoints::LingoApiV1;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateEntityResp {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 公开项说明。
+    /// 创建成功的词条实体信息
     pub entity: Option<Entity>,
 }
 
@@ -93,7 +94,7 @@ impl CreateEntityRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<CreateEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntityCreate.to_url()).body(body);
+            LingoApiV1::EntityCreate.to_request().body(body);
         if let Some(repo_id) = &self.repo_id {
             api_request = api_request.query("repo_id", repo_id);
         }
@@ -102,11 +103,7 @@ impl CreateEntityRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<CreateEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "创建免审词条").await
     }
 }
 
@@ -114,6 +111,10 @@ impl CreateEntityRequest {
 mod tests {
     use super::*;
     use crate::baike::lingo::v1::models::{DisplayStatus, Term, UserIdType};
+    use crate::common::test_utils::tenant_test_transport;
+    use serde_json::json;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
     #[test]
     fn test_create_lingo_entity_request_builder() {
@@ -167,10 +168,12 @@ mod tests {
             ..Default::default()
         };
         let request = CreateEntityRequest::new(config.clone(), body);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 description 和 rich_text 都为空
         let body2 = EntityInput {
@@ -186,14 +189,68 @@ mod tests {
             ..Default::default()
         };
         let request2 = CreateEntityRequest::new(config, body2);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]
     fn test_response_trait() {
         assert_eq!(CreateEntityResp::data_format(), ResponseFormat::Data);
+    }
+
+    #[tokio::test]
+    async fn create_entity_uses_catalog_request_semantics() {
+        let (server, config, option) = tenant_test_transport().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/lingo/v1/entities"))
+            .and(header("Authorization", "Bearer test-tenant-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "entity": null }
+            })))
+            .mount(&server)
+            .await;
+
+        let body = EntityInput {
+            main_keys: vec![Term {
+                key: "测试词条".to_string(),
+                display_status: DisplayStatus {
+                    allow_highlight: true,
+                    allow_search: true,
+                },
+            }],
+            description: Some("词条描述".to_string()),
+            ..Default::default()
+        };
+
+        let response = CreateEntityRequest::new(config, body)
+            .repo_id("repo_123")
+            .user_id_type(UserIdType::OpenId)
+            .execute_with_options(option)
+            .await
+            .expect("创建词条应成功");
+        assert!(response.entity.is_none());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query: std::collections::HashMap<_, _> = received[0]
+            .url
+            .query_pairs()
+            .map(|(key, value)| (key.into_owned(), value.into_owned()))
+            .collect();
+        assert_eq!(query.get("repo_id").map(String::as_str), Some("repo_123"));
+        assert_eq!(
+            query.get("user_id_type").map(String::as_str),
+            Some("open_id")
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["main_keys"][0]["key"], "测试词条");
+        assert_eq!(body["description"], "词条描述");
     }
 }

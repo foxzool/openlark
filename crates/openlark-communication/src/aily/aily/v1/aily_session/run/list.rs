@@ -1,12 +1,12 @@
 //! 列出运行
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/list>
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_RUNS};
+use crate::endpoints::AILY_V1_RUNS;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 列出运行请求
@@ -63,7 +63,7 @@ impl ListRunsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-run/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-run/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -77,13 +77,12 @@ impl ListRunsRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_RUNS.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_RUNS.replace("{session_id}", &self.aily_session_id);
         let mut req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
         for (k, v) in self.query {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "列出运行")
+        Transport::request_typed(req, &self.config, Some(option), "列出运行").await
     }
 }
 
@@ -141,5 +140,16 @@ mod tests {
             .aily_session_id("session_xxx")
             .query_param("status", "running");
         assert_eq!(request.query.get("status"), Some(&"running".to_string()));
+    }
+
+    #[test]
+    fn test_list_runs_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_RUNS;
+        let url = AILY_V1_RUNS.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1/runs");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

@@ -2,19 +2,18 @@
 //!
 //! 获取服务台知识库列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/list
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/faq-management/faq/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取知识库列表响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,11 +66,19 @@ impl ListFaqRequest {
 
     /// 执行获取知识库列表请求
     pub async fn execute(self) -> SDKResult<ListFaqResponse> {
+        self.execute_with_options(openlark_core::req_option::RequestOption::default())
+            .await
+    }
+
+    /// 使用选项执行请求
+    pub async fn execute_with_options(
+        self,
+        option: openlark_core::req_option::RequestOption,
+    ) -> SDKResult<ListFaqResponse> {
         let api_endpoint = HelpdeskApiV1::FaqList;
         let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取知识库列表")
+        Transport::request_typed(request, &self.config, Some(option), "获取知识库列表").await
     }
 }
 
@@ -92,8 +99,7 @@ impl ListFaqRequestBuilder {
         let api_endpoint = HelpdeskApiV1::FaqList;
         let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-        let response = Transport::request(request, &self.config, None).await?;
-        extract_response_data(response, "获取知识库列表")
+        Transport::request_typed(request, &self.config, None, "获取知识库列表").await
     }
 }
 
@@ -102,8 +108,7 @@ pub async fn list_faqs(config: &Config) -> SDKResult<ListFaqResponse> {
     let api_endpoint = HelpdeskApiV1::FaqList;
     let request = ApiRequest::<ListFaqResponse>::get(api_endpoint.to_url());
 
-    let response = Transport::request(request, config, None).await?;
-    extract_response_data(response, "获取知识库列表")
+    Transport::request_typed(request, config, None, "获取知识库列表").await
 }
 
 #[cfg(test)]
@@ -118,5 +123,45 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let _builder = ListFaqRequestBuilder::new(Arc::new(config));
+    }
+
+    /// 端到端：GET .../faqs → 强类型 ListFaqResponse 解析（扁平 data 信封）。
+    #[tokio::test]
+    async fn test_list_faqs_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/faqs"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "items": [ { "id": "faq_001", "title": "如何重置密码？" } ] }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = ListFaqRequest::new(config)
+            .execute()
+            .await
+            .expect("获取知识库列表应成功");
+        assert!(resp.items.is_some());
+        assert_eq!(resp.items.as_ref().unwrap().len(), 1);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/faqs");
     }
 }

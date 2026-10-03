@@ -1,13 +1,14 @@
 //! 创建分组
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::section::models::{CreateSectionBody, CreateSectionResponse};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -16,18 +17,15 @@ use std::sync::Arc;
 pub struct CreateSectionRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 请求体
     body: CreateSectionBody,
 }
 
 impl CreateSectionRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String) -> Self {
+    pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
-            tasklist_guid,
             body: CreateSectionBody::default(),
         }
     }
@@ -56,18 +54,21 @@ impl CreateSectionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateSectionResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
         validate_required!(self.body.summary.trim(), "分组标题不能为空");
 
-        let api_endpoint = TaskApiV2::SectionCreate(self.tasklist_guid.clone());
+        let api_endpoint = TaskApiV2::SectionCreate;
         let mut request = ApiRequest::<CreateSectionResponse>::post(api_endpoint.to_url());
 
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建分组")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建分组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建分组",
+        )
+        .await
     }
 }
 
@@ -93,10 +94,8 @@ mod tests {
                 .build(),
         );
 
-        let request =
-            CreateSectionRequest::new(config, "tasklist_123".to_string()).summary("测试分组");
+        let request = CreateSectionRequest::new(config).summary("测试分组");
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.body.summary, "测试分组");
     }
 }

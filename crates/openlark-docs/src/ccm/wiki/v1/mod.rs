@@ -3,5 +3,4 @@ pub mod node;
 
 // 使用通配符导出所有子模块
 // node 模块显式导出
-#[allow(deprecated)]
-pub use node::{SearchWikiParams, SearchWikiRequest, SearchWikiResponse};
+pub use node::{SearchWikiRequest, SearchWikiResponse};

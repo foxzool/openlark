@@ -1,30 +1,32 @@
 # openlark-communication Knowledge Base
 
 **Crate**: IM & Contact Services  
-**APIs**: 153 个 | **Status**: 生产就绪  
-**Coverage**: 即时消息 + 通讯录 + 动态圈
+**APIs**: 179 个（排除 old；`validate_apis.py --crate openlark-communication`） | **Status**: 生产就绪  
+**Coverage**: 即时消息 + 通讯录 + 动态圈 + Aily + 事件
 
 ## OVERVIEW
 
-飞书通讯协作模块，提供即时消息（IM）、通讯录管理和群组功能。默认启用的核心模块之一。
+飞书通讯协作模块，提供即时消息（IM）、通讯录管理和群组功能。默认启用的核心模块之一。目录 API 179（另 11 条 old 不计入）。
 
 ## STRUCTURE
 
 ```
 src/
 ├── lib.rs                    # 模块入口
-├── contact/                  # 通讯录 (77 APIs)
+├── contact/                  # 通讯录 (71 APIs)
 │   └── v3/                  # 用户/部门/单位
 │       ├── department/      # 部门管理
 │       ├── user/            # 用户管理
 │       ├── unit/            # 单位管理
 │       └── group/           # 用户组
-├── im/                       # 即时消息 (75 APIs)
+├── im/                       # 即时消息 (74 APIs)
 │   └── v1/                  # 消息/群聊/回调
 │       ├── message/         # 消息发送/撤回
 │       ├── chat/            # 群组管理
 │       ├── chat_menu/       # 群菜单
 │       └── callback/        # 回调设置
+├── aily/                     # Aily (31 APIs)
+├── event/                    # 事件 (2 APIs)
 ├── moments/                  # 动态圈 (1 API)
 └── common/                   # 共享代码
 ```

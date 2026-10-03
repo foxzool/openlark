@@ -20,9 +20,9 @@
 //! let subscription = create_file_subscription(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/create>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use serde::{Deserialize, Serialize};
 
@@ -160,7 +160,7 @@ pub async fn create_file_subscription(
     let api_endpoint = DriveApi::CreateFileSubscription(request.file_token.clone());
 
     let api_request: ApiRequest<CreateFileSubscriptionResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &CreateFileSubscriptionRequestBody {
                 subscription_id: request.subscription_id,
 
@@ -174,9 +174,7 @@ pub async fn create_file_subscription(
         )?);
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "创建订阅")
+    Transport::request_typed(api_request, config, option, "创建订阅").await
 }
 
 #[cfg(test)]

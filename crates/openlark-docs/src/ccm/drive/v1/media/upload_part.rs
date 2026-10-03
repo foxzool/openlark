@@ -2,17 +2,18 @@
 //!
 //! 根据预上传接口返回的 upload_id 和分片策略上传对应的素材分片。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_part
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_part>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 分片上传素材-上传分片请求
 ///
@@ -95,12 +96,7 @@ impl UploadPartMediaRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UploadPartMediaResponse> {
         // === 必填字段验证 ===
-        if self.upload_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "upload_id",
-                "upload_id 不能为空",
-            ));
-        }
+        validate_required!(self.upload_id, "upload_id 不能为空");
 
         // === 业务规则验证 ===
         if self.seq < 0 {
@@ -147,12 +143,12 @@ impl UploadPartMediaRequest {
             checksum: self.checksum,
         };
 
-        let request = ApiRequest::<UploadPartMediaResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadPartMediaResponse>()
             .json_body(&meta)
             .file_content(self.file);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传")
+        Transport::request_typed(request, &self.config, Some(option), "上传").await
     }
 }
 

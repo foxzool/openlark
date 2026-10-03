@@ -1,19 +1,18 @@
 //! 获取电子签模板列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/corehr-v2/signature_template_info_with_thumbnail/list
+//! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/signature_template_info_with_thumbnail/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// 获取电子签模板列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     /// 配置信息
     config: Config,
@@ -51,10 +50,7 @@ impl ListRequest {
             request = request.body(body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("接口响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
 }
 
@@ -73,21 +69,39 @@ impl ApiResponseTrait for ListResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET /open-apis/corehr/v2/signature_template_info_with_thumbnails
+    #[tokio::test]
+    async fn test_list_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(
+                "/open-apis/corehr/v2/signature_template_info_with_thumbnails",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "data": {} }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        ListRequest::new(config)
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

@@ -459,9 +459,10 @@ cargo test --package openlark-core testing
 
 ## 📚 相关文档
 
-- [OpenLark Docs Crate 代码质量审查报告](./crates/openlark-docs/CODE_QUALITY_REPORT.md)
+> 历史进度记录；部分早期审查报告已移除。当前维护入口见 [`docs/README.md`](docs/README.md)。
+
 - [OpenLark Docs AGENTS.md](./crates/openlark-docs/AGENTS.md)
-- [OpenLark Core CLAUDE.md](./crates/openlark-core/CLAUDE.md)
+- [OpenLark Core AGENTS.md](./crates/openlark-core/AGENTS.md)
 
 ---
 

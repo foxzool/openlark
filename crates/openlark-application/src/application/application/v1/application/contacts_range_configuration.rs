@@ -1,23 +1,27 @@
 //! 获取应用通讯录权限范围配置
+//! docPath: <https://open.feishu.cn/document/application-v6/admin/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 获取应用通讯录权限范围配置的请求。
 #[derive(Debug, Clone)]
 pub struct GetApplicationContactsRangeConfigurationRequest {
     config: Arc<Config>,
     app_id: String,
 }
 
+/// 获取应用通讯录权限范围配置的响应。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetApplicationContactsRangeConfigurationResponse {
+    /// 响应数据。
     pub data: Option<ContactsRangeConfigurationData>,
 }
 
@@ -27,13 +31,17 @@ impl ApiResponseTrait for GetApplicationContactsRangeConfigurationResponse {
     }
 }
 
+/// 获取应用通讯录权限范围配置的数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactsRangeConfigurationData {
+    /// 应用 ID。
     pub app_id: String,
+    /// 通讯录范围。
     pub contacts_range: serde_json::Value,
 }
 
 impl GetApplicationContactsRangeConfigurationRequest {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, app_id: impl Into<String>) -> Self {
         Self {
             config,
@@ -41,21 +49,30 @@ impl GetApplicationContactsRangeConfigurationRequest {
         }
     }
 
+    /// 执行获取应用通讯录权限范围配置请求。
     pub async fn execute(self) -> SDKResult<GetApplicationContactsRangeConfigurationResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
+    /// 带自定义请求选项执行。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
     ) -> SDKResult<GetApplicationContactsRangeConfigurationResponse> {
-        let path = format!("/open-apis/application/v6/applications/{}/contacts_range_configuration", self.app_id);
-        let req: ApiRequest<GetApplicationContactsRangeConfigurationResponse> = ApiRequest::get(&path);
+        let path = format!(
+            "/open-apis/application/v6/applications/{}/contacts_range_configuration",
+            self.app_id
+        );
+        let req: ApiRequest<GetApplicationContactsRangeConfigurationResponse> =
+            ApiRequest::get(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取应用通讯录权限范围配置", "响应数据为空")
-        })
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "获取应用通讯录权限范围配置",
+        )
+        .await
     }
 }
 

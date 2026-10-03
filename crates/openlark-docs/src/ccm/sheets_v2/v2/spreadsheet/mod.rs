@@ -5,11 +5,12 @@
 /// - create_spreadsheet: 创建表格
 /// - update_spreadsheet: 更新表格
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use crate::common::{api_endpoints::CcmSheetApiOld, api_utils::*};
@@ -90,12 +91,12 @@ pub async fn get_spreadsheet_with_options(
     let api_endpoint = CcmSheetApiOld::GetSpreadsheet(spreadsheet_token.to_string());
 
     // 创建API请求（按 csv 对齐为 GET /open-apis/sheets/v3/spreadsheets/{token}）
-    let api_request: ApiRequest<GetSpreadsheetResponse> = ApiRequest::get(&api_endpoint.to_url())
+    let api_request: ApiRequest<GetSpreadsheetResponse> = api_endpoint
+        .to_request()
         .query_opt("include_sheet", params.include_sheet.map(|v| v.to_string()));
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取表格信息")
+    Transport::request_typed(api_request, config, Some(option), "获取表格信息").await
 }
 
 /// 创建表格
@@ -125,12 +126,12 @@ pub async fn create_spreadsheet_with_options(
     let api_endpoint = CcmSheetApiOld::CreateSpreadsheet;
 
     // 创建API请求
-    let api_request: ApiRequest<CreateSpreadsheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "创建表格")?);
+    let api_request: ApiRequest<CreateSpreadsheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "创建表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "创建表格")
+    Transport::request_typed(api_request, config, Some(option), "创建表格").await
 }
 
 /// 更新表格
@@ -163,12 +164,12 @@ pub async fn update_spreadsheet_with_options(
     let api_endpoint = CcmSheetApiOld::UpdateSpreadsheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UpdateSpreadsheetResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(&params, "更新表格")?);
+    let api_request: ApiRequest<UpdateSpreadsheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新表格")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新表格")
+    Transport::request_typed(api_request, config, Some(option), "更新表格").await
 }
 
 // API函数已经在模块中定义，不需要重复导出
@@ -177,21 +178,44 @@ pub async fn update_spreadsheet_with_options(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：GET /open-apis/sheets/v3/spreadsheets/{token} → GetSpreadsheetResponse。
+    #[tokio::test]
+    async fn test_get_spreadsheet_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/sheets/v3/spreadsheets/token001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = get_spreadsheet(
+            &config,
+            "token001",
+            GetSpreadsheetParams {
+                include_sheet: None,
+            },
+        )
+        .await
+        .expect("获取表格应成功");
+        assert!(resp.data.is_none());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/token001"
+        );
     }
 }

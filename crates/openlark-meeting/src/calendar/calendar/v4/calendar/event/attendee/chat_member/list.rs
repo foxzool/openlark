@@ -1,13 +1,13 @@
 //! 获取日程参与群成员列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 获取日程参与群成员列表请求
 pub struct ListCalendarEventAttendeeChatMemberRequest {
@@ -56,7 +56,7 @@ impl ListCalendarEventAttendeeChatMemberRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -76,8 +76,7 @@ impl ListCalendarEventAttendeeChatMemberRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取日程参与群成员列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取日程参与群成员列表").await
     }
 }
 

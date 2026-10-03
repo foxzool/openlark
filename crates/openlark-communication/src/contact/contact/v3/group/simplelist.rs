@@ -1,11 +1,10 @@
 //! 查询用户组列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/simplelist
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/simplelist>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::group::models::SimpleListGroupsResponse,
     endpoints::CONTACT_V3_GROUP_SIMPLELIST,
 };
@@ -70,7 +69,7 @@ impl SimpleListGroupsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group/simplelist
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group/simplelist>
     pub async fn execute(self) -> SDKResult<SimpleListGroupsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -94,8 +93,7 @@ impl SimpleListGroupsRequest {
         if let Some(group_type) = self.r#type {
             req = req.query("type", group_type.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询用户组列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询用户组列表").await
     }
 }
 

@@ -1,29 +1,41 @@
 //! 商店应用获取 app_access_token API
-use crate::models::auth::{AccessTokenResponse, AppAccessTokenRequest};
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token>
+use crate::models::auth::AccessTokenResponse;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token>
 ///
 /// 应用商店应用通过此接口获取 app_access_token，调用接口获取应用资源时，
 /// 需要使用 app_access_token 作为授权凭证。
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-/// 商店应用获取 app_access_token 请求
-pub struct AppAccessTokenBuilder {
+#[derive(Debug, Serialize)]
+struct AppAccessTokenBody {
     app_id: String,
     app_secret: String,
+    app_ticket: String,
+}
+
+/// 商店应用获取 app_access_token 请求
+pub struct AppAccessTokenRequestBuilder {
+    app_id: String,
+    app_secret: String,
+    app_ticket: String,
     /// 配置信息
     config: Config,
 }
 
 /// 商店应用获取 app_access_token 响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct AppAccessTokenResponseData {
     /// 应用访问令牌响应
     pub data: AccessTokenResponse,
@@ -31,16 +43,17 @@ pub struct AppAccessTokenResponseData {
 
 impl ApiResponseTrait for AppAccessTokenResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
-impl AppAccessTokenBuilder {
+impl AppAccessTokenRequestBuilder {
     /// 创建 app_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
             app_id: String::new(),
             app_secret: String::new(),
+            app_ticket: String::new(),
             config,
         }
     }
@@ -57,6 +70,12 @@ impl AppAccessTokenBuilder {
         self
     }
 
+    /// 设置应用票据（商店应用必需）
+    pub fn app_ticket(mut self, app_ticket: impl Into<String>) -> Self {
+        self.app_ticket = app_ticket.into();
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<AppAccessTokenResponseData> {
         self.execute_with_options(RequestOption::default()).await
@@ -70,34 +89,50 @@ impl AppAccessTokenBuilder {
         // 验证必填字段
         validate_required!(self.app_id, "应用ID不能为空");
         validate_required!(self.app_secret, "应用密钥不能为空");
+        validate_required!(self.app_ticket, "应用票据不能为空");
 
         // 🚀 使用新的enum+builder系统生成API端点
         use crate::common::api_endpoints::AuthApiV3;
         let api_endpoint = AuthApiV3::AppAccessToken;
 
         // 构建请求体
-        let request_body = AppAccessTokenRequest {
+        let request_body = AppAccessTokenBody {
             app_id: self.app_id.clone(),
             app_secret: self.app_secret.clone(),
+            app_ticket: self.app_ticket.clone(),
         };
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<AppAccessTokenResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取商店应用 access_token", "响应数据为空")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取商店应用 access_token",
+        )
+        .await
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AppAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AppAccessTokenBuilder = AppAccessTokenRequestBuilder;
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -109,39 +144,50 @@ mod tests {
     #[test]
     fn test_app_access_token_builder_new() {
         let config = create_test_config();
-        let builder = AppAccessTokenBuilder::new(config);
+        let builder = AppAccessTokenRequestBuilder::new(config);
         assert!(builder.app_id.is_empty());
         assert!(builder.app_secret.is_empty());
+        assert!(builder.app_ticket.is_empty());
     }
 
     #[test]
     fn test_app_access_token_builder_chain() {
         let config = create_test_config();
-        let builder = AppAccessTokenBuilder::new(config)
+        let builder = AppAccessTokenRequestBuilder::new(config)
             .app_id("my_app_id")
-            .app_secret("my_app_secret");
+            .app_secret("my_app_secret")
+            .app_ticket("my_app_ticket");
         assert_eq!(builder.app_id, "my_app_id");
         assert_eq!(builder.app_secret, "my_app_secret");
+        assert_eq!(builder.app_ticket, "my_app_ticket");
     }
 
     #[test]
     fn test_app_access_token_builder_app_id_chained() {
         let config = create_test_config();
-        let builder = AppAccessTokenBuilder::new(config).app_id("chained_app_id");
+        let builder = AppAccessTokenRequestBuilder::new(config).app_id("chained_app_id");
         assert_eq!(builder.app_id, "chained_app_id");
     }
 
     #[test]
     fn test_app_access_token_builder_app_secret_chained() {
         let config = create_test_config();
-        let builder = AppAccessTokenBuilder::new(config).app_secret("chained_secret");
+        let builder = AppAccessTokenRequestBuilder::new(config).app_secret("chained_secret");
         assert_eq!(builder.app_secret, "chained_secret");
     }
 
     #[test]
+    fn test_app_access_token_builder_app_ticket_chained() {
+        let config = create_test_config();
+        let builder = AppAccessTokenRequestBuilder::new(config).app_ticket("chained_ticket");
+        assert_eq!(builder.app_ticket, "chained_ticket");
+    }
+
+    #[test]
     fn test_app_access_token_response_data_deserialization() {
-        let json = r#"{"data":{"app_access_token":"token123","expires_in":7200,"tenant_key":"test_tenant"}}"#;
-        let response: AppAccessTokenResponseData = serde_json::from_str(json).expect("JSON 反序列化失败");
+        let json = r#"{"code":0,"msg":"success","app_access_token":"token123","expire":7200,"tenant_key":"test_tenant"}"#;
+        let response: AppAccessTokenResponseData =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.data.app_access_token, "token123");
         assert_eq!(response.data.expires_in, 7200);
         assert_eq!(response.data.tenant_key, "test_tenant");
@@ -151,7 +197,75 @@ mod tests {
     fn test_app_access_token_response_data_format() {
         assert_eq!(
             AppAccessTokenResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
         );
+    }
+
+    #[tokio::test]
+    async fn test_execute_sends_app_ticket_and_no_authorization() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/app_access_token"))
+            .and(body_json(json!({
+                "app_id": "test_app",
+                "app_secret": "test_secret",
+                "app_ticket": "ticket-001"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "app_access_token": "market-app-token",
+                "expire": 7200
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .build();
+
+        let response = AppAccessTokenRequestBuilder::new(config)
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .app_ticket("ticket-001")
+            .execute()
+            .await
+            .expect("app_access_token 请求应成功");
+
+        assert_eq!(response.data.app_access_token, "market-app-token");
+
+        let received_requests = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received_requests.len(), 1);
+        assert!(!received_requests[0].headers.contains_key("authorization"));
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_app_access_token_legacy_alias_still_callable() {
+        // 旧名 alias 经 deprecated type alias 解析到新类型的方法，
+        // 必须仍可调用（源码兼容），仅在编译期产生 deprecation warning。
+        let config = create_test_config();
+        let builder = AppAccessTokenBuilder::new(config)
+            .app_id("legacy")
+            .app_secret("legacy_secret")
+            .app_ticket("legacy_ticket");
+        assert_eq!(builder.app_id, "legacy");
+        assert_eq!(builder.app_secret, "legacy_secret");
+        assert_eq!(builder.app_ticket, "legacy_ticket");
+    }
+
+    #[test]
+    fn test_app_access_token_new_name_no_deprecation() {
+        // 新名正常调用，无 deprecation warning。
+        let config = create_test_config();
+        let builder = AppAccessTokenRequestBuilder::new(config)
+            .app_id("new")
+            .app_secret("new_secret")
+            .app_ticket("new_ticket");
+        assert_eq!(builder.app_id, "new");
+        assert_eq!(builder.app_secret, "new_secret");
+        assert_eq!(builder.app_ticket, "new_ticket");
     }
 }

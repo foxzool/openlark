@@ -291,7 +291,7 @@ impl OAuthError {
             OAuthError::AccessDenied => "用户拒绝了授权请求".to_string(),
             OAuthError::ServerError => "服务器内部错误，请稍后重试".to_string(),
             OAuthError::TemporarilyUnavailable => "服务暂时不可用，请稍后重试".to_string(),
-            OAuthError::Other(msg) => format!("授权失败: {}", msg),
+            OAuthError::Other(msg) => format!("授权失败: {msg}"),
         }
     }
 }

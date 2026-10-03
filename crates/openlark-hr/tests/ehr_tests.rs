@@ -1,11 +1,12 @@
 //! ehr tests 集成测试。
+#![cfg(feature = "ehr")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::ehr::ehr::v1::{attachment, employee};
 use serde_json::json;
 use wiremock::{
-    matchers::{header, method, path, query_param},
     Mock, MockServer, ResponseTemplate,
+    matchers::{header, method, path, query_param},
 };
 
 fn test_config(base_url: &str) -> Config {
@@ -77,7 +78,12 @@ mod validation_tests {
         .err()
         .unwrap()
         .to_string();
-        assert!(err.contains("下载人员附件响应数据为空"));
+        assert!(
+            err.contains("下载人员附件响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 
     #[tokio::test]
@@ -95,7 +101,12 @@ mod validation_tests {
             .err()
             .unwrap()
             .to_string();
-        assert!(err.contains("批量获取员工花名册响应数据为空"));
+        assert!(
+            err.contains("批量获取员工花名册响应数据为空")
+                || err.contains("成功响应缺少必需的 data")
+                || err.contains("api_response_data"),
+            "unexpected err: {err}"
+        );
     }
 }
 

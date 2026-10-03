@@ -1,20 +1,28 @@
 //! 安全合规管理 (Security & Compliance) - Project
 //!
 //! 提供设备记录管理、审计日志、合规检查等安全功能。
+//!
+//! security_and_compliance 使用 canonical `openlark_core::Config` + Transport（与 acs 一致）。
 
-use std::sync::Arc;
+use openlark_core::config::Config;
 
 /// 安全合规项目服务
 #[derive(Debug)]
 pub struct SecurityAndComplianceProject {
-    config: Arc<crate::models::SecurityConfig>,
+    config: Config,
     v1: SecurityAndComplianceV1Service,
     v2: SecurityAndComplianceV2Service,
 }
 
+impl Clone for SecurityAndComplianceProject {
+    fn clone(&self) -> Self {
+        Self::new(self.config.clone())
+    }
+}
+
 impl SecurityAndComplianceProject {
-    /// 创建新的安全合规项目实例
-    pub fn new(config: Arc<crate::models::SecurityConfig>) -> Self {
+    /// 创建新的安全合规项目实例（仅供 [`crate::SecurityClient`] 组装）。
+    pub(crate) fn new(config: Config) -> Self {
         Self {
             v1: SecurityAndComplianceV1Service::new(config.clone()),
             v2: SecurityAndComplianceV2Service::new(config.clone()),
@@ -33,7 +41,7 @@ impl SecurityAndComplianceProject {
     }
 
     /// 获取配置信息
-    pub fn config(&self) -> &crate::models::SecurityConfig {
+    pub fn config(&self) -> &Config {
         &self.config
     }
 }
@@ -43,20 +51,17 @@ impl SecurityAndComplianceProject {
 /// 主要提供审计日志功能
 #[derive(Debug)]
 pub struct SecurityAndComplianceV1Service {
-    #[allow(dead_code)]
-    config: Arc<crate::models::SecurityConfig>,
     openapi_logs: crate::security::security_and_compliance::v1::openapi_logs::OpenApiLogsService,
 }
 
 impl SecurityAndComplianceV1Service {
     /// 创建新的 v1 服务实例
-    pub fn new(config: Arc<crate::models::SecurityConfig>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             openapi_logs:
                 crate::security::security_and_compliance::v1::openapi_logs::OpenApiLogsService::new(
-                    config.clone(),
+                    config,
                 ),
-            config,
         }
     }
 
@@ -73,8 +78,6 @@ impl SecurityAndComplianceV1Service {
 /// 主要提供设备记录管理和设备申报审批功能
 #[derive(Debug)]
 pub struct SecurityAndComplianceV2Service {
-    #[allow(dead_code)]
-    config: Arc<crate::models::SecurityConfig>,
     device_records: crate::security::security_and_compliance::v2::device_records::DeviceRecordsService,
     device_apply_records:
         crate::security::security_and_compliance::v2::device_apply_records::DeviceApplyRecordsService,
@@ -82,11 +85,10 @@ pub struct SecurityAndComplianceV2Service {
 
 impl SecurityAndComplianceV2Service {
     /// 创建新的 v2 服务实例
-    pub fn new(config: Arc<crate::models::SecurityConfig>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             device_records: crate::security::security_and_compliance::v2::device_records::DeviceRecordsService::new(config.clone()),
-            device_apply_records: crate::security::security_and_compliance::v2::device_apply_records::DeviceApplyRecordsService::new(config.clone()),
-            config,
+            device_apply_records: crate::security::security_and_compliance::v2::device_apply_records::DeviceApplyRecordsService::new(config),
         }
     }
 
@@ -110,24 +112,3 @@ pub mod v1;
 
 // v2 模块
 pub mod v2;
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

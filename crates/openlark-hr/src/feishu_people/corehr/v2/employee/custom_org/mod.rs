@@ -1,0 +1,10 @@
+/// create_emp_custom_org 模块。
+pub mod create_emp_custom_org;
+/// del 模块。
+pub mod del;
+/// edit_emp_custom_org 模块。
+pub mod edit_emp_custom_org;
+/// employment_custom_org_record 模块。
+pub mod employment_custom_org_record;
+/// querybyid 模块。
+pub mod querybyid;

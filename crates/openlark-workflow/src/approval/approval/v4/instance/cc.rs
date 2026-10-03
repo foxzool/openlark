@@ -1,11 +1,12 @@
 //! 抄送审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/cc
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/cc>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -34,6 +35,7 @@ pub struct CcInstanceRequestV4 {
 }
 
 impl CcInstanceRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -65,6 +67,11 @@ impl CcInstanceRequestV4 {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CcInstanceResponseV4> {
         validate_required!(self.body.instance_code.trim(), "审批实例 Code 不能为空");
+        validate_required_list!(
+            self.body.cc_user_ids,
+            1000,
+            "被抄送人用户 ID 列表不能为空且不能超过 1000 个"
+        );
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceCc;
         let mut request = ApiRequest::<CcInstanceResponseV4>::post(api_endpoint.to_url());
@@ -75,11 +82,13 @@ impl CcInstanceRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -92,7 +101,6 @@ impl ApiResponseTrait for CcInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_cc_v4_url() {

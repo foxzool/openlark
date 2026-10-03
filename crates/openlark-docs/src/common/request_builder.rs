@@ -51,7 +51,7 @@
 ///
 /// 该宏会生成：
 /// 1. Builder 结构体（所有字段都是 `Option<T>`）
-/// 2. Builder::new() 和 Builder::default() 方法
+/// 2. Builder::default() 方法（通过 `#[derive(Default)]`）
 /// 3. 每个字段的 setter 方法
 /// 4. Builder::build() 方法（验证必填字段）
 /// 5. Request::builder() 关联方法
@@ -93,13 +93,6 @@ macro_rules! impl_required_builder {
         }
 
         impl $builder_name {
-            /// 创建新的构建器实例（废弃，请使用 builder()）
-            #[deprecated(since = "0.5.0", note = "使用 builder() 替代")]
-            #[allow(dead_code)]
-            pub fn new() -> Self {
-                Self::default()
-            }
-
             /// 设置配置（链式调用）
             pub fn with_config(mut self, config: openlark_core::config::Config) -> Self {
                 self.config = Some(config);
@@ -231,12 +224,14 @@ mod tests {
     use openlark_core::config::Config;
 
     // 测试用的请求结构
+    // 测试 helper，见 #267：impl_required_builder! 宏在 build() 中按字段名 `config` 构造，无法改名。
+    // 用 #[expect(dead_code)] 显式标记：CI grep 只拦 #[allow]，#[expect]] 是受控的预期死代码。
+    #[expect(dead_code)]
     #[derive(Debug, Clone)]
     pub struct TestRequest {
         app_token: String,
         table_id: String,
         user_id_type: Option<String>,
-        #[allow(dead_code)]
         config: Config,
     }
 

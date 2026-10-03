@@ -2,14 +2,15 @@
 //!
 //! 识别台湾通行证信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_TW_MAINLAND_TRAVEL_PERMIT_RECOGNIZE;
 
 /// 台湾通行证识别请求体
@@ -24,10 +25,8 @@ pub struct TwMainlandTravelPermitRecognizeBody {
 
 impl TwMainlandTravelPermitRecognizeBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -92,15 +91,13 @@ impl TwMainlandTravelPermitRecognizeRequest {
         body: TwMainlandTravelPermitRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<TwMainlandTravelPermitRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<TwMainlandTravelPermitRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_TW_MAINLAND_TRAVEL_PERMIT_RECOGNIZE)
                 .body(serialize_params(&body, "台湾通行证识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "台湾通行证识别")
+        Transport::request_typed(req, &self.config, Some(option), "台湾通行证识别").await
     }
 }
 
@@ -160,7 +157,7 @@ impl TwMainlandTravelPermitRecognizeRequestBuilder {
 
 /// 执行台湾通行证识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/tw_mainland_travel_permit_recognize>
 pub async fn tw_mainland_travel_permit_recognize(
     config: &Config,
     body: TwMainlandTravelPermitRecognizeBody,
@@ -174,15 +171,13 @@ pub async fn tw_mainland_travel_permit_recognize_with_options(
     body: TwMainlandTravelPermitRecognizeBody,
     option: RequestOption,
 ) -> SDKResult<TwMainlandTravelPermitRecognizeResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<TwMainlandTravelPermitRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_TW_MAINLAND_TRAVEL_PERMIT_RECOGNIZE)
             .body(serialize_params(&body, "台湾通行证识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "台湾通行证识别")
+    Transport::request_typed(req, config, Some(option), "台湾通行证识别").await
 }
 
 #[cfg(test)]

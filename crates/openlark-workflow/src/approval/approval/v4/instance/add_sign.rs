@@ -1,11 +1,12 @@
 //! 审批实例加签（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/add_sign
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/add_sign>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -41,6 +42,7 @@ pub struct AddSignRequestV4 {
 }
 
 impl AddSignRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -90,10 +92,7 @@ impl AddSignRequestV4 {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<AddSignResponseV4> {
         validate_required!(self.body.sign_type.trim(), "加签类型不能为空");
-        validate_required!(
-            !self.body.user_ids.is_empty(),
-            "加签处理人用户 ID 列表不能为空"
-        );
+        validate_required!(self.body.user_ids, "加签处理人用户 ID 列表不能为空");
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceAddSign;
         let mut request = ApiRequest::<AddSignResponseV4>::post(api_endpoint.to_url());
@@ -104,11 +103,13 @@ impl AddSignRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -121,7 +122,6 @@ impl ApiResponseTrait for AddSignResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_add_sign_v4_url() {

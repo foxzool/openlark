@@ -1,16 +1,13 @@
 //! 更新群置顶
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/put_top_notice
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/put_top_notice>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::{
-        api_utils::{extract_response_data, serialize_params},
-        models::EmptyData,
-    },
+    common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_CHATS,
 };
 
@@ -69,8 +66,7 @@ impl PutTopNoticeRequest {
         ))
         .body(serialize_params(&body, "更新群置顶")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新群置顶")
+        Transport::request_typed(req, &self.config, Some(option), "更新群置顶").await
     }
 }
 

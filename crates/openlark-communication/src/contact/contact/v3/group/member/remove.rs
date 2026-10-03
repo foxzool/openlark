@@ -1,17 +1,15 @@
 //! 移除用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    contact::contact::v3::user::models::UserIdType,
-    endpoints::CONTACT_V3_GROUP,
+    common::api_utils::serialize_params, common::models::EmptyData,
+    contact::contact::v3::user::models::UserIdType, endpoints::CONTACT_V3_GROUP,
 };
 
 /// 移除用户组成员请求体
@@ -70,7 +68,7 @@ impl RemoveGroupMemberRequest {
     ///
     /// 说明：该接口目前仅支持 `member_type=user`。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/remove>
     pub async fn execute(
         self,
         member_id_type: UserIdType,
@@ -110,8 +108,7 @@ impl RemoveGroupMemberRequest {
         ))
         .body(serialize_params(&body, "移除用户组成员")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "移除用户组成员")
+        Transport::request_typed(req, &self.config, Some(option), "移除用户组成员").await
     }
 }
 

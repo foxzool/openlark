@@ -19,17 +19,21 @@ openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
-reqwest = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
 insta = { workspace = true }
+wiremock = { workspace = true }
 
 [features]
-default = ["im", "contact", "moments"]
-full = ["im", "contact", "moments", "aily"]
+default = ["im", "contact", "moments", "aily", "event"]
+full = ["im", "contact", "moments", "aily", "event"]
 
 im = []
 contact = []
 moments = []
 aily = []
+event = []
+
+[package.metadata.cargo-machete]
+ignored = ["tracing"]

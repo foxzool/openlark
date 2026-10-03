@@ -1,0 +1,7 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/drive.rs
+expression: "catalog_semantics_snapshot::<PermissionApiOld>()"
+---
+MemberPermitted | Post | /open-apis/drive/v1/permission/member/permitted | Some([User, Tenant])
+MemberTransfer | Post | /open-apis/drive/v1/permission/member/transfer | Some([User, Tenant])
+Public | Post | /open-apis/drive/v1/permission/v2/public/ | Some([User, Tenant])

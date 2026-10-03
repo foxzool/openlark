@@ -1,12 +1,13 @@
 //! Bitable 新增自定义角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -82,20 +83,21 @@ impl CreateAppRoleRequest {
                 "table_roles 最多 100 项",
             ));
         }
-        if let Some(ref block_roles) = self.block_roles {
-            if block_roles.len() > 100 {
-                return Err(openlark_core::error::validation_error(
-                    "block_roles",
-                    "block_roles 最多 100 项",
-                ));
-            }
+        if let Some(ref block_roles) = self.block_roles
+            && block_roles.len() > 100
+        {
+            return Err(openlark_core::error::validation_error(
+                "block_roles",
+                "block_roles 最多 100 项",
+            ));
         }
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::RoleCreate(self.app_token.clone());
+        // #439: method 来自 catalog
 
         let api_request: ApiRequest<CreateAppRoleResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(
+            api_endpoint.to_request().body(serialize_params(
                 &CreateAppRoleRequestBody {
                     role_name: self.role_name,
                     table_roles: self.table_roles,
@@ -104,8 +106,7 @@ impl CreateAppRoleRequest {
                 "新增角色",
             )?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新增角色")
+        Transport::request_typed(api_request, &self.config, Some(option), "新增角色").await
     }
 }
 

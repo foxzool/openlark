@@ -1,15 +1,12 @@
 //! 获取指定消息的内容
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/get
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/get>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::UserIdType,
-};
+use crate::{endpoints::IM_V1_MESSAGES, im::v1::message::models::UserIdType};
 
 /// 获取指定消息的内容请求
 ///
@@ -62,7 +59,7 @@ impl GetMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -82,8 +79,7 @@ impl GetMessageRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取指定消息的内容")
+        Transport::request_typed(req, &self.config, Some(option), "获取指定消息的内容").await
     }
 }
 

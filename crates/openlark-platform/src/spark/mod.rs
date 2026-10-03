@@ -23,18 +23,16 @@ impl SparkService {
     }
 
     /// V1 版本 API
-    #[cfg(feature = "v1")]
-    pub fn v1(&self) -> crate::spark::spark::v1::SparkV1 {
-        crate::spark::spark::v1::SparkV1::new(self.config.clone())
+    pub fn v1(&self) -> crate::spark::v1::SparkV1 {
+        crate::spark::v1::SparkV1::new(self.config.clone())
     }
 }
 
-#[cfg(feature = "v1")]
-pub mod spark;
+pub mod v1;
 
 #[cfg(test)]
 mod tests {
-    use crate::{spark::SparkService, PlatformConfig};
+    use crate::{PlatformConfig, spark::SparkService};
 
     #[test]
     fn test_service_creation() {

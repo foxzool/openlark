@@ -2,12 +2,13 @@
 name = "openlark-docs"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
-description = "飞书开放平台云文档服务模块 - 文档、表格、知识库API (202 APIs, 100% 覆盖，不含旧版本)"
+description = "飞书开放平台云文档服务模块 - 文档、表格、知识库API (216 APIs, 100% 覆盖，不含旧版本)"
 keywords = ["feishu", "lark", "docs", "api", "sdk"]
 categories = ["api-bindings", "web-programming"]
 
@@ -60,14 +61,9 @@ docs = ["ccm-doc"]
 # 群公告管理 (19 APIs)
 docx = ["ccm-docx"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-
 # === 功能组合 ===
 # 完整云文档功能
-full = ["ccm", "bitable", "base", "baike", "minutes", "v3"]
+full = ["ccm", "bitable", "base", "baike", "minutes"]
 
 # 向后兼容别名
 cloud-docs = ["ccm", "bitable", "base"]
@@ -78,7 +74,6 @@ all-cloud-docs = ["full"]
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
@@ -100,9 +95,19 @@ base64 = { workspace = true }
 
 
 [dev-dependencies]
+openlark-core = { workspace = true, features = ["testing"] }
 tokio-test = "0.4"
 wiremock = { workspace = true }
 rstest = { workspace = true }
 tempfile = { workspace = true }
 mockall = { workspace = true }
 insta = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+
+[[example]]
+name = "docs_readme_examples"
+required-features = ["baike", "bitable", "ccm-core"]
+
+[package.metadata.cargo-machete]
+ignored = ["anyhow", "async-trait", "base64", "futures", "futures-util", "once_cell", "rand", "regex", "thiserror", "url", "uuid"]

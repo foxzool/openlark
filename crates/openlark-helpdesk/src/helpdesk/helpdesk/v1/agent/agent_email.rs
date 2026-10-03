@@ -2,16 +2,15 @@
 //!
 //! 该接口用于获取客服邮箱地址。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent/agent_email
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent/agent_email>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 获取客服邮箱请求
 #[derive(Debug, Clone)]
@@ -38,8 +37,7 @@ impl GetAgentEmailRequest {
         let req: ApiRequest<GetAgentEmailResponse> =
             ApiRequest::get(HelpdeskApiV1::AgentEmail.to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取客服邮箱")
+        Transport::request_typed(req, &self.config, Some(option), "获取客服邮箱").await
     }
 }
 
@@ -85,8 +83,7 @@ pub async fn get_agent_email_with_options(
     let req: ApiRequest<GetAgentEmailResponse> =
         ApiRequest::get(HelpdeskApiV1::AgentEmail.to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "获取客服邮箱")
+    Transport::request_typed(req, config, Some(option), "获取客服邮箱").await
 }
 
 #[cfg(test)]
@@ -103,5 +100,49 @@ mod tests {
 
         let request = GetAgentEmailRequest::new(Arc::new(config));
         assert_eq!(request.config.app_id(), "test_app_id");
+    }
+
+    /// 端到端：GET .../agent_emails → 强类型 GetAgentEmailResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_get_agent_email_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/helpdesk/v1/agent_emails"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({
+                    "code": 0,
+                    "msg": "success",
+                    "data": { "data": { "agent_emails": [ { "email": "support@example.com", "is_main": true } ] } }
+                })),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = GetAgentEmailRequest::new(config)
+            .execute()
+            .await
+            .expect("获取客服邮箱应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agent_emails"
+        );
     }
 }

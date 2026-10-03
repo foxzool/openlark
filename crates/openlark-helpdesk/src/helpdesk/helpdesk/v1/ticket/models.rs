@@ -51,7 +51,25 @@ pub struct UpdateTicketBody {
     pub description: Option<String>,
     /// 状态。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<i32>,
+    /// 标签名列表。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag_names: Option<Vec<String>>,
+    /// 评论。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+    /// 自定义字段。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub customized_fields: Option<serde_json::Value>,
+    /// 工单类型。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ticket_type: Option<i32>,
+    /// 是否解决（0=未解决，1=已解决）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub solved: Option<i32>,
+    /// 渠道。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel: Option<i32>,
 }
 
 /// 更新工单响应。

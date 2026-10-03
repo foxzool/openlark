@@ -9,7 +9,7 @@
 //!
 //! **公开入口** (推荐用户使用):
 //! - `DocsClient` - 文档服务的唯一公开入口
-//! - 示例: `DocsClient::new(config).ccm.config().clone()` 用于获取配置
+//! - 示例: `DocsClient::new(config).config().clone()` 用于获取配置
 //!
 //! ## 推荐调用方式
 //!
@@ -26,23 +26,23 @@
 //!
 //! // ✅ 推荐：获取配置后构建 Request
 //! // 访问云盘服务
-//! let config = docs.ccm.config().clone();
+//! let config = docs.config().clone();
 //! // let file = UploadAllRequest::new(config, ...).execute().await?;
 //!
 //! // 访问多维表格
-//! let config = docs.base.bitable.config().clone();
+//! let config = docs.config().clone();
 //! // let table = CreateTableRequest::new(config, ...).execute().await?;
 //!
 //! // 访问知识库
-//! let config = docs.ccm.wiki.config().clone();
+//! let config = docs.config().clone();
 //! // let node = CreateNodeRequest::new(config, ...).execute().await?;
 //! ```
 
-use openlark_core::config::Config;
-#[cfg(feature = "ccm-core")]
-use openlark_core::error::{business_error, validation_error, CoreError};
 #[cfg(any(feature = "ccm-core", feature = "bitable"))]
 use openlark_core::SDKResult;
+use openlark_core::config::Config;
+#[cfg(feature = "ccm-core")]
+use openlark_core::error::{CoreError, business_error, validation_error};
 use std::sync::Arc;
 
 /// 统一的 typed pagination 返回页。
@@ -86,7 +86,7 @@ impl<T> TypedPage<T> {
 }
 
 #[cfg(feature = "ccm-core")]
-/// 公开项说明。
+/// Drive Explorer 文件夹子项的分页结果类型别名。
 pub type FolderChildrenPage = TypedPage<crate::ccm::explorer::v2::models::FileItem>;
 
 /// 电子表格范围 helper。
@@ -555,14 +555,14 @@ impl FolderChildrenPager {
 
     /// 读取下一页结果。
     pub async fn fetch_next_page(&mut self) -> SDKResult<FolderChildrenPage> {
-        use crate::ccm::explorer::v2::{get_folder_children, GetFolderChildrenParams};
+        use crate::ccm::explorer::v2::{GetFolderChildrenParams, GetFolderChildrenRequest};
 
         if self.exhausted {
             return Ok(TypedPage::empty());
         }
 
-        let response = get_folder_children(
-            self.config.as_ref(),
+        let response = GetFolderChildrenRequest::new(
+            self.config.as_ref().clone(),
             &self.folder_token,
             Some(GetFolderChildrenParams {
                 page_size: Some(self.page_size),
@@ -570,6 +570,7 @@ impl FolderChildrenPager {
                 doc_type: self.doc_type.clone(),
             }),
         )
+        .execute()
         .await?;
 
         let page = response
@@ -605,42 +606,17 @@ impl FolderChildrenPager {
     }
 }
 
-/// Docs 链式入口：`docs.ccm.config()` / `docs.base.bitable.config()`（按 feature 裁剪）
+/// Docs 入口：`docs.config()` 直路径访问（ADR 0001：5 个 config-holder 子客户端已砍，~15 个真 helper 全保留）。
 #[derive(Debug, Clone)]
 pub struct DocsClient {
     config: Arc<Config>,
-
-    #[cfg(feature = "ccm-core")]
-    /// 公开项说明。
-    pub ccm: CcmClient,
-
-    #[cfg(any(feature = "base", feature = "bitable"))]
-    /// 公开项说明。
-    pub base: BaseClient,
-
-    #[cfg(any(feature = "baike", feature = "lingo"))]
-    /// 公开项说明。
-    pub baike: BaikeClient,
-
-    #[cfg(feature = "minutes")]
-    /// 公开项说明。
-    pub minutes: MinutesClient,
 }
 
 impl DocsClient {
     /// 创建新的实例。
     pub fn new(config: Config) -> Self {
-        let config = Arc::new(config);
         Self {
-            config: config.clone(),
-            #[cfg(feature = "ccm-core")]
-            ccm: CcmClient::new(config.clone()),
-            #[cfg(any(feature = "base", feature = "bitable"))]
-            base: BaseClient::new(config.clone()),
-            #[cfg(any(feature = "baike", feature = "lingo"))]
-            baike: BaikeClient::new(config.clone()),
-            #[cfg(feature = "minutes")]
-            minutes: MinutesClient::new(config),
+            config: Arc::new(config),
         }
     }
 
@@ -722,7 +698,7 @@ impl DocsClient {
         ranges: Vec<String>,
     ) -> SDKResult<crate::ccm::sheets_v2::v2::data_io::models::MultipleRangeData> {
         use crate::ccm::sheets_v2::v2::data_io::{
-            read_multiple_ranges as read_multiple_ranges_api, ReadMultipleRangesParams,
+            ReadMultipleRangesParams, read_multiple_ranges as read_multiple_ranges_api,
         };
 
         let response = read_multiple_ranges_api(
@@ -762,7 +738,7 @@ impl DocsClient {
         spreadsheet_token: &str,
         data: Vec<crate::ccm::sheets_v2::v2::data_io::models::BatchWriteData>,
     ) -> SDKResult<crate::ccm::sheets_v2::v2::data_io::models::BatchUpdateResult> {
-        use crate::ccm::sheets_v2::v2::data_io::{batch_write_ranges, BatchWriteRangesParams};
+        use crate::ccm::sheets_v2::v2::data_io::{BatchWriteRangesParams, batch_write_ranges};
 
         let response = batch_write_ranges(
             self.config(),
@@ -801,7 +777,7 @@ impl DocsClient {
         range: SheetRange,
         values: Vec<Vec<serde_json::Value>>,
     ) -> SDKResult<crate::ccm::sheets_v2::v2::data_io::models::AppendResult> {
-        use crate::ccm::sheets_v2::v2::data_io::{append_values, AppendValuesParams};
+        use crate::ccm::sheets_v2::v2::data_io::{AppendValuesParams, append_values};
 
         let response = append_values(
             self.config(),
@@ -836,10 +812,10 @@ impl DocsClient {
     pub async fn download_drive_file(&self, file_token: &str) -> SDKResult<Vec<u8>> {
         use crate::ccm::drive::v1::file::DownloadFileRequest;
 
-        DownloadFileRequest::new(self.config().clone(), file_token)
+        let resp = DownloadFileRequest::new(self.config().clone(), file_token)
             .execute()
-            .await?
-            .into_result()
+            .await?;
+        resp.decode("下载 Drive 文件")
     }
 
     /// 按范围下载 Drive 文件内容。
@@ -851,11 +827,11 @@ impl DocsClient {
     ) -> SDKResult<Vec<u8>> {
         use crate::ccm::drive::v1::file::DownloadFileRequest;
 
-        DownloadFileRequest::new(self.config().clone(), file_token)
+        let resp = DownloadFileRequest::new(self.config().clone(), file_token)
             .range(range.to_string())
             .execute()
-            .await?
-            .into_result()
+            .await?;
+        resp.decode("按范围下载 Drive 文件")
     }
 
     /// 获取指定知识空间下的所有节点，自动处理分页。
@@ -927,7 +903,7 @@ impl DocsClient {
             current_node = Some(node);
         }
 
-        current_node.ok_or_else(|| business_error(format!("未找到 Wiki 路径: {}", path)))
+        current_node.ok_or_else(|| business_error(format!("未找到 Wiki 路径: {path}")))
     }
 
     /// 根据工作表标题查找工作表。
@@ -964,10 +940,7 @@ impl DocsClient {
         use crate::ccm::sheets::v3::spreadsheet::sheet::query::query_sheets;
         use crate::ccm::sheets_v2::v2::spreadsheet::models::SpreadsheetSheetInfo;
 
-        log::info!(
-            "[OPENLARK DEBUG] list_sheet_infos called with token: {}",
-            spreadsheet_token
-        );
+        log::info!("[OPENLARK DEBUG] list_sheet_infos called with token: {spreadsheet_token}");
 
         let response = query_sheets(self.config(), spreadsheet_token).await?;
 
@@ -1057,126 +1030,9 @@ fn find_unique_wiki_node_by_title(
     Ok(first)
 }
 
-/// ccm：`docs.ccm`（云文档协同）
-#[cfg(feature = "ccm-core")]
-#[derive(Debug, Clone)]
-pub struct CcmClient {
-    config: Arc<Config>,
-}
-
-#[cfg(feature = "ccm-core")]
-impl CcmClient {
-    fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 返回共享配置。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-}
-
-/// base：`docs.base`（base/bitable 都归口在 base 模块下）
-#[cfg(any(feature = "base", feature = "bitable"))]
-#[derive(Debug, Clone)]
-pub struct BaseClient {
-    config: Arc<Config>,
-}
-
-#[cfg(any(feature = "base", feature = "bitable"))]
-impl BaseClient {
-    fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 返回共享配置。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    #[cfg(feature = "bitable")]
-    /// 返回多维表格客户端。
-    pub fn bitable(&self) -> BitableClient {
-        BitableClient::new(self.config.clone())
-    }
-}
-
-/// bitable：`docs.base.bitable`（多维表格）
-#[cfg(feature = "bitable")]
-#[derive(Debug, Clone)]
-pub struct BitableClient {
-    config: Arc<Config>,
-}
-
-#[cfg(feature = "bitable")]
-impl BitableClient {
-    fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 返回共享配置。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-}
-
-/// baike：`docs.baike`（baike/lingo 相关）
-#[cfg(any(feature = "baike", feature = "lingo"))]
-#[derive(Debug, Clone)]
-pub struct BaikeClient {
-    config: Arc<Config>,
-}
-
-#[cfg(any(feature = "baike", feature = "lingo"))]
-impl BaikeClient {
-    fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 返回共享配置。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-}
-
-/// minutes：`docs.minutes`（会议纪要）
-#[cfg(feature = "minutes")]
-#[derive(Debug, Clone)]
-pub struct MinutesClient {
-    config: Arc<Config>,
-}
-
-#[cfg(feature = "minutes")]
-impl MinutesClient {
-    fn new(config: Arc<Config>) -> Self {
-        Self { config }
-    }
-
-    /// 返回共享配置。
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 
     #[test]
     fn test_typed_page_last_page_state() {

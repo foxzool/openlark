@@ -26,7 +26,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .docs
         .read_sheet_ranges("spreadsheet_token", vec![summary_range.clone()])
         .await?;
-    println!("目标范围: {}", summary_range);
+    println!("目标范围: {summary_range}");
     println!("读取范围数量: {}", ranges.value_ranges.len());
 
     let records = client

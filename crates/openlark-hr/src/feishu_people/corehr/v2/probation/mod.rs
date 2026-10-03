@@ -8,3 +8,5 @@ pub mod search;
 pub mod submit;
 /// withdraw 子模块。
 pub mod withdraw;
+
+pub mod edit;

@@ -1,6 +1,6 @@
 //! Bitable 删除自定义角色
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -58,14 +58,17 @@ impl DeleteAppRoleRequest {
 
         use crate::common::api_endpoints::BitableApiV1;
         let api_endpoint = BitableApiV1::RoleDelete(self.app_token, self.role_id);
+        // #439: method 来自 catalog
 
-        let api_request: ApiRequest<DeleteAppRoleResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let api_request: ApiRequest<DeleteAppRoleResponse> = api_endpoint.to_request();
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除自定义角色",
+        )
+        .await
     }
 }
 

@@ -10,7 +10,7 @@ pub use crate::UserService;
 
 // 重新导出 openlark-core 核心类型
 /// 核心配置、错误与结果类型。
-pub use openlark_core::{config::Config, CoreError, SDKResult};
+pub use openlark_core::{CoreError, SDKResult, config::Config};
 
 // 重新导出常用特征
 /// OpenLark API 请求特征。

@@ -1,20 +1,20 @@
 //! 批量删除记录权限用户授权
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization
+//! 文档: <https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/permission/application-record_permission-member/batch_remove_authorization>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 批量删除记录权限用户授权 Builder
 #[derive(Debug, Clone)]
-pub struct RecordPermissionBatchRemoveAuthBuilder {
+pub struct RecordPermissionBatchRemoveAuthRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -24,7 +24,7 @@ pub struct RecordPermissionBatchRemoveAuthBuilder {
     user_ids: Vec<String>,
 }
 
-impl RecordPermissionBatchRemoveAuthBuilder {
+impl RecordPermissionBatchRemoveAuthRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -53,8 +53,7 @@ impl RecordPermissionBatchRemoveAuthBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<RecordPermissionBatchRemoveAuthResponse> {
-        self.execute_with_options.await
-    }(RequestOption::default()).await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -71,9 +70,9 @@ impl RecordPermissionBatchRemoveAuthBuilder {
             user_ids: self.user_ids,
         };
 
-        let req = ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        let req = ApiRequest::<RecordPermissionBatchRemoveAuthResponse>::post(&url)
+            .body(serde_json::to_value(&request)?);
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -90,10 +89,10 @@ struct RecordPermissionBatchRemoveAuthRequest {
 pub struct RecordPermissionBatchRemoveAuthResponse {
     /// 取消授权的用户数量
     #[serde(rename = "removed_count")]
-    removed_count: u32,
+    pub removed_count: u32,
     /// 结果消息
     #[serde(rename = "message")]
-    message: String,
+    pub message: String,
 }
 
 impl ApiResponseTrait for RecordPermissionBatchRemoveAuthResponse {
@@ -102,23 +101,58 @@ impl ApiResponseTrait for RecordPermissionBatchRemoveAuthResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to RecordPermissionBatchRemoveAuthRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type RecordPermissionBatchRemoveAuthBuilder = RecordPermissionBatchRemoveAuthRequestBuilder;
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST .../record_permissions/{api_name}/member/batch_remove_authorization。
+    #[tokio::test]
+    async fn test_batch_remove_record_permission_member_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/apaas/v1/applications/ns_test/record_permissions/rp_001/member/batch_remove_authorization"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "removed_count": 2,
+                    "message": "取消授权成功"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = RecordPermissionBatchRemoveAuthRequestBuilder::new(config, "ns_test", "rp_001")
+            .user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .execute()
+            .await
+            .expect("批量删除记录权限用户授权应成功");
+        assert_eq!(resp.removed_count, 2);
+        assert_eq!(resp.message, "取消授权成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/record_permissions/rp_001/member/batch_remove_authorization"
+        );
     }
 }

@@ -2,9 +2,10 @@
 name = "openlark-client"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "OpenLark 高级客户端 - 统一入口点和轻量级服务注册表"
+description = "OpenLark 高级客户端 - 统一入口点（meta 链式字段访问）"
 repository.workspace = true
 homepage.workspace = true
 keywords = ["feishu", "lark", "api", "sdk", "client"]
@@ -22,18 +23,19 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
 
-# Additional dependencies for unified client
-chrono = { workspace = true, features = ["serde"] }
-uuid = { workspace = true, features = ["v4"] }
-
 # WebSocket dependencies
 tokio-tungstenite = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 lark-websocket-protobuf = { workspace = true, optional = true }
-url = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+url = { workspace = true }
 prost = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
+
+# HTTP 事件入站（AES-CBC encrypt_key + SHA256 入站签名）
+aes = { workspace = true, optional = true }
+cbc = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 
 # P0 Phase 1 业务模块依赖
 openlark-auth = { workspace = true, optional = true }
@@ -51,6 +53,8 @@ openlark-platform = { workspace = true, optional = true }
 openlark-application = { workspace = true, optional = true }
 openlark-helpdesk = { workspace = true, optional = true }
 openlark-mail = { workspace = true, optional = true }
+openlark-bot = { workspace = true, optional = true }
+openlark-pay = { workspace = true, optional = true }
 openlark-analytics = { workspace = true, optional = true }
 openlark-user = { workspace = true, optional = true }
 
@@ -65,8 +69,6 @@ docs = [
     "auth",
     "dep:openlark-docs",
     "openlark-docs/ccm-core",
-    "openlark-docs/v2",
-    "openlark-docs/v3",
 ]
 cardkit = ["auth", "dep:openlark-cardkit"]
 security = ["auth", "dep:openlark-security"]
@@ -78,14 +80,27 @@ platform = ["auth", "dep:openlark-platform"]
 application = ["auth", "dep:openlark-application"]
 helpdesk = ["auth", "dep:openlark-helpdesk"]
 mail = ["auth", "dep:openlark-mail"]
+bot = ["auth", "dep:openlark-bot"]
+pay = ["auth", "dep:openlark-pay"]
 analytics = ["auth", "dep:openlark-analytics"]
 user = ["auth", "dep:openlark-user"]
 
 # === 技术特性 ===
-websocket = ["tokio-tungstenite", "futures-util", "lark-websocket-protobuf", "url", "prost", "reqwest", "log"]
+websocket = [
+    "tokio-tungstenite",
+    "futures-util",
+    "lark-websocket-protobuf",
+    "prost",
+    "log",
+    "dep:base64",
+]
+# 平台 HTTP 事件入站。复用 `ws_client::EventDispatcherHandler`，因此依赖 `websocket`。
+# 与根 crate `webhook` feature（出站自定义机器人）无关。
+event-http = ["websocket", "dep:aes", "dep:cbc", "dep:sha2", "dep:base64"]
 
 # === 功能组合 ===
 core-layer = ["communication", "docs", "security"]
+
 p0-services = ["communication", "docs", "security"]
 
 [dev-dependencies]

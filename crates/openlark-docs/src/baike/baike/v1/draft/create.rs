@@ -1,13 +1,14 @@
 //! 创建草稿
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/draft/create
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/draft/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,7 +104,7 @@ impl CreateDraftRequest {
         for (idx, term) in self.req.main_keys.iter().enumerate() {
             if term.key.trim().is_empty() {
                 return Err(openlark_core::error::validation_error(
-                    &format!("main_keys[{}].key", idx),
+                    &format!("main_keys[{idx}].key"),
                     "key 不能为空",
                 ));
             }
@@ -112,7 +113,7 @@ impl CreateDraftRequest {
             for (idx, term) in aliases.iter().enumerate() {
                 if term.key.trim().is_empty() {
                     return Err(openlark_core::error::validation_error(
-                        &format!("aliases[{}].key", idx),
+                        &format!("aliases[{idx}].key"),
                         "key 不能为空",
                     ));
                 }
@@ -132,19 +133,16 @@ impl CreateDraftRequest {
         }
 
         // ===== 构建请求 =====
-        let mut api_request: ApiRequest<CreateDraftResp> =
-            ApiRequest::post(&BaikeApiV1::DraftCreate.to_url())
-                .body(serde_json::to_value(&self.req)?);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let mut api_request: ApiRequest<CreateDraftResp> = BaikeApiV1::DraftCreate
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<CreateDraftResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "创建草稿").await
     }
 }
 
@@ -204,10 +202,12 @@ mod tests {
             ..Default::default()
         };
         let request = CreateDraftRequest::new(config.clone(), req);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 main_keys 超过 1 个
         let req2 = CreateDraftReq {
@@ -231,10 +231,12 @@ mod tests {
             ..Default::default()
         };
         let request2 = CreateDraftRequest::new(config.clone(), req2);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 description 和 rich_text 都为空
         let req3 = CreateDraftReq {
@@ -250,10 +252,12 @@ mod tests {
             ..Default::default()
         };
         let request3 = CreateDraftRequest::new(config, req3);
-        assert!(request3
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request3
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

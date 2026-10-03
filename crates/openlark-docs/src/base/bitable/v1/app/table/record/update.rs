@@ -1,9 +1,9 @@
 //! Bitable 更新记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     error::SDKResult,
     http::Transport,
@@ -128,7 +128,9 @@ impl UpdateRecordRequest {
             self.record_id,
         );
 
-        let request = ApiRequest::<UpdateRecordResponse>::put(&api_endpoint.to_url())
+        // #424: PUT method from catalog
+        let request = api_endpoint
+            .to_request::<UpdateRecordResponse>()
             .query_opt("user_id_type", self.user_id_type)
             .query_opt(
                 "ignore_consistency_check",
@@ -141,8 +143,7 @@ impl UpdateRecordRequest {
                 "更新记录",
             )?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新记录")
+        Transport::request_typed(request, &self.config, Some(option), "更新记录").await
     }
 }
 
@@ -171,7 +172,7 @@ struct UpdateRecordRequestBody {
 ///       "en_name": "Li Si"
 ///     },
 ///     "last_modified_time": 1234567890000,
-///     "record_url": "https://example.feishu.cn/base/xxxxxxxxxxxxx"
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx>"
 ///   }
 /// }
 /// ```

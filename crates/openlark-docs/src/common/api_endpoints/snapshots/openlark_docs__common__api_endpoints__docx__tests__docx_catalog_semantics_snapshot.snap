@@ -1,0 +1,23 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/docx.rs
+expression: "catalog_semantics_snapshot::<DocxApiV1>()"
+---
+ChatAnnouncementGet("") | Get | /open-apis/docx/v1/chats//announcement | Some([User, Tenant])
+ChatAnnouncementBlockList("") | Get | /open-apis/docx/v1/chats//announcement/blocks | Some([User, Tenant])
+ChatAnnouncementBlockChildrenCreate("", "") | Post | /open-apis/docx/v1/chats//announcement/blocks//children | Some([User, Tenant])
+ChatAnnouncementBlockBatchUpdate("") | Patch | /open-apis/docx/v1/chats//announcement/blocks/batch_update | Some([User, Tenant])
+ChatAnnouncementBlockGet("", "") | Get | /open-apis/docx/v1/chats//announcement/blocks/ | Some([User, Tenant])
+ChatAnnouncementBlockChildrenGet("", "") | Get | /open-apis/docx/v1/chats//announcement/blocks//children | Some([User, Tenant])
+ChatAnnouncementBlockChildrenBatchDelete("", "") | Delete | /open-apis/docx/v1/chats//announcement/blocks//children/batch_delete | Some([User, Tenant])
+DocumentCreate | Post | /open-apis/docx/v1/documents | Some([User, Tenant])
+DocumentGet("") | Get | /open-apis/docx/v1/documents/ | Some([User, Tenant])
+DocumentRawContent("") | Get | /open-apis/docx/v1/documents//raw_content | Some([User, Tenant])
+DocumentBlockList("") | Get | /open-apis/docx/v1/documents//blocks | Some([User, Tenant])
+DocumentBlockChildrenCreate("", "") | Post | /open-apis/docx/v1/documents//blocks//children | Some([User, Tenant])
+DocumentBlockDescendantCreate("", "") | Post | /open-apis/docx/v1/documents//blocks//descendant | Some([User, Tenant])
+DocumentBlockPatch("", "") | Patch | /open-apis/docx/v1/documents//blocks/ | Some([User, Tenant])
+DocumentBlockGet("", "") | Get | /open-apis/docx/v1/documents//blocks/ | Some([User, Tenant])
+DocumentBlockBatchUpdate("") | Patch | /open-apis/docx/v1/documents//blocks/batch_update | Some([User, Tenant])
+DocumentBlockChildrenGet("", "") | Get | /open-apis/docx/v1/documents//blocks//children | Some([User, Tenant])
+DocumentBlockChildrenBatchDelete("", "") | Delete | /open-apis/docx/v1/documents//blocks//children/batch_delete | Some([User, Tenant])
+DocumentConvert | Post | /open-apis/docx/documents/blocks/convert | Some([User, Tenant])

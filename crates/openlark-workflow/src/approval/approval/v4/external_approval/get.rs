@@ -1,11 +1,12 @@
 //! 获取外部审批定义详情（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/external_approval/get
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/external_approval/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,6 +53,7 @@ pub struct GetExternalApprovalRequestV4 {
 }
 
 impl GetExternalApprovalRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>, approval_code: impl Into<String>) -> Self {
         Self {
             config,
@@ -70,20 +72,19 @@ impl GetExternalApprovalRequestV4 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetExternalApprovalResponseV4> {
-        validate_required!(
-            self.approval_code.trim(),
-            "审批定义 Code 不能为空"
-        );
+        validate_required!(self.approval_code.trim(), "审批定义 Code 不能为空");
 
         let api_endpoint =
             crate::common::api_endpoints::ApprovalApiV4::ExternalApprovalGet(self.approval_code);
         let request = ApiRequest::<GetExternalApprovalResponseV4>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -96,7 +97,6 @@ impl ApiResponseTrait for GetExternalApprovalResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_external_approval_get_v4_url() {

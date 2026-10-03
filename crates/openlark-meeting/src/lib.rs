@@ -88,20 +88,4 @@ mod tests {
         let client = MeetingClient::new(config);
         let _vc = &client.vc;
     }
-
-    #[cfg(feature = "calendar")]
-    #[test]
-    fn test_meeting_client_calendar() {
-        let config = create_test_config();
-        let client = MeetingClient::new(config);
-        let _calendar = &client.calendar;
-    }
-
-    #[cfg(feature = "meeting-room")]
-    #[test]
-    fn test_meeting_client_meeting_room() {
-        let config = create_test_config();
-        let client = MeetingClient::new(config);
-        let _meeting_room = &client.meeting_room;
-    }
 }

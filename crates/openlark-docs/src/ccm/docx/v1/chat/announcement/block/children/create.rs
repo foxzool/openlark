@@ -2,13 +2,14 @@
 ///
 /// 在指定块的子块列表中，新创建一批子块，并放置到指定位置。如果操作成功，接口将返回新创建子块的富文本内容。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/create
-/// doc: https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/create
+/// doc: <https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/chat-announcement-block-children/create>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,6 +38,12 @@ pub struct CreateChatAnnouncementBlockChildrenResponse {
     /// 新建子块列表。
     #[serde(default)]
     pub children: Vec<DocxBlock>,
+    /// 群公告版本号（操作后的版本）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision_id: Option<i32>,
+    /// 幂等标记（请求时传入的 client_token 原样回传）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_token: Option<String>,
 }
 
 impl ApiResponseTrait for CreateChatAnnouncementBlockChildrenResponse {
@@ -87,32 +94,61 @@ impl CreateChatAnnouncementBlockChildrenRequest {
             params.block_id.clone(),
         );
 
-        let api_request: ApiRequest<CreateChatAnnouncementBlockChildrenResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "在群公告中创建块")?);
+        let api_request: ApiRequest<CreateChatAnnouncementBlockChildrenResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "在群公告中创建块")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "在群公告中创建块")
+        Transport::request_typed(api_request, &self.config, Some(option), "在群公告中创建块").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：POST .../blocks/{block_id}/children → CreateChatAnnouncementBlockChildrenResponse（children）。
+    #[tokio::test]
+    async fn test_create_chat_announcement_block_children_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/docx/v1/chats/chat001/announcement/blocks/blk1/children",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "children": [{ "block_id": "newBlk", "block_type": 2 }] }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = CreateChatAnnouncementBlockChildrenRequest::new(config)
+            .execute(CreateChatAnnouncementBlockChildrenParams {
+                chat_id: "chat001".into(),
+                block_id: "blk1".into(),
+                index: None,
+                children: vec![json!({ "block_id": "newBlk", "block_type": 2 })],
+            })
+            .await
+            .expect("创建群公告子块应成功");
+        assert_eq!(resp.children.len(), 1);
+        assert_eq!(resp.children[0].block_id, "newBlk");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/docx/v1/chats/chat001/announcement/blocks/blk1/children"
+        );
     }
 }

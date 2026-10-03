@@ -2,16 +2,15 @@
 //!
 //! 预览推送通知内容。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/preview
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/notification/preview>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 预览推送通知响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,8 +60,7 @@ impl PreviewNotificationRequest {
             HelpdeskApiV1::NotificationPreview(self.notification_id.clone()).to_url(),
         );
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "预览推送通知")
+        Transport::request_typed(req, &self.config, Some(option), "预览推送通知").await
     }
 }
 
@@ -117,8 +115,7 @@ pub async fn preview_notification_with_options(
     let req: ApiRequest<PreviewNotificationResponse> =
         ApiRequest::post(HelpdeskApiV1::NotificationPreview(notification_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "预览推送通知")
+    Transport::request_typed(req, config, Some(option), "预览推送通知").await
 }
 
 #[cfg(test)]
@@ -136,5 +133,47 @@ mod tests {
             PreviewNotificationRequestBuilder::new(Arc::new(config), "notif_123".to_string());
 
         assert_eq!(builder.notification_id, "notif_123");
+    }
+
+    /// 端到端：POST .../notifications/{id}/preview → 强类型响应解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_preview_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/helpdesk/v1/notifications/ntf_001/preview"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "content": "预览推送内容" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = PreviewNotificationRequest::new(config, "ntf_001".to_string())
+            .execute()
+            .await
+            .expect("预览推送通知应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/notifications/ntf_001/preview"
+        );
     }
 }

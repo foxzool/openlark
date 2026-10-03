@@ -1,18 +1,18 @@
 //! 创建会议室层级
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
+//! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat,
-    req_option::RequestOption},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_endpoints::VcApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 创建会议室层级请求
 #[derive(Debug, Clone)]
@@ -34,6 +34,7 @@ impl ApiResponseTrait for CreateRoomLevelResponse {
 }
 
 impl CreateRoomLevelRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -42,9 +43,10 @@ impl CreateRoomLevelRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/vc-v1/room_level/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/room_level/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<CreateRoomLevelResponse> {
-        self.execute_with_options(body, RequestOption::default()).await
+        self.execute_with_options(body, RequestOption::default())
+            .await
     }
 
     /// 执行请求（带选项）
@@ -57,19 +59,20 @@ impl CreateRoomLevelRequest {
         let req: ApiRequest<CreateRoomLevelResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "创建会议室层级")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建会议室层级")
+        Transport::request_typed(req, &self.config, Some(option), "创建会议室层级").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = CreateRoomLevelRequest::new(config.clone());
         let _ = request;
     }

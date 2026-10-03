@@ -1,5 +1,5 @@
-#![cfg(feature = "search")]
 //! Representative contract tests for analytics search request/response models.
+#![cfg(feature = "search")]
 
 use openlark_analytics::common::{SearchResult, SearchStats};
 use openlark_analytics::search::search::v2::data_source::get::{
@@ -11,9 +11,9 @@ use openlark_analytics::search::search::v2::data_source::item::get::{
 use openlark_analytics::search::search::v2::schema::get::{
     GetSchemaResponse, SchemaData, SchemaField,
 };
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where

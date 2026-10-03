@@ -21,7 +21,7 @@ use openlark_core::config::Config;
 /// let config = Config::builder()
 ///     .app_id("your_app_id")
 ///     .app_secret("your_app_secret")
-///     .base_url("https://open.feishu.cn")
+///     .base_url("<https://open.feishu.cn>")
 ///     .build();
 /// let authen_service = AuthenService::new(config);
 ///
@@ -114,12 +114,12 @@ mod tests {
         let v1_service = service.v1();
 
         // 验证返回的是有效的服务实例
-        let _ = format!("{:?}", v1_service);
+        let _ = format!("{v1_service:?}");
     }
 
     #[test]
     fn test_default() {
         let service = AuthenService::default();
-        let _ = format!("{:?}", service);
+        let _ = format!("{service:?}");
     }
 }

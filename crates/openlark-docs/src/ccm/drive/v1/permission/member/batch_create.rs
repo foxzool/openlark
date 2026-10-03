@@ -2,13 +2,14 @@
 //!
 //! 批量为文件或文件夹添加协作者权限。
 //!
-//! docPath: https://open.feishu.cn/document/docs/permission/permission-member/batch_create
+//! docPath: <https://open.feishu.cn/document/docs/permission/permission-member/batch_create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -77,24 +78,9 @@ impl BatchCreatePermissionMemberRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchCreatePermissionMemberResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
-        if self.file_type.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_type",
-                "file_type 不能为空",
-            ));
-        }
-        if self.members.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "members",
-                "members 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
+        validate_required!(self.file_type, "file_type 不能为空");
+        validate_required_list!(self.members, 50, "members 不能为空");
 
         // === 枚举值验证 ===
         match self.file_type.as_str() {
@@ -198,7 +184,7 @@ impl BatchCreatePermissionMemberRequest {
         };
 
         let mut api_request: ApiRequest<BatchCreatePermissionMemberResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).query("type", &self.file_type);
+            api_endpoint.to_request().query("type", &self.file_type);
 
         if let Some(need_notification) = self.need_notification {
             api_request = api_request.query("need_notification", need_notification.to_string());
@@ -206,8 +192,7 @@ impl BatchCreatePermissionMemberRequest {
 
         api_request = api_request.body(serialize_params(&body, "批量增加协作者权限")?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建").await
     }
 }
 

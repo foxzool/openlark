@@ -2,6 +2,7 @@
 name = "openlark-platform"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -49,15 +50,9 @@ trust_party = ["trust_party-core", "core"]
 spark-core = []
 spark = ["spark-core", "core"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-v4 = ["v3"]
-
 # === 功能组合 ===
 # 完整平台功能
-full = ["app-engine", "directory", "admin", "mdm", "tenant", "trust_party", "spark", "v4"]
+full = ["app-engine", "directory", "admin", "mdm", "tenant", "trust_party", "spark"]
 
 # 向后兼容别名
 platform = ["app-engine", "directory", "admin", "spark"]
@@ -68,7 +63,6 @@ all-platform = ["full"]
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
@@ -95,5 +89,4 @@ tempfile = { workspace = true }
 mockall = { workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "async-trait", "chrono", "futures", "log", "once_cell", "rand", "regex", "reqwest", "serde_repr", "thiserror", "tokio", "url", "urlencoding", "uuid"]
-
+ignored = ["anyhow", "async-trait", "chrono", "futures", "log", "once_cell", "rand", "regex", "serde_repr", "thiserror", "tokio", "url", "urlencoding", "uuid"]

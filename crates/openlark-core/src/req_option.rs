@@ -459,7 +459,7 @@ mod tests {
             .build();
 
         // Test Debug trait
-        let debug_str = format!("{:?}", option);
+        let debug_str = format!("{option:?}");
         assert!(debug_str.contains("RequestOption"));
 
         // Test Clone trait

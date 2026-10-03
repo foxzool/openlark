@@ -1,4 +1,5 @@
 //! feishu people tests 集成测试。
+#![cfg(feature = "corehr")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::feishu_people::corehr::v1::{
@@ -8,8 +9,8 @@ use openlark_hr::feishu_people::corehr::v2::{employee as employee_v2, position};
 use rstest::rstest;
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path},
 };
 
 fn test_config(base_url: &str) -> Config {

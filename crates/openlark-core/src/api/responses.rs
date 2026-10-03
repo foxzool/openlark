@@ -6,9 +6,16 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// 原始响应数据
+///
+/// `code` 是**双域共槽**：
+/// - 飞书业务信封：装入飞书 `code` 字段（可为 9 位 i32，如 `99991663`）；
+/// - HTTP 非 2xx 且无信封：装入合成 HTTP status（如 429/500）。
+///
+/// [`crate::error::ErrorCode::from_code`] 同时含 HTTP status 臂与飞书业务码臂，是双域共槽
+/// 行为正确的依据——**不要**因命名困惑而拆字段；拆共槽属另案（ADR-0004 非目标）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawResponse {
-    /// 响应代码
+    /// 响应代码（双域共槽：飞书业务码或合成 HTTP status；见结构体文档）
     pub code: i32,
     /// 响应消息
     pub msg: String,
@@ -103,11 +110,60 @@ pub enum ResponseFormat {
     Custom,
 }
 
-/// API响应特征
-pub trait ApiResponseTrait: Send + Sync + 'static {
+impl ResponseFormat {
+    /// 观测/日志用短标签（crate 内部；与解码分派共用，避免双 match）
+    pub(crate) fn as_label(self) -> &'static str {
+        match self {
+            ResponseFormat::Data => "data",
+            ResponseFormat::Flatten => "flatten",
+            ResponseFormat::Binary => "binary",
+            ResponseFormat::Text => "text",
+            ResponseFormat::Custom => "custom",
+        }
+    }
+}
+
+/// API 响应特征：声明解码策略，由 Transport 请求执行层按策略解码。
+///
+/// - [`Self::data_format`] 选择解码路径（不得静默降级到 Data）
+/// - [`Self::requires_payload`]：成功时是否必须解出 `data`（默认 `true`）
+/// - [`Self::empty_success`]：成功且**无** `data` 字段时的显式空载荷（删除类 API）；
+///   **禁止**用「能否反序列化 `{}`」探测代替本方法
+/// - Binary / Text / Custom 通过 [`Self::from_binary`] / [`Self::from_text`] /
+///   [`Self::from_custom`] 参与解码，避免运行时 `TypeId` 猜测
+pub trait ApiResponseTrait: Sized + Send + Sync + 'static {
     /// 获取响应数据格式
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    /// 成功响应是否必须携带可解码 payload。
+    /// `()` 等无体响应返回 `false`；默认 `true`。
+    fn requires_payload() -> bool {
+        true
+    }
+
+    /// 成功且响应体无 `data` 字段时的显式空成功值。
+    ///
+    /// 默认 `None`：若同时 [`Self::requires_payload`] 为 true，则解码失败。
+    /// 删除类空 struct 应返回 `Some(Self { .. })`。
+    fn empty_success() -> Option<Self> {
+        None
+    }
+
+    /// Binary 解码：保留文件名 metadata，由类型自行映射。
+    fn from_binary(_file_name: String, _body: Vec<u8>) -> Option<Self> {
+        None
+    }
+
+    /// Text 解码：原始响应体按 UTF-8 文本处理。
+    fn from_text(_text: String) -> Option<Self> {
+        None
+    }
+
+    /// Custom 解码：原始字节 + Content-Type，未实现则解码失败。
+    fn from_custom(_body: Vec<u8>, _content_type: Option<&str>) -> Option<Self> {
+        None
     }
 }
 
@@ -180,42 +236,56 @@ impl<T> Response<T> {
         &self.raw_response
     }
 
-    /// 转换为结果类型
-    pub fn into_result(self) -> Result<T, crate::error::CoreError> {
-        let is_success = self.is_success();
-        let code = self.raw_response.code;
-        let request_id = self.raw_response.request_id.clone();
-
-        if is_success {
-            match self.data {
-                Some(data) => Ok(data),
-                None => Err(crate::error::api_error(
-                    code as u16,
-                    "response",
-                    "响应数据为空",
-                    request_id,
-                )),
-            }
-        } else {
-            Err(crate::error::api_error(
-                code as u16,
-                "response",
-                self.raw_response.msg.clone(),
-                request_id,
-            ))
+    /// Canonical finisher：从 `Response<T>` 抽取 typed `T`（#486 起 `extract_response_data`
+    /// 自由函数收敛到此方法）。
+    ///
+    /// `data` 存在则返回；缺失时区分两种失败（#470 user story 12：业务错误不再被误报为空成功）：
+    /// - 业务错误（`code != 0`）：`api_error` 保留飞书 `code` / `msg`；
+    /// - `code == 0` 缺 `data`：`validation_error`（真正抽取失败）。
+    ///
+    /// 两种失败都经 `map_context` 附 `operation=extract_response_data` +
+    /// `resource=<context>` + 响应 `request_id`。供 `Transport::request_typed`（核心）
+    /// 与持有 `Response<T>` 的 facade 组合层收尾用；leaf 不应直接调用（走 request_typed）。
+    pub fn decode(self, context: &str) -> Result<T, crate::error::CoreError> {
+        if let Some(data) = self.data {
+            return Ok(data);
         }
+        let raw = self.raw_response;
+        let request_id = raw.request_id.clone();
+        let err = if raw.code != 0 {
+            // 传 raw.code 原值（i32），禁止 as u16 截断；分类经 ErrorCode::from_code
+            crate::error::api_error(raw.code, "response", raw.msg, request_id.clone())
+        } else {
+            crate::error::validation_error("response.data", "服务器没有返回有效的数据")
+        };
+        Err(err.map_context(|ctx| {
+            ctx.set_operation("extract_response_data")
+                .add_context("resource", context);
+            if let Some(req_id) = request_id.as_ref().filter(|r| !r.trim().is_empty()) {
+                ctx.set_request_id(req_id);
+            }
+        }))
     }
 }
 
-// 为常见类型实现ApiResponseTrait
+// 为常见类型实现 ApiResponseTrait
 impl ApiResponseTrait for serde_json::Value {}
+// String 默认 Data 格式（JSON envelope）；Text 请用自定义类型并覆写 data_format + from_text
 impl ApiResponseTrait for String {}
 impl ApiResponseTrait for Vec<u8> {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Binary
     }
+
+    fn from_binary(_file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(body)
+    }
 }
-impl ApiResponseTrait for () {}
+impl ApiResponseTrait for () {
+    fn requires_payload() -> bool {
+        false
+    }
+}
 
 // 类型别名，用于向后兼容
 /// 基础响应类型别名
@@ -310,9 +380,73 @@ mod tests {
     #[test]
     fn test_response_deserialize_with_raw_response_error_keeps_code_and_msg() {
         let payload = r#"{"raw_response":{"code":400,"msg":"Bad Request","request_id":null,"data":null,"error":null},"data":null}"#;
-        let parsed = serde_json::from_str::<Response<serde_json::Value>>(payload).expect("JSON 反序列化失败");
+        let parsed = serde_json::from_str::<Response<serde_json::Value>>(payload)
+            .expect("JSON 反序列化失败");
         assert_eq!(parsed.raw_response.code, 400);
         assert_eq!(parsed.raw_response.msg, "Bad Request");
         assert!(!parsed.is_success());
+    }
+
+    // Response::decode（#486：extract_response_data 收敛到此方法）
+
+    #[test]
+    fn decode_returns_data_on_success() {
+        let response: Response<String> = Response {
+            data: Some("x".to_string()),
+            raw_response: RawResponse::success(),
+        };
+        assert_eq!(response.decode("测试").unwrap(), "x");
+    }
+
+    #[test]
+    fn decode_missing_data_is_validation_error_with_context() {
+        let response: Response<String> = Response {
+            data: None,
+            raw_response: RawResponse::success(),
+        };
+        let err = response.decode("测试").expect_err("缺 data 应报错");
+        let ctx = err.ctx();
+        assert_eq!(ctx.operation(), Some("extract_response_data"));
+        assert_eq!(ctx.get_context("resource"), Some("测试"));
+    }
+
+    /// 业务错误：保留 msg、request_id；#544 不截断——`raw_code` 原样 + `from_code` 分类 + Display 真码。
+    #[test]
+    fn decode_business_error_preserves_msg_and_classifies_raw_code() {
+        let response: Response<String> = Response {
+            data: None,
+            raw_response: RawResponse {
+                code: 99991663,
+                msg: "tenant access token invalid".to_string(),
+                request_id: Some("rid-x".to_string()),
+                ..RawResponse::success()
+            },
+        };
+        let err = response.decode("测试").expect_err("业务错误应报错");
+        assert_eq!(err.ctx().request_id(), Some("rid-x"));
+        match err {
+            crate::error::CoreError::Api(api) => {
+                assert!(
+                    api.message.contains("tenant access token invalid"),
+                    "msg preserved: {}",
+                    api.message
+                );
+                assert_eq!(
+                    api.raw_code, 99991663,
+                    "raw_code must preserve full i32 feishu code"
+                );
+                assert_eq!(
+                    api.code,
+                    crate::error::ErrorCode::TenantAccessTokenInvalid,
+                    "classification must use from_code without u16 truncation"
+                );
+                let display = api.to_string();
+                assert!(
+                    display.contains("99991663"),
+                    "Display must show real code, not truncated garbage: {display}"
+                );
+            }
+            other => panic!("expected Api for business error, got: {other:?}"),
+        }
     }
 }

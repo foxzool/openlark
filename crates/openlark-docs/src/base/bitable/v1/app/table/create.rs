@@ -1,6 +1,6 @@
 //! Bitable 新增一个数据表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -140,13 +140,13 @@ impl CreateTableRequest {
         }
 
         // default_view_name 名称中不允许包含 [ ]
-        if let Some(ref default_view_name) = self.table.default_view_name {
-            if default_view_name.contains('[') || default_view_name.contains(']') {
-                return Err(openlark_core::error::validation_error(
-                    "default_view_name",
-                    "默认视图名称不能包含 '[' 或 ']'",
-                ));
-            }
+        if let Some(ref default_view_name) = self.table.default_view_name
+            && (default_view_name.contains('[') || default_view_name.contains(']'))
+        {
+            return Err(openlark_core::error::validation_error(
+                "default_view_name",
+                "默认视图名称不能包含 '[' 或 ']'",
+            ));
         }
 
         // 🚀 使用新的enum+builder系统生成API端点
@@ -158,14 +158,18 @@ impl CreateTableRequest {
         let request_body = CreateTableRequestBody { table: self.table };
 
         // 创建API请求 - 使用类型安全的URL生成
-        let api_request: ApiRequest<CreateTableResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&request_body)?);
+        let api_request: ApiRequest<CreateTableResponse> = api_endpoint
+            .to_request()
+            .body(serde_json::to_vec(&request_body)?);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 新增一个数据表",
+        )
+        .await
     }
 }
 

@@ -1,10 +1,10 @@
 //! 删除会话
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session/delete
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/delete>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SESSION};
+use crate::endpoints::AILY_V1_SESSION;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 删除会话请求
@@ -45,7 +45,7 @@ impl DeleteSessionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session/delete
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session/delete>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -59,11 +59,10 @@ impl DeleteSessionRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_SESSION.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_SESSION.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<()> = ApiRequest::delete(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除会话")
+        Transport::request_typed(req, &self.config, Some(option), "删除会话").await
     }
 }
 
@@ -97,7 +96,12 @@ mod tests {
 
     #[test]
     fn test_delete_session_request_url_construction() {
-        let request = DeleteSessionRequest::new(Config::default()).aily_session_id("test_id");
-        assert_eq!(request.aily_session_id, "test_id");
+        use crate::endpoints::aily::AILY_V1_SESSION;
+        let url = AILY_V1_SESSION.replace("{session_id}", "sess_1");
+        assert_eq!(url, "/open-apis/aily/v1/sessions/sess_1");
+        assert!(
+            !url.contains("{session_id}"),
+            "URL should not contain unreplaced placeholder"
+        );
     }
 }

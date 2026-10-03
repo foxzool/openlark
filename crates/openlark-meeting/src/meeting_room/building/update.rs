@@ -1,16 +1,14 @@
 //! 更新建筑物
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{
-    common::api_endpoints::MeetingRoomApi,
-    common::api_utils::{extract_response_data, serialize_params},
-};
+use crate::meeting_room::responses::UpdateBuildingResponse;
+use crate::{common::api_endpoints::MeetingRoomApi, common::api_utils::serialize_params};
 
 /// 更新建筑物请求
 pub struct UpdateBuildingRequest {
@@ -37,8 +35,8 @@ impl UpdateBuildingRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building
-    pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/update-building>
+    pub async fn execute(self, body: serde_json::Value) -> SDKResult<UpdateBuildingResponse> {
         self.execute_with_options(body, RequestOption::default())
             .await
     }
@@ -48,35 +46,59 @@ impl UpdateBuildingRequest {
         self,
         body: serde_json::Value,
         option: RequestOption,
-    ) -> SDKResult<serde_json::Value> {
+    ) -> SDKResult<UpdateBuildingResponse> {
         validate_required!(self.building_id, "building_id 不能为空");
 
         let api_endpoint = MeetingRoomApi::BuildingPatch(self.building_id.clone());
-        let req: ApiRequest<serde_json::Value> =
+        let req: ApiRequest<UpdateBuildingResponse> =
             ApiRequest::post(api_endpoint.to_url()).body(serialize_params(&body, "更新建筑物")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新建筑物")
+        Transport::request_typed(req, &self.config, Some(option), "更新建筑物").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../meeting_room/buildings/{building_id} → UpdateBuildingResponse。
+    #[tokio::test]
+    async fn test_update_building_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/meeting_room/buildings/bldg_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success"
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = UpdateBuildingRequest::new(config)
+            .building_id("bldg_001")
+            .execute(json!({ "name": "更新1号楼" }))
+            .await
+            .expect("更新建筑物应成功");
+        assert_eq!(resp, UpdateBuildingResponse {});
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/meeting_room/buildings/bldg_001"
+        );
+        assert_eq!(received[0].method, "POST");
     }
 }

@@ -1,0 +1,299 @@
+"""Contract comparison rules."""
+
+from __future__ import annotations
+
+from .models import ApiIdentity, ContractFinding, OfficialField, RustApiContract
+from .official import normalize_endpoint_path
+
+
+def compare_endpoint(api: ApiIdentity, rust_contract: RustApiContract | None) -> list[ContractFinding]:
+    findings: list[ContractFinding] = []
+    official_method = api.official_method
+    official_path = api.official_path
+    official_text = f"{official_method}:{official_path}" if official_method and official_path else api.url
+
+    if not official_method or not official_path:
+        return [
+            finding(
+                "UNVERIFIED",
+                "U_OFFICIAL_ENDPOINT_UNSTRUCTURED",
+                "Official method/path is unavailable.",
+                api,
+                official=official_text,
+            )
+        ]
+
+    if rust_contract is None:
+        return [
+            finding(
+                "WARN",
+                "W_IMPLEMENTATION_FILE_MISSING",
+                "Expected implementation file does not exist.",
+                api,
+                official=official_text,
+            )
+        ]
+
+    if not rust_contract.endpoint_calls:
+        return [
+            finding(
+                "WARN",
+                "W_ENDPOINT_UNRESOLVED",
+                "No ApiRequest endpoint call was found in the implementation file.",
+                api,
+                official=official_text,
+            )
+        ]
+
+    official_normalized_path = normalize_endpoint_path(official_path)
+    resolved_calls = [call for call in rust_contract.endpoint_calls if call.is_resolved]
+    unresolved_calls = [call for call in rust_contract.endpoint_calls if not call.is_resolved]
+
+    for call in resolved_calls:
+        if call.method == official_method and normalize_endpoint_path(call.resolved_path) == official_normalized_path:
+            return []
+
+    for call in resolved_calls:
+        if normalize_endpoint_path(call.resolved_path) == official_normalized_path and call.method != official_method:
+            findings.append(
+                finding(
+                    "ERROR",
+                    "E_ENDPOINT_METHOD_MISMATCH",
+                    "Rust ApiRequest method differs from the official method.",
+                    api,
+                    rust_line=call.line,
+                    official=official_text,
+                    rust=f"{call.method}:{call.resolved_path}",
+                )
+            )
+
+    method_matches = [call for call in resolved_calls if call.method == official_method]
+    if method_matches:
+        rust_paths = ", ".join(sorted({call.resolved_path for call in method_matches}))
+        findings.append(
+            finding(
+                "ERROR",
+                "E_ENDPOINT_PATH_MISMATCH",
+                "Rust endpoint path differs from the official path.",
+                api,
+                rust_line=method_matches[0].line,
+                official=official_text,
+                rust=f"{official_method}:{rust_paths}",
+            )
+        )
+    elif resolved_calls and not findings:
+        rust_methods = ", ".join(sorted({call.method for call in resolved_calls}))
+        findings.append(
+            finding(
+                "ERROR",
+                "E_ENDPOINT_METHOD_MISMATCH",
+                "No resolved Rust ApiRequest call uses the official method.",
+                api,
+                rust_line=resolved_calls[0].line,
+                official=official_text,
+                rust=rust_methods,
+            )
+        )
+
+    if not resolved_calls and unresolved_calls:
+        findings.append(
+            finding(
+                "WARN",
+                "W_ENDPOINT_UNRESOLVED",
+                "Rust endpoint expression could not be resolved by the validator.",
+                api,
+                rust_line=unresolved_calls[0].line,
+                official=official_text,
+                rust="; ".join(sorted({call.unresolved_reason for call in unresolved_calls if call.unresolved_reason})),
+            )
+        )
+
+    return findings
+
+
+def compare_request_fields(
+    api: ApiIdentity,
+    official_fields: tuple[OfficialField, ...],
+    rust_contract: RustApiContract | None,
+) -> list[ContractFinding]:
+    if not official_fields:
+        return []
+    if rust_contract is None:
+        return [
+            finding(
+                "WARN",
+                "W_IMPLEMENTATION_FILE_MISSING",
+                "Expected implementation file does not exist.",
+                api,
+            )
+        ]
+    if not rust_contract.fields:
+        return [
+            finding(
+                "WARN",
+                "W_REQUEST_FIELDS_UNRESOLVED",
+                "No request field struct was found in the implementation file.",
+                api,
+                official=", ".join(field.name for field in official_fields),
+            )
+        ]
+
+    rust_by_name = {field.serialized_name: field for field in rust_contract.fields}
+    findings: list[ContractFinding] = []
+    for official_field in official_fields:
+        rust_field = rust_by_name.get(official_field.name)
+        official_text = official_field_text(official_field)
+        if rust_field is None:
+            severity = "ERROR" if official_field.required else "WARN"
+            code = "E_REQUIRED_REQUEST_FIELD_MISSING" if official_field.required else "W_OPTIONAL_REQUEST_FIELD_MISSING"
+            # 含 #[serde(flatten)] 字段的 API 把所有官方 optional 字段视为已覆盖
+            # （如 docx block 的 update_* 操作，透传 Value 或 typed 枚举），跳过 optional 缺失告警。
+            if not official_field.required and rust_contract.has_flatten_value_passthrough:
+                continue
+            findings.append(
+                finding(
+                    severity,
+                    code,
+                    "Rust request field is missing an official request body field.",
+                    api,
+                    official=official_text,
+                    rust=", ".join(sorted(rust_by_name)) or "<none>",
+                )
+            )
+            continue
+        if official_field.required and rust_field.optional:
+            findings.append(
+                finding(
+                    "WARN",
+                    "W_REQUIRED_REQUEST_FIELD_OPTIONAL",
+                    "Official request body field is required but Rust models it as optional.",
+                    api,
+                    rust_line=rust_field.line,
+                    official=official_text,
+                    rust=f"{rust_field.struct_name}.{rust_field.field_name}: {rust_field.type_name}",
+                )
+            )
+    return findings
+
+
+def compare_response_fields(
+    api: ApiIdentity,
+    official_fields: tuple[OfficialField, ...],
+    rust_contract: RustApiContract | None,
+) -> list[ContractFinding]:
+    if not official_fields:
+        return []
+    if rust_contract is None:
+        return [
+            finding(
+                "WARN",
+                "W_IMPLEMENTATION_FILE_MISSING",
+                "Expected implementation file does not exist.",
+                api,
+            )
+        ]
+    if not rust_contract.response_fields:
+        return [
+            finding(
+                "WARN",
+                "W_RESPONSE_FIELDS_UNRESOLVED",
+                "No response field struct was found in the implementation file.",
+                api,
+                official=", ".join(field.name for field in official_fields),
+            )
+        ]
+
+    rust_names = {field.serialized_name for field in rust_contract.response_fields}
+    findings: list[ContractFinding] = []
+    for official_field in official_fields:
+        if official_field.name in rust_names:
+            continue
+        findings.append(
+            finding(
+                "WARN",
+                "W_RESPONSE_FIELD_MISSING",
+                "Rust response model is missing an official response data field.",
+                api,
+                official=official_field_text(official_field),
+                rust=", ".join(sorted(rust_names)) or "<none>",
+            )
+        )
+    return findings
+
+
+def compare_access_token_types(
+    api: ApiIdentity,
+    official_tokens: tuple[str, ...],
+    rust_contract: RustApiContract | None,
+) -> list[ContractFinding]:
+    """核对 Rust 声明的 token 类型与官方文档 ``security.supportedAccessToken``。
+
+    - Rust 集合与官方集合**不相交** → ERROR（运行时注入的 token 必被飞书拒绝）。
+    - 官方未标注 ``supportedAccessToken`` → UNVERIFIED（无法核对，不阻塞）。
+    - 实现文件缺失 → WARN。
+    - 否则（存在交集，即 SDK 至少能选出一种官方接受的 token）→ 无 finding。
+    """
+    if rust_contract is None:
+        return [
+            finding(
+                "WARN",
+                "W_IMPLEMENTATION_FILE_MISSING",
+                "Expected implementation file does not exist.",
+                api,
+            )
+        ]
+    if not official_tokens:
+        return [
+            finding(
+                "UNVERIFIED",
+                "U_ACCESS_TOKEN_UNANNOTATED",
+                "Official doc did not expose supportedAccessToken; token type cannot be verified.",
+                api,
+            )
+        ]
+    rust_tokens = set(rust_contract.access_token_types)
+    # 声明 None（自行管理鉴权，bypass token cache）但手动注入 token 的端点（如 OIDC
+    # userinfo）：用实际注入的 token 类型替代 none 做比对，避免误报 disjoint ERROR。
+    if rust_tokens == {"none_access_token"} and rust_contract.manual_auth_token:
+        rust_tokens = {rust_contract.manual_auth_token}
+    if rust_tokens & set(official_tokens):
+        return []
+    return [
+        finding(
+            "ERROR",
+            "E_ACCESS_TOKEN_TYPE_MISMATCH",
+            "All Rust supported access token types are rejected by the official doc.",
+            api,
+            official=", ".join(official_tokens),
+            rust=", ".join(sorted(rust_tokens)) or "<none>",
+        )
+    ]
+
+
+def official_field_text(field: OfficialField) -> str:
+    required = "required" if field.required else "optional"
+    suffix = f" {field.field_type}" if field.field_type else ""
+    return f"{field.location} {field.name} {required}{suffix}"
+
+
+def finding(
+    severity: str,
+    code: str,
+    message: str,
+    api: ApiIdentity,
+    rust_line: int = 0,
+    official: str = "",
+    rust: str = "",
+) -> ContractFinding:
+    return ContractFinding(
+        severity=severity,
+        code=code,
+        message=message,
+        api_id=api.api_id,
+        api_name=api.name,
+        expected_file=api.expected_file,
+        doc_path=api.doc_path,
+        rust_line=rust_line,
+        official=official,
+        rust=rust,
+    )

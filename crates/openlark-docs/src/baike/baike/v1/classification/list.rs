@@ -2,14 +2,14 @@
 //!
 //! 获取百科知识库的分类列表。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/classification/list
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/classification/list>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,18 +78,19 @@ impl ListClassificationRequest {
         option: RequestOption,
     ) -> SDKResult<ListClassificationResponse> {
         // ===== 参数校验 =====
-        if let Some(page_size) = self.page_size {
-            if !(1..=500).contains(&page_size) {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 取值范围必须为 1~500",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=500).contains(&page_size)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 取值范围必须为 1~500",
+            ));
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443 contract path-only）
         let mut api_request: ApiRequest<ListClassificationResponse> =
-            ApiRequest::get(&BaikeApiV1::ClassificationList.to_url());
+            BaikeApiV1::ClassificationList.to_request();
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", page_size.to_string());
         }
@@ -98,11 +99,7 @@ impl ListClassificationRequest {
         }
 
         // ===== 发送请求 =====
-        let response: Response<ListClassificationResponse> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词典分类").await
     }
 }
 

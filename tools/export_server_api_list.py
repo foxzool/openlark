@@ -305,6 +305,14 @@ class ApiRowDraft:
         return PROJECT_BIZTAG_OVERRIDES.get(self.meta_project, self.meta_project)
 
 
+@dataclass
+class SkippedApiDraft:
+    api_id: str
+    name: str
+    full_path: str
+    reason: str
+
+
 def build_row_draft(leaf: Dict[str, Any], catalog_index: int, timeout: int, retries: int) -> ApiRowDraft:
     api_id = str(leaf.get("id", "")).strip()
     name = str(leaf.get("name", "")).strip()
@@ -415,7 +423,7 @@ def build_row_draft(leaf: Dict[str, Any], catalog_index: int, timeout: int, retr
     )
 
 
-def finalize_rows(drafts: List[ApiRowDraft]) -> List[Dict[str, str]]:
+def finalize_rows(drafts: List[ApiRowDraft]) -> Tuple[List[Dict[str, str]], List[SkippedApiDraft]]:
     # 处理旧接口中：相同 meta_name_base 但方法不同的情况，用 method# 前缀做区分
     key_to_drafts: Dict[Tuple[str, str, str], List[ApiRowDraft]] = {}
     for d in drafts:
@@ -430,8 +438,17 @@ def finalize_rows(drafts: List[ApiRowDraft]) -> List[Dict[str, str]]:
         return slug
 
     final: List[Dict[str, str]] = []
+    skipped: List[SkippedApiDraft] = []
     for d in drafts:
         if not (d.http_method and d.http_path):
+            skipped.append(
+                SkippedApiDraft(
+                    api_id=d.api_id,
+                    name=d.name,
+                    full_path=d.full_path,
+                    reason="missing HTTP method/path",
+                )
+            )
             continue
 
         meta_name = d.meta_name_base
@@ -479,7 +496,7 @@ def finalize_rows(drafts: List[ApiRowDraft]) -> List[Dict[str, str]]:
             }
         )
 
-    return final
+    return final, skipped
 
 
 def export_csv(rows: List[Dict[str, str]], output_path: str) -> None:
@@ -540,12 +557,22 @@ def main() -> int:
                 last_print = now
 
     if failed:
-        print(f"⚠️  有 {len(failed)} 条抓取失败，将继续导出成功部分。")
+        print(f"❌ 有 {len(failed)} 条抓取失败，未写出 CSV，避免覆盖为不完整清单。")
         for api_id, err in failed[:10]:
             print(f"  - {api_id}: {err}")
+        if len(failed) > 10:
+            print(f"  ... 另有 {len(failed) - 10} 条失败")
+        return 1
 
     drafts_in_order = [drafts_by_index[i] for i in range(total) if i in drafts_by_index]
-    rows = finalize_rows(drafts_in_order)
+    rows, skipped = finalize_rows(drafts_in_order)
+
+    if skipped:
+        print(f"⚠️  跳过 {len(skipped)} 条无 HTTP method/path 的非调用条目。")
+        for item in skipped[:10]:
+            print(f"  - {item.api_id}: {item.name} ({item.reason}) {item.full_path}")
+        if len(skipped) > 10:
+            print(f"  ... 另有 {len(skipped) - 10} 条被跳过")
 
     if args.sort == "meta":
         # 保持输出稳定：按业务路径排序，并追加 id 作为最终兜底，避免同 key 条目相对顺序抖动

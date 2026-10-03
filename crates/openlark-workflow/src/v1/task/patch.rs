@@ -1,11 +1,11 @@
 //! 更新任务（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/task/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/task/update>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -141,11 +141,13 @@ impl UpdateTaskRequestV1 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 

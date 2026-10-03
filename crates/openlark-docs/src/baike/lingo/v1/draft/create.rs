@@ -1,13 +1,14 @@
 //! 创建草稿
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/draft/create
+//! docPath: <https://open.feishu.cn/document/lingo-v1/draft/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -93,7 +94,7 @@ impl CreateDraftRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<CreateDraftResp> =
-            ApiRequest::post(&LingoApiV1::DraftCreate.to_url()).body(body);
+            LingoApiV1::DraftCreate.to_request().body(body);
         if let Some(repo_id) = &self.repo_id {
             api_request = api_request.query("repo_id", repo_id);
         }
@@ -102,11 +103,7 @@ impl CreateDraftRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<CreateDraftResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "创建草稿").await
     }
 }
 
@@ -167,10 +164,12 @@ mod tests {
             ..Default::default()
         };
         let request = CreateDraftRequest::new(config.clone(), body);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 description 和 rich_text 都为空
         let body2 = DraftEntityInput {
@@ -186,10 +185,12 @@ mod tests {
             ..Default::default()
         };
         let request2 = CreateDraftRequest::new(config, body2);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

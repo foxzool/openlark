@@ -2,13 +2,14 @@
 //!
 //! 发送初始化请求，以获取上传事务 ID 和分片策略，为上传分片做准备。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_prepare
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/multipart-upload-media/upload_prepare>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -109,12 +110,7 @@ impl UploadPrepareMediaRequest {
             ));
         }
 
-        if self.parent_node.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_node",
-                "parent_node 不能为空",
-            ));
-        }
+        validate_required!(self.parent_node, "parent_node 不能为空");
 
         // === 枚举值验证 ===
         match self.parent_type.as_str() {
@@ -133,7 +129,7 @@ impl UploadPrepareMediaRequest {
                 return Err(openlark_core::error::validation_error(
                     "parent_type",
                     "parent_type 不在支持的取值范围内",
-                ))
+                ));
             }
         }
 
@@ -146,11 +142,11 @@ impl UploadPrepareMediaRequest {
         }
 
         let api_endpoint = DriveApi::UploadMediaPrepare;
-        let request = ApiRequest::<UploadPrepareMediaResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadPrepareMediaResponse>()
             .body(serialize_params(&self, "分片上传素材-预上传")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传")
+        Transport::request_typed(request, &self.config, Some(option), "上传").await
     }
 }
 

@@ -1,17 +1,16 @@
 //! 获取用户列表
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::user::models::{DepartmentIdType, User, UserIdType},
     endpoints::CONTACT_V3_USERS,
 };
@@ -117,7 +116,7 @@ impl ListUsersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list
+    /// docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/list>
     pub async fn execute(self) -> SDKResult<ListUsersResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -146,8 +145,7 @@ impl ListUsersRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取用户列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取用户列表").await
     }
 }
 

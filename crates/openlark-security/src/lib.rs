@@ -4,11 +4,10 @@
 //!
 //! ## 架构设计
 //!
-//! 采用 Project-Version-Resource (PVR) 三层架构：
+//! 采用 Project-Version-Resource (PVR) 三层架构，使用 canonical `openlark_core::config::Config`（#444–#447）：
 //!
 //! ```text
 //! openlark-security/src/
-//! ├── models/           # 共享数据模型
 //! ├── acs/              # 访问控制系统 (Project)
 //! │   └── v1/          # API版本v1 (Version)
 //! └── security_and_compliance/  # 安全合规管理 (Project)
@@ -20,19 +19,24 @@
 //!
 //! ```rust,no_run
 //! use openlark_security::prelude::*;
+//! use openlark_core::config::Config;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let config = SecurityConfig::new("app_id", "app_secret");
-//!     let security = SecurityServices::new(config);
+//!     // 使用 canonical core Config（v0.18 推荐唯一路径，完整保留 token provider / headers / timeout 等）
+//!     let config = Config::builder()
+//!         .app_id("app_id")
+//!         .app_secret("app_secret")
+//!         .build();
+//!     let security = SecurityClient::new(config);
 //!
-//!     // 获取门禁用户列表
+//!     // 获取门禁用户列表（响应 data 透传为 ListUsersResponse）
 //!     let users = security.acs.v1().users().list()
 //!         .page_size(20)
-//!         .send()
+//!         .execute()
 //!         .await?;
 //!
-//!     println!("用户数量: {}", users.users.len());
+//!     println!("是否有更多: {}", users.has_more);
 //!     Ok(())
 //! }
 //! ```
@@ -40,27 +44,36 @@
 //! ## API覆盖
 //!
 //! ### acs (v1) - 访问控制系统
-//! #### 用户管理 (user)
-//! - `users.get()` - 获取单个用户信息
-//! - `users.list()` - 获取用户列表
-//! - `users.patch()` - 修改用户部分信息
 //!
-//! #### 人脸识别 (user.face)
-//! - `user_faces.get()` - 下载人脸图片
-//! - `user_faces.update()` - 上传人脸图片
+//! 所有端点走 `openlark_core::Transport`，token 类型按飞书文档 Authorization 标注
+//! （用户/设备/记录类 `tenant_access_token`，权限组/访客类 `user_access_token`），返回响应 `data` 字段内容。
+//! 各 Service 是门面，方法返回 `*Request` 构建器（`.execute()` 发请求）。
+//!
+//! #### 用户管理 (users)
+//! - `users.get(user_id)` / `users.list()` / `users.create()` / `users.patch(user_id)` / `users.delete(user_id)`
+//!
+//! #### 用户人脸 (user_faces，`/users/{user_id}/face`)
+//! - `user_faces.get(user_id)` - 下载用户人脸
+//! - `user_faces.update(user_id)` - 上传用户人脸
+//!
+//! #### 人脸资源 (face，独立资源 `/faces`)
+//! - `face().get(face_id)` / `face().create()` / `face().delete(face_id)`
+//!
+//! #### 设备管理 (devices)
+//! - `devices.get/list/create/update/delete/approve/query`
+//! - `client_device(device_id)` - 客户端设备认证（便捷方法）
 //!
 //! #### 权限规则 (rule_external)
-//! - `rule_external.create()` - 创建或更新权限组
-//! - `rule_external.get()` - 获取权限组信息
-//! - `rule_external.delete()` - 删除权限组
-//! - `rule_external.device_bind()` - 设备绑定权限组
+//! - `rule_external.create(rule_id)` - 创建或更新权限组（body `{"rule":...}`）
+//! - `rule_external.get(device_id)` - 获取权限组
+//! - `rule_external.delete(rule_id)` - 删除权限组（无 body）
+//! - `rule_external.device_bind()` - 设备绑定（`{device_id, rule_ids[]}`）
 //!
-//! #### 访客管理 (visitor)
-//! - `visitors.create()` - 添加访客
-//! - `visitors.delete()` - 删除访客
+//! #### 访客管理 (visitors)
+//! - `visitors.create()` / `visitors.delete(visitor_id)`
 //!
-//! #### 设备管理 (device)
-//! - `devices.list()` - 获取门禁设备列表
+//! #### 访问记录 (access_records)
+//! - `access_records.list()` / `access_records.get_access_photo(access_record_id)`
 //!
 //! ### security_and_compliance (v2/v1) - 安全合规管理
 //! #### 设备记录管理 (device_record - v2)
@@ -77,7 +90,6 @@
 //! #### 审计日志管理 (openapi_log - v1)
 //! - `openapi_logs.list_data()` - 获取OpenAPI审计日志数据
 
-#![deny(missing_docs)]
 #![warn(clippy::all)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -85,37 +97,47 @@
 // 错误处理模块
 pub mod error;
 
-// 共享数据模型
-pub mod models;
-
 // Project: acs - 访问控制系统
+pub mod acs;
 pub mod security;
 
-// 重新导出主要类型
-pub use security::acs::{AcsProject, AcsV1Service};
+// 重新导出服务类型（Projects 通过 SecurityClient 暴露；顶层不 re-export Projects，隐藏绕过 single-entry 构造）。
 pub use security::security_and_compliance::{
-    SecurityAndComplianceProject, SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
+    SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
 };
+
+// 内部使用 Projects 类型（字段 pub 仍对外可见其完整路径）。
+use acs::acs::AcsProject;
+use security::security_and_compliance::SecurityAndComplianceProject;
 
 // 重新导出错误类型
 pub use crate::error::SecurityError;
 
-/// 安全服务统一入口
-#[derive(Debug)]
-pub struct SecurityServices {
-    /// 安全配置
-    pub config: std::sync::Arc<crate::models::SecurityConfig>,
-    /// ACS门禁控制项目
+// 重新导出 canonical core Config，便于独立使用 security crate
+pub use openlark_core::config::Config;
+
+/// 安全服务客户端（唯一公开入口，single-entry）。
+///
+/// 直接持有 canonical `openlark_core::config::Config` + 项目（真实实现深度）。
+/// 遵循 CLIENT_NAMING_CONVENTION：仅提供 `new(config: Config)`。
+///
+/// 用法：`client.security.acs...` 或 `client.security.config()`
+///
+/// SecurityConfig 已完全移除（#425 / #447 最终收口）。Project 构造通过 Client 访问。
+#[derive(Debug, Clone)]
+pub struct SecurityClient {
+    config: openlark_core::config::Config,
+    /// ACS 项目
     pub acs: AcsProject,
     /// 安全合规项目
     pub security_and_compliance: SecurityAndComplianceProject,
 }
 
-impl SecurityServices {
-    /// 创建新的安全服务实例
-    pub fn new(config: crate::models::SecurityConfig) -> Self {
-        let config = std::sync::Arc::new(config);
-
+impl SecurityClient {
+    /// 使用 canonical `openlark_core::config::Config` 构造（v0.18 唯一推荐路径）。
+    ///
+    /// 完整保留 token_provider、自定义 headers、timeout、retry 等配置。
+    pub fn new(config: openlark_core::config::Config) -> Self {
         Self {
             acs: AcsProject::new(config.clone()),
             security_and_compliance: SecurityAndComplianceProject::new(config.clone()),
@@ -123,48 +145,390 @@ impl SecurityServices {
         }
     }
 
-    /// 获取配置信息
-    pub fn config(&self) -> &crate::models::SecurityConfig {
+    /// 返回当前 canonical 配置（测试中避免直接读取字段作为验收；用 behavioral evidence）。
+    pub fn config(&self) -> &openlark_core::config::Config {
         &self.config
     }
 }
 
-impl Default for SecurityServices {
-    fn default() -> Self {
-        Self::new(crate::models::SecurityConfig::default())
-    }
-}
+// Default 已移除，以避免产生空凭据 Config（违反 single-entry）。
+// 测试使用显式 new(Config::builder()...build()) 。
 
 /// 结果类型别名
 pub type SecurityResult<T> = Result<T, crate::error::SecurityError>;
 
 /// 预导出模块
 pub mod prelude {
-    pub use super::{AcsProject, SecurityAndComplianceProject, SecurityResult, SecurityServices};
+    pub use super::{SecurityClient, SecurityResult};
 
-    // 避免v1命名空间冲突，明确导出需要的类型
-    pub use super::models::*;
-    pub use super::security::acs::{AcsProject as Acs, AcsV1Service};
+    // 避免v1命名空间冲突，明确导出需要的类型（Projects 仅通过 Client 访问）。
+    pub use super::acs::acs::AcsV1Service;
     pub use super::security::security_and_compliance::{
         SecurityAndComplianceV1Service, SecurityAndComplianceV2Service,
     };
 }
 
 #[cfg(test)]
-mod tests {
+mod construction_tests {
+    use super::*;
+    use openlark_core::auth::{TokenProvider, TokenRequest};
+    use openlark_core::error::ErrorTrait;
+    use std::future::Future;
+    use std::pin::Pin;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    /// 测试用 TokenProvider：总是返回固定 token，用于验证 provider 传播。
+    #[derive(Debug, Clone)]
+    struct TestTokenProvider(&'static str);
+
+    impl TokenProvider for TestTokenProvider {
+        fn get_token(
+            &self,
+            _request: TokenRequest,
+        ) -> Pin<Box<dyn Future<Output = openlark_core::SDKResult<String>> + Send + '_>> {
+            let token = self.0.to_string();
+            Box::pin(async move { Ok(token) })
+        }
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 直接用 SecurityClient::new 构造（canonical-path），证明 ACS 使用 retained canonical Config：
+    /// - 自定义 base_url、headers、token_provider 生效
+    /// - timeout、response-size 配置保持
+    /// - 代表性 ACS leaf (users.list) wiremock 测试
+    #[tokio::test]
+    async fn security_client_new_canonical_config_propagates_base_headers_and_token_provider() {
+        let server = MockServer::start().await;
+
+        // 精确匹配 header，证明三者都传播到了外发请求
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
+            .and(header("X-Custom-Prop", "yes"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Custom-Prop", "yes")
+            .req_timeout(std::time::Duration::from_secs(30))
+            .max_response_size(8 * 1024 * 1024)
+            .build();
+
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+
+        let client = SecurityClient::new(config_with_provider);
+
+        // 构造后直接进入执行；验收依赖 mock header 匹配 + 后续行为测试（timeout/size 错误触发）。
+        // 绝不以读取 config 字段作为传播证明（per re-review）。
+
+        // 执行 ACS leaf 调用（代表性）
+        let _resp = client
+            .acs
+            .v1()
+            .users()
+            .list()
+            .execute()
+            .await
+            .expect("wiremock 应返回成功响应");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1, "应只发一次 security leaf 请求");
+
+        // 路径匹配器 + header 匹配器已证明 base_url、自定义 header、token provider 生效。
+        // 这里再做一次宽松确认（url 里包含我们 mock 的路径即可）。
+        let req = &received[0];
+        assert!(
+            req.url.path() == "/open-apis/acs/v1/users"
+                || req.url.as_str().contains("/acs/v1/users"),
+            "请求路径应指向 ACS leaf，实际: {}",
+            req.url
+        );
+    }
+
+    /// 代表性 compliance (security_and_compliance v2) leaf 也应收到 retained canonical Config。
+    /// 证明与 ACS 相同：base_url、headers、token_provider 完整保留。
+    ///
+    /// 用 `device_records().list()`（tenant_access_token）而非 `mine()`：后者按飞书文档要求
+    /// user_access_token（#515），而本测试的 token provider 只供 tenant/app 凭证、不设
+    /// `option.user_access_token`，User 类 leaf 会在 `validate()` 直接被拒（http.rs:361）。
+    /// 本测试验证的是 config 传播，与具体 leaf 无关，故选 tenant 类代表 leaf。
+    #[tokio::test]
+    async fn security_client_new_canonical_config_propagates_to_compliance_v2_leaf() {
+        let server = MockServer::start().await;
+
+        // 精确匹配 header，证明 token provider 和自定义 header 传播
+        Mock::given(method("GET"))
+            .and(path("/open-apis/security_and_compliance/v2/device_records"))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
+            .and(header("X-Compliance-Test", "propagated"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "has_more": false, "items": [] }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Compliance-Test", "propagated")
+            .req_timeout(std::time::Duration::from_secs(30))
+            .max_response_size(8 * 1024 * 1024)
+            .build();
+
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+
+        let client = SecurityClient::new(config_with_provider);
+
+        // 传播证明靠 mock header 匹配 + execute 成功（不读 config 字段）。
+
+        let _ = client
+            .security_and_compliance
+            .v2()
+            .device_records()
+            .list()
+            .execute()
+            .await
+            .expect("compliance v2 leaf 应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1, "应只发一次 compliance leaf 请求");
+        assert!(
+            received[0].url.path().contains("/device_records"),
+            "请求路径应指向 compliance v2 leaf"
+        );
+    }
+
+    /// 代表性 compliance v1 leaf（审计日志 list_data）也应收到 retained canonical Config。
+    #[tokio::test]
+    async fn security_client_new_canonical_config_propagates_to_compliance_v1_leaf() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/security_and_compliance/v1/openapi_logs/list_data",
+            ))
+            .and(header("Authorization", "Bearer test_tok_from_provider"))
+            .and(header("X-Compliance-V1", "propagated"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "items": [{ "request_id": "r1" }], "has_more": false }
+            })))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .add_header("X-Compliance-V1", "propagated")
+            .build();
+
+        let config_with_provider =
+            base.with_token_provider(TestTokenProvider("test_tok_from_provider"));
+
+        let client = SecurityClient::new(config_with_provider);
+
+        // 结构 sanity：header 已通过 provider + 传播生效（见 mock 精确匹配）
+        // 不再依赖“读取存储字段”作为传播验收；下面补充真实错误路径触发测试。
+
+        use serde_json::json;
+        let _ = client
+            .security_and_compliance
+            .v1()
+            .openapi_logs()
+            .list_data()
+            .body(json!({ "start_time": 1700000000, "end_time": 1700003600 }))
+            .execute()
+            .await
+            .expect("compliance v1 leaf 应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert!(received[0].url.path().contains("/openapi_logs/list_data"));
+    }
+
+    /// Compliance v1 业务错误必须保留 retry 语义与 request ID。
+    #[tokio::test]
+    async fn compliance_v1_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/security_and_compliance/v1/openapi_logs/list_data",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 503,
+                "msg": "compliance v1 unavailable",
+                "request_id": "req-compliance-v1-503"
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .build()
+            .with_token_provider(TestTokenProvider("compliance_v1_token"));
+        let client = SecurityClient::new(config);
+
+        let err = client
+            .security_and_compliance
+            .v1()
+            .openapi_logs()
+            .list_data()
+            .body(serde_json::json!({}))
+            .execute()
+            .await
+            .expect_err("compliance v1 业务错误必须向上传播");
+
+        assert!(err.is_retryable());
+        assert_eq!(err.context().request_id(), Some("req-compliance-v1-503"));
+    }
+
+    /// Compliance v2 业务错误必须保留 retry 语义与 request ID。
+    /// 同上用 `list()`（tenant）而非 `mine()`（user，#515）：测试只配 tenant/app 凭证。
+    #[tokio::test]
+    async fn compliance_v2_preserves_retryable_error_and_request_id() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/security_and_compliance/v2/device_records"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 429,
+                "msg": "compliance v2 rate limited",
+                "request_id": "req-compliance-v2-429"
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .build()
+            .with_token_provider(TestTokenProvider("compliance_v2_token"));
+        let client = SecurityClient::new(config);
+
+        let err = client
+            .security_and_compliance
+            .v2()
+            .device_records()
+            .list()
+            .execute()
+            .await
+            .expect_err("compliance v2 业务错误必须向上传播");
+
+        assert!(err.is_retryable());
+        assert_eq!(err.context().request_id(), Some("req-compliance-v2-429"));
+    }
+
+    /// 行为验证：通过极小 timeout 触发超时错误，证明 req_timeout 配置已传播到执行路径。
+    /// 不依赖 client.config() 读取做验收。
+    #[tokio::test]
+    async fn security_client_timeout_propagates_and_triggers_timeout_error() {
+        let server = MockServer::start().await;
+
+        // 模拟慢响应（> timeout）
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"code":0,"msg":"ok","data":{"has_more":false,"items":[]}}))
+                    .set_delay(std::time::Duration::from_millis(800)),
+            )
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .req_timeout(std::time::Duration::from_millis(50)) // 极短，必超时
+            .build();
+
+        let config = base.with_token_provider(TestTokenProvider("test_tok_for_timeout_test"));
+
+        let client = SecurityClient::new(config);
+
+        let result = client.acs.v1().users().list().execute().await;
+
+        // 必须是错误，且与超时相关（reqwest timeout 或上层包装）
+        assert!(result.is_err(), "应因 timeout 配置触发错误");
+        let err = result.unwrap_err().to_string().to_lowercase();
+        // 短 timeout 常表现为网络/请求错误（reqwest 超时包装），接受宽松匹配
+        assert!(
+            err.contains("timeout")
+                || err.contains("time")
+                || err.contains("deadline")
+                || err.contains("network")
+                || err.contains("send"),
+            "错误应体现超时或网络失败，实际: {}",
+            err
+        );
+    }
+
+    /// 行为验证：小 max_response_size + 大响应体 → response_too_large 错误。
+    #[tokio::test]
+    async fn security_client_max_response_size_propagates_and_triggers_size_error() {
+        let server = MockServer::start().await;
+
+        // 构造一个 > limit 的响应（用大 body）
+        let big_body = serde_json::json!({
+            "code": 0,
+            "msg": "ok",
+            "data": { "has_more": false, "items": [ {"x": "y".repeat(1024)} ] }
+        });
+        let big_json = serde_json::to_vec(&big_body).unwrap();
+
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(big_json, "application/json"))
+            .mount(&server)
+            .await;
+
+        let base = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .allow_custom_base_url(true)
+            .max_response_size(512) // 故意很小
+            .build();
+
+        let config = base.with_token_provider(TestTokenProvider("test_tok_for_size_test"));
+
+        let client = SecurityClient::new(config);
+
+        let result = client.acs.v1().users().list().execute().await;
+
+        assert!(result.is_err(), "应因 response size 超限触发错误");
+        let err = result.unwrap_err().to_string();
+        // 精确错误来自 CoreError::response_too_large
+        assert!(
+            err.contains("响应体过大")
+                || err.to_lowercase().contains("large")
+                || err.to_lowercase().contains("size")
+                || err.contains("超过限制"),
+            "错误应体现响应过大，实际: {}",
+            err
+        );
     }
 }

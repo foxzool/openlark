@@ -1,19 +1,20 @@
 //! 查询席位分配详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/seat_assignment/list
+//! 文档: <https://open.feishu.cn/document/apaas-v1/seat_assignment/list>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/seat_assignment/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询席位分配详情 Builder
 #[derive(Debug, Clone)]
-pub struct SeatAssignmentListBuilder {
+pub struct SeatAssignmentListRequestBuilder {
     config: Config,
     /// 页码
     page: Option<u32>,
@@ -21,7 +22,7 @@ pub struct SeatAssignmentListBuilder {
     page_size: Option<u32>,
 }
 
-impl SeatAssignmentListBuilder {
+impl SeatAssignmentListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config) -> Self {
         Self {
@@ -45,19 +46,7 @@ impl SeatAssignmentListBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<SeatAssignmentListResponse> {
-        let url = "/open-apis/apaas/v1/seat_assignments";
-
-        let mut req: ApiRequest<SeatAssignmentListResponse> = ApiRequest::get(url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位分配详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -74,10 +63,7 @@ impl SeatAssignmentListBuilder {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询席位分配详情", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询席位分配详情").await
     }
 }
 
@@ -106,16 +92,16 @@ pub struct SeatAssignment {
 pub struct SeatAssignmentListResponse {
     /// 席位分配列表
     #[serde(rename = "items")]
-    items: Vec<SeatAssignment>,
+    pub items: Vec<SeatAssignment>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for SeatAssignmentListResponse {
@@ -123,6 +109,10 @@ impl ApiResponseTrait for SeatAssignmentListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to SeatAssignmentListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type SeatAssignmentListBuilder = SeatAssignmentListRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -134,7 +124,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = SeatAssignmentListBuilder::new(config.clone())
+        let request = SeatAssignmentListRequestBuilder::new(config.clone())
             .page(1)
             .page_size(1);
         let _ = request;

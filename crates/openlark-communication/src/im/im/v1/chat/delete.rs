@@ -1,15 +1,12 @@
 //! 解散群
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_CHATS};
 
 /// 解散群请求
 ///
@@ -53,7 +50,7 @@ impl DeleteChatRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -71,8 +68,7 @@ impl DeleteChatRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", IM_V1_CHATS, self.chat_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "解散群")
+        Transport::request_typed(req, &self.config, Some(option), "解散群").await
     }
 }
 

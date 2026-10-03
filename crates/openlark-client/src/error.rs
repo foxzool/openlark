@@ -3,10 +3,7 @@
 //! 基于 openlark-core 的现代化错误处理系统
 //! 直接使用 CoreError，提供类型安全和用户友好的错误管理
 
-use crate::registry::RegistryError;
-use openlark_core::error::{
-    ApiError, CoreError, ErrorCategory, ErrorCode, ErrorContext, ErrorTrait, ErrorType,
-};
+use openlark_core::error::{CoreError, ErrorTrait, ErrorType};
 
 /// 🚨 OpenLark 客户端错误类型
 ///
@@ -55,50 +52,14 @@ pub fn user_identity_invalid_error(desc: impl Into<String>) -> Error {
     openlark_core::error::user_identity_invalid_error(desc)
 }
 
-/// 基于飞书通用 `code` 的统一错误映射（客户端自定义解析时可复用）
-pub fn from_feishu_response(
-    code: i32,
-    endpoint: impl Into<String>,
-    message: impl Into<String>,
-    request_id: Option<String>,
-) -> Error {
-    let mapped = ErrorCode::from_feishu_code(code).unwrap_or_else(|| ErrorCode::from_code(code));
-
-    let mut ctx = ErrorContext::new();
-    ctx.add_context("feishu_code", code.to_string());
-    if let Some(req) = request_id {
-        ctx.set_request_id(req);
-    }
-
-    let status = mapped
-        .http_status()
-        .unwrap_or_else(|| match mapped.category() {
-            ErrorCategory::RateLimit => 429,
-            ErrorCategory::Authentication
-            | ErrorCategory::Permission
-            | ErrorCategory::Parameter => 400,
-            ErrorCategory::Resource => 404,
-            _ => 500,
-        });
-
-    CoreError::Api(Box::new(ApiError {
-        status,
-        endpoint: endpoint.into().into(),
-        message: message.into(),
-        source: None,
-        code: mapped,
-        ctx: Box::new(ctx),
-    }))
-}
-
 /// 创建API错误
 pub fn api_error(
-    status: u16,
+    raw_code: i32,
     endpoint: impl Into<String>,
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> Error {
-    openlark_core::error::api_error(status, endpoint, message, request_id)
+    openlark_core::error::api_error(raw_code, endpoint, message, request_id)
 }
 
 /// 创建验证错误
@@ -148,11 +109,6 @@ pub fn internal_error(message: impl Into<String>) -> Error {
     openlark_core::error::api_error(500, "internal", message, None::<String>)
 }
 
-/// 创建注册表错误
-pub fn registry_error(err: RegistryError) -> Error {
-    internal_error(format!("服务注册表错误: {}", err))
-}
-
 // ============================================================================
 // 错误扩展功能
 // ============================================================================
@@ -180,6 +136,7 @@ impl ClientErrorExt for Error {
             ErrorType::RateLimit => "稍后重试，考虑降低请求频率",
             ErrorType::ServiceUnavailable => "稍后重试，检查服务状态",
             ErrorType::Internal => "联系技术支持，提供错误详情",
+            ErrorType::ResponseTooLarge => "减小请求数据量或增大 max_response_size 配置",
         }
     }
 
@@ -251,6 +208,12 @@ impl ClientErrorExt for Error {
                 "重启相关服务",
                 "联系技术支持",
             ],
+            ErrorType::ResponseTooLarge => vec![
+                "减小请求数据量",
+                "增大 max_response_size 配置",
+                "分批请求数据",
+                "联系技术支持确认数据规模",
+            ],
         }
     }
 }
@@ -264,13 +227,6 @@ impl ClientErrorExt for Error {
 
 // 注意: 不能为外部类型实现 From，因为这些类型由 CoreError 定义在 openlark-core 中
 // 请使用对应的函数来进行错误转换
-
-// 从注册表错误转换
-impl From<RegistryError> for Error {
-    fn from(err: RegistryError) -> Self {
-        registry_error(err)
-    }
-}
 
 // ============================================================================
 // 便利函数
@@ -346,7 +302,7 @@ impl<'a> ErrorAnalyzer<'a> {
         report.push_str(&format!("  可重试: {}\n", self.error.is_retryable()));
 
         if let Some(request_id) = self.error.context().request_id() {
-            report.push_str(&format!("  请求ID: {}\n", request_id));
+            report.push_str(&format!("  请求ID: {request_id}\n"));
         }
 
         report.push('\n');
@@ -376,14 +332,14 @@ impl<'a> ErrorAnalyzer<'a> {
         if self.error.context().context_len() > 0 {
             report.push_str("📊 上下文信息:\n");
             for (key, value) in self.error.context().all_context() {
-                report.push_str(&format!("  {}: {}\n", key, value));
+                report.push_str(&format!("  {key}: {value}\n"));
             }
             report.push('\n');
         }
 
         // 时间戳
         if let Some(timestamp) = self.error.context().timestamp() {
-            report.push_str(&format!("⏰ 发生时间: {:?}\n", timestamp));
+            report.push_str(&format!("⏰ 发生时间: {timestamp:?}\n"));
         }
         report
     }
@@ -620,29 +576,6 @@ mod tests {
     fn test_user_identity_invalid_error_function() {
         let error = user_identity_invalid_error("用户身份标识非法");
         assert!(error.is_auth_error());
-    }
-
-    #[test]
-    fn test_from_feishu_response_function() {
-        let error = from_feishu_response(
-            99991677,
-            "/api/test",
-            "token过期",
-            Some("req-789".to_string()),
-        );
-        // 错误可能是认证错误或其他类型，只需确保能正确创建
-        assert!(!error.to_string().is_empty());
-        let error2 = from_feishu_response(400, "/api/test", "参数错误", None);
-        assert!(!error2.to_string().is_empty());
-    }
-
-    #[test]
-    fn test_registry_error_conversion() {
-        let registry_err = crate::registry::RegistryError::ServiceNotFound {
-            name: "test".to_string(),
-        };
-        let error: Error = registry_err.into();
-        assert!(!error.is_user_error());
     }
 
     #[test]

@@ -1,30 +1,39 @@
 //! 商店应用获取 tenant_access_token API
-use crate::models::auth::{TenantAccessTokenRequest, TenantAccessTokenResponse};
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token>
+use crate::models::auth::TenantAccessTokenResponse;
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token>
 ///
 /// 应用商店应用通过此接口获取 tenant_access_token，调用接口获取企业资源时，
 /// 需要使用 tenant_access_token 作为授权凭证。
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize)]
+struct TenantAccessTokenBody {
+    app_access_token: String,
+    tenant_key: String,
+}
+
 /// 商店应用获取 tenant_access_token 请求
-pub struct TenantAccessTokenBuilder {
-    app_id: String,
-    app_secret: String,
-    app_ticket: String,
+pub struct TenantAccessTokenRequestBuilder {
+    app_access_token: String,
+    tenant_key: String,
     /// 配置信息
     config: Config,
 }
 
 /// 商店应用获取 tenant_access_token 响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct TenantAccessTokenResponseData {
     /// 租户访问令牌响应
     pub data: TenantAccessTokenResponse,
@@ -32,36 +41,29 @@ pub struct TenantAccessTokenResponseData {
 
 impl ApiResponseTrait for TenantAccessTokenResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
-impl TenantAccessTokenBuilder {
+impl TenantAccessTokenRequestBuilder {
     /// 创建 tenant_access_token 请求
     pub fn new(config: Config) -> Self {
         Self {
-            app_id: String::new(),
-            app_secret: String::new(),
-            app_ticket: String::new(),
+            app_access_token: String::new(),
+            tenant_key: String::new(),
             config,
         }
     }
 
-    /// 设置应用 ID
-    pub fn app_id(mut self, app_id: impl Into<String>) -> Self {
-        self.app_id = app_id.into();
+    /// 设置应用访问凭证
+    pub fn app_access_token(mut self, app_access_token: impl Into<String>) -> Self {
+        self.app_access_token = app_access_token.into();
         self
     }
 
-    /// 设置应用密钥
-    pub fn app_secret(mut self, app_secret: impl Into<String>) -> Self {
-        self.app_secret = app_secret.into();
-        self
-    }
-
-    /// 设置应用票据（商店应用必需）
-    pub fn app_ticket(mut self, app_ticket: impl Into<String>) -> Self {
-        self.app_ticket = app_ticket.into();
+    /// 设置租户标识
+    pub fn tenant_key(mut self, tenant_key: impl Into<String>) -> Self {
+        self.tenant_key = tenant_key.into();
         self
     }
 
@@ -75,42 +77,49 @@ impl TenantAccessTokenBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<TenantAccessTokenResponseData> {
-        // 验证必填字段
-        validate_required!(self.app_id, "应用ID不能为空");
-        validate_required!(self.app_secret, "应用密钥不能为空");
-        validate_required!(self.app_ticket, "应用票据不能为空");
+        validate_required!(self.app_access_token, "应用访问凭证不能为空");
+        validate_required!(self.tenant_key, "租户标识不能为空");
 
         // 🚀 使用新的enum+builder系统生成API端点
         use crate::common::api_endpoints::AuthApiV3;
         let api_endpoint = AuthApiV3::TenantAccessToken;
 
         // 构建请求体
-        let request_body = TenantAccessTokenRequest {
-            app_id: self.app_id.clone(),
-            app_secret: self.app_secret.clone(),
-            app_ticket: self.app_ticket.clone(),
+        let request_body = TenantAccessTokenBody {
+            app_access_token: self.app_access_token,
+            tenant_key: self.tenant_key,
         };
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<TenantAccessTokenResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取商店应用 tenant_access_token",
-                "响应数据为空",
-            )
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取商店应用 tenant_access_token",
+        )
+        .await
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to TenantAccessTokenRequestBuilder, will be removed in v1.0 (#271)")]
+pub type TenantAccessTokenBuilder = TenantAccessTokenRequestBuilder;
+
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -122,49 +131,41 @@ mod tests {
     #[test]
     fn test_tenant_access_token_builder_new() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config);
-        assert!(builder.app_id.is_empty());
-        assert!(builder.app_secret.is_empty());
-        assert!(builder.app_ticket.is_empty());
+        let builder = TenantAccessTokenRequestBuilder::new(config);
+        assert!(builder.app_access_token.is_empty());
+        assert!(builder.tenant_key.is_empty());
     }
 
     #[test]
     fn test_tenant_access_token_builder_chain() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config)
-            .app_id("my_app_id")
-            .app_secret("my_app_secret")
-            .app_ticket("my_app_ticket");
-        assert_eq!(builder.app_id, "my_app_id");
-        assert_eq!(builder.app_secret, "my_app_secret");
-        assert_eq!(builder.app_ticket, "my_app_ticket");
+        let builder = TenantAccessTokenRequestBuilder::new(config)
+            .app_access_token("my_app_access_token")
+            .tenant_key("my_tenant_key");
+        assert_eq!(builder.app_access_token, "my_app_access_token");
+        assert_eq!(builder.tenant_key, "my_tenant_key");
     }
 
     #[test]
-    fn test_tenant_access_token_builder_app_id_chained() {
+    fn test_tenant_access_token_builder_app_access_token_chained() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config).app_id("chained_app_id");
-        assert_eq!(builder.app_id, "chained_app_id");
+        let builder = TenantAccessTokenRequestBuilder::new(config)
+            .app_access_token("chained_app_access_token");
+        assert_eq!(builder.app_access_token, "chained_app_access_token");
     }
 
     #[test]
-    fn test_tenant_access_token_builder_app_secret_chained() {
+    fn test_tenant_access_token_builder_tenant_key_chained() {
         let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config).app_secret("chained_secret");
-        assert_eq!(builder.app_secret, "chained_secret");
-    }
-
-    #[test]
-    fn test_tenant_access_token_builder_app_ticket_chained() {
-        let config = create_test_config();
-        let builder = TenantAccessTokenBuilder::new(config).app_ticket("chained_ticket");
-        assert_eq!(builder.app_ticket, "chained_ticket");
+        let builder = TenantAccessTokenRequestBuilder::new(config).tenant_key("chained_tenant_key");
+        assert_eq!(builder.tenant_key, "chained_tenant_key");
     }
 
     #[test]
     fn test_tenant_access_token_response_data_deserialization() {
-        let json = r#"{"data":{"tenant_access_token":"token123","expires_in":7200}}"#;
-        let response: TenantAccessTokenResponseData = serde_json::from_str(json).expect("JSON 反序列化失败");
+        let json = r#"{"code":0,"msg":"success","tenant_access_token":"token123","expire":7200}"#;
+        let response: TenantAccessTokenResponseData =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.data.tenant_access_token, "token123");
         assert_eq!(response.data.expires_in, 7200);
     }
@@ -173,7 +174,45 @@ mod tests {
     fn test_tenant_access_token_response_data_format() {
         assert_eq!(
             TenantAccessTokenResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
         );
+    }
+
+    #[tokio::test]
+    async fn test_execute_sends_app_token_tenant_key_and_no_authorization() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/tenant_access_token"))
+            .and(body_json(json!({
+                "app_access_token": "app-token",
+                "tenant_key": "tenant-001"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "tenant_access_token": "tenant-token",
+                "expire": 7200
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .build();
+
+        let response = TenantAccessTokenRequestBuilder::new(config)
+            .app_access_token("app-token")
+            .tenant_key("tenant-001")
+            .execute()
+            .await
+            .expect("tenant_access_token 请求应成功");
+
+        assert_eq!(response.data.tenant_access_token, "tenant-token");
+
+        let received_requests = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received_requests.len(), 1);
+        assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }

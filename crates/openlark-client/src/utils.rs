@@ -1,14 +1,25 @@
-use crate::config::ConfigSummary;
-use crate::{configuration_error, validation_error, with_context, Config, Result};
+use crate::{Result, configuration_error, validation_error, with_context};
+use openlark_core::config::{Config, ConfigSummary};
 use openlark_core::error::ErrorTrait;
 use std::env;
+
+/// 环境变量校验结果
+///
+/// 由 `check_env_config` 返回，承载已校验的必填凭证，
+/// 避免调用方重复读取环境变量。
+pub struct EnvConfig {
+    /// 飞书应用 App ID（已校验非空）
+    pub app_id: String,
+    /// 飞书应用 App Secret（已校验非空）
+    pub app_secret: String,
+}
 
 /// 🔍 检查环境变量配置
 ///
 /// 验证飞书应用所需的环境变量是否正确设置
 ///
 /// # 返回
-/// - `Ok(())`: 环境变量配置正确
+/// - `Ok(EnvConfig)`: 环境变量配置正确，返回已校验的凭证
 /// - `Err(Error)`: 环境变量配置错误，包含详细的错误信息和恢复建议
 ///
 /// # 示例
@@ -16,7 +27,7 @@ use std::env;
 /// use openlark_client::{prelude::*, utils};
 ///
 /// match utils::check_env_config() {
-///     Ok(()) => println!("环境变量配置正确"),
+///     Ok(_) => println!("环境变量配置正确"),
 ///     Err(error) => {
 ///         eprintln!("❌ {}", error.user_message().unwrap_or("未知错误"));
 ///         for step in error.recovery_steps() {
@@ -25,7 +36,7 @@ use std::env;
 ///     }
 /// }
 /// ```
-pub fn check_env_config() -> Result<()> {
+pub fn check_env_config() -> Result<EnvConfig> {
     // 检查 OPENLARK_APP_ID
     let app_id = env::var("OPENLARK_APP_ID")
         .map_err(|_| configuration_error("环境变量检查失败 [variable: OPENLARK_APP_ID]"))?;
@@ -57,74 +68,49 @@ pub fn check_env_config() -> Result<()> {
     }
 
     // 检查可选的环境变量
-    if let Ok(base_url) = env::var("OPENLARK_BASE_URL") {
-        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
-            return with_context(
-                Err(validation_error(
-                    "OPENLARK_BASE_URL",
-                    "基础URL必须以http://或https://开头",
-                )),
-                "validation",
-                "env_config",
-            );
-        }
+    if let Ok(base_url) = env::var("OPENLARK_BASE_URL")
+        && !base_url.starts_with("http://")
+        && !base_url.starts_with("https://")
+    {
+        return with_context(
+            Err(validation_error(
+                "OPENLARK_BASE_URL",
+                "基础URL必须以http://或https://开头",
+            )),
+            "validation",
+            "env_config",
+        );
     }
 
     // 检查超时设置
-    if let Ok(timeout_str) = env::var("OPENLARK_TIMEOUT") {
-        if timeout_str.parse::<u64>().is_err() {
-            return with_context(
-                Err(validation_error(
-                    "OPENLARK_TIMEOUT",
-                    "超时设置必须是有效的数字（秒数）",
-                )),
-                "validation",
-                "env_config",
-            );
-        }
+    if let Ok(timeout_str) = env::var("OPENLARK_TIMEOUT")
+        && timeout_str.parse::<u64>().is_err()
+    {
+        return with_context(
+            Err(validation_error(
+                "OPENLARK_TIMEOUT",
+                "超时设置必须是有效的数字（秒数）",
+            )),
+            "validation",
+            "env_config",
+        );
     }
 
-    Ok(())
+    Ok(EnvConfig { app_id, app_secret })
 }
 
 /// 🔧 从环境变量创建配置
 ///
-/// 自动读取环境变量并创建客户端配置
+/// 先经 [`check_env_config`] 做运维向必填/格式预检，再委托 core
+/// [`Config::from_env`] 解释全部 `OPENLARK_*`（与 `ConfigBuilder::load_from_env` /
+/// `ClientBuilder::from_env` 共用同一套规则与默认值）。
 ///
 /// # 返回
 /// - `Ok(Config)`: 成功创建配置
 /// - `Err(Error)`: 配置创建失败，包含详细错误信息
 pub fn create_config_from_env() -> Result<Config> {
-    // 先检查环境变量
     check_env_config()?;
-
-    let app_id = env::var("OPENLARK_APP_ID").unwrap();
-    let app_secret = env::var("OPENLARK_APP_SECRET").unwrap();
-
-    let base_url =
-        env::var("OPENLARK_BASE_URL").unwrap_or_else(|_| "https://open.feishu.cn".to_string());
-
-    let timeout = env::var("OPENLARK_TIMEOUT")
-        .ok()
-        .and_then(|t| t.parse().ok())
-        .map(std::time::Duration::from_secs);
-
-    let enable_log = env::var("OPENLARK_ENABLE_LOG")
-        .ok()
-        .and_then(|l| l.parse().ok())
-        .unwrap_or(false);
-
-    let mut config = Config::builder()
-        .app_id(app_id)
-        .app_secret(app_secret)
-        .base_url(base_url)
-        .enable_log(enable_log);
-
-    if let Some(timeout_duration) = timeout {
-        config = config.timeout(timeout_duration);
-    }
-
-    with_context(config.build(), "operation", "create_config_from_env")
+    Ok(Config::from_env())
 }
 
 /// 📊 获取配置摘要
@@ -220,7 +206,7 @@ pub fn diagnose_system() -> SystemDiagnostics {
 
     // 检查环境变量
     match check_env_config() {
-        Ok(()) => {
+        Ok(_) => {
             diagnostics.env_config_status = "✅ 正常".to_string();
         }
         Err(error) => {
@@ -289,7 +275,7 @@ impl SystemDiagnostics {
         if healthy_count == 0 {
             "🟢 系统配置健康".to_string()
         } else {
-            format!("🟡 发现 {} 个配置问题", healthy_count)
+            format!("🟡 发现 {healthy_count} 个配置问题")
         }
     }
 
@@ -314,24 +300,4 @@ pub struct DiagnosticIssue {
     pub category: String,
     /// 📝 问题描述
     pub description: String,
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

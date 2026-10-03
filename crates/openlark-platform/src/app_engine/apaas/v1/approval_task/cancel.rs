@@ -1,21 +1,22 @@
 //! 撤销人工任务 API
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 撤销人工任务的请求构建器。
-pub struct CancelTaskBuilder {
+pub struct CancelTaskRequestBuilder {
     approval_task_id: String,
     config: Config,
 }
 
-impl CancelTaskBuilder {
+impl CancelTaskRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
@@ -48,10 +49,7 @@ impl CancelTaskBuilder {
         );
         let api_request: ApiRequest<CancelTaskResponse> = ApiRequest::post(url);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("撤销人工任务", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "撤销人工任务").await
     }
 }
 
@@ -68,23 +66,52 @@ impl ApiResponseTrait for CancelTaskResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to CancelTaskRequestBuilder, will be removed in v1.0 (#271)")]
+pub type CancelTaskBuilder = CancelTaskRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：POST .../approval_tasks/{id}/cancel → 强类型 CancelTaskResponse。
+    #[tokio::test]
+    async fn test_cancel_approval_task_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/apaas/v1/approval_tasks/task_001/cancel"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "result": "success" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CancelTaskRequestBuilder::new(config)
+            .approval_task_id("task_001")
+            .execute()
+            .await
+            .expect("撤销人工任务应成功");
+        assert_eq!(resp.result, "success");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/approval_tasks/task_001/cancel"
+        );
     }
 }

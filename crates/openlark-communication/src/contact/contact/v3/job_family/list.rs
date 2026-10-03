@@ -1,11 +1,10 @@
 //! 获取租户序列列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_family/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_family/list>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::job_family::models::ListJobFamiliesResponse,
     endpoints::CONTACT_V3_JOB_FAMILIES,
 };
@@ -71,7 +70,7 @@ impl ListJobFamiliesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/job_family/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/job_family/list>
     pub async fn execute(self) -> SDKResult<ListJobFamiliesResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -94,8 +93,7 @@ impl ListJobFamiliesRequest {
         if let Some(name) = self.name {
             req = req.query("name", name);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取租户序列列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取租户序列列表").await
     }
 }
 

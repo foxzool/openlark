@@ -1,0 +1,10 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/minutes.rs
+expression: "catalog_semantics_snapshot::<MinutesApiV1>()"
+---
+Get("") | Get | /open-apis/minutes/v1/minutes/ | Some([User, Tenant])
+Subscription | Post | /open-apis/minutes/v1/minutes/subscription | Some([User, Tenant])
+Unsubscription | Post | /open-apis/minutes/v1/minutes/unsubscription | Some([User, Tenant])
+MediaGet("") | Get | /open-apis/minutes/v1/minutes//media | Some([User, Tenant])
+TranscriptGet("") | Get | /open-apis/minutes/v1/minutes//transcript | Some([User, Tenant])
+StatisticsGet("") | Get | /open-apis/minutes/v1/minutes//statistics | Some([User, Tenant])

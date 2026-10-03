@@ -18,18 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run cargo test (workspace, all features)
-        run: cargo test --lib --workspace --all-features --no-fail-fast
+        run: cargo test --workspace --all-features --no-fail-fast
+
+      - name: Verify protobuf package builds without protoc
+        run: python3 -m unittest tools.tests.test_lark_websocket_protobuf_package
 
       - name: Validate public examples
         run: bash scripts/check-public-examples.sh
@@ -38,20 +36,98 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      RUSTDOCFLAGS: "-D warnings -A rustdoc::bare_urls"
+      RUSTDOCFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run cargo doc
         run: cargo doc --workspace --all-features --no-deps
+
+  api-contracts:
+    runs-on: ubuntu-latest
+    # endpoint offline + token(security/auth) + field(attendance ~39 + docs ~214 live)
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run API contract tooling tests
+        run: |
+          python3 -m unittest \
+            tools.tests.test_official_evidence_collect \
+            tools.tests.test_official_evidence_live \
+            tools.tests.test_validate_api_contracts_official \
+            tools.tests.test_validate_api_contracts_rust_source \
+            tools.tests.test_validate_api_contracts_compare \
+            tools.tests.test_validate_api_contracts_ci_gates \
+            tools.tests.test_verify_api_fields \
+            tools.tests.test_verify_api_fields_ci_gates
+      - name: Validate typed API endpoint contracts
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --all-crates \
+            --strict endpoint \
+            --report-dir "$RUNNER_TEMP/api_contracts"
+      - name: Monitor live Official Endpoint Evidence
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-ai \
+            --live-endpoints \
+            --report-dir "$RUNNER_TEMP/api_contracts_live_monitor"
+      - name: Validate Trusted token Evidence inventory
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-security \
+            --api-id 7321978105899122716 \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens_strict/security"
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-auth \
+            --api-id 7277403063290724380 \
+            --tokens \
+            --strict tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens_strict/auth"
+      - name: Monitor full token Evidence domains
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-security \
+            --tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens/security"
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-auth \
+            --tokens \
+            --report-dir "$RUNNER_TEMP/api_contract_tokens/auth"
+      - name: Monitor attendance field Evidence
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-hr \
+            --biz-tag attendance \
+            --fields \
+            --live-fields \
+            --report-dir "$RUNNER_TEMP/api_contract_fields/attendance"
+      - name: Monitor docs field Evidence
+        run: |
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-docs \
+            --fields \
+            --live-fields \
+            --report-dir "$RUNNER_TEMP/api_contract_fields/docs"
+      - name: Upload API contract reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contracts
+          path: |
+            ${{ runner.temp }}/api_contracts
+            ${{ runner.temp }}/api_contract_tokens
+            ${{ runner.temp }}/api_contract_tokens_strict
+            ${{ runner.temp }}/api_contract_fields
+          retention-days: 14
 
   lint:
     runs-on: ubuntu-latest
@@ -59,23 +135,49 @@ jobs:
     env:
       RUSTFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Check format
         run: cargo fmt --all -- --check
       - name: Run clippy (all features)
-        run: cargo clippy --workspace --lib --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check mod reachability (no new orphan src files)
+        run: |
+          python3 -m unittest tools.tests.test_check_mod_reachability
+          python3 -m unittest tools.tests.test_workspace_missing_docs
+          python3 -m unittest \
+            tools.tests.test_openlark_communication_missing_docs \
+            tools.tests.test_openlark_docs_missing_docs \
+            tools.tests.test_openlark_helpdesk_missing_docs \
+            tools.tests.test_openlark_hr_missing_docs \
+            tools.tests.test_openlark_mail_missing_docs \
+            tools.tests.test_openlark_meeting_missing_docs \
+            tools.tests.test_openlark_platform_missing_docs \
+            tools.tests.test_openlark_workflow_missing_docs \
+            tools.tests.test_openlark_workflow_narrow_missing_docs
+          python3 tools/check_mod_reachability.py
+      - name: Check no #[allow(dead_code)] in non-test code
+        run: bash tools/check_no_dead_code_allows.sh
+      - name: Check Transport/reqwest boundary
+        run: bash tools/check_reqwest_boundary.sh
+      - name: Check no handwritten response extraction (drift guard #470/#486)
+        run: python3 tools/check_no_handwritten_extraction.py
+      - name: Leaf paradigm hard gate (issue41 guardrail; #585)
+        run: |
+          # Hard on ERROR for DEFAULT_TARGET_CRATES (docs/meeting/communication/hr).
+          # Do NOT pass --strict-warn: W001 remains warn-only until historical debt is cleared.
+          # Inventory pin: tools/tests/test_issue41_guardrail.py
+          python3 -m unittest tools.tests.test_issue41_guardrail
+          python3 tools/issue41_guardrail.py
       - name: Run clippy (no default features)
-        run: cargo clippy --workspace --lib --no-default-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
   # Feature combination testing for issue #47
   feature-combinations:
@@ -102,6 +204,8 @@ jobs:
           - "auth,analytics"
           - "auth,user"
           - "auth,cardkit"
+          - "bot"
+          - "pay"
           
           # === 文档细分组合 (Docs Sub-features) ===
           - "auth,docs-base"
@@ -135,7 +239,7 @@ jobs:
           # === Edge Cases ===
           - "full"  # all enterprise features
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -145,12 +249,6 @@ jobs:
 
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build with feature combination
         run: |
@@ -167,18 +265,20 @@ jobs:
         run: |
           if [ -z "${{ matrix.features }}" ]; then
             echo "Testing with no features"
-            timeout 15m cargo test --no-default-features --lib
+            timeout 15m cargo test -p openlark -p openlark-client --no-default-features --lib
           else
             echo "Testing with features: ${{ matrix.features }}"
-            timeout 15m cargo test --no-default-features --features "${{ matrix.features }}" --lib
+            # 同时选择根 crate 与 client：root-only feature 由 openlark 解析，并通过
+            # 依赖关系把对应 client feature 传播给 catalog contract tests。
+            timeout 15m cargo test -p openlark -p openlark-client --no-default-features --features "${{ matrix.features }}" --lib
           fi
 
       - name: Run clippy with feature combination
         run: |
           if [ -z "${{ matrix.features }}" ]; then
-            cargo clippy --no-default-features --lib -- -D warnings
+            cargo clippy --no-default-features --all-targets -- -D warnings
           else
-            cargo clippy --no-default-features --features "${{ matrix.features }}" --lib -- -D warnings
+            cargo clippy --no-default-features --features "${{ matrix.features }}" --all-targets -- -D warnings
           fi
 
   # MSRV 检查 (Minimum Supported Rust Version)
@@ -186,16 +286,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: 1.75
+          toolchain: 1.88
       - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Use pinned MSRV lockfile
         run: cp .github/msrv/Cargo.lock Cargo.lock
       - name: Check MSRV build
@@ -206,7 +301,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
@@ -222,7 +317,7 @@ jobs:
     timeout-minutes: 30
     continue-on-error: true  # 允许失败，因为可能有误报
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}

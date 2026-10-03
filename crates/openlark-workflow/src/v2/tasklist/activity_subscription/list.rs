@@ -1,13 +1,14 @@
 //! 列取动态订阅
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist-activity_subscription/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::tasklist::activity_subscription::models::ListActivitySubscriptionsResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -73,9 +74,13 @@ impl ListActivitySubscriptionsRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "列取动态订阅")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "列取动态订阅",
+        )
+        .await
     }
 }
 

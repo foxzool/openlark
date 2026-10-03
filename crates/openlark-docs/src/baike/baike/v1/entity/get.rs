@@ -1,13 +1,14 @@
 //! 获取词条详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/entity/get
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/entity/get>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -112,8 +113,9 @@ impl GetEntityRequest {
         }
 
         // ===== 构建请求 =====
+        // 使用 catalog 提供 method + path + auth（#443）
         let mut api_request: ApiRequest<GetEntityResp> =
-            ApiRequest::get(&BaikeApiV1::EntityGet(self.entity_id).to_url());
+            BaikeApiV1::EntityGet(self.entity_id).to_request();
         if let Some(provider) = &self.provider {
             api_request = api_request.query("provider", provider);
         }
@@ -125,11 +127,7 @@ impl GetEntityRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<GetEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词条详情").await
     }
 }
 
@@ -166,44 +164,54 @@ mod tests {
 
         // 测试 entity_id 为空
         let request = GetEntityRequest::new(config.clone(), "");
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 provider 过短
         let request2 = GetEntityRequest::new(config.clone(), "enterprise_0")
             .provider("a")
             .outer_id("outer_123");
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 provider 过长
         let request3 = GetEntityRequest::new(config.clone(), "enterprise_0")
             .provider("a".repeat(33))
             .outer_id("outer_123");
-        assert!(request3
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request3
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 outer_id 过长
         let request4 = GetEntityRequest::new(config.clone(), "enterprise_0")
             .provider("my_system")
             .outer_id("a".repeat(65));
-        assert!(request4
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request4
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试缺少 outer_id
         let request5 = GetEntityRequest::new(config.clone(), "enterprise_0").provider("my_system");
-        assert!(request5
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request5
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

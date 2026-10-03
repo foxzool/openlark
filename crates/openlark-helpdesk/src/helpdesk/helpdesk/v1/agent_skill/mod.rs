@@ -34,7 +34,7 @@ impl AgentSkill {
 
     /// 创建客服技能
     pub fn create(&self) -> create::CreateAgentSkillRequest {
-        create::CreateAgentSkillRequest::new(self.config.clone())
+        create::CreateAgentSkillRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定客服技能
@@ -44,7 +44,7 @@ impl AgentSkill {
 
     /// 更新指定客服技能
     pub fn patch(&self, agent_skill_id: impl Into<String>) -> patch::PatchAgentSkillRequest {
-        patch::PatchAgentSkillRequest::new(self.config.clone(), agent_skill_id.into())
+        patch::PatchAgentSkillRequest::new(self.config.as_ref().clone(), agent_skill_id.into())
     }
 
     /// 删除指定客服技能
@@ -58,23 +58,3 @@ pub use delete::{DeleteAgentSkillRequest, DeleteAgentSkillRequestBuilder};
 pub use get::{GetAgentSkillRequest, GetAgentSkillRequestBuilder};
 pub use list::{ListAgentSkillRequest, ListAgentSkillRequestBuilder};
 pub use patch::{PatchAgentSkillRequest, PatchAgentSkillRequestBuilder};
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

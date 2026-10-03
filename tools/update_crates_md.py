@@ -36,6 +36,7 @@ FEATURE_ROW_SPECS = [
     ("`helpdesk`", "openlark-helpdesk"),
     ("`mail`", "openlark-mail"),
     ("`application`", "openlark-application"),
+    ("`pay`", "openlark-pay"),
 ]
 
 
@@ -93,6 +94,9 @@ def render_document() -> str:
             "## bizTag API 数量（排除 meta.Version=old）",
             "",
             "> 数据来源：`api_list_export.csv`。统计口径：按 `bizTag` 分组计数，仅统计 `meta.Version != old` 的行（old 版本不计入“有效 API 数”）。",
+            ">",
+            f"> 实现覆盖率用同一口径跑 `python3 tools/validate_apis.py --all-crates`："
+            f"合计 non-old **{sum(n for n, _, _ in stats.values()):,}** 行（与下表合计一致）。",
             "",
             "| bizTag | API 数量（排除 old） | API 总数 | old 数量 |",
             "|---|---:|---:|---:|",
@@ -117,11 +121,11 @@ def render_document() -> str:
             "- 列出所有 crate 与 bizTag：`python3 tools/validate_apis.py --list-crates`",
             "- 以 crate 为入口验证实现：`python3 tools/validate_apis.py --crate openlark-docs`",
             "",
-            "## open-lark（根 crate）feature → crate → bizTag",
+            "## openlark（根 crate）feature → crate → bizTag",
             "",
-            "当你通过 `open-lark` 这个统一包启用 feature 时，可以按下表理解它最终覆盖的 bizTag 范围：",
+            "当你通过 `openlark` 这个统一包启用 feature 时，可以按下表理解它最终覆盖的 bizTag 范围：",
             "",
-            "| `open-lark` feature | 依赖的 workspace crate | 对应 bizTag |",
+            "| `openlark` feature | 依赖的 workspace crate | 对应 bizTag |",
             "|---|---|---|",
         ]
     )

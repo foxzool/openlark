@@ -2,13 +2,13 @@
 
 //!
 
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/patch>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
@@ -156,7 +156,7 @@ pub async fn patch_comment(
         DriveApi::PatchComment(request.file_token.clone(), request.comment_id.clone());
 
     let mut api_request: ApiRequest<PatchCommentResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &PatchCommentRequestBody {
                 is_solved: request.is_solved,
             },
@@ -170,9 +170,7 @@ pub async fn patch_comment(
     }
 
     // ===== 发送请求 =====
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "解决/恢复评论")
+    Transport::request_typed(api_request, config, option, "解决/恢复评论").await
 }
 
 #[cfg(test)]

@@ -2,17 +2,18 @@
 //!
 //! 将文件、图片、视频等素材文件上传到指定云文档中。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 上传素材请求
 ///
@@ -124,12 +125,7 @@ impl UploadAllMediaRequest {
             ));
         }
 
-        if self.parent_node.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "parent_node",
-                "parent_node 不能为空",
-            ));
-        }
+        validate_required!(self.parent_node, "parent_node 不能为空");
 
         // === 枚举值验证 ===
         match self.parent_type.as_str() {
@@ -148,7 +144,7 @@ impl UploadAllMediaRequest {
                 return Err(openlark_core::error::validation_error(
                     "parent_type",
                     "parent_type 不在支持的取值范围内",
-                ))
+                ));
             }
         }
 
@@ -189,12 +185,12 @@ impl UploadAllMediaRequest {
             extra: self.extra,
         };
 
-        let request = ApiRequest::<UploadAllMediaResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadAllMediaResponse>()
             .json_body(&meta)
             .file_content(self.file);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "上传")
+        Transport::request_typed(request, &self.config, Some(option), "上传").await
     }
 }
 

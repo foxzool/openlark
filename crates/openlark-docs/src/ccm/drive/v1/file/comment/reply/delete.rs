@@ -18,18 +18,18 @@
 //! delete_comment_reply(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/CommentAPI/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/CommentAPI/delete>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 删除回复请求。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,15 +128,12 @@ pub async fn delete_comment_reply(
         request.reply_id.clone(),
     );
 
-    let mut api_request: ApiRequest<DeleteCommentReplyResponse> =
-        ApiRequest::delete(&api_endpoint.to_url());
+    let mut api_request: ApiRequest<DeleteCommentReplyResponse> = api_endpoint.to_request();
 
     api_request = api_request.query("file_type", &request.file_type);
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "删除回复")
+    Transport::request_typed(api_request, config, option, "删除回复").await
 }
 
 #[cfg(test)]

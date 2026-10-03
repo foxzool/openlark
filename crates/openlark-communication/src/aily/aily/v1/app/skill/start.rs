@@ -1,10 +1,10 @@
 //! 调用技能
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/start
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/start>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILL_START};
+use crate::endpoints::AILY_V1_SKILL_START;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -75,7 +75,7 @@ impl StartSkillRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/start
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/start>
     pub async fn execute(self, body: StartSkillBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -99,8 +99,7 @@ impl StartSkillRequest {
             .replace("{skill_id}", &self.skill_id);
         let req: ApiRequest<StartSkillBody> = ApiRequest::post(&url).json_body(&body);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "调用技能")
+        Transport::request_typed(req, &self.config, Some(option), "调用技能").await
     }
 }
 
@@ -152,5 +151,18 @@ mod tests {
         });
         let body = StartSkillBody::new(input);
         assert!(body.input["query"].is_string());
+    }
+
+    #[test]
+    fn test_start_skill_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SKILL_START;
+        let url = AILY_V1_SKILL_START
+            .replace("{app_id}", "app_1")
+            .replace("{skill_id}", "skill_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills/skill_1/start");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

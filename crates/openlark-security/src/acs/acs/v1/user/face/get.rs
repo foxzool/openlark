@@ -1,80 +1,119 @@
-//! 下载人脸图片
+//! 下载用户人脸图片
+//!
+//! docPath: <https://open.feishu.cn/document/server-docs/acs-v1/user/face/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+/// 下载用户人脸图片请求
+#[derive(Debug)]
 pub struct GetUserFaceRequest {
-    config: Arc<Config>,
+    /// 配置信息。
+    config: Config,
+    /// 用户 ID（路径参数，必填）。
     user_id: String,
 }
 
+/// 人脸图片数据（响应 `data` 字段内容）
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetUserFaceResponse {
-    pub data: Option<FaceData>,
+pub struct FaceData {
+    /// 人脸图片 URL。
+    pub face_url: String,
 }
 
-impl ApiResponseTrait for GetUserFaceResponse {
+impl ApiResponseTrait for FaceData {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FaceData {
-    pub face_url: String,
-}
-
 impl GetUserFaceRequest {
-    pub fn new(config: Arc<Config>, user_id: impl Into<String>) -> Self {
+    /// 创建新的请求构建器。
+    pub fn new(config: Config, user_id: impl Into<String>) -> Self {
         Self {
             config,
             user_id: user_id.into(),
         }
     }
 
-    pub async fn execute(self) -> SDKResult<GetUserFaceResponse> {
+    /// 执行请求，返回人脸图片数据。
+    pub async fn execute(self) -> SDKResult<FaceData> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(
-        self,
-        option: RequestOption,
-    ) -> SDKResult<GetUserFaceResponse> {
-        let path = format!("/open-apis/acs/v1/users/{}/face", self.user_id);
-        let req: ApiRequest<GetUserFaceResponse> = ApiRequest::get(&path);
+    /// 使用指定请求选项执行请求。
+    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<FaceData> {
+        validate_required!(self.user_id, "user_id 不能为空");
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("下载人脸图片", "响应数据为空")
-        })
+        let path = format!("/open-apis/acs/v1/users/{}/face", self.user_id);
+        let req: ApiRequest<FaceData> =
+            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
+
+        Transport::request_typed(req, &self.config, Some(option), "下载用户人脸图片").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    fn test_config() -> Config {
+        Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build()
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    #[tokio::test]
+    async fn test_get_user_face_rejects_empty_id() {
+        let req = GetUserFaceRequest::new(test_config(), "  ");
+        let result = req.execute_with_options(RequestOption::default()).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("user_id"));
+    }
+
+    /// 端到端：GET .../users/{id}/face → 强类型 FaceData 反序列化。
+    #[tokio::test]
+    async fn test_get_user_face_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/acs/v1/users/u_001/face"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "face_url": "https://cdn.example.com/face/u_001.jpg" }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetUserFaceRequest::new(config, "u_001")
+            .execute()
+            .await
+            .expect("下载用户人脸图片应成功");
+        assert_eq!(data.face_url, "https://cdn.example.com/face/u_001.jpg");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0].url.path(), "/open-apis/acs/v1/users/u_001/face");
     }
 }

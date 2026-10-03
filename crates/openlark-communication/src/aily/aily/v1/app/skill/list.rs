@@ -1,12 +1,12 @@
 //! 查询技能列表
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/app-skill/list
+//! docPath: <https://open.feishu.cn/document/aily-v1/app-skill/list>
 
 use std::collections::HashMap;
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_SKILLS};
+use crate::endpoints::AILY_V1_SKILLS;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 查询技能列表请求
@@ -61,7 +61,7 @@ impl ListSkillsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/app-skill/list
+    /// docPath: <https://open.feishu.cn/document/aily-v1/app-skill/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -83,8 +83,7 @@ impl ListSkillsRequest {
         for (k, v) in self.query {
             req = req.query(k, v);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询技能列表")
+        Transport::request_typed(req, &self.config, Some(option), "查询技能列表").await
     }
 }
 
@@ -135,5 +134,16 @@ mod tests {
     fn test_list_skills_request_empty_query() {
         let request = ListSkillsRequest::new(Config::default()).app_id("test_app");
         assert!(request.query.is_empty());
+    }
+
+    #[test]
+    fn test_list_skills_request_url_construction() {
+        use crate::endpoints::aily::AILY_V1_SKILLS;
+        let url = AILY_V1_SKILLS.replace("{app_id}", "app_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/skills");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 }

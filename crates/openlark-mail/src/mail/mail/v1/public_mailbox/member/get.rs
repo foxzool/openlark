@@ -1,11 +1,13 @@
 //! 获取公共邮箱成员详情
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/public-mailbox/public_mailbox/get>
 
-use crate::common::{api_endpoints::MailApiV1, api_utils::*};
+use crate::common::api_endpoints::MailApiV1;
 use crate::mail::mail::v1::public_mailbox::member::models::GetPublicMailboxMemberResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -45,9 +47,13 @@ impl GetPublicMailboxMemberRequest {
             MailApiV1::PublicMailboxMemberGet(self.mailbox_id.clone(), self.member_id.clone());
         let request = ApiRequest::<GetPublicMailboxMemberResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取公共邮箱成员")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取公共邮箱成员",
+        )
+        .await
     }
 }
 

@@ -1,13 +1,14 @@
 //! 删除免审词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/delete
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/delete>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -64,7 +65,7 @@ impl DeleteEntityRequest {
         validate_required!(self.entity_id, "entity_id 不能为空");
 
         let mut api_request: ApiRequest<DeleteEntityResp> =
-            ApiRequest::delete(&LingoApiV1::EntityDelete(self.entity_id).to_url());
+            LingoApiV1::EntityDelete(self.entity_id).to_request();
         if let Some(provider) = &self.provider {
             api_request = api_request.query("provider", provider);
         }
@@ -72,11 +73,7 @@ impl DeleteEntityRequest {
             api_request = api_request.query("outer_id", outer_id);
         }
 
-        let response: Response<DeleteEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "删除免审词条").await
     }
 }
 

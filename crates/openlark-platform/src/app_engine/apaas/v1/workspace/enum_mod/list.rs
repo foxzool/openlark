@@ -1,25 +1,28 @@
 //! 获取工作空间下的自定义枚举列表
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-enum/list>
+//!
+//! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/enums
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取枚举列表 Builder
 #[derive(Debug, Clone)]
-pub struct EnumListBuilder {
+pub struct EnumListRequestBuilder {
     config: Config,
     /// 工作空间 ID
     workspace_id: String,
 }
 
-impl EnumListBuilder {
+impl EnumListRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, workspace_id: impl Into<String>) -> Self {
         Self {
@@ -38,9 +41,7 @@ impl EnumListBuilder {
         let url = format!("/open-apis/apaas/v1/workspaces/{}/enums", self.workspace_id);
 
         let req: ApiRequest<EnumListResponse> = ApiRequest::get(&url);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -77,16 +78,16 @@ pub struct EnumValue {
 pub struct EnumListResponse {
     /// 枚举列表
     #[serde(rename = "items")]
-    items: Vec<EnumInfo>,
+    pub items: Vec<EnumInfo>,
     /// 是否有更多
     #[serde(rename = "has_more")]
-    has_more: bool,
+    pub has_more: bool,
     /// 页码
     #[serde(rename = "page")]
-    page: u32,
+    pub page: u32,
     /// 每页数量
     #[serde(rename = "page_size")]
-    page_size: u32,
+    pub page_size: u32,
 }
 
 impl ApiResponseTrait for EnumListResponse {
@@ -94,6 +95,10 @@ impl ApiResponseTrait for EnumListResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to EnumListRequestBuilder, will be removed in v1.0 (#271)")]
+pub type EnumListBuilder = EnumListRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -105,7 +110,7 @@ mod tests {
             .app_id("test_app")
             .app_secret("test_secret")
             .build();
-        let request = EnumListBuilder::new(config.clone(), "test".to_string());
+        let request = EnumListRequestBuilder::new(config.clone(), "test".to_string());
         let _ = request;
     }
 }

@@ -1,13 +1,13 @@
 //! 查询建筑物详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::MEETING_ROOM;
+use crate::meeting_room::responses::BatchGetBuildingResponse;
 
 /// 查询建筑物详情请求
 pub struct BatchGetBuildingRequest {
@@ -32,42 +32,81 @@ impl BatchGetBuildingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/query-building-details>
+    pub async fn execute(self) -> SDKResult<BatchGetBuildingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<BatchGetBuildingResponse> {
         // url: GET:/open-apis/meeting_room/building/batch_get
-        let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(format!("{}/building/batch_get", MEETING_ROOM));
+        let mut req: ApiRequest<BatchGetBuildingResponse> =
+            ApiRequest::get(format!("{MEETING_ROOM}/building/batch_get"));
         for (k, v) in self.query_params {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询建筑物详情")
+        Transport::request_typed(req, &self.config, Some(option), "查询建筑物详情").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../meeting_room/building/batch_get → BatchGetBuildingResponse。
+    #[tokio::test]
+    async fn test_batch_get_building_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/meeting_room/building/batch_get"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "buildings": [
+                        {
+                            "building_id": "bldg_001",
+                            "name": "1号楼",
+                            "floors": ["F1"],
+                            "country_id": "1814991",
+                            "district_id": "2034437"
+                        }
+                    ]
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = BatchGetBuildingRequest::new(config)
+            .query_param("page_size", "10")
+            .execute()
+            .await
+            .expect("查询建筑物详情应成功");
+        assert_eq!(resp.buildings[0].building_id, "bldg_001");
+        assert_eq!(resp.buildings[0].name.as_deref(), Some("1号楼"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/meeting_room/building/batch_get"
+        );
+        assert_eq!(received[0].url.query(), Some("page_size=10"));
     }
 }

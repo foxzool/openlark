@@ -1,13 +1,13 @@
 //! 模糊搜索词条
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/entity/search
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/entity/search>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -133,13 +133,13 @@ impl SearchEntityRequest {
         option: RequestOption,
     ) -> SDKResult<SearchEntityResponse> {
         // ===== 参数校验 =====
-        if let Some(page_size) = self.page_size {
-            if !(1..=100).contains(&page_size) {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 取值范围必须为 1~100",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=100).contains(&page_size)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 取值范围必须为 1~100",
+            ));
         }
         if let Some(query) = &self.req.query {
             let len = query.chars().count();
@@ -156,7 +156,7 @@ impl SearchEntityRequest {
                     1..=4 => {}
                     _ => {
                         return Err(openlark_core::error::validation_error(
-                            &format!("sources[{}]", idx),
+                            &format!("sources[{idx}]"),
                             "sources 仅支持 1/2/3/4",
                         ));
                     }
@@ -167,7 +167,7 @@ impl SearchEntityRequest {
             for (idx, creator) in creators.iter().enumerate() {
                 if creator.trim().is_empty() {
                     return Err(openlark_core::error::validation_error(
-                        &format!("creators[{}]", idx),
+                        &format!("creators[{idx}]"),
                         "creators 不能包含空字符串",
                     ));
                 }
@@ -175,9 +175,10 @@ impl SearchEntityRequest {
         }
 
         // ===== 构建请求 =====
-        let mut api_request: ApiRequest<SearchEntityResponse> =
-            ApiRequest::post(&BaikeApiV1::EntitySearch.to_url())
-                .body(serde_json::to_value(&self.req)?);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let mut api_request: ApiRequest<SearchEntityResponse> = BaikeApiV1::EntitySearch
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
 
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", page_size.to_string());
@@ -190,11 +191,7 @@ impl SearchEntityRequest {
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<SearchEntityResponse> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "模糊搜索词条").await
     }
 }
 
@@ -241,38 +238,48 @@ mod tests {
 
         // 测试 page_size 超出范围
         let request = SearchEntityRequest::new(config.clone()).page_size(0);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         let request2 = SearchEntityRequest::new(config.clone()).page_size(101);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 query 过长
         let request3 = SearchEntityRequest::new(config.clone()).query("a".repeat(101));
-        assert!(request3
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request3
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 sources 包含无效值
         let request4 = SearchEntityRequest::new(config.clone()).sources(vec![1, 5, 3]);
-        assert!(request4
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request4
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 creators 包含空字符串
         let request5 = SearchEntityRequest::new(config.clone())
             .creators(vec!["user_123".to_string(), "".to_string()]);
-        assert!(request5
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request5
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

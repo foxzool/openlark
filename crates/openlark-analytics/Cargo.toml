@@ -2,6 +2,7 @@
 name = "openlark-analytics"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -29,15 +30,9 @@ search = ["search-core", "core"]
 report-core = []
 report = ["report-core", "core"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-v4 = ["v3"]
-
 # === 功能组合 ===
 # 完整分析功能
-full = ["search", "report", "v4"]
+full = ["search", "report"]
 
 # 向后兼容别名
 analytics = ["search", "report"]
@@ -48,7 +43,6 @@ all-analytics = ["full"]
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
@@ -72,3 +66,6 @@ wiremock = { workspace = true }
 rstest = { workspace = true }
 tempfile = { workspace = true }
 mockall = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["anyhow", "async-trait", "chrono", "futures", "log", "once_cell", "rand", "regex", "serde_repr", "thiserror", "url", "uuid"]

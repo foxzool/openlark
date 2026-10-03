@@ -1,13 +1,10 @@
 //! 获取单位列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::extract_response_data,
-    contact::contact::v3::unit::models::ListUnitsResponse, endpoints::CONTACT_V3_UNIT,
-};
+use crate::{contact::contact::v3::unit::models::ListUnitsResponse, endpoints::CONTACT_V3_UNIT};
 
 /// 获取单位列表请求
 ///
@@ -42,7 +39,7 @@ impl ListUnitsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/list>
     pub async fn execute(self) -> SDKResult<ListUnitsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -61,27 +58,43 @@ impl ListUnitsRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取单位列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取单位列表").await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：GET /open-apis/contact/v3/unit
+    #[tokio::test]
+    async fn test_list_units_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/contact/v3/unit"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        ListUnitsRequest::new(config)
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

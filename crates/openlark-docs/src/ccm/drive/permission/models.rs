@@ -21,13 +21,10 @@ pub struct CheckMemberPermissionRequest {
 
 impl CheckMemberPermissionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
-        if self.permission.trim().is_empty() {
-            return Err("权限类型不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
+        validate_required!(self.permission, "权限类型不能为空");
         Ok(())
     }
 }
@@ -60,13 +57,10 @@ pub struct TransferOwnerRequest {
 
 impl TransferOwnerRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
-        if self.user_id.trim().is_empty() {
-            return Err("用户ID不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
+        validate_required!(self.user_id, "用户ID不能为空");
         Ok(())
     }
 }
@@ -94,10 +88,9 @@ pub struct GetPublicPermissionRequest {
 
 impl GetPublicPermissionRequest {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("文件token不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
+        validate_required!(self.file_token, "文件token不能为空");
         Ok(())
     }
 }
@@ -160,25 +153,4 @@ pub struct UserPermission {
     /// 是否为拥有者
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_owner: Option<bool>,
-}
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

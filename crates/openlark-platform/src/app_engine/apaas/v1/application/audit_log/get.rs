@@ -1,19 +1,20 @@
 //! 查询审计日志详情
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-audit_log/get
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-audit_log/get>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/application-audit_log/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询审计日志详情 Builder
 #[derive(Debug, Clone)]
-pub struct AuditLogGetBuilder {
+pub struct AuditLogGetRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -21,7 +22,7 @@ pub struct AuditLogGetBuilder {
     log_id: String,
 }
 
-impl AuditLogGetBuilder {
+impl AuditLogGetRequestBuilder {
     /// 创建新的 Builder
     pub fn new(config: Config, namespace: impl Into<String>, log_id: impl Into<String>) -> Self {
         Self {
@@ -33,17 +34,7 @@ impl AuditLogGetBuilder {
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<AuditLogGetResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/audit_log",
-            self.namespace
-        );
-
-        let mut req: ApiRequest<AuditLogGetResponse> = ApiRequest::get(&url);
-        req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, None).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询审计日志详情", "响应数据为空")
-        })
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -58,10 +49,7 @@ impl AuditLogGetBuilder {
 
         let mut req: ApiRequest<AuditLogGetResponse> = ApiRequest::get(&url);
         req = req.query("log_id", &self.log_id);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("查询审计日志详情", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "查询审计日志详情").await
     }
 }
 
@@ -90,7 +78,7 @@ pub struct AuditLogDetail {
 pub struct AuditLogGetResponse {
     /// 审计日志详情
     #[serde(rename = "audit_log")]
-    audit_log: AuditLogDetail,
+    pub audit_log: AuditLogDetail,
 }
 
 impl ApiResponseTrait for AuditLogGetResponse {
@@ -99,23 +87,64 @@ impl ApiResponseTrait for AuditLogGetResponse {
     }
 }
 
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to AuditLogGetRequestBuilder, will be removed in v1.0 (#271)")]
+pub type AuditLogGetBuilder = AuditLogGetRequestBuilder;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：GET .../audit_log?log_id=... → AuditLogGetResponse（inner data.audit_log）。
+    #[tokio::test]
+    async fn test_get_audit_log_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/apaas/v1/applications/ns_test/audit_log"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "audit_log": {
+                        "log_id": "log_001",
+                        "operation_type": "CREATE",
+                        "operator": "u_001",
+                        "operation_time": 1717000000,
+                        "details": {"action": "create_record"}
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = AuditLogGetRequestBuilder::new(config, "ns_test", "log_001")
+            .execute()
+            .await
+            .expect("查询审计日志详情应成功");
+        assert_eq!(resp.audit_log.log_id, "log_001");
+        assert_eq!(resp.audit_log.operation_type, "CREATE");
+        assert_eq!(resp.audit_log.operator, "u_001");
+        assert_eq!(resp.audit_log.details["action"], "create_record");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/apaas/v1/applications/ns_test/audit_log"
+        );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("log_id=log_001"));
     }
 }

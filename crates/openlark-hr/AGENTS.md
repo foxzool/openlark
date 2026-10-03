@@ -1,12 +1,12 @@
 # openlark-hr Knowledge Base
 
 **Crate**: HR Services  
-**APIs**: 484 个 | **Status**: 生产就绪  
+**APIs**: 583 个（排除 old；`validate_apis.py --crate openlark-hr`） | **Status**: 生产就绪  
 **Coverage**: 招聘 + CoreHR + 考勤 + 薪酬
 
 ## OVERVIEW
 
-飞书人力资源模块，涵盖招聘管理、CoreHR、考勤、薪酬等完整 HR 能力。API 数量最多的业务模块（484 个）。
+飞书人力资源模块，涵盖招聘管理、CoreHR、考勤、薪酬等完整 HR 能力。目录 API 数量最多的业务模块（583 个）。
 
 ## STRUCTURE
 
@@ -15,12 +15,11 @@ src/
 ├── lib.rs                    # 模块入口
 ├── hire/                     # 招聘管理 (182 APIs)
 │   └── v1/                  # Offer/候选人/面试/职位
-├── corehr/                   # 核心 HR (144 APIs)
-│   ├── v1/                  # 部门/人员/雇佣
-│   └── v2/                  # 预入职/成本中心
-├── feishu_people/            # 人员信息 (105 APIs)
-│   └── ...
+├── feishu_people/            # 人员 / CoreHR (269 APIs)
 ├── attendance/               # 考勤管理 (39 APIs)
+├── okr/                      # OKR (37 APIs)
+├── compensation_management/  # 薪酬方案 (21 APIs)
+├── performance/              # 绩效 (21 APIs)
 ├── payroll/                  # 薪酬管理 (12 APIs)
 ├── ehr/                      # 电子 HR (2 APIs)
 └── common/                   # 共享代码
@@ -32,7 +31,7 @@ src/
 | Task | Location | Notes |
 |------|----------|-------|
 | 招聘 API | `src/hire/v1/` | Offer/Candidate/Interview |
-| CoreHR API | `src/corehr/v1/`, `v2/` | 部门/人员管理 |
+| CoreHR / 人员 | `src/feishu_people/` | 部门/人员管理 |
 | 考勤 API | `src/attendance/` | 打卡/排班/请假 |
 | 薪酬 API | `src/payroll/` | 工资单/薪资组 |
 | 端点常量 | `src/common/api_endpoints.rs` | HR 相关常量 |

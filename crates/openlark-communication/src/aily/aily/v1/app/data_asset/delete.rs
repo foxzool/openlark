@@ -1,10 +1,10 @@
 //! 删除数据知识
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/delete
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/delete>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSET};
+use crate::endpoints::AILY_V1_DATA_ASSET;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 删除数据知识请求
@@ -55,7 +55,7 @@ impl DeleteDataAssetRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/delete
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/delete>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -78,8 +78,7 @@ impl DeleteDataAssetRequest {
             .replace("{data_asset_id}", &self.data_asset_id);
         let req: ApiRequest<()> = ApiRequest::delete(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除数据知识")
+        Transport::request_typed(req, &self.config, Some(option), "删除数据知识").await
     }
 }
 
@@ -116,11 +115,15 @@ mod tests {
 
     #[test]
     fn test_delete_data_asset_request_url_construction() {
-        let request = DeleteDataAssetRequest::new(Config::default())
-            .app_id("app_1")
-            .data_asset_id("asset_1");
-        assert_eq!(request.app_id, "app_1");
-        assert_eq!(request.data_asset_id, "asset_1");
+        use crate::endpoints::aily::AILY_V1_DATA_ASSET;
+        let url = AILY_V1_DATA_ASSET
+            .replace("{app_id}", "app_1")
+            .replace("{data_asset_id}", "asset_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets/asset_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 
     #[test]

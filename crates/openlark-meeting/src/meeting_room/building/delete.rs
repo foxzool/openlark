@@ -1,14 +1,14 @@
 //! 删除建筑物
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/delete-building
+//! docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/delete-building>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use crate::common::api_endpoints::MeetingRoomApi;
-use crate::common::api_utils::extract_response_data;
+use crate::meeting_room::responses::DeleteBuildingResponse;
 
 /// 删除建筑物请求
 pub struct DeleteBuildingRequest {
@@ -33,44 +33,71 @@ impl DeleteBuildingRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/delete-building
-    pub async fn execute(self) -> SDKResult<serde_json::Value> {
+    /// docPath: <https://open.feishu.cn/document/server-docs/historic-version/meeting_room-v1/api-reference/delete-building>
+    pub async fn execute(self) -> SDKResult<DeleteBuildingResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
     /// 执行请求（带选项）
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<DeleteBuildingResponse> {
         validate_required!(self.building_id, "building_id 不能为空");
 
         // url: DELETE:/open-apis/meeting_room/buildings/:building_id
         let api_endpoint = MeetingRoomApi::BuildingDelete(self.building_id.clone());
-        let req: ApiRequest<serde_json::Value> =
-            ApiRequest::delete(api_endpoint.to_url()).body(serde_json::json!({
+        let req: ApiRequest<DeleteBuildingResponse> = ApiRequest::delete(api_endpoint.to_url())
+            .body(serde_json::json!({
                 "building_id": self.building_id
             }));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除建筑物")
+        Transport::request_typed(req, &self.config, Some(option), "删除建筑物").await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use serde_json;
+    /// 端到端：DELETE .../meeting_room/buildings/{building_id} → DeleteBuildingResponse。
+    #[tokio::test]
+    async fn test_delete_building_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/meeting_room/buildings/bldg_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success"
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = DeleteBuildingRequest::new(config)
+            .building_id("bldg_001")
+            .execute()
+            .await
+            .expect("删除建筑物应成功");
+        assert_eq!(resp, DeleteBuildingResponse {});
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/meeting_room/buildings/bldg_001"
+        );
+        assert_eq!(received[0].method, "DELETE");
     }
 }

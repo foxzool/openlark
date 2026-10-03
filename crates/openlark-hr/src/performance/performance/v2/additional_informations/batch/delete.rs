@@ -1,18 +1,18 @@
 //! 批量删除补充信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/performance-v2/additional_informations.batch/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/additional_informations.batch/delete>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 批量删除补充信息请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteRequest {
     /// 绩效周期 ID（必填）
     cycle_id: String,
@@ -53,6 +53,7 @@ impl DeleteRequest {
 
         // 1. 验证必填字段
         validate_required!(self.cycle_id.trim(), "cycle_id");
+        validate_required!(self.user_ids, "user_ids 不能为空");
 
         // 2. 构建端点
         let api_endpoint = PerformanceApiV1::AdditionalInformationsBatchDelete;
@@ -66,21 +67,19 @@ impl DeleteRequest {
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
-                format!("无法序列化请求参数: {}", e),
+                format!("无法序列化请求参数: {e}"),
             )
         })?;
         let request = request.body(request_body_json);
 
         // 4. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 5. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "批量删除补充信息响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "批量删除补充信息响应数据为空",
+        )
+        .await
     }
 }
 
@@ -108,21 +107,68 @@ impl ApiResponseTrait for DeleteResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use openlark_core::config::Config;
 
-    use serde_json;
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_performance_v2_additional_informations_batch_delete_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(r#"{"success_count": 0}"#).unwrap();
+        Mock::given(method("DELETE"))
+            .and(path(
+                "/open-apis/performance/v2/additional_informations/batch",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = DeleteRequest::new(config, "cycle_001".to_string())
+            .add_user_id("user_001".to_string())
+            .execute()
+            .await
+            .expect("performance_v2_additional_informations_batch_delete 应成功");
+
+        let _ = data.success_count;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/performance/v2/additional_informations/batch"
+        );
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    #[tokio::test]
+    async fn test_performance_v2_additional_informations_batch_delete_rejects_empty_user_ids() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url("https://127.0.0.1:9")
+            .enable_token_cache(false)
+            .build();
+
+        let err = DeleteRequest::new(config, "cycle_001".to_string())
+            .execute()
+            .await
+            .expect_err("空 user_ids 应在发请求前校验失败");
+
+        assert!(err.to_string().contains("user_ids"));
     }
 }

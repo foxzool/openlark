@@ -2,6 +2,7 @@
 name = "openlark-ai"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 description = "OpenLark AI 智能助手模块 - 提供 AI 相关 API 支持"

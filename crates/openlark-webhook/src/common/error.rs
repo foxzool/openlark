@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn test_webhook_error_debug() {
         let err = WebhookError::InvalidSignature;
-        let debug_str = format!("{:?}", err);
+        let debug_str = format!("{err:?}");
         assert!(debug_str.contains("InvalidSignature"));
     }
 

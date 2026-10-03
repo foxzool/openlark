@@ -223,4 +223,4 @@ match SendWebhookMessageRequest::new(webhook_url)
 
 ## 许可证
 
-MIT OR Apache-2.0
+[Apache-2.0](../../LICENSE-APACHE)

@@ -35,3 +35,5 @@ pub use media::{
 
 /// 重新导出批量元数据查询请求。
 pub use meta::BatchQueryMetaRequest;
+/// user 模块。
+pub mod user;

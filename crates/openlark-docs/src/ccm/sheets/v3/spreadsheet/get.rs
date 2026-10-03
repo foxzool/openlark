@@ -3,15 +3,15 @@
 /// 获取指定电子表格的详细信息，包括基本属性和配置。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/sheets-v3/spreadsheet/get
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use super::models::*;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 impl ApiResponseTrait for GetSpreadsheetResponse {
     fn data_format() -> ResponseFormat {
@@ -40,9 +40,8 @@ pub async fn get_spreadsheet_with_options(
     let api_endpoint = SheetsApiV3::GetSpreadsheet(spreadsheet_token.to_string());
 
     // 创建API请求 - 使用类型安全的URL生成和标准化的参数序列化
-    let api_request: ApiRequest<GetSpreadsheetResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetSpreadsheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取电子表格信息")
+    Transport::request_typed(api_request, config, Some(option), "获取电子表格信息").await
 }

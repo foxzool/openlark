@@ -1,15 +1,12 @@
 //! 批量撤回消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::IM_V1_BATCH_MESSAGES,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_BATCH_MESSAGES};
 
 /// 批量撤回消息请求
 ///
@@ -51,7 +48,7 @@ impl DeleteBatchMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/batch_message/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/batch_message/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -71,8 +68,7 @@ impl DeleteBatchMessageRequest {
             IM_V1_BATCH_MESSAGES, self.batch_message_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量撤回消息")
+        Transport::request_typed(req, &self.config, Some(option), "批量撤回消息").await
     }
 }
 

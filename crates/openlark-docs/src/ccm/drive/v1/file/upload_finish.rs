@@ -2,13 +2,14 @@
 //!
 //! 上传分片全部完成后，调用该接口触发完成上传。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_finish
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_finish>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -68,12 +69,7 @@ impl UploadFinishRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UploadFinishResponse> {
         // === 必填字段验证 ===
-        if self.upload_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "upload_id",
-                "upload_id 不能为空",
-            ));
-        }
+        validate_required!(self.upload_id, "upload_id 不能为空");
 
         // === 业务规则验证 ===
         if self.block_num <= 0 {
@@ -84,11 +80,11 @@ impl UploadFinishRequest {
         }
 
         let api_endpoint = DriveApi::UploadFinish;
-        let request = ApiRequest::<UploadFinishResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadFinishResponse>()
             .body(serialize_params(&self, "分片上传文件-完成上传")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "分片上传文件-完成上传")
+        Transport::request_typed(request, &self.config, Some(option), "分片上传文件-完成上传").await
     }
 }
 

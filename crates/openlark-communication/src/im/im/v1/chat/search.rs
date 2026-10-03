@@ -1,13 +1,10 @@
 //! 搜索对用户或机器人可见的群列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/search
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/search>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
-use crate::{
-    common::api_utils::extract_response_data, endpoints::IM_V1_CHATS,
-    im::im::v1::message::models::UserIdType,
-};
+use crate::{endpoints::IM_V1_CHATS, im::v1::message::models::UserIdType};
 
 /// 搜索对用户或机器人可见的群列表请求
 ///
@@ -81,7 +78,7 @@ impl SearchChatsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/search
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/search>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -93,7 +90,7 @@ impl SearchChatsRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<serde_json::Value> {
         let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(format!("{}/search", IM_V1_CHATS));
+            ApiRequest::get(format!("{IM_V1_CHATS}/search"));
 
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
@@ -107,8 +104,13 @@ impl SearchChatsRequest {
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "搜索对用户或机器人可见的群列表")
+        Transport::request_typed(
+            req,
+            &self.config,
+            Some(option),
+            "搜索对用户或机器人可见的群列表",
+        )
+        .await
     }
 }
 

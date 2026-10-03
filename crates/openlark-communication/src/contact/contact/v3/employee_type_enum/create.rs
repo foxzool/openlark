@@ -1,14 +1,14 @@
 //! 新增人员类型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::employee_type_enum::models::{EmployeeTypeEnumResponse, I18nContent},
     endpoints::CONTACT_V3_EMPLOYEE_TYPE_ENUMS,
 };
@@ -40,7 +40,7 @@ impl CreateEmployeeTypeEnumRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/create>
     pub async fn execute(
         self,
         body: CreateEmployeeTypeEnumBody,
@@ -63,28 +63,47 @@ impl CreateEmployeeTypeEnumRequest {
             ApiRequest::post(CONTACT_V3_EMPLOYEE_TYPE_ENUMS)
                 .body(serialize_params(&body, "新增人员类型")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "新增人员类型")
+        Transport::request_typed(req, &self.config, Some(option), "新增人员类型").await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：POST /open-apis/contact/v3/employee_type_enums
+    #[tokio::test]
+    async fn test_create_employee_type_enum_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/contact/v3/employee_type_enums"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "employee_type_enum": {} }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let body: CreateEmployeeTypeEnumBody = serde_json::from_value(
+            json!({ "content": "test001", "enum_type": 0, "enum_status": 0 }),
+        )
+        .expect("body 构造");
+        CreateEmployeeTypeEnumRequest::new(config)
+            .execute(body)
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

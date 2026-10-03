@@ -1,13 +1,13 @@
 //! 更新部门所有信息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/update
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/update>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     contact::contact::v3::{
         department::models::DepartmentResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -77,7 +77,7 @@ impl UpdateDepartmentRequest {
     ///
     /// 说明：该接口请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/department/update
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/department/update>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<DepartmentResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -105,9 +105,7 @@ impl UpdateDepartmentRequest {
             req = req.query("department_id_type", department_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "更新部门所有信息")
+        Transport::request_typed(req, &self.config, Some(option), "更新部门所有信息").await
     }
 }
 

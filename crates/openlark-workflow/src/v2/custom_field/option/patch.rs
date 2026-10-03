@@ -1,13 +1,14 @@
 //! 更新自定义字段选项
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field-option/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field-option/patch>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::custom_field::option::create::CustomFieldOption;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -95,9 +96,13 @@ impl UpdateCustomFieldOptionRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "更新自定义字段选项")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新自定义字段选项")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新自定义字段选项",
+        )
+        .await
     }
 }
 

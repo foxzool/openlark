@@ -34,7 +34,8 @@ impl PatchFormFieldRequest {
     }
 
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        use openlark_core::validate_required;
         // 至少要有一个字段需要更新
         if self.pre_field_id.is_none()
             && self.title.is_none()
@@ -42,14 +43,14 @@ impl PatchFormFieldRequest {
             && self.required.is_none()
             && self.visible.is_none()
         {
-            return Err("至少需要提供一个要更新的字段".to_string());
+            return Err(openlark_core::CoreError::validation_msg(
+                "至少需要提供一个要更新的字段",
+            ));
         }
 
         // 如果提供了标题，不能为空
         if let Some(ref title) = self.title {
-            if title.trim().is_empty() {
-                return Err("问题标题不能为空".to_string());
-            }
+            validate_required!(title, "问题标题不能为空");
         }
 
         Ok(())
@@ -59,26 +60,5 @@ impl PatchFormFieldRequest {
 impl Default for PatchFormFieldRequest {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
     }
 }

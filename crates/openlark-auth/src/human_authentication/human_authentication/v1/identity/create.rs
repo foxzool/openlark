@@ -1,13 +1,15 @@
 //! 录入身份信息
 //!
-//! 文档: https://open.feishu.cn/document/server-docs/human_authentication-v1/create
+//! 文档: <https://open.feishu.cn/document/server-docs/human_authentication-v1/create>
+//! docPath: <https://open.feishu.cn/document/server-docs/human_authentication-v1/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -85,7 +87,7 @@ impl<'de> Deserialize<'de> for IdentityCreateResponse {
 
 /// 录入身份信息 Builder。
 #[derive(Debug, Clone)]
-pub struct IdentityCreateBuilder {
+pub struct IdentityCreateRequestBuilder {
     config: Config,
     user_id: String,
     user_id_type: Option<HumanAuthenticationUserIdType>,
@@ -94,7 +96,7 @@ pub struct IdentityCreateBuilder {
     mobile: Option<String>,
 }
 
-impl IdentityCreateBuilder {
+impl IdentityCreateRequestBuilder {
     /// 创建新的 Builder。
     pub fn new(config: Config) -> Self {
         Self {
@@ -168,11 +170,13 @@ impl IdentityCreateBuilder {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("录入身份信息", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "录入身份信息").await
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to IdentityCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type IdentityCreateBuilder = IdentityCreateRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -180,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_identity_create_builder_defaults() {
-        let builder = IdentityCreateBuilder::new(Config::default());
+        let builder = IdentityCreateRequestBuilder::new(Config::default());
         assert!(builder.user_id.is_empty());
         assert_eq!(builder.user_id_type, None);
         assert!(builder.identity_name.is_empty());
@@ -190,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_identity_create_builder_chain() {
-        let builder = IdentityCreateBuilder::new(Config::default())
+        let builder = IdentityCreateRequestBuilder::new(Config::default())
             .user_id("ou_xxx")
             .user_id_type(HumanAuthenticationUserIdType::UserId)
             .identity_name("张三")
@@ -209,7 +213,8 @@ mod tests {
     #[test]
     fn test_identity_create_response_deserialization() {
         let json = r#"{"verify_uid":"ou_2eb5483cb377daa5054bc6f86e2089a5"}"#;
-        let response: IdentityCreateResponse = serde_json::from_str(json).expect("JSON 反序列化失败");
+        let response: IdentityCreateResponse =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.verify_uid, "ou_2eb5483cb377daa5054bc6f86e2089a5");
         assert_eq!(response.identity_id, "ou_2eb5483cb377daa5054bc6f86e2089a5");
     }
@@ -220,14 +225,15 @@ mod tests {
             "verify_uid":"ou_verify",
             "identity_id":"legacy_identity"
         }"#;
-        let response: IdentityCreateResponse = serde_json::from_str(json).expect("JSON 反序列化失败");
+        let response: IdentityCreateResponse =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
         assert_eq!(response.verify_uid, "ou_verify");
         assert_eq!(response.identity_id, "legacy_identity");
     }
 
     #[test]
     fn test_identity_create_legacy_builder_chain_without_user_id() {
-        let builder = IdentityCreateBuilder::new(Config::default())
+        let builder = IdentityCreateRequestBuilder::new(Config::default())
             .identity_name("张三")
             .identity_code("4xxxxxxxx")
             .mobile("13xxxxxxx");

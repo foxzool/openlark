@@ -1,13 +1,14 @@
 //! 创建自定义字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::custom_field::models::{CreateCustomFieldBody, CreateCustomFieldResponse};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -16,19 +17,20 @@ use std::sync::Arc;
 pub struct CreateCustomFieldRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 请求体
     body: CreateCustomFieldBody,
 }
 
 impl CreateCustomFieldRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, resource_id: String) -> Self {
         Self {
             config,
-            tasklist_guid,
-            body: CreateCustomFieldBody::default(),
+            body: CreateCustomFieldBody {
+                resource_type: "tasklist".to_string(),
+                resource_id,
+                ..CreateCustomFieldBody::default()
+            },
         }
     }
 
@@ -56,18 +58,22 @@ impl CreateCustomFieldRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateCustomFieldResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
+        validate_required!(self.body.resource_id.trim(), "清单GUID不能为空");
         validate_required!(self.body.name.trim(), "字段名称不能为空");
 
-        let api_endpoint = TaskApiV2::CustomFieldCreate(self.tasklist_guid.clone());
+        let api_endpoint = TaskApiV2::CustomFieldCreate;
         let mut request = ApiRequest::<CreateCustomFieldResponse>::post(api_endpoint.to_url());
 
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "创建自定义字段")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建自定义字段")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建自定义字段",
+        )
+        .await
     }
 }
 
@@ -104,7 +110,6 @@ mod tests {
             .name("优先级")
             .config(config_value);
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.body.name, "优先级");
     }
 }

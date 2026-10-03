@@ -1,15 +1,15 @@
 //! 添加消息表情回复
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
+    common::api_utils::serialize_params,
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::reaction::models::{CreateMessageReactionBody, MessageReaction},
+    im::v1::message::reaction::models::{CreateMessageReactionBody, MessageReaction},
 };
 
 /// 添加消息表情回复请求
@@ -51,7 +51,7 @@ impl CreateMessageReactionRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/create>
     pub async fn execute(self, body: CreateMessageReactionBody) -> SDKResult<MessageReaction> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -75,9 +75,7 @@ impl CreateMessageReactionRequest {
             ApiRequest::post(format!("{}/{}/reactions", IM_V1_MESSAGES, self.message_id))
                 .body(serialize_params(&body, "添加消息表情回复")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "添加消息表情回复")
+        Transport::request_typed(req, &self.config, Some(option), "添加消息表情回复").await
     }
 }
 

@@ -18,9 +18,9 @@
 //! let subscription = patch_subscription(request, &config, None).await?;
 //! ```
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/docs-assistant/file-subscription/patch>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use serde::{Deserialize, Serialize};
 
@@ -127,7 +127,7 @@ pub async fn patch_subscription(
     );
 
     let api_request: ApiRequest<PatchSubscriptionResponse> =
-        ApiRequest::patch(&api_endpoint.to_url()).body(serialize_params(
+        api_endpoint.to_request().body(serialize_params(
             &PatchSubscriptionRequestBody {
                 is_subscribe: request.is_subscribe,
 
@@ -137,9 +137,7 @@ pub async fn patch_subscription(
         )?);
 
     // ========== 发送请求并返回响应 ==========
-    let response = Transport::request(api_request, config, option).await?;
-
-    extract_response_data(response, "更新订阅状态")
+    Transport::request_typed(api_request, config, option, "更新订阅状态").await
 }
 
 #[cfg(test)]

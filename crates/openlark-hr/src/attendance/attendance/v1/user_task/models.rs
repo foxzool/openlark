@@ -1,6 +1,6 @@
 //! 打卡结果查询模型
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/user_task/query
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task/query>
 
 use serde::{Deserialize, Serialize};
 

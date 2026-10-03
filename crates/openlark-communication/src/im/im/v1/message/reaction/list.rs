@@ -1,15 +1,14 @@
 //! 获取消息表情回复
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/list
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::{
+    im::v1::{
         message::models::UserIdType, message::reaction::models::ListMessageReactionsResponse,
     },
 };
@@ -89,7 +88,7 @@ impl ListMessageReactionsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message-reaction/list>
     pub async fn execute(self) -> SDKResult<ListMessageReactionsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -119,8 +118,7 @@ impl ListMessageReactionsRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", user_id_type.as_str());
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取消息表情回复")
+        Transport::request_typed(req, &self.config, Some(option), "获取消息表情回复").await
     }
 }
 

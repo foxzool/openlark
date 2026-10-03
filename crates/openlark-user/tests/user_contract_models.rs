@@ -2,13 +2,13 @@
 //!
 //! Tests cover:
 //! - `common::UserSetting` / `UserPreference` — core data models
-//! - UserService / SettingsService / PreferencesService — service access
+//! - UserService / SystemStatusResource — service access
 //! - Version contract
 
 use openlark_user::common::{UserPreference, UserSetting};
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where
@@ -169,8 +169,7 @@ fn user_service_creation_contract() {
         .app_secret("test_secret")
         .build();
 
-    let service = UserService::new(config);
-    assert!(service.is_ok());
+    let _service = UserService::new(config);
 }
 
 #[test]
@@ -183,43 +182,37 @@ fn user_service_config_roundtrip() {
         .app_secret("secret_value")
         .build();
 
-    let service = UserService::new(config).unwrap();
+    let service = UserService::new(config);
     let config_arc = service.config();
     assert_eq!(config_arc.app_id(), "cli_config_test");
 }
 
 // ---------------------------------------------------------------------------
-// Settings & Preferences service access (with features)
+// system_status service access (direct accessor)
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "settings")]
 #[test]
-fn settings_service_access_contract() {
+fn system_status_service_access_contract() {
     use openlark_core::config::Config;
     use openlark_user::UserService;
 
     let config = Config::builder()
-        .app_id("cli_settings_test")
+        .app_id("cli_ps_test")
         .app_secret("secret")
         .build();
-    let service = UserService::new(config).unwrap();
-    let settings = service.settings();
-    assert_eq!(settings.config().app_id(), "cli_settings_test");
-}
+    let service = UserService::new(config);
 
-#[cfg(feature = "preferences")]
-#[test]
-fn preferences_service_access_contract() {
-    use openlark_core::config::Config;
-    use openlark_user::UserService;
+    // service config 可达
+    assert_eq!(service.config().app_id(), "cli_ps_test");
 
-    let config = Config::builder()
-        .app_id("cli_prefs_test")
-        .app_secret("secret")
-        .build();
-    let service = UserService::new(config).unwrap();
-    let prefs = service.preferences();
-    assert_eq!(prefs.config().app_id(), "cli_prefs_test");
+    // system_status() 直达（6 个真实构建器；飞书无 get，#377 已移除幻影 get）
+    let system_status = service.system_status();
+    let _list = system_status.list();
+    let _create = system_status.create();
+    let _patch = system_status.patch();
+    let _delete = system_status.delete();
+    let _batch_open = system_status.batch_open("status_x");
+    let _batch_close = system_status.batch_close("status_y");
 }
 
 // ---------------------------------------------------------------------------

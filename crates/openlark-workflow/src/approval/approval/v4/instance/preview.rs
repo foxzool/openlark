@@ -1,11 +1,12 @@
 //! 预览审批实例（v4）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/approval-v4/instance/preview
+//! docPath: <https://open.feishu.cn/document/server-docs/approval-v4/instance/preview>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -58,6 +59,7 @@ pub struct PreviewInstanceRequestV4 {
 }
 
 impl PreviewInstanceRequestV4 {
+    /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
@@ -102,11 +104,13 @@ impl PreviewInstanceRequestV4 {
 
         request = request.body(body_json);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 
@@ -119,7 +123,6 @@ impl ApiResponseTrait for PreviewInstanceResponseV4 {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
 
     #[test]
     fn test_instance_preview_v4_url() {

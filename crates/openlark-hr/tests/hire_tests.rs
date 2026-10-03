@@ -1,12 +1,13 @@
 //! hire tests 集成测试。
+#![cfg(feature = "hire")]
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::hire::hire::v1::*;
 use rstest::rstest;
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path},
 };
 
 fn test_config(base_url: &str) -> Config {
@@ -191,11 +192,13 @@ mod validation_tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("候选人姓名不能为空"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("候选人姓名不能为空")
+        );
     }
 
     #[tokio::test]
@@ -206,11 +209,13 @@ mod validation_tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("至少需要提供邮箱或手机号"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("至少需要提供邮箱或手机号")
+        );
     }
 
     #[rstest]
@@ -224,11 +229,13 @@ mod validation_tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("page_size 必须在 1-100 之间"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("page_size 必须在 1-100 之间")
+        );
     }
 
     #[tokio::test]
@@ -249,11 +256,13 @@ mod validation_tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("至少需要提供一个更新字段"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("至少需要提供一个更新字段")
+        );
     }
 }
 
@@ -480,7 +489,7 @@ mod serialization_tests {
         interview_record::get::GetResponse {
             id: Some("ir_001".to_string()),
             conclusion: Some(1),
-            interviewer: Some(openlark_hr::hire::hire::common_models::IdNameObject {
+            interviewer: Some(openlark_hr::common::shared_models::IdNameObject {
                 id: Some("ou_interviewer".to_string()),
                 ..Default::default()
             }),
@@ -2000,10 +2009,10 @@ mod serialization_tests {
         test_interview_feedback_form_list_response_serialization,
         interview_feedback_form::list::ListResponse,
         interview_feedback_form::list::ListResponse {
-            items: vec![openlark_hr::hire::hire::common_models::CatalogItem {
+            items: vec![openlark_hr::common::shared_models::CatalogItem {
                 id: Some("form_1".to_string()),
-                title: Some(openlark_hr::hire::hire::common_models::FlexibleText::I18n(
-                    openlark_hr::hire::hire::common_models::I18nText {
+                title: Some(openlark_hr::common::shared_models::FlexibleText::I18n(
+                    openlark_hr::common::shared_models::I18nText {
                         zh_cn: Some("通用评价表".to_string()),
                         en_us: Some("Default Form".to_string()),
                         extra: Default::default(),
@@ -2234,9 +2243,9 @@ mod serialization_tests {
         test_job_type_list_response_serialization,
         job_type::list::ListResponse,
         job_type::list::ListResponse {
-            items: vec![openlark_hr::hire::hire::common_models::CatalogItem {
+            items: vec![openlark_hr::common::shared_models::CatalogItem {
                 id: Some("type_1".to_string()),
-                name: Some(openlark_hr::hire::hire::common_models::FlexibleText::Plain(
+                name: Some(openlark_hr::common::shared_models::FlexibleText::Plain(
                     "研发".to_string(),
                 )),
                 ..Default::default()
@@ -2312,4 +2321,85 @@ mod serialization_tests {
             }
         }
     );
+}
+
+/// #556 surface seam：共享原语只走 `common::shared_models`；hire 专属模型仍在
+/// `hire::hire::common_models`。
+#[cfg(test)]
+mod common_models_surface_tests {
+    use openlark_hr::common::shared_models::{
+        CatalogItem, CodeNameObject, FlexibleText, I18nText, IdNameObject, LocalizedLabel,
+        PaginatedResponse,
+    };
+    use openlark_hr::hire::hire::common_models::{ApplicationJobInfo, AttachmentMeta, NoteRecord};
+
+    #[test]
+    fn shared_primitives_live_at_shared_models() {
+        let i18n = I18nText {
+            zh_cn: Some("中文".to_string()),
+            en_us: Some("en".to_string()),
+            extra: Default::default(),
+        };
+        assert_eq!(i18n.zh_cn.as_deref(), Some("中文"));
+
+        let plain = FlexibleText::Plain("plain".to_string());
+        assert_eq!(plain.zh_cn_or_plain(), Some("plain"));
+        let i18n_flex = FlexibleText::I18n(I18nText {
+            zh_cn: Some("标题".to_string()),
+            en_us: None,
+            extra: Default::default(),
+        });
+        assert_eq!(i18n_flex.zh_cn_or_plain(), Some("标题"));
+
+        let _id = IdNameObject {
+            id: Some("ou_1".to_string()),
+            name: Some(i18n),
+            extra: Default::default(),
+        };
+        let _code = CodeNameObject {
+            code: Some("CN".to_string()),
+            ..Default::default()
+        };
+        let page: PaginatedResponse<String> = PaginatedResponse {
+            items: vec!["a".to_string()],
+            page_token: Some("t".to_string()),
+            has_more: Some(true),
+            extra: Default::default(),
+        };
+        assert_eq!(page.items.len(), 1);
+        let _cat = CatalogItem {
+            id: Some("c1".to_string()),
+            name: Some(FlexibleText::Plain("目录".to_string())),
+            ..Default::default()
+        };
+        let _label = LocalizedLabel {
+            zh_name: Some("标签".to_string()),
+            en_name: Some("label".to_string()),
+            extra: Default::default(),
+        };
+    }
+
+    #[test]
+    fn hire_specific_models_remain_on_common_models() {
+        let job = ApplicationJobInfo {
+            job_id: Some("job_1".to_string()),
+            job_name: Some("后端".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(job.job_id.as_deref(), Some("job_1"));
+
+        let attachment = AttachmentMeta {
+            file_id: Some("att_1".to_string()),
+            file_name: Some("cv.pdf".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(attachment.file_id.as_deref(), Some("att_1"));
+
+        let note = NoteRecord {
+            id: Some("note_1".to_string()),
+            content: Some("备注".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(note.content.as_deref(), Some("备注"));
+    }
 }

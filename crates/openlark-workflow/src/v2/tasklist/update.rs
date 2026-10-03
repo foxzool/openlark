@@ -1,13 +1,14 @@
 //! 更新任务清单
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/update
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/update>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::tasklist::models::{TasklistIcon, UpdateTasklistBody, UpdateTasklistResponse};
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -70,9 +71,13 @@ impl UpdateTasklistRequest {
         let request_body = &self.body;
         request = request.body(serialize_params(request_body, "更新任务清单")?);
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "更新任务清单")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "更新任务清单",
+        )
+        .await
     }
 }
 

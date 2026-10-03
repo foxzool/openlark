@@ -2,17 +2,18 @@
 //!
 //! 查询异步任务状态，用于获取长时间运行任务的执行结果。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file/async-task/task_check
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file/async-task/task_check>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 查询异步任务状态请求
 #[derive(Debug, Clone, Serialize)]
@@ -44,21 +45,16 @@ impl CheckTaskStatusRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CheckTaskStatusResponse> {
         // ===== 参数校验 =====
-        if self.task_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "task_id",
-                "task_id 不能为空",
-            ));
-        }
+        validate_required!(self.task_id, "task_id 不能为空");
 
         // ===== 构建请求 =====
         let api_endpoint = DriveApi::TaskCheck;
-        let api_request = ApiRequest::<CheckTaskStatusResponse>::get(&api_endpoint.to_url())
+        let api_request = api_endpoint
+            .to_request::<CheckTaskStatusResponse>()
             .query("task_id", &self.task_id);
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "任务检查")
+        Transport::request_typed(api_request, &self.config, Some(option), "任务检查").await
     }
 }
 

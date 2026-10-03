@@ -2,13 +2,14 @@
 //!
 //! 此接口用于在知识节点里创建节点到指定位置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,6 +49,7 @@ pub struct CreateWikiSpaceNodeParams {
     ///     node_type: Some("origin".to_string()),
     ///     title: Some("项目文档".to_string()),
     ///     obj_token: None,
+    ///     origin_node_token: None,
     /// };
     ///
     /// // 创建电子表格节点
@@ -57,6 +59,7 @@ pub struct CreateWikiSpaceNodeParams {
     ///     title: Some("项目进度表".to_string()),
     ///     obj_token: None,
     ///     node_type: None,
+    ///     origin_node_token: None,
     /// };
     /// ```
     pub obj_type: String,
@@ -85,7 +88,15 @@ pub struct CreateWikiSpaceNodeParams {
     /// - `origin`: 原始节点（默认值）
     /// - `shortcut`: 快捷方式节点
     /// - 其他扩展类型（根据实际需求）
+    ///
+    /// # 注意
+    /// 官方文档将其标记为 **required**。SDK 保留 `Option<String>` 以兼容旧调用，
+    /// 但在 `execute` / `execute_with_options` 中会做必填校验。
     pub node_type: Option<String>,
+    /// 源节点 token（可选，官方字段 `origin_node_token`）
+    ///
+    /// 创建已存在文档的引用节点时传入源节点 token。
+    pub origin_node_token: Option<String>,
     /// 节点标题（可选）
     ///
     /// # 注意事项
@@ -145,26 +156,32 @@ impl CreateWikiSpaceNodeRequest {
             "doc", "docx", "sheet", "slide", "mindnote", "bitable", "file",
         ];
         if !valid_types.contains(&params.obj_type.as_str()) {
-            return Err(openlark_core::error::CoreError::validation_msg(
-                &format!(
-                    "obj_type 参数无效: '{}'. 支持的类型为: doc, docx, sheet, slide, mindnote, bitable, file",
-                    params.obj_type
-                )
-            ));
+            return Err(openlark_core::error::CoreError::validation_msg(&format!(
+                "obj_type 参数无效: '{}'. 支持的类型为: doc, docx, sheet, slide, mindnote, bitable, file",
+                params.obj_type
+            )));
         }
 
         validate_required!(params.obj_type, "obj_type不能为空");
+        // 官方将 node_type 标记为 required，运行时强制校验（保留 Option 以兼容旧调用）
+        match params.node_type.as_deref() {
+            Some(v) if !v.trim().is_empty() => {}
+            _ => {
+                return Err(openlark_core::error::CoreError::validation_msg(
+                    "node_type不能为空",
+                ));
+            }
+        }
 
         // ===== 构建请求 =====
         let api_endpoint = WikiApiV2::SpaceNodeCreate(self.space_id.clone());
 
-        let api_request: ApiRequest<CreateWikiSpaceNodeResponse> =
-            ApiRequest::post(&api_endpoint.to_url())
-                .body(serialize_params(&params, "创建知识空间节点")?);
+        let api_request: ApiRequest<CreateWikiSpaceNodeResponse> = api_endpoint
+            .to_request()
+            .body(serialize_params(&params, "创建知识空间节点")?);
 
         // ===== 发送请求 =====
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建知识空间节点")
+        Transport::request_typed(api_request, &self.config, Some(option), "创建知识空间节点").await
     }
 }
 
@@ -190,6 +207,7 @@ mod tests {
             node_type: Some("origin".to_string()),
             title: Some("测试文档".to_string()),
             obj_token: None,
+            origin_node_token: None,
         };
 
         assert_eq!(params.obj_type, "docx");
@@ -205,6 +223,7 @@ mod tests {
             title: Some("项目进度表".to_string()),
             obj_token: None,
             node_type: None,
+            origin_node_token: None,
         };
 
         assert_eq!(params.obj_type, "sheet");
@@ -242,6 +261,7 @@ mod tests {
                 node_type: None,
                 title: None,
                 obj_token: None,
+                origin_node_token: None,
             };
             assert_eq!(params.obj_type, obj_type);
         }
@@ -256,6 +276,7 @@ mod tests {
             node_type: Some("shortcut".to_string()),
             title: Some("快捷方式".to_string()),
             obj_token: Some("original_doc_token".to_string()),
+            origin_node_token: None,
         };
 
         assert_eq!(params.node_type, Some("shortcut".to_string()));
@@ -271,6 +292,7 @@ mod tests {
             node_type: Some("origin".to_string()),
             title: Some("根目录文档".to_string()),
             obj_token: None,
+            origin_node_token: None,
         };
 
         assert!(params.parent_node_token.is_none());

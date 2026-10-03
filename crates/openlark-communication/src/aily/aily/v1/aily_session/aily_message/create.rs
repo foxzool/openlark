@@ -1,10 +1,10 @@
 //! 创建 Aily 消息
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/create
+//! docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/create>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_MESSAGES};
+use crate::endpoints::AILY_V1_MESSAGES;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 创建 Aily 消息请求
@@ -53,7 +53,7 @@ impl CreateAilyMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/aily_session-aily_message/create
+    /// docPath: <https://open.feishu.cn/document/aily-v1/aily_session-aily_message/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -68,10 +68,9 @@ impl CreateAilyMessageRequest {
         // === 必填字段验证 ===
         validate_required!(self.aily_session_id, "aily_session_id 不能为空");
 
-        let url = AILY_V1_MESSAGES.replace("{aily_session_id}", &self.aily_session_id);
+        let url = AILY_V1_MESSAGES.replace("{session_id}", &self.aily_session_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::post(&url).json_body(&body);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建 Aily 消息")
+        Transport::request_typed(req, &self.config, Some(option), "创建 Aily 消息").await
     }
 }
 
@@ -112,4 +111,15 @@ mod tests {
         assert_eq!(body["content"], "测试消息");
         assert_eq!(body["role"], "user");
     }
+}
+
+#[test]
+fn test_create_aily_message_url_construction() {
+    use crate::endpoints::aily::AILY_V1_MESSAGES;
+    let url = AILY_V1_MESSAGES.replace("{session_id}", "session_123");
+    assert_eq!(url, "/open-apis/aily/v1/sessions/session_123/messages");
+    assert!(
+        !url.contains("{session_id}"),
+        "URL should not contain unreplaced placeholder"
+    );
 }

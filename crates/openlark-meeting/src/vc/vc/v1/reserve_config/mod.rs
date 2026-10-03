@@ -5,3 +5,6 @@
 pub mod admin;
 pub mod disable_inform;
 pub mod form;
+
+pub mod patch;
+pub mod reserve_scope;

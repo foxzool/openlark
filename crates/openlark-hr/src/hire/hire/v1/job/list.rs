@@ -1,12 +1,12 @@
 //! 获取职位列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/job/list
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/job/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,7 +16,6 @@ use crate::hire::hire::common_models::JobSummary;
 
 /// 获取职位列表请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ListRequest {
     page_size: Option<i32>,
     page_token: Option<String>,
@@ -69,13 +68,13 @@ impl ListRequest {
             request = request.query("page_token", page_token);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取职位列表响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取职位列表响应数据为空",
+        )
+        .await
     }
 }
 

@@ -1,19 +1,20 @@
 //! 新建记录
 //!
-//! 文档: https://open.feishu.cn/document/apaas-v1/application-object-record/create
+//! 文档: <https://open.feishu.cn/document/apaas-v1/application-object-record/create>
+//! docPath: <https://open.feishu.cn/document/apaas-v1/application-object-record/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 /// 新建记录 Builder
 #[derive(Debug, Clone)]
-pub struct RecordCreateBuilder {
+pub struct RecordCreateRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
@@ -23,7 +24,7 @@ pub struct RecordCreateBuilder {
     data: serde_json::Value,
 }
 
-impl RecordCreateBuilder {
+impl RecordCreateRequestBuilder {
     /// 创建新的 Builder
     pub fn new(
         config: Config,
@@ -63,9 +64,7 @@ impl RecordCreateBuilder {
 
         let req: ApiRequest<RecordCreateResponse> =
             ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data
-            .ok_or_else(|| openlark_core::error::validation_error("Operation", "响应数据为空"))
+        Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
@@ -82,10 +81,10 @@ struct RecordCreateRequest {
 pub struct RecordCreateResponse {
     /// 记录 ID
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     /// 创建时间
     #[serde(rename = "created_time")]
-    created_time: i64,
+    pub created_time: i64,
 }
 
 impl ApiResponseTrait for RecordCreateResponse {
@@ -93,6 +92,10 @@ impl ApiResponseTrait for RecordCreateResponse {
         ResponseFormat::Data
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(note = "renamed to RecordCreateRequestBuilder, will be removed in v1.0 (#271)")]
+pub type RecordCreateBuilder = RecordCreateRequestBuilder;
 
 #[cfg(test)]
 mod tests {
@@ -105,7 +108,7 @@ mod tests {
             .app_secret("test_secret")
             .build();
         let request =
-            RecordCreateBuilder::new(config.clone(), "test".to_string(), "test".to_string())
+            RecordCreateRequestBuilder::new(config.clone(), "test".to_string(), "test".to_string())
                 .data(serde_json::json!({}));
         let _ = request;
     }

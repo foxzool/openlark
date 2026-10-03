@@ -1,12 +1,13 @@
 //! 按 ID 查询班次
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/shift/get
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/shift/get>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use super::models::GetShiftResponse;
@@ -56,15 +57,7 @@ impl GetShiftRequest {
         let request = ApiRequest::<GetShiftResponse>::get(api_endpoint.to_url());
 
         // 3. 发送请求（GET 无请求体）
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 4. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "获取班次响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(request, &self.config, Some(option), "获取班次响应数据为空").await
     }
 }
 
@@ -78,6 +71,7 @@ impl ApiResponseTrait for GetShiftResponse {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use openlark_core::config::Config;
     use openlark_core::testing::prelude::TestConfigBuilder;
 
     #[test]
@@ -93,5 +87,48 @@ mod tests {
         let rt = tokio::runtime::Runtime::new().expect("创建 tokio runtime 失败");
         let result = rt.block_on(request.execute());
         assert!(result.is_err());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_attendance_v1_shift_get_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"shift": {"shift_id": "test", "shift_name": "test", "shift_type": 0, "punch_times": []}}"#).unwrap();
+        Mock::given(method("GET"))
+            .and(path("/open-apis/attendance/v1/shifts/shift_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = GetShiftRequest::new(config)
+            .shift_id("shift_001".to_string())
+            .execute()
+            .await
+            .expect("attendance_v1_shift_get 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/attendance/v1/shifts/shift_001"
+        );
     }
 }

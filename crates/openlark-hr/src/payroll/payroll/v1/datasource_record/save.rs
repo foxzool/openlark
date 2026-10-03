@@ -1,12 +1,13 @@
 //! 创建 / 更新外部算薪数据
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/save
+//! docPath: <https://open.feishu.cn/document/server-docs/payroll-v1/datasource_record/save>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -54,8 +55,12 @@ impl SaveRequest {
 
         // 1. 验证必填字段
         validate_required!(self.datasource_id.trim(), "datasource_id");
-        validate_required!(self.employee_ids, "employee_ids");
-        validate_required!(self.records, "records");
+        validate_required_list!(
+            self.employee_ids,
+            50,
+            "employee_ids 不能为空且不能超过 50 个"
+        );
+        validate_required_list!(self.records, 100, "records 不能为空且不能超过 100 个");
 
         // 2. 构建端点
         let api_endpoint = PayrollApiV1::DatasourceRecordSave;
@@ -70,21 +75,19 @@ impl SaveRequest {
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "构建请求体失败",
-                format!("序列化请求体失败: {}", e),
+                format!("序列化请求体失败: {e}"),
             )
         })?;
         let request = request.body(request_body_json);
 
         // 4. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 5. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "创建/更新外部算薪数据响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "创建/更新外部算薪数据响应数据为空",
+        )
+        .await
     }
 }
 
@@ -226,5 +229,61 @@ mod tests {
         })();
 
         assert!(result.is_err());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_save_datasource_records_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value =
+            serde_json::from_str(r#"{"success": true, "processed_count": 1, "failed_count": 0}"#)
+                .unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/payroll/v1/datasource_records/save"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = SaveRequest::new(
+            config,
+            "ds_001".to_string(),
+            vec!["emp_001".to_string()],
+            vec![DatasourceRecord {
+                employee_id: "emp_001".to_string(),
+                items: vec![DatasourceRecordItem {
+                    field_name: "amount".to_string(),
+                    value: serde_json::json!(100),
+                }],
+            }],
+        )
+        .execute()
+        .await
+        .expect("保存数据源记录应成功");
+
+        assert!(data.success);
+        assert_eq!(data.processed_count, 1);
+        assert_eq!(data.failed_count, 0);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/payroll/v1/datasource_records/save"
+        );
     }
 }

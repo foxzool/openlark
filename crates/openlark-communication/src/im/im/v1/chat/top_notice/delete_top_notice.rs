@@ -1,15 +1,12 @@
 //! 撤销群置顶
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::IM_V1_CHATS,
-};
+use crate::{common::models::EmptyData, endpoints::IM_V1_CHATS};
 
 /// 撤销群置顶请求
 ///
@@ -47,7 +44,7 @@ impl DeleteTopNoticeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/delete_top_notice>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -67,8 +64,7 @@ impl DeleteTopNoticeRequest {
             IM_V1_CHATS, self.chat_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "撤销群置顶")
+        Transport::request_typed(req, &self.config, Some(option), "撤销群置顶").await
     }
 }
 

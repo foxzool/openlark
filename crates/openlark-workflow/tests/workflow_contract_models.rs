@@ -1,5 +1,5 @@
-#![cfg(feature = "v2")]
 //! Representative contract tests for high-frequency workflow request/response models.
+#![cfg(feature = "v2")]
 
 use openlark_workflow::v2::comment::{CreateCommentBody, ListCommentsResponse};
 use openlark_workflow::v2::custom_field::{
@@ -8,11 +8,12 @@ use openlark_workflow::v2::custom_field::{
 use openlark_workflow::v2::task::{CreateTaskBody, ListTasksResponse};
 use openlark_workflow::v2::tasklist::{CreateTasklistBody, ListTasklistsResponse, TasklistIcon};
 use openlark_workflow::{
-    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskListQuery, WorkflowTaskMutation,
+    ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskCreate, WorkflowTaskListQuery,
+    WorkflowTaskMutation,
 };
-use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{from_value, json, to_value, Value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, json, to_value};
 
 fn assert_json_contract<T>(value: &T, expected: Value)
 where
@@ -45,6 +46,32 @@ fn workflow_helper_models_preserve_builder_contracts() {
             sort: Some(json!([{ "field": "updated_at", "order": "desc" }])),
             user_type: Some("open_id".to_string()),
             page_size: Some(50),
+        }
+    );
+
+    let create = WorkflowTaskCreate::new("编写 release notes")
+        .description("补齐 create_task helper")
+        .start("2026-07-27T09:00:00Z")
+        .due("2026-08-01T18:00:00Z")
+        .priority(2)
+        .assignee("ou_owner")
+        .tasklist_guid("tasklist_abc")
+        .section_guid("section_xyz")
+        .followers(vec!["ou_follower".to_string()])
+        .remind_time("2026-07-31T09:00:00Z");
+    assert_eq!(
+        create,
+        WorkflowTaskCreate {
+            summary: "编写 release notes".to_string(),
+            description: Some("补齐 create_task helper".to_string()),
+            start: Some("2026-07-27T09:00:00Z".to_string()),
+            due: Some("2026-08-01T18:00:00Z".to_string()),
+            priority: Some(2),
+            assignee: Some("ou_owner".to_string()),
+            tasklist_guid: Some("tasklist_abc".to_string()),
+            section_guid: Some("section_xyz".to_string()),
+            followers: Some(vec!["ou_follower".to_string()]),
+            remind_time: Some("2026-07-31T09:00:00Z".to_string()),
         }
     );
 
@@ -234,7 +261,8 @@ fn tasklist_request_and_response_contract() {
 #[test]
 fn comment_and_custom_field_contract() {
     let comment_request = CreateCommentBody {
-        content: "请补充发布回滚说明".to_string(),
+        content: Some("请补充发布回滚说明".to_string()),
+        ..CreateCommentBody::default()
     };
     assert_json_contract(
         &comment_request,
@@ -246,19 +274,24 @@ fn comment_and_custom_field_contract() {
     let comment_response: ListCommentsResponse = parse_contract(json!({
         "has_more": false,
         "page_token": null,
-        "total": 1,
         "items": [
             {
-                "comment_guid": "comment_1",
-                "task_guid": "task_1",
+                "id": "comment_1",
                 "content": "请补充发布回滚说明",
-                "creator": "ou_creator",
+                "creator": {
+                    "id": "ou_creator",
+                    "type": "user",
+                    "role": "editor",
+                    "name": "创建者"
+                },
+                "resource_type": "task",
+                "resource_id": "task_1",
                 "created_at": "2026-12-01T09:00:00Z",
                 "updated_at": "2026-12-01T10:00:00Z"
             }
         ]
     }));
-    assert_eq!(comment_response.items[0].comment_guid, "comment_1");
+    assert_eq!(comment_response.items[0].id.as_deref(), Some("comment_1"));
 
     let custom_field_request = CreateCustomFieldBody {
         name: "风险等级".to_string(),
@@ -266,6 +299,8 @@ fn comment_and_custom_field_contract() {
             field_type: CustomFieldType::Select,
             options: Some(vec!["高".to_string(), "中".to_string(), "低".to_string()]),
         },
+        resource_type: "tasklist".to_string(),
+        resource_id: "tasklist_123".to_string(),
     };
     assert_json_contract(
         &custom_field_request,
@@ -274,7 +309,9 @@ fn comment_and_custom_field_contract() {
             "config": {
                 "type": "select",
                 "options": ["高", "中", "低"]
-            }
+            },
+            "resource_type": "tasklist",
+            "resource_id": "tasklist_123"
         }),
     );
 

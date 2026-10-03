@@ -6,11 +6,12 @@
 /// - update_sheet: 更新工作表
 /// - delete_sheet: 删除工作表
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 
 use crate::common::{
@@ -101,12 +102,12 @@ pub async fn add_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::AddSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<AddSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "添加工作表")?);
+    let api_request: ApiRequest<AddSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "添加工作表")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "添加工作表")
+    Transport::request_typed(api_request, config, Some(option), "添加工作表").await
 }
 
 /// 获取工作表信息
@@ -140,11 +141,10 @@ pub async fn get_sheet_with_options(
         SheetsApiV3::GetSheet(spreadsheet_token.to_string(), params.sheet_id.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<GetSheetResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetSheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取工作表信息")
+    Transport::request_typed(api_request, config, Some(option), "获取工作表信息").await
 }
 
 /// 更新工作表
@@ -177,12 +177,12 @@ pub async fn update_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::UpdateSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<UpdateSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "更新工作表")?);
+    let api_request: ApiRequest<UpdateSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "更新工作表")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "更新工作表")
+    Transport::request_typed(api_request, config, Some(option), "更新工作表").await
 }
 
 /// 删除工作表
@@ -215,12 +215,12 @@ pub async fn delete_sheet_with_options(
     let api_endpoint = CcmSheetApiOld::DeleteSheet(spreadsheet_token.to_string());
 
     // 创建API请求
-    let api_request: ApiRequest<DeleteSheetResponse> =
-        ApiRequest::post(&api_endpoint.to_url()).body(serialize_params(&params, "删除工作表")?);
+    let api_request: ApiRequest<DeleteSheetResponse> = api_endpoint
+        .to_request()
+        .body(serialize_params(&params, "删除工作表")?);
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "删除工作表")
+    Transport::request_typed(api_request, config, Some(option), "删除工作表").await
 }
 
 // API函数已经在模块中定义，不需要重复导出
@@ -229,21 +229,47 @@ pub async fn delete_sheet_with_options(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 端到端：POST .../sheets_batch_update → AddSheetResponse。
+    #[tokio::test]
+    async fn test_add_sheet_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/sheets/v2/spreadsheets/token001/sheets_batch_update",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        let resp = add_sheet(
+            &config,
+            "token001",
+            AddSheetParams {
+                title: "新工作表".into(),
+                index: None,
+            },
+        )
+        .await
+        .expect("添加工作表应成功");
+        assert!(resp.data.is_none());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v2/spreadsheets/token001/sheets_batch_update"
+        );
     }
 }

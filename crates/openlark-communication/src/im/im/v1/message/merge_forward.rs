@@ -1,16 +1,15 @@
 //! 合并转发消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/merge_forward
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/merge_forward>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::ReceiveIdType,
+    common::api_utils::serialize_params, endpoints::IM_V1_MESSAGES,
+    im::v1::message::models::ReceiveIdType,
 };
 
 /// 合并转发消息请求体
@@ -84,7 +83,7 @@ impl MergeForwardMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/merge_forward
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/merge_forward>
     pub async fn execute(self, body: MergeForwardMessageBody) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -113,7 +112,7 @@ impl MergeForwardMessageRequest {
 
         // url: POST:/open-apis/im/v1/messages/merge_forward
         let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::post(format!("{}/merge_forward", IM_V1_MESSAGES))
+            ApiRequest::post(format!("{IM_V1_MESSAGES}/merge_forward"))
                 .query("receive_id_type", receive_id_type.as_str())
                 .body(serialize_params(&body, "合并转发消息")?);
 
@@ -121,9 +120,7 @@ impl MergeForwardMessageRequest {
             req = req.query("uuid", uuid);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "合并转发消息")
+        Transport::request_typed(req, &self.config, Some(option), "合并转发消息").await
     }
 }
 

@@ -25,22 +25,20 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let analytics_service = AnalyticsService::new(config)?;
+//! let _analytics_service = AnalyticsService::new(config);
 //!
-//! // 获取搜索服务入口（当前 query/user 子路径会显式返回未接线错误）
-//! # #[cfg(all(feature = "search", feature = "v1"))]
-//! let _search_v2 = analytics_service.search().v2();
 //! # Ok(())
 //! # }
 //! ```
 
 #![allow(clippy::module_inception)]
-#![allow(missing_docs)]
 
 mod service;
 
 // 通用模块
 pub mod common;
+/// 报告模块。
+pub mod report;
 
 // 业务域模块
 #[cfg(feature = "search")]
@@ -52,7 +50,8 @@ pub mod prelude;
 // 重新导出核心服务
 pub use service::AnalyticsService;
 
-// 配置类型
+/// 数据分析服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type AnalyticsClient = AnalyticsService;
 pub use openlark_core::config::Config;
 
 /// 数据分析模块版本信息
@@ -68,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 
     #[test]

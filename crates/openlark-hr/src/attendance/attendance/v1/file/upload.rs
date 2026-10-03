@@ -1,12 +1,13 @@
 //! 上传用户人脸识别照片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/attendance-v1/file/upload
+//! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/file/upload>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, validate_required_list, validation_error, SDKResult,
+    validate_required, validate_required_list, validation_error,
 };
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -78,7 +79,7 @@ impl UploadRequest {
         // 3. 构建请求体（multipart/form-data）
         // 生成随机 boundary 后缀避免冲突
         let random_suffix: u32 = rand::thread_rng().gen_range(0..1000000);
-        let boundary = format!("----OpenLarkBoundary{:06}", random_suffix);
+        let boundary = format!("----OpenLarkBoundary{random_suffix:06}");
         let mime_type = detect_mime_type(file_name);
         let body = build_multipart_body(
             &self.user_id,
@@ -91,20 +92,18 @@ impl UploadRequest {
         let request = request
             .header(
                 "Content-Type",
-                format!("multipart/form-data; boundary={}", boundary),
+                format!("multipart/form-data; boundary={boundary}"),
             )
             .body(body);
 
         // 4. 发送请求
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-
-        // 5. 提取响应数据
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "上传用户人脸识别照片响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "上传用户人脸识别照片响应数据为空",
+        )
+        .await
     }
 }
 
@@ -135,26 +134,23 @@ fn build_multipart_body(
     let mut body = Vec::new();
 
     // 用户 ID 部分
-    body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(b"Content-Disposition: form-data; name=\"user_id\"\r\n\r\n");
     body.extend_from_slice(user_id.as_bytes());
     body.extend_from_slice(b"\r\n");
 
     // 文件部分
-    body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(
-        format!(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n",
-            file_name
-        )
-        .as_bytes(),
+        format!("Content-Disposition: form-data; name=\"file\"; filename=\"{file_name}\"\r\n")
+            .as_bytes(),
     );
-    body.extend_from_slice(format!("Content-Type: {}\r\n\r\n", mime_type).as_bytes());
+    body.extend_from_slice(format!("Content-Type: {mime_type}\r\n\r\n").as_bytes());
     body.extend_from_slice(image_data);
     body.extend_from_slice(b"\r\n");
 
     // 结束边界
-    body.extend_from_slice(format!("--{}--\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
 
     body
 }
@@ -179,21 +175,56 @@ impl ApiResponseTrait for UploadResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use openlark_core::config::Config;
+    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    #[tokio::test]
+    async fn test_attendance_v1_file_upload_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let server = MockServer::start().await;
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"success": false, "photo_id": "test", "user_id": "test", "upload_time": 0}"#,
+        )
+        .unwrap();
+        Mock::given(method("POST"))
+            .and(path("/open-apis/attendance/v1/files/upload"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": data_body
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = UploadRequest::new(
+            config,
+            "user_001".to_string(),
+            "sample_file_name".to_string(),
+            vec![1u8],
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_file_upload 应成功");
+
+        let _ = &data;
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/attendance/v1/files/upload"
+        );
     }
 }

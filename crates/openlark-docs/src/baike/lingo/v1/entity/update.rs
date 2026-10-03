@@ -1,13 +1,14 @@
 //! 更新免审词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/update
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,7 @@ use crate::common::api_endpoints::LingoApiV1;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateEntityResp {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// 公开项说明。
+    /// 更新后的词条实体信息
     pub entity: Option<Entity>,
 }
 
@@ -88,17 +89,15 @@ impl UpdateEntityRequest {
 
         // ===== 构建请求 =====
         let mut api_request: ApiRequest<UpdateEntityResp> =
-            ApiRequest::put(&LingoApiV1::EntityUpdate(self.entity_id).to_url()).body(body);
+            LingoApiV1::EntityUpdate(self.entity_id)
+                .to_request()
+                .body(body);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }
 
         // ===== 发送请求并返回结果 =====
-        let response: Response<UpdateEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "更新免审词条").await
     }
 }
 
@@ -166,20 +165,24 @@ mod tests {
             ..Default::default()
         };
         let request = UpdateEntityRequest::new(config.clone(), "", body);
-        assert!(request
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 main_keys 为空
         let body2 = EntityInput {
             ..Default::default()
         };
         let request2 = UpdateEntityRequest::new(config.clone(), "entity_123", body2);
-        assert!(request2
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request2
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
 
         // 测试 description 和 rich_text 都为空
         let body3 = EntityInput {
@@ -195,10 +198,12 @@ mod tests {
             ..Default::default()
         };
         let request3 = UpdateEntityRequest::new(config, "entity_123", body3);
-        assert!(request3
-            .execute_with_options(RequestOption::default())
-            .await
-            .is_err());
+        assert!(
+            request3
+                .execute_with_options(RequestOption::default())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

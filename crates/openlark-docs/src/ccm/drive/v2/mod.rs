@@ -10,3 +10,5 @@ pub use permission::{
     GetPermissionPublicRequest, GetPermissionPublicResponse, PermissionPublic,
     UpdatePermissionPublicRequest, UpdatePermissionPublicResponse,
 };
+/// comment_reaction 模块。
+pub mod comment_reaction;

@@ -1,13 +1,14 @@
 //! 精准搜索词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/match
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/match>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -52,8 +53,8 @@ impl ApiResponseTrait for MatchEntityResp {
     }
 }
 
+/// 精准搜索词条请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// 公开项说明。
 pub struct MatchEntityBody {
     /// 搜索关键词，将与词条名、别名进行精准匹配
     pub word: String,
@@ -96,16 +97,12 @@ impl MatchEntityRequest {
         })?;
 
         let mut api_request: ApiRequest<MatchEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntityMatch.to_url()).body(body);
+            LingoApiV1::EntityMatch.to_request().body(body);
         if let Some(repo_id) = &self.repo_id {
             api_request = api_request.query("repo_id", repo_id);
         }
 
-        let response: Response<MatchEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "精准搜索词条").await
     }
 }
 

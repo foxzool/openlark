@@ -1,0 +1,12 @@
+---
+source: crates/openlark-docs/src/common/api_endpoints/drive.rs
+expression: "catalog_semantics_snapshot::<CcmDriveExplorerApiOld>()"
+---
+RootFolderMeta | Get | /open-apis/drive/explorer/v2/root_folder/meta | Some([User, Tenant])
+FolderMeta("") | Get | /open-apis/drive/explorer/v2/folder//meta | Some([User, Tenant])
+File("") | Post | /open-apis/drive/explorer/v2/file/ | Some([User, Tenant])
+FileSpreadsheets("") | Delete | /open-apis/drive/explorer/v2/file/spreadsheets/ | Some([User, Tenant])
+FileCopy("") | Post | /open-apis/drive/explorer/v2/file/copy/files/ | Some([User, Tenant])
+FileDocs("") | Delete | /open-apis/drive/explorer/v2/file/docs/ | Some([User, Tenant])
+FolderChildren("") | Get | /open-apis/drive/explorer/v2/folder//children | Some([User, Tenant])
+Folder("") | Post | /open-apis/drive/explorer/v2/folder/ | Some([User, Tenant])

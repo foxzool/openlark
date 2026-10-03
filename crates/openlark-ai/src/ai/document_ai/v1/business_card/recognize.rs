@@ -2,14 +2,15 @@
 //!
 //! 智能识别名片中的联系信息。
 //!
-//! docPath: https://open.feishu.cn/document/document_ai-v1/business_card_recognize
+//! docPath: <https://open.feishu.cn/document/document_ai-v1/business_card_recognize>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_BUSINESS_CARD_RECOGNIZE;
 
 /// 名片识别请求体
@@ -24,10 +25,8 @@ pub struct BusinessCardRecognizeBody {
 
 impl BusinessCardRecognizeBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if self.file_token.trim().is_empty() {
-            return Err("file_token 不能为空".to_string());
-        }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        validate_required!(self.file_token, "file_token 不能为空");
         Ok(())
     }
 }
@@ -95,15 +94,13 @@ impl BusinessCardRecognizeRequest {
         body: BusinessCardRecognizeBody,
         option: RequestOption,
     ) -> SDKResult<BusinessCardRecognizeResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<BusinessCardRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_BUSINESS_CARD_RECOGNIZE)
                 .body(serialize_params(&body, "名片识别")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "名片识别")
+        Transport::request_typed(req, &self.config, Some(option), "名片识别").await
     }
 }
 
@@ -163,7 +160,7 @@ impl BusinessCardRecognizeRequestBuilder {
 
 /// 执行名片识别
 ///
-/// docPath: https://open.feishu.cn/document/document_ai-v1/business_card_recognize
+/// docPath: <https://open.feishu.cn/document/document_ai-v1/business_card_recognize>
 pub async fn business_card_recognize(
     config: &Config,
     body: BusinessCardRecognizeBody,
@@ -177,15 +174,13 @@ pub async fn business_card_recognize_with_options(
     body: BusinessCardRecognizeBody,
     option: RequestOption,
 ) -> SDKResult<BusinessCardRecognizeResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<BusinessCardRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_BUSINESS_CARD_RECOGNIZE)
             .body(serialize_params(&body, "名片识别")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "名片识别")
+    Transport::request_typed(req, config, Some(option), "名片识别").await
 }
 
 #[cfg(test)]

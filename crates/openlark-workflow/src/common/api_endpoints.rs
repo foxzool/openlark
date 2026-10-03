@@ -2,6 +2,9 @@
 //!
 //! 本模块提供基于枚举的 API 端点定义，用于生产代码中的类型安全调用。
 
+use openlark_core::api::{ApiRequest, HttpMethod};
+use openlark_core::constants::AccessTokenType;
+
 /// 任务 API V1 端点枚举
 #[derive(Debug, Clone, PartialEq)]
 pub enum TaskApiV1 {
@@ -58,84 +61,63 @@ impl TaskApiV1 {
     pub fn to_url(&self) -> String {
         match self {
             TaskApiV1::TaskCreate => "/open-apis/task/v1/tasks".to_string(),
-            TaskApiV1::TaskGet(task_id) => format!("/open-apis/task/v1/tasks/{}", task_id),
-            TaskApiV1::TaskUpdate(task_id) => format!("/open-apis/task/v1/tasks/{}", task_id),
-            TaskApiV1::TaskDelete(task_id) => format!("/open-apis/task/v1/tasks/{}", task_id),
+            TaskApiV1::TaskGet(task_id) => format!("/open-apis/task/v1/tasks/{task_id}"),
+            TaskApiV1::TaskUpdate(task_id) => format!("/open-apis/task/v1/tasks/{task_id}"),
+            TaskApiV1::TaskDelete(task_id) => format!("/open-apis/task/v1/tasks/{task_id}"),
             TaskApiV1::TaskComplete(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/complete", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/complete")
             }
             TaskApiV1::TaskUncomplete(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/uncomplete", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/uncomplete")
             }
             TaskApiV1::TaskList => "/open-apis/task/v1/tasks".to_string(),
             TaskApiV1::TaskFollowerCreate(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/followers", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/followers")
             }
             TaskApiV1::TaskFollowerDelete(task_id, follower_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/followers/{}",
-                    task_id, follower_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/followers/{follower_id}")
             }
             TaskApiV1::TaskFollowerList(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/followers", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/followers")
             }
             TaskApiV1::TaskFollowerBatchDelete(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/batch_delete_follower", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/batch_delete_follower")
             }
             TaskApiV1::TaskCollaboratorCreate(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/collaborators", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/collaborators")
             }
             TaskApiV1::TaskCollaboratorDelete(task_id, collaborator_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/collaborators/{}",
-                    task_id, collaborator_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/collaborators/{collaborator_id}")
             }
             TaskApiV1::TaskCollaboratorList(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/collaborators", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/collaborators")
             }
             TaskApiV1::TaskCollaboratorBatchDelete(task_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/batch_delete_collaborator",
-                    task_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/batch_delete_collaborator")
             }
             TaskApiV1::TaskReminderCreate(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/reminders", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/reminders")
             }
             TaskApiV1::TaskReminderDelete(task_id, reminder_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/reminders/{}",
-                    task_id, reminder_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/reminders/{reminder_id}")
             }
             TaskApiV1::TaskReminderList(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/reminders", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/reminders")
             }
             TaskApiV1::TaskCommentCreate(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/comments", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/comments")
             }
             TaskApiV1::TaskCommentGet(task_id, comment_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/comments/{}",
-                    task_id, comment_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/comments/{comment_id}")
             }
             TaskApiV1::TaskCommentUpdate(task_id, comment_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/comments/{}",
-                    task_id, comment_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/comments/{comment_id}")
             }
             TaskApiV1::TaskCommentDelete(task_id, comment_id) => {
-                format!(
-                    "/open-apis/task/v1/tasks/{}/comments/{}",
-                    task_id, comment_id
-                )
+                format!("/open-apis/task/v1/tasks/{task_id}/comments/{comment_id}")
             }
             TaskApiV1::TaskCommentList(task_id) => {
-                format!("/open-apis/task/v1/tasks/{}/comments", task_id)
+                format!("/open-apis/task/v1/tasks/{task_id}/comments")
             }
         }
     }
@@ -168,40 +150,40 @@ pub enum TaskApiV2 {
     TasklistDelete(String),
     /// 获取任务清单列表
     TasklistList,
-    /// 创建分组
-    SectionCreate(String),
+    /// 创建分组（全局端点，无 tasklist 作用域）
+    SectionCreate,
     /// 获取分组详情
-    SectionGet(String, String),
+    SectionGet(String),
     /// 更新分组
-    SectionUpdate(String, String),
+    SectionUpdate(String),
     /// 删除分组
-    SectionDelete(String, String),
+    SectionDelete(String),
     /// 获取分组列表
-    SectionList(String),
-    /// 创建自定义字段
-    CustomFieldCreate(String),
+    SectionList,
+    /// 创建自定义字段（全局端点，清单 GUID 通过 body resource_id 传）
+    CustomFieldCreate,
     /// 获取自定义字段详情
-    CustomFieldGet(String, String),
+    CustomFieldGet(String),
     /// 更新自定义字段
-    CustomFieldUpdate(String, String),
+    CustomFieldUpdate(String),
     /// 删除自定义字段
-    CustomFieldDelete(String, String),
+    CustomFieldDelete(String),
     /// 获取自定义字段列表
-    CustomFieldList(String),
+    CustomFieldList,
     /// 创建评论
-    CommentCreate(String),
+    CommentCreate,
     /// 获取评论详情
-    CommentGet(String, String),
+    CommentGet(String),
     /// 更新评论
-    CommentUpdate(String, String),
+    CommentUpdate(String),
     /// 删除评论
-    CommentDelete(String, String),
+    CommentDelete(String),
     /// 获取评论列表
-    CommentList(String),
+    CommentList,
     /// 上传附件
-    AttachmentUpload(String),
+    AttachmentUpload,
     /// 删除附件
-    AttachmentDelete(String, String),
+    AttachmentDelete(String),
 
     // 子任务相关
     /// 创建子任务
@@ -270,6 +252,12 @@ pub enum TaskApiV2 {
     CustomFieldAdd(String),
     /// 从任务清单移除自定义字段
     CustomFieldRemove(String),
+
+    // 搜索
+    /// 搜索任务
+    TaskSearch,
+    /// 搜索清单
+    TasklistSearch,
 }
 
 impl TaskApiV2 {
@@ -279,248 +267,183 @@ impl TaskApiV2 {
             // 任务相关
             TaskApiV2::TaskCreate => "/open-apis/task/v2/tasks".to_string(),
             TaskApiV2::TaskGet(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}")
             }
             TaskApiV2::TaskUpdate(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}")
             }
             TaskApiV2::TaskDelete(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}")
             }
             TaskApiV2::TaskComplete(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/complete", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/complete")
             }
             TaskApiV2::TaskUncomplete(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/uncomplete", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/uncomplete")
             }
             TaskApiV2::TaskList => "/open-apis/task/v2/tasks".to_string(),
 
             // 任务清单相关
             TaskApiV2::TasklistCreate => "/open-apis/task/v2/tasklists".to_string(),
             TaskApiV2::TasklistGet(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}", tasklist_guid)
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}")
             }
             TaskApiV2::TasklistUpdate(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}", tasklist_guid)
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}")
             }
             TaskApiV2::TasklistDelete(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}", tasklist_guid)
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}")
             }
             TaskApiV2::TasklistList => "/open-apis/task/v2/tasklists".to_string(),
 
-            // 分组相关
-            TaskApiV2::SectionCreate(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}/sections", tasklist_guid)
+            // 分组相关（全局端点，无 tasklist 作用域前缀）
+            TaskApiV2::SectionCreate => "/open-apis/task/v2/sections".to_string(),
+            TaskApiV2::SectionGet(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionGet(tasklist_guid, section_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/sections/{}",
-                    tasklist_guid, section_guid
-                )
+            TaskApiV2::SectionUpdate(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionUpdate(tasklist_guid, section_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/sections/{}",
-                    tasklist_guid, section_guid
-                )
+            TaskApiV2::SectionDelete(section_guid) => {
+                format!("/open-apis/task/v2/sections/{section_guid}")
             }
-            TaskApiV2::SectionDelete(tasklist_guid, section_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/sections/{}",
-                    tasklist_guid, section_guid
-                )
-            }
-            TaskApiV2::SectionList(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}/sections", tasklist_guid)
-            }
+            TaskApiV2::SectionList => "/open-apis/task/v2/sections".to_string(),
 
-            // 自定义字段相关
-            TaskApiV2::CustomFieldCreate(tasklist_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/custom_fields",
-                    tasklist_guid
-                )
+            // 自定义字段相关（全局端点）
+            TaskApiV2::CustomFieldCreate => "/open-apis/task/v2/custom_fields".to_string(),
+            TaskApiV2::CustomFieldGet(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldGet(tasklist_guid, field_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/custom_fields/{}",
-                    tasklist_guid, field_guid
-                )
+            TaskApiV2::CustomFieldUpdate(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldUpdate(tasklist_guid, field_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/custom_fields/{}",
-                    tasklist_guid, field_guid
-                )
+            TaskApiV2::CustomFieldDelete(field_guid) => {
+                format!("/open-apis/task/v2/custom_fields/{field_guid}")
             }
-            TaskApiV2::CustomFieldDelete(tasklist_guid, field_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/custom_fields/{}",
-                    tasklist_guid, field_guid
-                )
-            }
-            TaskApiV2::CustomFieldList(tasklist_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/custom_fields",
-                    tasklist_guid
-                )
-            }
+            TaskApiV2::CustomFieldList => "/open-apis/task/v2/custom_fields".to_string(),
 
             // 评论相关
-            TaskApiV2::CommentCreate(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/comments", task_guid)
+            TaskApiV2::CommentCreate => "/open-apis/task/v2/comments".to_string(),
+            TaskApiV2::CommentGet(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentGet(task_guid, comment_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasks/{}/comments/{}",
-                    task_guid, comment_guid
-                )
+            TaskApiV2::CommentUpdate(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentUpdate(task_guid, comment_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasks/{}/comments/{}",
-                    task_guid, comment_guid
-                )
+            TaskApiV2::CommentDelete(comment_id) => {
+                format!("/open-apis/task/v2/comments/{comment_id}")
             }
-            TaskApiV2::CommentDelete(task_guid, comment_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasks/{}/comments/{}",
-                    task_guid, comment_guid
-                )
-            }
-            TaskApiV2::CommentList(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/comments", task_guid)
-            }
+            TaskApiV2::CommentList => "/open-apis/task/v2/comments".to_string(),
 
             // 附件相关
-            TaskApiV2::AttachmentUpload(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/attachments", task_guid)
-            }
-            TaskApiV2::AttachmentDelete(task_guid, attachment_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasks/{}/attachments/{}",
-                    task_guid, attachment_guid
-                )
+            TaskApiV2::AttachmentUpload => "/open-apis/task/v2/attachments/upload".to_string(),
+            TaskApiV2::AttachmentDelete(attachment_guid) => {
+                format!("/open-apis/task/v2/attachments/{attachment_guid}")
             }
 
             // 子任务相关
             TaskApiV2::SubtaskCreate(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/subtasks", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/subtasks")
             }
             TaskApiV2::SubtaskList(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/subtasks", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/subtasks")
             }
 
             // 任务相关扩展
             TaskApiV2::TaskAddTasklist(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/add_tasklist", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/add_tasklist")
             }
             TaskApiV2::TaskRemoveTasklist(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/remove_tasklist", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/remove_tasklist")
             }
             TaskApiV2::TaskGetTasklists(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/tasklists", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/tasklists")
             }
             TaskApiV2::TaskAddMembers(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/add_members", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/add_members")
             }
             TaskApiV2::TaskRemoveMembers(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/remove_members", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/remove_members")
             }
             TaskApiV2::TaskAddReminders(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/add_reminders", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/add_reminders")
             }
             TaskApiV2::TaskRemoveReminders(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/remove_reminders", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/remove_reminders")
             }
             TaskApiV2::TaskAddDependencies(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/add_dependencies", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/add_dependencies")
             }
             TaskApiV2::TaskRemoveDependencies(task_guid) => {
-                format!("/open-apis/task/v2/tasks/{}/remove_dependencies", task_guid)
+                format!("/open-apis/task/v2/tasks/{task_guid}/remove_dependencies")
             }
 
             // 任务清单相关扩展
             TaskApiV2::TasklistGetTasks(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}/tasks", tasklist_guid)
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/tasks")
             }
             TaskApiV2::TasklistAddMembers(tasklist_guid) => {
-                format!("/open-apis/task/v2/tasklists/{}/add_members", tasklist_guid)
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/add_members")
             }
             TaskApiV2::TasklistRemoveMembers(tasklist_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/remove_members",
-                    tasklist_guid
-                )
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/remove_members")
             }
 
             // 分组相关扩展
             TaskApiV2::SectionGetTasks(section_guid) => {
-                format!("/open-apis/task/v2/sections/{}/tasks", section_guid)
+                format!("/open-apis/task/v2/sections/{section_guid}/tasks")
             }
 
             // 活动订阅相关
             TaskApiV2::ActivitySubscriptionCreate(tasklist_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/activity_subscriptions",
-                    tasklist_guid
-                )
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions")
             }
             TaskApiV2::ActivitySubscriptionGet(tasklist_guid, subscription_guid) => {
                 format!(
-                    "/open-apis/task/v2/tasklists/{}/activity_subscriptions/{}",
-                    tasklist_guid, subscription_guid
+                    "/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions/{subscription_guid}"
                 )
             }
             TaskApiV2::ActivitySubscriptionUpdate(tasklist_guid, subscription_guid) => {
                 format!(
-                    "/open-apis/task/v2/tasklists/{}/activity_subscriptions/{}",
-                    tasklist_guid, subscription_guid
+                    "/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions/{subscription_guid}"
                 )
             }
             TaskApiV2::ActivitySubscriptionDelete(tasklist_guid, subscription_guid) => {
                 format!(
-                    "/open-apis/task/v2/tasklists/{}/activity_subscriptions/{}",
-                    tasklist_guid, subscription_guid
+                    "/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions/{subscription_guid}"
                 )
             }
             TaskApiV2::ActivitySubscriptionList(tasklist_guid) => {
-                format!(
-                    "/open-apis/task/v2/tasklists/{}/activity_subscriptions",
-                    tasklist_guid
-                )
+                format!("/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions")
             }
 
             // 自定义字段选项相关
             TaskApiV2::CustomFieldOptionCreate(custom_field_guid) => {
-                format!(
-                    "/open-apis/task/v2/custom_fields/{}/options",
-                    custom_field_guid
-                )
+                format!("/open-apis/task/v2/custom_fields/{custom_field_guid}/options")
             }
             TaskApiV2::CustomFieldOptionUpdate(custom_field_guid, option_guid) => {
                 format!(
-                    "/open-apis/task/v2/custom_fields/{}/options/{}",
-                    custom_field_guid, option_guid
+                    "/open-apis/task/v2/custom_fields/{custom_field_guid}/options/{option_guid}"
                 )
             }
 
             // 附件相关扩展
             TaskApiV2::AttachmentGet(attachment_guid) => {
-                format!("/open-apis/task/v2/attachments/{}", attachment_guid)
+                format!("/open-apis/task/v2/attachments/{attachment_guid}")
             }
             TaskApiV2::AttachmentList => "/open-apis/task/v2/attachments".to_string(),
 
             // 自定义字段 add/remove
             TaskApiV2::CustomFieldAdd(custom_field_guid) => {
-                format!("/open-apis/task/v2/custom_fields/{}/add", custom_field_guid)
+                format!("/open-apis/task/v2/custom_fields/{custom_field_guid}/add")
             }
             TaskApiV2::CustomFieldRemove(custom_field_guid) => {
-                format!(
-                    "/open-apis/task/v2/custom_fields/{}/remove",
-                    custom_field_guid
-                )
+                format!("/open-apis/task/v2/custom_fields/{custom_field_guid}/remove")
             }
+
+            // 搜索
+            TaskApiV2::TaskSearch => "/open-apis/task/v2/tasks/search".to_string(),
+            TaskApiV2::TasklistSearch => "/open-apis/task/v2/tasklists/search".to_string(),
         }
     }
 }
@@ -548,14 +471,20 @@ pub enum ApprovalApiV4 {
     ExternalTaskList,
     /// 审批任务加签
     InstanceAddSign,
+    /// 抄送审批实例（用户级）
+    InstanceAddCc,
     /// 撤回审批实例
     InstanceCancel,
     /// 抄送审批实例
     InstanceCc,
     /// 创建审批实例
     InstanceCreate,
+    /// 获取单个审批实例详情（用户级）
+    InstanceDetail,
     /// 获取单个审批实例详情
     InstanceGet(String),
+    /// 查询用户的已发起审批列表（用户级）
+    InstanceInitiated,
     /// 批量获取审批实例 ID
     InstanceList(String),
     /// 预览审批流程
@@ -564,26 +493,50 @@ pub enum ApprovalApiV4 {
     InstanceQuery,
     /// 查询抄送列表
     InstanceSearchCc,
+    /// 单据催办（用户级）
+    InstanceRemind,
+    /// 撤回审批实例（用户级）
+    InstanceRecall,
     /// 退回审批任务
     InstanceSpecifiedRollback(String),
+    /// 订阅审批实例状态变更事件
+    InstanceSubscribe,
+    /// 退订审批实例状态变更事件
+    InstanceUnsubscribe,
     /// 创建评论
     InstanceCommentCreate(String),
     /// 删除评论
     InstanceCommentDelete(String, String),
     /// 获取评论列表
     InstanceCommentList(String),
+    /// 审批任务加签（用户级）
+    TaskAddSign,
     /// 同意审批任务
     TaskApprove,
+    /// 转交审批任务（用户级）
+    TaskForward,
+    /// 查询审批任务列表（用户级）
+    TaskList,
+    /// 同意审批任务（用户级）
+    TaskPass,
     /// 查询用户的任务列表
     TaskQuery,
+    /// 拒绝审批任务（用户级）
+    TaskRefuse,
     /// 拒绝审批任务
     TaskReject,
+    /// 退回审批任务（用户级）
+    TaskRollback,
     /// 重新提交审批任务
     TaskResubmit,
     /// 查询任务列表
     TaskSearch,
     /// 转交审批任务
     TaskTransfer,
+    /// 订阅审批任务状态变更事件
+    TaskSubscribe,
+    /// 退订审批任务状态变更事件
+    TaskUnsubscribe,
 }
 
 impl ApprovalApiV4 {
@@ -593,19 +546,13 @@ impl ApprovalApiV4 {
             // 审批定义相关
             ApprovalApiV4::ApprovalCreate => "/open-apis/approval/v4/approvals".to_string(),
             ApprovalApiV4::ApprovalGet(approval_code) => {
-                format!("/open-apis/approval/v4/approvals/{}", approval_code)
+                format!("/open-apis/approval/v4/approvals/{approval_code}")
             }
             ApprovalApiV4::ApprovalSubscribe(approval_code) => {
-                format!(
-                    "/open-apis/approval/v4/approvals/{}/subscribe",
-                    approval_code
-                )
+                format!("/open-apis/approval/v4/approvals/{approval_code}/subscribe")
             }
             ApprovalApiV4::ApprovalUnsubscribe(approval_code) => {
-                format!(
-                    "/open-apis/approval/v4/approvals/{}/unsubscribe",
-                    approval_code
-                )
+                format!("/open-apis/approval/v4/approvals/{approval_code}/unsubscribe")
             }
 
             // 三方审批定义相关
@@ -613,10 +560,7 @@ impl ApprovalApiV4 {
                 "/open-apis/approval/v4/external_approvals".to_string()
             }
             ApprovalApiV4::ExternalApprovalGet(approval_code) => {
-                format!(
-                    "/open-apis/approval/v4/external_approvals/{}",
-                    approval_code
-                )
+                format!("/open-apis/approval/v4/external_approvals/{approval_code}")
             }
 
             // 三方审批实例相关
@@ -634,17 +578,19 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceAddSign => {
                 "/open-apis/approval/v4/instances/add_sign".to_string()
             }
+            ApprovalApiV4::InstanceAddCc => "/open-apis/approval/v4/instances/add_cc".to_string(),
             ApprovalApiV4::InstanceCancel => "/open-apis/approval/v4/instances/cancel".to_string(),
             ApprovalApiV4::InstanceCc => "/open-apis/approval/v4/instances/cc".to_string(),
             ApprovalApiV4::InstanceCreate => "/open-apis/approval/v4/instances".to_string(),
+            ApprovalApiV4::InstanceDetail => "/open-apis/approval/v4/instances/detail".to_string(),
             ApprovalApiV4::InstanceGet(instance_id) => {
-                format!("/open-apis/approval/v4/instances/{}", instance_id)
+                format!("/open-apis/approval/v4/instances/{instance_id}")
+            }
+            ApprovalApiV4::InstanceInitiated => {
+                "/open-apis/approval/v4/instances/initiated".to_string()
             }
             ApprovalApiV4::InstanceList(approval_code) => {
-                format!(
-                    "/open-apis/approval/v4/instances?approval_code={}",
-                    approval_code
-                )
+                format!("/open-apis/approval/v4/instances?approval_code={approval_code}")
             }
             ApprovalApiV4::InstancePreview => {
                 "/open-apis/approval/v4/instances/preview".to_string()
@@ -653,32 +599,79 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceSearchCc => {
                 "/open-apis/approval/v4/instances/search_cc".to_string()
             }
+            ApprovalApiV4::InstanceRemind => "/open-apis/approval/v4/instances/remind".to_string(),
+            ApprovalApiV4::InstanceRecall => "/open-apis/approval/v4/instances/recall".to_string(),
             ApprovalApiV4::InstanceSpecifiedRollback(_) => {
                 "/open-apis/approval/v4/instances/specified_rollback".to_string()
+            }
+            ApprovalApiV4::InstanceSubscribe | ApprovalApiV4::InstanceUnsubscribe => {
+                "/open-apis/approval/v4/instances/subscription".to_string()
             }
 
             // 审批实例评论相关
             ApprovalApiV4::InstanceCommentCreate(instance_id) => {
-                format!("/open-apis/approval/v4/instances/{}/comments", instance_id)
+                format!("/open-apis/approval/v4/instances/{instance_id}/comments")
             }
             ApprovalApiV4::InstanceCommentDelete(instance_id, comment_id) => {
-                format!(
-                    "/open-apis/approval/v4/instances/{}/comments/{}",
-                    instance_id, comment_id
-                )
+                format!("/open-apis/approval/v4/instances/{instance_id}/comments/{comment_id}")
             }
             ApprovalApiV4::InstanceCommentList(instance_id) => {
-                format!("/open-apis/approval/v4/instances/{}/comments", instance_id)
+                format!("/open-apis/approval/v4/instances/{instance_id}/comments")
             }
 
             // 审批任务相关
+            ApprovalApiV4::TaskAddSign => "/open-apis/approval/v4/tasks/add_sign".to_string(),
             ApprovalApiV4::TaskApprove => "/open-apis/approval/v4/tasks/approve".to_string(),
+            ApprovalApiV4::TaskForward => "/open-apis/approval/v4/tasks/forward".to_string(),
+            ApprovalApiV4::TaskList => "/open-apis/approval/v4/tasks".to_string(),
+            ApprovalApiV4::TaskPass => "/open-apis/approval/v4/tasks/pass".to_string(),
             ApprovalApiV4::TaskQuery => "/open-apis/approval/v4/tasks/query".to_string(),
+            ApprovalApiV4::TaskRefuse => "/open-apis/approval/v4/tasks/refuse".to_string(),
             ApprovalApiV4::TaskReject => "/open-apis/approval/v4/tasks/reject".to_string(),
+            ApprovalApiV4::TaskRollback => "/open-apis/approval/v4/tasks/rollback".to_string(),
             ApprovalApiV4::TaskResubmit => "/open-apis/approval/v4/tasks/resubmit".to_string(),
             ApprovalApiV4::TaskSearch => "/open-apis/approval/v4/tasks/search".to_string(),
             ApprovalApiV4::TaskTransfer => "/open-apis/approval/v4/tasks/transfer".to_string(),
+            ApprovalApiV4::TaskSubscribe | ApprovalApiV4::TaskUnsubscribe => {
+                "/open-apis/approval/v4/tasks/subscription".to_string()
+            }
         }
+    }
+}
+
+/// 不扩展公开 `ApprovalApiV4` 的补充端点，避免破坏下游穷举匹配。
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum ApprovalExtraApiV4 {
+    /// 搜索可发起的审批定义
+    SearchLaunchable,
+}
+
+impl ApprovalExtraApiV4 {
+    /// 生成对应的 URL。
+    pub(crate) fn to_url(&self) -> String {
+        match self {
+            Self::SearchLaunchable => {
+                "/open-apis/approval/v4/approvals/search_launchable".to_string()
+            }
+        }
+    }
+
+    fn method(&self) -> HttpMethod {
+        HttpMethod::Post
+    }
+
+    /// 返回配置了稳定请求语义的请求。
+    pub(crate) fn to_request<R>(&self) -> ApiRequest<R> {
+        let mut req = match self.method() {
+            HttpMethod::Post => ApiRequest::post(self.to_url()),
+            HttpMethod::Get => ApiRequest::get(self.to_url()),
+            HttpMethod::Put => ApiRequest::put(self.to_url()),
+            HttpMethod::Patch => ApiRequest::patch(self.to_url()),
+            HttpMethod::Delete => ApiRequest::delete(self.to_url()),
+            other => unreachable!("ApprovalExtraApiV4 不支持 HTTP 方法 {other:?}"),
+        };
+        req = req.with_supported_access_token_types(vec![AccessTokenType::User]);
+        req
     }
 }
 
@@ -704,28 +697,22 @@ impl BoardApiV1 {
     pub fn to_url(&self) -> String {
         match self {
             BoardApiV1::WhiteboardNodeCreate(board_id) => {
-                format!("/open-apis/board/v1/whiteboards/{}/nodes", board_id)
+                format!("/open-apis/board/v1/whiteboards/{board_id}/nodes")
             }
             BoardApiV1::WhiteboardNodeList(board_id) => {
-                format!("/open-apis/board/v1/whiteboards/{}/nodes", board_id)
+                format!("/open-apis/board/v1/whiteboards/{board_id}/nodes")
             }
             BoardApiV1::WhiteboardUpdateTheme(board_id) => {
-                format!("/open-apis/board/v1/whiteboards/{}/update_theme", board_id)
+                format!("/open-apis/board/v1/whiteboards/{board_id}/update_theme")
             }
             BoardApiV1::WhiteboardTheme(board_id) => {
-                format!("/open-apis/board/v1/whiteboards/{}/theme", board_id)
+                format!("/open-apis/board/v1/whiteboards/{board_id}/theme")
             }
             BoardApiV1::WhiteboardDownloadAsImage(board_id) => {
-                format!(
-                    "/open-apis/board/v1/whiteboards/{}/download_as_image",
-                    board_id
-                )
+                format!("/open-apis/board/v1/whiteboards/{board_id}/download_as_image")
             }
             BoardApiV1::WhiteboardNodeCreatePlantuml(board_id) => {
-                format!(
-                    "/open-apis/board/v1/whiteboards/{}/nodes/plantuml",
-                    board_id
-                )
+                format!("/open-apis/board/v1/whiteboards/{board_id}/nodes/plantuml")
             }
         }
     }
@@ -884,72 +871,72 @@ mod tests {
                 "/open-apis/task/v2/tasklists".to_string(),
             ),
             (
-                TaskApiV2::SectionCreate("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections".to_string(),
+                TaskApiV2::SectionCreate,
+                "/open-apis/task/v2/sections".to_string(),
             ),
             (
-                TaskApiV2::SectionGet("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionGet("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionUpdate("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionUpdate("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionDelete("tl1".to_string(), "s1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections/s1".to_string(),
+                TaskApiV2::SectionDelete("s1".to_string()),
+                "/open-apis/task/v2/sections/s1".to_string(),
             ),
             (
-                TaskApiV2::SectionList("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/sections".to_string(),
+                TaskApiV2::SectionList,
+                "/open-apis/task/v2/sections".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldCreate("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields".to_string(),
+                TaskApiV2::CustomFieldCreate,
+                "/open-apis/task/v2/custom_fields".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldGet("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldGet("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldUpdate("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldUpdate("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldDelete("tl1".to_string(), "f1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields/f1".to_string(),
+                TaskApiV2::CustomFieldDelete("f1".to_string()),
+                "/open-apis/task/v2/custom_fields/f1".to_string(),
             ),
             (
-                TaskApiV2::CustomFieldList("tl1".to_string()),
-                "/open-apis/task/v2/tasklists/tl1/custom_fields".to_string(),
+                TaskApiV2::CustomFieldList,
+                "/open-apis/task/v2/custom_fields".to_string(),
             ),
             (
-                TaskApiV2::CommentCreate("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments".to_string(),
+                TaskApiV2::CommentCreate,
+                "/open-apis/task/v2/comments".to_string(),
             ),
             (
-                TaskApiV2::CommentGet("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentGet("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentUpdate("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentUpdate("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentDelete("t1".to_string(), "c1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments/c1".to_string(),
+                TaskApiV2::CommentDelete("c1".to_string()),
+                "/open-apis/task/v2/comments/c1".to_string(),
             ),
             (
-                TaskApiV2::CommentList("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/comments".to_string(),
+                TaskApiV2::CommentList,
+                "/open-apis/task/v2/comments".to_string(),
             ),
             (
-                TaskApiV2::AttachmentUpload("t1".to_string()),
-                "/open-apis/task/v2/tasks/t1/attachments".to_string(),
+                TaskApiV2::AttachmentUpload,
+                "/open-apis/task/v2/attachments/upload".to_string(),
             ),
             (
-                TaskApiV2::AttachmentDelete("t1".to_string(), "a1".to_string()),
-                "/open-apis/task/v2/tasks/t1/attachments/a1".to_string(),
+                TaskApiV2::AttachmentDelete("a1".to_string()),
+                "/open-apis/task/v2/attachments/a1".to_string(),
             ),
             (
                 TaskApiV2::SubtaskCreate("t1".to_string()),
@@ -1185,6 +1172,26 @@ mod tests {
     }
 
     #[test]
+    fn approval_extra_search_launchable_is_user_only_post() {
+        let endpoint = ApprovalExtraApiV4::SearchLaunchable;
+        assert_eq!(
+            endpoint.to_url(),
+            "/open-apis/approval/v4/approvals/search_launchable"
+        );
+        assert_eq!(endpoint.method(), HttpMethod::Post);
+        let request: ApiRequest<()> = endpoint.to_request();
+        assert_eq!(request.method(), &HttpMethod::Post);
+        assert_eq!(
+            request.api_path(),
+            "/open-apis/approval/v4/approvals/search_launchable"
+        );
+        assert_eq!(
+            request.supported_access_token_types(),
+            vec![AccessTokenType::User]
+        );
+    }
+
+    #[test]
     fn test_board_api_v1_to_url() {
         let cases = vec![
             (
@@ -1216,5 +1223,26 @@ mod tests {
         for (api, expected) in cases {
             assert_eq!(api.to_url(), expected);
         }
+    }
+
+    #[test]
+    fn issue_194_workflow_new_endpoint_paths() {
+        assert_eq!(
+            crate::common::BoardV1Endpoint::WhiteboardNodeBatchDelete("board_123".to_string())
+                .to_url(),
+            "/open-apis/board/v1/whiteboards/board_123/nodes/batch_delete"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::TaskSetAncestorTask("task_123".to_string()).to_url(),
+            "/open-apis/task/v2/tasks/task_123/set_ancestor_task"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::ListRelatedTask.to_url(),
+            "/open-apis/task/v2/task_v2/list_related_task"
+        );
+        assert_eq!(
+            crate::common::TaskV2Endpoint::TaskSubscription.to_url(),
+            "/open-apis/task/v2/task_v2/task_subscription"
+        );
     }
 }

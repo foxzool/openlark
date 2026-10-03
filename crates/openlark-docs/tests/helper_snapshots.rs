@@ -1,5 +1,5 @@
-#![cfg(all(feature = "ccm-core", feature = "bitable"))]
 //! Snapshot tests for high-value Docs helper outputs.
+#![cfg(all(feature = "ccm-core", feature = "bitable"))]
 
 use insta::{assert_json_snapshot, assert_snapshot};
 use openlark_docs::{

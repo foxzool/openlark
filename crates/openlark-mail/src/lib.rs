@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![allow(clippy::module_inception)]
 //! # OpenLark 邮件模块
 //!
@@ -26,6 +25,7 @@
 //!
 //! // 创建邮件组
 //! let result = mail_service
+//!     .v1()
 //!     .mailgroup()
 //!     .create()
 //!     .mail_group_id("team@example.com")
@@ -55,6 +55,9 @@ pub mod prelude;
 /// 邮件服务统一入口。
 pub use service::MailService;
 
+/// 邮件服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type MailClient = MailService;
+
 /// 邮件模块版本信息
 /// 当前 crate 版本号。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -66,6 +69,6 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 }

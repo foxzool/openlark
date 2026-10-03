@@ -2,16 +2,16 @@
 //!
 //! 更新指定客服的工作日程信息。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/patch
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/patch>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::{extract_response_data, serialize_params};
+use crate::common::api_utils::serialize_params;
 
 /// 更新客服工作日程请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -32,11 +32,13 @@ pub struct PatchAgentScheduleBody {
 
 impl PatchAgentScheduleBody {
     /// 验证请求参数
-    pub fn validate(&self) -> Result<(), String> {
-        if let (Some(start_time), Some(end_time)) = (&self.start_time, &self.end_time) {
-            if start_time >= end_time {
-                return Err("start_time must be less than end_time".to_string());
-            }
+    pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        if let (Some(start_time), Some(end_time)) = (&self.start_time, &self.end_time)
+            && start_time >= end_time
+        {
+            return Err(openlark_core::CoreError::validation_msg(
+                "start_time must be less than end_time",
+            ));
         }
         Ok(())
     }
@@ -100,15 +102,13 @@ impl PatchAgentScheduleRequest {
         body: PatchAgentScheduleBody,
         option: RequestOption,
     ) -> SDKResult<PatchAgentScheduleResponse> {
-        body.validate()
-            .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+        body.validate()?;
 
         let req: ApiRequest<PatchAgentScheduleResponse> =
             ApiRequest::patch(HelpdeskApiV1::AgentSchedulePatch(self.agent_id.clone()).to_url())
                 .body(serialize_params(&body, "更新客服工作日程")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "更新客服工作日程")
+        Transport::request_typed(req, &self.config, Some(option), "更新客服工作日程").await
     }
 }
 
@@ -204,15 +204,13 @@ pub async fn patch_agent_schedule_with_options(
     body: PatchAgentScheduleBody,
     option: RequestOption,
 ) -> SDKResult<PatchAgentScheduleResponse> {
-    body.validate()
-        .map_err(|reason| openlark_core::error::validation_error("请求参数非法", reason))?;
+    body.validate()?;
 
     let req: ApiRequest<PatchAgentScheduleResponse> =
         ApiRequest::patch(HelpdeskApiV1::AgentSchedulePatch(agent_id).to_url())
             .body(serialize_params(&body, "更新客服工作日程")?);
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "更新客服工作日程")
+    Transport::request_typed(req, config, Some(option), "更新客服工作日程").await
 }
 
 #[cfg(test)]
@@ -262,5 +260,53 @@ mod tests {
 
         assert_eq!(builder.agent_id, "agent_123");
         assert!(builder.work_date.is_none());
+    }
+
+    /// 端到端：PATCH .../agents/{agent_id}/schedules → 强类型 PatchAgentScheduleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_patch_agent_schedule_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/open-apis/helpdesk/v1/agents/ag_001/schedules"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "agent_id": "ag_001", "work_date": "2024-01-16" } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let body = PatchAgentScheduleBody {
+            work_date: Some("2024-01-16".to_string()),
+            start_time: Some("09:00:00".to_string()),
+            end_time: Some("18:00:00".to_string()),
+            day_of_week: Some(2),
+        };
+        let resp = PatchAgentScheduleRequest::new(config, "ag_001".to_string())
+            .execute(body)
+            .await
+            .expect("更新客服工作日程应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agents/ag_001/schedules"
+        );
     }
 }

@@ -8,6 +8,16 @@ pub mod builders;
 pub mod chain;
 /// 文档服务通用请求构建器模块。
 pub mod request_builder;
+#[cfg(all(
+    test,
+    any(
+        feature = "baike",
+        feature = "lingo",
+        feature = "ccm-core",
+        feature = "minutes"
+    )
+))]
+pub(crate) mod test_utils;
 
 /// 重新导出常用 API 端点枚举。
 pub use api_endpoints::{BaseApiV2, BitableApiV1, MinutesApiV1, SheetsApiV3};

@@ -1,6 +1,6 @@
 //! Bitable 删除协作者（自定义角色）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-role-member/delete>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -83,8 +83,7 @@ impl DeleteRoleMemberRequest {
             self.member_id.clone(),
         );
 
-        let mut api_request: ApiRequest<DeleteRoleMemberResponse> =
-            ApiRequest::delete(&api_endpoint.to_url());
+        let mut api_request: ApiRequest<DeleteRoleMemberResponse> = api_endpoint.to_request();
 
         if let Some(member_id_type) = self.member_id_type {
             let member_id_type = match member_id_type {
@@ -98,10 +97,13 @@ impl DeleteRoleMemberRequest {
             api_request = api_request.query("member_id_type", member_id_type);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "Bitable 删除协作者（自定义角色）",
+        )
+        .await
     }
 }
 

@@ -2,4 +2,4 @@
 //!
 //! 这个模块重新导出了使用应用 API 时最常需要的类型。
 
-pub use openlark_core::{config::Config, SDKResult};
+pub use openlark_core::{SDKResult, config::Config};

@@ -1,0 +1,17 @@
+[package]
+name = "openlark-capability-unique"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+description = "Internal generation-time uniqueness checks for openlark-client capability catalog (not published)"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+trybuild = "1.0"
+# 用于 compile-fail 测试“禁用 feature 时 Client 字段不存在”（Codex review P2）
+openlark-client = { path = "../openlark-client", default-features = false }

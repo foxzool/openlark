@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     println!("Signed message sent successfully!");
     println!("Response code: {}", response.code);
     println!("Response message: {}", response.msg);
-    println!("Secret used: {}", secret);
+    println!("Secret used: {secret}");
 
     Ok(())
 }
@@ -34,5 +34,7 @@ async fn main() -> Result<()> {
 #[cfg(not(feature = "signature"))]
 fn main() {
     println!("This example requires the 'signature' feature to be enabled.");
-    println!("Run with: cargo run --example webhook_with_signature -p openlark-webhook --features signature");
+    println!(
+        "Run with: cargo run --example webhook_with_signature -p openlark-webhook --features signature"
+    );
 }

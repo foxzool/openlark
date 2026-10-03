@@ -53,8 +53,6 @@ api_check_output.txt
 flycheck0/
 
 # Temporary development files
-/tmp/
-/temp/
 
 # POC and experimental files
 *_poc.toml
@@ -108,7 +106,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-*~
 
 # ============================================================================
 # Claude Code Assistant and AI Analysis
@@ -118,6 +115,7 @@ Thumbs.db
 .sisyphus/
 
 # AI assistant work files and memories
+.omo/
 .omx/
 .claude/memories/
 .claude/plan/
@@ -148,10 +146,8 @@ API_VALIDATION_REPORT*.md
 # Temporary files
 *.tmp
 *.temp
-/temp/
-/tmp/
- /.playwright-browsers/
- /.claude/
+/.playwright-browsers/
+/.claude/
 
 # OpenLark Meeting crate - temporary reports
 crates/openlark-meeting/*_REPORT.md
@@ -162,3 +158,21 @@ crates/openlark-meeting/report.md
 
 # Git worktrees (isolated development workspaces)
 .worktrees/
+
+# ============================================================================
+# Local AI/tool state and stray build metadata (any depth)
+# ============================================================================
+
+# Serena language-server tool state (local cache, multi-MB pickle)
+.serena/
+
+# Claude Code work dirs at any level (covers sub-crates)
+.claude/
+
+# Stray rustc metadata / dep files emitted outside target/
+*.rmeta
+*.d
+
+# Local npm deps for agent/doc tooling (not part of Rust workspace)
+/node_modules/
+/package-lock.json

@@ -1,13 +1,14 @@
 //! 获取自定义分组任务列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section-tasks/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section-tasks/list>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::task::models::TaskItem;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -50,6 +51,7 @@ pub struct GetSectionTasksRequest {
 }
 
 impl GetSectionTasksRequest {
+    /// 创建新的实例。
     pub fn new(config: Arc<Config>, section_guid: impl Into<String>) -> Self {
         Self {
             config,
@@ -116,9 +118,13 @@ impl GetSectionTasksRequest {
             request = request.query("sort", sort.to_string());
         }
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取自定义分组任务列表")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取自定义分组任务列表",
+        )
+        .await
     }
 }
 
@@ -131,7 +137,8 @@ impl ApiResponseTrait for ListSectionTasksResponse {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    
+    use super::{GetSectionTasksRequest, TaskApiV2};
+    use std::sync::Arc;
 
     #[test]
     fn test_get_section_tasks_request() {

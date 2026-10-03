@@ -2,6 +2,7 @@
 name = "openlark-security"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -36,14 +37,9 @@ token = ["auth"]
 # 合规审计
 compliance = ["auth"]
 
-# === API版本支持 ===
-v1 = ["core"]
-v2 = ["v1"]
-v3 = ["v2"]
-
 # === 功能组合 ===
 # 完整安全功能
-full = ["auth", "acs", "audit", "token", "compliance", "v3"]
+full = ["auth", "acs", "audit", "token", "compliance"]
 
 # 向后兼容别名
 security = ["full"]
@@ -51,27 +47,10 @@ security = ["full"]
 [dependencies]
 # 核心依赖
 openlark-core = { workspace = true }
-openlark-auth = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
-async-trait = { workspace = true }
-anyhow = { workspace = true }
-thiserror = { workspace = true }
-
-# 工具依赖
-uuid = { workspace = true }
-url = { workspace = true }
-urlencoding = { workspace = true }
-hmac = { workspace = true }
-sha2 = { workspace = true }
-base64 = { workspace = true }
-rand = { workspace = true }
-serde_repr = { workspace = true }
-log = { workspace = true }
-tracing = { workspace = true }
 
 
 [dev-dependencies]

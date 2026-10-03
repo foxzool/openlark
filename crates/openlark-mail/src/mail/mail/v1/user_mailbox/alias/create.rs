@@ -1,11 +1,11 @@
 //! 创建用户邮箱别名
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -55,10 +55,7 @@ impl CreateMailboxAliasRequest {
         );
         let req: ApiRequest<CreateMailboxAliasResponse> = ApiRequest::post(&path);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        resp.data.ok_or_else(|| {
-            openlark_core::error::validation_error("创建用户邮箱别名", "响应数据为空")
-        })
+        Transport::request_typed(req, &self.config, Some(option), "创建用户邮箱别名").await
     }
 }
 

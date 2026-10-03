@@ -2,13 +2,14 @@
 //!
 //! 发送初始化请求，以获取上传事务 ID 和分片策略，为上传分片做准备。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_prepare
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/upload/multipart-upload-file-/upload_prepare>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -116,11 +117,11 @@ impl UploadPrepareRequest {
         }
 
         let api_endpoint = DriveApi::UploadPrepare;
-        let request = ApiRequest::<UploadPrepareResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<UploadPrepareResponse>()
             .body(serialize_params(&self, "分片上传文件-预上传")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "分片上传文件-预上传")
+        Transport::request_typed(request, &self.config, Some(option), "分片上传文件-预上传").await
     }
 }
 

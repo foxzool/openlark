@@ -1,13 +1,14 @@
 //! 更新草稿
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/draft/update
+//! docPath: <https://open.feishu.cn/document/lingo-v1/draft/update>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -86,18 +87,15 @@ impl UpdateDraftRequest {
             openlark_core::error::serialization_error("序列化更新草稿请求体失败", Some(e))
         })?;
 
-        let mut api_request: ApiRequest<UpdateDraftResp> =
-            ApiRequest::put(&LingoApiV1::DraftUpdate(self.draft_id).to_url()).body(body);
+        let mut api_request: ApiRequest<UpdateDraftResp> = LingoApiV1::DraftUpdate(self.draft_id)
+            .to_request()
+            .body(body);
         if let Some(user_id_type) = &self.user_id_type {
             api_request = api_request.query("user_id_type", user_id_type.as_str());
         }
 
         // ===== 发送请求 =====
-        let response: Response<UpdateDraftResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "更新草稿").await
     }
 }
 

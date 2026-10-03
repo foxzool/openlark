@@ -1,13 +1,14 @@
 //! 创建字段编组
 //!
-//! docPath: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-field_group/create
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/bitable-v1/app-table-field_group/create>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -120,12 +121,9 @@ impl CreateFieldGroupRequest {
             field_groups: self.field_groups,
         };
         let api_request: ApiRequest<CreateFieldGroupResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "创建字段编组").await
     }
 }
 

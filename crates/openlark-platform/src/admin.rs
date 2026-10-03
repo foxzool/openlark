@@ -26,18 +26,16 @@ impl AdminService {
     }
 
     /// V1 版本 API
-    #[cfg(feature = "v1")]
-    pub fn v1(&self) -> crate::admin::admin::v1::AdminV1 {
-        crate::admin::admin::v1::AdminV1::new(self.config.clone())
+    pub fn v1(&self) -> crate::admin::v1::AdminV1 {
+        crate::admin::v1::AdminV1::new(self.config.clone())
     }
 }
 
-#[cfg(feature = "v1")]
-pub mod admin;
+pub mod v1;
 
 #[cfg(test)]
 mod tests {
-    use crate::{admin::AdminService, PlatformConfig};
+    use crate::{PlatformConfig, admin::AdminService};
 
     #[test]
     fn test_service_creation() {

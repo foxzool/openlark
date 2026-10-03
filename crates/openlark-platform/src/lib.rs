@@ -10,11 +10,11 @@
 //!
 //! ## 模块组织
 //!
-//! 本模块按业务域（bizTag）组织：
-//! - `app_engine` - 应用引擎相关 API (37 APIs)
-//! - `directory` - 目录服务相关 API (21 APIs)
-//! - `admin` - 系统管理相关 API (14 APIs)
-//! - `spark` - 妙搭平台相关 API (1 API)
+//! 本模块按业务域（bizTag）组织，分两类入口（ADR 0001）：
+//! - **Service accessor 入口**（含路径参数绑定层，经 `PlatformService::xxx()`）：
+//!   `app_engine`（37 APIs）、`directory`（21 APIs）、`admin`（14 APIs）、`spark`（1 API）
+//! - **flat-by-design 直路径**（叶子 `new(Config)` 无路径参数，无 Service 壳，同 analytics 裁决）：
+//!   `mdm`、`tenant`、`trust_party`
 //!
 //! ## 使用示例
 //!
@@ -29,14 +29,12 @@
 //!     .app_secret("app_secret")
 //!     .build();
 //!
-//! let platform_service = PlatformService::new(config)?;
+//! let platform_service = PlatformService::new(config);
 //!
 //! // 具体功能请参考各个子模块的文档
 //! # Ok(())
 //! # }
 //! ```
-
-#![allow(clippy::module_inception)]
 
 mod service;
 
@@ -53,6 +51,7 @@ pub mod directory;
 #[cfg(feature = "admin")]
 pub mod admin;
 
+// flat-by-design 域（无 Service 壳，直路径访问，ADR 0001）
 #[cfg(feature = "mdm")]
 pub mod mdm;
 
@@ -71,7 +70,8 @@ pub mod prelude;
 // 重新导出核心服务
 pub use service::PlatformService;
 
-// 配置类型
+/// 平台服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type PlatformClient = PlatformService;
 pub use openlark_core::config::Config;
 
 /// 平台服务模块版本信息
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 
     #[test]
@@ -112,14 +112,14 @@ mod service_tests {
     #[test]
     fn test_platform_service_creation() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         assert!(service.config().app_id() == "test_app");
     }
 
     #[test]
     fn test_platform_service_clone() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let cloned = service.clone();
         assert!(cloned.config().app_id() == "test_app");
     }
@@ -137,7 +137,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_app_engine() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _app_engine = service.app_engine();
     }
 
@@ -145,7 +145,7 @@ mod service_tests {
     #[test]
     fn test_platform_service_directory() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _directory = service.directory();
     }
 
@@ -153,15 +153,15 @@ mod service_tests {
     #[test]
     fn test_platform_service_admin() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _admin = service.admin();
     }
 
-    #[cfg(all(feature = "spark", feature = "v1"))]
+    #[cfg(feature = "spark")]
     #[test]
     fn test_platform_service_spark() {
         let config = create_test_config();
-        let service = PlatformService::new(config).unwrap();
+        let service = PlatformService::new(config);
         let _request = service.spark().v1().directory().user().id_convert();
     }
 }

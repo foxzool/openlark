@@ -1,15 +1,14 @@
 //! 获取会话历史消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/list
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, error, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, error, http::Transport, validate_required,
 };
 
 use crate::{
-    common::api_utils::extract_response_data,
     endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::{ContainerIdType, SortType},
+    im::v1::message::models::{ContainerIdType, SortType},
 };
 
 /// 获取会话历史消息请求
@@ -85,7 +84,7 @@ impl ListMessagesRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -124,8 +123,7 @@ impl ListMessagesRequest {
         if let Some(page_token) = self.page_token {
             req = req.query("page_token", page_token);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取会话历史消息")
+        Transport::request_typed(req, &self.config, Some(option), "获取会话历史消息").await
     }
 }
 

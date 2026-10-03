@@ -135,7 +135,7 @@ mod tests {
         assert!(user_agent.ends_with(VERSION));
 
         // Test the full format
-        let expected_format = format!("open-lark/{}", VERSION);
+        let expected_format = format!("open-lark/{VERSION}");
         assert_eq!(user_agent, expected_format);
     }
 }

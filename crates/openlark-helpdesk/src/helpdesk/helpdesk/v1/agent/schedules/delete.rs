@@ -2,16 +2,15 @@
 //!
 //! 删除指定客服的工作日程。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/helpdesk-v1/agent-function/agent-schedules/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
-use crate::common::api_utils::extract_response_data;
 
 /// 删除客服工作日程响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,8 +56,7 @@ impl DeleteAgentScheduleRequest {
         let req: ApiRequest<DeleteAgentScheduleResponse> =
             ApiRequest::delete(HelpdeskApiV1::AgentScheduleDelete(self.agent_id.clone()).to_url());
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除客服工作日程")
+        Transport::request_typed(req, &self.config, Some(option), "删除客服工作日程").await
     }
 }
 
@@ -108,8 +106,7 @@ pub async fn delete_agent_schedule_with_options(
     let req: ApiRequest<DeleteAgentScheduleResponse> =
         ApiRequest::delete(HelpdeskApiV1::AgentScheduleDelete(agent_id).to_url());
 
-    let resp = Transport::request(req, config, Some(option)).await?;
-    extract_response_data(resp, "删除客服工作日程")
+    Transport::request_typed(req, config, Some(option), "删除客服工作日程").await
 }
 
 #[cfg(test)]
@@ -127,5 +124,47 @@ mod tests {
             DeleteAgentScheduleRequestBuilder::new(Arc::new(config), "agent_123".to_string());
 
         assert_eq!(builder.agent_id, "agent_123");
+    }
+
+    /// 端到端：DELETE .../agents/{agent_id}/schedules → 强类型 DeleteAgentScheduleResponse 解析（双层 data 信封）。
+    #[tokio::test]
+    async fn test_delete_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/helpdesk/v1/agents/ag_001/schedules"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "data": { "success": true } }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Arc::new(
+            Config::builder()
+                .app_id("ci_app_id")
+                .app_secret("ci_app_secret")
+                .base_url(server.uri())
+                .enable_token_cache(false)
+                .build(),
+        );
+
+        let resp = DeleteAgentScheduleRequest::new(config, "ag_001".to_string())
+            .execute()
+            .await
+            .expect("删除客服工作日程应成功");
+        assert!(resp.data.is_some());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/helpdesk/v1/agents/ag_001/schedules"
+        );
     }
 }

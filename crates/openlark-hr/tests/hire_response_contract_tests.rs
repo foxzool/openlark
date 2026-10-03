@@ -1,4 +1,5 @@
 //! hire response contract tests 集成测试。
+#![cfg(feature = "hire")]
 
 use openlark_hr::hire::hire::{
     v1::{
@@ -12,10 +13,10 @@ use openlark_hr::hire::hire::{
         interview_round_type, interview_task, interviewer, job, job_function, job_process,
         job_publish_record, job_requirement, job_requirement_schema, job_schema, job_type,
         location, note, offer, offer_application_form, offer_approval_template, offer_custom_field,
-        offer_schema, portal_apply_schema, questionnaire, r#test as hire_test, referral,
-        referral_account, referral_website, registration_schema, resume_source, role, subject,
-        talent, talent_blocklist, talent_object, talent_operation_log, talent_pool, todo,
-        tripartite_agreement, user_role, website,
+        offer_schema, portal_apply_schema, questionnaire, referral, referral_account,
+        referral_website, registration_schema, resume_source, role, subject, talent,
+        talent_blocklist, talent_object, talent_operation_log, talent_pool, r#test as hire_test,
+        todo, tripartite_agreement, user_role, website,
     },
     v2::interview_record as interview_record_v2,
 };

@@ -2,15 +2,17 @@
 //!
 //! 提供工单自定义字段相关的 API。
 
-pub mod list;
 /// 创建接口。
 pub mod create;
-/// 获取接口。
-pub mod get;
-/// 更新接口。
-pub mod patch;
 /// 删除接口。
 pub mod delete;
+/// 获取接口。
+pub mod get;
+pub mod list;
+/// 工单自定义字段共享模型。
+pub mod models;
+/// 更新接口。
+pub mod patch;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -53,29 +55,9 @@ impl TicketCustomizedField {
     }
 }
 
-pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
 pub use create::{CreateTicketCustomizedFieldRequest, CreateTicketCustomizedFieldRequestBuilder};
-pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
-pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};
 pub use delete::{DeleteTicketCustomizedFieldRequest, DeleteTicketCustomizedFieldRequestBuilder};
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}
+pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
+pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
+pub use models::{TicketCustomizedFieldDropdownOption, TicketCustomizedFieldDropdownOptions};
+pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};

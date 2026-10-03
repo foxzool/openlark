@@ -1,11 +1,12 @@
 //! 批量获取部门信息
 //!
-//! docPath: https://open.feishu.cn/document/contact-v3/department/batch
+//! docPath: <https://open.feishu.cn/document/contact-v3/department/batch>
 
-use openlark_core::{api::ApiRequest, config::Config, error, http::Transport, SDKResult};
+use openlark_core::{
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required_list,
+};
 
 use crate::{
-    common::api_utils::extract_response_data,
     contact::contact::v3::{
         department::models::BatchGetDepartmentsResponse,
         user::models::{DepartmentIdType, UserIdType},
@@ -70,7 +71,7 @@ impl BatchGetDepartmentsRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/contact-v3/department/batch
+    /// docPath: <https://open.feishu.cn/document/contact-v3/department/batch>
     pub async fn execute(self) -> SDKResult<BatchGetDepartmentsResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -83,12 +84,7 @@ impl BatchGetDepartmentsRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetDepartmentsResponse> {
         // === 必填字段验证 ===
-        if self.department_ids.is_empty() {
-            return Err(error::validation_error(
-                "department_ids 不能为空".to_string(),
-                "请至少传入 1 个 department_ids（最多 50 个）".to_string(),
-            ));
-        }
+        validate_required_list!(self.department_ids, 50, "department_ids 不能为空");
 
         // url: GET:/open-apis/contact/v3/departments/batch
         let mut req: ApiRequest<BatchGetDepartmentsResponse> =
@@ -104,8 +100,7 @@ impl BatchGetDepartmentsRequest {
             req = req.query("user_id_type", user_id_type.as_str());
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "批量获取部门信息")
+        Transport::request_typed(req, &self.config, Some(option), "批量获取部门信息").await
     }
 }
 

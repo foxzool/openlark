@@ -3,15 +3,15 @@
 /// 查询指定电子表格中的所有工作表信息。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/sheets-v3/spreadsheet-sheet/query
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
 use super::super::models::*;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 impl ApiResponseTrait for QuerySheetResponse {
     fn data_format() -> ResponseFormat {
@@ -40,9 +40,8 @@ pub async fn query_sheets_with_options(
     let api_endpoint = SheetsApiV3::QuerySheets(spreadsheet_token.to_string());
 
     // 创建API请求 - 使用类型安全的URL生成和标准化的参数序列化
-    let api_request: ApiRequest<QuerySheetResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<QuerySheetResponse> = api_endpoint.to_request();
 
     // 发送请求并提取响应数据
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "查询工作表")
+    Transport::request_typed(api_request, config, Some(option), "查询工作表").await
 }

@@ -26,26 +26,23 @@ jobs:
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check format
         run: cargo fmt --all -- --check
 
       - name: Run clippy
-        run: cargo clippy --workspace --all-targets --all-features
+        run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings -A missing_docs
+
+      - name: Run clippy without default features
+        run: cargo clippy --workspace --all-targets --no-default-features -- -Dwarnings
 
       - name: Run tests
-        run: cargo test --lib --all-features
+        run: cargo test --workspace --all-features
 
       - name: Validate public examples
         run: bash scripts/check-public-examples.sh
 
       - name: Run cargo doc
-        run: cargo doc --no-deps --all-features --lib
+        run: cargo doc --workspace --no-deps --all-features --lib
         env:
           RUSTDOCFLAGS: "-D warnings"
 
@@ -68,6 +65,12 @@ jobs:
 
       - name: Generate typed coverage summary
         run: python3 tools/validate_apis.py --all-crates
+
+      - name: Enforce typed coverage release gate
+        run: python3 tools/check_typed_coverage_release.py
+
+      - name: Validate typed API endpoint contracts
+        run: python3 tools/validate_api_contracts.py --all-crates --strict endpoint
 
       - name: Generate crate quality status summary
         run: python3 tools/release_quality_status.py --output release_quality_status.md
@@ -129,12 +132,6 @@ jobs:
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: 23.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract version from tag
         id: extract_version
         run: |
@@ -176,34 +173,6 @@ jobs:
           echo "✅ CRATES_IO_TOKEN is configured"
 
       - name: Publish workspace crates in order
-        run: |
-          # Layer 1: Protocol
-          echo "📦 Publishing openlark-protocol..."
-          cargo publish -p openlark-protocol || echo "⚠️ openlark-protocol may already exist"
-          sleep 30
-          
-          # Layer 2: Core
-          echo "📦 Publishing openlark-core..."
-          cargo publish -p openlark-core || echo "⚠️ openlark-core may already exist"
-          sleep 30
-          
-          # Layer 3: Business crates (with longer sleep to avoid rate limits)
-          for crate in openlark-auth openlark-security openlark-communication openlark-cardkit openlark-webhook openlark-docs openlark-hr openlark-ai openlark-application openlark-platform openlark-meeting openlark-helpdesk openlark-mail openlark-workflow openlark-analytics openlark-user; do
-            echo "📦 Publishing ${crate}..."
-            cargo publish -p "${crate}" || echo "⚠️ ${crate} may already exist or failed"
-            echo "⏳ Waiting 60s to avoid rate limits..."
-            sleep 60
-          done
-          
-          # Layer 4: Client
-          echo "📦 Publishing openlark-client..."
-          cargo publish -p openlark-client || echo "⚠️ openlark-client may already exist"
-          sleep 30
-          
-          # Layer 5: Root
-          echo "📦 Publishing openlark..."
-          cargo publish -p openlark || echo "⚠️ openlark may already exist"
-          
-          echo "✅ Publish process completed"
+        run: bash scripts/publish-workspace.sh
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}

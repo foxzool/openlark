@@ -1,16 +1,14 @@
 //! 批量移除用户组成员
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    common::models::EmptyData,
-    endpoints::CONTACT_V3_GROUP,
+    common::api_utils::serialize_params, common::models::EmptyData, endpoints::CONTACT_V3_GROUP,
 };
 
 /// 批量移除成员信息（请求体 members[] 元素）
@@ -102,7 +100,7 @@ impl BatchRemoveGroupMembersRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/group-member/batch_remove>
     pub async fn execute(self, body: BatchRemoveGroupMembersBody) -> SDKResult<EmptyData> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -132,9 +130,7 @@ impl BatchRemoveGroupMembersRequest {
         ))
         .body(serialize_params(&body, "批量移除用户组成员")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "批量移除用户组成员")
+        Transport::request_typed(req, &self.config, Some(option), "批量移除用户组成员").await
     }
 }
 

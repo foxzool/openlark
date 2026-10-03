@@ -2,17 +2,18 @@
 //!
 //! 删除指定源文档的指定版本。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/delete>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 删除文档版本请求
 #[derive(Debug, Clone)]
@@ -64,37 +65,27 @@ impl DeleteFileVersionRequest {
     ) -> SDKResult<DeleteFileVersionResponse> {
         // ========== 参数校验 ==========
 
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.version_id.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "version_id",
-                "version_id 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.version_id, "version_id 不能为空");
         match self.obj_type.as_str() {
             "docx" | "sheet" => {}
             _ => {
                 return Err(openlark_core::error::validation_error(
                     "obj_type",
                     "obj_type 仅支持 docx/sheet",
-                ))
+                ));
             }
         }
 
         // ========== 构建 API 请求 ==========
         let api_endpoint = DriveApi::DeleteFileVersion(self.file_token, self.version_id);
-        let request = ApiRequest::<DeleteFileVersionResponse>::delete(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<DeleteFileVersionResponse>()
             .query("obj_type", self.obj_type)
             .query_opt("user_id_type", self.user_id_type);
 
         // ========== 发送请求并返回响应 ==========
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "删除")
+        Transport::request_typed(request, &self.config, Some(option), "删除").await
     }
 }
 

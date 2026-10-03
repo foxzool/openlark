@@ -1,12 +1,12 @@
 //! 下载图片
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/image/get
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/get>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::IM_V1_IMAGES};
+use crate::endpoints::IM_V1_IMAGES;
 
 /// 下载图片请求
 ///
@@ -46,7 +46,7 @@ impl GetImageRequest {
 
     /// 执行请求（返回二进制内容）
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/image/get
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/image/get>
     pub async fn execute(self) -> SDKResult<Vec<u8>> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -64,8 +64,7 @@ impl GetImageRequest {
         let req: ApiRequest<Vec<u8>> =
             ApiRequest::get(format!("{}/{}", IM_V1_IMAGES, self.image_key));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "下载图片")
+        Transport::request_typed(req, &self.config, Some(option), "下载图片").await
     }
 }
 

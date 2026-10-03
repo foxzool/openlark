@@ -3,17 +3,17 @@
 //! 获取用户云空间中指定文件夹下的文件清单。清单类型包括文件、各种在线文档（文档、电子表格、多维表格、思维笔记）、文件夹和快捷方式。
 //! 该接口支持分页，但是不会递归的获取子文件夹的清单。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 获取文件夹中的文件清单请求
 #[derive(Debug)]
@@ -174,13 +174,13 @@ impl ListFilesRequest {
             }
         }
 
-        if let Some(page_size) = self.page_size {
-            if !(1..=200).contains(&page_size) {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~200 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && !(1..=200).contains(&page_size)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~200 之间",
+            ));
         }
 
         if let Some(order_by) = &self.order_by {
@@ -222,7 +222,9 @@ impl ListFilesRequest {
         // ========== 构建 API 请求 ==========
 
         let api_endpoint = DriveApi::ListFiles;
-        let mut request = ApiRequest::<ListFilesResponse>::get(&api_endpoint.to_url());
+
+        // #440: method 来自 catalog
+        let mut request: ApiRequest<ListFilesResponse> = api_endpoint.to_request();
 
         if let Some(token) = &self.folder_token {
             request = request.query("folder_token", token);
@@ -244,8 +246,13 @@ impl ListFilesRequest {
         }
 
         // ========== 发送请求并返回响应 ==========
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取文件夹中的文件清单")
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取文件夹中的文件清单",
+        )
+        .await
     }
 }
 

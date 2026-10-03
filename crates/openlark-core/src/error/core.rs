@@ -13,9 +13,7 @@ use super::{
 use serde::Serialize;
 use thiserror::Error;
 
-// ============================================================================
 // 重试与恢复策略
-// ============================================================================
 
 /// 重试策略（供 CoreError 使用）
 #[derive(Debug, Clone)]
@@ -159,8 +157,8 @@ pub struct ErrorBuilder {
     message: Option<String>,
     /// 错误码
     code: Option<ErrorCode>,
-    /// HTTP 状态码
-    status: Option<u16>,
+    /// 原始错误码（飞书业务码或合成 HTTP status；双域共槽）
+    raw_code: Option<i32>,
     /// API 端点
     endpoint: Option<String>,
     /// 验证字段名
@@ -194,7 +192,7 @@ impl ErrorBuilder {
             kind,
             message: None,
             code: None,
-            status: None,
+            raw_code: None,
             endpoint: None,
             field: None,
             source: None,
@@ -222,9 +220,9 @@ impl ErrorBuilder {
         self
     }
 
-    /// 设置 HTTP 状态码
-    pub fn status(mut self, status: u16) -> Self {
-        self.status = Some(status);
+    /// 设置原始错误码（飞书业务码或 HTTP status 合成码）
+    pub fn raw_code(mut self, raw_code: i32) -> Self {
+        self.raw_code = Some(raw_code);
         self
     }
 
@@ -336,18 +334,16 @@ impl ErrorBuilder {
                 ctx: Box::new(self.ctx),
             },
             BuilderKind::Api => {
-                let status = self.status.unwrap_or(500);
+                let raw_code = self.raw_code.unwrap_or(500);
                 CoreError::Api(Box::new(ApiError {
-                    status,
+                    raw_code,
                     endpoint: self
                         .endpoint
                         .unwrap_or_else(|| "unknown".to_string())
                         .into(),
                     message: msg,
                     source: self.source,
-                    code: self
-                        .code
-                        .unwrap_or_else(|| ErrorCode::from_http_status(status)),
+                    code: self.code.unwrap_or_else(|| ErrorCode::from_code(raw_code)),
                     ctx: Box::new(self.ctx),
                 }))
             }
@@ -512,6 +508,17 @@ pub enum CoreError {
         ctx: Box<ErrorContext>,
     },
 
+    /// 响应体大小超过限制
+    #[error("响应体过大: {actual} 字节超过限制 {limit} 字节")]
+    ResponseTooLarge {
+        /// 配置的大小限制
+        limit: u64,
+        /// 实际大小（已知时），否则为 0
+        actual: u64,
+        /// 错误上下文
+        ctx: Box<ErrorContext>,
+    },
+
     /// 内部错误
     #[error("内部错误 {code:?}: {message}")]
     Internal {
@@ -549,8 +556,8 @@ impl std::fmt::Display for NetworkError {
 /// API 错误
 #[derive(Debug)]
 pub struct ApiError {
-    /// HTTP 状态码
-    pub status: u16,
+    /// 原始错误码（飞书业务码或 HTTP 非 2xx 合成 status；与 `RawResponse.code` 同为双域共槽）
+    pub raw_code: i32,
     /// API 端点
     pub endpoint: Cow<'static, str>,
     /// 错误消息
@@ -565,7 +572,7 @@ pub struct ApiError {
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}: {}", self.status, self.endpoint, self.message)
+        write!(f, "{} {}: {}", self.raw_code, self.endpoint, self.message)
     }
 }
 
@@ -584,7 +591,7 @@ impl Clone for CoreError {
                 ctx: ctx.clone(),
             },
             Self::Api(api) => Self::Api(Box::new(ApiError {
-                status: api.status,
+                raw_code: api.raw_code,
                 endpoint: api.endpoint.clone(),
                 message: api.message.clone(),
                 source: None,
@@ -653,6 +660,11 @@ impl Clone for CoreError {
                 code: *code,
                 ctx: ctx.clone(),
             },
+            Self::ResponseTooLarge { limit, actual, ctx } => Self::ResponseTooLarge {
+                limit: *limit,
+                actual: *actual,
+                ctx: ctx.clone(),
+            },
             Self::Internal {
                 code, message, ctx, ..
             } => Self::Internal {
@@ -708,17 +720,12 @@ impl CoreError {
 
     /// 简单 API 错误（便于兼容旧 CoreError::api_error）
     pub fn api_error(
-        status: i32,
+        raw_code: i32,
         endpoint: impl Into<String>,
         message: impl Into<String>,
         request_id: Option<impl Into<String>>,
     ) -> Self {
-        api_error(
-            status as u16,
-            endpoint,
-            message,
-            request_id.map(|id| id.into()),
-        )
+        api_error(raw_code, endpoint, message, request_id.map(|id| id.into()))
     }
 
     /// 仅带 message 的验证错误（默认字段 general）
@@ -758,7 +765,7 @@ impl CoreError {
     /// API 数据错误
     pub fn api_data_error(message: impl Into<String>) -> Self {
         Self::Api(Box::new(ApiError {
-            status: 500,
+            raw_code: 500,
             endpoint: "data_error".into(),
             message: format!("no data: {}", message.into()),
             source: None,
@@ -780,6 +787,7 @@ impl CoreError {
             Self::Timeout { .. } => ErrorCode::NetworkTimeout,
             Self::RateLimit { code, .. } => *code,
             Self::ServiceUnavailable { code, .. } => *code,
+            Self::ResponseTooLarge { .. } => ErrorCode::ResponseTooLarge,
             Self::Internal { code, .. } => *code,
         }
     }
@@ -790,15 +798,13 @@ impl CoreError {
     }
 
     /// 是否可重试
+    ///
+    /// `Network` 走 policy（可配置 max_retries）；其余与分类共用
+    /// [`ErrorCode::is_retryable`]（#545：Api 不再按 raw_code 数值范围）。
     pub fn is_retryable(&self) -> bool {
         match self {
             Self::Network(net) => net.policy.is_retryable(),
-            Self::Api(api) => matches!(api.status, 429 | 500..=599),
-            Self::Timeout { .. } => self.code().is_retryable(),
-            Self::RateLimit { .. } => self.code().is_retryable(),
-            Self::ServiceUnavailable { .. } => self.code().is_retryable(),
-            Self::Internal { .. } => self.code().is_retryable(),
-            _ => false,
+            _ => self.code().is_retryable(),
         }
     }
 
@@ -808,7 +814,9 @@ impl CoreError {
             Self::Network(net) => net.policy.retry_delay(attempt),
             Self::RateLimit { window, .. } => Some(*window),
             Self::ServiceUnavailable { retry_after, .. } => *retry_after,
-            Self::Api(api) if matches!(api.status, 429 | 500..=599) => {
+            // #545：谓词切 ErrorCode variant；延迟公式保持 `1 << attempt.min(5)`
+            // （不用 suggested_retry_delay，避免 429 固定 60s 破坏等价回归）
+            Self::Api(_) if self.code().is_retryable() => {
                 Some(Duration::from_secs(1 << attempt.min(5)))
             }
             _ => None,
@@ -828,6 +836,7 @@ impl CoreError {
             | Self::Timeout { ctx, .. }
             | Self::RateLimit { ctx, .. }
             | Self::ServiceUnavailable { ctx, .. }
+            | Self::ResponseTooLarge { ctx, .. }
             | Self::Internal { ctx, .. } => ctx,
         }
     }
@@ -937,6 +946,14 @@ impl CoreError {
                     ctx,
                 }
             }
+            Self::ResponseTooLarge {
+                limit,
+                actual,
+                mut ctx,
+            } => {
+                f(ctx.as_mut());
+                Self::ResponseTooLarge { limit, actual, ctx }
+            }
             Self::Internal {
                 code,
                 message,
@@ -1045,19 +1062,28 @@ impl CoreError {
 
     /// API 错误
     pub fn api(
-        status: u16,
+        raw_code: i32,
         endpoint: impl Into<Cow<'static, str>>,
         message: impl Into<String>,
         ctx: ErrorContext,
     ) -> Self {
         Self::Api(Box::new(ApiError {
-            status,
+            raw_code,
             endpoint: endpoint.into(),
             message: message.into(),
             source: None,
-            code: ErrorCode::from_http_status(status),
+            code: ErrorCode::from_code(raw_code),
             ctx: Box::new(ctx),
         }))
+    }
+
+    /// 响应体过大错误
+    pub fn response_too_large(limit: u64, actual: u64) -> Self {
+        Self::ResponseTooLarge {
+            limit,
+            actual,
+            ctx: Box::new(ErrorContext::new()),
+        }
     }
 }
 
@@ -1116,7 +1142,7 @@ impl From<reqwest::Error> for CoreError {
 impl From<serde_json::Error> for CoreError {
     fn from(source: serde_json::Error) -> Self {
         Self::Serialization {
-            message: format!("JSON序列化错误: {}", source),
+            message: format!("JSON序列化错误: {source}"),
             source: Some(Box::new(source)),
             code: ErrorCode::SerializationError,
             ctx: Box::new(ErrorContext::new()),
@@ -1149,6 +1175,7 @@ impl ErrorTrait for CoreError {
             Self::Timeout { .. } => Some("请求超时，请稍后重试"),
             Self::RateLimit { .. } => Some("请求过于频繁，请稍候"),
             Self::ServiceUnavailable { .. } => Some("服务暂不可用，请稍后重试"),
+            Self::ResponseTooLarge { .. } => Some("响应数据过大，请减小请求范围"),
             Self::Internal { message, .. } => Some(message.as_str()),
         }
     }
@@ -1169,6 +1196,7 @@ impl ErrorTrait for CoreError {
             Self::Timeout { .. } => ErrorType::Timeout,
             Self::RateLimit { .. } => ErrorType::RateLimit,
             Self::ServiceUnavailable { .. } => ErrorType::ServiceUnavailable,
+            Self::ResponseTooLarge { .. } => ErrorType::ResponseTooLarge,
             Self::Internal { .. } => ErrorType::Internal,
         }
     }
@@ -1178,9 +1206,7 @@ impl ErrorTrait for CoreError {
     }
 }
 
-// ============================================================================
 // 便利函数（保持向后兼容）
-// ============================================================================
 
 /// 创建网络错误
 pub fn network_error(message: impl Into<String>) -> CoreError {
@@ -1202,18 +1228,21 @@ pub fn authentication_error(message: impl Into<String>) -> CoreError {
 }
 
 /// 创建API错误
+///
+/// `raw_code` 为原始错误码（飞书业务码或 HTTP 合成 status），经
+/// [`ErrorCode::from_code`] 不截断分类。
 pub fn api_error(
-    status: u16,
+    raw_code: i32,
     endpoint: impl Into<String>,
     message: impl Into<String>,
     request_id: Option<String>,
 ) -> CoreError {
     CoreError::Api(Box::new(ApiError {
-        status,
+        raw_code,
         endpoint: endpoint.into().into(),
         message: message.into(),
         source: None,
-        code: ErrorCode::from_http_status(status),
+        code: ErrorCode::from_code(raw_code),
         ctx: {
             let mut ctx = ErrorContext::new();
             if let Some(req_id) = request_id {
@@ -1432,7 +1461,7 @@ mod tests {
     #[test]
     fn builder_creates_api_error_with_context() {
         let err = CoreError::api_builder()
-            .status(404)
+            .raw_code(404)
             .endpoint("/users/1")
             .message("not found")
             .request_id("req-123")
@@ -1477,6 +1506,7 @@ mod tests {
             timeout_error(Duration::from_secs(1), None),
             rate_limit_error(100, Duration::from_secs(60), Some(Duration::from_secs(10))),
             service_unavailable_error("svc", Some(Duration::from_secs(30))),
+            CoreError::response_too_large(1024 * 1024, 5 * 1024 * 1024),
             CoreError::Internal {
                 code: ErrorCode::InternalError,
                 message: "internal".to_string(),
@@ -1543,5 +1573,45 @@ mod tests {
         assert_eq!(err.context().component(), Some("openlark-docs"));
         assert_eq!(err.context().get_context("resource"), Some("查询记录"));
         assert_eq!(err.context().request_id(), Some("req-456"));
+    }
+
+    /// #545：Api 重试判定走 ErrorCode variant；延迟公式保持 `1 << attempt.min(5)`。
+    #[test]
+    fn api_retry_uses_errorcode_variant_with_stable_delay_formula() {
+        // 合成 HTTP 429 / 5xx 族 → 可重试（from_code 映射到五个 variant）
+        for (raw, expected) in [
+            (429, ErrorCode::TooManyRequests),
+            (500, ErrorCode::InternalServerError),
+            (502, ErrorCode::BadGateway),
+            (503, ErrorCode::ServiceUnavailable),
+            (504, ErrorCode::GatewayTimeout),
+        ] {
+            let err = api_error(raw, "/api", "retryable", None::<String>);
+            assert_eq!(err.code(), expected, "raw_code={raw}");
+            assert!(
+                err.is_retryable(),
+                "{expected:?} (raw={raw}) must be retryable via code.is_retryable()"
+            );
+            // 不换成 suggested_retry_delay（429 固定 60s）；保持 1<<attempt
+            assert_eq!(err.retry_delay(0), Some(Duration::from_secs(1)));
+            assert_eq!(err.retry_delay(1), Some(Duration::from_secs(2)));
+            assert_eq!(err.retry_delay(5), Some(Duration::from_secs(32)));
+            assert_eq!(
+                err.retry_delay(6),
+                Some(Duration::from_secs(32)),
+                "attempt.min(5) caps shift"
+            );
+        }
+
+        // 飞书业务码 → 分类正确且不可重试
+        let feishu = api_error(99991663, "/api", "token invalid", None::<String>);
+        assert_eq!(feishu.code(), ErrorCode::TenantAccessTokenInvalid);
+        assert!(!feishu.is_retryable());
+        assert!(feishu.retry_delay(0).is_none());
+
+        // 4xx 客户端错误不可重试
+        let bad = api_error(400, "/api", "bad request", None::<String>);
+        assert!(!bad.is_retryable());
+        assert!(bad.retry_delay(0).is_none());
     }
 }

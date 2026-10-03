@@ -42,12 +42,35 @@ pub const AILY_V1_UPLOAD_FILE: &str = "/open-apis/aily/v1/apps/{app_id}/data_ass
 /// AILY 知识问答 v1
 pub const AILY_V1_KNOWLEDGE_ASK: &str = "/open-apis/aily/v1/apps/{app_id}/knowledges/ask";
 
+/// AILY 应用统计数据 v1
+pub const AILY_V1_APP_STATS: &str = "/open-apis/aily/v1/app_stats";
+
 /// AILY 技能管理 v1
 pub const AILY_V1_SKILLS: &str = "/open-apis/aily/v1/apps/{app_id}/skills";
 /// 端点路径常量。
 pub const AILY_V1_SKILL: &str = "/open-apis/aily/v1/apps/{app_id}/skills/{skill_id}";
 /// 端点路径常量。
 pub const AILY_V1_SKILL_START: &str = "/open-apis/aily/v1/apps/{app_id}/skills/{skill_id}/start";
+
+// ==================== AILY Agent（智能体）v1 ====================
+
+/// AILY 智能体产物 v1
+pub const AILY_V1_AGENT_ARTIFACT: &str =
+    "/open-apis/aily/v1/agents/{agent_id}/artifacts/{agent_artifact_id}";
+/// AILY 智能体附件 v1
+pub const AILY_V1_AGENT_ATTACHMENTS: &str = "/open-apis/aily/v1/agents/{agent_id}/attachments";
+/// AILY 智能体会话 v1
+pub const AILY_V1_AGENT_CHATS: &str = "/open-apis/aily/v1/agents/{agent_id}/chats";
+/// AILY 智能体会话详情 v1
+pub const AILY_V1_AGENT_CHAT: &str = "/open-apis/aily/v1/agents/{agent_id}/chats/{agent_chat_id}";
+/// AILY 智能体可见性检查 v1
+pub const AILY_V1_AGENT_VISIBILITY_CHECK: &str =
+    "/open-apis/aily/v1/agents/{agent_id}/agent_visibility/check";
+/// AILY 智能体会话（Session）列表/创建 v1
+pub const AILY_V1_AGENT_SESSIONS: &str = "/open-apis/aily/v1/agents/{agent_id}/sessions";
+/// AILY 智能体会话（Session）详情 v1
+pub const AILY_V1_AGENT_SESSION: &str =
+    "/open-apis/aily/v1/agents/{agent_id}/sessions/{agent_chat_session_id}";
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -63,5 +86,6 @@ mod tests {
         assert!(AILY_V1_RUN.contains("{run_id}"));
         assert!(AILY_V1_DATA_ASSETS.contains("{app_id}"));
         assert!(AILY_V1_SKILLS.contains("{app_id}"));
+        assert_eq!(AILY_V1_APP_STATS, "/open-apis/aily/v1/app_stats");
     }
 }

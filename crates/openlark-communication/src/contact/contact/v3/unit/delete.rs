@@ -1,15 +1,12 @@
 //! 删除单位
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::{api_utils::extract_response_data, models::EmptyData},
-    endpoints::CONTACT_V3_UNIT,
-};
+use crate::{common::models::EmptyData, endpoints::CONTACT_V3_UNIT};
 
 /// 删除单位请求
 ///
@@ -36,7 +33,7 @@ impl DeleteUnitRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/contact-v3/unit/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/contact-v3/unit/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -53,27 +50,44 @@ impl DeleteUnitRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", CONTACT_V3_UNIT, self.unit_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "删除单位")
+        Transport::request_typed(req, &self.config, Some(option), "删除单位").await
     }
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+    /// 端到端：DELETE /open-apis/contact/v3/unit/test001
+    #[tokio::test]
+    async fn test_delete_unit_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/open-apis/contact/v3/unit/test001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": {}
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        DeleteUnitRequest::new(config)
+            .unit_id("test001".to_string())
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
     }
 }

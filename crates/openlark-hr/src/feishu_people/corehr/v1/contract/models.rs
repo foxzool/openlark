@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 合同基础数据结构
-// ============================================================================
 
 /// 合同信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -95,9 +93,7 @@ pub struct CustomField {
     pub field_value: serde_json::Value,
 }
 
-// ============================================================================
 // 创建合同相关模型
-// ============================================================================
 
 /// 创建合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,9 +145,7 @@ pub struct CreateResponse {
     pub contract_id: String,
 }
 
-// ============================================================================
 // 删除合同相关模型
-// ============================================================================
 
 /// 删除合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,9 +161,7 @@ pub struct DeleteResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 查询单个合同相关模型
-// ============================================================================
 
 /// 查询单个合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,9 +177,7 @@ pub struct GetResponse {
     pub contract: Contract,
 }
 
-// ============================================================================
 // 批量查询合同相关模型
-// ============================================================================
 
 /// 批量查询合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,9 +208,7 @@ pub struct ListResponse {
     pub page_token: Option<String>,
 }
 
-// ============================================================================
 // 更新合同相关模型
-// ============================================================================
 
 /// 更新合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -269,9 +257,7 @@ pub struct PatchResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 搜索合同相关模型
-// ============================================================================
 
 /// 搜索合同请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -302,24 +288,4 @@ pub struct SearchResponse {
     /// 分页标记，用于获取下一页数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

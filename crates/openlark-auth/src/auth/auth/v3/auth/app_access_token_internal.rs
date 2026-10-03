@@ -1,18 +1,21 @@
 //! 自建应用获取 app_access_token API
+//! docPath: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal>
 use crate::models::auth::{AccessTokenResponse, AppAccessTokenInternalRequest};
 ///
-/// API文档: https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal
+/// API文档: <https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal>
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    constants::AccessTokenType,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 自建应用获取 app_access_token 请求
-pub struct AppAccessTokenInternalBuilder {
+pub struct AppAccessTokenInternalRequestBuilder {
     app_id: String,
     app_secret: String,
     /// 配置信息
@@ -21,6 +24,7 @@ pub struct AppAccessTokenInternalBuilder {
 
 /// 自建应用获取 app_access_token 响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(transparent)]
 pub struct AppAccessTokenInternalResponseData {
     /// 应用访问令牌响应
     pub data: AccessTokenResponse,
@@ -28,11 +32,11 @@ pub struct AppAccessTokenInternalResponseData {
 
 impl ApiResponseTrait for AppAccessTokenInternalResponseData {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Flatten
     }
 }
 
-impl AppAccessTokenInternalBuilder {
+impl AppAccessTokenInternalRequestBuilder {
     /// 创建 app_access_token_internal 请求
     pub fn new(config: Config) -> Self {
         Self {
@@ -80,21 +84,37 @@ impl AppAccessTokenInternalBuilder {
 
         // 创建API请求 - 使用类型安全的URL生成
         let api_request: ApiRequest<AppAccessTokenInternalResponseData> =
-            ApiRequest::post(api_endpoint.path()).body(serde_json::to_value(&request_body)?);
+            ApiRequest::post(api_endpoint.path())
+                .body(serde_json::to_value(&request_body)?)
+                .with_supported_access_token_types(vec![AccessTokenType::None]);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("获取自建应用 access_token", "响应数据为空")
-        })
+        Transport::request_typed(
+            api_request,
+            &self.config,
+            Some(option),
+            "获取自建应用 access_token",
+        )
+        .await
     }
 }
+
+/// 旧名兼容别名（将在 v1.0 移除）
+#[deprecated(
+    note = "renamed to AppAccessTokenInternalRequestBuilder, will be removed in v1.0 (#271)"
+)]
+pub type AppAccessTokenInternalBuilder = AppAccessTokenInternalRequestBuilder;
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
     use super::*;
     use openlark_core::config::Config;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, method, path},
+    };
 
     fn create_test_config() -> Config {
         Config::builder()
@@ -106,7 +126,7 @@ mod tests {
     #[test]
     fn test_app_access_token_internal_builder_new() {
         let config = create_test_config();
-        let builder = AppAccessTokenInternalBuilder::new(config);
+        let builder = AppAccessTokenInternalRequestBuilder::new(config);
         assert!(builder.app_id.is_empty());
         assert!(builder.app_secret.is_empty());
     }
@@ -114,7 +134,7 @@ mod tests {
     #[test]
     fn test_app_access_token_internal_builder_chain() {
         let config = create_test_config();
-        let builder = AppAccessTokenInternalBuilder::new(config)
+        let builder = AppAccessTokenInternalRequestBuilder::new(config)
             .app_id("my_app_id")
             .app_secret("my_app_secret");
         assert_eq!(builder.app_id, "my_app_id");
@@ -125,7 +145,56 @@ mod tests {
     fn test_app_access_token_internal_response_data_format() {
         assert_eq!(
             AppAccessTokenInternalResponseData::data_format(),
-            ResponseFormat::Data
+            ResponseFormat::Flatten
         );
+    }
+
+    #[test]
+    fn test_app_access_token_internal_response_data_deserialization() {
+        let json = r#"{"code":0,"msg":"success","app_access_token":"token123","expire":7200,"tenant_access_token":"tenant123"}"#;
+        let response: AppAccessTokenInternalResponseData =
+            serde_json::from_str(json).expect("JSON 反序列化失败");
+
+        assert_eq!(response.data.app_access_token, "token123");
+        assert_eq!(response.data.expires_in, 7200);
+    }
+
+    #[tokio::test]
+    async fn test_execute_uses_official_body_without_authorization() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/app_access_token/internal"))
+            .and(body_json(json!({
+                "app_id": "test_app",
+                "app_secret": "test_secret"
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "app_access_token": "app-token",
+                "expire": 7200,
+                "tenant_access_token": "tenant-token"
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .base_url(server.uri())
+            .build();
+
+        let response = AppAccessTokenInternalRequestBuilder::new(config)
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .execute()
+            .await
+            .expect("app_access_token_internal 请求应成功");
+
+        assert_eq!(response.data.app_access_token, "app-token");
+
+        let received_requests = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received_requests.len(), 1);
+        assert!(!received_requests[0].headers.contains_key("authorization"));
     }
 }

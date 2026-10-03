@@ -4,9 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
 // 部门基础数据结构
-// ============================================================================
 
 /// 部门信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -107,9 +105,7 @@ pub struct DepartmentTreeNode {
     pub children: Option<Vec<DepartmentTreeNode>>,
 }
 
-// ============================================================================
 // 创建部门相关模型
-// ============================================================================
 
 /// 创建部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,9 +133,7 @@ pub struct CreateResponse {
     pub department_id: String,
 }
 
-// ============================================================================
 // 删除部门相关模型
-// ============================================================================
 
 /// 删除部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,9 +149,7 @@ pub struct DeleteResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 查询单个部门相关模型
-// ============================================================================
 
 /// 查询单个部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -173,9 +165,7 @@ pub struct GetResponse {
     pub department: Department,
 }
 
-// ============================================================================
 // 批量查询部门相关模型
-// ============================================================================
 
 /// 批量查询部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,9 +190,7 @@ pub struct ListResponse {
     pub page_token: Option<String>,
 }
 
-// ============================================================================
 // 更新部门相关模型
-// ============================================================================
 
 /// 更新部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -238,9 +226,7 @@ pub struct PatchResponse {
     pub result: bool,
 }
 
-// ============================================================================
 // 搜索部门相关模型
-// ============================================================================
 
 /// 搜索部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -267,9 +253,7 @@ pub struct SearchResponse {
     pub page_token: Option<String>,
 }
 
-// ============================================================================
 // 批量获取部门相关模型
-// ============================================================================
 
 /// 批量获取部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -285,9 +269,7 @@ pub struct BatchGetResponse {
     pub items: Vec<Department>,
 }
 
-// ============================================================================
 // 获取父部门信息相关模型
-// ============================================================================
 
 /// 获取父部门信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -296,9 +278,7 @@ pub struct ParentsResponse {
     pub items: Vec<Department>,
 }
 
-// ============================================================================
 // 获取部门树相关模型
-// ============================================================================
 
 /// 获取部门树请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,9 +298,7 @@ pub struct TreeResponse {
     pub items: Vec<DepartmentTreeNode>,
 }
 
-// ============================================================================
 // 查询时间轴相关模型
-// ============================================================================
 
 /// 查询时间轴请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -340,9 +318,7 @@ pub struct TimelineResponse {
     pub items: Vec<DepartmentTimeline>,
 }
 
-// ============================================================================
 // 查询多时间轴相关模型
-// ============================================================================
 
 /// 查询多时间轴请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -362,9 +338,7 @@ pub struct MultiTimelineResponse {
     pub items: std::collections::HashMap<String, Vec<DepartmentTimeline>>,
 }
 
-// ============================================================================
 // 查询操作日志相关模型
-// ============================================================================
 
 /// 查询操作日志请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -393,24 +367,4 @@ pub struct OperationLogsResponse {
     /// 分页标记，用于获取下一页数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
-}
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

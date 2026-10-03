@@ -1,10 +1,10 @@
 //! 获取数据知识
 //!
-//! docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/get
+//! docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/get>
 
-use crate::{common::api_utils::extract_response_data, endpoints::AILY_V1_DATA_ASSET};
+use crate::endpoints::AILY_V1_DATA_ASSET;
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
 /// 获取数据知识请求
@@ -55,7 +55,7 @@ impl GetDataAssetRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/get
+    /// docPath: <https://open.feishu.cn/document/aily-v1/data-knowledge/data-knowledge-management/get>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -78,8 +78,7 @@ impl GetDataAssetRequest {
             .replace("{data_asset_id}", &self.data_asset_id);
         let req: ApiRequest<serde_json::Value> = ApiRequest::get(&url);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取数据知识")
+        Transport::request_typed(req, &self.config, Some(option), "获取数据知识").await
     }
 }
 
@@ -116,11 +115,15 @@ mod tests {
 
     #[test]
     fn test_get_data_asset_request_url_construction() {
-        let request = GetDataAssetRequest::new(Config::default())
-            .app_id("app_1")
-            .data_asset_id("asset_1");
-        assert_eq!(request.app_id, "app_1");
-        assert_eq!(request.data_asset_id, "asset_1");
+        use crate::endpoints::aily::AILY_V1_DATA_ASSET;
+        let url = AILY_V1_DATA_ASSET
+            .replace("{app_id}", "app_1")
+            .replace("{data_asset_id}", "asset_1");
+        assert_eq!(url, "/open-apis/aily/v1/apps/app_1/data_assets/asset_1");
+        assert!(
+            !url.contains("{"),
+            "URL should not contain unreplaced placeholders"
+        );
     }
 
     #[test]

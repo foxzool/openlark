@@ -1,13 +1,14 @@
 //! 获取分组详情
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v2/section/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/section/get>
 
-use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::common::api_endpoints::TaskApiV2;
 use crate::v2::section::models::GetSectionResponse;
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, SDKResult,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -16,18 +17,15 @@ use std::sync::Arc;
 pub struct GetSectionRequest {
     /// 配置信息
     config: Arc<Config>,
-    /// 任务清单 GUID
-    tasklist_guid: String,
     /// 分组 GUID
     section_guid: String,
 }
 
 impl GetSectionRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Arc<Config>, tasklist_guid: String, section_guid: String) -> Self {
+    pub fn new(config: Arc<Config>, section_guid: String) -> Self {
         Self {
             config,
-            tasklist_guid,
             section_guid,
         }
     }
@@ -44,16 +42,18 @@ impl GetSectionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetSectionResponse> {
         // 验证必填字段
-        validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
         validate_required!(self.section_guid.trim(), "分组GUID不能为空");
 
-        let api_endpoint =
-            TaskApiV2::SectionGet(self.tasklist_guid.clone(), self.section_guid.clone());
+        let api_endpoint = TaskApiV2::SectionGet(self.section_guid.clone());
         let request = ApiRequest::<GetSectionResponse>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取分组")
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "获取分组",
+        )
+        .await
     }
 }
 
@@ -77,13 +77,8 @@ mod tests {
             .app_secret("test")
             .build();
 
-        let request = GetSectionRequest::new(
-            Arc::new(config),
-            "tasklist_123".to_string(),
-            "section_456".to_string(),
-        );
+        let request = GetSectionRequest::new(Arc::new(config), "section_456".to_string());
 
-        assert_eq!(request.tasklist_guid, "tasklist_123");
         assert_eq!(request.section_guid, "section_456");
     }
 }

@@ -3,16 +3,16 @@
 /// 根据 float_image_id 获取对应浮动图片的信息。
 /// docPath: /document/ukTMukTMukTM/uUDN04SN0QjL1QDN/sheets-v3/spreadsheet-sheet-float_image/get
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
 use super::FloatImage;
-use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
+use crate::common::api_endpoints::SheetsApiV3;
 
 /// 获取浮动图片响应体 data
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,29 +61,51 @@ pub async fn get_float_image_with_options(
         sheet_id.to_string(),
         float_image_id.to_string(),
     );
-    let api_request: ApiRequest<GetFloatImageResponse> = ApiRequest::get(&api_endpoint.to_url());
+    let api_request: ApiRequest<GetFloatImageResponse> = api_endpoint.to_request();
 
-    let response = Transport::request(api_request, config, Some(option)).await?;
-    extract_response_data(response, "获取浮动图片")
+    Transport::request_typed(api_request, config, Some(option), "获取浮动图片").await
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    use serde_json;
+    /// 端到端：GET .../float_images/{float_image_id} → GetFloatImageResponse（float_image）。
+    #[tokio::test]
+    async fn test_get_float_image_returns_data_on_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/float_images/fi001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": { "float_image": { "float_image_id": "fi001", "float_image_token": "tok001", "range": "A1", "width": 100, "height": 50, "offset_x": 0, "offset_y": 0 } }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+        let resp = get_float_image(&config, "tokenAbc", "sheetId001", "fi001")
+            .await
+            .expect("获取浮动图片应成功");
+        assert_eq!(resp.float_image.float_image_id, "fi001");
+        assert_eq!(resp.float_image.width, 100);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/float_images/fi001"
+        );
     }
 }

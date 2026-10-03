@@ -1,3 +1,294 @@
+# OpenLark 迁移指南
+
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.20.0**。下方按版本分节；
+**从 0.19 升级请先读 0.20 专节**；跨多个大版本请按顺序阅读各节。
+
+完整 breaking 表与逐 API 迁移代码见根目录 [`CHANGELOG.md`](../CHANGELOG.md) 的
+`## [0.20.0]` / `## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+
+---
+
+# OpenLark 0.20 迁移指南
+
+适用范围：从 `0.19.x` 迁移到 `0.20.x`
+
+## 一句话结论
+
+`0.20` 以 **contract trust / coverage truth / selective gaps** 为主题（parent #566），
+优先提升可调用准确性与覆盖报告可信度。对大多数只走 leaf builder 的业务代码是
+**minor 兼容**；唯一公开 breaking 是 docs 域 `BaikeApiV1` catalog 与 lingo 脱钩
+（#568，修正错误的 lingo 路径前缀）。
+
+## 1. `BaikeApiV1` 独立 catalog（#568）
+
+历史上 `BaikeApiV1` 是 `LingoApiV1` 的 `pub use` 别名，variant 集合与 lingo 完全一致，
+且路径错误落在 `/open-apis/lingo/v1/`。0.20 改为独立 enum，仅覆盖 baike 的 13 个端点，
+路径前缀为 `/open-apis/baike/v1/`。
+
+| 场景 | 迁移 |
+|------|------|
+| 只调用 baike 业务端点（draft/entity/classification/…） | 继续 `BaikeApiV1::…`；路径现已正确 |
+| exhaustive `match BaikeApiV1` | variant 集合缩小，补全/删除 lingo-only 臂 |
+| 依赖 lingo-only variant（如 `EntityDelete` 等） | 改 `LingoApiV1::…` |
+
+```rust
+// before — BaikeApiV1 是 LingoApiV1 别名（含 lingo-only / 错误 lingo 路径）
+use openlark_docs::common::api_endpoints::BaikeApiV1;
+let _ = BaikeApiV1::EntityDelete("id".into());
+
+// after
+use openlark_docs::common::api_endpoints::{BaikeApiV1, LingoApiV1};
+let _ = BaikeApiV1::DraftUpdate("draft_id".into()); // /open-apis/baike/v1/drafts/{id}
+let _ = LingoApiV1::EntityDelete("id".into());     // /open-apis/lingo/v1/entities/{id}
+```
+
+## 2. 非破坏但相关（0.20）
+
+- **docs field strict gate（#569）**：CI 对 `openlark-docs` 启用 live field `--strict fields`；
+  无公开字段 breaking，仅加强回归保护。
+- **coverage denoise（#567 / #570 / #571）**：typed-coverage missing 报告区分 true gap /
+  path noise；P1 platform 七项与部分 P2 重分类为噪声。**不**降低 release hard gate 阈值。
+- **`WorkflowService::create_task` helper（#572）**：新增便利方法；既有 typed
+  `CreateTaskRequest` 路径不变。
+
+## 3. 升级自检
+
+- [ ] 无对 `BaikeApiV1` 的 lingo-only variant / 错误 lingo 路径假设
+- [ ] exhaustive `match BaikeApiV1` 已按 13 端点集合更新
+- [ ] 如需 lingo 专用端点，改用 `LingoApiV1`
+- [ ] 阅读 CHANGELOG `## [0.20.0]` 全文（本专节为摘要）
+
+---
+
+# OpenLark 0.19 迁移指南
+
+适用范围：从 `0.18.x` 迁移到 `0.19.x`
+
+## 一句话结论
+
+`0.19` 是 breaking 窗口：删除 registry 诊断半边、接通飞书错误码解码（`ApiError.raw_code`）、
+收并 `WsClientError`、对齐 attendance 字段 schema，并清理一批零消费者死 trait/helper。
+业务调用仍走 `client.<domain>`；多数只做 leaf builder 的代码主要受 attendance 字段与
+错误处理路径影响。
+
+## 1. Registry 删除（#471）
+
+0.18 仍保留 `Client::registry()` 只读诊断；**0.19 整段删除**：
+
+| 已删除 | 替代 |
+|--------|------|
+| `Client::registry()` / `ServiceRegistry` / `ServiceEntry` / `ServiceMetadata` / `RegistryError` | 删除。能力是否编译 → **Cargo feature** + `openlark-capability-unique` trybuild（编译期） |
+| `LarkClient` / `ServiceTrait` / `ServiceLifecycle` / `LazyService` / `ClientErrorHandling` | 删除。业务继续 `client.<domain>` |
+| `error::registry_error()` / `From<RegistryError>` | 删除 |
+
+```rust
+// before (0.18)
+if client.registry().has_service("docs") { /* ... */ }
+
+// after (0.19)
+// 删除 registry 调用。用 Cargo feature 门控编译期路径：
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
+```
+
+仅走 `client.<domain>` 的代码零影响。
+
+## 2. `ApiError` / `raw_code` / 构造器（#544–#546，ADR-0004）
+
+生产路径曾把飞书 9 位业务码 `as u16` 截断，导致 `ErrorCode` 恒为 `Unknown`。0.19 接通
+`ErrorCode::from_code(raw_code)` 单路径。
+
+| 变更 | 说明 |
+|------|------|
+| `ApiError.status: u16` → `raw_code: i32` | 字段语义为原始错误码（飞书 body `code` 或 HTTP 非 2xx 合成 status） |
+| `api_error` / `CoreError::api*` / `api_err!` | 参数 `u16` → `i32`（勿再 `as u16`） |
+| `ErrorBuilder::status(u16)` → `raw_code(i32)` | Builder 同步 |
+| 删除 `ErrorCode::from_feishu_code` | 改 `ErrorCode::from_code`（未知 → `Unknown`，非 `None`） |
+| 删除 `openlark_client::error::from_feishu_response` | 改 core/client `api_error` 或 `CoreError::Api` |
+| retry 谓词 | `is_retryable` 改匹配 `ErrorCode` variant；延迟公式不变 |
+
+```rust
+// 读字段
+if let CoreError::Api(api) = &err {
+    let raw = api.raw_code; // i32 原样，如 99991663
+    let kind = api.code;    // ErrorCode::TenantAccessTokenInvalid
+    let _ = (raw, kind);
+}
+
+// 构造：勿 as u16
+let _ = api_error(99991663, "/open-apis/...", "token invalid", None);
+let _ = ErrorBuilder::new(BuilderKind::Api).raw_code(404).message("not found").build();
+```
+
+完整 before/after 表见 CHANGELOG `## [0.19.0]` 中 ADR-0004 条目。
+
+## 3. `WsClientError`（ADR-0003）
+
+端点发现 HTTP 收口到 core `Transport`；公开错误变体收敛：
+
+| 变更 | 说明 |
+|------|------|
+| 删除 `ServerError{code,message}` / `ClientError{code,message}` | 端点发现独占、零外部消费者 |
+| `RequestError` 负载 | `reqwest::Error` → `CoreError`（透传 `request_id`） |
+| 保留 | `UnexpectedResponse` 与全部 WS 会话 variant |
+
+```rust
+// before
+// match err {
+//     WsClientError::ServerError { .. } | WsClientError::ClientError { .. } => {}
+//     WsClientError::RequestError(reqwest_err) => {}
+//     ...
+// }
+
+// after
+match err {
+    WsClientError::RequestError(core_err) => {
+        let _ = core_err.request_id(); // 端点业务错误现可带 request_id
+    }
+    WsClientError::UnexpectedResponse(_) => {}
+    // ConnectionClosed / WsError / HandlerPanicked / ... 不变
+    _ => {}
+}
+```
+
+## 4. Attendance 字段 / Builder 摘要（#526–#533）
+
+一批 attendance API 与飞书官网 schema 对齐；本地 wiremock 曾抄自错误实现而全绿。
+**只改字段与 Builder 签名，不重做业务语义。** 按族快速对照：
+
+| API 族 | 要点 |
+|--------|------|
+| `user_daily_shift`（batch_create / batch_create_temp / query） | `shifts`→`user_daily_shifts`；`TempShift`→`UserTmpDailyShift`；query 日期 `check_date_from/to`(i32 yyyyMMdd)，`user_ids` 必填 |
+| `user_task_remedy`（create / query） | create 用 `remedy_date`/`punch_no`/`work_type`/`remedy_time(string)`；query 改 `user_ids` + `check_time_from/to`；`RemedyRecord` 删除（响应透传 `Value`） |
+| `leave_accrual_record/patch` | 必填 `leave_granting_record_id`/`employment_id`/`leave_type_id`/`reason`；`leave_id` 为 path |
+| `user_approval/query` | `user_ids` + `check_date_from/to`；`UserApproval` 删除 |
+| `user_stats_view/update` | 嵌套 `view { view_id, stats_type, user_id, items[...] }`；path `user_stats_view_id` |
+| `approval_info/process` | `approval_id`/`approval_type`/`status`；响应嵌套 `approval_info` |
+| `archive_rule/del_report` | 必填 `month`/`operator_id`/`archive_rule_id`；响应空对象 |
+| `archive_rule/upload_report` | `archive_report_datas` + `ArchiveFieldData`；响应 `invalid_code`/`invalid_member_id` |
+
+逐 API `::new` 签名与字段表见 CHANGELOG；各 leaf 的 rustdoc/`docPath` 与官网一致。
+
+## 5. 已删除的死 trait / helper（速查）
+
+| 符号 | 替代 |
+|------|------|
+| `AsyncApiClient` / `SyncApiClient`（#504） | 直接 `Transport::request_typed` / leaf builder |
+| `Response::into_result`（#505） | `Response::decode(context)`（leaf 走 `request_typed` 不受影响） |
+| `ensure_success`（#506） | 空成功类 API 走 `request_typed` + 响应类型的 `ApiResponseTrait` |
+| `Transport::do_send` 公开性（#478） | `pub` → `pub(crate)`；外部勿调用 |
+| `auth::app_ticket::apply_app_ticket`（ADR-0002） | 由 `Transport::request` 自动恢复；模块 `pub(crate)` |
+| HR 7 个 config-holder facade（#474：`Hire`/`Attendance`/…） | `client.hr.config()` 直达；`client.hr.okr.v2()` 保留 |
+| security 风险评估装置 / `SecurityErrorBuilder` / `map_feishu_security_error` | 删除；用 core 通用错误构造器 |
+| HR 端点 unit variant → tuple path-param | 直接构造 enum 需传参；leaf builder 零影响 |
+
+```bash
+# 升级后快速 grep 死调用点
+rg 'Client::registry|\.registry\(\)|FeatureLoader|ServiceRegistry' 
+rg 'AsyncApiClient|SyncApiClient|into_result|ensure_success|from_feishu_code|from_feishu_response'
+rg 'ApiError.*\.status|\.status\([0-9]+\)'   # ErrorBuilder / 读字段
+rg 'WsClientError::(ServerError|ClientError)'
+rg 'client\.hr\.(attendance|hire|corehr|payroll|performance|compensation|ehr)\b'
+```
+
+## 6. 非破坏但相关
+
+- **HR 共享原语**（#473）：canonical 路径 `openlark_hr::common::shared_models::*`。
+  `hire::hire::common_models` 对 7 个共享类型仍 `#[deprecated]` 再导出；可选清理见 #556。
+  请立即改 import，勿再依赖 alias。
+- **OpenSpec 退役**：纯 process，无 Rust 公开 API 影响。
+
+## 7. 升级自检
+
+- [ ] 无 `client.registry()` / `ServiceRegistry` / registry prelude trait
+- [ ] 错误处理读 `raw_code` / `code`，构造传 `i32`，无 `as u16` / `from_feishu_*`
+- [ ] `match WsClientError` 覆盖 `RequestError(CoreError)`，无 `ServerError`/`ClientError`
+- [ ] attendance 调用按上表改字段与 `::new` 签名；相关集成测试/mock 同步
+- [ ] 无 `into_result` / `ensure_success` / `AsyncApiClient` / HR facade 字段
+- [ ] 阅读 CHANGELOG `## [0.19.0]` Breaking 全文（本专节为摘要）
+
+---
+
+# OpenLark 0.18 迁移指南
+
+适用范围：从 `0.17.x` 或更早版本迁移到 `0.18.x`
+
+## 一句话结论
+
+`0.18` 在 WebSocket 会话收缩之外，完成了 **编译能力 catalog 统一**与 **registry metadata-only 诊断收缩**（#423 / #434–#437）：
+
+- 全部业务域 Client 字段与 registry 元数据由 `capability` catalog 单源生成
+- `Client::registry()` 只读诊断：listing / lookup / presence / 依赖图
+- 删除无法兑现的 typed-instance、虚假 lifecycle 与 `FeatureLoader` 旁路初始化
+
+## 1. registry / FeatureLoader 迁移
+
+> ⚠️ **0.19 已移除整个 registry 半边**（见上方 **OpenLark 0.19** 专节）。下方「推荐诊断写法」
+> 仅适用于 **0.18.x**。从 0.18 升级到 0.19 时删除所有 `client.registry()` 调用即可。
+
+### 已删除（严重正确性例外，0.18 直接移除）
+
+| 旧 API | 替代 |
+|--------|------|
+| `openlark_client::FeatureLoader` | 删除。能力在 `Client::builder()...build()` 时由 catalog 注册 |
+| `ServiceStatus` | 删除。registry 不再表达 lifecycle 状态 |
+| `ServiceRegistry::register_service` / `unregister_service`（公开） | 删除。构造期内部注册为 `pub(crate)` |
+| `ServiceRegistry::get_service_typed` | 删除。无 runtime instance；业务走 `client.<domain>` |
+| `ServiceRegistry::update_service_status` | 删除 |
+| `ServiceEntry.instance` / 时间戳 | 删除 |
+| `ServiceMetadata.status` | 删除 |
+| `RegistryError::CircularDependency` / `MissingDependencies` / `InvalidFeatureFlag` | 删除。这些变体只对应已移除的运行时注册、依赖校验和 `FeatureLoader` 路径；删除直接构造与穷举匹配分支 |
+
+### 推荐诊断写法
+
+```rust
+use openlark_client::prelude::*;
+
+let client = Client::builder()
+    .app_id("app")
+    .app_secret("secret")
+    .build()?;
+
+// 是否编译了某业务能力（与 Cargo feature 一致）
+if client.registry().has_service("docs") {
+    // ...
+}
+
+// 稳定顺序：priority 升序，同 priority 按 name
+for entry in client.registry().list_services() {
+    println!(
+        "{} prio={} deps={:?}",
+        entry.metadata.name, entry.metadata.priority, entry.metadata.dependencies
+    );
+}
+
+// 单条元数据
+let entry = client.registry().get_service("auth")?;
+assert!(entry.metadata.description.is_some());
+```
+
+### 业务调用（不变）
+
+```rust
+// 继续使用 meta 链，不经 registry 取实例
+#[cfg(feature = "docs")]
+let _docs = &client.docs;
+```
+
+## 2. WebSocket（0.18）
+
+见 CHANGELOG Breaking 表与 `docs/PUBLIC_API_STABILITY_POLICY.md`；`ws_client` 仅保留
+`LarkWsClient` / 事件 handler 相关公开类型。
+
+## 3. 升级自检
+
+- [ ] 代码中无 `FeatureLoader` / `ServiceStatus` / `get_service_typed`
+- [ ] 诊断仅用 `has_service` / `list_services` / `get_service` / `get_dependency_graph`
+- [ ] 业务路径使用 `client.<domain>`，不期望 registry 返回可调用实例
+- [ ] 阅读 CHANGELOG Unreleased / 0.18 Breaking 段
+
+---
+
 # OpenLark 0.15 迁移指南
 
 适用范围：从 `0.14.x` 或更早版本迁移到 `0.15.x`

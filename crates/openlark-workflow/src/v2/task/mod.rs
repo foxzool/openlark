@@ -37,6 +37,11 @@ pub mod remove_members;
 pub mod remove_reminders;
 /// 移出任务清单接口。
 pub mod remove_tasklist;
+#[path = "../../task/task/v2/task/search.rs"]
+pub mod search;
+/// 设置父任务接口。
+#[path = "../../task/task/v2/task/set_ancestor_task.rs"]
+pub mod set_ancestor_task;
 /// 子任务模块。
 pub mod subtask;
 /// tasklists 模块。
@@ -163,6 +168,18 @@ impl Task {
     ) -> remove_dependencies::RemoveDependenciesRequest {
         remove_dependencies::RemoveDependenciesRequest::new(self.config.clone(), task_guid.into())
     }
+
+    /// 设置父任务。
+    pub fn set_ancestor_task(
+        &self,
+        task_guid: impl Into<String>,
+    ) -> set_ancestor_task::SetAncestorTaskRequest {
+        set_ancestor_task::SetAncestorTaskRequest::new(self.config.clone(), task_guid.into())
+    }
+    /// 创建搜索任务请求。
+    pub fn search(&self) -> search::SearchTaskRequest {
+        search::SearchTaskRequest::new(self.config.clone())
+    }
 }
 
 // 重新导出请求类型
@@ -180,6 +197,7 @@ pub use remove_dependencies::RemoveDependenciesRequest;
 pub use remove_members::RemoveMembersRequest;
 pub use remove_reminders::RemoveRemindersRequest;
 pub use remove_tasklist::RemoveTasklistRequest;
+pub use set_ancestor_task::SetAncestorTaskRequest;
 pub use tasklists::GetTaskTasklistsRequest;
 pub use uncomplete::UncompleteTaskRequest;
 
@@ -196,8 +214,10 @@ pub use remove_dependencies::{RemoveDependenciesBody, RemoveDependenciesResponse
 pub use remove_members::{RemoveMembersBody, RemoveMembersResponse};
 pub use remove_reminders::{RemoveRemindersBody, RemoveRemindersResponse};
 pub use remove_tasklist::{RemoveTasklistBody, RemoveTasklistResponse};
+pub use set_ancestor_task::{SetAncestorTaskBody, SetAncestorTaskResponse};
 pub use tasklists::{GetTaskTasklistsResponse, TaskTasklistItem};
 
+pub use search::SearchTaskRequest;
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_imports)]

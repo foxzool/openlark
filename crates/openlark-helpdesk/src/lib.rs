@@ -16,6 +16,9 @@ pub mod prelude;
 
 pub use service::HelpdeskService;
 
+/// 帮助台服务客户端类型别名（统一命名为 `XxxClient`）。
+pub type HelpdeskClient = HelpdeskService;
+
 /// 当前 crate 版本号。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,6 +28,6 @@ mod tests {
     use super::*;
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        assert_ne!(VERSION, "");
     }
 }

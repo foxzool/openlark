@@ -1,18 +1,18 @@
 //! 查询帖子信息
 //!
-//! docPath: https://open.feishu.cn/document/moments-v1/post/get
+//! docPath: <https://open.feishu.cn/document/moments-v1/post/get>
 
 use std::collections::HashMap;
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::api_utils::extract_response_data;
 use crate::endpoints::moments::MOMENTS_V1_POST_GET;
 
 /// 查询帖子信息响应 data
@@ -93,7 +93,7 @@ impl GetPostRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/moments-v1/post/get
+    /// docPath: <https://open.feishu.cn/document/moments-v1/post/get>
     pub async fn execute(self) -> SDKResult<GetPostResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -114,8 +114,7 @@ impl GetPostRequest {
         if let Some(user_id_type) = self.user_id_type {
             req = req.query("user_id_type", &user_id_type);
         }
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "查询帖子信息")
+        Transport::request_typed(req, &self.config, Some(option), "查询帖子信息").await
     }
 }
 

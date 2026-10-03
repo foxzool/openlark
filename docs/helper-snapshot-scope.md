@@ -35,6 +35,7 @@
 ### Workflow
 
 - `WorkflowTaskListQuery`
+- `WorkflowTaskCreate`
 - `WorkflowTaskMutation`
 - `ApprovalTaskQuery`
 - `ApprovalTaskAction`

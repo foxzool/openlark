@@ -2,17 +2,18 @@
 //!
 //! 为云文档启用密码保护功能（平台自动生成密码）。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/permission-public-password/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 /// 启用云文档密码请求
 #[derive(Debug, Clone)]
@@ -46,12 +47,7 @@ impl CreatePermissionPublicPasswordRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreatePermissionPublicPasswordResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
         if self.r#type.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "type",
@@ -80,12 +76,11 @@ impl CreatePermissionPublicPasswordRequest {
         }
 
         let api_endpoint = DriveApi::CreatePublicPassword(self.token);
-        let request =
-            ApiRequest::<CreatePermissionPublicPasswordResponse>::post(&api_endpoint.to_url())
-                .query("type", self.r#type);
+        let request = api_endpoint
+            .to_request::<CreatePermissionPublicPasswordResponse>()
+            .query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建")
+        Transport::request_typed(request, &self.config, Some(option), "创建").await
     }
 }
 

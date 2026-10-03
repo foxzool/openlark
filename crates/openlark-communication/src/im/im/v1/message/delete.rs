@@ -1,12 +1,12 @@
 //! 撤回消息
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/message/delete
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/delete>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, validate_required, SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::common::{api_utils::extract_response_data, models::EmptyData};
+use crate::common::models::EmptyData;
 use crate::endpoints::IM_V1_MESSAGES;
 
 /// 撤回消息请求
@@ -51,7 +51,7 @@ impl DeleteMessageRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/message/delete
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/message/delete>
     pub async fn execute(self) -> SDKResult<EmptyData> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
@@ -69,8 +69,7 @@ impl DeleteMessageRequest {
         let req: ApiRequest<EmptyData> =
             ApiRequest::delete(format!("{}/{}", IM_V1_MESSAGES, self.message_id));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "撤回消息")
+        Transport::request_typed(req, &self.config, Some(option), "撤回消息").await
     }
 }
 

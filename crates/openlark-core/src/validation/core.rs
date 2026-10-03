@@ -203,13 +203,13 @@ impl ValidateBuilder for DefaultValidateBuilder {
         match value {
             Some(v) => {
                 if v.trim().is_empty() {
-                    self.errors.push(format!("字段 {} 不能为空", field_name));
+                    self.errors.push(format!("字段 {field_name} 不能为空"));
                 } else {
                     self.value = Some(v);
                 }
             }
             None => {
-                self.errors.push(format!("字段 {} 不能为空", field_name));
+                self.errors.push(format!("字段 {field_name} 不能为空"));
             }
         }
         self
@@ -670,7 +670,7 @@ mod tests {
     #[test]
     fn test_validate_required_list_length_large_lists() {
         // 测试大列表
-        let large: Vec<String> = (0..100).map(|i| format!("item{}", i)).collect();
+        let large: Vec<String> = (0..100).map(|i| format!("item{i}")).collect();
         assert!(validate_required_list_length(&large, 100, "大列表"));
         assert!(validate_required_list_length(&large, 200, "更大列表"));
         assert!(!validate_required_list_length(&large, 50, "小列表"));

@@ -1,13 +1,13 @@
 //! 模糊搜索词条
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/entity/search
+//! docPath: <https://open.feishu.cn/document/lingo-v1/entity/search>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -140,13 +140,13 @@ impl SearchEntityRequest {
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<SearchEntityResp> {
         // ===== 参数校验 =====
-        if let Some(page_size) = self.page_size {
-            if page_size < 1 || page_size > 100 {
-                return Err(openlark_core::error::validation_error(
-                    "page_size",
-                    "page_size 必须在 1~100 之间",
-                ));
-            }
+        if let Some(page_size) = self.page_size
+            && (page_size < 1 || page_size > 100)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~100 之间",
+            ));
         }
 
         // ===== 构建请求 =====
@@ -155,7 +155,7 @@ impl SearchEntityRequest {
         })?;
 
         let mut api_request: ApiRequest<SearchEntityResp> =
-            ApiRequest::post(&LingoApiV1::EntitySearch.to_url()).body(body);
+            LingoApiV1::EntitySearch.to_request().body(body);
         if let Some(page_size) = self.page_size {
             api_request = api_request.query("page_size", &page_size.to_string());
         }
@@ -170,11 +170,7 @@ impl SearchEntityRequest {
         }
 
         // ===== 发送请求 =====
-        let response: Response<SearchEntityResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "模糊搜索词条").await
     }
 }
 

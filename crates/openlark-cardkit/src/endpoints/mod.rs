@@ -41,8 +41,8 @@ mod tests {
 
     #[test]
     fn test_endpoints_non_empty() {
-        assert!(!CARDKIT_V1_CARDS.is_empty());
-        assert!(!CARDKIT_V1_CARD_ID_CONVERT.is_empty());
+        assert_ne!(CARDKIT_V1_CARDS, "");
+        assert_ne!(CARDKIT_V1_CARD_ID_CONVERT, "");
         assert!(!cardkit_v1_card("c").is_empty());
         assert!(!cardkit_v1_card_settings("c").is_empty());
         assert!(!cardkit_v1_card_batch_update("c").is_empty());

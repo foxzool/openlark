@@ -1,12 +1,12 @@
 //! 将人才从指定文件夹移除
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/hire-v1/talent/remove_to_folder
+//! docPath: <https://open.feishu.cn/document/server-docs/hire-v1/talent/remove_to_folder>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// 将人才从指定文件夹移除请求
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RemoveToFolderRequest {
     /// 配置信息
     config: Config,
@@ -54,13 +53,13 @@ impl RemoveToFolderRequest {
             request = request.body(request_body);
         }
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error(
-                "将人才从指定文件夹移除响应数据为空",
-                "服务器没有返回有效的数据",
-            )
-        })
+        Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "将人才从指定文件夹移除响应数据为空",
+        )
+        .await
     }
 }
 

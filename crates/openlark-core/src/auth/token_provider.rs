@@ -4,7 +4,7 @@
 //! - core 只知道“需要什么 token（App/Tenant/User）”，并把必要上下文（如 app_ticket/tenant_key）交给 provider
 //! - token 获取/刷新/缓存由业务 crate（例如 openlark-auth）实现
 
-use crate::{constants::AccessTokenType, SDKResult};
+use crate::{SDKResult, constants::AccessTokenType};
 use std::{future::Future, pin::Pin};
 
 /// Token 获取请求上下文
@@ -77,10 +77,10 @@ pub trait TokenProvider: Send + Sync + std::fmt::Debug {
         let tenant_key = tenant_key.map(str::to_owned);
         Box::pin(async move {
             let mut req = TokenRequest::tenant();
-            if let Some(key) = tenant_key.as_deref() {
-                if !key.is_empty() {
-                    req = req.tenant_key(key);
-                }
+            if let Some(key) = tenant_key.as_deref()
+                && !key.is_empty()
+            {
+                req = req.tenant_key(key);
             }
             self.get_token(req).await
         })
@@ -109,12 +109,9 @@ impl TokenProvider for NoOpTokenProvider {
         request: TokenRequest,
     ) -> Pin<Box<dyn Future<Output = SDKResult<String>> + Send + '_>> {
         Box::pin(async move {
-            Err(crate::error::configuration_error(
-                format!(
-                    "token_provider: NoOpTokenProvider 未实现 token 获取逻辑（请求：{:?}），请在 Config 中设置 TokenProvider（建议使用 openlark-auth 提供的实现）。",
-                    request
-                ),
-            ))
+            Err(crate::error::configuration_error(format!(
+                "token_provider: NoOpTokenProvider 未实现 token 获取逻辑（请求：{request:?}），请在 Config 中设置 TokenProvider（建议使用 openlark-auth 提供的实现）。"
+            )))
         })
     }
 }
@@ -164,7 +161,7 @@ mod tests {
     #[test]
     fn test_token_request_debug() {
         let req = TokenRequest::app();
-        let debug_str = format!("{:?}", req);
+        let debug_str = format!("{req:?}");
         assert!(debug_str.contains("TokenRequest"));
     }
 
@@ -178,7 +175,7 @@ mod tests {
     #[test]
     fn test_no_op_token_provider_debug() {
         let provider = NoOpTokenProvider;
-        let debug_str = format!("{:?}", provider);
+        let debug_str = format!("{provider:?}");
         assert!(debug_str.contains("NoOpTokenProvider"));
     }
 }

@@ -23,9 +23,10 @@ pub(crate) fn with_env_vars<R>(vars: &[(&str, Option<&str>)], f: impl FnOnce() -
     impl Drop for EnvRestore {
         fn drop(&mut self) {
             for (key, value) in self.saved.drain(..) {
+                // Test helpers serialize env access behind ENV_LOCK.
                 match value {
-                    Some(v) => std::env::set_var(key, v),
-                    None => std::env::remove_var(key),
+                    Some(v) => unsafe { std::env::set_var(key, v) },
+                    None => unsafe { std::env::remove_var(key) },
                 }
             }
         }
@@ -37,9 +38,10 @@ pub(crate) fn with_env_vars<R>(vars: &[(&str, Option<&str>)], f: impl FnOnce() -
         .collect::<Vec<_>>();
 
     for (key, value) in vars {
+        // Test helpers serialize env access behind ENV_LOCK.
         match value {
-            Some(v) => std::env::set_var(key, v),
-            None => std::env::remove_var(key),
+            Some(v) => unsafe { std::env::set_var(key, v) },
+            None => unsafe { std::env::remove_var(key) },
         }
     }
 

@@ -4,8 +4,12 @@ pub mod get;
 pub mod get_by_card;
 /// 列表接口。
 pub mod list;
+/// recall 模块（邮件撤回）。
+pub mod recall;
 /// send 模块。
 pub mod send;
+/// send_status 模块（查询发送状态）。
+pub mod send_status;
 
 use openlark_core::config::Config;
 use std::sync::Arc;
@@ -48,24 +52,35 @@ impl Message {
     pub fn send(&self) -> send::SendMailboxMessageRequest {
         send::SendMailboxMessageRequest::new(self.config.clone(), self.mailbox_id.clone())
     }
-}
 
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
+    /// 创建查询发送状态请求。
+    pub fn send_status(
+        &self,
+        message_id: impl Into<String>,
+    ) -> send_status::GetMailSendStatusRequest {
+        send_status::GetMailSendStatusRequest::new(
+            self.config.clone(),
+            self.mailbox_id.clone(),
+            message_id,
+        )
     }
 
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
+    /// 访问邮件撤回资源。
+    pub fn recall(&self, message_id: impl Into<String>) -> recall::Recall {
+        recall::Recall::new(self.config.clone(), self.mailbox_id.clone(), message_id)
     }
 }
+/// batch_get 模块。
+pub mod batch_get;
+/// batch_modify 模块。
+pub mod batch_modify;
+/// batch_trash 模块。
+pub mod batch_trash;
+/// list_thread_message 模块。
+pub mod list_thread_message;
+/// modify 模块。
+pub mod modify;
+/// trash 模块。
+pub mod trash;
+
+pub mod attachment;

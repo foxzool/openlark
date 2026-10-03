@@ -1,13 +1,12 @@
 //! 创建群
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/group/chat/create
+//! docPath: <https://open.feishu.cn/document/server-docs/group/chat/create>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_CHATS,
-    im::im::v1::message::models::UserIdType,
+    common::api_utils::serialize_params, endpoints::IM_V1_CHATS,
+    im::v1::message::models::UserIdType,
 };
 
 /// 创建群请求
@@ -77,7 +76,7 @@ impl CreateChatRequest {
     ///
     /// 说明：创建群请求体字段较多，建议直接按文档构造 JSON 传入。
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/group/chat/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/group/chat/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -103,9 +102,7 @@ impl CreateChatRequest {
             req = req.query("uuid", uuid);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-
-        extract_response_data(resp, "创建群")
+        Transport::request_typed(req, &self.config, Some(option), "创建群").await
     }
 }
 

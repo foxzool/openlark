@@ -2,9 +2,9 @@
 //!
 //! 为源文档创建版本文档。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/drive-v1/file-version/create>
 
-use openlark_core::{api::ApiRequest, config::Config, http::Transport, SDKResult};
+use openlark_core::{SDKResult, config::Config, http::Transport, validate_required};
 use serde::Serialize;
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
@@ -60,18 +60,8 @@ impl CreateFileVersionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateFileVersionResponse> {
         // ===== 验证必填字段 =====
-        if self.file_token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "file_token",
-                "file_token 不能为空",
-            ));
-        }
-        if self.name.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "name",
-                "name 不能为空",
-            ));
-        }
+        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.name, "name 不能为空");
         // ===== 验证字段长度 =====
         if self.name.chars().count() > 1024 {
             return Err(openlark_core::error::validation_error(
@@ -86,7 +76,7 @@ impl CreateFileVersionRequest {
                 return Err(openlark_core::error::validation_error(
                     "obj_type",
                     "obj_type 仅支持 docx/sheet",
-                ))
+                ));
             }
         }
 
@@ -102,12 +92,12 @@ impl CreateFileVersionRequest {
             obj_type: self.obj_type,
         };
 
-        let request = ApiRequest::<CreateFileVersionResponse>::post(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<CreateFileVersionResponse>()
             .query_opt("user_id_type", self.user_id_type)
             .body(serialize_params(&payload, "创建文档版本")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "创建版本")
+        Transport::request_typed(request, &self.config, Some(option), "创建版本").await
     }
 }
 
@@ -118,7 +108,6 @@ pub type CreateFileVersionResponse = FileVersionInfo;
 mod tests {
     use super::*;
     use openlark_core::api::ApiResponseTrait;
-    use openlark_core::testing::prelude::test_runtime;
 
     /// 测试构建器模式
     #[test]
@@ -141,75 +130,6 @@ mod tests {
             <FileVersionInfo as ApiResponseTrait>::data_format(),
             openlark_core::api::ResponseFormat::Data
         );
-    }
-
-    /// 测试 file_token 为空时的验证
-    #[test]
-    fn test_empty_file_token_validation() {
-        let config = Config::default();
-        let request = CreateFileVersionRequest::new(config, "", "name", "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 name 为空时的验证
-    #[test]
-    fn test_empty_name_validation() {
-        let config = Config::default();
-        let request = CreateFileVersionRequest::new(config, "token", "", "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 name 超长时的验证
-    #[test]
-    fn test_name_length_validation() {
-        let config = Config::default();
-        let long_name = "a".repeat(1025);
-        let request = CreateFileVersionRequest::new(config, "token", long_name, "docx");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
-    }
-
-    /// 测试 obj_type 枚举值验证
-    #[test]
-    fn test_obj_type_validation() {
-        let config = Config::default();
-        let request = CreateFileVersionRequest::new(config, "token", "name", "invalid");
-
-        let result = std::thread::spawn(move || {
-            let rt = test_runtime();
-            rt.block_on(async move {
-                let _ = request.execute().await;
-            })
-        })
-        .join();
-
-        assert!(result.is_ok());
     }
 
     /// 测试支持的 obj_type 类型
@@ -236,5 +156,53 @@ mod tests {
         let name = "🎉🎊🎈"; // 3 个码点
         let request = CreateFileVersionRequest::new(config, "token", name, "docx");
         assert_eq!(request.name.chars().count(), 3);
+    }
+
+    /// 端到端：POST .../files/{file_token}/versions → 强类型 FileVersionInfo（单层 data 信封）。
+    #[tokio::test]
+    async fn test_create_file_version_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/drive/v1/files/ftk001/versions"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "name": "项目文档 第 1 版",
+                    "version": "fnJfyX",
+                    "parent_token": "ftk001",
+                    "status": "active",
+                    "obj_type": "docx"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CreateFileVersionRequest::new(config, "ftk001", "项目文档 第 1 版", "docx")
+            .execute()
+            .await
+            .expect("创建文档版本应成功");
+        assert_eq!(resp.name.as_deref(), Some("项目文档 第 1 版"));
+        assert_eq!(resp.version.as_deref(), Some("fnJfyX"));
+        assert_eq!(resp.parent_token.as_deref(), Some("ftk001"));
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert_eq!(
+            received[0].url.path(),
+            "/open-apis/drive/v1/files/ftk001/versions"
+        );
     }
 }

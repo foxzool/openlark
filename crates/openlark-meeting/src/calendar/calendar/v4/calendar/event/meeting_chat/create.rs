@@ -1,13 +1,13 @@
 //! 创建会议群
 //!
-//! docPath: https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/create
+//! docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 创建会议群请求
 pub struct CreateMeetingChatRequest {
@@ -40,7 +40,7 @@ impl CreateMeetingChatRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/create
+    /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/create>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -56,8 +56,7 @@ impl CreateMeetingChatRequest {
             CALENDAR_V4_CALENDARS, self.calendar_id, self.event_id
         ));
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "创建会议群")
+        Transport::request_typed(req, &self.config, Some(option), "创建会议群").await
     }
 }
 

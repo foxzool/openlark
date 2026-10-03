@@ -1,6 +1,6 @@
 //! Bitable 新增字段
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/create>
 
 use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -210,16 +210,13 @@ impl CreateFieldRequest {
 
         // 创建API请求 - 使用类型安全的URL生成
         let mut api_request: ApiRequest<CreateFieldResponse> =
-            ApiRequest::post(&api_endpoint.to_url()).body(serde_json::to_vec(&body)?);
+            api_endpoint.to_request().body(serde_json::to_vec(&body)?);
 
         // 构建查询参数
         api_request = api_request.query_opt("client_token", self.client_token);
 
         // 发送请求
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        Transport::request_typed(api_request, &self.config, Some(option), "Bitable 新增字段").await
     }
 }
 

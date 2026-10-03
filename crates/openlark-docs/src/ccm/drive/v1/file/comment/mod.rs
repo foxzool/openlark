@@ -1,4 +1,4 @@
-use openlark_core::{validate_required, SDKResult};
+use openlark_core::{SDKResult, validate_required};
 
 /// 批量查询评论接口。
 pub mod batch_query;

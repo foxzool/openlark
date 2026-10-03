@@ -34,7 +34,7 @@ impl Category {
 
     /// 创建知识库分类
     pub fn create(&self) -> create::CreateCategoryRequest {
-        create::CreateCategoryRequest::new(self.config.clone())
+        create::CreateCategoryRequest::new(self.config.as_ref().clone())
     }
 
     /// 获取指定知识库分类
@@ -44,7 +44,7 @@ impl Category {
 
     /// 更新指定知识库分类
     pub fn patch(&self, id: impl Into<String>) -> patch::PatchCategoryRequest {
-        patch::PatchCategoryRequest::new(self.config.clone(), id.into())
+        patch::PatchCategoryRequest::new(self.config.as_ref().clone(), id.into())
     }
 
     /// 删除指定知识库分类
@@ -58,23 +58,3 @@ pub use delete::{DeleteCategoryRequest, DeleteCategoryRequestBuilder};
 pub use get::{GetCategoryRequest, GetCategoryRequestBuilder};
 pub use list::{ListCategoryRequest, ListCategoryRequestBuilder};
 pub use patch::{PatchCategoryRequest, PatchCategoryRequestBuilder};
-
-#[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
-}

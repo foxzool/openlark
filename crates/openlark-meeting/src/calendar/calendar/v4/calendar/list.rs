@@ -1,16 +1,15 @@
 //! 查询日历列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 
-use crate::common::api_utils::extract_response_data;
 use serde::{Deserialize, Serialize};
 
 use crate::endpoints::CALENDAR_V4_CALENDARS;
@@ -67,6 +66,7 @@ impl ApiResponseTrait for ListCalendarResponse {
 }
 
 impl ListCalendarRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -82,12 +82,16 @@ impl ListCalendarRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list-2>
     pub async fn execute(self) -> SDKResult<ListCalendarResponse> {
         self.execute_with_options(RequestOption::default()).await
     }
 
-    pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListCalendarResponse> {
+    /// 带自定义请求选项执行。
+    pub async fn execute_with_options(
+        self,
+        option: RequestOption,
+    ) -> SDKResult<ListCalendarResponse> {
         let mut api_request: ApiRequest<ListCalendarResponse> =
             ApiRequest::get(CALENDAR_V4_CALENDARS);
 
@@ -95,8 +99,7 @@ impl ListCalendarRequest {
             api_request = api_request.query(key, value);
         }
 
-        let response = Transport::request(api_request, &self.config, Some(option)).await?;
-        extract_response_data(response, "查询日历列表")
+        Transport::request_typed(api_request, &self.config, Some(option), "查询日历列表").await
     }
 }
 
@@ -112,8 +115,14 @@ mod tests {
             .query_param("page_token", "token123");
 
         assert_eq!(request.query_params.len(), 2);
-        assert_eq!(request.query_params[0], ("page_size".to_string(), "20".to_string()));
-        assert_eq!(request.query_params[1], ("page_token".to_string(), "token123".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("page_size".to_string(), "20".to_string())
+        );
+        assert_eq!(
+            request.query_params[1],
+            ("page_token".to_string(), "token123".to_string())
+        );
     }
 
     #[test]
@@ -127,10 +136,12 @@ mod tests {
     #[test]
     fn test_list_calendar_request_single_param() {
         let config = Config::default();
-        let request = ListCalendarRequest::new(config)
-            .query_param("user_id_type", "union_id");
+        let request = ListCalendarRequest::new(config).query_param("user_id_type", "union_id");
 
         assert_eq!(request.query_params.len(), 1);
-        assert_eq!(request.query_params[0], ("user_id_type".to_string(), "union_id".to_string()));
+        assert_eq!(
+            request.query_params[0],
+            ("user_id_type".to_string(), "union_id".to_string())
+        );
     }
 }

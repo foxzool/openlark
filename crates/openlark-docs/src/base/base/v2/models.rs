@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Base v2 自定义角色（AppRole）
 ///
 /// docPath: /document/docs/bitable-v1/advanced-permission/app-role/list-2
-/// doc: https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2
+/// doc: <https://open.feishu.cn/document/docs/bitable-v1/advanced-permission/app-role/list-2>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppRole {
     /// 自定义权限的名字
@@ -21,25 +21,4 @@ pub struct AppRole {
     /// Base 规则（结构按 JSON 透传）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_rule: Option<serde_json::Value>,
-}
-
-#[cfg(test)]
-mod tests {
-
-    use serde_json;
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        // 基础序列化测试
-        let json = r#"{"test": "value"}"#;
-        assert!(serde_json::from_str::<serde_json::Value>(json).is_ok());
-    }
-
-    #[test]
-    fn test_deserialization_from_json() {
-        // 基础反序列化测试
-        let json = r#"{"field": "data"}"#;
-        let value: serde_json::Value = serde_json::from_str(json).expect("JSON 反序列化失败");
-        assert_eq!(value["field"], "data");
-    }
 }

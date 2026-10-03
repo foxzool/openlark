@@ -1,16 +1,13 @@
 //! 添加日程参与人
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::CALENDAR_V4_CALENDARS,
-};
+use crate::{common::api_utils::serialize_params, endpoints::CALENDAR_V4_CALENDARS};
 
 /// 添加日程参与人请求
 pub struct CreateCalendarEventAttendeeRequest {
@@ -20,6 +17,7 @@ pub struct CreateCalendarEventAttendeeRequest {
 }
 
 impl CreateCalendarEventAttendeeRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -42,7 +40,7 @@ impl CreateCalendarEventAttendeeRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event-attendee/create>
     pub async fn execute(self, body: serde_json::Value) -> SDKResult<serde_json::Value> {
         self.execute_with_options(body, RequestOption::default())
             .await
@@ -64,19 +62,20 @@ impl CreateCalendarEventAttendeeRequest {
         ))
         .body(serialize_params(&body, "添加日程参与人")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "添加日程参与人")
+        Transport::request_typed(req, &self.config, Some(option), "添加日程参与人").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = CreateCalendarEventAttendeeRequest::new(config.clone())
             .calendar_id("test".to_string())
             .event_id("test".to_string());

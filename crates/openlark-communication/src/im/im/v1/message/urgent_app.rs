@@ -1,20 +1,20 @@
 //! 发送应用内加急
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app
+//! docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     error,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::api_utils::{extract_response_data, serialize_params},
-    endpoints::IM_V1_MESSAGES,
-    im::im::v1::message::models::UserIdType,
+    common::api_utils::serialize_params, endpoints::IM_V1_MESSAGES,
+    im::v1::message::models::UserIdType,
 };
 
 /// 发送应用内加急请求体
@@ -120,7 +120,7 @@ impl UrgentAppRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app
+    /// docPath: <https://open.feishu.cn/document/server-docs/im-v1/buzz-messages/urgent_app>
     pub async fn execute(self, body: UrgentAppBody) -> SDKResult<UrgentAppResponse> {
         self.execute_with_options(body, openlark_core::req_option::RequestOption::default())
             .await
@@ -153,8 +153,7 @@ impl UrgentAppRequest {
                 .query("user_id_type", user_id_type.as_str())
                 .body(serialize_params(&body, "发送应用内加急")?);
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "发送应用内加急")
+        Transport::request_typed(req, &self.config, Some(option), "发送应用内加急").await
     }
 }
 

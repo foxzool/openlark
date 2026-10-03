@@ -1,14 +1,14 @@
 //! 获取词库列表
 //!
-//! docPath: https://open.feishu.cn/document/lingo-v1/repo/list
-//! doc: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/lingo-v1/repo/list
+//! docPath: <https://open.feishu.cn/document/lingo-v1/repo/list>
+//! doc: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/lingo-v1/repo/list>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    SDKResult,
 };
 use serde::{Deserialize, Serialize};
 
@@ -47,13 +47,9 @@ impl ListRepoRequest {
 
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ListRepoResp> {
-        let api_request: ApiRequest<ListRepoResp> = ApiRequest::get(&LingoApiV1::RepoList.to_url());
+        let api_request: ApiRequest<ListRepoResp> = LingoApiV1::RepoList.to_request();
 
-        let response: Response<ListRepoResp> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "获取词库列表").await
     }
 }
 

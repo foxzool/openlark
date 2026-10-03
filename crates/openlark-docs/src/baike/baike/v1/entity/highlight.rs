@@ -1,13 +1,14 @@
 //! 词条高亮
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/baike-v1/entity/highlight
+//! docPath: <https://open.feishu.cn/document/server-docs/baike-v1/entity/highlight>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, Response, ResponseFormat},
+    SDKResult,
+    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -89,16 +90,13 @@ impl HighlightEntityRequest {
         }
 
         // ===== 构建请求 =====
-        let api_request: ApiRequest<HighlightEntityResponse> =
-            ApiRequest::post(&BaikeApiV1::EntityHighlight.to_url())
-                .body(serde_json::to_value(&self.req)?);
+        // 使用 catalog 提供 method + path + auth（#443）
+        let api_request: ApiRequest<HighlightEntityResponse> = BaikeApiV1::EntityHighlight
+            .to_request()
+            .body(serde_json::to_value(&self.req)?);
 
         // ===== 发送请求 =====
-        let response: Response<HighlightEntityResponse> =
-            Transport::request(api_request, &self.config, Some(option)).await?;
-        response
-            .data
-            .ok_or_else(|| openlark_core::error::validation_error("response", "响应数据为空"))
+        Transport::request_typed(api_request, &self.config, Some(option), "词条高亮").await
     }
 }
 

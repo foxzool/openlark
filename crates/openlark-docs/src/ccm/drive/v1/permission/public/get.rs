@@ -2,17 +2,18 @@
 //!
 //! 获取指定云文档的公共访问与协作权限设置。
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/permission/permission-public/get
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/permission/permission-public/get>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::{api_endpoints::DriveApi, api_utils::*};
+use crate::common::api_endpoints::DriveApi;
 
 use super::models::PermissionPublic;
 
@@ -66,12 +67,7 @@ impl GetPublicPermissionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<GetPublicPermissionResponse> {
         // === 必填字段验证 ===
-        if self.token.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "token",
-                "token 不能为空",
-            ));
-        }
+        validate_required!(self.token, "token 不能为空");
         if self.r#type.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "type",
@@ -92,11 +88,11 @@ impl GetPublicPermissionRequest {
         }
 
         let api_endpoint = DriveApi::GetPublicPermission(self.token);
-        let request = ApiRequest::<GetPublicPermissionResponse>::get(&api_endpoint.to_url())
+        let request = api_endpoint
+            .to_request::<GetPublicPermissionResponse>()
             .query("type", self.r#type);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "获取")
+        Transport::request_typed(request, &self.config, Some(option), "获取").await
     }
 }
 

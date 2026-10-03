@@ -2,7 +2,7 @@
 //!
 //! 提供卡片和组件相关的通用验证函数，消除 API 实现中的代码重复。
 
-use openlark_core::error;
+use openlark_core::{error, validate_required};
 
 /// 验证卡片 ID 是否有效
 ///
@@ -23,14 +23,8 @@ use openlark_core::error;
 /// validate_card_id("")?;          // Err(CoreError)
 /// ```
 pub fn validate_card_id(card_id: &str) -> Result<(), error::CoreError> {
-    if card_id.trim().is_empty() {
-        Err(error::validation_error(
-            "card_id 不能为空",
-            "卡片 ID 不能为空或仅包含空白字符",
-        ))
-    } else {
-        Ok(())
-    }
+    validate_required!(card_id, "card_id 不能为空");
+    Ok(())
 }
 
 /// 验证组件 ID 是否有效
@@ -52,14 +46,36 @@ pub fn validate_card_id(card_id: &str) -> Result<(), error::CoreError> {
 /// validate_element_id("")?;          // Err(CoreError)
 /// ```
 pub fn validate_element_id(element_id: &str) -> Result<(), error::CoreError> {
-    if element_id.trim().is_empty() {
-        Err(error::validation_error(
-            "element_id 不能为空",
-            "组件 ID 不能为空或仅包含空白字符",
-        ))
-    } else {
-        Ok(())
+    validate_required!(element_id, "element_id 不能为空");
+    Ok(())
+}
+
+/// 验证流式更新序号 `sequence`
+///
+/// 官方约束：正整数，取值范围 1～2147483647（int32）。
+pub fn validate_sequence(sequence: i32) -> Result<(), error::CoreError> {
+    if sequence < 1 {
+        return Err(error::validation_error(
+            "sequence 无效",
+            "sequence 必须是 1～2147483647 的正整数",
+        ));
     }
+    Ok(())
+}
+
+/// 验证可选幂等 ID `uuid`
+pub fn validate_uuid(uuid: &Option<String>) -> Result<(), error::CoreError> {
+    if let Some(uuid) = uuid {
+        validate_required!(uuid, "uuid 不能为空");
+        let len = uuid.chars().count();
+        if !(1..=64).contains(&len) {
+            return Err(error::validation_error(
+                "uuid 长度无效",
+                "uuid 长度范围为 1～64 个字符",
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// 验证 ID 类型是否有效
@@ -82,14 +98,8 @@ pub fn validate_element_id(element_id: &str) -> Result<(), error::CoreError> {
 /// validate_id_type("", "用户ID")?;         // Err(CoreError)
 /// ```
 pub fn validate_id_type(id_type: &str, field_name: &str) -> Result<(), error::CoreError> {
-    if id_type.trim().is_empty() {
-        Err(error::validation_error(
-            format!("{} 不能为空", field_name),
-            format!("{} 不能为空或仅包含空白字符", field_name),
-        ))
-    } else {
-        Ok(())
-    }
+    validate_required!(id_type, format!("{field_name} 不能为空"));
+    Ok(())
 }
 
 /// 验证 ID 列表是否非空
@@ -114,8 +124,8 @@ pub fn validate_id_type(id_type: &str, field_name: &str) -> Result<(), error::Co
 pub fn validate_id_list(ids: &[String], field_name: &str) -> Result<(), error::CoreError> {
     if ids.is_empty() {
         Err(error::validation_error(
-            format!("{} 不能为空", field_name),
-            format!("{} 必须包含至少一个 ID", field_name),
+            format!("{field_name} 不能为空"),
+            format!("{field_name} 必须包含至少一个 ID"),
         ))
     } else {
         Ok(())

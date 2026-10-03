@@ -1,13 +1,13 @@
 //! 获取日程列表
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/list
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/list>
 
 use openlark_core::{
-    api::ApiRequest, config::Config, http::Transport, req_option::RequestOption, validate_required,
-    SDKResult,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
-use crate::{common::api_utils::extract_response_data, endpoints::CALENDAR_V4_CALENDARS};
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 获取日程列表请求
 pub struct ListCalendarEventRequest {
@@ -17,6 +17,7 @@ pub struct ListCalendarEventRequest {
 }
 
 impl ListCalendarEventRequest {
+    /// 创建请求实例。
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -39,7 +40,7 @@ impl ListCalendarEventRequest {
 
     /// 执行请求
     ///
-    /// docPath: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/list
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/list>
     pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(RequestOption::default()).await
     }
@@ -57,19 +58,20 @@ impl ListCalendarEventRequest {
             req = req.query(k, v);
         }
 
-        let resp = Transport::request(req, &self.config, Some(option)).await?;
-        extract_response_data(resp, "获取日程列表")
+        Transport::request_typed(req, &self.config, Some(option), "获取日程列表").await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder().app_id("test_app").app_secret("test_secret").build();
+        let config = openlark_core::config::Config::builder()
+            .app_id("test_app")
+            .app_secret("test_secret")
+            .build();
         let request = ListCalendarEventRequest::new(config.clone())
             .calendar_id("test".to_string())
             .query_param("key1".to_string(), "value1".to_string());

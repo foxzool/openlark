@@ -1,11 +1,11 @@
 //! 获取任务提醒列表（v1）
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/list
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskreminder/list>
 
 use openlark_core::{
+    SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    SDKResult,
 };
 use serde::Deserialize;
 use std::sync::Arc;
@@ -62,11 +62,13 @@ impl ListTaskReminderRequestV1 {
             crate::common::api_endpoints::TaskApiV1::TaskReminderList(self.task_id.clone());
         let request = ApiRequest::<ListTaskReminderResponseV1>::get(api_endpoint.to_url());
 
-        let response =
-            openlark_core::http::Transport::request(request, &self.config, Some(option)).await?;
-        response.data.ok_or_else(|| {
-            openlark_core::error::validation_error("响应数据为空", "服务器没有返回有效的数据")
-        })
+        openlark_core::http::Transport::request_typed(
+            request,
+            &self.config,
+            Some(option),
+            "响应数据为空",
+        )
+        .await
     }
 }
 

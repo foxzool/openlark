@@ -1,12 +1,13 @@
 //! Bitable 新增记录
 //!
-//! docPath: https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/create
+//! docPath: <https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/create>
 
 use openlark_core::{
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    SDKResult,
+    api::{ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, SDKResult,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -101,7 +102,8 @@ impl CreateRecordRequest {
 
         let api_endpoint =
             BitableApiV1::RecordCreate(self.app_token.clone(), self.table_id.clone());
-        let mut request = ApiRequest::<CreateRecordResponse>::post(&api_endpoint.to_url());
+        // #424：稳定 method 来自目录；叶子只附加 query/body/option
+        let mut request = api_endpoint.to_request::<CreateRecordResponse>();
 
         if let Some(ref user_id_type) = self.user_id_type {
             request = request.query("user_id_type", user_id_type);
@@ -123,8 +125,7 @@ impl CreateRecordRequest {
         };
         request = request.body(serialize_params(&request_body, "新增记录")?);
 
-        let response = Transport::request(request, &self.config, Some(option)).await?;
-        extract_response_data(response, "新增记录")
+        Transport::request_typed(request, &self.config, Some(option), "新增记录").await
     }
 }
 
@@ -154,7 +155,7 @@ struct CreateRecordRequestBody {
 ///       "en_name": "Zhang San"
 ///     },
 ///     "created_time": 1234567890000,
-///     "record_url": "https://example.feishu.cn/base/xxxxxxxxxxxxx"
+///     "record_url": "<https://example.feishu.cn/base/xxxxxxxxxxxxx>"
 ///   }
 /// }
 /// ```
@@ -241,5 +242,14 @@ mod tests {
         let request = CreateRecordRequest::new(config).fields(fields.clone());
 
         assert_eq!(request.fields, fields);
+    }
+
+    #[test]
+    fn test_create_uses_post_from_catalog_424() {
+        // 叶子现在委托 method 给 catalog
+        let ep =
+            crate::common::api_endpoints::BitableApiV1::RecordCreate("app".into(), "tbl".into());
+        let req: openlark_core::api::ApiRequest<CreateRecordResponse> = ep.to_request();
+        assert_eq!(req.method(), &openlark_core::api::HttpMethod::Post);
     }
 }

@@ -1,0 +1,14 @@
+/// batch_update_table_records 模块。
+pub mod batch_update_table_records;
+/// delete_table_records 模块。
+pub mod delete_table_records;
+/// get_table_detail 模块。
+pub mod get_table_detail;
+/// get_table_list 模块。
+pub mod get_table_list;
+/// get_table_record_list 模块。
+pub mod get_table_record_list;
+/// patch_table_records 模块。
+pub mod patch_table_records;
+/// post_table_records 模块。
+pub mod post_table_records;
