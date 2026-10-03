@@ -268,6 +268,41 @@ class LiveOfficialEvidenceCollectTests(unittest.TestCase):
                 self.assertEqual(evidence.diagnostics[0].code, diagnostic)
                 self.assertEqual(evidence.acquisition_trail[0].status, status)
 
+    def test_rejects_oversized_structured_detail_responses(self):
+        cases = (
+            {"body": b"{}", "declared_length": 33},
+            {"body": b"x" * 33},
+        )
+        for server_options in cases:
+            with (
+                self.subTest(server_options=server_options),
+                tempfile.TemporaryDirectory() as directory,
+                detail_server(**server_options) as (_, url),
+                patch(
+                    "tools.api_contracts.official_evidence."
+                    "_STRUCTURED_DETAIL_MAX_BYTES",
+                    32,
+                ),
+            ):
+                snapshot_directory = Path(directory)
+                evidence = compose(
+                    snapshot_directory=snapshot_directory,
+                    structured_detail_url=url,
+                    timeout_seconds=1,
+                    retries=0,
+                ).collect(
+                    self.api,
+                    (EvidenceDimension.ENDPOINT,),
+                    FreshOfficialPolicy(),
+                ).for_dimension(EvidenceDimension.ENDPOINT)
+
+                self.assertEqual(evidence.status, EvidenceStatus.UNAVAILABLE)
+                self.assertEqual(
+                    evidence.diagnostics[0].code,
+                    "acquisition_failed",
+                )
+                self.assertEqual(tuple(snapshot_directory.rglob("*.json")), ())
+
     def test_store_is_immutable_reinterprets_and_evicts_rejected_snapshots(self):
         with tempfile.TemporaryDirectory() as directory:
             snapshot_directory = Path(directory)

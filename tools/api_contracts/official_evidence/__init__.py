@@ -59,6 +59,8 @@ _INTERPRETER_REVISION = "official-evidence/1"
 _STRUCTURED_DETAIL_URL = (
     "https://open.feishu.cn/document_portal/v1/document/get_detail"
 )
+_STRUCTURED_DETAIL_MAX_BYTES = 16 * 1024 * 1024
+_HTTP_READ_CHUNK_BYTES = 64 * 1024
 _RENDERED_WORKER_COMMAND = (
     "node",
     str(Path(__file__).with_name("rendered_document_worker.js")),
@@ -119,6 +121,10 @@ class SnapshotStoreError(EvidenceError):
 
 class AdapterContractError(EvidenceError):
     """Live source adapter 返回了违反契约的结果。"""
+
+
+class _ResponseTooLarge(OSError):
+    """远端响应超过允许的硬限制。"""
 
 
 @dataclass(frozen=True)
@@ -325,6 +331,29 @@ class _AcquisitionResult:
     failure: _Candidate | None
 
 
+def _read_bounded_response(response: Any) -> bytes:
+    declared_length = response.headers.get("Content-Length")
+    expected_length: int | None = None
+    if declared_length is not None:
+        try:
+            expected_length = int(declared_length)
+            if expected_length > _STRUCTURED_DETAIL_MAX_BYTES:
+                raise _ResponseTooLarge("Structured Detail 响应超过大小限制")
+        except ValueError:
+            pass
+
+    body = bytearray()
+    while len(body) <= _STRUCTURED_DETAIL_MAX_BYTES:
+        remaining = _STRUCTURED_DETAIL_MAX_BYTES + 1 - len(body)
+        chunk = response.read(min(_HTTP_READ_CHUNK_BYTES, remaining))
+        if not chunk:
+            if expected_length is not None and len(body) < expected_length:
+                raise http.client.IncompleteRead(bytes(body), expected_length)
+            return bytes(body)
+        body.extend(chunk)
+    raise _ResponseTooLarge("Structured Detail 响应超过大小限制")
+
+
 class _StructuredDetailAdapter:
     def __init__(self, base_url: str, timeout_seconds: float, retries: int) -> None:
         self._base_url = base_url
@@ -352,7 +381,7 @@ class _StructuredDetailAdapter:
                     request,
                     timeout=self._timeout_seconds,
                 ) as response:
-                    raw_bytes = response.read()
+                    raw_bytes = _read_bounded_response(response)
                     source_uri = response.geturl()
                 raw = raw_bytes.decode("utf-8", "replace")
                 return _AcquisitionResult(
