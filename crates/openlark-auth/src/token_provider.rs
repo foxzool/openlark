@@ -11,8 +11,10 @@ use openlark_core::{
     SDKResult,
 };
 use serde_json::{json, Value};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::future::Future;
+use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -79,9 +81,21 @@ impl AuthTokenProvider {
         }
     }
 
-    /// 生成缓存键
-    fn cache_key(token_type: &AccessTokenType, app_type: &AppType) -> String {
-        format!("{:?}_{:?}", token_type, app_type)
+    /// 生成缓存键（租户 token 会包含租户上下文，避免跨租户复用）
+    fn cache_key(
+        token_type: &AccessTokenType,
+        app_type: &AppType,
+        tenant_key: Option<&str>,
+        app_ticket: Option<&str>,
+    ) -> String {
+        if matches!(token_type, AccessTokenType::Tenant) {
+            let mut hasher = DefaultHasher::new();
+            tenant_key.hash(&mut hasher);
+            app_ticket.hash(&mut hasher);
+            format!("{:?}_{:?}_ctx_{:x}", token_type, app_type, hasher.finish())
+        } else {
+            format!("{:?}_{:?}", token_type, app_type)
+        }
     }
 
     async fn get_cached(&self, cache_key: &str) -> Option<String> {
@@ -173,7 +187,8 @@ impl TokenProvider for AuthTokenProvider {
         Box::pin(async move {
             match request.token_type {
             AccessTokenType::App => {
-                let cache_key = Self::cache_key(&AccessTokenType::App, &self.config.app_type());
+                let cache_key =
+                    Self::cache_key(&AccessTokenType::App, &self.config.app_type(), None, None);
                 self.get_or_fetch(cache_key, || async {
                     let (token, expires_in) = match self.config.app_type() {
                         AppType::SelfBuild => {
@@ -204,7 +219,12 @@ impl TokenProvider for AuthTokenProvider {
                 .await
             }
             AccessTokenType::Tenant => {
-                let cache_key = Self::cache_key(&AccessTokenType::Tenant, &self.config.app_type());
+                let cache_key = Self::cache_key(
+                    &AccessTokenType::Tenant,
+                    &self.config.app_type(),
+                    request.tenant_key.as_deref(),
+                    request.app_ticket.as_deref(),
+                );
                 self.get_or_fetch(cache_key, || async {
                     let (token, expires_in) = match self.config.app_type() {
                         AppType::SelfBuild => {
@@ -259,6 +279,7 @@ mod tests {
     use openlark_core::{
         auth::{TokenProvider, TokenRequest},
         config::Config,
+        constants::{AccessTokenType, AppType},
     };
 
     #[tokio::test]
@@ -276,5 +297,37 @@ mod tests {
             .expect_err("should fail on unreachable test endpoint");
 
         assert!(!err.to_string().contains("NoOpTokenProvider"));
+    }
+
+    #[test]
+    fn tenant_cache_key_should_include_tenant_context() {
+        let tenant_a = AuthTokenProvider::cache_key(
+            &AccessTokenType::Tenant,
+            &AppType::Marketplace,
+            Some("tenant_a"),
+            Some("ticket_a"),
+        );
+        let tenant_b = AuthTokenProvider::cache_key(
+            &AccessTokenType::Tenant,
+            &AppType::Marketplace,
+            Some("tenant_b"),
+            Some("ticket_b"),
+        );
+
+        assert_ne!(tenant_a, tenant_b);
+    }
+
+    #[test]
+    fn app_cache_key_should_remain_stable() {
+        let key1 =
+            AuthTokenProvider::cache_key(&AccessTokenType::App, &AppType::SelfBuild, None, None);
+        let key2 = AuthTokenProvider::cache_key(
+            &AccessTokenType::App,
+            &AppType::SelfBuild,
+            Some("tenant_x"),
+            Some("ticket_x"),
+        );
+
+        assert_eq!(key1, key2);
     }
 }
