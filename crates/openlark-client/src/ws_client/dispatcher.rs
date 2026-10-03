@@ -34,9 +34,10 @@ pub trait EventHandler: Send + Sync + 'static {
     /// 处理原始事件负载。
     fn handle(&self, payload: &[u8]) -> EventHandlerResult;
 
-    /// 在分发器已解析出 [`serde_json::Value`] 时复用，避免 typed 路径二次 tokenize。
+    /// 从已解析的 [`serde_json::Value`] 处理事件。
     ///
-    /// 默认回退到 [`Self::handle`]。
+    /// 为保持 API 兼容性保留此方法；分发器不会预先物化整个 payload，
+    /// 而是在命中处理器后调用 [`Self::handle`]。
     fn handle_from_value(&self, _value: &serde_json::Value, payload: &[u8]) -> EventHandlerResult {
         self.handle(payload)
     }
@@ -58,7 +59,10 @@ pub trait CallbackEventHandler: Send + Sync + 'static {
         payload: &[u8],
     ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>;
 
-    /// 在分发器已解析出 [`serde_json::Value`] 时复用，避免 typed 路径二次 tokenize。
+    /// 从已解析的 [`serde_json::Value`] 处理事件。
+    ///
+    /// 为保持 API 兼容性保留此方法；分发器不会预先物化整个 payload，
+    /// 而是在命中处理器后调用 [`Self::handle`]。
     fn handle_from_value(
         &self,
         _value: &serde_json::Value,
@@ -169,15 +173,6 @@ impl EventDispatcherHandler {
         Ok(self)
     }
 
-    fn event_type_from_value(value: &serde_json::Value) -> Option<String> {
-        value
-            .get("header")
-            .and_then(|header| header.get("event_type"))
-            .and_then(|event_type| event_type.as_str())
-            .map(str::to_string)
-            .filter(|event_type| !event_type.trim().is_empty())
-    }
-
     fn extract_event_type(payload: &[u8]) -> Option<String> {
         serde_json::from_slice::<RawEventEnvelope>(payload)
             .ok()
@@ -189,20 +184,6 @@ impl EventDispatcherHandler {
         if let Some(handler) = self.raw_handlers.get(key) {
             handler
                 .handle(payload)
-                .map_err(|err| format!("处理原始事件 {key} 失败: {err}"))?;
-        }
-        Ok(())
-    }
-
-    fn dispatch_raw_handler_from_value(
-        &self,
-        key: &str,
-        value: &serde_json::Value,
-        payload: &[u8],
-    ) -> Result<(), String> {
-        if let Some(handler) = self.raw_handlers.get(key) {
-            handler
-                .handle_from_value(value, payload)
                 .map_err(|err| format!("处理原始事件 {key} 失败: {err}"))?;
         }
         Ok(())
@@ -231,20 +212,14 @@ impl EventDispatcherHandler {
                 .map_err(|e| format!("转发事件负载失败: {e}"))?;
         }
 
-        // 先解析成 Value，typed 回调可 `deserialize` 复用，避免二次 tokenize。
-        let parsed = serde_json::from_slice::<serde_json::Value>(payload).ok();
-        let event_type = parsed
-            .as_ref()
-            .and_then(Self::event_type_from_value)
-            .or_else(|| Self::extract_event_type(payload));
+        // 只提取路由所需的事件类型；未命中处理器时不物化整个 JSON 树。
+        let event_type = Self::extract_event_type(payload);
 
         if let Some(event_type) = event_type {
             if let Some(handler) = self.callback_handlers.get(&event_type) {
-                let value = match &parsed {
-                    Some(parsed) => handler.handle_from_value(parsed, payload),
-                    None => handler.handle(payload),
-                }
-                .map_err(|err| format!("处理回调事件 {event_type} 失败: {err}"))?;
+                let value = handler
+                    .handle(payload)
+                    .map_err(|err| format!("处理回调事件 {event_type} 失败: {err}"))?;
                 return match value {
                     Some(v) => serde_json::to_vec(&v)
                         .map(Some)
@@ -252,21 +227,46 @@ impl EventDispatcherHandler {
                     None => Ok(None),
                 };
             }
-            match &parsed {
-                Some(parsed) => {
-                    self.dispatch_raw_handler_from_value(&event_type, parsed, payload)?
-                }
-                None => self.dispatch_raw_handler(&event_type, payload)?,
-            }
+            self.dispatch_raw_handler(&event_type, payload)?;
         }
 
-        match &parsed {
-            Some(parsed) => {
-                self.dispatch_raw_handler_from_value(Self::RAW_EVENT_KEY, parsed, payload)?
-            }
-            None => self.dispatch_raw_handler(Self::RAW_EVENT_KEY, payload)?,
-        }
+        self.dispatch_raw_handler(Self::RAW_EVENT_KEY, payload)?;
 
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{EventDispatcherHandler, EventHandler, EventHandlerResult};
+
+    struct DirectHandler;
+
+    impl EventHandler for DirectHandler {
+        fn handle(&self, _payload: &[u8]) -> EventHandlerResult {
+            Ok(())
+        }
+
+        fn handle_from_value(
+            &self,
+            _value: &serde_json::Value,
+            _payload: &[u8],
+        ) -> EventHandlerResult {
+            panic!("分发器不应预先物化完整 JSON 树");
+        }
+    }
+
+    #[test]
+    fn dispatch_uses_payload_handler_without_materializing_value() {
+        let dispatcher = EventDispatcherHandler::builder()
+            .register_raw("test.event", DirectHandler)
+            .expect("register")
+            .build();
+
+        dispatcher
+            .do_without_validation(
+                br#"{"header":{"event_type":"test.event"},"unknown":[{},{},{}]}"#,
+            )
+            .expect("dispatch");
     }
 }

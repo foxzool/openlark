@@ -687,9 +687,12 @@ mod tests {
             typed_elapsed.as_millis() < 500,
             "1000 typed dispatches took {typed_elapsed:?}"
         );
+        // typed 路径在命中后直接从字节反序列化，避免为所有事件预先
+        // 物化完整 Value 树带来的内存放大。因此它会比只做路由解析的 raw 路径
+        // 多一次有界的解析，但仍应保持在宽松的相对性能预算内。
         assert!(
-            typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 2.0,
-            "typed {typed_elapsed:?} exceeds 2x raw {raw_elapsed:?}"
+            typed_elapsed.as_secs_f64() <= raw_elapsed.as_secs_f64() * 3.0,
+            "typed {typed_elapsed:?} exceeds 3x raw {raw_elapsed:?}"
         );
     }
 }
