@@ -6,12 +6,14 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::common::api_utils::serialize_params;
 use crate::endpoints::DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION;
+
+const MAX_CONTRACT_FILE_SIZE: usize = 10 * 1024 * 1024 - 1;
 
 /// 合同字段提取请求体。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +33,11 @@ pub struct ContractFieldExtractionBody {
 impl ContractFieldExtractionBody {
     /// 验证请求参数。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file, "file 不能为空");
+        validate_required_list!(
+            self.file,
+            MAX_CONTRACT_FILE_SIZE,
+            "file 不能为空且必须小于 10 MB"
+        );
         validate_required!(self.ocr_mode, "ocr_mode 不能为空");
         if self.pdf_page_limit <= 0 {
             return Err(openlark_core::error::CoreError::validation_msg(
@@ -109,7 +115,7 @@ impl ContractFieldExtractionRequest {
         let req: ApiRequest<ContractFieldExtractionResponse> =
             ApiRequest::post(DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION)
                 .body(serialize_params(&body, "合同字段提取")?)
-                .file_content(body.file.clone());
+                .file_content(body.file);
 
         Transport::request_typed(req, &self.config, Some(option), "合同字段提取").await
     }
@@ -173,8 +179,8 @@ impl ContractFieldExtractionRequestBuilder {
 
     /// 执行请求。
     pub async fn execute(self) -> SDKResult<ContractFieldExtractionResponse> {
-        let body = self.clone().body();
-        self.request.execute(body).await
+        let request = self.request.clone();
+        request.execute(self.body()).await
     }
 
     /// 执行请求（支持自定义选项）。
@@ -182,8 +188,8 @@ impl ContractFieldExtractionRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<ContractFieldExtractionResponse> {
-        let body = self.clone().body();
-        self.request.execute_with_options(body, option).await
+        let request = self.request.clone();
+        request.execute_with_options(self.body(), option).await
     }
 }
 
@@ -206,7 +212,7 @@ pub async fn contract_field_extraction_with_options(
     let req: ApiRequest<ContractFieldExtractionResponse> =
         ApiRequest::post(DOCUMENT_AI_CONTRACT_FIELD_EXTRACTION)
             .body(serialize_params(&body, "合同字段提取")?)
-            .file_content(body.file.clone());
+            .file_content(body.file);
 
     Transport::request_typed(req, config, Some(option), "合同字段提取").await
 }
@@ -244,5 +250,30 @@ mod tests {
             .body();
         assert_eq!(body.pdf_page_limit, 10);
         assert_eq!(body.ocr_mode, "force");
+    }
+
+    #[test]
+    fn test_rejects_contract_file_at_size_limit() {
+        let body = ContractFieldExtractionBody {
+            file: vec![0; 10 * 1024 * 1024],
+            file_name: Some("oversized.pdf".into()),
+            pdf_page_limit: 10,
+            ocr_mode: "auto".into(),
+        };
+
+        let error = body.validate().expect_err("10 MB files must be rejected");
+        assert!(error.to_string().contains("file 不能为空且必须小于 10 MB"));
+    }
+
+    #[test]
+    fn test_accepts_contract_file_below_size_limit() {
+        let body = ContractFieldExtractionBody {
+            file: vec![0; MAX_CONTRACT_FILE_SIZE],
+            file_name: Some("contract.pdf".into()),
+            pdf_page_limit: 10,
+            ocr_mode: "auto".into(),
+        };
+
+        assert!(body.validate().is_ok());
     }
 }
