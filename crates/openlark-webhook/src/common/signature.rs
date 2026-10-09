@@ -56,14 +56,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sign_known_input() {
-        // Test with known input/output from 飞书 official docs
-        let timestamp = 1599360473i64;
-        let secret = "test-secret";
-        let signature = sign(timestamp, secret);
-
-        // Verify it's base64 encoded and not empty
-        assert!(!signature.is_empty());
+    fn test_sign_feishu_vectors() {
+        assert_eq!(
+            sign(1234567890, "test-secret"),
+            "qCaOcLimil1ehZl6GzN2CUL6wgdt4onZPxvw8V+3TzA="
+        );
+        assert_eq!(sign(0, "a"), "Tp8MNfpagxPJcttlh+SrLen5zPoTRDXb0y/HepnDrPA=");
     }
 
     #[test]
