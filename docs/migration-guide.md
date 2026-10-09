@@ -1,10 +1,60 @@
 # OpenLark 迁移指南
 
-本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.20.0**。下方按版本分节；
-**从 0.19 升级请先读 0.20 专节**；跨多个大版本请按顺序阅读各节。
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.21.0**。下方按版本分节；
+**从 0.20 升级请先读 0.21 专节**；跨多个大版本请按顺序阅读各节。
 
 完整 breaking 表与逐 API 迁移代码见根目录 [`CHANGELOG.md`](../CHANGELOG.md) 的
-`## [0.20.0]` / `## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+`## [0.21.0]` / `## [0.20.0]` / `## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+
+---
+
+# OpenLark 0.21 迁移指南
+
+适用范围：从 `0.20.x` 迁移到 `0.21.x`
+
+## 一句话结论
+
+`0.21` 增加商店付费 crate、HTTP 事件入站和高频 WebSocket typed handler，并修复
+rustls `RUSTSEC-2026-0285` 与自定义机器人出站签名（#686）。对大多数只走既有 leaf
+builder、且未手写下列请求体的业务代码是 **minor 兼容**。公开 breaking 集中在按飞书
+官方文档重写的请求/响应字段（AI OCR/语音/翻译/合同抽取、Helpdesk、应用角标、
+个人状态、CardKit）。
+
+## 1. 请求体字段对齐（breaking）
+
+下列接口的 Body/Response 已按官方文档重写。完整字段表与 before/after 见
+CHANGELOG `## [0.21.0]` → `Changed (Breaking)`。
+
+| 表面 | 要点 |
+|------|------|
+| `openlark-ai` OCR / 语音 / 翻译 / 合同抽取 | 去掉错误的 `file_token` 等推断字段；合同抽取改为 multipart `file` |
+| `openlark-helpdesk` 客服/FAQ/工单等写接口 | 嵌套包装与扁平字段按官方文档重排 |
+| `openlark-application` `app_badge/set` | 必填 `user_id` + `version`；移除错误的 `app_id` / `badge` |
+| `openlark-user` `system_status` 全部 6 个接口 | `user_ids` → `user_list` 等；去掉双重嵌套 `data` |
+| `openlark-cardkit` 卡片写接口 | 流式写接口补齐必填 `sequence`；路径参数不再进 JSON body |
+
+## 2. 行为修正（签名与缓存）
+
+- **自定义机器人出站签名（#686）**：`openlark-webhook` 的 `sign` 现为
+  `base64(HMAC-SHA256(key="{timestamp}\n{secret}", message=""))`。若调用方自行
+  复现了旧的 key/message 对调算法，需改为与 SDK 相同的空消息 HMAC。
+- **tenant token 缓存（#684）**：缓存键同时包含 `tenant_key` 与 `app_ticket`。
+  多租户或票据轮换场景下不再命中错误缓存项。
+
+## 3. 新增能力（非破坏）
+
+- **`pay` feature / `openlark-pay`**：订单详情、租户付费方案、用户开通范围。
+- **`event-http` feature**：`HttpEventInbound` 处理平台「将事件发送至开发者服务器」
+  （解密、Challenge、入站签名）。这不是 `openlark-webhook` 出站机器人。
+- **typed WebSocket handler**：`register_im_message_receive_v1` 与
+  `register_card_action_trigger`。`register_raw` / `register_callback` 仍可用。
+
+## 4. 升级自检
+
+- [ ] 手写过 AI / Helpdesk / app_badge / system_status / CardKit 请求体的调用已按 CHANGELOG 字段表更新
+- [ ] 自研 webhook 出站签名与 `timestamp\nsecret` 空消息 HMAC 一致
+- [ ] 需要商店付费或 HTTP 事件入站时分别启用 `pay` / `event-http`
+- [ ] 阅读 CHANGELOG `## [0.21.0]` 全文（本专节为摘要）
 
 ---
 

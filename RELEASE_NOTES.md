@@ -7,36 +7,47 @@
 > Historical narrative below the demotion notice (0.16-era) is **archived for archaeology
 > only** and is not current product guidance.
 
-## 当前发布窗口：0.20.0
+## 当前发布窗口：0.21.0
 
-**状态：** 已发布 — annotated tag `v0.20.0`、stable GitHub Release、crates.io `0.20.0`（#591）。  
-**Cut 记录：** [`docs/0.20.0_RELEASE_CUT.md`](docs/0.20.0_RELEASE_CUT.md)  
-**Sign-off：** [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md)  
-**完整条目：** [`CHANGELOG.md` → `## [0.20.0]`](CHANGELOG.md)  
-**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.20](docs/migration-guide.md)
+**状态：** 打包中 — workspace identity `0.21.0`；annotated tag / stable GitHub Release /
+crates.io 为 **post-merge cut**。本变更不打 tag、不发布、不合并。  
+**触发：** 合并到 `main` 之后，对发布提交打 annotated tag `v0.21.0` 并推送。
+`.github/workflows/release.yml` 仅在匹配 `v*` 的 tag push 上运行。  
+**完整条目：** [`CHANGELOG.md` → `## [0.21.0]`](CHANGELOG.md)  
+**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.21](docs/migration-guide.md)
 
 ### 主题摘要（非完整列表）
 
 | 主题 | 要点 |
 |------|------|
-| Contract trust | docs 域 field strict gate（#569）；endpoint resolver baike 盲区关闭（#568） |
-| Coverage truth | path denoise + classified missing（#567）；P1/P2 噪声重分类（#570/#571） |
-| Selective gaps | 不追求 platform 100%；hard gate 阈值不降 |
-| Thin helper | `WorkflowService::create_task`（#572，可选体验轨） |
-| Breaking | 仅 `BaikeApiV1` 独立 catalog（#568）；多数 leaf 业务路径 minor 兼容 |
+| Security | 传递依赖 rustls 0.23.45，清除 RUSTSEC-2026-0285（#665） |
+| Webhook | 出站签名改为飞书空消息 HMAC（#686） |
+| Pay | 新 crate `openlark-pay` 与根 feature `pay`（#660） |
+| HTTP inbound | `event-http` / `HttpEventInbound`（#672） |
+| Typed WS | `im.message.receive_v1` 与 `card.action.trigger` typed handler（#668/#673） |
+| Breaking | AI / Helpdesk / app_badge / system_status / CardKit 请求体按官方文档重写 |
 
-升级请优先读迁移指南 0.20 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
+升级请优先读迁移指南 0.21 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
 
 ### 如何生成正式 Release 正文
 
-1. 确认 `CHANGELOG.md` 含 `## [0.20.0]`（本窗口已 dated）。
-2. 确认 [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md) 记录 **GO**。
-3. 打 annotated tag `v0.20.0` 后由 `release.yml` 提取该节并 publish。
+1. 确认 `CHANGELOG.md` 含 `## [0.21.0]`（本窗口已 dated）。
+2. 合并本打包变更到 `main` 后，打 annotated tag `v0.21.0`。
+3. `release.yml` 提取该节、创建 GitHub Release，并按 `scripts/publish-workspace.sh` 发布到 crates.io。
 4. 可选：将 `tools/release_quality_status.py` 产出附在 Release 末尾（工作流已支持）。
 
 ---
 
-## 上一窗口：0.19.0（已发布）
+## 上一窗口：0.20.0（已发布）
+
+**状态：** 已发布 — annotated tag `v0.20.0`、stable GitHub Release、crates.io `0.20.0`（#591）。  
+**Cut 记录：** [`docs/0.20.0_RELEASE_CUT.md`](docs/0.20.0_RELEASE_CUT.md)  
+**Sign-off：** [`docs/0.20.0_RELEASE_SIGNOFF.md`](docs/0.20.0_RELEASE_SIGNOFF.md)  
+**完整条目：** [`CHANGELOG.md` → `## [0.20.0]`](CHANGELOG.md)
+
+---
+
+## 更早窗口：0.19.0（已发布）
 
 **状态：** 已发布 — annotated tag `v0.19.0`、stable GitHub Release、crates.io `0.19.0`（#560）。  
 **Cut 记录：** [`docs/0.19.0_RELEASE_CUT.md`](docs/0.19.0_RELEASE_CUT.md)  

@@ -1489,7 +1489,7 @@ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
 name = "openlark"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "chrono",
  "clap",
@@ -1535,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-ai"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1548,7 +1548,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-analytics"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1575,7 +1575,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-application"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "serde",
@@ -1587,7 +1587,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-auth"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "base64",
@@ -1611,7 +1611,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-bot"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "serde",
@@ -1630,7 +1630,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-cardkit"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "rstest",
@@ -1643,7 +1643,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-client"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "aes",
  "base64",
@@ -1687,7 +1687,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-communication"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "insta",
  "openlark-core",
@@ -1700,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-core"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "base64",
  "chrono",
@@ -1731,7 +1731,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-docs"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1764,7 +1764,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-helpdesk"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "serde",
@@ -1776,7 +1776,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-hr"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1796,7 +1796,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-mail"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "serde",
@@ -1808,7 +1808,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-meeting"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1824,7 +1824,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-pay"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "openlark-core",
  "serde",
@@ -1835,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-platform"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1863,7 +1863,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-security"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "chrono",
  "mockall",
@@ -1879,7 +1879,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-user"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1906,7 +1906,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-webhook"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "base64",
  "hmac",
@@ -1922,7 +1922,7 @@ dependencies = [
 
 [[package]]
 name = "openlark-workflow"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "insta",
  "openlark-core",

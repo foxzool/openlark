@@ -52,6 +52,9 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("set -euo pipefail", publish_script)
         self.assertNotRegex(publish_script, r"cargo publish[^\n]+\|\|")
         self.assertIn('grep -q "is already uploaded"', publish_script)
+        # Cargo 1.84+ fails closed before upload when the exact version is
+        # already on the index (`crate <name>@<ver> already exists on ...`).
+        self.assertIn('grep -q "already exists on"', publish_script)
 
 
 if __name__ == "__main__":
