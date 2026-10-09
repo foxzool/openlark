@@ -6,16 +6,15 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// 为飞书 webhook 生成签名。
 ///
-/// 算法为 `base64(hmac_sha256("{timestamp}\n{secret}"))`。
+/// 算法为 `base64(HMAC-SHA256(key="{timestamp}\n{secret}", message=""))`。
 pub fn sign(timestamp: i64, secret: &str) -> String {
     use base64::engine::Engine;
-    let content = format!("{timestamp}\n{secret}");
+    let key = format!("{timestamp}\n{secret}");
     // SAFETY: HMAC-SHA256 的 new_from_slice 只有在密钥长度超过 128GB 时才会失败，
-    // 这在实际使用中是不可能的。secret 是用户配置的 webhook 密钥，通常为几十字节。
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).expect(
+    // 这在实际使用中是不可能的。密钥是 `{timestamp}\n{secret}`，通常为几十字节。
+    let mac = HmacSha256::new_from_slice(key.as_bytes()).expect(
         "HMAC can accept keys of any size up to 128GB, which is impossible for webhook secrets",
     );
-    mac.update(content.as_bytes());
     base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes())
 }
 
