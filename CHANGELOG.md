@@ -15,8 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > section are filled by the packaging change. GitHub Release body is extracted
 > from this section by `.github/workflows/release.yml` — this is the source of
 > truth for 0.21 notes. Consumer upgrade path: `docs/migration-guide.md` →
-> **OpenLark 0.21**. Annotated tag `v0.21.0`, the GitHub Release, and crates.io
-> publish stay post-merge cut work (this change does not tag or publish).
+> **OpenLark 0.21**.
 
 ### Security
 
