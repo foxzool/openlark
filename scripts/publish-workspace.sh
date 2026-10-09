@@ -25,7 +25,8 @@ publish_crate() {
     elif output=$(cargo publish -p "$crate" --registry crates-io 2>&1); then
         printf '%s\n' "$output"
         echo -e "${GREEN}✅ ${crate} published successfully${NC}"
-    elif grep -q "is already uploaded" <<<"$output"; then
+    elif grep -q "is already uploaded" <<<"$output" \
+        || grep -q "already exists on" <<<"$output"; then
         printf '%s\n' "$output"
         echo -e "${YELLOW}⚠️ ${crate} exact version already exists; continuing retry${NC}"
     else

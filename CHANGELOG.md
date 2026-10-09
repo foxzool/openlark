@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- Post-0.20 work goes here. -->
+<!-- Post-0.21 work goes here. -->
 
-### Breaking
+## [0.21.0] - 2026-10-09
+
+> Content freeze for the 0.21 release window. Package identity and this dated
+> section are filled by the packaging change. GitHub Release body is extracted
+> from this section by `.github/workflows/release.yml` — this is the source of
+> truth for 0.21 notes. Consumer upgrade path: `docs/migration-guide.md` →
+> **OpenLark 0.21**.
+
+### Security
+
+- **deps：传递依赖 rustls 升至 0.23.45（RUSTSEC-2026-0285，#665）**：
+  lockfile-only 更新，修复 TLS 1.3 handshake encryption-level 公告。无 `Cargo.toml`
+  直依赖变更，无公开 API 变化。
+
+### Changed (Breaking)
 
 - **ai：对齐飞书 OCR/语音/翻译/合同抽取 OpenAPI 请求体**：按官方文档重写
   `openlark-ai` 中 5 个字段硬错误接口的 Body/Response。
@@ -73,6 +87,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 多数写接口响应 `data` 为空对象，对应 Response 结构同步收敛。
 
 ### Added
+
+- **pay：商店付费 crate `openlark-pay`（#660）**：新增 workspace 成员与根 crate
+  `pay` feature。`PayService` / `PayClient` 提供订单详情（`get_order`）、租户付费方案
+  列表（`list_orders`）与用户开通范围（`check_user`）。同一批补齐 platform spark
+  分析与可用范围（`analytics_overview` / `query_analytics_data` / `credit_usage` /
+  `available_scope` get+update）以及 VC `countdown`。发布顺序上 `openlark-pay`
+  位于 `openlark-client` 之前。
+
+- **client：HTTP 事件入站 `event-http`（#672，#667）**：新增 `HttpEventInbound`
+  （根 crate `event-http` feature，复用 `EventDispatcherHandler`）。覆盖
+  `encrypt_key` AES-256-CBC + PKCS7 解密、`url_verification` Challenge，以及入站
+  `X-Lark-Signature`（`SHA256(timestamp+nonce+encrypt_key+body)`）。这与
+  `openlark-webhook` 出站自定义机器人不是同一能力。
 
 - **communication：`ImClient::send_card`（#669）**：发送 `msg_type=interactive`
   卡片 JSON（非完整 Block Kit DSL）。HTTP 卡片回传 ACK 走 `event-http` 上既有的
@@ -222,6 +249,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     wire method/path 与 Request/Response 形状不变。
 
 ### Fixed
+
+- **release：`publish-workspace.sh` 识别已发布版本的 Cargo 新文案**：
+  `lark-websocket-protobuf` 0.1.2 已在 crates.io。Cargo 1.84+ 在真正上传前以
+  `already exists on crates.io index` 失败（不再只靠服务端 `is already uploaded`）。
+  脚本两种文案都继续后续 crate，避免 0.21 发布停在发布顺序的第一个包。
+
+- **webhook：出站签名改为飞书空消息 HMAC（#686）**：`sign` 使用
+  `base64(HMAC-SHA256(key="{timestamp}\n{secret}", message=""))`，与自定义机器人
+  官方算法一致。此前 key 与 message 对调，签名校验会被拒绝。
+
+- **auth：tenant token 缓存键纳入租户上下文（#684）**：缓存键同时哈希
+  `tenant_key` 与 `app_ticket`，票据轮换后不再复用旧 tenant token。
+
+- **websocket：未处理事件不再物化整段 JSON（#683）**：分发器只解析事件信封以取得
+  `event_type`，命中处理器后才把原始 payload 交给 `handle`，不再预先把整段事件
+  解析成 `serde_json::Value`。
+
+- **ai：合同抽取上传大小上限（#682）**：`field_extraction` 在发往 Transport 前拒绝
+  达到 10MiB 边界的 `file`（上限 `10 * 1024 * 1024 - 1` 字节）。
 
 - **api：必填列表非空校验 + 快速模式假阳性（#646）**：
   批量删除补充信息在空 `user_ids` 时于 Transport 前返回校验错误。
