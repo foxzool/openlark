@@ -186,7 +186,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 签名头会自动添加到请求中：
-- `X-Lark-Signature`: base64(hmac-sha256(timestamp + "\n" + secret))
+- `X-Lark-Signature`: base64(HMAC-SHA256(key="{timestamp}\n{secret}", message=""))
 - `X-Lark-Timestamp`: Unix 时间戳
 
 ## 错误处理

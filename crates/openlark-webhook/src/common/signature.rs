@@ -6,16 +6,12 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// 为飞书 webhook 生成签名。
 ///
-/// 算法为 `base64(hmac_sha256("{timestamp}\n{secret}"))`。
+/// 算法为 `base64(HMAC-SHA256(key="{timestamp}\n{secret}", message=""))`。
 pub fn sign(timestamp: i64, secret: &str) -> String {
     use base64::engine::Engine;
-    let content = format!("{timestamp}\n{secret}");
-    // SAFETY: HMAC-SHA256 的 new_from_slice 只有在密钥长度超过 128GB 时才会失败，
-    // 这在实际使用中是不可能的。secret 是用户配置的 webhook 密钥，通常为几十字节。
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).expect(
-        "HMAC can accept keys of any size up to 128GB, which is impossible for webhook secrets",
-    );
-    mac.update(content.as_bytes());
+    let key = format!("{timestamp}\n{secret}");
+    let mac = HmacSha256::new_from_slice(key.as_bytes())
+        .expect("HMAC-SHA256 accepts arbitrary-length keys");
     base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes())
 }
 
@@ -56,14 +52,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sign_known_input() {
-        // Test with known input/output from 飞书 official docs
-        let timestamp = 1599360473i64;
-        let secret = "test-secret";
-        let signature = sign(timestamp, secret);
-
-        // Verify it's base64 encoded and not empty
-        assert!(!signature.is_empty());
+    fn test_sign_feishu_vectors() {
+        assert_eq!(
+            sign(1234567890, "test-secret"),
+            "qCaOcLimil1ehZl6GzN2CUL6wgdt4onZPxvw8V+3TzA="
+        );
+        assert_eq!(sign(0, "a"), "Tp8MNfpagxPJcttlh+SrLen5zPoTRDXb0y/HepnDrPA=");
     }
 
     #[test]
