@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **communication：类型化消息卡片 `MessageCard`（#690）**：
+  调用方用标题、内容块、按钮以及 `column_set` / `form` / `chart` / `table`
+  拼出 interactive JSON，再交给现有 `ImClient::send_card`。
+  `send_card(serde_json::Value)` 的签名不变，CardKit 创建和更新也不变。
+
 - **catalog：同步 2026-10-12 飞书 API 目录（#688）**：
   live 目录 1751 → 1754（新增 3 / 删除 0 / 字段变化 0）。
   - `GET /open-apis/security_and_compliance/v2/device_records/mine`

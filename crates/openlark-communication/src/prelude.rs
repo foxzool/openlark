@@ -13,6 +13,10 @@ pub use crate::common::chain::UserLookupItem;
 pub use crate::common::chain::{
     ChatLookupItem, MediaFileUpload, MediaImageUpload, MessageRecipient, PostMessage, ReplyTarget,
 };
+#[cfg(feature = "im")]
+pub use crate::common::message_card::{
+    Button, ButtonKind, CardElement, FormAction, MessageCard, TableColumn,
+};
 
 // 重新导出端点常量
 pub use crate::endpoints::{aily::*, contact::*, event::*, im::*, mail::*, moments::*, vc::*};

@@ -73,6 +73,7 @@
   - 媒体上传上下文用 `MediaImageUpload` / `MediaFileUpload`
 - **消息体模板化，但不 DSL 化**：
   - `PostMessage` 只覆盖高频“标题 + 单段文本”场景
+  - `MessageCard`（#690）只负责把标题、内容块、按钮和同一套组件序列化成 interactive JSON，发送仍走现有 `send_card`
   - 更复杂卡片/富文本结构继续放在 typed API 或上层自行构建
 - **查找 helper 必须处理歧义**：
   - 0 个命中：报业务错误

@@ -4,4 +4,6 @@
 
 pub mod api_utils;
 pub mod chain;
+#[cfg(feature = "im")]
+pub(crate) mod message_card;
 pub mod models;

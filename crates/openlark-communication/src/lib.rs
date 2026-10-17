@@ -95,3 +95,8 @@ pub use common::chain::UserLookupItem;
 pub use common::chain::{
     ChatLookupItem, MediaFileUpload, MediaImageUpload, MessageRecipient, PostMessage, ReplyTarget,
 };
+#[cfg(feature = "im")]
+pub use common::message_card::{
+    Button, ButtonKind, CardElement, Column, FormAction, MessageCard, TableColumn, button, chart,
+    column, column_set, div_md, div_plain, form, table,
+};

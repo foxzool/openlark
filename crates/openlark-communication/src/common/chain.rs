@@ -1285,17 +1285,12 @@ impl ImClient {
         recipient: MessageRecipient,
         card: serde_json::Value,
     ) -> SDKResult<HelperMessageBody> {
-        if card.is_null() || (card.is_object() && card.as_object().is_some_and(|o| o.is_empty())) {
-            return Err(validation_error("card", "card 不能为空"));
-        }
-        if !card.is_object() && !card.is_array() {
-            return Err(validation_error("card", "card 必须是 JSON 对象或数组"));
-        }
-        Ok(HelperMessageBody::new(
-            recipient,
-            "interactive",
-            card.to_string(),
-        ))
+        let receive_id_type = recipient.receive_id_type;
+        let body = interactive_message_body(recipient, card)?;
+        Ok(HelperMessageBody {
+            receive_id_type,
+            body,
+        })
     }
 
     fn build_reply_text_body(target: ReplyTarget, text: String) -> SDKResult<HelperReplyBody> {
@@ -1314,6 +1309,29 @@ impl ImClient {
     fn build_reply_post_body(target: ReplyTarget, post: PostMessage) -> SDKResult<HelperReplyBody> {
         Ok(HelperReplyBody::new(target, "post", post.into_content()?))
     }
+}
+
+/// 把一张卡片 JSON 收成 `send_card` 使用的消息体。
+///
+/// `send_card` 走 `build_card_body`，测试走这个函数。两边共用同一套空值和类型判断，
+/// 公开的 `send_card` 签名不变。
+#[cfg(feature = "im")]
+pub(crate) fn interactive_message_body(
+    recipient: MessageRecipient,
+    card: serde_json::Value,
+) -> SDKResult<CreateMessageBody> {
+    if card.is_null() || (card.is_object() && card.as_object().is_some_and(|o| o.is_empty())) {
+        return Err(validation_error("card", "card 不能为空"));
+    }
+    if !card.is_object() && !card.is_array() {
+        return Err(validation_error("card", "card 必须是 JSON 对象或数组"));
+    }
+    Ok(CreateMessageBody {
+        receive_id: recipient.receive_id,
+        msg_type: "interactive".to_string(),
+        content: card.to_string(),
+        uuid: None,
+    })
 }
 
 #[cfg(feature = "im")]
