@@ -57,10 +57,13 @@ impl UnifiedRequestBuilder {
             // - 非 multipart：仅声明 Content-Type，字节由 Transport::do_send 统一 body()
             if !req.file().is_empty() {
                 if let Some(_body_data) = &req.body {
+                    // 文件部件名默认 "file"，个别接口（如 im/v1/images）要求 "image"
+                    let file_part_name = req.file_part_name.unwrap_or("file");
                     req_builder = MultipartBuilder::build_multipart(
                         req_builder,
                         &req.to_bytes(),
                         &req.file(),
+                        file_part_name,
                     )?;
                 }
             } else if let Some(body_data) = &req.body {

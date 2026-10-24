@@ -107,6 +107,8 @@ pub struct ApiRequest<R> {
     pub(crate) query: HashMap<String, String>,
     pub(crate) body: Option<RequestData>,
     pub(crate) file: Option<Vec<u8>>,
+    /// multipart 文件部件名（None 时使用默认值 "file"；部件名为接口常量，要求 'static）
+    pub(crate) file_part_name: Option<&'static str>,
     pub(crate) timeout: Option<Duration>,
     pub(crate) supported_access_token_types: Option<Vec<crate::constants::AccessTokenType>>,
     pub(crate) _phantom: std::marker::PhantomData<R>,
@@ -122,6 +124,7 @@ impl<R> ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
@@ -137,6 +140,7 @@ impl<R> ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
@@ -152,6 +156,7 @@ impl<R> ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
@@ -167,6 +172,7 @@ impl<R> ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
@@ -182,6 +188,7 @@ impl<R> ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
@@ -229,6 +236,16 @@ impl<R> ApiRequest<R> {
     /// 设置文件内容 (用于 multipart 上传)
     pub fn file_content(mut self, file: Vec<u8>) -> Self {
         self.file = Some(file);
+        self
+    }
+
+    /// 设置 multipart 文件部件名（用于 multipart 上传）。
+    ///
+    /// 大多数上传接口的文件部件名为 `file`（默认值，无需调用本方法）；
+    /// 少数接口（如上传图片 `POST /open-apis/im/v1/images`）要求部件名为 `image`，
+    /// 以接口官方文档请求体示例中的 `Content-Disposition: form-data; name="..."` 为准。
+    pub fn file_part_name(mut self, name: &'static str) -> Self {
+        self.file_part_name = Some(name);
         self
     }
 
@@ -379,6 +396,7 @@ impl<R> Default for ApiRequest<R> {
             query: HashMap::new(),
             body: None,
             file: None,
+            file_part_name: None,
             timeout: None,
             supported_access_token_types: None,
             _phantom: std::marker::PhantomData,
