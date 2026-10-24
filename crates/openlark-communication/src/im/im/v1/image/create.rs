@@ -82,8 +82,13 @@ impl CreateImageRequest {
             )
         })?;
 
+        // image 二进制文件部件：内容经 `.file_content(...)` 传入，部件名经
+        // `.file_part_name("image")` 指定（官方请求体示例 name="image"）。
+        // body 中以 null 声明 `image` 仅为对齐官方 body 参数表——multipart
+        // 构建器会跳过 null 值，不会作为文本字段发送。
         let mut body = serde_json::json!({
             "image_type": image_type.as_str(),
+            "image": serde_json::Value::Null,
         });
 
         if let Some(file_name) = self.file_name {
@@ -97,9 +102,11 @@ impl CreateImageRequest {
         }
 
         // url: POST:/open-apis/im/v1/images
+        // 官方请求体示例中文件部件名为 image（name="image"），非通用默认值 file
         let req: ApiRequest<CreateImageResponse> = ApiRequest::post(IM_V1_IMAGES)
             .body(body)
-            .file_content(image_bytes);
+            .file_content(image_bytes)
+            .file_part_name("image");
 
         Transport::request_typed(req, &self.config, Some(option), "上传图片").await
     }
@@ -144,5 +151,57 @@ mod tests {
             .file_name("image.png");
         assert_eq!(request.image_type, Some(ImageType::Message));
         assert_eq!(request.file_name, Some("image.png".to_string()));
+    }
+
+    /// 端到端：POST /open-apis/im/v1/images（multipart）
+    /// 官方契约要求文件部件名为 image（name="image"），image_type 作为普通表单字段。
+    #[tokio::test]
+    async fn test_upload_image_multipart_part_name_is_image() {
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        // 注意：mock 响应体不用 json! 宏构造（字段核对工具会扫描文件内
+        // json! 字面量的顶层键，会把响应字段误当 multipart 表单字段）。
+        let mock_body = r#"{"code":0,"msg":"success","data":{"image_key":"img_v2_123"}}"#;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/im/v1/images"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw(mock_body.as_bytes().to_vec(), "application/json"),
+            )
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let response = CreateImageRequest::new(config)
+            .image_type(ImageType::Message)
+            .file_name("image.jpg")
+            .execute(vec![1, 2, 3, 4])
+            .await
+            .expect("上传图片请求应成功");
+        assert_eq!(response.image_key, "img_v2_123");
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body = String::from_utf8_lossy(&received[0].body);
+        // 文件部件名必须是官方要求的 image，而不是通用默认值 file
+        assert!(
+            body.contains("name=\"image\""),
+            "multipart 文件部件名应为 image，实际 body: {body}"
+        );
+        assert!(
+            !body.contains("name=\"file\""),
+            "multipart 不应再使用默认部件名 file，实际 body: {body}"
+        );
+        // image_type 作为普通表单字段发送
+        assert!(body.contains("name=\"image_type\""));
     }
 }

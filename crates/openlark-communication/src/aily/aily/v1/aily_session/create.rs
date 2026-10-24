@@ -2,35 +2,37 @@
 //!
 //! docPath: <https://open.feishu.cn/document/aily-v1/aily_session/create>
 
-use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
-};
+use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport};
 use serde::{Deserialize, Serialize};
 
 use crate::endpoints::AILY_V1_SESSIONS;
 
 /// 创建会话请求体
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateSessionBody {
-    /// 会话名称。
-    pub name: String,
-    /// 会话描述。
+    /// 渠道上下文，可自行构造的 Context 上下文变量，长度范围 0~255 字符。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub channel_context: Option<String>,
+    /// 其他透传信息，会话的自定义变量内容，长度范围 0~255 字符。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<String>,
 }
 
 impl CreateSessionBody {
     /// 创建新的会话请求体。
-    pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            description: None,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    /// 设置会话描述。
-    pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.description = Some(description.into());
+    /// 设置渠道上下文。
+    pub fn channel_context(mut self, channel_context: impl Into<String>) -> Self {
+        self.channel_context = Some(channel_context.into());
+        self
+    }
+
+    /// 设置其他透传信息。
+    pub fn metadata(mut self, metadata: impl Into<String>) -> Self {
+        self.metadata = Some(metadata.into());
         self
     }
 }
@@ -45,14 +47,15 @@ impl CreateSessionBody {
 ///
 /// # 请求体字段
 ///
-/// - `name`: 会话名称，必填
-/// - `description`: 会话描述（可选）
+/// - `channel_context`: 渠道上下文（可选，0~255 字符）
+/// - `metadata`: 其他透传信息（可选，0~255 字符）
 ///
 /// # 示例
 ///
 /// ```rust,ignore
-/// let body = CreateSessionBody::new("我的会话")
-///     .description("这是一个测试会话");
+/// let body = CreateSessionBody::new()
+///     .channel_context("{}")
+///     .metadata("{}");
 /// let request = CreateSessionRequest::new(config)
 ///     .execute(body).await?;
 /// ```
@@ -80,9 +83,6 @@ impl CreateSessionRequest {
         body: CreateSessionBody,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<serde_json::Value> {
-        // === 必填字段验证 ===
-        validate_required!(body.name, "name 不能为空");
-
         let req: ApiRequest<CreateSessionBody> =
             ApiRequest::post(AILY_V1_SESSIONS).json_body(&body);
 
@@ -97,15 +97,15 @@ mod tests {
 
     #[test]
     fn test_create_session_body_builder() {
-        let body = CreateSessionBody::new("测试会话");
-        assert_eq!(body.name, "测试会话");
-        assert_eq!(body.description, None);
+        let body = CreateSessionBody::new().channel_context("{}");
+        assert_eq!(body.channel_context, Some("{}".to_string()));
+        assert_eq!(body.metadata, None);
     }
 
     #[test]
-    fn test_create_session_body_with_description() {
-        let body = CreateSessionBody::new("测试会话").description("这是一个描述");
-        assert_eq!(body.description, Some("这是一个描述".to_string()));
+    fn test_create_session_body_with_metadata() {
+        let body = CreateSessionBody::new().metadata("{}");
+        assert_eq!(body.metadata, Some("{}".to_string()));
     }
 
     #[test]
@@ -117,19 +117,26 @@ mod tests {
 
     #[test]
     fn test_create_session_body_default() {
-        let body = CreateSessionBody::new("会话名称");
-        assert_eq!(body.name, "会话名称");
-        assert!(body.description.is_none());
+        let body = CreateSessionBody::new();
+        assert!(body.channel_context.is_none());
+        assert!(body.metadata.is_none());
     }
 
     #[test]
     fn test_create_session_body_with_all_fields() {
-        let body = CreateSessionBody {
-            name: "完整会话".to_string(),
-            description: Some("包含所有字段".to_string()),
-        };
-        assert_eq!(body.name, "完整会话");
-        assert_eq!(body.description, Some("包含所有字段".to_string()));
+        let body = CreateSessionBody::new()
+            .channel_context("{}")
+            .metadata("{}");
+        assert_eq!(body.channel_context, Some("{}".to_string()));
+        assert_eq!(body.metadata, Some("{}".to_string()));
+    }
+
+    #[test]
+    fn test_create_session_body_serialization() {
+        // 两个官方字段均为可选：未设置时请求体序列化为空对象
+        let body = CreateSessionBody::new();
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(json, serde_json::json!({}));
     }
 
     #[test]
