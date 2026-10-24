@@ -42,7 +42,6 @@ mod builder_tests {
         attachment::get::GetRequest::new(
             test_config("https://open.feishu.cn"),
             "att_1".to_string(),
-            "ou_1".to_string(),
         )
     );
     smoke_builder!(
@@ -58,30 +57,29 @@ mod builder_tests {
 mod validation_tests {
     use super::*;
 
+    /// 官方 200 成功响应为文件二进制流；此处验证下载失败时飞书返回业务错误
+    /// envelope（JSON）会被识别为错误，而非当成二进制内容返回。
     #[tokio::test]
-    async fn test_attachment_get_data_missing_validation() {
+    async fn test_attachment_get_business_error_validation() {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/ehr/v1/attachments/att_1"))
-            .and(query_param("user_id", "ou_1"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"code":0,"msg":"ok"})))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 230002,
+                "msg": "attachment token invalid"
+            })))
             .mount(&mock_server)
             .await;
 
-        let err = attachment::get::GetRequest::new(
-            test_config(&mock_server.uri()),
-            "att_1".to_string(),
-            "ou_1".to_string(),
-        )
-        .execute_with_options(auth_option())
-        .await
-        .err()
-        .unwrap()
-        .to_string();
+        let err =
+            attachment::get::GetRequest::new(test_config(&mock_server.uri()), "att_1".to_string())
+                .execute_with_options(auth_option())
+                .await
+                .err()
+                .unwrap()
+                .to_string();
         assert!(
-            err.contains("下载人员附件响应数据为空")
-                || err.contains("成功响应缺少必需的 data")
-                || err.contains("api_response_data"),
+            err.contains("attachment token invalid") || err.contains("230002"),
             "unexpected err: {err}"
         );
     }
@@ -117,33 +115,34 @@ mod http_tests {
     #[tokio::test]
     async fn test_attachment_get_http_mock() {
         let mock_server = MockServer::start().await;
+        let file_bytes = b"%PDF-1.4 fake-pdf-content".to_vec();
         Mock::given(method("GET"))
             .and(path("/open-apis/ehr/v1/attachments/att_1"))
-            .and(query_param("user_id", "ou_1"))
             .and(header("Authorization", "Bearer test_token"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code":0,
-                "msg":"ok",
-                "data":{
-                    "name":"resume.pdf",
-                    "file_type":"application/pdf",
-                    "size":1024,
-                    "download_url":"https://example.com/download/att_1",
-                    "token":"download_token"
-                }
-            })))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-disposition", "attachment; filename=\"resume.pdf\"")
+                    .set_body_bytes(file_bytes.clone()),
+            )
             .mount(&mock_server)
             .await;
 
-        let resp = attachment::get::GetRequest::new(
-            test_config(&mock_server.uri()),
-            "att_1".to_string(),
-            "ou_1".to_string(),
-        )
-        .execute_with_options(auth_option())
-        .await
-        .unwrap();
-        assert_eq!(resp.token, "download_token");
+        let resp =
+            attachment::get::GetRequest::new(test_config(&mock_server.uri()), "att_1".to_string())
+                .execute_with_options(auth_option())
+                .await
+                .unwrap();
+        assert_eq!(resp.file_name, "resume.pdf");
+        assert_eq!(resp.content, file_bytes);
+
+        // 官方请求仅路径参数 token，无任何查询参数
+        let received = mock_server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        assert!(
+            received[0].url.query().unwrap_or("").is_empty(),
+            "官方请求无查询参数: {:?}",
+            received[0].url.query()
+        );
     }
 
     #[tokio::test]
@@ -212,11 +211,8 @@ mod serialization_tests {
         test_attachment_get_response_serialization,
         attachment::get::GetResponse,
         attachment::get::GetResponse {
-            name: "resume.pdf".to_string(),
-            file_type: "application/pdf".to_string(),
-            size: 1024,
-            download_url: "https://example.com/download/att_1".to_string(),
-            token: "download_token".to_string(),
+            file_name: "resume.pdf".to_string(),
+            content: b"%PDF-1.4 fake-pdf-content".to_vec(),
         }
     );
 
