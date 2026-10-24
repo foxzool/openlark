@@ -187,12 +187,13 @@ mod builder_tests {
         test_create_user_approval_request_builder,
         user_approval::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
-            "ou_1".to_string(),
-            1,
-            1,
-            1735689600,
+            "employee_id".to_string(),
+            user_approval::create::UserApproval {
+                user_id: "ou_1".to_string(),
+                date: "20210104".to_string(),
+                ..Default::default()
+            },
         )
-        .remark("同意".to_string())
     );
     smoke_builder!(
         test_get_approval_info_request_builder,
@@ -217,7 +218,6 @@ mod builder_tests {
         test_upload_file_request_builder,
         file::upload::UploadRequest::new(
             test_config("https://open.feishu.cn"),
-            "ou_1".to_string(),
             "face.jpg".to_string(),
             vec![1, 2, 3],
         )
@@ -240,8 +240,12 @@ mod builder_tests {
         test_update_user_setting_request_builder,
         user_setting::modify::ModifyRequest::new(
             test_config("https://open.feishu.cn"),
-            "ou_1".to_string(),
-            true,
+            "employee_id".to_string(),
+            user_setting::modify::UserSetting {
+                user_id: "ou_1".to_string(),
+                face_key: "p_1".to_string(),
+                face_key_update_time: None,
+            },
         )
     );
     smoke_builder!(
@@ -815,8 +819,11 @@ mod serialization_tests {
         test_create_user_approval_response_serialization,
         user_approval::create::CreateResponse,
         user_approval::create::CreateResponse {
-            success: true,
-            approval_id: "a_1".to_string(),
+            user_approval: user_approval::create::UserApproval {
+                user_id: "ou_1".to_string(),
+                date: "20210104".to_string(),
+                ..Default::default()
+            },
         }
     );
     roundtrip_eq!(
@@ -842,20 +849,17 @@ mod serialization_tests {
         test_upload_file_response_serialization,
         file::upload::UploadResponse,
         file::upload::UploadResponse {
-            success: true,
-            photo_id: "p_1".to_string(),
-            user_id: "ou_1".to_string(),
-            upload_time: 1735689600,
+            file: file::upload::FileData {
+                file_id: "p_1".to_string(),
+            },
         }
     );
     roundtrip_eq!(
         test_download_file_response_serialization,
         file::download::DownloadResponse,
         file::download::DownloadResponse {
-            photo_id: "p_1".to_string(),
-            user_id: "ou_1".to_string(),
-            photo_data: "ZmFrZV9iYXNlNjQ=".to_string(),
-            content_type: "image/jpeg".to_string(),
+            file_name: "face.jpg".to_string(),
+            content: vec![1, 2, 3],
         }
     );
     roundtrip_eq!(
@@ -874,8 +878,11 @@ mod serialization_tests {
         test_update_user_setting_response_serialization,
         user_setting::modify::ModifyResponse,
         user_setting::modify::ModifyResponse {
-            success: true,
-            user_id: "ou_1".to_string(),
+            user_setting: user_setting::modify::UserSetting {
+                user_id: "ou_1".to_string(),
+                face_key: "p_1".to_string(),
+                face_key_update_time: Some("1625681917".to_string()),
+            },
         }
     );
     roundtrip_eq!(

@@ -10,7 +10,6 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 删除试用期考核信息请求
 #[derive(Debug, Clone)]
@@ -18,7 +17,6 @@ pub struct DeleteRequest {
     /// 配置信息
     config: Config,
     assessment_id: Option<String>,
-    request_body: Option<Value>,
 }
 
 impl DeleteRequest {
@@ -27,19 +25,12 @@ impl DeleteRequest {
         Self {
             config,
             assessment_id: None,
-            request_body: None,
         }
     }
 
     /// 设置 `assessment_id`。
     pub fn assessment_id(mut self, assessment_id: String) -> Self {
         self.assessment_id = Some(assessment_id);
-        self
-    }
-
-    /// 设置 `request_body`。
-    pub fn request_body(mut self, request_body: Value) -> Self {
-        self.request_body = Some(request_body);
         self
     }
 
@@ -60,11 +51,7 @@ impl DeleteRequest {
         validate_required!(assessment_id.trim(), "assessment_id 不能为空");
 
         let api_endpoint = FeishuPeopleApiV2::ProbationAssessmentDelete(assessment_id);
-        let mut request = ApiRequest::<DeleteResponse>::delete(api_endpoint.to_url());
-
-        if let Some(request_body) = self.request_body {
-            request = request.body(request_body);
-        }
+        let request = ApiRequest::<DeleteResponse>::delete(api_endpoint.to_url());
 
         Transport::request_typed(
             request,
@@ -76,34 +63,9 @@ impl DeleteRequest {
     }
 }
 
-/// 删除试用期考核信息响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct DeleteResponse {
-    /// 响应数据
-    /// 操作结果
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result: Option<ProbationAssessmentDeleteResult>,
-}
-
-/// 删除试用期考核操作结果
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ProbationAssessmentDeleteResult {
-    /// 考核 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub assessment_id: Option<String>,
-    /// 是否删除成功
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub deleted: Option<bool>,
-    /// 操作状态
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// 提示信息
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
-    /// 预留扩展字段
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub extra: Option<Value>,
-}
+/// 删除试用期考核信息响应（官方 data 为空对象）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DeleteResponse {}
 
 impl ApiResponseTrait for DeleteResponse {
     fn data_format() -> ResponseFormat {
@@ -126,7 +88,7 @@ mod tests {
         Mock::given(method("DELETE"))
             .and(path("/open-apis/corehr/v2/probation/assessments/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success", "data": {}
             })))
             .mount(&server)
             .await;
