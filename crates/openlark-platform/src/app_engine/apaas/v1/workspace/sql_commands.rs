@@ -1,7 +1,7 @@
 //! 执行SQL
 //!
 //! URL: POST:/open-apis/apaas/v1/workspaces/:workspace_id/sql_commands
-//! docPath:
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace/sql_commands>
 
 use openlark_core::{
     SDKResult,
@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +43,9 @@ impl SqlCommandsRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<SqlCommandsResponse> {
+        validate_required!(self.workspace_id, "workspace_id 不能为空");
+        validate_required!(self.sql, "sql 不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/workspaces/{}/sql_commands",
             self.workspace_id
@@ -58,31 +62,19 @@ impl SqlCommandsRequestBuilder {
 /// 执行SQL请求
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct SqlCommandsRequest {
-    /// SQL 语句
+    /// 要执行的 SQL 语句
     #[serde(rename = "sql")]
     sql: String,
-}
-
-/// SQL 执行结果
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct SqlResult {
-    /// 结果数据
-    #[serde(rename = "data")]
-    data: Vec<serde_json::Value>,
-    /// 影响行数
-    #[serde(rename = "affected_rows")]
-    affected_rows: u32,
-    /// 结果消息
-    #[serde(rename = "message")]
-    message: String,
 }
 
 /// 执行SQL响应
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SqlCommandsResponse {
-    /// SQL 执行结果
+    /// SQL 执行结果：SELECT 命令返回查询结果的 JSON 序列化字符串，
+    /// 其他无返回的命令（如 DELETE）result 为空字符串；
+    /// 调用方可自行 `serde_json::from_str::<Vec<serde_json::Value>>` 解码行数据
     #[serde(rename = "result")]
-    pub result: SqlResult,
+    pub result: String,
 }
 
 impl ApiResponseTrait for SqlCommandsResponse {
@@ -100,6 +92,7 @@ mod tests {
     use super::*;
 
     /// 端到端：POST .../apaas/v1/workspaces/{ws}/sql_commands → 强类型 SqlCommandsResponse。
+    /// 官方示例：data.result 为查询结果的 JSON 序列化字符串。
     #[tokio::test]
     async fn test_execute_sql_commands_returns_data_on_success() {
         use serde_json::json;
@@ -114,11 +107,7 @@ mod tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "result": {
-                        "data": [{"id": 1}, {"id": 2}],
-                        "affected_rows": 2,
-                        "message": "OK"
-                    }
+                    "result": "[{\"name\":\"王一一\"}]"
                 }
             })))
             .mount(&server)
@@ -135,8 +124,10 @@ mod tests {
             .execute()
             .await
             .expect("执行 SQL 应成功");
-        assert_eq!(resp.result.affected_rows, 2);
-        assert_eq!(resp.result.message, "OK");
+        let rows: Vec<serde_json::Value> =
+            serde_json::from_str(&resp.result).expect("result 应为 JSON 序列化字符串");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["name"], "王一一");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -145,5 +136,8 @@ mod tests {
             "/open-apis/apaas/v1/workspaces/ws_001/sql_commands"
         );
         assert_eq!(received[0].method, "POST");
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(body, json!({"sql": "SELECT * FROM t"}));
     }
 }

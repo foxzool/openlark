@@ -1,7 +1,7 @@
 //! 查询数据表数据记录
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name/records
-//! docPath:
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-table/records_get>
 
 use openlark_core::{
     SDKResult,
@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,14 +21,16 @@ pub struct TableRecordsGetRequestBuilder {
     workspace_id: String,
     /// 数据表名称
     table_name: String,
-    /// 页码
-    page: Option<u32>,
-    /// 每页数量
+    /// 分页标记，第一次请求不填，表示从头开始遍历
+    page_token: Option<String>,
+    /// 分页大小
     page_size: Option<u32>,
-    /// 筛选条件
+    /// 返回的列，默认为 *
+    select: Option<String>,
+    /// 筛选条件（PostgREST 语法）
     filter: Option<String>,
-    /// 排序
-    order_by: Option<String>,
+    /// 排序条件（PostgREST 语法）
+    order: Option<String>,
 }
 
 impl TableRecordsGetRequestBuilder {
@@ -41,34 +44,41 @@ impl TableRecordsGetRequestBuilder {
             config,
             workspace_id: workspace_id.into(),
             table_name: table_name.into(),
-            page: None,
+            page_token: None,
             page_size: None,
+            select: None,
             filter: None,
-            order_by: None,
+            order: None,
         }
     }
 
-    /// 设置页码
-    pub fn page(mut self, page: u32) -> Self {
-        self.page = Some(page);
+    /// 设置分页标记，第一次请求不填，表示从头开始遍历
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
         self
     }
 
-    /// 设置每页数量
+    /// 设置分页大小
     pub fn page_size(mut self, page_size: u32) -> Self {
         self.page_size = Some(page_size);
         self
     }
 
-    /// 设置筛选条件
+    /// 设置返回的列，默认为 *
+    pub fn select(mut self, select: impl Into<String>) -> Self {
+        self.select = Some(select.into());
+        self
+    }
+
+    /// 设置筛选条件（PostgREST 语法，如 `age=gt.10`）
     pub fn filter(mut self, filter: impl Into<String>) -> Self {
         self.filter = Some(filter.into());
         self
     }
 
-    /// 设置排序
-    pub fn order_by(mut self, order_by: impl Into<String>) -> Self {
-        self.order_by = Some(order_by.into());
+    /// 设置排序条件（PostgREST 语法）
+    pub fn order(mut self, order: impl Into<String>) -> Self {
+        self.order = Some(order.into());
         self
     }
 
@@ -82,63 +92,50 @@ impl TableRecordsGetRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<TableRecordsGetResponse> {
+        validate_required!(self.workspace_id, "workspace_id 不能为空");
+        validate_required!(self.table_name, "table_name 不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/workspaces/{}/tables/{}/records",
             self.workspace_id, self.table_name
         );
 
         let mut req: ApiRequest<TableRecordsGetResponse> = ApiRequest::get(&url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
+        if let Some(page_token) = self.page_token {
+            req = req.query("page_token", &page_token);
         }
         if let Some(page_size) = self.page_size {
             req = req.query("page_size", page_size.to_string());
         }
+        if let Some(select) = self.select {
+            req = req.query("select", &select);
+        }
         if let Some(filter) = self.filter {
             req = req.query("filter", &filter);
         }
-        if let Some(order_by) = self.order_by {
-            req = req.query("order_by", &order_by);
+        if let Some(order) = self.order {
+            req = req.query("order", &order);
         }
         Transport::request_typed(req, &self.config, Some(option), "查询数据表记录").await
     }
 }
 
-/// 记录信息
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct TableRecord {
-    /// 记录 ID
-    #[serde(rename = "id")]
-    id: String,
-    /// 记录数据
-    #[serde(rename = "data")]
-    data: serde_json::Value,
-    /// 创建时间
-    #[serde(rename = "created_time")]
-    created_time: i64,
-    /// 更新时间
-    #[serde(rename = "updated_time")]
-    updated_time: i64,
-}
-
 /// 查询数据表记录响应
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TableRecordsGetResponse {
-    /// 记录列表
+    /// 数据记录列表，格式为数组序列化后的 JSONString，
+    /// 调用方可自行 `serde_json::from_str::<Vec<serde_json::Value>>` 解码行数据
     #[serde(rename = "items")]
-    pub items: Vec<TableRecord>,
-    /// 是否有更多
+    pub items: String,
+    /// 是否还有更多项
     #[serde(rename = "has_more")]
     pub has_more: bool,
-    /// 页码
-    #[serde(rename = "page")]
-    pub page: u32,
-    /// 每页数量
-    #[serde(rename = "page_size")]
-    pub page_size: u32,
-    /// 总数
-    #[serde(rename = "total_count")]
-    pub total_count: u32,
+    /// 分页标记，当 has_more 为 true 时会同时返回新的 page_token
+    #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 符合条件的记录总数
+    #[serde(rename = "total")]
+    pub total: i64,
 }
 
 impl ApiResponseTrait for TableRecordsGetResponse {
@@ -156,6 +153,7 @@ mod tests {
     use super::*;
 
     /// 端到端：GET .../tables/{table}/records → 强类型 TableRecordsGetResponse。
+    /// 官方示例：items 为数组序列化后的 JSONString，data 下含 has_more/page_token/total。
     #[tokio::test]
     async fn test_get_records_returns_data_on_success() {
         use serde_json::json;
@@ -165,18 +163,17 @@ mod tests {
 
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/open-apis/apaas/v1/workspaces/ws_001/tables/user/records"))
+            .and(path(
+                "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records",
+            ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [
-                        {"id": "r1", "data": {"name": "alice"}, "created_time": 1700000000, "updated_time": 1700000050}
-                    ],
+                    "items": "[{\"name\":\"王一一\",\"gender\":\"male\",\"age\":10}]",
                     "has_more": true,
-                    "page": 1,
-                    "page_size": 20,
-                    "total_count": 35
+                    "page_token": "next_token",
+                    "total": 35
                 }
             })))
             .mount(&server)
@@ -190,15 +187,20 @@ mod tests {
             .build();
 
         let resp = TableRecordsGetRequestBuilder::new(config, "ws_001", "user")
-            .page(1)
             .page_size(20)
+            .filter("age=gt.10")
+            .select("*")
+            .order("age desc")
             .execute()
             .await
             .expect("查询数据表记录应成功");
-        assert_eq!(resp.items.len(), 1);
-        assert_eq!(resp.items[0].id, "r1");
         assert!(resp.has_more);
-        assert_eq!(resp.total_count, 35);
+        assert_eq!(resp.page_token.as_deref(), Some("next_token"));
+        assert_eq!(resp.total, 35);
+        let rows: Vec<serde_json::Value> =
+            serde_json::from_str(&resp.items).expect("items 应为 JSONString");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["name"], "王一一");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -207,5 +209,22 @@ mod tests {
             "/open-apis/apaas/v1/workspaces/ws_001/tables/user/records"
         );
         assert_eq!(received[0].method, "GET");
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("page_size=20"),
+            "query should contain page_size=20: {query}"
+        );
+        assert!(
+            query.contains("filter="),
+            "query should contain filter: {query}"
+        );
+        assert!(
+            query.contains("select="),
+            "query should contain select: {query}"
+        );
+        assert!(
+            query.contains("order="),
+            "query should contain order: {query}"
+        );
     }
 }
