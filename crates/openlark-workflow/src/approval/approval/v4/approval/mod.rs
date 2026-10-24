@@ -6,7 +6,11 @@ pub mod unsubscribe;
 
 // create 模块显式导出
 
-pub use create::{CreateApprovalBodyV4, CreateApprovalRequestV4, CreateApprovalResponseV4};
+pub use create::{
+    ApprovalApproverCcerV4, ApprovalApproverRangeV4, ApprovalConfigV4, ApprovalFieldGroupV4,
+    ApprovalFormV4, ApprovalNodeV4, ApprovalSettingV4, CreateApprovalBodyV4,
+    CreateApprovalRequestV4, CreateApprovalResponseV4,
+};
 // get 模块显式导出
 pub use get::{GetApprovalRequestV4, GetApprovalResponseV4};
 // search_launchable 模块显式导出

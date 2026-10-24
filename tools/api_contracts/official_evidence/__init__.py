@@ -1644,7 +1644,17 @@ def _extract_rendered_inner_text_section(
     parts = content.split(start)
     if len(parts) <= occurrence:
         return None
-    section = start.join(parts[occurrence:])
+    # 真实节标题后紧跟参数表头 "Parameter"；目录块（"The contents of this
+    # article"）同样罗列节名，但目录项后跟的是下一个目录项。固定 occurrence
+    # 计数在目录多列/少列一项时会把切片起点落进目录内部，把前一节的表
+    # （如 Query parameters 表）混进本节观察（误报 request_body 缺字段）。
+    # 优先锚定真实标题（marker 后紧跟表头），锚不到再退回 occurrence 计数。
+    for part_index in range(occurrence, len(parts)):
+        if parts[part_index].lstrip().startswith("Parameter"):
+            section = start + parts[part_index]
+            break
+    else:
+        section = start.join(parts[occurrence:])
     end_markers = (end,) if isinstance(end, str) else end
     end_indexes = tuple(
         index

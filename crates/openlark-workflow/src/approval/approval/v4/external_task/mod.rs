@@ -3,5 +3,6 @@ pub mod list;
 // list 模块显式导出
 
 pub use list::{
-    ExternalTask, ListExternalTaskBodyV4, ListExternalTaskRequestV4, ListExternalTaskResponseV4,
+    ExternalTask, ExternalTaskItemV4, ListExternalTaskBodyV4, ListExternalTaskRequestV4,
+    ListExternalTaskResponseV4,
 };

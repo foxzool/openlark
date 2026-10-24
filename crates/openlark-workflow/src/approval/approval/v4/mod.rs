@@ -9,44 +9,52 @@ pub mod external_instance;
 pub mod external_task;
 /// 审批实例相关 API。
 pub mod instance;
+/// 审批 v4 共享嵌套模型。
+pub mod models;
 /// 审批任务相关 API。
 pub mod task;
 
 // approval 模块显式导出
 
 pub use approval::{
-    CreateApprovalBodyV4, CreateApprovalRequestV4, CreateApprovalResponseV4, GetApprovalRequestV4,
-    GetApprovalResponseV4, LaunchableApprovalV4, SearchLaunchableApprovalBodyV4,
-    SearchLaunchableApprovalRequestV4, SearchLaunchableApprovalResponseV4,
-    SubscribeApprovalRequestV4, SubscribeApprovalResponseV4, UnsubscribeApprovalRequestV4,
-    UnsubscribeApprovalResponseV4,
+    ApprovalApproverCcerV4, ApprovalApproverRangeV4, ApprovalConfigV4, ApprovalFieldGroupV4,
+    ApprovalFormV4, ApprovalNodeV4, ApprovalSettingV4, CreateApprovalBodyV4,
+    CreateApprovalRequestV4, CreateApprovalResponseV4, GetApprovalRequestV4, GetApprovalResponseV4,
+    LaunchableApprovalV4, SearchLaunchableApprovalBodyV4, SearchLaunchableApprovalRequestV4,
+    SearchLaunchableApprovalResponseV4, SubscribeApprovalRequestV4, SubscribeApprovalResponseV4,
+    UnsubscribeApprovalRequestV4, UnsubscribeApprovalResponseV4,
 };
 // external_approval 模块显式导出
 pub use external_approval::{
-    CreateExternalApprovalBodyV4, CreateExternalApprovalRequestV4,
-    CreateExternalApprovalResponseV4, FormField, GetExternalApprovalRequestV4,
-    GetExternalApprovalResponseV4,
+    ApprovalCreateExternalV4, CreateExternalApprovalBodyV4, CreateExternalApprovalRequestV4,
+    CreateExternalApprovalResponseV4, GetExternalApprovalRequestV4, GetExternalApprovalResponseV4,
 };
 // external_instance 模块显式导出
 pub use external_instance::{
     CheckExternalInstanceBodyV4, CheckExternalInstanceRequestV4, CheckExternalInstanceResponseV4,
     CreateExternalInstanceBodyV4, CreateExternalInstanceRequestV4,
-    CreateExternalInstanceResponseV4, FormValue,
+    CreateExternalInstanceResponseV4, ExternalInstanceCcNodeV4, ExternalInstanceCheckItemV4,
+    ExternalInstanceCheckTaskV4, ExternalInstanceLinkV4, ExternalInstanceTaskNodeV4, FormValue,
+    TrusteeshipInstanceCacheConfigV4, TrusteeshipUrlsV4,
 };
 // external_task 模块显式导出
 pub use external_task::{
-    ExternalTask, ListExternalTaskBodyV4, ListExternalTaskRequestV4, ListExternalTaskResponseV4,
+    ExternalTask, ExternalTaskItemV4, ListExternalTaskBodyV4, ListExternalTaskRequestV4,
+    ListExternalTaskResponseV4,
 };
+// 共享嵌套模型导出
+pub use models::{ApprovalCreateViewerV4, I18nResourceTextV4, I18nResourceV4};
 // instance 模块显式导出
 pub use instance::{
     AddSignBodyV4, AddSignRequestV4, AddSignResponseV4, CancelInstanceBodyV4,
     CancelInstanceRequestV4, CancelInstanceResponseV4, CcInstanceBodyV4, CcInstanceRequestV4,
-    CcInstanceResponseV4, CcItemV4, CreateInstanceBodyV4, CreateInstanceCommentBodyV4,
-    CreateInstanceCommentRequestV4, CreateInstanceCommentResponseV4, CreateInstanceRequestV4,
-    CreateInstanceResponseV4, DeleteInstanceCommentRequestV4, DeleteInstanceCommentResponseV4,
-    FlowNode, GetInstanceRequestV4, GetInstanceResponseV4, InstanceComment, InstanceItemV4,
-    ListInstanceCommentRequestV4, ListInstanceCommentResponseV4, ListInstanceRequestV4,
-    ListInstanceResponseV4, PreviewInstanceBodyV4, PreviewInstanceRequestV4,
+    CcInstanceResponseV4, CcItemV4, CommentAtInfoV4, CreateInstanceBodyV4,
+    CreateInstanceCommentBodyV4, CreateInstanceCommentRequestV4, CreateInstanceCommentResponseV4,
+    CreateInstanceRequestV4, CreateInstanceResponseV4, DeleteInstanceCommentRequestV4,
+    DeleteInstanceCommentResponseV4, GetInstanceRequestV4, GetInstanceResponseV4, InstanceComment,
+    InstanceItemV4, ListInstanceCommentRequestV4, ListInstanceCommentResponseV4,
+    ListInstanceRequestV4, ListInstanceResponseV4, NodeApproverV4, NodeAutoApprovalV4, NodeCcV4,
+    PreviewInstanceBodyV4, PreviewInstanceNodeV4, PreviewInstanceRequestV4,
     PreviewInstanceResponseV4, QueryInstanceRequestV4, QueryInstanceResponseV4,
     RemoveInstanceCommentRequestV4, RemoveInstanceCommentResponseV4, SearchCcRequestV4,
     SearchCcResponseV4, SpecifiedRollbackBodyV4, SpecifiedRollbackRequestV4,

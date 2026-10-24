@@ -29,14 +29,15 @@ pub use cancel::{CancelInstanceBodyV4, CancelInstanceRequestV4, CancelInstanceRe
 pub use cc::{CcInstanceBodyV4, CcInstanceRequestV4, CcInstanceResponseV4};
 // comment 模块显式导出
 pub use comment::{
-    CreateInstanceCommentBodyV4, CreateInstanceCommentRequestV4, CreateInstanceCommentResponseV4,
-    DeleteInstanceCommentRequestV4, DeleteInstanceCommentResponseV4, InstanceComment,
-    ListInstanceCommentRequestV4, ListInstanceCommentResponseV4, RemoveInstanceCommentRequestV4,
-    RemoveInstanceCommentResponseV4,
+    CommentAtInfoV4, CreateInstanceCommentBodyV4, CreateInstanceCommentRequestV4,
+    CreateInstanceCommentResponseV4, DeleteInstanceCommentRequestV4,
+    DeleteInstanceCommentResponseV4, InstanceComment, ListInstanceCommentRequestV4,
+    ListInstanceCommentResponseV4, RemoveInstanceCommentRequestV4, RemoveInstanceCommentResponseV4,
 };
 // create 模块显式导出
 pub use create::{
-    CreateInstanceBodyV4, CreateInstanceRequestV4, CreateInstanceResponseV4, FormValue,
+    CreateInstanceBodyV4, CreateInstanceRequestV4, CreateInstanceResponseV4, NodeApproverV4,
+    NodeAutoApprovalV4, NodeCcV4,
 };
 // get 模块显式导出
 pub use get::{GetInstanceRequestV4, GetInstanceResponseV4};
@@ -51,7 +52,8 @@ pub use initiated::{
 pub use list::{InstanceItemV4, ListInstanceRequestV4, ListInstanceResponseV4};
 // preview 模块显式导出
 pub use preview::{
-    FlowNode, PreviewInstanceBodyV4, PreviewInstanceRequestV4, PreviewInstanceResponseV4,
+    PreviewInstanceBodyV4, PreviewInstanceNodeV4, PreviewInstanceRequestV4,
+    PreviewInstanceResponseV4,
 };
 // query 模块显式导出
 pub use query::{QueryInstanceRequestV4, QueryInstanceResponseV4};
