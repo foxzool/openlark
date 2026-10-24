@@ -16,78 +16,52 @@ use crate::endpoints::DOCUMENT_AI_BUSINESS_LICENSE_RECOGNIZE;
 /// 营业执照识别请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BusinessLicenseRecognizeBody {
-    /// file_token 字段。
-    pub file_token: String,
-    /// is_async 字段。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_async: Option<bool>,
+    /// 识别的营业执照源文件。
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    /// multipart 文件名，仅用于设置文件 part 的 filename。
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl BusinessLicenseRecognizeBody {
     /// 校验请求体。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file, "file 不能为空");
         Ok(())
     }
 }
 
-/// Business_License_Recognize_Response 响应。
+/// 营业执照识别响应 `data`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BusinessLicenseRecognizeResponse {
-    /// data 字段。
+    /// 营业执照信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<BusinessLicenseRecognizeResult>,
+    pub business_license: Option<BusinessLicense>,
 }
 
 impl openlark_core::api::ApiResponseTrait for BusinessLicenseRecognizeResponse {}
 
-/// Business_License_Recognize_Result 结果。
+/// 营业执照信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BusinessLicenseRecognizeResult {
-    /// parsing_result 字段。
+pub struct BusinessLicense {
+    /// 识别出的实体列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parsing_result: Option<ParsingResult>,
+    pub entities: Option<Vec<BusinessLicenseEntity>>,
 }
 
-/// Parsing_Result 结果。
+/// 营业执照识别实体。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsingResult {
-    /// 统一社会信用代码
+pub struct BusinessLicenseEntity {
+    /// 实体类型，可选值有 certificate_type、unified_social_credit_code、company_name、company_type、domicile、legal_representative、registered_capital、established_time、established_date、business_scope、website、approval_date。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 实体值。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub credit_code: Option<String>,
-    /// 注册号
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub registration_number: Option<String>,
-    /// 公司名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub company_name: Option<String>,
-    /// 法定代表人
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub legal_person: Option<String>,
-    /// 注册资本
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub registered_capital: Option<String>,
-    /// 成立日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub establish_date: Option<String>,
-    /// 营业期限起始
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_date: Option<String>,
-    /// 营业期限结束
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_date: Option<String>,
-    /// 经营范围
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub business_scope: Option<String>,
-    /// 注册地址
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<String>,
-    /// 公司类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub company_type: Option<String>,
+    pub value: Option<String>,
 }
 
-/// Business_License_Recognize_Request 请求。
+/// 营业执照识别请求
 #[derive(Debug, Clone)]
 pub struct BusinessLicenseRecognizeRequest {
     config: Config,
@@ -118,18 +92,19 @@ impl BusinessLicenseRecognizeRequest {
 
         let req: ApiRequest<BusinessLicenseRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_BUSINESS_LICENSE_RECOGNIZE)
-                .body(serialize_params(&body, "营业执照识别")?);
+                .body(serialize_params(&body, "营业执照识别")?)
+                .file_content(body.file.clone());
 
         Transport::request_typed(req, &self.config, Some(option), "营业执照识别").await
     }
 }
 
-/// Business_License_Recognize_Request_Builder 请求构建器。
+/// 营业执照识别请求构建器
 #[derive(Debug, Clone)]
 pub struct BusinessLicenseRecognizeRequestBuilder {
     request: BusinessLicenseRecognizeRequest,
-    file_token: Option<String>,
-    is_async: Option<bool>,
+    file: Option<Vec<u8>>,
+    file_name: Option<String>,
 }
 
 impl BusinessLicenseRecognizeRequestBuilder {
@@ -137,28 +112,28 @@ impl BusinessLicenseRecognizeRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: BusinessLicenseRecognizeRequest::new(config),
-            file_token: None,
-            is_async: None,
+            file: None,
+            file_name: None,
         }
     }
 
-    /// file_token。
-    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
-        self.file_token = Some(file_token.into());
+    /// 设置识别的营业执照源文件。
+    pub fn file(mut self, file: impl Into<Vec<u8>>) -> Self {
+        self.file = Some(file.into());
         self
     }
 
-    /// 设置 is_async。
-    pub fn is_async(mut self, is_async: impl Into<bool>) -> Self {
-        self.is_async = Some(is_async.into());
+    /// 设置 multipart 文件名。
+    pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
     /// 构建请求体。
     pub fn body(self) -> BusinessLicenseRecognizeBody {
         BusinessLicenseRecognizeBody {
-            file_token: self.file_token.unwrap_or_default(),
-            is_async: self.is_async,
+            file: self.file.unwrap_or_default(),
+            file_name: self.file_name,
         }
     }
 
@@ -178,7 +153,7 @@ impl BusinessLicenseRecognizeRequestBuilder {
     }
 }
 
-/// business_license_recognize。
+/// 执行营业执照识别。
 pub async fn business_license_recognize(
     config: &Config,
     body: BusinessLicenseRecognizeBody,
@@ -196,7 +171,8 @@ pub async fn business_license_recognize_with_options(
 
     let req: ApiRequest<BusinessLicenseRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_BUSINESS_LICENSE_RECOGNIZE)
-            .body(serialize_params(&body, "营业执照识别")?);
+            .body(serialize_params(&body, "营业执照识别")?)
+            .file_content(body.file.clone());
 
     Transport::request_typed(req, config, Some(option), "营业执照识别").await
 }
@@ -206,10 +182,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_builder_default_state() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let builder = BusinessLicenseRecognizeRequestBuilder::new(config.clone());
+        assert!(builder.file.is_none());
+    }
+
+    #[test]
     fn test_body_validation_empty() {
         let body = BusinessLicenseRecognizeBody {
-            file_token: "".to_string(),
-            is_async: None,
+            file: Vec::new(),
+            file_name: None,
         };
         assert!(body.validate().is_err());
     }
@@ -217,9 +203,91 @@ mod tests {
     #[test]
     fn test_body_validation_valid() {
         let body = BusinessLicenseRecognizeBody {
-            file_token: "valid_token".to_string(),
-            is_async: None,
+            file: b"file content".to_vec(),
+            file_name: None,
         };
         assert!(body.validate().is_ok());
+    }
+
+    #[test]
+    fn test_builder_file_name() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let builder =
+            BusinessLicenseRecognizeRequestBuilder::new(config.clone()).file_name("file.jpg");
+        assert_eq!(builder.file_name, Some("file.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_builder_body_creation() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let body = BusinessLicenseRecognizeRequestBuilder::new(config.clone())
+            .file(b"file content".to_vec())
+            .file_name("file.jpg")
+            .body();
+        assert_eq!(body.file, b"file content".to_vec());
+        assert_eq!(body.file_name, Some("file.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_body_serialization() {
+        let body = BusinessLicenseRecognizeBody {
+            file: b"file content".to_vec(),
+            file_name: Some("file.jpg".to_string()),
+        };
+        let json_str = serde_json::to_string(&body).expect("序列化失败");
+        assert!(!json_str.contains("\"file\""));
+        assert!(json_str.contains("__file_name"));
+        assert!(json_str.contains("file.jpg"));
+    }
+
+    #[test]
+    fn test_business_license_entity_struct() {
+        let entity = BusinessLicenseEntity {
+            entity_type: Some("company_name".to_string()),
+            value: Some("北京某某科技有限公司".to_string()),
+        };
+        assert_eq!(entity.entity_type, Some("company_name".to_string()));
+        assert_eq!(entity.value, Some("北京某某科技有限公司".to_string()));
+    }
+
+    #[test]
+    fn test_business_license_entity_serialization() {
+        let entity = BusinessLicenseEntity {
+            entity_type: Some("company_name".to_string()),
+            value: Some("北京某某科技有限公司".to_string()),
+        };
+        let json_str = serde_json::to_string(&entity).expect("序列化失败");
+        assert!(json_str.contains("\"type\""));
+        assert!(json_str.contains("company_name"));
+    }
+
+    #[test]
+    fn test_response_struct() {
+        let response = BusinessLicenseRecognizeResponse {
+            business_license: None,
+        };
+        assert!(response.business_license.is_none());
+
+        let response_with_data = BusinessLicenseRecognizeResponse {
+            business_license: Some(BusinessLicense {
+                entities: Some(vec![BusinessLicenseEntity {
+                    entity_type: Some("company_name".to_string()),
+                    value: Some("北京某某科技有限公司".to_string()),
+                }]),
+            }),
+        };
+        let value = response_with_data
+            .business_license
+            .as_ref()
+            .and_then(|business_license| business_license.entities.as_ref())
+            .and_then(|entities| entities.first())
+            .and_then(|entity| entity.value.as_deref());
+        assert_eq!(value, Some("北京某某科技有限公司"));
     }
 }
