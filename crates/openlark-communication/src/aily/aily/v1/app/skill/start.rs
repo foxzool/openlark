@@ -8,17 +8,89 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+/// 技能全局变量（官方 skill_global_variable）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SkillGlobalVariable {
+    /// 触发技能的消息文本；即用户在飞书机器人等渠道对话输入的内容，长度范围 0~40960 字符。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    /// 触发技能的文件信息（如 OCR 节点等所需消费的图片文件），每项长度不超过 32 字符。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<String>>,
+    /// 渠道信息。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel: Option<SkillChannel>,
+}
+
+impl SkillGlobalVariable {
+    /// 创建新的技能全局变量。
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 设置触发技能的消息文本。
+    pub fn query(mut self, query: impl Into<String>) -> Self {
+        self.query = Some(query.into());
+        self
+    }
+
+    /// 设置触发技能的文件信息。
+    pub fn files(mut self, files: Vec<String>) -> Self {
+        self.files = Some(files);
+        self
+    }
+
+    /// 设置渠道信息。
+    pub fn channel(mut self, channel: SkillChannel) -> Self {
+        self.channel = Some(channel);
+        self
+    }
+}
+
+/// 渠道信息（官方 channel）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SkillChannel {
+    /// 自定义传入的变量（JSON 字符串），可在 Workflow 技能全局变量中消费，长度范围 0~255 字符。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variables: Option<String>,
+}
+
+impl SkillChannel {
+    /// 创建新的渠道信息。
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 设置自定义传入的变量。
+    pub fn variables(mut self, variables: impl Into<String>) -> Self {
+        self.variables = Some(variables.into());
+        self
+    }
+}
+
 /// 调用技能请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartSkillBody {
     /// 技能输入参数。
     pub input: serde_json::Value,
+    /// 技能的全局变量。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_variable: Option<SkillGlobalVariable>,
 }
 
 impl StartSkillBody {
     /// 创建新的请求构建器。
     pub fn new(input: serde_json::Value) -> Self {
-        Self { input }
+        Self {
+            input,
+            global_variable: None,
+        }
+    }
+
+    /// 设置技能的全局变量。
+    pub fn global_variable(mut self, global_variable: SkillGlobalVariable) -> Self {
+        self.global_variable = Some(global_variable);
+        self
     }
 }
 
@@ -35,11 +107,13 @@ impl StartSkillBody {
 /// # 请求体字段
 ///
 /// - `input`: 技能输入参数
+/// - `global_variable`: 技能的全局变量（可选，含 `query`/`files`/`channel`）
 ///
 /// # 示例
 ///
 /// ```rust,ignore
-/// let body = StartSkillBody::new(serde_json::json!({"query": "你好"}));
+/// let body = StartSkillBody::new(serde_json::json!({"query": "你好"}))
+///     .global_variable(SkillGlobalVariable::new().query("你好"));
 /// let request = StartSkillRequest::new(config)
 ///     .app_id("app_xxx")
 ///     .skill_id("skill_xxx")
@@ -123,6 +197,33 @@ mod tests {
         let input = serde_json::json!({"query": "测试"});
         let body = StartSkillBody::new(input);
         assert_eq!(body.input["query"], "测试");
+        assert!(body.global_variable.is_none());
+    }
+
+    #[test]
+    fn test_start_skill_body_with_global_variable() {
+        // 官方请求示例形状：{"global_variable":{"query":"你好"}}
+        let body = StartSkillBody::new(serde_json::json!({}))
+            .global_variable(SkillGlobalVariable::new().query("你好"));
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(json["global_variable"]["query"], "你好");
+        assert!(json["global_variable"].get("files").is_none());
+        assert!(json["global_variable"].get("channel").is_none());
+    }
+
+    #[test]
+    fn test_skill_global_variable_full_shape() {
+        let gv = SkillGlobalVariable::new()
+            .query("你好")
+            .files(vec!["file_4d9nu1ev3a2rq".to_string()])
+            .channel(SkillChannel::new().variables("{\"custom_key\": \"custom_value\"}"));
+        let json = serde_json::to_value(&gv).unwrap();
+        assert_eq!(json["query"], "你好");
+        assert_eq!(json["files"][0], "file_4d9nu1ev3a2rq");
+        assert_eq!(
+            json["channel"]["variables"],
+            "{\"custom_key\": \"custom_value\"}"
+        );
     }
 
     #[test]

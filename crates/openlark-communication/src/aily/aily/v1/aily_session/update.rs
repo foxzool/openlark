@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 /// 更新会话请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateSessionBody {
-    /// 会话名称。
+    /// 渠道上下文，可自行构造的 Context 上下文变量，长度范围 0~255 字符。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 会话描述。
+    pub channel_context: Option<String>,
+    /// 其他透传信息，会话的自定义变量内容，长度范围 0~255 字符。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub metadata: Option<String>,
 }
 
 impl UpdateSessionBody {
@@ -25,15 +25,15 @@ impl UpdateSessionBody {
         Self::default()
     }
 
-    /// 设置会话名称。
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
+    /// 设置渠道上下文。
+    pub fn channel_context(mut self, channel_context: impl Into<String>) -> Self {
+        self.channel_context = Some(channel_context.into());
         self
     }
 
-    /// 设置会话描述。
-    pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.description = Some(description.into());
+    /// 设置其他透传信息。
+    pub fn metadata(mut self, metadata: impl Into<String>) -> Self {
+        self.metadata = Some(metadata.into());
         self
     }
 }
@@ -49,15 +49,15 @@ impl UpdateSessionBody {
 ///
 /// # 请求体字段
 ///
-/// - `name`: 会话名称（可选）
-/// - `description`: 会话描述（可选）
+/// - `channel_context`: 渠道上下文（可选，0~255 字符）
+/// - `metadata`: 其他透传信息（可选，0~255 字符）
 ///
 /// # 示例
 ///
 /// ```rust,ignore
 /// let body = UpdateSessionBody::new()
-///     .name("新名称")
-///     .description("新描述");
+///     .channel_context("{}")
+///     .metadata("{}");
 /// let request = UpdateSessionRequest::new(config)
 ///     .aily_session_id("session_xxx")
 ///     .execute(body).await?;
@@ -121,17 +121,17 @@ mod tests {
     #[test]
     fn test_update_session_body_builder() {
         let body = UpdateSessionBody::new()
-            .name("新名称")
-            .description("新描述");
-        assert_eq!(body.name, Some("新名称".to_string()));
-        assert_eq!(body.description, Some("新描述".to_string()));
+            .channel_context("{}")
+            .metadata("{}");
+        assert_eq!(body.channel_context, Some("{}".to_string()));
+        assert_eq!(body.metadata, Some("{}".to_string()));
     }
 
     #[test]
     fn test_update_session_body_default() {
         let body = UpdateSessionBody::new();
-        assert_eq!(body.name, None);
-        assert_eq!(body.description, None);
+        assert_eq!(body.channel_context, None);
+        assert_eq!(body.metadata, None);
     }
 
     #[test]
@@ -142,10 +142,18 @@ mod tests {
     }
 
     #[test]
-    fn test_update_session_body_with_name_only() {
-        let body = UpdateSessionBody::new().name("仅名称");
-        assert_eq!(body.name, Some("仅名称".to_string()));
-        assert_eq!(body.description, None);
+    fn test_update_session_body_with_channel_context_only() {
+        let body = UpdateSessionBody::new().channel_context("{}");
+        assert_eq!(body.channel_context, Some("{}".to_string()));
+        assert_eq!(body.metadata, None);
+    }
+
+    #[test]
+    fn test_update_session_body_serialization() {
+        let body = UpdateSessionBody::new().metadata("{}");
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(json["metadata"], "{}");
+        assert!(json.get("channel_context").is_none());
     }
 
     #[test]

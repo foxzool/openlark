@@ -7,10 +7,14 @@ pub struct MultipartBuilder;
 
 impl MultipartBuilder {
     /// 构建包含文件的 multipart 表单
+    ///
+    /// `file_part_name` 为文件部件名，需与接口官方文档请求体示例中的
+    /// `Content-Disposition: form-data; name="..."` 一致（多数接口为 "file"）。
     pub fn build_multipart(
         req_builder: RequestBuilder,
         body: &[u8],
         file_data: &[u8],
+        file_part_name: &'static str,
     ) -> Result<RequestBuilder, CoreError> {
         let json_value = serde_json::from_slice::<Value>(body)?;
 
@@ -21,7 +25,7 @@ impl MultipartBuilder {
         let mut form = multipart::Form::new();
 
         // 处理文件部分
-        form = Self::add_file_part(form, form_obj, file_data)?;
+        form = Self::add_file_part(form, form_obj, file_data, file_part_name)?;
 
         // 处理其他表单字段
         form = Self::add_form_fields(form, form_obj)?;
@@ -37,6 +41,7 @@ impl MultipartBuilder {
         mut form: multipart::Form,
         form_obj: &serde_json::Map<String, Value>,
         file_data: &[u8],
+        file_part_name: &'static str,
     ) -> Result<multipart::Form, CoreError> {
         // 兼容两种用法：
         // - "__file_name": 仅用于设置 multipart 文件名，不作为表单字段发送
@@ -66,7 +71,7 @@ impl MultipartBuilder {
             file_part = file_part.file_name(name);
         }
 
-        form = form.part("file", file_part);
+        form = form.part(file_part_name, file_part);
         Ok(form)
     }
 
@@ -123,7 +128,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -138,7 +143,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -149,7 +154,8 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, invalid_body, file_data);
+        let result =
+            MultipartBuilder::build_multipart(req_builder, invalid_body, file_data, "file");
 
         assert!(result.is_err());
         match result {
@@ -165,7 +171,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_err());
         if let Err(CoreError::Validation { message, .. }) = result {
@@ -189,7 +195,7 @@ mod tests {
         let file_data = b"PDF content here";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -207,7 +213,7 @@ mod tests {
         let file_data = b"Test content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -228,7 +234,7 @@ mod tests {
         let file_data = b"JSON content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -244,7 +250,7 @@ mod tests {
         let file_data = b"";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -262,7 +268,7 @@ mod tests {
         let file_data = vec![0u8; 1024 * 1024];
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, &file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, &file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -276,7 +282,7 @@ mod tests {
         let form = reqwest::multipart::Form::new();
         let file_data = b"file content";
 
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
+        let result = MultipartBuilder::add_file_part(form, &form_data, file_data, "file");
         assert!(result.is_ok());
     }
 
@@ -286,7 +292,7 @@ mod tests {
         let form = reqwest::multipart::Form::new();
         let file_data = b"file content";
 
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
+        let result = MultipartBuilder::add_file_part(form, &form_data, file_data, "file");
         assert!(result.is_ok());
     }
 
@@ -298,7 +304,7 @@ mod tests {
         let form = reqwest::multipart::Form::new();
         let file_data = b"file content";
 
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
+        let result = MultipartBuilder::add_file_part(form, &form_data, file_data, "file");
         assert!(result.is_err());
 
         if let Err(CoreError::Validation { message, .. }) = result {
@@ -387,7 +393,7 @@ mod tests {
         let file_data = b"Complex JSON content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -403,7 +409,7 @@ mod tests {
         let file_data = b"File with special name";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
     }
@@ -428,7 +434,7 @@ mod tests {
         let file_data = b"PDF integration test content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data, "file");
 
         assert!(result.is_ok());
 
