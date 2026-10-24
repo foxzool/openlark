@@ -9,14 +9,24 @@ use openlark_core::{
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 启用/停用试用期考核功能请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EnableDisableAssessmentBody {
+    /// 启用 / 停用状态。启用后可在试用期管理页面中可见试用期考核相关的字段
+    pub active: bool,
+    /// 试用期考核系统入口链接，当启用功能（active=true）时该字段必填
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_url: Option<String>,
+}
 
 /// 启用/停用试用期考核功能请求
 #[derive(Debug, Clone)]
 pub struct EnableDisableAssessmentRequest {
     /// 配置信息
     config: Config,
-    request_body: Option<Value>,
+    /// 请求体
+    body: EnableDisableAssessmentBody,
 }
 
 impl EnableDisableAssessmentRequest {
@@ -24,13 +34,25 @@ impl EnableDisableAssessmentRequest {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            request_body: None,
+            body: EnableDisableAssessmentBody::default(),
         }
     }
 
-    /// 设置 `request_body`。
-    pub fn request_body(mut self, request_body: Value) -> Self {
-        self.request_body = Some(request_body);
+    /// 设置请求体。
+    pub fn body(mut self, body: EnableDisableAssessmentBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置启用 / 停用状态。
+    pub fn active(mut self, active: bool) -> Self {
+        self.body.active = active;
+        self
+    }
+
+    /// 设置试用期考核系统入口链接（active=true 时必填）。
+    pub fn app_url(mut self, app_url: impl Into<String>) -> Self {
+        self.body.app_url = Some(app_url.into());
         self
     }
 
@@ -47,14 +69,24 @@ impl EnableDisableAssessmentRequest {
     ) -> SDKResult<EnableDisableAssessmentResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV2;
 
-        let api_endpoint = FeishuPeopleApiV2::ProbationEnableDisableAssessment;
-        let mut request =
-            ApiRequest::<EnableDisableAssessmentResponse>::post(api_endpoint.to_url());
-
-        if let Some(request_body) = self.request_body {
-            request = request.body(request_body);
+        // 官方约束：当启用功能（active=true）时 app_url 必填
+        if self.body.active
+            && self
+                .body
+                .app_url
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("")
+                .is_empty()
+        {
+            return Err(openlark_core::error::CoreError::validation_msg(
+                "启用功能时 app_url 不能为空",
+            ));
         }
 
+        let api_endpoint = FeishuPeopleApiV2::ProbationEnableDisableAssessment;
+        let request = ApiRequest::<EnableDisableAssessmentResponse>::post(api_endpoint.to_url())
+            .body(serde_json::to_value(&self.body)?);
         Transport::request_typed(
             request,
             &self.config,
@@ -65,37 +97,9 @@ impl EnableDisableAssessmentRequest {
     }
 }
 
-/// 启用/停用试用期考核功能响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct EnableDisableAssessmentResponse {
-    /// 响应数据
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<EnableDisableAssessmentInfo>,
-}
-
-/// 启用/停用试用期考核返回信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct EnableDisableAssessmentInfo {
-    /// 试用期 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub probation_id: Option<String>,
-    /// 雇佣 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub employment_id: Option<String>,
-    /// 是否启用考核
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub assessment_enabled: Option<bool>,
-    /// 操作状态
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// 更新时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-    /// 预留扩展字段
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub extra: Option<Value>,
-}
+/// 启用/停用试用期考核功能响应（官方 data 为空对象）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct EnableDisableAssessmentResponse {}
 
 impl ApiResponseTrait for EnableDisableAssessmentResponse {
     fn data_format() -> ResponseFormat {
@@ -120,7 +124,7 @@ mod tests {
                 "/open-apis/corehr/v2/probation/enable_disable_assessment",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success", "data": {}
             })))
             .mount(&server)
             .await;
@@ -133,6 +137,8 @@ mod tests {
             .build();
 
         EnableDisableAssessmentRequest::new(config)
+            .active(true)
+            .app_url("https://example.feishuapp.cn/ae/apps/1")
             .execute()
             .await
             .expect("请求应成功");

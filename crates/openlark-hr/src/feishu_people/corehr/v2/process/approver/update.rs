@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/process.approver/update>
 
+use crate::feishu_people::corehr::v2::process_start::create::ProcessFormVariableV2;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -10,7 +11,25 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 通过/拒绝审批任务请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateApproverBody {
+    /// 将审批任务修改为同意/拒绝，可选值：2 拒绝 / 3 通过
+    pub status: i32,
+    /// 用户 id，按 user_id_type 类型传递；如果 system_approval 为 false，则必填审批任务对应原审批人的 user_id
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 是否为系统身份审批，默认 false
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_approval: Option<bool>,
+    /// 通过/拒绝原因，当拒绝时原因必填（最大长度 1000 字符）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 表单数据
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field_values_v2: Option<Vec<ProcessFormVariableV2>>,
+}
 
 /// 通过/拒绝审批任务请求
 #[derive(Debug, Clone)]
@@ -19,7 +38,12 @@ pub struct UpdateRequest {
     config: Config,
     process_id: Option<String>,
     approver_id: Option<String>,
-    body: Option<Value>,
+    /// 请求体
+    body: UpdateApproverBody,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
+    /// 部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl UpdateRequest {
@@ -29,7 +53,9 @@ impl UpdateRequest {
             config,
             process_id: None,
             approver_id: None,
-            body: None,
+            body: UpdateApproverBody::default(),
+            user_id_type: None,
+            department_id_type: None,
         }
     }
 
@@ -46,8 +72,50 @@ impl UpdateRequest {
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: UpdateApproverBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置审批任务操作状态（2 拒绝 / 3 通过）。
+    pub fn status(mut self, status: i32) -> Self {
+        self.body.status = status;
+        self
+    }
+
+    /// 设置用户 id。
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.body.user_id = Some(user_id.into());
+        self
+    }
+
+    /// 设置是否为系统身份审批。
+    pub fn system_approval(mut self, system_approval: bool) -> Self {
+        self.body.system_approval = Some(system_approval);
+        self
+    }
+
+    /// 设置通过/拒绝原因（拒绝时必填）。
+    pub fn reason(mut self, reason: impl Into<String>) -> Self {
+        self.body.reason = Some(reason.into());
+        self
+    }
+
+    /// 设置表单数据。
+    pub fn field_values_v2(mut self, field_values_v2: Vec<ProcessFormVariableV2>) -> Self {
+        self.body.field_values_v2 = Some(field_values_v2);
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -67,33 +135,26 @@ impl UpdateRequest {
         validate_required!(process_id.trim(), "process_id 不能为空");
         validate_required!(approver_id.trim(), "approver_id 不能为空");
 
-        let mut request = ApiRequest::<UpdateResponse>::put(format!(
+        let request = ApiRequest::<UpdateResponse>::put(format!(
             "/open-apis/corehr/v2/processes/{process_id}/approvers/{approver_id}"
-        ));
-
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        ))
+        .query_opt("user_id_type", self.user_id_type)
+        .query_opt("department_id_type", self.department_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
 }
 
-/// 通过/拒绝审批任务响应
+/// 通过/拒绝审批任务响应（官方 data 为 {code, msg}）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UpdateResponse {
-    /// 响应数据
-    /// process信息
+    /// 错误码，非 0 表示失败
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub process: Option<ProcessInfo>,
-}
-
-/// 流程信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ProcessInfo {
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
+    pub code: Option<i32>,
+    /// 错误描述
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub msg: Option<String>,
 }
 
 impl ApiResponseTrait for UpdateResponse {
@@ -119,7 +180,9 @@ mod tests {
                 "/open-apis/corehr/v2/processes/test001/approvers/test001",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {"code": 0, "msg": "success"}
             })))
             .mount(&server)
             .await;
@@ -131,12 +194,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        UpdateRequest::new(config)
+        let resp = UpdateRequest::new(config)
             .process_id("test001".to_string())
             .approver_id("test001".to_string())
+            .status(3)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.code, Some(0));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

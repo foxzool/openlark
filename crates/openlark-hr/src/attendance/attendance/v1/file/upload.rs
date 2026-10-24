@@ -1,13 +1,16 @@
 //! 上传用户人脸识别照片
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/file/upload>
+//!
+//! 官方请求：必填 query 参数 `file_name` + multipart/form-data 单一 `file` part；
+//! 响应为 `data.file.file_id`。
 
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required, validate_required_list, validation_error,
+    validate_required, validation_error,
 };
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -15,11 +18,9 @@ use serde::{Deserialize, Serialize};
 /// 上传用户人脸识别照片请求
 #[derive(Debug, Clone)]
 pub struct UploadRequest {
-    /// 用户 ID（必填）
-    user_id: String,
-    /// 图片名称（必填）
+    /// 带后缀的文件名（必填，query 参数）
     file_name: String,
-    /// 图片二进制数据（必填）
+    /// 文件内容（必填，multipart `file` part）
     image_data: Vec<u8>,
     /// 配置信息
     config: Config,
@@ -27,9 +28,8 @@ pub struct UploadRequest {
 
 impl UploadRequest {
     /// 创建请求
-    pub fn new(config: Config, user_id: String, file_name: String, image_data: Vec<u8>) -> Self {
+    pub fn new(config: Config, file_name: String, image_data: Vec<u8>) -> Self {
         Self {
-            user_id,
             file_name,
             image_data,
             config,
@@ -50,8 +50,7 @@ impl UploadRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.user_id.trim(), "user_id");
-        validate_required_list!(self.image_data, 1, "图片数据不能为空");
+        validate_required!(self.image_data, "文件内容不能为空");
 
         // 验证文件名
         let file_name = self.file_name.trim();
@@ -72,22 +71,17 @@ impl UploadRequest {
             ));
         }
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 file_name
         let api_endpoint = AttendanceApiV1::FileUpload;
-        let request = ApiRequest::<UploadResponse>::post(api_endpoint.to_url());
+        let request =
+            ApiRequest::<UploadResponse>::post(api_endpoint.to_url()).query("file_name", file_name);
 
-        // 3. 构建请求体（multipart/form-data）
+        // 3. 构建请求体（multipart/form-data，官方仅 file part）
         // 生成随机 boundary 后缀避免冲突
         let random_suffix: u32 = rand::thread_rng().gen_range(0..1000000);
         let boundary = format!("----OpenLarkBoundary{random_suffix:06}");
         let mime_type = detect_mime_type(file_name);
-        let body = build_multipart_body(
-            &self.user_id,
-            file_name,
-            &self.image_data,
-            &boundary,
-            mime_type,
-        );
+        let body = build_multipart_body(file_name, &self.image_data, &boundary, mime_type);
 
         let request = request
             .header(
@@ -123,21 +117,14 @@ fn detect_mime_type(file_name: &str) -> &'static str {
     }
 }
 
-/// 构建 multipart 表单数据
+/// 构建 multipart 表单数据（官方仅 file 一个 part）
 fn build_multipart_body(
-    user_id: &str,
     file_name: &str,
     image_data: &[u8],
     boundary: &str,
     mime_type: &str,
 ) -> Vec<u8> {
     let mut body = Vec::new();
-
-    // 用户 ID 部分
-    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-    body.extend_from_slice(b"Content-Disposition: form-data; name=\"user_id\"\r\n\r\n");
-    body.extend_from_slice(user_id.as_bytes());
-    body.extend_from_slice(b"\r\n");
 
     // 文件部分
     body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
@@ -158,14 +145,15 @@ fn build_multipart_body(
 /// 上传用户人脸识别照片响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UploadResponse {
-    /// 是否成功
-    pub success: bool,
-    /// 照片 ID
-    pub photo_id: String,
-    /// 用户 ID
-    pub user_id: String,
-    /// 上传时间（Unix 时间戳）
-    pub upload_time: i64,
+    /// 文件信息
+    pub file: FileData,
+}
+
+/// 上传得到的文件信息
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FileData {
+    /// 文件 ID
+    pub file_id: String,
 }
 
 impl ApiResponseTrait for UploadResponse {
@@ -178,25 +166,26 @@ impl ApiResponseTrait for UploadResponse {
 mod tests {
     use super::*;
     use openlark_core::config::Config;
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+    /// 端到端：Builder→execute→Transport→mock→assert 嵌套响应解析 + query 参数 + multipart 形状。
     #[tokio::test]
     async fn test_attendance_v1_file_upload_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(
-            r#"{"success": false, "photo_id": "test", "user_id": "test", "upload_time": 0}"#,
-        )
-        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/files/upload"))
+            .and(query_param("file_name", "face.jpg"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": {
+                    "file": {
+                        "file_id": "6b30e7636a38861bbe02869c726a4612"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -208,23 +197,36 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = UploadRequest::new(
-            config,
-            "user_001".to_string(),
-            "sample_file_name".to_string(),
-            vec![1u8],
-        )
-        .execute()
-        .await
-        .expect("attendance_v1_file_upload 应成功");
+        let data = UploadRequest::new(config, "face.jpg".to_string(), vec![1u8, 2u8, 3u8])
+            .execute()
+            .await
+            .expect("attendance_v1_file_upload 应成功");
 
-        let _ = &data;
+        assert_eq!(data.file.file_id, "6b30e7636a38861bbe02869c726a4612");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/files/upload"
+        );
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or("")
+                .contains("file_name=face.jpg"),
+            "缺必填 query 参数 file_name: {:?}",
+            received[0].url.query()
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(
+            body.contains("name=\"file\""),
+            "multipart 缺 file part: {body}"
+        );
+        assert!(
+            !body.contains("name=\"user_id\""),
+            "官方无 user_id 参数: {body}"
         );
     }
 }

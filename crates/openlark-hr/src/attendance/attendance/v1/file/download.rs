@@ -1,6 +1,8 @@
 //! 下载用户人脸识别照片
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/file/download>
+//!
+//! 官方请求仅路径参数 `file_id`，成功响应为照片文件二进制流（非 JSON envelope）。
 
 use openlark_core::{
     SDKResult,
@@ -14,16 +16,16 @@ use serde::{Deserialize, Serialize};
 /// 下载用户人脸识别照片请求
 #[derive(Debug, Clone)]
 pub struct DownloadRequest {
-    /// 照片 ID（必填）
-    photo_id: String,
+    /// 文件 ID（必填，路径参数，可通过批量查询用户人脸识别信息获取）
+    file_id: String,
     /// 配置信息
     config: Config,
 }
 
 impl DownloadRequest {
     /// 创建请求
-    pub fn new(config: Config, photo_id: String) -> Self {
-        Self { photo_id, config }
+    pub fn new(config: Config, file_id: String) -> Self {
+        Self { file_id, config }
     }
 
     /// 执行请求
@@ -40,10 +42,10 @@ impl DownloadRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.photo_id.trim(), "photo_id");
+        validate_required!(self.file_id, "file_id 不能为空");
 
         // 2. 构建端点
-        let api_endpoint = AttendanceApiV1::FileDownload(self.photo_id.clone()).to_url();
+        let api_endpoint = AttendanceApiV1::FileDownload(self.file_id.clone()).to_url();
         let request = ApiRequest::<DownloadResponse>::get(&api_endpoint);
         // 3. 发送请求
         Transport::request_typed(
@@ -57,21 +59,26 @@ impl DownloadRequest {
 }
 
 /// 下载用户人脸识别照片响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+///
+/// 官方 200 响应为照片文件二进制流（非 JSON envelope）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DownloadResponse {
-    /// 照片 ID
-    pub photo_id: String,
-    /// 用户 ID
-    pub user_id: String,
-    /// 照片数据（Base64 编码）
-    pub photo_data: String,
-    /// 照片格式
-    pub content_type: String,
+    /// `Content-Disposition` 中的文件名；响应头缺失时为空字符串
+    pub file_name: String,
+    /// 照片二进制内容
+    pub content: Vec<u8>,
 }
 
 impl ApiResponseTrait for DownloadResponse {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Binary
+    }
+
+    fn from_binary(file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(Self {
+            file_name,
+            content: body,
+        })
     }
 }
 
@@ -87,24 +94,31 @@ mod tests {
         let request = DownloadRequest::new(TestConfigBuilder::new().build(), "test".to_string());
         let _ = request;
     }
-    /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
+
+    #[test]
+    fn test_download_response_binary_decode() {
+        let response =
+            DownloadResponse::from_binary("face.jpg".to_string(), b"jpeg-bytes".to_vec())
+                .expect("二进制响应解码失败");
+        assert_eq!(response.file_name, "face.jpg");
+        assert_eq!(response.content, b"jpeg-bytes".to_vec());
+    }
+    /// 端到端：Builder→execute→Transport→mock→assert 二进制响应 + 实际请求形状。
     #[tokio::test]
-    async fn test_attendance_v1_file_download_returns_data_on_success() {
-        use serde_json::json;
+    async fn test_attendance_v1_file_download_returns_binary_on_success() {
         use wiremock::MockServer;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"photo_id": "test", "user_id": "test", "photo_data": "test", "content_type": "test"}"#).unwrap();
+        let photo_bytes = b"\xFF\xD8\xFF\xE0 fake-jpeg".to_vec();
         Mock::given(method("GET"))
-            .and(path("/open-apis/attendance/v1/files/photo_001/download"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "data": data_body
-            })))
+            .and(path("/open-apis/attendance/v1/files/file_001/download"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-disposition", "attachment; filename=\"face.jpg\"")
+                    .set_body_bytes(photo_bytes.clone()),
+            )
             .mount(&server)
             .await;
 
@@ -115,18 +129,19 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = DownloadRequest::new(config, "photo_001".to_string())
+        let data = DownloadRequest::new(config, "file_001".to_string())
             .execute()
             .await
             .expect("attendance_v1_file_download 应成功");
 
-        let _ = &data;
+        assert_eq!(data.file_name, "face.jpg");
+        assert_eq!(data.content, photo_bytes);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
-            "/open-apis/attendance/v1/files/photo_001/download"
+            "/open-apis/attendance/v1/files/file_001/download"
         );
     }
 }
