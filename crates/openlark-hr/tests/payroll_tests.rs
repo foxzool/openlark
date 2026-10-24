@@ -3,7 +3,6 @@
 
 use openlark_core::{config::Config, req_option::RequestOption};
 use openlark_hr::payroll::payroll::v1::*;
-use rstest::rstest;
 use serde_json::json;
 use wiremock::{
     Mock, MockServer, ResponseTemplate,
@@ -47,10 +46,11 @@ mod builder_tests {
     smoke_builder!(
         test_list_payment_activity_request_builder,
         payment_activity::list::ListRequest::new(test_config("https://open.feishu.cn"))
+            .pay_period_start_date("2024-01-01".to_string())
+            .pay_period_end_date("2024-01-31".to_string())
             .page_size(20)
             .page_token("next_activity".to_string())
-            .paygroup_id("pg_1".to_string())
-            .status(1)
+            .statuses(vec![100, 200])
     );
     smoke_builder!(
         test_archive_payment_activity_request_builder,
@@ -62,19 +62,18 @@ mod builder_tests {
     smoke_builder!(
         test_list_payment_activity_detail_request_builder,
         payment_activity_detail::list::ListRequest::new(test_config("https://open.feishu.cn"))
-            .activity_id("pa_1".to_string())
+            .page_index(1)
             .page_size(20)
-            .page_token("next_detail".to_string())
+            .activity_id("pa_1".to_string())
+            .include_segment_data(true)
     );
     smoke_builder!(
         test_query_payment_detail_request_builder,
-        payment_detail::query::QueryRequest::new(
-            test_config("https://open.feishu.cn"),
-            "pa_1".to_string(),
-        )
-        .employee_ids(vec!["ou_1".to_string()])
-        .page_size(30)
-        .page_token("next_payment_detail".to_string())
+        payment_detail::query::QueryRequest::new(test_config("https://open.feishu.cn"))
+            .page_index(1)
+            .page_size(30)
+            .employee_ids(vec!["ou_1".to_string()])
+            .activity_ids(vec!["pa_1".to_string()])
     );
     smoke_builder!(
         test_list_datasource_request_builder,
@@ -85,8 +84,15 @@ mod builder_tests {
     smoke_builder!(
         test_query_datasource_record_request_builder,
         datasource_record::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .datasource_id("ds_1".to_string())
-            .employee_ids(vec!["ou_1".to_string()])
+            .source_code("test__c".to_string())
+            .selected_fields(vec!["base_salary__c".to_string()])
+            .field_filters(vec![
+                datasource_record::query::DatasourceRecordFieldFilter {
+                    field_code: "employment_id".to_string(),
+                    field_values: Some(vec!["ou_1".to_string()]),
+                    operator: Some(1),
+                },
+            ])
             .page_size(15)
             .page_token("next_record".to_string())
     );
@@ -94,13 +100,13 @@ mod builder_tests {
         test_save_datasource_record_request_builder,
         datasource_record::save::SaveRequest::new(
             test_config("https://open.feishu.cn"),
-            "ds_1".to_string(),
-            vec!["ou_1".to_string()],
+            "test__c".to_string(),
             vec![datasource_record::save::DatasourceRecord {
-                employee_id: "ou_1".to_string(),
-                items: vec![datasource_record::save::DatasourceRecordItem {
-                    field_name: "base_salary".to_string(),
-                    value: json!(20000),
+                active_status: 1,
+                field_values: vec![datasource_record::save::DatasourceRecordFieldValue {
+                    field_code: "base_salary__c".to_string(),
+                    value: "20000".to_string(),
+                    field_type: None,
                 }],
             }],
         )
@@ -139,64 +145,14 @@ mod builder_tests {
 mod validation_tests {
     use super::*;
 
-    #[rstest]
-    #[case("")]
-    #[case("   ")]
     #[tokio::test]
-    async fn test_payment_detail_activity_id_validation(#[case] activity_id: &str) {
-        let result = payment_detail::query::QueryRequest::new(
-            test_config("https://127.0.0.1:9"),
-            activity_id.to_string(),
-        )
-        .execute_with_options(auth_option())
-        .await;
-
-        assert!(result.is_err());
-        let err = result.expect_err("应返回错误").to_string();
-        assert!(err.contains("activity_id"));
-    }
-
-    #[rstest]
-    #[case("")]
-    #[case("   ")]
-    #[tokio::test]
-    async fn test_save_datasource_record_datasource_id_validation(#[case] datasource_id: &str) {
-        let result = datasource_record::save::SaveRequest::new(
-            test_config("https://127.0.0.1:9"),
-            datasource_id.to_string(),
-            vec!["ou_1".to_string()],
-            vec![datasource_record::save::DatasourceRecord {
-                employee_id: "ou_1".to_string(),
-                items: vec![datasource_record::save::DatasourceRecordItem {
-                    field_name: "base_salary".to_string(),
-                    value: json!(10000),
-                }],
-            }],
-        )
-        .execute_with_options(auth_option())
-        .await;
-
-        assert!(result.is_err());
-        let err = result.expect_err("应返回错误").to_string();
-        assert!(err.contains("datasource_id"));
-    }
-
-    #[tokio::test]
-    async fn test_save_datasource_record_requires_employee_ids() {
-        let result = datasource_record::save::SaveRequest::new(
-            test_config("https://127.0.0.1:9"),
-            "ds_1".to_string(),
-            vec![],
-            vec![datasource_record::save::DatasourceRecord {
-                employee_id: "ou_1".to_string(),
-                items: vec![datasource_record::save::DatasourceRecordItem {
-                    field_name: "base_salary".to_string(),
-                    value: json!(10000),
-                }],
-            }],
-        )
-        .execute_with_options(auth_option())
-        .await;
+    async fn test_payment_detail_requires_employee_ids() {
+        // 未设置 employee_ids（官方必填）
+        let result = payment_detail::query::QueryRequest::new(test_config("https://127.0.0.1:9"))
+            .page_index(1)
+            .page_size(20)
+            .execute_with_options(auth_option())
+            .await;
 
         assert!(result.is_err());
         let err = result.expect_err("应返回错误").to_string();
@@ -204,11 +160,48 @@ mod validation_tests {
     }
 
     #[tokio::test]
+    async fn test_payment_detail_requires_non_empty_employee_ids() {
+        let result = payment_detail::query::QueryRequest::new(test_config("https://127.0.0.1:9"))
+            .page_index(1)
+            .page_size(20)
+            .employee_ids(vec![])
+            .execute_with_options(auth_option())
+            .await;
+
+        assert!(result.is_err());
+        let err = result.expect_err("应返回错误").to_string();
+        assert!(err.contains("employee_ids"));
+    }
+
+    #[tokio::test]
+    async fn test_save_datasource_record_source_code_validation() {
+        for source_code in ["", "   "] {
+            let result = datasource_record::save::SaveRequest::new(
+                test_config("https://127.0.0.1:9"),
+                source_code.to_string(),
+                vec![datasource_record::save::DatasourceRecord {
+                    active_status: 1,
+                    field_values: vec![datasource_record::save::DatasourceRecordFieldValue {
+                        field_code: "base_salary__c".to_string(),
+                        value: "10000".to_string(),
+                        field_type: None,
+                    }],
+                }],
+            )
+            .execute_with_options(auth_option())
+            .await;
+
+            assert!(result.is_err());
+            let err = result.expect_err("应返回错误").to_string();
+            assert!(err.contains("source_code"));
+        }
+    }
+
+    #[tokio::test]
     async fn test_save_datasource_record_requires_records() {
         let result = datasource_record::save::SaveRequest::new(
             test_config("https://127.0.0.1:9"),
-            "ds_1".to_string(),
-            vec!["ou_1".to_string()],
+            "test__c".to_string(),
             vec![],
         )
         .execute_with_options(auth_option())
@@ -236,10 +229,10 @@ mod http_tests {
                 "msg": "success",
                 "data": {
                     "items": [{
-                        "paygroup_id": "pg_1",
-                        "name": "中国区薪资组",
-                        "created_at": 1735689600,
-                        "updated_at": 1735689600
+                        "pay_group_id": "pg_1",
+                        "name": {"zh_cn": "中国区薪资组", "en_us": "China pay group"},
+                        "code": "PAY_GROUP-3-8",
+                        "status": 1
                     }],
                     "has_more": false
                 }
@@ -253,7 +246,10 @@ mod http_tests {
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].paygroup_id, "pg_1");
+        assert_eq!(resp.items[0].pay_group_id, "pg_1");
+        assert_eq!(resp.items[0].name.zh_cn, Some("中国区薪资组".to_string()));
+        assert_eq!(resp.items[0].code, "PAY_GROUP-3-8");
+        assert_eq!(resp.items[0].status, 1);
     }
 
     #[tokio::test]
@@ -262,23 +258,26 @@ mod http_tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/payroll/v1/payment_activitys"))
             .and(header("Authorization", "Bearer test_token"))
+            .and(query_param("pay_period_start_date", "2024-01-01"))
+            .and(query_param("pay_period_end_date", "2024-01-31"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_activity"))
-            .and(query_param("paygroup_id", "pg_1"))
-            .and(query_param("status", "1"))
+            .and(query_param("statuses", "100,200"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
+                    "payment_activitys": [{
                         "activity_id": "pa_1",
-                        "paygroup_id": "pg_1",
-                        "name": "2026-01 发薪",
-                        "period_start_time": 1735689600,
-                        "period_end_time": 1738368000,
-                        "status": 1,
-                        "created_at": 1735689600,
-                        "updated_at": 1735689600
+                        "activity_names": [{"locale": "zh_cn", "value": "2026-01 发薪"}],
+                        "pay_date": "2026-01-31",
+                        "total_number_of_payroll": 100,
+                        "number_of_calculation_activities": 1,
+                        "calculation_activities": [{
+                            "calculation_activity_id": "ca_1",
+                            "calculation_activity_names": [{"locale": "zh_cn", "value": "算薪活动"}]
+                        }],
+                        "activity_status": 100
                     }],
                     "has_more": false
                 }
@@ -287,15 +286,17 @@ mod http_tests {
             .await;
 
         let resp = payment_activity::list::ListRequest::new(test_config(&mock_server.uri()))
+            .pay_period_start_date("2024-01-01".to_string())
+            .pay_period_end_date("2024-01-31".to_string())
             .page_size(20)
             .page_token("next_activity".to_string())
-            .paygroup_id("pg_1".to_string())
-            .status(1)
+            .statuses(vec![100, 200])
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].activity_id, "pa_1");
+        assert_eq!(resp.payment_activitys[0].activity_id, "pa_1");
+        assert_eq!(resp.payment_activitys[0].activity_status, 100);
     }
 
     #[tokio::test]
@@ -304,37 +305,46 @@ mod http_tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/payroll/v1/payment_activity_details"))
             .and(header("Authorization", "Bearer test_token"))
-            .and(query_param("activity_id", "pa_1"))
+            .and(query_param("page_index", "1"))
             .and(query_param("page_size", "20"))
-            .and(query_param("page_token", "next_detail"))
+            .and(query_param("activity_id", "pa_1"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "detail_id": "detail_1",
-                        "activity_id": "pa_1",
+                    "payment_activity_details": [{
                         "employee_id": "ou_1",
-                        "gross_pay": 20000.0,
-                        "net_pay": 18500.0,
-                        "total_deduction": 1500.0,
-                        "tax_amount": 1200.0
+                        "payment_details": [{
+                            "id": "acct_1",
+                            "accounting_item_names": [{"locale": "zh_cn", "value": "基本工资"}],
+                            "accounting_item_value": {
+                                "original_value": "20000",
+                                "reference_values": []
+                            },
+                            "segment_values": [],
+                            "accounting_item_type": 2
+                        }]
                     }],
-                    "has_more": false
+                    "total": 1
                 }
             })))
             .mount(&mock_server)
             .await;
 
         let resp = payment_activity_detail::list::ListRequest::new(test_config(&mock_server.uri()))
-            .activity_id("pa_1".to_string())
+            .page_index(1)
             .page_size(20)
-            .page_token("next_detail".to_string())
+            .activity_id("pa_1".to_string())
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].detail_id, "detail_1");
+        assert_eq!(resp.total, 1);
+        assert_eq!(resp.payment_activity_details[0].employee_id, "ou_1");
+        assert_eq!(
+            resp.payment_activity_details[0].payment_details[0].accounting_item_names[0].value,
+            "基本工资"
+        );
     }
 
     #[tokio::test]
@@ -343,28 +353,22 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/payroll/v1/payment_activitys/archive"))
             .and(header("Authorization", "Bearer test_token"))
+            .and(body_json(json!({"activity_id": "pa_1"})))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": {
-                    "success": true,
-                    "activity_id": "pa_1",
-                    "archived_at": 1735689600
-                }
+                "data": {}
             })))
             .mount(&mock_server)
             .await;
 
-        let resp = payment_activity::archive::ArchiveRequest::new(
+        payment_activity::archive::ArchiveRequest::new(
             test_config(&mock_server.uri()),
             "pa_1".to_string(),
         )
         .execute_with_options(auth_option())
         .await
         .expect("请求应成功");
-
-        assert!(resp.success);
-        assert_eq!(resp.activity_id, "pa_1");
     }
 
     #[tokio::test]
@@ -374,42 +378,47 @@ mod http_tests {
             .and(path("/open-apis/payroll/v1/payment_detail/query"))
             .and(header("Authorization", "Bearer test_token"))
             .and(body_json(json!({
-                "activity_id": "pa_1",
+                "page_index": 1,
+                "page_size": 20,
                 "employee_ids": ["ou_1"],
-                "page_size": 20
+                "activity_ids": ["pa_1"]
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "detail_id": "detail_1",
-                        "activity_id": "pa_1",
+                    "payment_details": [{
                         "employee_id": "ou_1",
-                        "salary_items": [{"acct_item_id": "acct_1", "name": "基本工资", "amount": 20000.0}],
-                        "deduction_items": [{"acct_item_id": "acct_2", "name": "个税", "amount": 1500.0}],
-                        "net_pay": 18500.0,
-                        "gross_pay": 20000.0,
-                        "currency": "CNY"
+                        "activity_id": "pa_1",
+                        "payment_accounting_items": [{
+                            "id": "acct_1",
+                            "accounting_item_names": [{"locale": "zh_cn", "value": "基本工资"}],
+                            "accounting_item_value": {
+                                "original_value": "20000",
+                                "reference_values": []
+                            },
+                            "segment_values": [],
+                            "accounting_item_type": 2
+                        }]
                     }],
-                    "has_more": false
+                    "total": 1
                 }
             })))
             .mount(&mock_server)
             .await;
 
-        let resp = payment_detail::query::QueryRequest::new(
-            test_config(&mock_server.uri()),
-            "pa_1".to_string(),
-        )
-        .employee_ids(vec!["ou_1".to_string()])
-        .page_size(20)
-        .execute_with_options(auth_option())
-        .await
-        .expect("请求应成功");
+        let resp = payment_detail::query::QueryRequest::new(test_config(&mock_server.uri()))
+            .page_index(1)
+            .page_size(20)
+            .employee_ids(vec!["ou_1".to_string()])
+            .activity_ids(vec!["pa_1".to_string()])
+            .execute_with_options(auth_option())
+            .await
+            .expect("请求应成功");
 
-        assert_eq!(resp.items[0].employee_id, "ou_1");
-        assert_eq!(resp.items[0].net_pay, 18500.0);
+        assert_eq!(resp.total, 1);
+        assert_eq!(resp.payment_details[0].employee_id, "ou_1");
+        assert_eq!(resp.payment_details[0].activity_id, "pa_1");
     }
 
     #[tokio::test]
@@ -419,34 +428,29 @@ mod http_tests {
             .and(path("/open-apis/payroll/v1/datasource_records/save"))
             .and(header("Authorization", "Bearer test_token"))
             .and(body_json(json!({
-                "datasource_id": "ds_1",
-                "employee_ids": ["ou_1"],
+                "source_code": "test__c",
                 "records": [{
-                    "employee_id": "ou_1",
-                    "items": [{"field_name": "base_salary", "value": 20000}]
+                    "active_status": 1,
+                    "field_values": [{"field_code": "base_salary__c", "value": "20000"}]
                 }]
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": {
-                    "success": true,
-                    "processed_count": 1,
-                    "failed_count": 0
-                }
+                "data": {"affect_counts": "1"}
             })))
             .mount(&mock_server)
             .await;
 
         let resp = datasource_record::save::SaveRequest::new(
             test_config(&mock_server.uri()),
-            "ds_1".to_string(),
-            vec!["ou_1".to_string()],
+            "test__c".to_string(),
             vec![datasource_record::save::DatasourceRecord {
-                employee_id: "ou_1".to_string(),
-                items: vec![datasource_record::save::DatasourceRecordItem {
-                    field_name: "base_salary".to_string(),
-                    value: json!(20000),
+                active_status: 1,
+                field_values: vec![datasource_record::save::DatasourceRecordFieldValue {
+                    field_code: "base_salary__c".to_string(),
+                    value: "20000".to_string(),
+                    field_type: None,
                 }],
             }],
         )
@@ -454,8 +458,7 @@ mod http_tests {
         .await
         .expect("请求应成功");
 
-        assert!(resp.success);
-        assert_eq!(resp.processed_count, 1);
+        assert_eq!(resp.affect_counts, "1");
     }
 
     #[tokio::test]
@@ -464,40 +467,49 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/payroll/v1/datasource_records/query"))
             .and(header("Authorization", "Bearer test_token"))
+            .and(query_param("page_size", "20"))
+            .and(query_param("page_token", "next_record"))
             .and(body_json(json!({
-                "datasource_id": "ds_1",
-                "employee_ids": ["ou_1"],
-                "page_size": 20,
-                "page_token": "next_record"
+                "source_code": "test__c",
+                "field_filters": [{
+                    "field_code": "employment_id",
+                    "field_values": ["ou_1"],
+                    "operator": 1
+                }]
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "record_id": "record_1",
-                        "datasource_id": "ds_1",
-                        "employee_id": "ou_1",
-                        "items": [{"field_name": "base_salary", "value": 20000}],
-                        "created_at": 1735689600,
-                        "updated_at": 1735689600
-                    }],
-                    "has_more": false
+                    "page_token": "next_record_2",
+                    "has_more": false,
+                    "records": [{
+                        "active_status": 1,
+                        "field_values": [{"field_code": "base_salary__c", "value": "20000"}]
+                    }]
                 }
             })))
             .mount(&mock_server)
             .await;
 
         let resp = datasource_record::query::QueryRequest::new(test_config(&mock_server.uri()))
-            .datasource_id("ds_1".to_string())
-            .employee_ids(vec!["ou_1".to_string()])
+            .source_code("test__c".to_string())
+            .field_filters(vec![
+                datasource_record::query::DatasourceRecordFieldFilter {
+                    field_code: "employment_id".to_string(),
+                    field_values: Some(vec!["ou_1".to_string()]),
+                    operator: Some(1),
+                },
+            ])
             .page_size(20)
             .page_token("next_record".to_string())
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].record_id, "record_1");
+        assert!(!resp.has_more);
+        assert_eq!(resp.records[0].active_status, 1);
+        assert_eq!(resp.records[0].field_values[0].field_code, "base_salary__c");
     }
 
     #[tokio::test]
@@ -656,9 +668,12 @@ mod http_tests {
                 "msg": "success",
                 "data": {
                     "items": [{
-                        "acct_item_id": "acct_1",
-                        "name": "基本工资",
-                        "type_field": "earning"
+                        "id": "acct_1",
+                        "i18n_names": [{"locale": "zh_cn", "value": "基本工资"}],
+                        "category_id": "cat_1",
+                        "data_type": 2,
+                        "decimal_places": 2,
+                        "active_status": 1
                     }],
                     "has_more": false
                 }
@@ -673,7 +688,9 @@ mod http_tests {
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].acct_item_id, "acct_1");
+        assert_eq!(resp.items[0].id, "acct_1");
+        assert_eq!(resp.items[0].i18n_names[0].value, "基本工资");
+        assert_eq!(resp.items[0].data_type, 2);
     }
 }
 
@@ -698,14 +715,13 @@ mod serialization_tests {
         paygroup::list::ListResponse,
         paygroup::list::ListResponse {
             items: vec![paygroup::list::Paygroup {
-                paygroup_id: "pg_1".to_string(),
-                name: "中国区薪资组".to_string(),
-                description: Some("总部薪资".to_string()),
-                company_id: Some("cmp_1".to_string()),
-                effective_time: Some(1735689600),
-                expiration_time: None,
-                created_at: 1735689600,
-                updated_at: 1735689600,
+                pay_group_id: "pg_1".to_string(),
+                name: paygroup::list::PaygroupName {
+                    zh_cn: Some("中国区薪资组".to_string()),
+                    en_us: Some("China pay group".to_string()),
+                },
+                code: "PAY_GROUP-3-8".to_string(),
+                status: 1,
             }],
             has_more: false,
             page_token: None,
@@ -715,17 +731,23 @@ mod serialization_tests {
         test_list_payment_activity_response_serialization,
         payment_activity::list::ListResponse,
         payment_activity::list::ListResponse {
-            items: vec![payment_activity::list::PaymentActivity {
+            payment_activitys: vec![payment_activity::list::PaymentActivity {
                 activity_id: "pa_1".to_string(),
-                paygroup_id: "pg_1".to_string(),
-                name: "2026-01 发薪".to_string(),
-                period_start_time: 1735689600,
-                period_end_time: 1738368000,
-                status: 1,
-                total_amount: Some(500000.0),
-                currency: Some("CNY".to_string()),
-                created_at: 1735689600,
-                updated_at: 1735689600,
+                activity_names: vec![payment_activity::list::I18nContent {
+                    locale: "zh_cn".to_string(),
+                    value: "2026-01 发薪".to_string(),
+                }],
+                pay_date: "2026-01-31".to_string(),
+                total_number_of_payroll: 100,
+                number_of_calculation_activities: 1,
+                calculation_activities: vec![payment_activity::list::CalculationActivity {
+                    calculation_activity_id: "ca_1".to_string(),
+                    calculation_activity_names: vec![payment_activity::list::I18nContent {
+                        locale: "zh_cn".to_string(),
+                        value: "算薪活动".to_string(),
+                    }],
+                }],
+                activity_status: 100,
             }],
             has_more: false,
             page_token: Some("next_activity".to_string()),
@@ -734,56 +756,53 @@ mod serialization_tests {
     roundtrip_eq!(
         test_archive_payment_activity_response_serialization,
         payment_activity::archive::ArchiveResponse,
-        payment_activity::archive::ArchiveResponse {
-            success: true,
-            activity_id: "pa_1".to_string(),
-            archived_at: 1735689600,
-        }
+        payment_activity::archive::ArchiveResponse {}
     );
     roundtrip_eq!(
         test_list_payment_activity_detail_response_serialization,
         payment_activity_detail::list::ListResponse,
         payment_activity_detail::list::ListResponse {
-            items: vec![payment_activity_detail::list::PaymentActivityDetail {
-                detail_id: "detail_1".to_string(),
-                activity_id: "pa_1".to_string(),
+            payment_activity_details: vec![payment_activity_detail::list::PaymentActivityDetail {
                 employee_id: "ou_1".to_string(),
-                employee_name: Some("张三".to_string()),
-                department_id: Some("od_1".to_string()),
-                gross_pay: 20000.0,
-                net_pay: 18500.0,
-                total_deduction: 1500.0,
-                tax_amount: 1200.0,
-                currency: Some("CNY".to_string()),
+                payment_details: vec![payment_activity_detail::list::PaymentAccountingItem {
+                    id: "acct_1".to_string(),
+                    accounting_item_names: vec![payment_activity_detail::list::I18nContent {
+                        locale: "zh_cn".to_string(),
+                        value: "基本工资".to_string(),
+                    }],
+                    accounting_item_value: payment_activity_detail::list::AccountingItemValue {
+                        original_value: Some("20000".to_string()),
+                        reference_values: vec![],
+                    },
+                    segment_values: vec![],
+                    accounting_item_type: 2,
+                }],
             }],
-            has_more: false,
-            page_token: None,
+            total: 1,
         }
     );
     roundtrip_eq!(
         test_query_payment_detail_response_serialization,
         payment_detail::query::QueryResponse,
         payment_detail::query::QueryResponse {
-            items: vec![payment_detail::query::PaymentDetail {
-                detail_id: "detail_1".to_string(),
-                activity_id: "pa_1".to_string(),
+            payment_details: vec![payment_detail::query::PaymentDetail {
                 employee_id: "ou_1".to_string(),
-                salary_items: vec![payment_detail::query::SalaryItem {
-                    acct_item_id: "acct_1".to_string(),
-                    name: "基本工资".to_string(),
-                    amount: 20000.0,
+                activity_id: "pa_1".to_string(),
+                payment_accounting_items: vec![payment_detail::query::PaymentAccountingItem {
+                    id: "acct_1".to_string(),
+                    accounting_item_names: vec![payment_detail::query::I18nContent {
+                        locale: "zh_cn".to_string(),
+                        value: "基本工资".to_string(),
+                    }],
+                    accounting_item_value: payment_detail::query::AccountingItemValue {
+                        original_value: Some("20000".to_string()),
+                        reference_values: vec![],
+                    },
+                    segment_values: vec![],
+                    accounting_item_type: 2,
                 }],
-                deduction_items: vec![payment_detail::query::DeductionItem {
-                    acct_item_id: "acct_2".to_string(),
-                    name: "个税".to_string(),
-                    amount: 1500.0,
-                }],
-                net_pay: 18500.0,
-                gross_pay: 20000.0,
-                currency: "CNY".to_string(),
             }],
-            has_more: false,
-            page_token: Some("next_payment_detail".to_string()),
+            total: 1,
         }
     );
     roundtrip_eq!(
@@ -807,29 +826,23 @@ mod serialization_tests {
         test_query_datasource_record_response_serialization,
         datasource_record::query::QueryResponse,
         datasource_record::query::QueryResponse {
-            items: vec![datasource_record::query::DatasourceRecord {
-                record_id: "record_1".to_string(),
-                datasource_id: "ds_1".to_string(),
-                employee_id: "ou_1".to_string(),
-                items: vec![datasource_record::query::DatasourceRecordItem {
-                    field_name: "base_salary".to_string(),
-                    value: json!(20000),
-                }],
-                created_at: 1735689600,
-                updated_at: 1735689600,
-            }],
+            page_token: Some("next".to_string()),
             has_more: false,
-            page_token: None,
+            records: vec![datasource_record::query::DatasourceRecord {
+                active_status: 1,
+                field_values: vec![datasource_record::query::DatasourceRecordFieldValue {
+                    field_code: "base_salary__c".to_string(),
+                    value: "20000".to_string(),
+                    field_type: None,
+                }],
+            }],
         }
     );
     roundtrip_eq!(
         test_save_datasource_record_response_serialization,
         datasource_record::save::SaveResponse,
         datasource_record::save::SaveResponse {
-            success: true,
-            processed_count: 10,
-            failed_count: 1,
-            failed_employee_ids: Some(vec!["ou_2".to_string()]),
+            affect_counts: "10".to_string(),
         }
     );
     roundtrip_eq!(
@@ -892,13 +905,15 @@ mod serialization_tests {
         acct_item::list::ListResponse,
         acct_item::list::ListResponse {
             items: vec![acct_item::list::AcctItem {
-                acct_item_id: "acct_1".to_string(),
-                name: "基本工资".to_string(),
-                type_field: "earning".to_string(),
-                include_in_salary: Some(true),
-                include_in_social_insurance: Some(true),
-                include_in_tax: Some(true),
-                order: Some(1),
+                id: "acct_1".to_string(),
+                i18n_names: vec![acct_item::list::I18nContent {
+                    locale: "zh_cn".to_string(),
+                    value: "基本工资".to_string(),
+                }],
+                category_id: "cat_1".to_string(),
+                data_type: 2,
+                decimal_places: 2,
+                active_status: 1,
             }],
             has_more: false,
             page_token: None,

@@ -9,30 +9,40 @@ use openlark_core::{
     http::Transport,
     validate_required,
 };
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 /// 上传进展记录图片请求
 #[derive(Debug, Clone)]
 pub struct UploadRequest {
-    /// 图片类型（必填）
-    /// - 1: 普通图片
-    /// - 2: 进度截图
-    image_type: i32,
-    /// 图片名称（必填）
-    image_name: String,
-    /// 图片 Base64 编码（必填）
-    image_content: String,
+    /// 插入图片所在的待创建/修改的进展记录对应的目标 ID（必填）
+    target_id: String,
+    /// 插入图片所在的待创建/修改的进展记录对应的目标类型（必填）
+    /// - 2: okr 的 O
+    /// - 3: okr 的 KR
+    target_type: i32,
+    /// 图片文件名（用于 multipart 文件部件与 MIME 类型推断）
+    file_name: String,
+    /// 图片二进制数据（必填，支持 JPG/JPEG/PNG/WEBP/GIF/BMP/ICO/TIFF/HEIC）
+    image_data: Vec<u8>,
     /// 配置信息
     config: Config,
 }
 
 impl UploadRequest {
     /// 创建请求
-    pub fn new(config: Config, image_type: i32, image_name: String, image_content: String) -> Self {
+    pub fn new(
+        config: Config,
+        target_id: String,
+        target_type: i32,
+        file_name: String,
+        image_data: Vec<u8>,
+    ) -> Self {
         Self {
-            image_type,
-            image_name,
-            image_content,
+            target_id,
+            target_type,
+            file_name,
+            image_data,
             config,
         }
     }
@@ -50,33 +60,42 @@ impl UploadRequest {
     ) -> SDKResult<UploadResponse> {
         use crate::common::api_endpoints::OkrApiV1;
 
-        if !(1..=2).contains(&self.image_type) {
+        // 1. 验证必填字段
+        validate_required!(self.target_id.trim(), "target_id");
+        if !(2..=3).contains(&self.target_type) {
             return Err(openlark_core::error::validation_error(
-                "image_type 无效",
-                "image_type 必须为 1 或 2",
+                "target_type 无效",
+                "target_type 必须为 2（okr 的 O）或 3（okr 的 KR）",
             ));
         }
-        validate_required!(self.image_name.trim(), "image_name");
-        validate_required!(self.image_content.trim(), "image_content");
+        validate_required!(self.file_name.trim(), "file_name");
+        validate_required!(self.image_data, "图片数据不能为空");
 
-        // 1. 构建端点
+        // 2. 构建端点
         let api_endpoint = OkrApiV1::ImageUpload;
         let request = ApiRequest::<UploadResponse>::post(api_endpoint.to_url());
 
-        // 2. 序列化请求体
-        let request_body = UploadRequestBody {
-            image_type: self.image_type,
-            image_name: self.image_name,
-            image_content: self.image_content,
-        };
-        let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
+        // 3. 构建请求体（multipart/form-data：data/target_id/target_type）
+        let random_suffix: u32 = rand::thread_rng().gen_range(0..1000000);
+        let boundary = format!("----OpenLarkBoundary{random_suffix:06}");
+        let mime_type = detect_mime_type(self.file_name.trim());
+        let body = build_multipart_body(
+            self.file_name.trim(),
+            &self.image_data,
+            &self.target_id,
+            self.target_type,
+            &boundary,
+            mime_type,
+        );
 
-        // 3. 发送请求
+        let request = request
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(body);
+
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -87,24 +106,69 @@ impl UploadRequest {
     }
 }
 
-/// 上传进展记录图片请求体
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadRequestBody {
-    /// 图片类型
-    pub image_type: i32,
-    /// 图片名称
-    pub image_name: String,
-    /// 图片 Base64 编码
-    pub image_content: String,
+/// 根据文件扩展名检测 MIME 类型
+fn detect_mime_type(file_name: &str) -> &'static str {
+    let ext = file_name.rsplit('.').next().unwrap_or("").to_lowercase();
+
+    match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "ico" => "image/x-icon",
+        "tiff" | "tif" => "image/tiff",
+        "heic" => "image/heic",
+        _ => "application/octet-stream",
+    }
+}
+
+/// 构建 multipart 表单数据（官方字段：data 文件 + target_id + target_type）
+fn build_multipart_body(
+    file_name: &str,
+    image_data: &[u8],
+    target_id: &str,
+    target_type: i32,
+    boundary: &str,
+    mime_type: &str,
+) -> Vec<u8> {
+    let mut body = Vec::new();
+
+    // 图片文件部分（部件名 data）
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        format!("Content-Disposition: form-data; name=\"data\"; filename=\"{file_name}\"\r\n")
+            .as_bytes(),
+    );
+    body.extend_from_slice(format!("Content-Type: {mime_type}\r\n\r\n").as_bytes());
+    body.extend_from_slice(image_data);
+    body.extend_from_slice(b"\r\n");
+
+    // target_id 部分
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(b"Content-Disposition: form-data; name=\"target_id\"\r\n\r\n");
+    body.extend_from_slice(target_id.as_bytes());
+    body.extend_from_slice(b"\r\n");
+
+    // target_type 部分
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(b"Content-Disposition: form-data; name=\"target_type\"\r\n\r\n");
+    body.extend_from_slice(target_type.to_string().as_bytes());
+    body.extend_from_slice(b"\r\n");
+
+    // 结束边界
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+
+    body
 }
 
 /// 上传进展记录图片响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UploadResponse {
-    /// 图片 ID
-    pub image_id: String,
-    /// 图片 URL
-    pub image_url: String,
+    /// 图片 token
+    pub file_token: String,
+    /// 图片下载链接
+    pub url: String,
 }
 
 impl ApiResponseTrait for UploadResponse {
@@ -123,14 +187,19 @@ mod tests {
     async fn test_okr_v1_image_upload_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_string_contains, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"image_id": "test", "image_url": "test"}"#).unwrap();
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"file_token": "boxToken1", "url": "https://example.com/i.png"}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/okr/v1/images/upload"))
+            .and(body_string_contains("name=\"target_id\""))
+            .and(body_string_contains("7041430377642082323"))
+            .and(body_string_contains("target_type"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -148,19 +217,30 @@ mod tests {
 
         let data = UploadRequest::new(
             config,
-            1,
-            "sample_image_name".to_string(),
-            "sample_image_content".to_string(),
+            "7041430377642082323".to_string(),
+            2,
+            "sample.png".to_string(),
+            vec![1u8, 2, 3],
         )
         .execute()
         .await
         .expect("okr_v1_image_upload 应成功");
 
-        assert_eq!(data.image_id, "test");
-        assert_eq!(data.image_url, "test");
+        assert_eq!(data.file_token, "boxToken1");
+        assert_eq!(data.url, "https://example.com/i.png");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/okr/v1/images/upload");
+        let content_type = received[0]
+            .headers
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default();
+        assert!(content_type.starts_with("multipart/form-data"));
+        let body = String::from_utf8_lossy(&received[0].body);
+        assert!(body.contains("name=\"data\""));
+        assert!(body.contains("name=\"target_id\""));
+        assert!(body.contains("name=\"target_type\""));
     }
 }

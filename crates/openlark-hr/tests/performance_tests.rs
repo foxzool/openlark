@@ -49,25 +49,35 @@ mod builder_tests {
         test_additional_information_import_builder,
         v2::additional_information::import::ImportRequest::new(
             test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
+            "7348736302176534547".to_string(),
+            "12454646".to_string(),
         )
-        .add_information("ou_1".to_string(), "补充说明".to_string())
+        .add_information(v2::additional_information::import::AdditionalInformation {
+            item_id: Some("7350194523185610771".to_string()),
+            external_id: None,
+            reviewee_user_id: "ou_1".to_string(),
+            item: "业绩补充说明".to_string(),
+            time: "2024-03-12".to_string(),
+            detailed_description: "销售额增长目标超额完成".to_string(),
+        })
+        .import_record_name("人工导入".to_string())
     );
     smoke_builder!(
         test_additional_information_query_builder,
         v2::additional_information::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
+            "7348736302176534547".to_string(),
         )
-        .add_user_id("ou_1".to_string())
+        .add_reviewee_user_id("ou_1".to_string())
+        .page_size(20)
     );
     smoke_builder!(
         test_additional_informations_batch_delete_builder,
         v2::additional_informations::batch::delete::DeleteRequest::new(
             test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
+            "7348736302176534547".to_string(),
         )
-        .add_user_id("ou_1".to_string())
+        .add_additional_information("7350195758357807123".to_string())
     );
     smoke_builder!(
         test_indicator_query_builder,
@@ -79,9 +89,19 @@ mod builder_tests {
         test_metric_detail_import_builder,
         v2::metric_detail::import::ImportRequest::new(
             test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
+            "7293040702907514899".to_string(),
+            "12454646".to_string(),
         )
-        .add_metric_detail("ou_1".to_string(), "metric_1".to_string(), 99.5)
+        .import_record_name("API录入".to_string())
+        .add_metric_detail(v2::metric_detail::import::ImportedMetric {
+            reviewee_user_id: "ou_1".to_string(),
+            metric_id: "metric_1".to_string(),
+            fields: vec![v2::metric_detail::import::ImportedMetricField {
+                field_id: "field_1".to_string(),
+                field_value: Some("99.5".to_string()),
+                field_value_person: None,
+            }],
+        })
     );
     smoke_builder!(
         test_metric_detail_query_builder,
@@ -167,18 +187,20 @@ mod builder_tests {
         test_stage_task_find_by_user_list_builder,
         v1::stage_task::find_by_user_list::FindByUserListRequest::new(
             test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
+            "7033710017401751071".to_string(),
         )
         .add_user_id("ou_1".to_string())
+        .task_option_lists(vec![1, 2, 3])
     );
     smoke_builder!(
         test_user_group_user_rel_write_builder,
         v2::user_group_user_rel::write::WriteRequest::new(
             test_config("https://open.feishu.cn"),
             "group_1".to_string(),
+            1,
+            "123456".to_string(),
         )
         .add_user("ou_1".to_string())
-        .remove_user("ou_2".to_string())
     );
     smoke_builder!(
         test_user_info_query_builder,
@@ -206,34 +228,43 @@ mod validation_tests {
     #[case("")]
     #[case("   ")]
     #[tokio::test]
-    async fn test_additional_information_import_cycle_id_validation(#[case] cycle_id: &str) {
+    async fn test_additional_information_import_semester_id_validation(#[case] semester_id: &str) {
         let result = v2::additional_information::import::ImportRequest::new(
             test_config("https://127.0.0.1:9"),
-            cycle_id.to_string(),
+            semester_id.to_string(),
+            "12454646".to_string(),
         )
-        .add_information("ou_1".to_string(), "补充说明".to_string())
         .execute_with_options(auth_option())
         .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap().to_string().contains("cycle_id"));
+        assert!(result.err().unwrap().to_string().contains("semester_id"));
     }
 
     #[rstest]
     #[case("")]
     #[case("   ")]
     #[tokio::test]
-    async fn test_metric_detail_import_cycle_id_validation(#[case] cycle_id: &str) {
+    async fn test_metric_detail_import_semester_id_validation(#[case] semester_id: &str) {
         let result = v2::metric_detail::import::ImportRequest::new(
             test_config("https://127.0.0.1:9"),
-            cycle_id.to_string(),
+            semester_id.to_string(),
+            "12454646".to_string(),
         )
-        .add_metric_detail("ou_1".to_string(), "metric_1".to_string(), 95.0)
+        .add_metric_detail(v2::metric_detail::import::ImportedMetric {
+            reviewee_user_id: "ou_1".to_string(),
+            metric_id: "metric_1".to_string(),
+            fields: vec![v2::metric_detail::import::ImportedMetricField {
+                field_id: "field_1".to_string(),
+                field_value: Some("95.0".to_string()),
+                field_value_person: None,
+            }],
+        })
         .execute_with_options(auth_option())
         .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap().to_string().contains("cycle_id"));
+        assert!(result.err().unwrap().to_string().contains("semester_id"));
     }
 
     #[rstest]
@@ -244,30 +275,32 @@ mod validation_tests {
         let result = v2::user_group_user_rel::write::WriteRequest::new(
             test_config("https://127.0.0.1:9"),
             group_id.to_string(),
+            1,
+            "123456".to_string(),
         )
         .add_user("ou_1".to_string())
         .execute_with_options(auth_option())
         .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap().to_string().contains("user_group_id"));
+        assert!(result.err().unwrap().to_string().contains("group_id"));
     }
 
     #[rstest]
     #[case("")]
     #[case("   ")]
     #[tokio::test]
-    async fn test_additional_informations_batch_delete_validation(#[case] cycle_id: &str) {
+    async fn test_additional_informations_batch_delete_validation(#[case] semester_id: &str) {
         let result = v2::additional_informations::batch::delete::DeleteRequest::new(
             test_config("https://127.0.0.1:9"),
-            cycle_id.to_string(),
+            semester_id.to_string(),
         )
-        .add_user_id("ou_1".to_string())
+        .add_additional_information("7350195758357807123".to_string())
         .execute_with_options(auth_option())
         .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap().to_string().contains("cycle_id"));
+        assert!(result.err().unwrap().to_string().contains("semester_id"));
     }
 }
 
@@ -307,28 +340,39 @@ mod http_tests {
                 "/open-apis/performance/v2/additional_informations/import",
             ))
             .and(header("Authorization", "Bearer test_token"))
+            .and(query_param("client_token", "12454646"))
             .and(body_json(json!({
-                "cycle_id":"cycle_1",
-                "additional_informations":[{"user_id":"ou_1","content":"补充说明"}]
+                "semester_id":"7348736302176534547",
+                "additional_informations":[{"item_id":"7350194523185610771","reviewee_user_id":"ou_1","item":"业绩补充说明","time":"2024-03-12","detailed_description":"销售额增长目标超额完成"}],
+                "import_record_name":"人工导入"
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"success",
-                "data":{"success_count":1,"failed_count":0}
+                "data":{"import_record_id":"7350194523185610771","additional_informations":[]}
             })))
             .mount(&mock_server)
             .await;
 
         let resp = v2::additional_information::import::ImportRequest::new(
             test_config(&mock_server.uri()),
-            "cycle_1".to_string(),
+            "7348736302176534547".to_string(),
+            "12454646".to_string(),
         )
-        .add_information("ou_1".to_string(), "补充说明".to_string())
+        .add_information(v2::additional_information::import::AdditionalInformation {
+            item_id: Some("7350194523185610771".to_string()),
+            external_id: None,
+            reviewee_user_id: "ou_1".to_string(),
+            item: "业绩补充说明".to_string(),
+            time: "2024-03-12".to_string(),
+            detailed_description: "销售额增长目标超额完成".to_string(),
+        })
+        .import_record_name("人工导入".to_string())
         .execute_with_options(auth_option())
         .await
         .unwrap();
 
-        assert_eq!(resp.success_count, 1);
+        assert_eq!(resp.import_record_id, "7350194523185610771");
     }
 
     #[tokio::test]
@@ -412,24 +456,43 @@ mod serialization_tests {
         test_additional_information_import_response_serialization,
         v2::additional_information::import::ImportResponse,
         v2::additional_information::import::ImportResponse {
-            success_count: 1,
-            failed_count: 0,
+            import_record_id: "7350194523185610771".to_string(),
+            additional_informations: vec![
+                v2::additional_information::import::AdditionalInformation {
+                    item_id: Some("7350195758357807123".to_string()),
+                    external_id: Some("6789523104723558912".to_string()),
+                    reviewee_user_id: "ou_1".to_string(),
+                    item: "业绩补充说明".to_string(),
+                    time: "2024-03-12".to_string(),
+                    detailed_description: "补充说明".to_string(),
+                }
+            ],
         }
     );
     roundtrip_eq!(
         test_additional_information_query_response_serialization,
         v2::additional_information::query::QueryResponse,
         v2::additional_information::query::QueryResponse {
-            items: vec![v2::additional_information::query::AdditionalInformation {
-                user_id: "ou_1".to_string(),
-                content: "补充说明".to_string(),
-            }],
+            additional_informations: vec![
+                v2::additional_information::query::AdditionalInformation {
+                    item_id: Some("7350195758357807123".to_string()),
+                    external_id: Some("6789523104723558912".to_string()),
+                    reviewee_user_id: Some("ou_1".to_string()),
+                    item: Some("业绩补充说明".to_string()),
+                    time: Some("2024-03-12".to_string()),
+                    detailed_description: Some("补充说明".to_string()),
+                }
+            ],
+            has_more: Some(false),
+            page_token: None,
         }
     );
     roundtrip_eq!(
         test_additional_informations_batch_delete_response_serialization,
         v2::additional_informations::batch::delete::DeleteResponse,
-        v2::additional_informations::batch::delete::DeleteResponse { success_count: 1 }
+        v2::additional_informations::batch::delete::DeleteResponse {
+            additional_informations: vec!["7350195758357807123".to_string()],
+        }
     );
     roundtrip_eq!(
         test_indicator_query_response_serialization,
@@ -449,8 +512,7 @@ mod serialization_tests {
         test_metric_detail_import_response_serialization,
         v2::metric_detail::import::ImportResponse,
         v2::metric_detail::import::ImportResponse {
-            success_count: 1,
-            failed_count: 0,
+            import_record_id: "7241404194141224979".to_string(),
         }
     );
     roundtrip_eq!(
@@ -617,7 +679,17 @@ mod serialization_tests {
     roundtrip_eq!(
         test_user_group_user_rel_write_response_serialization,
         v2::user_group_user_rel::write::WriteResponse,
-        v2::user_group_user_rel::write::WriteResponse { success: true }
+        v2::user_group_user_rel::write::WriteResponse {
+            data: v2::user_group_user_rel::write::WriteUserGroupScopeData {
+                success_user_ids: vec!["ou_1".to_string()],
+                fail_user_datas: vec![
+                    v2::user_group_user_rel::write::WriteUserGroupScopeFailUserData {
+                        user_id: "ou_2".to_string(),
+                        fail_code: 1,
+                    }
+                ],
+            },
+        }
     );
     roundtrip_eq!(
         test_user_info_query_response_serialization,

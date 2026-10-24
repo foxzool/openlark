@@ -14,11 +14,10 @@ use serde::{Deserialize, Serialize};
 /// 创建 / 更新外部算薪数据请求
 #[derive(Debug, Clone)]
 pub struct SaveRequest {
-    /// 数据源 ID（必填）
-    datasource_id: String,
-    /// 员工 ID 列表（必填）
-    employee_ids: Vec<String>,
-    /// 算薪数据列表（必填）
+    /// 数据源 code（必填，可从「获取外部数据源配置信息」API 或
+    /// 「飞书人事后台-设置-算薪数据设置-外部数据源配置」页面获取）
+    source_code: String,
+    /// 需保存的记录列表（必填，1~50 条）
     records: Vec<DatasourceRecord>,
     /// 配置信息
     config: Config,
@@ -26,15 +25,9 @@ pub struct SaveRequest {
 
 impl SaveRequest {
     /// 创建请求
-    pub fn new(
-        config: Config,
-        datasource_id: String,
-        employee_ids: Vec<String>,
-        records: Vec<DatasourceRecord>,
-    ) -> Self {
+    pub fn new(config: Config, source_code: String, records: Vec<DatasourceRecord>) -> Self {
         Self {
-            datasource_id,
-            employee_ids,
+            source_code,
             records,
             config,
         }
@@ -54,13 +47,8 @@ impl SaveRequest {
         use crate::common::api_endpoints::PayrollApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.datasource_id.trim(), "datasource_id");
-        validate_required_list!(
-            self.employee_ids,
-            50,
-            "employee_ids 不能为空且不能超过 50 个"
-        );
-        validate_required_list!(self.records, 100, "records 不能为空且不能超过 100 个");
+        validate_required!(self.source_code, "source_code 不能为空");
+        validate_required_list!(self.records, 50, "records 不能为空且不能超过 50 条");
 
         // 2. 构建端点
         let api_endpoint = PayrollApiV1::DatasourceRecordSave;
@@ -68,8 +56,7 @@ impl SaveRequest {
 
         // 3. 构建请求体
         let request_body = SaveRequestBody {
-            datasource_id: self.datasource_id,
-            employee_ids: self.employee_ids,
+            source_code: self.source_code,
             records: self.records,
         };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
@@ -94,44 +81,38 @@ impl SaveRequest {
 /// 创建 / 更新外部算薪数据请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveRequestBody {
-    /// 数据源 ID
-    pub datasource_id: String,
-    /// 员工 ID 列表
-    pub employee_ids: Vec<String>,
-    /// 算薪数据列表
+    /// 数据源 code
+    pub source_code: String,
+    /// 需保存的记录列表（1~50 条）
     pub records: Vec<DatasourceRecord>,
 }
 
-/// 算薪数据记录
+/// 外部算薪数据记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasourceRecord {
-    /// 员工 ID
-    pub employee_id: String,
-    /// 数据项列表
-    pub items: Vec<DatasourceRecordItem>,
+    /// 记录的启停用状态：1-启用 2-停用（停用后依旧可被 API 保存、查询，但无法被算薪使用）
+    pub active_status: i32,
+    /// 记录的字段值列表
+    pub field_values: Vec<DatasourceRecordFieldValue>,
 }
 
-/// 数据项
+/// 数据源字段值
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DatasourceRecordItem {
-    /// 字段名称
-    pub field_name: String,
-    /// 字段值
-    pub value: serde_json::Value,
+pub struct DatasourceRecordFieldValue {
+    /// 数据源字段编码，请确保字段存在且是启用的
+    pub field_code: String,
+    /// 字段值，通过 string 传输，不允许空字符串
+    pub value: String,
+    /// 字段类型（无需传入，仅文档说明用）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field_type: Option<i32>,
 }
 
 /// 创建 / 更新外部算薪数据响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SaveResponse {
-    /// 是否成功
-    pub success: bool,
-    /// 成功处理的记录数
-    pub processed_count: i32,
-    /// 失败的记录数
-    pub failed_count: i32,
-    /// 失败的员工 ID 列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub failed_employee_ids: Option<Vec<String>>,
+    /// 变更的记录条数（新建或更新），官方以 string 传输的数字
+    pub affect_counts: String,
 }
 
 impl ApiResponseTrait for SaveResponse {
@@ -155,95 +136,92 @@ mod tests {
 
     fn build_records() -> Vec<DatasourceRecord> {
         vec![DatasourceRecord {
-            employee_id: "emp_1".to_string(),
-            items: vec![DatasourceRecordItem {
-                field_name: "base_salary".to_string(),
-                value: json!(10000),
+            active_status: 1,
+            field_values: vec![DatasourceRecordFieldValue {
+                field_code: "base_salary__c".to_string(),
+                value: "10000".to_string(),
+                field_type: None,
             }],
         }]
     }
 
     #[test]
     fn test_payroll_save_request_builder() {
-        let request = SaveRequest::new(
-            create_test_config(),
-            "ds_1".to_string(),
-            vec!["emp_1".to_string()],
-            build_records(),
-        );
+        let request =
+            SaveRequest::new(create_test_config(), "test__c".to_string(), build_records());
 
-        assert_eq!(request.datasource_id, "ds_1");
-        assert_eq!(request.employee_ids, vec!["emp_1"]);
+        assert_eq!(request.source_code, "test__c");
         assert_eq!(request.records.len(), 1);
     }
 
     #[test]
     fn test_payroll_save_request_body_serialize() {
         let body = SaveRequestBody {
-            datasource_id: "ds_2".to_string(),
-            employee_ids: vec!["emp_2".to_string()],
+            source_code: "yache19_8680__c".to_string(),
             records: vec![DatasourceRecord {
-                employee_id: "emp_2".to_string(),
-                items: vec![DatasourceRecordItem {
-                    field_name: "bonus".to_string(),
-                    value: json!(888),
+                active_status: 1,
+                field_values: vec![DatasourceRecordFieldValue {
+                    field_code: "bonus__c".to_string(),
+                    value: "888".to_string(),
+                    field_type: None,
                 }],
             }],
         };
 
         let value = serde_json::to_value(body).expect("序列化请求体失败");
-        assert_eq!(value["datasource_id"], json!("ds_2"));
-        assert_eq!(value["employee_ids"], json!(["emp_2"]));
+        assert_eq!(value["source_code"], json!("yache19_8680__c"));
+        assert_eq!(value["records"][0]["active_status"], json!(1));
         assert_eq!(
-            value["records"][0]["items"][0]["field_name"],
-            json!("bonus")
+            value["records"][0]["field_values"][0]["field_code"],
+            json!("bonus__c")
+        );
+        assert_eq!(
+            value["records"][0]["field_values"][0]["value"],
+            json!("888")
         );
     }
 
     #[test]
     fn test_payroll_save_response_deserialize() {
-        let value = json!({
-            "success": true,
-            "processed_count": 1,
-            "failed_count": 0,
-            "failed_employee_ids": ["emp_x"]
-        });
+        let value = json!({"affect_counts": "120"});
         let response: SaveResponse = serde_json::from_value(value).expect("反序列化响应失败");
 
-        assert!(response.success);
-        assert_eq!(response.processed_count, 1);
-        assert_eq!(
-            response.failed_employee_ids,
-            Some(vec!["emp_x".to_string()])
-        );
+        assert_eq!(response.affect_counts, "120");
     }
 
     #[test]
     fn test_payroll_save_validation() {
-        let request = SaveRequest::new(create_test_config(), "  ".to_string(), vec![], vec![]);
+        let request = SaveRequest::new(create_test_config(), "  ".to_string(), build_records());
         let result: SDKResult<()> = (|| {
-            validate_required!(request.datasource_id.trim(), "datasource_id");
-            validate_required!(request.employee_ids, "employee_ids");
-            validate_required!(request.records, "records");
+            validate_required!(request.source_code, "source_code");
+            validate_required_list!(request.records, 50, "records 不能为空且不能超过 50 条");
             Ok(())
         })();
 
         assert!(result.is_err());
     }
+
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
     #[tokio::test]
     async fn test_save_datasource_records_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
+        // 官方响应：data 仅 affect_counts
         let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"success": true, "processed_count": 1, "failed_count": 0}"#)
-                .unwrap();
+            serde_json::from_str(r#"{"affect_counts": "1"}"#).unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/payroll/v1/datasource_records/save"))
+            .and(body_json(json!({
+                "source_code": "test__c",
+                "records": [{
+                    "active_status": 1,
+                    "field_values": [{"field_code": "amount__c", "value": "100"}]
+                }]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -261,13 +239,13 @@ mod tests {
 
         let data = SaveRequest::new(
             config,
-            "ds_001".to_string(),
-            vec!["emp_001".to_string()],
+            "test__c".to_string(),
             vec![DatasourceRecord {
-                employee_id: "emp_001".to_string(),
-                items: vec![DatasourceRecordItem {
-                    field_name: "amount".to_string(),
-                    value: serde_json::json!(100),
+                active_status: 1,
+                field_values: vec![DatasourceRecordFieldValue {
+                    field_code: "amount__c".to_string(),
+                    value: "100".to_string(),
+                    field_type: None,
                 }],
             }],
         )
@@ -275,9 +253,7 @@ mod tests {
         .await
         .expect("保存数据源记录应成功");
 
-        assert!(data.success);
-        assert_eq!(data.processed_count, 1);
-        assert_eq!(data.failed_count, 0);
+        assert_eq!(data.affect_counts, "1");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/progress_record/update>
 
+use super::create::{ContentBlock, ProgressRateNew};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -14,33 +15,39 @@ use serde::{Deserialize, Serialize};
 /// 更新 OKR 进展记录请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
-    /// 进展记录 ID（必填）
+    /// 进展记录 ID（必填，路径参数）
     progress_id: String,
-    /// 进展内容（必填）
-    content: String,
-    /// 进展百分比（必填，0-100）
-    progress_rate: i32,
-    /// 进展说明（可选）
-    description: Option<String>,
+    /// 进展详情 富文本格式（必填，content_block）
+    content: ContentBlock,
+    /// 进展，包括百分比和状态（可选，progress_rate_new）
+    progress_rate: Option<ProgressRateNew>,
+    /// 用户 ID 类型（可选 query 参数，默认 open_id）
+    user_id_type: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl UpdateRequest {
     /// 创建请求
-    pub fn new(config: Config, progress_id: String, content: String, progress_rate: i32) -> Self {
+    pub fn new(config: Config, progress_id: String, content: ContentBlock) -> Self {
         Self {
             progress_id,
             content,
-            progress_rate,
-            description: None,
+            progress_rate: None,
+            user_id_type: None,
             config,
         }
     }
 
-    /// 设置进展说明（可选）
-    pub fn description(mut self, description: String) -> Self {
-        self.description = Some(description);
+    /// 设置进展百分比与状态（可选）
+    pub fn progress_rate(mut self, progress_rate: ProgressRateNew) -> Self {
+        self.progress_rate = Some(progress_rate);
+        self
+    }
+
+    /// 设置用户 ID 类型（可选 query 参数，open_id/union_id/user_id）
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
         self
     }
 
@@ -59,17 +66,17 @@ impl UpdateRequest {
 
         // 1. 验证必填字段
         validate_required!(self.progress_id.trim(), "进展记录 ID 不能为空");
-        validate_required!(self.content.trim(), "进展内容不能为空");
+        validate_required!(self.content.blocks, "进展内容不能为空");
 
         // 2. 构建端点
         let api_endpoint = OkrApiV1::ProgressRecordUpdate(self.progress_id.clone());
-        let request = ApiRequest::<UpdateResponse>::put(api_endpoint.to_url());
+        let request = ApiRequest::<UpdateResponse>::put(api_endpoint.to_url())
+            .query_opt("user_id_type", self.user_id_type);
 
         // 3. 序列化请求体
         let request_body = UpdateRequestBody {
             content: self.content,
             progress_rate: self.progress_rate,
-            description: self.description,
         };
         let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -92,28 +99,27 @@ impl UpdateRequest {
 /// 更新 OKR 进展记录请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateRequestBody {
-    /// 进展内容（必填）
-    pub content: String,
-    /// 进展百分比（必填，0-100）
-    pub progress_rate: i32,
-    /// 进展说明（可选）
+    /// 进展详情 富文本格式（必填）
+    pub content: ContentBlock,
+    /// 进展，包括百分比和状态（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub progress_rate: Option<ProgressRateNew>,
 }
 
-/// 更新 OKR 进展记录响应
+/// 更新 OKR 进展记录响应（progress_record）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UpdateResponse {
-    /// 进展记录 ID
+    /// OKR 进展 ID
     pub progress_id: String,
-    /// OKR ID
-    pub okr_id: String,
-    /// 进展内容
-    pub content: String,
-    /// 进展百分比
-    pub progress_rate: i32,
-    /// 更新时间
-    pub updated_at: i64,
+    /// 进展更新时间（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modify_time: Option<String>,
+    /// 进展对应的 Content 详细内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<ContentBlock>,
+    /// 进展，包括百分比和状态
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_rate: Option<ProgressRateNew>,
 }
 
 impl ApiResponseTrait for UpdateResponse {
@@ -124,6 +130,9 @@ impl ApiResponseTrait for UpdateResponse {
 
 #[cfg(test)]
 mod tests {
+    use super::super::create::{
+        ContentBlockElement, ContentParagraph, ContentParagraphElement, ContentTextRun,
+    };
     use super::*;
     use openlark_core::config::Config;
 
@@ -132,14 +141,20 @@ mod tests {
     async fn test_okr_v1_progress_record_update_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"progress_id": "test", "okr_id": "test", "content": "test", "progress_rate": 0, "updated_at": 0}"#).unwrap();
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"progress_id": "test", "modify_time": "1640677213095", "content": {"blocks": []}}"#,
+        )
+        .unwrap();
         Mock::given(method("PUT"))
             .and(path("/open-apis/okr/v1/progress_records/progress_001"))
+            .and(body_json(json!({
+                "content": {"blocks": [{"type": "paragraph", "paragraph": {"elements": [{"type": "textRun", "textRun": {"text": "更新后的进展"}}]}}]},
+                "progress_rate": {"percent": 70.5, "status": 1}
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -158,18 +173,35 @@ mod tests {
         let data = UpdateRequest::new(
             config,
             "progress_001".to_string(),
-            "sample_content".to_string(),
-            1,
+            ContentBlock {
+                blocks: vec![ContentBlockElement {
+                    block_element_type: Some("paragraph".to_string()),
+                    paragraph: Some(ContentParagraph {
+                        style: None,
+                        elements: vec![ContentParagraphElement {
+                            paragraph_element_type: Some("textRun".to_string()),
+                            text_run: Some(ContentTextRun {
+                                text: Some("更新后的进展".to_string()),
+                                style: None,
+                            }),
+                            docs_link: None,
+                            person: None,
+                        }],
+                    }),
+                    gallery: None,
+                }],
+            },
         )
+        .progress_rate(ProgressRateNew {
+            percent: Some(70.5),
+            status: Some(1),
+        })
         .execute()
         .await
         .expect("okr_v1_progress_record_update 应成功");
 
         assert_eq!(data.progress_id, "test");
-        assert_eq!(data.okr_id, "test");
-        assert_eq!(data.content, "test");
-        let _ = data.progress_rate;
-        let _ = data.updated_at;
+        assert_eq!(data.modify_time.as_deref(), Some("1640677213095"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -177,5 +209,18 @@ mod tests {
             received[0].url.path(),
             "/open-apis/okr/v1/progress_records/progress_001"
         );
+    }
+
+    /// 官方请求体仅 content + progress_rate，无 description
+    #[test]
+    fn test_update_request_body_shape() {
+        let body = UpdateRequestBody {
+            content: ContentBlock { blocks: Vec::new() },
+            progress_rate: None,
+        };
+        let value = serde_json::to_value(&body).expect("序列化请求体失败");
+        assert!(value.get("content").is_some());
+        assert!(value.get("progress_rate").is_none());
+        assert!(value.get("description").is_none());
     }
 }

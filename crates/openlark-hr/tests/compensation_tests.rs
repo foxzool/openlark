@@ -134,17 +134,21 @@ mod builder_tests {
     );
     smoke_builder!(
         test_social_archive_query_request_builder,
-        social_archive::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .page_size(20)
-            .page_token("next_social_archive".to_string())
+        social_archive::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            "2024-01-01".to_string(),
+        )
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_social_archive_adjust_record_query_request_builder,
-        social_archive_adjust_record::query::QueryRequest::new(test_config(
-            "https://open.feishu.cn"
-        ))
-        .page_size(20)
-        .page_token("next_adjust_record".to_string())
+        social_archive_adjust_record::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+            "increase".to_string(),
+        )
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_social_insurance_list_request_builder,
@@ -161,7 +165,7 @@ mod builder_tests {
         social_plan::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
             vec!["plan_1".to_string()],
-            1735689600,
+            "2024-01-01".to_string(),
         )
     );
 }
@@ -246,7 +250,7 @@ mod validation_tests {
         let err = social_plan::query::QueryRequest::new(
             test_config(&mock_server.uri()),
             vec!["plan_1".to_string()],
-            1735689600,
+            "2024-01-01".to_string(),
         )
         .execute_with_options(auth_option())
         .await
@@ -645,48 +649,109 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/social_archive/query"))
-            .and(query_param("page_size", "20"))
-            .and(query_param("page_token", "next_social_archive"))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "user_id_list": ["ou_1"],
+                "effective_date": "2024-01-01"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"sa_1","user_id":"ou_1","city":"上海"}],"has_more":false,"page_token":"next_2"}
+                "data":{"archives":[{
+                    "user_id":"ou_1",
+                    "details":[{
+                        "description":{"zh_cn":"2024年社保基数调整","en_us":"Adjustment"},
+                        "insurance_type":"social_insurance",
+                        "insurance_status":"contribution",
+                        "id":"sa_1",
+                        "tid":"tid_1",
+                        "plan_id":"plan_1",
+                        "location_id":"loc_1",
+                        "company_id":"cmp_1",
+                        "base_salary":"1000.10",
+                        "insurance_details":[{
+                            "insurance_id":"ins_1",
+                            "company_deduction":"2000.20",
+                            "company_setting":{
+                                "lower_limit":"1000.00","upper_limit":"2000.00",
+                                "payment_ratio":"8.00","payment_rounding_rule":"rounding",
+                                "payment_decimals":2,"fixed_payment":"200.00"
+                            },
+                            "personal_deduction":"1000.20",
+                            "personal_setting":{
+                                "lower_limit":"1000.00","upper_limit":"2000.00",
+                                "payment_ratio":"8.00","payment_rounding_rule":"round_down",
+                                "payment_decimals":2,"fixed_payment":"200.00"
+                            },
+                            "payment_frequency":"monthly",
+                            "payment_months":[1]
+                        }],
+                        "effective_date":"2024-01-01"
+                    }]
+                }]}
             })))
             .mount(&mock_server)
             .await;
 
-        let resp = social_archive::query::QueryRequest::new(test_config(&mock_server.uri()))
-            .page_size(20)
-            .page_token("next_social_archive".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
-        assert_eq!(resp.items[0].city, Some("上海".to_string()));
+        let resp = social_archive::query::QueryRequest::new(
+            test_config(&mock_server.uri()),
+            vec!["ou_1".to_string()],
+            "2024-01-01".to_string(),
+        )
+        .user_id_type("open_id".to_string())
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
+        assert_eq!(resp.archives[0].user_id, "ou_1");
+        assert_eq!(resp.archives[0].details[0].id, Some("sa_1".to_string()));
+        assert_eq!(
+            resp.archives[0].details[0].base_salary,
+            Some("1000.10".to_string())
+        );
     }
 
     #[tokio::test]
     async fn test_social_archive_adjust_record_query_http_mock() {
         let mock_server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/open-apis/compensation/v1/social_archive_adjust_record/query"))
-            .and(query_param("page_size", "20"))
-            .and(query_param("page_token", "next_adjust_record"))
+            .and(path(
+                "/open-apis/compensation/v1/social_archive_adjust_record/query",
+            ))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "user_id_list": ["ou_1"],
+                "record_type": "increase"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"adj_1","user_id":"ou_1","adjust_type":2}],"has_more":false,"page_token":"next_2"}
+                "data":{"records":[{
+                    "user_id":"ou_1",
+                    "record_type":"increase",
+                    "details":[{
+                        "description":{"zh_cn":"增员","en_us":"Increase"},
+                        "insurance_type":"provident_fund",
+                        "insurance_status":"contribution",
+                        "plan_id":"plan_1",
+                        "effective_date":"2024-01-01"
+                    }]
+                }]}
             })))
             .mount(&mock_server)
             .await;
 
-        let resp =
-            social_archive_adjust_record::query::QueryRequest::new(test_config(&mock_server.uri()))
-                .page_size(20)
-                .page_token("next_adjust_record".to_string())
-                .execute_with_options(auth_option())
-                .await
-                .unwrap();
-        assert_eq!(resp.items[0].adjust_type, Some(2));
+        let resp = social_archive_adjust_record::query::QueryRequest::new(
+            test_config(&mock_server.uri()),
+            vec!["ou_1".to_string()],
+            "increase".to_string(),
+        )
+        .user_id_type("open_id".to_string())
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
+        assert_eq!(resp.records[0].user_id, "ou_1");
+        assert_eq!(resp.records[0].record_type, "increase");
+        assert_eq!(resp.records[0].details[0].insurance_type, "provident_fund");
     }
 
     #[tokio::test]
@@ -740,12 +805,36 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/social_plans/query"))
             .and(body_json(
-                json!({"plan_ids":["plan_1"],"effective_date":1735689600}),
+                json!({"plan_ids":["plan_1"],"effective_date":"2024-01-01"}),
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"sp_1","name":"标准参保","effective_date":1735689600}]}
+                "data":{"plans":[{
+                    "plan_id":"sp_1",
+                    "plan_tid":"tid_1",
+                    "name":{"zh_cn":"标准参保","en_us":"Standard plan"},
+                    "effective_date":"2024-01-01",
+                    "active":true,
+                    "insurance_type":"social_insurance",
+                    "item_detail":[{
+                        "item_id":"ins_1",
+                        "item_name":{"zh_cn":"养老保险","en_us":"Endowment"},
+                        "item_setting_of_person":{
+                            "lower_limit":"1000.00","upper_limit":"2000.00",
+                            "payment_ratio":"8.00","payment_rounding_rule":"rounding",
+                            "payment_decimals":2,"fixed_payment":"200.00"
+                        },
+                        "item_setting_of_company":{
+                            "lower_limit":"1000.00","upper_limit":"2000.00",
+                            "payment_ratio":"8.00","payment_rounding_rule":"rounding",
+                            "payment_decimals":2,"fixed_payment":"200.00"
+                        },
+                        "payment_frequency":"monthly",
+                        "payment_months":[1]
+                    }],
+                    "remark":{"zh_cn":"备注","en_us":"remark"}
+                }]}
             })))
             .mount(&mock_server)
             .await;
@@ -753,12 +842,14 @@ mod http_tests {
         let resp = social_plan::query::QueryRequest::new(
             test_config(&mock_server.uri()),
             vec!["plan_1".to_string()],
-            1735689600,
+            "2024-01-01".to_string(),
         )
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert_eq!(resp.items[0].name, "标准参保");
+        assert_eq!(resp.plans[0].plan_id, "sp_1");
+        assert_eq!(resp.plans[0].name.zh_cn, Some("标准参保".to_string()));
+        assert_eq!(resp.plans[0].effective_date, "2024-01-01");
     }
 }
 
@@ -965,28 +1056,59 @@ mod serialization_tests {
         test_social_archive_query_response_serialization,
         social_archive::query::QueryResponse,
         social_archive::query::QueryResponse {
-            items: vec![social_archive::query::SocialArchive {
-                id: "sa_1".to_string(),
-                user_id: Some("ou_1".to_string()),
-                city: Some("上海".to_string()),
+            archives: vec![social_archive::query::SocialArchive {
+                user_id: "ou_1".to_string(),
+                details: vec![social_archive::query::SocialArchiveDetail {
+                    description: social_archive::query::I18nDescription {
+                        zh_cn: Some("2024年社保基数调整".to_string()),
+                        en_us: None,
+                    },
+                    insurance_type: "social_insurance".to_string(),
+                    insurance_status: "contribution".to_string(),
+                    id: Some("sa_1".to_string()),
+                    tid: None,
+                    plan_id: Some("plan_1".to_string()),
+                    plan_tid: None,
+                    location_id: None,
+                    company_id: None,
+                    account_type: None,
+                    insurance_account: None,
+                    base_salary: Some("1000.10".to_string()),
+                    insurance_details: None,
+                    effective_date: Some("2024-01-01".to_string()),
+                }],
             }],
-            has_more: false,
-            page_token: Some("next".to_string()),
         }
     );
     roundtrip_eq!(
         test_social_archive_adjust_record_query_response_serialization,
         social_archive_adjust_record::query::QueryResponse,
         social_archive_adjust_record::query::QueryResponse {
-            items: vec![
+            records: vec![
                 social_archive_adjust_record::query::SocialArchiveAdjustRecord {
-                    id: "adj_1".to_string(),
-                    user_id: Some("ou_1".to_string()),
-                    adjust_type: Some(2),
-                }
+                    user_id: "ou_1".to_string(),
+                    record_type: "increase".to_string(),
+                    details: vec![social_archive_adjust_record::query::SocialArchiveDetail {
+                        description: social_archive_adjust_record::query::I18nDescription {
+                            zh_cn: Some("增员".to_string()),
+                            en_us: Some("Increase".to_string()),
+                        },
+                        insurance_type: "provident_fund".to_string(),
+                        insurance_status: "contribution".to_string(),
+                        id: None,
+                        tid: None,
+                        plan_id: Some("plan_1".to_string()),
+                        plan_tid: None,
+                        location_id: None,
+                        company_id: None,
+                        account_type: None,
+                        insurance_account: None,
+                        base_salary: None,
+                        insurance_details: None,
+                        effective_date: Some("2024-01-01".to_string()),
+                    },],
+                },
             ],
-            has_more: false,
-            page_token: Some("next".to_string()),
         }
     );
     roundtrip_eq!(
@@ -1017,10 +1139,46 @@ mod serialization_tests {
         test_social_plan_query_response_serialization,
         social_plan::query::QueryResponse,
         social_plan::query::QueryResponse {
-            items: vec![social_plan::query::SocialPlan {
-                id: "sp_1".to_string(),
-                name: "标准参保".to_string(),
-                effective_date: 1735689600,
+            plans: vec![social_plan::query::SocialPlan {
+                plan_id: "sp_1".to_string(),
+                plan_tid: "tid_1".to_string(),
+                name: social_plan::query::I18nName {
+                    zh_cn: Some("标准参保".to_string()),
+                    en_us: Some("Standard plan".to_string()),
+                },
+                effective_date: "2024-01-01".to_string(),
+                active: true,
+                insurance_type: "social_insurance".to_string(),
+                scope: None,
+                item_detail: vec![social_plan::query::SocialPlanItemDetail {
+                    item_id: "ins_1".to_string(),
+                    item_name: social_plan::query::I18nName {
+                        zh_cn: Some("养老保险".to_string()),
+                        en_us: None,
+                    },
+                    item_setting_of_person: social_plan::query::SocialPlanItemSetting {
+                        lower_limit: "1000.00".to_string(),
+                        upper_limit: "2000.00".to_string(),
+                        payment_ratio: "8.00".to_string(),
+                        payment_rounding_rule: "rounding".to_string(),
+                        payment_decimals: 2,
+                        fixed_payment: "200.00".to_string(),
+                    },
+                    item_setting_of_company: social_plan::query::SocialPlanItemSetting {
+                        lower_limit: "1000.00".to_string(),
+                        upper_limit: "2000.00".to_string(),
+                        payment_ratio: "8.00".to_string(),
+                        payment_rounding_rule: "rounding".to_string(),
+                        payment_decimals: 2,
+                        fixed_payment: "200.00".to_string(),
+                    },
+                    payment_frequency: "monthly".to_string(),
+                    payment_months: vec![1],
+                }],
+                remark: social_plan::query::I18nName {
+                    zh_cn: Some("备注".to_string()),
+                    en_us: None,
+                },
             }],
         }
     );

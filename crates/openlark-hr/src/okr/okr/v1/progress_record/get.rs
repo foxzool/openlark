@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/progress_record/get>
 
+use super::create::{ContentBlock, ProgressRateNew};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -16,6 +17,8 @@ use serde::{Deserialize, Serialize};
 pub struct GetRequest {
     /// 进展记录 ID（必填）
     progress_id: String,
+    /// 用户 ID 类型（可选 query 参数，默认 open_id）
+    user_id_type: Option<String>,
     /// 配置信息
     config: Config,
 }
@@ -25,8 +28,15 @@ impl GetRequest {
     pub fn new(config: Config, progress_id: String) -> Self {
         Self {
             progress_id,
+            user_id_type: None,
             config,
         }
+    }
+
+    /// 设置用户 ID 类型（可选 query 参数，open_id/union_id/user_id）
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
+        self
     }
 
     /// 执行请求
@@ -47,7 +57,8 @@ impl GetRequest {
 
         // 2. 构建端点
         let api_endpoint = OkrApiV1::ProgressRecordGet(self.progress_id.clone());
-        let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url());
+        let request = ApiRequest::<GetResponse>::get(api_endpoint.to_url())
+            .query_opt("user_id_type", self.user_id_type);
 
         // 3. 发送请求
         Transport::request_typed(
@@ -60,29 +71,20 @@ impl GetRequest {
     }
 }
 
-/// 获取 OKR 进展记录响应
+/// 获取 OKR 进展记录响应（progress_record）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetResponse {
-    /// 进展记录 ID
+    /// OKR 进展 ID
     pub progress_id: String,
-    /// OKR ID
-    pub okr_id: String,
-    /// 进展内容
-    pub content: String,
-    /// 进展百分比
-    pub progress_rate: i32,
-    /// 进展说明
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 附件列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attachments: Option<Vec<super::create::ProgressAttachment>>,
-    /// 创建者 ID
-    pub creator_id: String,
-    /// 创建时间
-    pub created_at: i64,
-    /// 更新时间
-    pub updated_at: i64,
+    /// 进展更新时间（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modify_time: Option<String>,
+    /// 进展对应的 Content 详细内容（content_block 富文本）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<ContentBlock>,
+    /// 进展，包括百分比和状态（progress_rate_new）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_rate: Option<ProgressRateNew>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -105,8 +107,28 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"progress_id": "test", "okr_id": "test", "content": "test", "progress_rate": 0, "creator_id": "test", "created_at": 0, "updated_at": 0}"#).unwrap();
+        // 官方响应示例形状：progress_id + modify_time + content 富文本 + progress_rate
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{
+                "progress_id": "7046518160811425812",
+                "modify_time": "1640677213095",
+                "content": {
+                    "blocks": [
+                        {
+                            "type": "paragraph",
+                            "paragraph": {
+                                "elements": [
+                                    {"type": "textRun", "textRun": {"text": " ", "style": {}}},
+                                    {"type": "person", "person": {"openId": "ou_b1ba99a5340289d7af30839fd95ce1ee", "userId": "7012194140645721644"}}
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "progress_rate": {"percent": 50.21, "status": 0}
+            }"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/progress_records/progress_001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -129,13 +151,27 @@ mod tests {
             .await
             .expect("okr_v1_progress_record_get 应成功");
 
-        assert_eq!(data.progress_id, "test");
-        assert_eq!(data.okr_id, "test");
-        assert_eq!(data.content, "test");
-        let _ = data.progress_rate;
-        assert_eq!(data.creator_id, "test");
-        let _ = data.created_at;
-        let _ = data.updated_at;
+        assert_eq!(data.progress_id, "7046518160811425812");
+        assert_eq!(data.modify_time.as_deref(), Some("1640677213095"));
+        let content = data.content.expect("content 应存在");
+        assert_eq!(content.blocks.len(), 1);
+        let elements = content.blocks[0]
+            .paragraph
+            .as_ref()
+            .expect("paragraph 应存在")
+            .elements
+            .clone();
+        assert_eq!(elements.len(), 2);
+        assert_eq!(
+            elements[1]
+                .person
+                .as_ref()
+                .and_then(|p| p.open_id.as_deref()),
+            Some("ou_b1ba99a5340289d7af30839fd95ce1ee")
+        );
+        let rate = data.progress_rate.expect("progress_rate 应存在");
+        assert_eq!(rate.percent, Some(50.21));
+        assert_eq!(rate.status, Some(0));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
