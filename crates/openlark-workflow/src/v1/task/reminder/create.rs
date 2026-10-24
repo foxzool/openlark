@@ -14,18 +14,28 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Default)]
 /// 创建任务提醒请求体。
 pub struct CreateTaskReminderBodyV1 {
-    /// 提醒时间（Unix 时间戳）
-    pub trigger_time: i64,
-    /// 提醒类型
-    pub type_: Option<String>,
+    /// 相对截止时间的提醒时间（分钟数；提前 30 分钟为 30，截止时间后 30 分钟为 -30）
+    pub relative_fire_minute: i64,
+}
+
+/// 任务提醒对象（v1）
+#[derive(Debug, Clone, Deserialize)]
+pub struct TaskReminderItemV1 {
+    /// 提醒时间设置的 ID（删除时需使用）
+    #[serde(default)]
+    pub id: Option<String>,
+
+    /// 相对截止时间的提醒时间（分钟数）
+    #[serde(default)]
+    pub relative_fire_minute: Option<i64>,
 }
 
 /// 创建任务提醒响应（v1）
 #[derive(Debug, Clone, Deserialize)]
 /// 创建任务提醒响应。
 pub struct CreateTaskReminderResponseV1 {
-    /// 提醒 ID
-    pub reminder_id: String,
+    /// 创建成功的提醒时间
+    pub reminder: TaskReminderItemV1,
 }
 
 /// 创建任务提醒请求（v1）
@@ -47,15 +57,9 @@ impl CreateTaskReminderRequestV1 {
         }
     }
 
-    /// 设置提醒时间（Unix 时间戳）
-    pub fn trigger_time(mut self, trigger_time: i64) -> Self {
-        self.body.trigger_time = trigger_time;
-        self
-    }
-
-    /// 设置提醒类型
-    pub fn type_(mut self, type_: impl Into<String>) -> Self {
-        self.body.type_ = Some(type_.into());
+    /// 设置相对截止时间的提醒时间（分钟数；提前 30 分钟为 30，截止时间后 30 分钟为 -30）
+    pub fn relative_fire_minute(mut self, relative_fire_minute: i64) -> Self {
+        self.body.relative_fire_minute = relative_fire_minute;
         self
     }
 
@@ -112,12 +116,20 @@ mod tests {
                 .build(),
         );
 
-        let request = CreateTaskReminderRequestV1::new(config.clone(), "task_123")
-            .trigger_time(1704067200)
-            .type_("absolute");
+        let request =
+            CreateTaskReminderRequestV1::new(config.clone(), "task_123").relative_fire_minute(30);
 
-        assert_eq!(request.body.trigger_time, 1704067200);
-        assert_eq!(request.body.type_, Some("absolute".to_string()));
+        assert_eq!(request.body.relative_fire_minute, 30);
+        assert_eq!(request.task_id, "task_123");
+    }
+
+    #[test]
+    fn test_create_task_reminder_v1_body_serialization() {
+        let body = CreateTaskReminderBodyV1 {
+            relative_fire_minute: 30,
+        };
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(json, serde_json::json!({"relative_fire_minute": 30}));
     }
 
     #[test]

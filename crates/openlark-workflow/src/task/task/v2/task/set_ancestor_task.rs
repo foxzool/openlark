@@ -18,9 +18,6 @@ pub struct SetAncestorTaskBody {
     /// 父任务 GUID。不设置时表示将任务转为独立任务。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ancestor_guid: Option<String>,
-    /// 用户 ID 类型。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id_type: Option<String>,
 }
 
 /// 设置父任务响应。
@@ -48,12 +45,6 @@ impl SetAncestorTaskRequest {
     /// 设置父任务 GUID。
     pub fn ancestor_guid(mut self, ancestor_guid: impl Into<String>) -> Self {
         self.body.ancestor_guid = Some(ancestor_guid.into());
-        self
-    }
-
-    /// 设置用户 ID 类型。
-    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
-        self.body.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -97,11 +88,9 @@ mod tests {
     #[test]
     fn issue_194_set_ancestor_task_builder() {
         let request = SetAncestorTaskRequest::new(Arc::new(Config::default()), "task_123")
-            .ancestor_guid("parent_123")
-            .user_id_type("open_id");
+            .ancestor_guid("parent_123");
 
         assert_eq!(request.task_guid, "task_123");
         assert_eq!(request.body.ancestor_guid.as_deref(), Some("parent_123"));
-        assert_eq!(request.body.user_id_type.as_deref(), Some("open_id"));
     }
 }

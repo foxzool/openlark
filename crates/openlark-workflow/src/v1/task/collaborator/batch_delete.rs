@@ -14,16 +14,16 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Default)]
 /// 批量删除任务协作者请求体。
 pub struct BatchDeleteTaskCollaboratorBodyV1 {
-    /// 需要删除的协作者用户 ID 列表
-    pub collaborator_ids: Vec<String>,
+    /// 需要删除的协作者用户 ID 列表（值为 user_id 或 open_id，由 user_id_type 决定）
+    pub id_list: Vec<String>,
 }
 
 /// 批量删除任务协作者响应（v1）
 #[derive(Debug, Clone, Deserialize)]
 /// 批量删除任务协作者响应。
 pub struct BatchDeleteTaskCollaboratorResponseV1 {
-    /// 删除失败的用户 ID 列表
-    pub failed_collaborator_ids: Option<Vec<String>>,
+    /// 删除的协作者用户 ID 列表
+    pub collaborators: Option<Vec<String>>,
 }
 
 /// 批量删除任务协作者请求（v1）
@@ -46,8 +46,8 @@ impl BatchDeleteTaskCollaboratorRequestV1 {
     }
 
     /// 设置需要删除的协作者用户 ID 列表
-    pub fn collaborator_ids(mut self, collaborator_ids: Vec<impl Into<String>>) -> Self {
-        self.body.collaborator_ids = collaborator_ids.into_iter().map(|v| v.into()).collect();
+    pub fn id_list(mut self, id_list: Vec<impl Into<String>>) -> Self {
+        self.body.id_list = id_list.into_iter().map(|v| v.into()).collect();
         self
     }
 
@@ -62,7 +62,7 @@ impl BatchDeleteTaskCollaboratorRequestV1 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchDeleteTaskCollaboratorResponseV1> {
-        if self.body.collaborator_ids.is_empty() {
+        if self.body.id_list.is_empty() {
             return Err(openlark_core::error::validation_error(
                 "协作者用户 ID 列表不能为空",
                 "",
@@ -109,9 +109,9 @@ mod tests {
         let config = Arc::new(Config::builder().app_id("test").app_secret("test").build());
 
         let request = BatchDeleteTaskCollaboratorRequestV1::new(config.clone(), "task_123")
-            .collaborator_ids(vec!["user_1", "user_2"]);
+            .id_list(vec!["user_1", "user_2"]);
 
-        assert_eq!(request.body.collaborator_ids.len(), 2);
+        assert_eq!(request.body.id_list.len(), 2);
         assert_eq!(request.task_id, "task_123");
     }
 

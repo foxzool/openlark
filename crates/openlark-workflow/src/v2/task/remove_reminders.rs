@@ -15,8 +15,8 @@ use std::sync::Arc;
 /// 移除任务提醒请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct RemoveRemindersBody {
-    /// 提醒 GUID 列表
-    pub reminder_guids: Vec<String>,
+    /// 要移除的提醒 ID 列表
+    pub reminder_ids: Vec<String>,
 }
 
 /// 移除任务提醒响应
@@ -50,15 +50,15 @@ impl RemoveRemindersRequest {
         }
     }
 
-    /// 设置提醒 GUID 列表
-    pub fn reminder_guids(mut self, reminder_guids: Vec<String>) -> Self {
-        self.body.reminder_guids = reminder_guids;
+    /// 设置要移除的提醒 ID 列表
+    pub fn reminder_ids(mut self, reminder_ids: Vec<String>) -> Self {
+        self.body.reminder_ids = reminder_ids;
         self
     }
 
     /// 移除单个提醒
-    pub fn remove_reminder(mut self, reminder_guid: impl Into<String>) -> Self {
-        self.body.reminder_guids.push(reminder_guid.into());
+    pub fn remove_reminder(mut self, reminder_id: impl Into<String>) -> Self {
+        self.body.reminder_ids.push(reminder_id.into());
         self
     }
 
@@ -75,7 +75,7 @@ impl RemoveRemindersRequest {
     ) -> SDKResult<RemoveRemindersResponse> {
         // 验证必填字段
         validate_required!(self.task_guid.trim(), "任务GUID不能为空");
-        validate_required!(self.body.reminder_guids, "提醒GUID列表不能为空");
+        validate_required!(self.body.reminder_ids, "提醒ID列表不能为空");
 
         let api_endpoint = TaskApiV2::TaskRemoveReminders(self.task_guid.clone());
         let mut request = ApiRequest::<RemoveRemindersResponse>::post(api_endpoint.to_url());
@@ -116,13 +116,10 @@ mod tests {
         );
 
         let request = RemoveRemindersRequest::new(config, "task_123")
-            .reminder_guids(vec!["reminder_1".to_string(), "reminder_2".to_string()]);
+            .reminder_ids(vec!["7202449098622894100".to_string()]);
 
         assert_eq!(request.task_guid, "task_123");
-        assert_eq!(
-            request.body.reminder_guids,
-            vec!["reminder_1", "reminder_2"]
-        );
+        assert_eq!(request.body.reminder_ids, vec!["7202449098622894100"]);
     }
 
     #[test]
@@ -135,12 +132,12 @@ mod tests {
         );
 
         let request = RemoveRemindersRequest::new(config, "task_123")
-            .remove_reminder("reminder_1")
-            .remove_reminder("reminder_2");
+            .remove_reminder("7202449098622894100")
+            .remove_reminder("7202449098622894101");
 
         assert_eq!(
-            request.body.reminder_guids,
-            vec!["reminder_1", "reminder_2"]
+            request.body.reminder_ids,
+            vec!["7202449098622894100", "7202449098622894101"]
         );
     }
 

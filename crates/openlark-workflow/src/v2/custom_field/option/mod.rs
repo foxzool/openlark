@@ -47,7 +47,9 @@ pub use patch::UpdateCustomFieldOptionRequest;
 
 // 重新导出响应类型
 pub use create::{CreateCustomFieldOptionBody, CreateCustomFieldOptionResponse, CustomFieldOption};
-pub use patch::{UpdateCustomFieldOptionBody, UpdateCustomFieldOptionResponse};
+pub use patch::{
+    InputCustomFieldOption, UpdateCustomFieldOptionBody, UpdateCustomFieldOptionResponse,
+};
 
 #[cfg(test)]
 #[allow(unused_imports)]

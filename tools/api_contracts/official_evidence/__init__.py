@@ -1685,13 +1685,13 @@ def _parse_rendered_parameter_table(
     section: str,
 ) -> tuple[tuple[str, str, bool], ...]:
     lines = [line.strip() for line in section.splitlines()]
-    # 注意：不要 ban 真实 API 字段名（如 cardkit 的 `type` / `content`）。
-    # 英文表头 Parameter/Type/Required/Description 为首字母大写，本就不会命中
-    # `^[a-z][a-z0-9_]*$`；此处只过滤类型字面量与通用噪声词。
+    # 注意：不要 ban 真实 API 字段名（如 cardkit 的 `type` / `content`、
+    # task 的 `description`）。英文表头 Parameter/Type/Required/Description
+    # 为首字母大写，本就不会命中 `^[a-z][a-z0-9_]*$`；此处只过滤类型字面量
+    # 与通用噪声词。
     banned = {
         "parameter",
         "required",
-        "description",
         "authorization",
         "example",
         "facts",

@@ -3,6 +3,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/task-add_members/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
+use crate::v2::task::models::TaskMember;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -15,8 +16,11 @@ use std::sync::Arc;
 /// 添加任务成员请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct AddMembersBody {
-    /// 成员 ID 列表
-    pub members: Vec<String>,
+    /// 成员列表
+    pub members: Vec<TaskMember>,
+    /// 幂等 token（长度 10~100 字符）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_token: Option<String>,
 }
 
 /// 添加任务成员响应
@@ -27,17 +31,6 @@ pub struct AddMembersResponse {
     /// 添加的成员列表
     #[serde(default)]
     pub members: Vec<TaskMember>,
-}
-
-/// 任务成员信息
-#[derive(Debug, Clone, Deserialize)]
-pub struct TaskMember {
-    /// 成员 ID
-    pub member_id: String,
-    /// 成员类型
-    pub member_type: String,
-    /// 添加时间
-    pub added_at: String,
 }
 
 /// 添加任务成员请求
@@ -61,15 +54,21 @@ impl AddMembersRequest {
         }
     }
 
-    /// 设置成员 ID 列表
-    pub fn members(mut self, members: Vec<String>) -> Self {
+    /// 设置成员列表
+    pub fn members(mut self, members: Vec<TaskMember>) -> Self {
         self.body.members = members;
         self
     }
 
     /// 添加单个成员
-    pub fn add_member(mut self, member: impl Into<String>) -> Self {
-        self.body.members.push(member.into());
+    pub fn add_member(mut self, member: TaskMember) -> Self {
+        self.body.members.push(member);
+        self
+    }
+
+    /// 设置幂等 token
+    pub fn client_token(mut self, client_token: impl Into<String>) -> Self {
+        self.body.client_token = Some(client_token.into());
         self
     }
 
@@ -127,10 +126,29 @@ mod tests {
         );
 
         let request = AddMembersRequest::new(config, "task_123")
-            .members(vec!["user_1".to_string(), "user_2".to_string()]);
+            .members(vec![
+                TaskMember {
+                    id: "ou_user1".to_string(),
+                    r#type: Some("user".to_string()),
+                    role: Some("assignee".to_string()),
+                    name: None,
+                },
+                TaskMember {
+                    id: "ou_user2".to_string(),
+                    r#type: Some("user".to_string()),
+                    role: Some("follower".to_string()),
+                    name: None,
+                },
+            ])
+            .client_token("6d99f59c-4d7d-4452-98d6-3d0556393cf6");
 
         assert_eq!(request.task_guid, "task_123");
-        assert_eq!(request.body.members, vec!["user_1", "user_2"]);
+        assert_eq!(request.body.members.len(), 2);
+        assert_eq!(request.body.members[0].id, "ou_user1");
+        assert_eq!(
+            request.body.client_token.as_deref(),
+            Some("6d99f59c-4d7d-4452-98d6-3d0556393cf6")
+        );
     }
 
     #[test]
@@ -143,10 +161,41 @@ mod tests {
         );
 
         let request = AddMembersRequest::new(config, "task_123")
-            .add_member("user_1")
-            .add_member("user_2");
+            .add_member(TaskMember {
+                id: "ou_user1".to_string(),
+                r#type: Some("user".to_string()),
+                role: Some("assignee".to_string()),
+                name: None,
+            })
+            .add_member(TaskMember {
+                id: "ou_user2".to_string(),
+                r#type: Some("user".to_string()),
+                role: Some("assignee".to_string()),
+                name: None,
+            });
 
-        assert_eq!(request.body.members, vec!["user_1", "user_2"]);
+        assert_eq!(request.body.members.len(), 2);
+        assert_eq!(request.body.members[1].id, "ou_user2");
+    }
+
+    #[test]
+    fn test_add_members_body_serializes_member_objects() {
+        let body = AddMembersBody {
+            members: vec![TaskMember {
+                id: "ou_user1".to_string(),
+                r#type: Some("user".to_string()),
+                role: Some("assignee".to_string()),
+                name: Some("张明德".to_string()),
+            }],
+            client_token: None,
+        };
+        let json = serde_json::to_value(&body).expect("序列化请求体失败");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "members": [{"id": "ou_user1", "type": "user", "role": "assignee", "name": "张明德"}]
+            })
+        );
     }
 
     #[test]

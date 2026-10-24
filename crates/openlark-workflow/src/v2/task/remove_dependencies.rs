@@ -7,16 +7,23 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 要移除的任务依赖（task_dependency）
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct TaskDependencyInput {
+    /// 依赖任务的 GUID
+    pub task_guid: String,
+}
+
 /// 移除任务依赖请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct RemoveDependenciesBody {
-    /// 依赖 GUID 列表
-    pub dependency_guids: Vec<String>,
+    /// 要移除的依赖列表（1~50 个）
+    pub dependencies: Vec<TaskDependencyInput>,
 }
 
 /// 移除任务依赖响应
@@ -50,15 +57,17 @@ impl RemoveDependenciesRequest {
         }
     }
 
-    /// 设置依赖 GUID 列表
-    pub fn dependency_guids(mut self, dependency_guids: Vec<String>) -> Self {
-        self.body.dependency_guids = dependency_guids;
+    /// 设置要移除的依赖列表
+    pub fn dependencies(mut self, dependencies: Vec<TaskDependencyInput>) -> Self {
+        self.body.dependencies = dependencies;
         self
     }
 
-    /// 移除单个依赖
-    pub fn remove_dependency(mut self, dependency_guid: impl Into<String>) -> Self {
-        self.body.dependency_guids.push(dependency_guid.into());
+    /// 移除单个依赖（传依赖任务的 GUID）
+    pub fn remove_dependency(mut self, task_guid: impl Into<String>) -> Self {
+        self.body.dependencies.push(TaskDependencyInput {
+            task_guid: task_guid.into(),
+        });
         self
     }
 
@@ -75,7 +84,11 @@ impl RemoveDependenciesRequest {
     ) -> SDKResult<RemoveDependenciesResponse> {
         // 验证必填字段
         validate_required!(self.task_guid.trim(), "任务GUID不能为空");
-        validate_required!(self.body.dependency_guids, "依赖GUID列表不能为空");
+        validate_required_list!(
+            self.body.dependencies,
+            50,
+            "依赖列表不能为空且不能超过 50 个"
+        );
 
         let api_endpoint = TaskApiV2::TaskRemoveDependencies(self.task_guid.clone());
         let mut request = ApiRequest::<RemoveDependenciesResponse>::post(api_endpoint.to_url());
@@ -115,11 +128,21 @@ mod tests {
                 .build(),
         );
 
-        let request = RemoveDependenciesRequest::new(config, "task_123")
-            .dependency_guids(vec!["dep_1".to_string(), "dep_2".to_string()]);
+        let request = RemoveDependenciesRequest::new(config, "task_123").dependencies(vec![
+            TaskDependencyInput {
+                task_guid: "93b7bd05-35e6-4371-b3c9-6b7cbd7100c0".to_string(),
+            },
+            TaskDependencyInput {
+                task_guid: "83912691-2e43-47fc-94a4-d512e03984fa".to_string(),
+            },
+        ]);
 
         assert_eq!(request.task_guid, "task_123");
-        assert_eq!(request.body.dependency_guids, vec!["dep_1", "dep_2"]);
+        assert_eq!(request.body.dependencies.len(), 2);
+        assert_eq!(
+            request.body.dependencies[0].task_guid,
+            "93b7bd05-35e6-4371-b3c9-6b7cbd7100c0"
+        );
     }
 
     #[test]
@@ -132,10 +155,31 @@ mod tests {
         );
 
         let request = RemoveDependenciesRequest::new(config, "task_123")
-            .remove_dependency("dep_1")
-            .remove_dependency("dep_2");
+            .remove_dependency("93b7bd05-35e6-4371-b3c9-6b7cbd7100c0")
+            .remove_dependency("83912691-2e43-47fc-94a4-d512e03984fa");
 
-        assert_eq!(request.body.dependency_guids, vec!["dep_1", "dep_2"]);
+        assert_eq!(request.body.dependencies.len(), 2);
+        assert_eq!(
+            request.body.dependencies[1].task_guid,
+            "83912691-2e43-47fc-94a4-d512e03984fa"
+        );
+    }
+
+    #[test]
+    fn test_remove_dependencies_body_official_shape() {
+        // 官方请求示例：{"dependencies": [{"task_guid": "..."}]}
+        let body = RemoveDependenciesBody {
+            dependencies: vec![TaskDependencyInput {
+                task_guid: "93b7bd05-35e6-4371-b3c9-6b7cbd7100c0".to_string(),
+            }],
+        };
+        let json = serde_json::to_value(&body).expect("序列化请求体失败");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "dependencies": [{"task_guid": "93b7bd05-35e6-4371-b3c9-6b7cbd7100c0"}]
+            })
+        );
     }
 
     #[test]

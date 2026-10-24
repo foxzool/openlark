@@ -12,8 +12,6 @@ pub mod get;
 pub mod list;
 /// 数据模型。
 pub mod models;
-/// 更新接口。
-pub mod patch;
 /// 移除成员接口。
 pub mod remove_members;
 #[path = "../../task/task/v2/tasklist/search.rs"]
@@ -106,16 +104,17 @@ pub use create::CreateTasklistRequest;
 pub use delete::DeleteTasklistRequest;
 pub use get::GetTasklistRequest;
 pub use list::ListTasklistsRequest;
-pub use patch::UpdateTasklistRequest;
 pub use remove_members::RemoveTasklistMembersRequest;
 pub use search::SearchTasklistRequest;
 pub use tasks::GetTasklistTasksRequest;
+pub use update::UpdateTasklistRequest;
 
 // 重新导出响应类型
 pub use add_members::{AddTasklistMembersBody, AddTasklistMembersResponse, TasklistMember};
 pub use models::{
     CreateTasklistBody, CreateTasklistResponse, DeleteTasklistResponse, GetTasklistResponse,
-    ListTasklistsResponse, TasklistIcon, TasklistItem, UpdateTasklistBody, UpdateTasklistResponse,
+    InputTasklist, ListTasklistsResponse, TasklistDetail, TasklistIcon, TasklistItem,
+    TasklistMemberDetail, UpdateTasklistBody, UpdateTasklistResponse,
 };
 pub use remove_members::{RemoveTasklistMembersBody, RemoveTasklistMembersResponse};
 

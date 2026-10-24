@@ -17,6 +17,15 @@ use std::sync::Arc;
 pub struct CreateTaskCommentBodyV1 {
     /// 评论内容
     pub content: String,
+
+    /// 富文本评论内容（优先使用；与 content 同时存在时只使用富文本评论内容）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rich_content: Option<String>,
+
+    /// 评论创建的时间戳（毫秒，用于展示；官方注明创建时不用填写）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create_milli_time: Option<String>,
+
     /// 父评论 ID（回复评论时使用）
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 父评论 ID。
@@ -53,6 +62,12 @@ impl CreateTaskCommentRequestV1 {
     /// 设置评论内容
     pub fn content(mut self, content: impl Into<String>) -> Self {
         self.body.content = content.into();
+        self
+    }
+
+    /// 设置富文本评论内容（优先使用；与 content 同时存在时只使用富文本评论内容）
+    pub fn rich_content(mut self, rich_content: impl Into<String>) -> Self {
+        self.body.rich_content = Some(rich_content.into());
         self
     }
 
@@ -119,9 +134,14 @@ mod tests {
 
         let request = CreateTaskCommentRequestV1::new(config.clone(), "task_123")
             .content("这是一条评论")
+            .rich_content("举杯邀明月，对影成三人<at id=7058204817822318612></at>")
             .parent_id("comment_parent");
 
         assert_eq!(request.body.content, "这是一条评论");
+        assert_eq!(
+            request.body.rich_content,
+            Some("举杯邀明月，对影成三人<at id=7058204817822318612></at>".to_string())
+        );
         assert_eq!(request.body.parent_id, Some("comment_parent".to_string()));
     }
 

@@ -23,6 +23,8 @@ pub mod follower;
 pub mod get;
 /// 列表接口。
 pub mod list;
+/// 数据模型。
+pub mod models;
 /// 更新接口。
 pub mod patch;
 /// reminder 模块。

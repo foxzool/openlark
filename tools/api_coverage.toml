@@ -123,8 +123,7 @@ implementation_path_rewrites = [
 "task/task/v1/task/batch_delete_follower.rs" = "v1/task/follower/batch_delete.rs"
 "task/task/v2/comment/patch.rs" = "v2/comment/update.rs"
 "task/task/v2/custom_field/patch.rs" = "v2/custom_field/update.rs"
-# tasklist 暂不 alias：v2/tasklist/patch.rs（re-export 桩）与 update.rs 并存会 Ambiguous；
-# 随 #717 删除桩文件后按 comment/custom_field 同款补 "task/task/v2/tasklist/patch.rs" = "v2/tasklist/update.rs"。
+"task/task/v2/tasklist/patch.rs" = "v2/tasklist/update.rs"
 
 [crates.openlark-analytics]
 src = "crates/openlark-analytics/src"

@@ -203,14 +203,17 @@ pub use uncomplete::UncompleteTaskRequest;
 
 // 重新导出响应类型
 pub use add_dependencies::{AddDependenciesResponse, TaskDependency};
-pub use add_members::{AddMembersResponse, TaskMember};
+pub use add_members::AddMembersResponse;
 pub use add_reminders::{AddRemindersResponse, TaskReminder};
 pub use add_tasklist::{AddTasklistBody, AddTasklistResponse};
 pub use models::{
     CompleteTaskResponse, CreateTaskBody, CreateTaskResponse, DeleteTaskResponse, GetTaskResponse,
-    ListTasksResponse, TaskItem, UncompleteTaskResponse, UpdateTaskBody, UpdateTaskResponse,
+    ListTasksResponse, TaskInTasklistInfo, TaskItem, TaskMember, TaskTimePoint,
+    UncompleteTaskResponse, UpdateTaskBody, UpdateTaskResponse,
 };
-pub use remove_dependencies::{RemoveDependenciesBody, RemoveDependenciesResponse};
+pub use remove_dependencies::{
+    RemoveDependenciesBody, RemoveDependenciesResponse, TaskDependencyInput,
+};
 pub use remove_members::{RemoveMembersBody, RemoveMembersResponse};
 pub use remove_reminders::{RemoveRemindersBody, RemoveRemindersResponse};
 pub use remove_tasklist::{RemoveTasklistBody, RemoveTasklistResponse};
