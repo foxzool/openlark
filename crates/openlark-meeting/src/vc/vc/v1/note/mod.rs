@@ -6,7 +6,7 @@ pub mod subscription;
 pub mod unsubscription;
 
 /// 获取纪要详情请求。
-pub use get::NoteGetRequest;
+pub use get::{NoteGetRequest, NoteGetResponse};
 /// 订阅纪要变更事件请求。
 pub use subscription::SubscribeNoteRequest;
 /// 取消订阅纪要变更事件请求。

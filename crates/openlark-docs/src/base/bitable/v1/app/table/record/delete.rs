@@ -41,6 +41,8 @@ pub struct DeleteRecordRequest {
     app_token: String,
     table_id: String,
     record_id: String,
+    /// 是否忽略一致性读写检查
+    ignore_consistency_check: Option<bool>,
 }
 
 impl DeleteRecordRequest {
@@ -51,6 +53,7 @@ impl DeleteRecordRequest {
             app_token: String::new(),
             table_id: String::new(),
             record_id: String::new(),
+            ignore_consistency_check: None,
         }
     }
 
@@ -69,6 +72,12 @@ impl DeleteRecordRequest {
     /// 设置记录 ID。
     pub fn record_id(mut self, record_id: String) -> Self {
         self.record_id = record_id;
+        self
+    }
+
+    /// 是否忽略一致性读写检查
+    pub fn ignore_consistency_check(mut self, ignore_consistency_check: bool) -> Self {
+        self.ignore_consistency_check = Some(ignore_consistency_check);
         self
     }
 
@@ -93,7 +102,14 @@ impl DeleteRecordRequest {
         let api_endpoint =
             BitableApiV1::RecordDelete(self.app_token, self.table_id, self.record_id);
         // #424: method 来自 catalog，保持 path+method+auth locality
-        let request = api_endpoint.to_request::<DeleteRecordResponse>();
+        let mut request = api_endpoint.to_request::<DeleteRecordResponse>();
+
+        if let Some(ignore_consistency_check) = self.ignore_consistency_check {
+            request = request.query(
+                "ignore_consistency_check",
+                &ignore_consistency_check.to_string(),
+            );
+        }
 
         Transport::request_typed(request, &self.config, Some(option), "删除记录").await
     }
@@ -190,6 +206,18 @@ mod tests {
         assert_eq!(request.app_token, "app_token");
         assert_eq!(request.table_id, "table_id");
         assert_eq!(request.record_id, "record_id");
+    }
+
+    #[test]
+    fn test_delete_record_ignore_consistency_check() {
+        let config = Config::default();
+        let request = DeleteRecordRequest::new(config)
+            .app_token("app_token".to_string())
+            .table_id("table_id".to_string())
+            .record_id("record_id".to_string())
+            .ignore_consistency_check(true);
+
+        assert_eq!(request.ignore_consistency_check, Some(true));
     }
 
     #[test]

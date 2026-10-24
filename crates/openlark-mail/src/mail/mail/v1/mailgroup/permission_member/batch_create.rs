@@ -8,6 +8,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -23,17 +24,27 @@ pub struct BatchCreateMailGroupPermissionMemberRequest {
 /// Batch Create Mail Group Permission Member Body。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BatchCreateMailGroupPermissionMemberBody {
-    /// 成员列表。
-    pub members: Vec<PermissionMemberItem>,
+    /// 本次添加的邮件组权限成员列表（1～200 个）。
+    pub items: Vec<PermissionMemberItem>,
 }
 
-/// Permission Member Item。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Permission Member Item（mailgroup.permission_member）。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PermissionMemberItem {
-    /// 成员 ID。
-    pub member_id: String,
-    /// member_type 字段。
+    /// 权限组内成员唯一标识（请求体中不用填，仅响应返回）。
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub permission_member_id: Option<String>,
+    /// 租户内用户的唯一标识（当成员类型是 USER 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 租户内部门的唯一标识（当成员类型是 DEPARTMENT 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 成员邮箱地址（当成员类型是 MAIL_GROUP/PUBLIC_MAILBOX 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// 成员类型（USER/DEPARTMENT/MAIL_GROUP/PUBLIC_MAILBOX）。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub member_type: Option<String>,
 }
 
@@ -76,9 +87,9 @@ impl BatchCreateMailGroupPermissionMemberRequest {
         }
     }
 
-    /// members。
-    pub fn members(mut self, members: Vec<PermissionMemberItem>) -> Self {
-        self.body.members = members;
+    /// items。
+    pub fn items(mut self, items: Vec<PermissionMemberItem>) -> Self {
+        self.body.items = items;
         self
     }
 
@@ -92,6 +103,8 @@ impl BatchCreateMailGroupPermissionMemberRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<BatchCreateMailGroupPermissionMemberResponse> {
+        validate_required!(self.mailgroup_id, "mailgroup_id 不能为空");
+        validate_required_list!(self.body.items, 200, "items 不能为空且不能超过 200 个");
         let path = format!(
             "/open-apis/mail/v1/mailgroups/{}/permission_members/batch_create",
             self.mailgroup_id
@@ -145,9 +158,10 @@ mod tests {
         );
 
         let resp = BatchCreateMailGroupPermissionMemberRequest::new(config, "group_001")
-            .members(vec![PermissionMemberItem {
-                member_id: "m1".to_string(),
-                member_type: None,
+            .items(vec![PermissionMemberItem {
+                user_id: Some("ou_123".to_string()),
+                member_type: Some("USER".to_string()),
+                ..Default::default()
             }])
             .execute()
             .await
@@ -161,6 +175,12 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/mail/v1/mailgroups/group_001/permission_members/batch_create"
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(
+            body,
+            json!({ "items": [ { "user_id": "ou_123", "type": "USER" } ] })
         );
     }
 }

@@ -8,6 +8,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -23,17 +24,24 @@ pub struct BatchCreateMailGroupMemberRequest {
 /// Batch Create Mail Group Member Body。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BatchCreateMailGroupMemberBody {
-    /// 成员列表。
-    pub members: Vec<MailGroupMemberItem>,
+    /// 本次添加的邮件组成员列表（1～200 个）。
+    pub items: Vec<MailGroupMemberItem>,
 }
 
-/// Mail Group Member Item。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Mail Group Member Item（mailgroup.member）。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MailGroupMemberItem {
-    /// 成员 ID。
-    pub member_id: String,
-    /// member_type 字段。
+    /// 成员邮箱地址（当成员类型是 EXTERNAL_USER/MAIL_GROUP/OTHER_MEMBER 时有值）。
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// 租户内用户的唯一标识（当成员类型是 USER 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 租户内部门的唯一标识（当成员类型是 DEPARTMENT 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 成员类型（USER/DEPARTMENT/COMPANY/EXTERNAL_USER/MAIL_GROUP/PUBLIC_MAILBOX/OTHER_MEMBER）。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub member_type: Option<String>,
 }
 
@@ -76,9 +84,9 @@ impl BatchCreateMailGroupMemberRequest {
         }
     }
 
-    /// members。
-    pub fn members(mut self, members: Vec<MailGroupMemberItem>) -> Self {
-        self.body.members = members;
+    /// items。
+    pub fn items(mut self, items: Vec<MailGroupMemberItem>) -> Self {
+        self.body.items = items;
         self
     }
 
@@ -92,6 +100,8 @@ impl BatchCreateMailGroupMemberRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<BatchCreateMailGroupMemberResponse> {
+        validate_required!(self.mailgroup_id, "mailgroup_id 不能为空");
+        validate_required_list!(self.body.items, 200, "items 不能为空且不能超过 200 个");
         let path = format!(
             "/open-apis/mail/v1/mailgroups/{}/members/batch_create",
             self.mailgroup_id
@@ -145,9 +155,10 @@ mod tests {
         );
 
         let resp = BatchCreateMailGroupMemberRequest::new(config, "group_001")
-            .members(vec![MailGroupMemberItem {
-                member_id: "m1".to_string(),
-                member_type: None,
+            .items(vec![MailGroupMemberItem {
+                user_id: Some("ou_123".to_string()),
+                member_type: Some("USER".to_string()),
+                ..Default::default()
             }])
             .execute()
             .await
@@ -161,6 +172,12 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/mail/v1/mailgroups/group_001/members/batch_create"
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(
+            body,
+            json!({ "items": [ { "user_id": "ou_123", "type": "USER" } ] })
         );
     }
 }

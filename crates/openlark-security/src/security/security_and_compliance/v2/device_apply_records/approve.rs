@@ -3,7 +3,7 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_apply_record-approve>
 //!
 //! 文档核对：`PUT /open-apis/security_and_compliance/v2/device_apply_records/{device_apply_record_id}`，
-//! body `{approved, comment, remark}`。
+//! body 仅一个必填字段 `{is_approved: boolean}`。
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
@@ -11,15 +11,11 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-/// 审批设备申报请求 body
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// 审批设备申报请求 body（官方请求体仅一个必填字段 `is_approved`）。
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ApproveDeviceApplyRecordBody {
-    /// 是否批准。
-    pub approved: bool,
-    /// 审批意见（可选）。
-    pub comment: Option<String>,
-    /// 审批备注（可选）。
-    pub remark: Option<String>,
+    /// 是否审批通过。
+    pub is_approved: bool,
 }
 
 /// 审批设备申报请求
@@ -39,40 +35,24 @@ impl ApproveDeviceApplyRecordRequest {
         Self {
             config,
             device_apply_record_id: device_apply_record_id.into(),
-            body: ApproveDeviceApplyRecordBody {
-                approved: false,
-                comment: None,
-                remark: None,
-            },
+            body: ApproveDeviceApplyRecordBody { is_approved: false },
         }
     }
 
-    /// 设置是否批准。
-    pub fn approved(mut self, approved: bool) -> Self {
-        self.body.approved = approved;
+    /// 设置是否审批通过。
+    pub fn is_approved(mut self, is_approved: bool) -> Self {
+        self.body.is_approved = is_approved;
         self
     }
 
     /// 快速批准。
     pub fn approve(self) -> Self {
-        self.approved(true)
+        self.is_approved(true)
     }
 
     /// 快速拒绝。
     pub fn reject(self) -> Self {
-        self.approved(false)
-    }
-
-    /// 设置审批意见。
-    pub fn comment(mut self, comment: impl Into<String>) -> Self {
-        self.body.comment = Some(comment.into());
-        self
-    }
-
-    /// 设置审批备注。
-    pub fn remark(mut self, remark: impl Into<String>) -> Self {
-        self.body.remark = Some(remark.into());
-        self
+        self.is_approved(false)
     }
 
     /// 执行请求，返回响应 `data` 字段内容。
@@ -93,7 +73,7 @@ impl ApproveDeviceApplyRecordRequest {
         );
         let req: ApiRequest<serde_json::Value> = ApiRequest::put(&path)
             .body(
-                serde_json::to_value(&self.body)
+                serde_json::to_value(self.body)
                     .map_err(|e| validation_error("审批设备申报", format!("序列化失败: {e}")))?,
             )
             .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
@@ -126,7 +106,7 @@ mod tests {
         );
     }
 
-    /// 端到端：PUT .../device_apply_records/{id} + body {approved, comment, remark} 序列化。
+    /// 端到端：PUT .../device_apply_records/{id} + body {is_approved} 序列化。
     #[tokio::test]
     async fn test_approve_device_apply_record_returns_data_on_success() {
         use serde_json::json;
@@ -156,8 +136,6 @@ mod tests {
 
         let data = ApproveDeviceApplyRecordRequest::new(config, "rec_001")
             .approve()
-            .comment("同意")
-            .remark("IT 设备")
             .execute()
             .await
             .expect("审批设备申报应成功");
@@ -170,7 +148,7 @@ mod tests {
             "/open-apis/security_and_compliance/v2/device_apply_records/rec_001"
         );
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["approved"], true);
-        assert_eq!(sent["comment"], "同意");
+        // 官方请求体仅一个必填字段 is_approved
+        assert_eq!(sent, json!({ "is_approved": true }));
     }
 }

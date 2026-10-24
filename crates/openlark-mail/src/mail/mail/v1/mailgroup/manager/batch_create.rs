@@ -23,8 +23,15 @@ pub struct BatchCreateMailGroupManagerRequest {
 /// 批量创建邮件组管理员请求体。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BatchCreateMailGroupManagerBody {
-    /// 管理员 ID 列表。
-    pub manager_ids: Vec<String>,
+    /// 邮件组管理员列表（0～200 个）。
+    pub mailgroup_manager_list: Vec<MailgroupManager>,
+}
+
+/// 邮件组管理员（mailgroup.manager）。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MailgroupManager {
+    /// 管理员用户 ID。
+    pub user_id: String,
 }
 
 /// 批量创建邮件组管理员的响应。
@@ -50,9 +57,9 @@ impl BatchCreateMailGroupManagerRequest {
         }
     }
 
-    /// 设置管理员 ID 列表。
-    pub fn manager_ids(mut self, ids: Vec<String>) -> Self {
-        self.body.manager_ids = ids;
+    /// 设置邮件组管理员列表。
+    pub fn mailgroup_manager_list(mut self, list: Vec<MailgroupManager>) -> Self {
+        self.body.mailgroup_manager_list = list;
         self
     }
 
@@ -68,9 +75,9 @@ impl BatchCreateMailGroupManagerRequest {
     ) -> SDKResult<BatchCreateMailGroupManagerResponse> {
         validate_required!(self.mailgroup_id.trim(), "mailgroup_id 不能为空");
         validate_required_list!(
-            self.body.manager_ids,
-            1000,
-            "manager_ids 不能为空且不能超过 1000 个"
+            self.body.mailgroup_manager_list,
+            200,
+            "mailgroup_manager_list 不能为空且不能超过 200 个"
         );
 
         let path = format!(
@@ -120,7 +127,9 @@ mod tests {
         );
 
         let resp = BatchCreateMailGroupManagerRequest::new(config, "group_001")
-            .manager_ids(vec!["m1".to_string()])
+            .mailgroup_manager_list(vec![MailgroupManager {
+                user_id: "m1".to_string(),
+            }])
             .execute()
             .await
             .expect("批量创建邮件组管理员应成功");
@@ -131,6 +140,12 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/mail/v1/mailgroups/group_001/managers/batch_create"
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(
+            body,
+            json!({ "mailgroup_manager_list": [ { "user_id": "m1" } ] })
         );
     }
 }

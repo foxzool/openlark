@@ -1,5 +1,8 @@
 //! 下载导出文件
 //!
+//! 官方查询参数仅 `file_token`（string，必填）。成功响应为「返回文件二进制流」
+//! （无 JSON 字段表），按二进制下载处理，保留响应头中的文件名。
+//!
 //! docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/download>
 
 use openlark_core::{
@@ -8,29 +11,38 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 下载导出文件请求
-
 #[derive(Debug, Clone)]
 pub struct DownloadExportRequest {
     /// 配置信息
     config: Config,
-    /// 查询参数
-    query_params: Vec<(String, String)>,
+    /// 导出文件 token（必填）
+    file_token: String,
 }
 
-/// 下载导出文件响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// 下载得到的导出文件。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DownloadExportResponse {
-    /// 下载 URL
-    pub url: String,
+    /// `Content-Disposition` 中的文件名；响应头缺失时为空字符串。
+    pub file_name: String,
+    /// 文件二进制内容。
+    pub content: Vec<u8>,
 }
 
 impl ApiResponseTrait for DownloadExportResponse {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Binary
+    }
+
+    fn from_binary(file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(Self {
+            file_name,
+            content: body,
+        })
     }
 }
 
@@ -39,17 +51,17 @@ impl DownloadExportRequest {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            query_params: Vec::new(),
+            file_token: String::new(),
         }
     }
 
-    /// 追加查询参数
-    pub fn query_param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.query_params.push((key.into(), value.into()));
+    /// 设置导出文件 token（必填）
+    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
+        self.file_token = file_token.into();
         self
     }
 
-    /// 执行请求
+    /// 执行请求（返回文件二进制内容）
     ///
     /// docPath: <https://open.feishu.cn/document/server-docs/vc-v1/export/download>
     pub async fn execute(self) -> SDKResult<DownloadExportResponse> {
@@ -61,12 +73,11 @@ impl DownloadExportRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<DownloadExportResponse> {
-        let mut api_request: ApiRequest<DownloadExportResponse> =
-            ApiRequest::get("/open-apis/vc/v1/exports/download");
+        validate_required!(self.file_token, "file_token 不能为空");
 
-        for (key, value) in self.query_params {
-            api_request = api_request.query(key, value);
-        }
+        let api_request: ApiRequest<DownloadExportResponse> =
+            ApiRequest::get("/open-apis/vc/v1/exports/download")
+                .query("file_token", self.file_token);
 
         Transport::request_typed(api_request, &self.config, Some(option), "下载导出文件").await
     }
@@ -76,23 +87,24 @@ impl DownloadExportRequest {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use wiremock::MockServer;
 
-    /// 端到端：GET .../exports/download + query 拼装 + 强类型 DownloadExportResponse 解析（单层 data 信封）。
+    /// 端到端：GET .../exports/download?file_token=... → 返回原始文件二进制流并保留文件名。
     #[tokio::test]
-    async fn test_download_export_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+    async fn test_download_export_returns_binary_on_success() {
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
+        let file_bytes = b"PK\x03\x04export-file".to_vec();
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/vc/v1/exports/download"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "data": { "url": "https://files.example.com/export_001.zip" }
-            })))
+            .and(query_param("file_token", "ftk_001"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-disposition", "attachment; filename=\"export.mp4\"")
+                    .set_body_bytes(file_bytes.clone()),
+            )
             .mount(&server)
             .await;
 
@@ -104,11 +116,12 @@ mod tests {
             .build();
 
         let resp = DownloadExportRequest::new(config)
-            .query_param("task_id", "task_001")
+            .file_token("ftk_001")
             .execute()
             .await
             .expect("下载导出文件应成功");
-        assert_eq!(resp.url, "https://files.example.com/export_001.zip");
+        assert_eq!(resp.file_name, "export.mp4");
+        assert_eq!(resp.content, file_bytes);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -118,7 +131,29 @@ mod tests {
                 .url
                 .query()
                 .unwrap_or("")
-                .contains("task_id=task_001")
+                .contains("file_token=ftk_001")
+        );
+    }
+
+    /// file_token 缺失时应被校验拦截，不发请求。
+    #[tokio::test]
+    async fn test_download_export_rejects_empty_file_token() {
+        let server = MockServer::start().await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let result = DownloadExportRequest::new(config).execute().await;
+        assert!(result.is_err());
+        assert!(
+            server
+                .received_requests()
+                .await
+                .unwrap_or_default()
+                .is_empty()
         );
     }
 }
