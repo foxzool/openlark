@@ -16,64 +16,49 @@ use crate::endpoints::DOCUMENT_AI_VEHICLE_INVOICE_RECOGNIZE;
 /// 机动车发票识别请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VehicleInvoiceRecognizeBody {
-    /// 用户的 file_id，通过上传文件接口获取
-    pub file_token: String,
-    /// 是否异步识别，默认为 false
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_async: Option<bool>,
+    /// 识别的机动车发票源文件。
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    /// multipart 文件名，仅用于设置文件 part 的 filename。
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl VehicleInvoiceRecognizeBody {
-    /// 验证请求参数
+    /// 校验请求体。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file, "file 不能为空");
         Ok(())
     }
 }
 
-/// 机动车发票识别响应
+/// 机动车发票识别响应 `data`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VehicleInvoiceRecognizeResponse {
-    /// 识别结果
+    /// 机动车发票信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<VehicleInvoiceRecognizeResult>,
+    pub vehicle_invoice: Option<VehicleInvoice>,
 }
 
 impl openlark_core::api::ApiResponseTrait for VehicleInvoiceRecognizeResponse {}
 
-/// 机动车发票识别结果
+/// 机动车发票信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VehicleInvoiceRecognizeResult {
-    /// 发票代码
+pub struct VehicleInvoice {
+    /// 识别出的实体列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub invoice_code: Option<String>,
-    /// 发票号码
+    pub entities: Option<Vec<VehicleInvoiceEntity>>,
+}
+
+/// 机动车发票识别实体。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VehicleInvoiceEntity {
+    /// 实体类型，可选值有 invoice_code、invoice_num、date、print_code、print_num、machine_num、buyer_name、buyer_id、vehicle_type、product_model、certificate_num、engine_num、vin、total_price、total_price_little、saler_name、saler_id、saler_addr、tax_rate、tax、price。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 实体值。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub invoice_number: Option<String>,
-    /// 日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
-    /// 价税合计
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_amount: Option<String>,
-    /// 不含税价
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_excluded_amount: Option<String>,
-    /// 税额
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_amount: Option<String>,
-    /// 购买方名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub buyer_name: Option<String>,
-    /// 销售方名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seller_name: Option<String>,
-    /// 车辆类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vehicle_type: Option<String>,
-    /// 厂牌型号
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub brand_model: Option<String>,
+    pub value: Option<String>,
 }
 
 /// 机动车发票识别请求
@@ -83,12 +68,12 @@ pub struct VehicleInvoiceRecognizeRequest {
 }
 
 impl VehicleInvoiceRecognizeRequest {
-    /// 创建新的机动车发票识别请求
+    /// 创建新的实例。
     pub fn new(config: Config) -> Self {
         Self { config }
     }
 
-    /// 执行机动车发票识别请求
+    /// 执行请求。
     pub async fn execute(
         self,
         body: VehicleInvoiceRecognizeBody,
@@ -97,7 +82,7 @@ impl VehicleInvoiceRecognizeRequest {
             .await
     }
 
-    /// 执行机动车发票识别请求（支持自定义选项）
+    /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(
         self,
         body: VehicleInvoiceRecognizeBody,
@@ -107,7 +92,8 @@ impl VehicleInvoiceRecognizeRequest {
 
         let req: ApiRequest<VehicleInvoiceRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_VEHICLE_INVOICE_RECOGNIZE)
-                .body(serialize_params(&body, "机动车发票识别")?);
+                .body(serialize_params(&body, "机动车发票识别")?)
+                .file_content(body.file.clone());
 
         Transport::request_typed(req, &self.config, Some(option), "机动车发票识别").await
     }
@@ -117,47 +103,47 @@ impl VehicleInvoiceRecognizeRequest {
 #[derive(Debug, Clone)]
 pub struct VehicleInvoiceRecognizeRequestBuilder {
     request: VehicleInvoiceRecognizeRequest,
-    file_token: Option<String>,
-    is_async: Option<bool>,
+    file: Option<Vec<u8>>,
+    file_name: Option<String>,
 }
 
 impl VehicleInvoiceRecognizeRequestBuilder {
-    /// 创建新的构建器
+    /// 创建新的实例。
     pub fn new(config: Config) -> Self {
         Self {
             request: VehicleInvoiceRecognizeRequest::new(config),
-            file_token: None,
-            is_async: None,
+            file: None,
+            file_name: None,
         }
     }
 
-    /// 设置文件 token
-    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
-        self.file_token = Some(file_token.into());
+    /// 设置识别的机动车发票源文件。
+    pub fn file(mut self, file: impl Into<Vec<u8>>) -> Self {
+        self.file = Some(file.into());
         self
     }
 
-    /// 设置是否异步
-    pub fn is_async(mut self, is_async: impl Into<bool>) -> Self {
-        self.is_async = Some(is_async.into());
+    /// 设置 multipart 文件名。
+    pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
-    /// 构建请求体
+    /// 构建请求体。
     pub fn body(self) -> VehicleInvoiceRecognizeBody {
         VehicleInvoiceRecognizeBody {
-            file_token: self.file_token.unwrap_or_default(),
-            is_async: self.is_async,
+            file: self.file.unwrap_or_default(),
+            file_name: self.file_name,
         }
     }
 
-    /// 执行请求
+    /// 执行请求。
     pub async fn execute(self) -> SDKResult<VehicleInvoiceRecognizeResponse> {
         let body = self.clone().body();
         self.request.execute(body).await
     }
 
-    /// 执行请求（支持自定义选项）
+    /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(
         self,
         option: RequestOption,
@@ -167,9 +153,7 @@ impl VehicleInvoiceRecognizeRequestBuilder {
     }
 }
 
-/// 执行机动车发票识别
-///
-/// docPath: <https://open.feishu.cn/document/document_ai-v1/vehicle_invoice_recognize>
+/// 执行机动车发票识别。
 pub async fn vehicle_invoice_recognize(
     config: &Config,
     body: VehicleInvoiceRecognizeBody,
@@ -177,7 +161,7 @@ pub async fn vehicle_invoice_recognize(
     vehicle_invoice_recognize_with_options(config, body, RequestOption::default()).await
 }
 
-/// 执行机动车发票识别（支持自定义选项）
+/// vehicle_invoice_recognize_with_options。
 pub async fn vehicle_invoice_recognize_with_options(
     config: &Config,
     body: VehicleInvoiceRecognizeBody,
@@ -187,7 +171,8 @@ pub async fn vehicle_invoice_recognize_with_options(
 
     let req: ApiRequest<VehicleInvoiceRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_VEHICLE_INVOICE_RECOGNIZE)
-            .body(serialize_params(&body, "机动车发票识别")?);
+            .body(serialize_params(&body, "机动车发票识别")?)
+            .file_content(body.file.clone());
 
     Transport::request_typed(req, config, Some(option), "机动车发票识别").await
 }
@@ -203,28 +188,106 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let builder = VehicleInvoiceRecognizeRequestBuilder::new(config.clone());
-
-        assert!(builder.file_token.is_none());
-        assert!(builder.is_async.is_none());
+        assert!(builder.file.is_none());
     }
 
     #[test]
-    fn test_body_validation_empty_file_token() {
+    fn test_body_validation_empty() {
         let body = VehicleInvoiceRecognizeBody {
-            file_token: "".to_string(),
-            is_async: None,
+            file: Vec::new(),
+            file_name: None,
         };
-        let result = body.validate();
-        assert!(result.is_err());
+        assert!(body.validate().is_err());
     }
 
     #[test]
     fn test_body_validation_valid() {
         let body = VehicleInvoiceRecognizeBody {
-            file_token: "valid_token".to_string(),
-            is_async: Some(true),
+            file: b"file content".to_vec(),
+            file_name: None,
         };
-        let result = body.validate();
-        assert!(result.is_ok());
+        assert!(body.validate().is_ok());
+    }
+
+    #[test]
+    fn test_builder_file_name() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let builder =
+            VehicleInvoiceRecognizeRequestBuilder::new(config.clone()).file_name("file.jpg");
+        assert_eq!(builder.file_name, Some("file.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_builder_body_creation() {
+        let config = Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build();
+        let body = VehicleInvoiceRecognizeRequestBuilder::new(config.clone())
+            .file(b"file content".to_vec())
+            .file_name("file.jpg")
+            .body();
+        assert_eq!(body.file, b"file content".to_vec());
+        assert_eq!(body.file_name, Some("file.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_body_serialization() {
+        let body = VehicleInvoiceRecognizeBody {
+            file: b"file content".to_vec(),
+            file_name: Some("file.jpg".to_string()),
+        };
+        let json_str = serde_json::to_string(&body).expect("序列化失败");
+        assert!(!json_str.contains("\"file\""));
+        assert!(json_str.contains("__file_name"));
+        assert!(json_str.contains("file.jpg"));
+    }
+
+    #[test]
+    fn test_vehicle_invoice_entity_struct() {
+        let entity = VehicleInvoiceEntity {
+            entity_type: Some("vin".to_string()),
+            value: Some("LSV12345678901234".to_string()),
+        };
+        assert_eq!(entity.entity_type, Some("vin".to_string()));
+        assert_eq!(entity.value, Some("LSV12345678901234".to_string()));
+    }
+
+    #[test]
+    fn test_vehicle_invoice_entity_serialization() {
+        let entity = VehicleInvoiceEntity {
+            entity_type: Some("vin".to_string()),
+            value: Some("LSV12345678901234".to_string()),
+        };
+        let json_str = serde_json::to_string(&entity).expect("序列化失败");
+        assert!(json_str.contains("\"type\""));
+        assert!(json_str.contains("vin"));
+    }
+
+    #[test]
+    fn test_response_struct() {
+        let response = VehicleInvoiceRecognizeResponse {
+            vehicle_invoice: None,
+        };
+        assert!(response.vehicle_invoice.is_none());
+
+        let response_with_data = VehicleInvoiceRecognizeResponse {
+            vehicle_invoice: Some(VehicleInvoice {
+                entities: Some(vec![VehicleInvoiceEntity {
+                    entity_type: Some("vin".to_string()),
+                    value: Some("LSV12345678901234".to_string()),
+                }]),
+            }),
+        };
+        let value = response_with_data
+            .vehicle_invoice
+            .as_ref()
+            .and_then(|vehicle_invoice| vehicle_invoice.entities.as_ref())
+            .and_then(|entities| entities.first())
+            .and_then(|entity| entity.value.as_deref());
+        assert_eq!(value, Some("LSV12345678901234"));
     }
 }

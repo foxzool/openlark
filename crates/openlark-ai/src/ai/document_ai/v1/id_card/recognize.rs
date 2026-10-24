@@ -16,72 +16,55 @@ use crate::endpoints::DOCUMENT_AI_ID_CARD_RECOGNIZE;
 /// 身份证识别请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdCardRecognizeBody {
-    /// 用户的 file_id，通过上传文件接口获取
-    pub file_token: String,
-    /// 是否异步识别，默认为 false
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_async: Option<bool>,
+    /// 识别身份证的源文件。
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    /// multipart 文件名，仅用于设置文件 part 的 filename。
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl IdCardRecognizeBody {
-    /// 验证请求参数
+    /// 校验请求体。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file, "file 不能为空");
         Ok(())
     }
 }
 
-/// 身份证识别响应
+/// 身份证识别响应 `data`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdCardRecognizeResponse {
-    /// data 字段。
+    /// 身份证信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<IdCardRecognizeResult>,
+    pub id_card: Option<IdCard>,
 }
 
 impl openlark_core::api::ApiResponseTrait for IdCardRecognizeResponse {}
 
-/// 身份证识别结果
+/// 身份证信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IdCardRecognizeResult {
-    /// 解析结果
+pub struct IdCard {
+    /// 识别的实体列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parsing_result: Option<ParsingResult>,
+    pub entities: Option<Vec<IdEntity>>,
+    /// 正反面，1 为身份证-姓名页，0 为身份证-国徽页。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub side: Option<i32>,
+    /// 四角坐标 [x0, y0, x1, y1, x2, y2, x3, y3]。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conners: Option<Vec<i64>>,
 }
 
-/// 解析结果
+/// 身份证识别实体。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsingResult {
-    /// 姓名
+pub struct IdEntity {
+    /// 实体类型，可选值有 identity_code（公民身份号码）、identity_name（姓名）、address（住址）、valid_date_start、valid_date_end、gender、race、issued_by、birth。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 实体值。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 性别
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gender: Option<String>,
-    /// 民族
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nation: Option<String>,
-    /// 出生日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub birth_date: Option<String>,
-    /// 地址
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<String>,
-    /// 身份证号
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id_number: Option<String>,
-    /// 签发机关
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub issuing_authority: Option<String>,
-    /// 有效期限起始日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_date: Option<String>,
-    /// 有效期限结束日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_date: Option<String>,
-    /// 头像 Base64 编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub portrait: Option<String>,
+    pub value: Option<String>,
 }
 
 /// 身份证识别请求
@@ -112,7 +95,8 @@ impl IdCardRecognizeRequest {
 
         let req: ApiRequest<IdCardRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_ID_CARD_RECOGNIZE)
-                .body(serialize_params(&body, "身份证识别")?);
+                .body(serialize_params(&body, "身份证识别")?)
+                .file_content(body.file.clone());
 
         Transport::request_typed(req, &self.config, Some(option), "身份证识别").await
     }
@@ -122,8 +106,8 @@ impl IdCardRecognizeRequest {
 #[derive(Debug, Clone)]
 pub struct IdCardRecognizeRequestBuilder {
     request: IdCardRecognizeRequest,
-    file_token: Option<String>,
-    is_async: Option<bool>,
+    file: Option<Vec<u8>>,
+    file_name: Option<String>,
 }
 
 impl IdCardRecognizeRequestBuilder {
@@ -131,28 +115,28 @@ impl IdCardRecognizeRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: IdCardRecognizeRequest::new(config),
-            file_token: None,
-            is_async: None,
+            file: None,
+            file_name: None,
         }
     }
 
-    /// file_token。
-    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
-        self.file_token = Some(file_token.into());
+    /// 设置识别身份证的源文件。
+    pub fn file(mut self, file: impl Into<Vec<u8>>) -> Self {
+        self.file = Some(file.into());
         self
     }
 
-    /// 设置 is_async。
-    pub fn is_async(mut self, is_async: impl Into<bool>) -> Self {
-        self.is_async = Some(is_async.into());
+    /// 设置 multipart 文件名。
+    pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
     /// 构建请求体。
     pub fn body(self) -> IdCardRecognizeBody {
         IdCardRecognizeBody {
-            file_token: self.file_token.unwrap_or_default(),
-            is_async: self.is_async,
+            file: self.file.unwrap_or_default(),
+            file_name: self.file_name,
         }
     }
 
@@ -172,7 +156,7 @@ impl IdCardRecognizeRequestBuilder {
     }
 }
 
-/// 执行身份证识别
+/// 执行身份证识别。
 pub async fn id_card_recognize(
     config: &Config,
     body: IdCardRecognizeBody,
@@ -189,7 +173,8 @@ pub async fn id_card_recognize_with_options(
     body.validate()?;
 
     let req: ApiRequest<IdCardRecognizeResponse> = ApiRequest::post(DOCUMENT_AI_ID_CARD_RECOGNIZE)
-        .body(serialize_params(&body, "身份证识别")?);
+        .body(serialize_params(&body, "身份证识别")?)
+        .file_content(body.file.clone());
 
     Transport::request_typed(req, config, Some(option), "身份证识别").await
 }
@@ -205,49 +190,35 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let builder = IdCardRecognizeRequestBuilder::new(config.clone());
-        assert!(builder.file_token.is_none());
-        assert!(builder.is_async.is_none());
-    }
-
-    #[test]
-    fn test_builder_file_token() {
-        let config = Config::builder()
-            .app_id("test_app_id")
-            .app_secret("test_app_secret")
-            .build();
-        let builder =
-            IdCardRecognizeRequestBuilder::new(config.clone()).file_token("file_token_123");
-        assert_eq!(builder.file_token, Some("file_token_123".to_string()));
+        assert!(builder.file.is_none());
     }
 
     #[test]
     fn test_body_validation_empty() {
         let body = IdCardRecognizeBody {
-            file_token: "".to_string(),
-            is_async: None,
+            file: Vec::new(),
+            file_name: None,
         };
-        let result = body.validate();
-        assert!(result.is_err());
+        assert!(body.validate().is_err());
     }
 
     #[test]
     fn test_body_validation_valid() {
         let body = IdCardRecognizeBody {
-            file_token: "valid_token".to_string(),
-            is_async: Some(false),
+            file: b"file content".to_vec(),
+            file_name: None,
         };
-        let result = body.validate();
-        assert!(result.is_ok());
+        assert!(body.validate().is_ok());
     }
 
     #[test]
-    fn test_builder_is_async() {
+    fn test_builder_file_name() {
         let config = Config::builder()
             .app_id("test_app_id")
             .app_secret("test_app_secret")
             .build();
-        let builder = IdCardRecognizeRequestBuilder::new(config.clone()).is_async(true);
-        assert_eq!(builder.is_async, Some(true));
+        let builder = IdCardRecognizeRequestBuilder::new(config.clone()).file_name("file.jpg");
+        assert_eq!(builder.file_name, Some("file.jpg".to_string()));
     }
 
     #[test]
@@ -257,79 +228,67 @@ mod tests {
             .app_secret("test_app_secret")
             .build();
         let body = IdCardRecognizeRequestBuilder::new(config.clone())
-            .file_token("token_123")
-            .is_async(true)
+            .file(b"file content".to_vec())
+            .file_name("file.jpg")
             .body();
-        assert_eq!(body.file_token, "token_123");
-        assert_eq!(body.is_async, Some(true));
-    }
-
-    #[test]
-    fn test_body_validation_whitespace() {
-        let body = IdCardRecognizeBody {
-            file_token: "   ".to_string(),
-            is_async: None,
-        };
-        let result = body.validate();
-        assert!(result.is_err());
+        assert_eq!(body.file, b"file content".to_vec());
+        assert_eq!(body.file_name, Some("file.jpg".to_string()));
     }
 
     #[test]
     fn test_body_serialization() {
         let body = IdCardRecognizeBody {
-            file_token: "token_123".to_string(),
-            is_async: Some(true),
+            file: b"file content".to_vec(),
+            file_name: Some("file.jpg".to_string()),
         };
         let json_str = serde_json::to_string(&body).expect("序列化失败");
-        assert!(json_str.contains("file_token"));
-        assert!(json_str.contains("token_123"));
+        assert!(!json_str.contains("\"file\""));
+        assert!(json_str.contains("__file_name"));
+        assert!(json_str.contains("file.jpg"));
     }
 
     #[test]
-    fn test_parsing_result_serialization() {
-        let parsing_result = ParsingResult {
-            name: Some("张三".to_string()),
-            gender: Some("男".to_string()),
-            nation: Some("汉".to_string()),
-            birth_date: Some("19900101".to_string()),
-            address: Some("北京市".to_string()),
-            id_number: Some("110101199001011234".to_string()),
-            issuing_authority: Some("北京市公安局".to_string()),
-            start_date: Some("20200101".to_string()),
-            end_date: Some("20300101".to_string()),
-            portrait: Some("base64_image_data".to_string()),
+    fn test_id_entity_struct() {
+        let entity = IdEntity {
+            entity_type: Some("identity_name".to_string()),
+            value: Some("张三".to_string()),
         };
-        let json_str = serde_json::to_string(&parsing_result).expect("序列化失败");
-        assert!(json_str.contains("张三"));
-        assert!(json_str.contains("110101199001011234"));
+        assert_eq!(entity.entity_type, Some("identity_name".to_string()));
+        assert_eq!(entity.value, Some("张三".to_string()));
+    }
+
+    #[test]
+    fn test_id_entity_serialization() {
+        let entity = IdEntity {
+            entity_type: Some("identity_name".to_string()),
+            value: Some("张三".to_string()),
+        };
+        let json_str = serde_json::to_string(&entity).expect("序列化失败");
+        assert!(json_str.contains("\"type\""));
+        assert!(json_str.contains("identity_name"));
     }
 
     #[test]
     fn test_response_struct() {
-        let response = IdCardRecognizeResponse { data: None };
-        assert!(response.data.is_none());
+        let response = IdCardRecognizeResponse { id_card: None };
+        assert!(response.id_card.is_none());
 
-        let result = IdCardRecognizeResult {
-            parsing_result: Some(ParsingResult {
-                name: Some("李四".to_string()),
-                gender: None,
-                nation: None,
-                birth_date: None,
-                address: None,
-                id_number: None,
-                issuing_authority: None,
-                start_date: None,
-                end_date: None,
-                portrait: None,
+        let response_with_data = IdCardRecognizeResponse {
+            id_card: Some(IdCard {
+                entities: Some(vec![IdEntity {
+                    entity_type: Some("identity_name".to_string()),
+                    value: Some("张三".to_string()),
+                }]),
+                side: Some(1),
+                conners: Some(vec![1, 2, 3, 4]),
             }),
         };
-        let response_with_data = IdCardRecognizeResponse { data: Some(result) };
-        assert!(response_with_data.data.is_some());
-        let name = response_with_data
-            .data
+        let value = response_with_data
+            .id_card
             .as_ref()
-            .and_then(|data| data.parsing_result.as_ref())
-            .and_then(|result| result.name.as_deref());
-        assert_eq!(name, Some("李四"));
+            .and_then(|id_card| id_card.entities.as_ref())
+            .and_then(|entities| entities.first())
+            .and_then(|entity| entity.value.as_deref());
+        assert_eq!(value, Some("张三"));
     }
 }

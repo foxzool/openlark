@@ -16,11 +16,11 @@ fn test_resume_parse_builder() {
         .app_secret("test_app_secret")
         .build();
 
-    let request = ResumeParseRequestBuilder::new(config).file_token("test_file_token");
+    let request = ResumeParseRequestBuilder::new(config).file(vec![1, 2, 3]);
 
     // 验证构建器创建成功 - body() 方法返回请求体
     let body = request.body();
-    assert_eq!(body.file_token, "test_file_token");
+    assert_eq!(body.file, vec![1, 2, 3]);
 }
 
 /// 测试身份证识别请求构建器
@@ -31,10 +31,10 @@ fn test_id_card_recognize_builder() {
         .app_secret("test_app_secret")
         .build();
 
-    let request = IdCardRecognizeRequestBuilder::new(config).file_token("test_file_token");
+    let request = IdCardRecognizeRequestBuilder::new(config).file(vec![1, 2, 3]);
 
     let body = request.body();
-    assert_eq!(body.file_token, "test_file_token");
+    assert_eq!(body.file, vec![1, 2, 3]);
 }
 
 /// 测试银行卡识别请求构建器
@@ -61,10 +61,10 @@ fn test_business_license_recognize_builder() {
         .app_secret("test_app_secret")
         .build();
 
-    let request = BusinessLicenseRecognizeRequestBuilder::new(config).file_token("test_file_token");
+    let request = BusinessLicenseRecognizeRequestBuilder::new(config).file(vec![1, 2, 3]);
 
     let body = request.body();
-    assert_eq!(body.file_token, "test_file_token");
+    assert_eq!(body.file, vec![1, 2, 3]);
 }
 
 /// 测试增值税发票识别请求构建器
