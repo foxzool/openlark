@@ -160,12 +160,12 @@ mod tests {
             .build();
         let api = ApaasV1::new(std::sync::Arc::new(config));
         let ws = api.workspace("ws_x");
-        // table → 7 操作（list 不带 table_name；records_patch 带 filter）
+        // table → 7 操作（list 不带 table_name；records_delete/records_patch 带 filter）
         let _ = ws.table("tbl_a").list();
         let _ = ws.table("tbl_a").table_get();
         let _ = ws.table("tbl_a").records_post();
         let _ = ws.table("tbl_a").records_get();
-        let _ = ws.table("tbl_a").records_delete();
+        let _ = ws.table("tbl_a").records_delete("filter_q");
         let _ = ws.table("tbl_a").records_batch_update();
         let _ = ws.table("tbl_a").records_patch("filter_q");
         // view

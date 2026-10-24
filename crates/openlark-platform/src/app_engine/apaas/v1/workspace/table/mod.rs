@@ -59,12 +59,16 @@ impl TableService {
             self.table_name.clone(),
         )
     }
-    /// 删除记录
-    pub fn records_delete(&self) -> records_delete::TableRecordsDeleteRequestBuilder {
+    /// 删除记录（filter 为必填查询参数，PostgREST 语法）
+    pub fn records_delete(
+        &self,
+        filter: impl Into<String>,
+    ) -> records_delete::TableRecordsDeleteRequestBuilder {
         records_delete::TableRecordsDeleteRequestBuilder::new(
             self.config.clone(),
             self.workspace_id.clone(),
             self.table_name.clone(),
+            filter,
         )
     }
     /// 批量更新记录

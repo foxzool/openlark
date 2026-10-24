@@ -1,7 +1,9 @@
 //! 用户数据维度解绑
 //!
-//! 文档: <https://open.feishu.cn/document/server-docs/mdm-v1/user_auth_data_relation/unbind>
+//! 文档: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/mdm-v1/user_auth_data_relation/unbind>
 //! docPath: <https://open.feishu.cn/document/server-docs/mdm-v1/user_auth_data_relation/unbind>
+//!
+//! 请求体四个字段全部必填；成功响应 `data` 为空对象 `{}`。
 
 use openlark_core::{
     SDKResult,
@@ -9,6 +11,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +19,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct UserAuthDataRelationUnbindRequestBuilder {
     config: Config,
-    user_ids: Vec<String>,
-    data_type: String,
+    root_dimension_type: String,
+    sub_dimension_types: Vec<String>,
+    authorized_user_ids: Vec<String>,
+    uams_app_id: String,
+    /// 用户 ID 类型（查询参数，可选：open_id/union_id）
+    user_id_type: Option<String>,
 }
 
 impl UserAuthDataRelationUnbindRequestBuilder {
@@ -25,26 +32,47 @@ impl UserAuthDataRelationUnbindRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            user_ids: Vec::new(),
-            data_type: String::new(),
+            root_dimension_type: String::new(),
+            sub_dimension_types: Vec::new(),
+            authorized_user_ids: Vec::new(),
+            uams_app_id: String::new(),
+            user_id_type: None,
         }
     }
 
-    /// 添加用户 ID
-    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
-        self.user_ids.push(user_id.into());
+    /// 设置数据类型编码（必填，长度 1~200，示例 "gongsi"）
+    pub fn root_dimension_type(mut self, root_dimension_type: impl Into<String>) -> Self {
+        self.root_dimension_type = root_dimension_type.into();
         self
     }
 
-    /// 添加多个用户 ID
-    pub fn user_ids(mut self, user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.user_ids.extend(user_ids.into_iter().map(Into::into));
+    /// 设置数据编码列表（必填，示例 ["zijie"]）
+    pub fn sub_dimension_types(
+        mut self,
+        sub_dimension_types: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.sub_dimension_types = sub_dimension_types.into_iter().map(Into::into).collect();
         self
     }
 
-    /// 设置数据类型
-    pub fn data_type(mut self, data_type: impl Into<String>) -> Self {
-        self.data_type = data_type.into();
+    /// 设置授权人的 lark ID 列表（必填）
+    pub fn authorized_user_ids(
+        mut self,
+        authorized_user_ids: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.authorized_user_ids = authorized_user_ids.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// 设置 uams 系统中应用 ID（必填，示例 "uams-tenant-test"）
+    pub fn uams_app_id(mut self, uams_app_id: impl Into<String>) -> Self {
+        self.uams_app_id = uams_app_id.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（查询参数，可选：open_id/union_id，示例 "open_id"）
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -58,50 +86,43 @@ impl UserAuthDataRelationUnbindRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<UserAuthDataRelationUnbindResponse> {
+        validate_required!(self.root_dimension_type, "root_dimension_type 不能为空");
+        validate_required!(self.sub_dimension_types, "sub_dimension_types 不能为空");
+        validate_required!(self.authorized_user_ids, "authorized_user_ids 不能为空");
+        validate_required!(self.uams_app_id, "uams_app_id 不能为空");
+
         let url = "/open-apis/mdm/v1/user_auth_data_relations/unbind";
 
         let request = UserAuthDataRelationUnbindRequest {
-            user_ids: self.user_ids,
-            data_type: self.data_type,
+            root_dimension_type: self.root_dimension_type,
+            sub_dimension_types: self.sub_dimension_types,
+            authorized_user_ids: self.authorized_user_ids,
+            uams_app_id: self.uams_app_id,
         };
 
-        let req: ApiRequest<UserAuthDataRelationUnbindResponse> =
-            ApiRequest::post(url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<UserAuthDataRelationUnbindResponse> = ApiRequest::post(url)
+            .body(serde_json::to_value(&request)?)
+            .query_opt("user_id_type", self.user_id_type);
+        Transport::request_typed(req, &self.config, Some(option), "用户数据维度解绑").await
     }
 }
 
-/// 用户数据维度解绑请求
+/// 用户数据维度解绑请求体（四个字段全部必填）
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct UserAuthDataRelationUnbindRequest {
-    /// 用户 ID 列表
-    #[serde(rename = "user_ids")]
-    user_ids: Vec<String>,
-    /// 数据类型
-    #[serde(rename = "data_type")]
-    data_type: String,
+    /// 数据类型编码（长度 1~200）
+    root_dimension_type: String,
+    /// 数据编码列表
+    sub_dimension_types: Vec<String>,
+    /// 授权人的 lark ID 列表
+    authorized_user_ids: Vec<String>,
+    /// uams 系统中应用 ID
+    uams_app_id: String,
 }
 
-/// 用户数据维度解绑响应
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct UserAuthDataRelationUnbindResponse {
-    /// 解绑结果
-    pub items: Vec<UserAuthDataRelationResult>,
-}
-
-/// 用户数据维度解绑结果
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct UserAuthDataRelationResult {
-    /// 用户 ID
-    #[serde(rename = "user_id")]
-    pub user_id: String,
-    /// 解绑是否成功
-    #[serde(rename = "is_success")]
-    pub is_success: bool,
-    /// 失败原因
-    #[serde(rename = "fail_reason")]
-    pub fail_reason: Option<String>,
-}
+/// 用户数据维度解绑响应 `data`（空对象）。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UserAuthDataRelationUnbindResponse {}
 
 impl ApiResponseTrait for UserAuthDataRelationUnbindResponse {}
 
@@ -114,26 +135,29 @@ pub type UserAuthDataRelationUnbindBuilder = UserAuthDataRelationUnbindRequestBu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{body_json, method, path, query_param},
+    };
 
-    /// 端到端：POST .../mdm/v1/user_auth_data_relations/unbind → 强类型 UserAuthDataRelationUnbindResponse。
+    /// 端到端：POST 官方四必填字段请求体 → 成功响应 data 为空对象。
     #[tokio::test]
-    async fn test_unbind_user_auth_data_relation_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
+    async fn test_unbind_sends_official_body_and_returns_empty_data() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/mdm/v1/user_auth_data_relations/unbind"))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "root_dimension_type": "gongsi",
+                "sub_dimension_types": ["zijie"],
+                "authorized_user_ids": ["on_21f2db9bdbafadeb16cd77b76060d41d"],
+                "uams_app_id": "uams-tenant-test"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": {
-                    "items": [
-                        { "user_id": "u_001", "is_success": true }
-                    ]
-                }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -146,14 +170,15 @@ mod tests {
             .build();
 
         let resp = UserAuthDataRelationUnbindRequestBuilder::new(config)
-            .user_id("u_001")
-            .data_type("department")
+            .root_dimension_type("gongsi")
+            .sub_dimension_types(vec!["zijie".to_string()])
+            .authorized_user_ids(vec!["on_21f2db9bdbafadeb16cd77b76060d41d".to_string()])
+            .uams_app_id("uams-tenant-test")
+            .user_id_type("open_id")
             .execute()
             .await
             .expect("用户数据维度解绑应成功");
-        assert_eq!(resp.items.len(), 1);
-        assert_eq!(resp.items[0].user_id, "u_001");
-        assert!(resp.items[0].is_success);
+        let _ = resp;
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -161,5 +186,21 @@ mod tests {
             received[0].url.path(),
             "/open-apis/mdm/v1/user_auth_data_relations/unbind"
         );
+    }
+
+    /// 缺少必填字段时应在发请求前快速失败。
+    #[tokio::test]
+    async fn test_unbind_rejects_missing_required_fields() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let err = UserAuthDataRelationUnbindRequestBuilder::new(config)
+            .root_dimension_type("gongsi")
+            .execute()
+            .await
+            .expect_err("缺少必填字段应返回错误");
+        assert!(err.to_string().contains("sub_dimension_types"));
     }
 }

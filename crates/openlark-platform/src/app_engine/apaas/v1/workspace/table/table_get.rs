@@ -1,7 +1,7 @@
 //! 获取数据表详细信息
 //!
 //! URL: GET:/open-apis/apaas/v1/workspaces/:workspace_id/tables/:table_name
-//! docPath:
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/apaas-v1/workspace-table/table_get>
 
 use openlark_core::{
     SDKResult,
@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +44,9 @@ impl TableGetRequestBuilder {
 
     /// 使用选项执行请求
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<TableGetResponse> {
+        validate_required!(self.workspace_id, "workspace_id 不能为空");
+        validate_required!(self.table_name, "table_name 不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/workspaces/{}/tables/{}",
             self.workspace_id, self.table_name
@@ -53,41 +57,50 @@ impl TableGetRequestBuilder {
     }
 }
 
-/// 字段信息
+/// 数据表列信息
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct FieldInfo {
-    /// 字段名称
-    #[serde(rename = "field_name")]
-    field_name: String,
-    /// 字段类型
-    #[serde(rename = "field_type")]
-    field_type: String,
-    /// 是否为主键
-    #[serde(rename = "is_primary_key")]
-    is_primary_key: bool,
-    /// 字段描述
+pub struct ColumnInfo {
+    /// 列名
+    #[serde(rename = "name")]
+    pub name: String,
+    /// 列描述
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
+    /// 数据库数据类型
+    #[serde(rename = "data_type")]
+    pub data_type: String,
+    /// 是否是主键
+    #[serde(rename = "is_primary_key")]
+    pub is_primary_key: bool,
+    /// 是否唯一
+    #[serde(rename = "is_unique")]
+    pub is_unique: bool,
+    /// 是否是自增
+    #[serde(rename = "is_auto_increment")]
+    pub is_auto_increment: bool,
+    /// 是否是数组类型
+    #[serde(rename = "is_array")]
+    pub is_array: bool,
+    /// 是否允许为空
+    #[serde(rename = "is_allow_null")]
+    pub is_allow_null: bool,
+    /// 默认值
+    #[serde(rename = "default_value", skip_serializing_if = "Option::is_none")]
+    pub default_value: Option<String>,
 }
 
 /// 数据表详情响应
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TableGetResponse {
-    /// 数据表名称
-    #[serde(rename = "table_name")]
-    pub table_name: String,
+    /// 数据表名，如 student
+    #[serde(rename = "name")]
+    pub name: String,
     /// 数据表描述
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// 字段列表
-    #[serde(rename = "fields")]
-    pub fields: Vec<FieldInfo>,
-    /// 创建时间
-    #[serde(rename = "created_time")]
-    pub created_time: i64,
-    /// 更新时间
-    #[serde(rename = "updated_time")]
-    pub updated_time: i64,
+    /// 数据表列
+    #[serde(rename = "columns")]
+    pub columns: Vec<ColumnInfo>,
 }
 
 impl ApiResponseTrait for TableGetResponse {
@@ -105,6 +118,7 @@ mod tests {
     use super::*;
 
     /// 端到端：GET .../apaas/v1/workspaces/{ws}/tables/{table_name} → 强类型 TableGetResponse。
+    /// 官方示例：data 含 name/description/columns（列含 10 个契约字段）。
     #[tokio::test]
     async fn test_get_table_returns_data_on_success() {
         use serde_json::json;
@@ -119,14 +133,31 @@ mod tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "table_name": "user",
-                    "description": "用户表",
-                    "fields": [
-                        {"field_name": "id", "field_type": "int", "is_primary_key": true, "description": "主键"},
-                        {"field_name": "name", "field_type": "string", "is_primary_key": false}
-                    ],
-                    "created_time": 1700000000,
-                    "updated_time": 1700000100
+                    "name": "student",
+                    "description": "student数据表",
+                    "columns": [
+                        {
+                            "name": "id",
+                            "description": "主键",
+                            "data_type": "int",
+                            "is_primary_key": true,
+                            "is_unique": true,
+                            "is_auto_increment": true,
+                            "is_array": false,
+                            "is_allow_null": false,
+                            "default_value": null
+                        },
+                        {
+                            "name": "name",
+                            "data_type": "varchar",
+                            "is_primary_key": false,
+                            "is_unique": false,
+                            "is_auto_increment": false,
+                            "is_array": false,
+                            "is_allow_null": true,
+                            "default_value": " "
+                        }
+                    ]
                 }
             })))
             .mount(&server)
@@ -143,11 +174,15 @@ mod tests {
             .execute()
             .await
             .expect("获取数据表详情应成功");
-        assert_eq!(resp.table_name, "user");
-        assert_eq!(resp.description.as_deref(), Some("用户表"));
-        assert_eq!(resp.fields.len(), 2);
-        assert!(resp.fields[0].is_primary_key);
-        assert_eq!(resp.created_time, 1700000000);
+        assert_eq!(resp.name, "student");
+        assert_eq!(resp.description.as_deref(), Some("student数据表"));
+        assert_eq!(resp.columns.len(), 2);
+        assert_eq!(resp.columns[0].name, "id");
+        assert!(resp.columns[0].is_primary_key);
+        assert!(resp.columns[0].is_auto_increment);
+        assert!(!resp.columns[1].is_primary_key);
+        assert!(resp.columns[1].is_allow_null);
+        assert_eq!(resp.columns[1].default_value.as_deref(), Some(" "));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
