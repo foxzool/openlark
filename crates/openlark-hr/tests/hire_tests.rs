@@ -130,7 +130,23 @@ mod builder_tests {
 
     smoke_builder!(
         test_job_combined_create_builder,
-        job::combined_create::CombinedCreateRequest::new(test_config("https://open.feishu.cn"))
+        job::combined_create::CombinedCreateRequest::new(
+            test_config("https://open.feishu.cn"),
+            job::combined_create::CombinedCreateRequestBody::new(
+                "后端研发",
+                job::combined_create::JobManager {
+                    recruiter_id: "ou_efk39117c300506837def50545420c6a".to_string(),
+                    hiring_manager_id_list: vec!["ou_808dad5b8fb21416b4ff242a5c616016".to_string()],
+                    ..job::combined_create::JobManager::default()
+                },
+                "6960663240925956554",
+                1,
+                "od-b2fafdce6fc5800b574ba5b0e2798b36",
+                false,
+                "6960663240925956551",
+                "102",
+            ),
+        )
     );
     smoke_builder!(
         test_job_get_builder,
@@ -138,7 +154,18 @@ mod builder_tests {
     );
     smoke_builder!(
         test_job_combined_update_builder,
-        job::combined_update::CombinedUpdateRequest::new(test_config("https://open.feishu.cn"))
+        job::combined_update::CombinedUpdateRequest::new(
+            test_config("https://open.feishu.cn"),
+            job::combined_update::CombinedUpdateRequestBody::new(
+                job::combined_create::JobManager {
+                    recruiter_id: "ou_efk39117c300506837def50545420c6a".to_string(),
+                    hiring_manager_id_list: vec!["ou_808dad5b8fb21416b4ff242a5c616016".to_string()],
+                    ..job::combined_create::JobManager::default()
+                },
+                false,
+                "6960663240925956551",
+            ),
+        )
     );
     smoke_builder!(
         test_job_list_builder,

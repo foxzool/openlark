@@ -71,24 +71,58 @@ impl ListByIdRequest {
 }
 
 /// `ListByIdRequestBody`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+///
+/// `id_list` 与 `short_code_list` 不允许同时使用（否则报错 1002725），
+/// 两个字段均不传时返回空；单次列表最多 100 条。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListByIdRequestBody {
-    #[serde(flatten)]
-    /// `fields` 字段。
-    pub fields: Value,
+    /// 招聘需求 ID 列表，详情参考获取招聘需求列表接口，单次最多 100 条。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id_list: Option<Vec<String>>,
+    /// 招聘需求编号列表，与 `id_list` 互斥，单次最多 100 条。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_code_list: Option<Vec<String>>,
 }
 
 impl ListByIdRequestBody {
     /// 创建新的请求实例。
-    pub fn new(fields: Value) -> Self {
-        Self { fields }
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 设置招聘需求 ID 列表（与 `short_code_list` 互斥）。
+    pub fn id_list(mut self, value: Vec<String>) -> Self {
+        self.id_list = Some(value);
+        self
+    }
+
+    /// 设置招聘需求编号列表（与 `id_list` 互斥）。
+    pub fn short_code_list(mut self, value: Vec<String>) -> Self {
+        self.short_code_list = Some(value);
+        self
     }
 
     fn validate(&self) -> SDKResult<()> {
-        if self.fields.is_null() {
+        if let Some(ids) = &self.id_list
+            && ids.len() > 100
+        {
             return Err(openlark_core::error::validation_error(
-                "获取招聘需求信息请求体不能为空",
-                "请传入有效的请求参数",
+                "id_list 超出上限",
+                "id_list 单次最多传入 100 条",
+            ));
+        }
+        if let Some(codes) = &self.short_code_list
+            && codes.len() > 100
+        {
+            return Err(openlark_core::error::validation_error(
+                "short_code_list 超出上限",
+                "short_code_list 单次最多传入 100 条",
+            ));
+        }
+        if self.id_list.is_some() && self.short_code_list.is_some() {
+            return Err(openlark_core::error::validation_error(
+                "id_list 与 short_code_list 互斥",
+                "id_list 与 short_code_list 不允许同时使用（错误码 1002725），请只传其一",
             ));
         }
 
@@ -134,7 +168,11 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/job_requirements/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "job_requirements": [ { "id": "6952811314255265796" } ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -146,15 +184,38 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListByIdRequest::new(
+        let resp = ListByIdRequest::new(
             config,
-            serde_json::from_value::<ListByIdRequestBody>(json!({})).expect("body 构造"),
+            ListByIdRequestBody::new().short_code_list(vec!["R00407".to_string()]),
         )
         .execute()
         .await
         .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        let wire_body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(wire_body, json!({ "short_code_list": ["R00407"] }));
+    }
+
+    /// `id_list` 与 `short_code_list` 同时传入时应快速失败。
+    #[tokio::test]
+    async fn test_list_by_id_rejects_mutually_exclusive_lists() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let result = ListByIdRequest::new(
+            config,
+            ListByIdRequestBody::new()
+                .id_list(vec!["6952811314255265796".to_string()])
+                .short_code_list(vec!["R00407".to_string()]),
+        )
+        .execute()
+        .await;
+        assert!(result.is_err());
     }
 }
