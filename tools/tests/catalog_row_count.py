@@ -7,7 +7,7 @@ asserts use these constants so Seams docstrings keep historical numbers.
 from __future__ import annotations
 
 # Data rows in root api_list_export.csv (header excluded).
-CURRENT_CATALOG_ROW_COUNT = 1754
+CURRENT_CATALOG_ROW_COUNT = 1750
 
 # Rows with meta.Version != old (crates.md / update_crates_md non-old total).
-CURRENT_CATALOG_NON_OLD_ROW_COUNT = 1642
+CURRENT_CATALOG_NON_OLD_ROW_COUNT = 1638

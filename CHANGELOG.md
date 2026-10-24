@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.21 work goes here. -->
 
+### Changed
+
+- **catalog：同步 2026-10-24 官方 API 清单（#726）**：
+  官方下架 4 条（minutes 订阅/取消订阅 ×2、vc 纪要订阅/取消订阅 ×2），
+  目录行数 1754 → 1750；5 个 API 仅 `detail` 文案变更（含
+  `auth/v3/tenant_access_token/internal` 被官方标记为历史版本）。
+  下架 API 的 Rust 实现按 #679 先例保留，仅移除目录行。
+
 ### Added
 
 - **auth：RFC 8628 设备码注册应用（#695，最小核心）**：
