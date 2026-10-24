@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::validation_error,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
@@ -13,9 +14,9 @@ use serde::{Deserialize, Serialize};
 /// 获取薪资组基本信息请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
-    /// 分页大小（可选，默认 50，最大 100）
+    /// 分页大小（可选，默认 100，最大 2000）
     page_size: Option<i32>,
-    /// 分页标记（可选）
+    /// 分页标记（可选，第一次请求不填，表示从头开始遍历）
     page_token: Option<String>,
     /// 配置信息
     config: Config,
@@ -31,7 +32,7 @@ impl ListRequest {
         }
     }
 
-    /// 设置分页大小（可选，默认 50，最大 100）
+    /// 设置分页大小（可选，默认 100，最大 2000）
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
@@ -56,11 +57,21 @@ impl ListRequest {
     ) -> SDKResult<ListResponse> {
         use crate::common::api_endpoints::PayrollApiV1;
 
-        // 1. 构建端点
+        // 1. 校验分页参数范围
+        if let Some(page_size) = self.page_size
+            && !(1..=2000).contains(&page_size)
+        {
+            return Err(validation_error(
+                "page_size 超出范围",
+                "分页大小取值范围为 1~2000",
+            ));
+        }
+
+        // 2. 构建端点
         let api_endpoint = PayrollApiV1::PaygroupList;
         let mut request = ApiRequest::<ListResponse>::get(api_endpoint.to_url());
 
-        // 2. 添加查询参数（可选）
+        // 3. 添加查询参数（可选）
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string());
         }
@@ -68,7 +79,7 @@ impl ListRequest {
             request = request.query("page_token", page_token);
         }
 
-        // 3. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -84,36 +95,35 @@ impl ListRequest {
 pub struct ListResponse {
     /// 薪资组列表
     pub items: Vec<Paygroup>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记，用于获取下一页数据
+    /// 分页标记，当 has_more 为 true 时返回，否则不返回
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
+    /// 是否还有更多项
+    pub has_more: bool,
 }
 
 /// 薪资组信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Paygroup {
     /// 薪资组 ID
-    pub paygroup_id: String,
-    /// 薪资组名称
-    pub name: String,
-    /// 薪资组描述
+    pub pay_group_id: String,
+    /// 薪资组名称（多语种）
+    pub name: PaygroupName,
+    /// 薪资组编码
+    pub code: String,
+    /// 薪资组状态：1-启用 0-禁用
+    pub status: i32,
+}
+
+/// 薪资组名称（多语种）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PaygroupName {
+    /// 中文名称
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 所属公司 ID
+    pub zh_cn: Option<String>,
+    /// 英文名称
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub company_id: Option<String>,
-    /// 生效时间（Unix 时间戳）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub effective_time: Option<i64>,
-    /// 失效时间（Unix 时间戳）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiration_time: Option<i64>,
-    /// 创建时间（Unix 时间戳）
-    pub created_at: i64,
-    /// 更新时间（Unix 时间戳）
-    pub updated_at: i64,
+    pub en_us: Option<String>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -136,8 +146,20 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{
+                "items": [{
+                    "pay_group_id": "6823630319749580301",
+                    "name": {"zh_cn": "CHN-审核", "en_us": "english name"},
+                    "code": "PAY_GROUP-3-8",
+                    "status": 1
+                }],
+                "page_token": "6862995757234914824",
+                "has_more": true
+            }"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/payroll/v1/paygroups"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -160,8 +182,13 @@ mod tests {
             .await
             .expect("查询薪资组应成功");
 
-        assert!(!data.has_more);
-        assert!(data.items.is_empty());
+        assert!(data.has_more);
+        assert_eq!(data.items.len(), 1);
+        assert_eq!(data.items[0].pay_group_id, "6823630319749580301");
+        assert_eq!(data.items[0].name.zh_cn, Some("CHN-审核".to_string()));
+        assert_eq!(data.items[0].name.en_us, Some("english name".to_string()));
+        assert_eq!(data.items[0].code, "PAY_GROUP-3-8");
+        assert_eq!(data.items[0].status, 1);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

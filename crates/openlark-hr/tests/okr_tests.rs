@@ -42,9 +42,10 @@ mod builder_tests {
         test_image_upload_builder,
         v1::image::upload::UploadRequest::new(
             test_config("https://open.feishu.cn"),
-            1,
+            "6974586812998174252".to_string(),
+            2,
             "progress.png".to_string(),
-            "YmFzZTY0".to_string(),
+            vec![1u8, 2, 3],
         )
     );
     smoke_builder!(
@@ -53,18 +54,15 @@ mod builder_tests {
             test_config("https://open.feishu.cn"),
             vec!["okr_1".to_string(), "okr_2".to_string()],
         )
+        .lang("zh_cn".to_string())
     );
     smoke_builder!(
         test_period_create_builder,
         v1::period::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
-            "2026Q1".to_string(),
-            1735689600,
-            1743465600,
+            "6969864184272078374".to_string(),
+            "2026-01".to_string(),
         )
-        .description("季度 OKR".to_string())
-        .target_setting_deadline(1736294400)
-        .review_time(1743379200)
     );
     smoke_builder!(
         test_period_list_builder,
@@ -89,16 +87,33 @@ mod builder_tests {
         test_progress_record_create_builder,
         v1::progress_record::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
-            "okr_1".to_string(),
-            "进展更新".to_string(),
-            60,
+            "周报系统".to_string(),
+            "https://www.zhoubao.com".to_string(),
+            "7041430377642082323".to_string(),
+            2,
+            v1::progress_record::create::ContentBlock {
+                blocks: vec![v1::progress_record::create::ContentBlockElement {
+                    block_element_type: Some("paragraph".to_string()),
+                    paragraph: Some(v1::progress_record::create::ContentParagraph {
+                        style: None,
+                        elements: vec![v1::progress_record::create::ContentParagraphElement {
+                            paragraph_element_type: Some("textRun".to_string()),
+                            text_run: Some(v1::progress_record::create::ContentTextRun {
+                                text: Some("进展更新".to_string()),
+                                style: None,
+                            }),
+                            docs_link: None,
+                            person: None,
+                        }],
+                    }),
+                    gallery: None,
+                }],
+            },
         )
-        .description("本周推进顺利".to_string())
-        .attachments(vec![v1::progress_record::create::ProgressAttachment {
-            file_type: "image".to_string(),
-            file_url: "https://example.com/1.png".to_string(),
-            file_name: "1.png".to_string(),
-        }])
+        .progress_rate(v1::progress_record::create::ProgressRateNew {
+            percent: Some(60.0),
+            status: Some(0),
+        })
     );
     smoke_builder!(
         test_progress_record_get_builder,
@@ -119,10 +134,12 @@ mod builder_tests {
         v1::progress_record::update::UpdateRequest::new(
             test_config("https://open.feishu.cn"),
             "progress_1".to_string(),
-            "新进展".to_string(),
-            70,
+            v1::progress_record::create::ContentBlock { blocks: Vec::new() },
         )
-        .description("更新说明".to_string())
+        .progress_rate(v1::progress_record::create::ProgressRateNew {
+            percent: Some(70.0),
+            status: None,
+        })
     );
     smoke_builder!(
         test_review_query_builder,
@@ -151,12 +168,11 @@ mod validation_tests {
     #[case("")]
     #[case("   ")]
     #[tokio::test]
-    async fn test_period_create_name_validation(#[case] name: &str) {
+    async fn test_period_create_name_validation(#[case] period_rule_id: &str) {
         let result = v1::period::create::CreateRequest::new(
             test_config("https://127.0.0.1:9"),
-            name.to_string(),
-            1735689600,
-            1743465600,
+            period_rule_id.to_string(),
+            "2026-01".to_string(),
         )
         .execute_with_options(auth_option())
         .await;
@@ -167,7 +183,7 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("周期名称不能为空")
+                .contains("周期规则 ID 不能为空")
         );
     }
 
@@ -175,12 +191,14 @@ mod validation_tests {
     #[case("")]
     #[case("   ")]
     #[tokio::test]
-    async fn test_progress_record_create_required_validation(#[case] okr_id: &str) {
+    async fn test_progress_record_create_required_validation(#[case] source_title: &str) {
         let result = v1::progress_record::create::CreateRequest::new(
             test_config("https://127.0.0.1:9"),
-            okr_id.to_string(),
-            "进展".to_string(),
-            20,
+            source_title.to_string(),
+            "https://www.zhoubao.com".to_string(),
+            "7041430377642082323".to_string(),
+            2,
+            v1::progress_record::create::ContentBlock { blocks: Vec::new() },
         )
         .execute_with_options(auth_option())
         .await;
@@ -191,7 +209,7 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("OKR ID 不能为空")
+                .contains("进展来源不能为空")
         );
     }
 
@@ -230,13 +248,13 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("OKR ID 列表不能为空且不能超过 50 个")
+                .contains("OKR ID 列表不能为空且不能超过 10 个")
         );
     }
 
     #[tokio::test]
     async fn test_okr_batch_get_too_many_validation() {
-        let ids = (0..51).map(|idx| format!("okr_{idx}")).collect::<Vec<_>>();
+        let ids = (0..11).map(|idx| format!("okr_{idx}")).collect::<Vec<_>>();
         let result =
             v1::okr::batch_get::BatchGetRequest::new(test_config("https://127.0.0.1:9"), ids)
                 .execute_with_options(auth_option())
@@ -248,7 +266,7 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("OKR ID 列表不能为空且不能超过 50 个")
+                .contains("OKR ID 列表不能为空且不能超过 10 个")
         );
     }
 }
@@ -264,29 +282,28 @@ mod http_tests {
             .and(path("/open-apis/okr/v1/periods"))
             .and(header("Authorization", "Bearer test_token"))
             .and(body_json(json!({
-                "name":"2026Q1",
-                "start_time":1735689600,
-                "end_time":1743465600
+                "period_rule_id":"6969864184272078374",
+                "start_month":"2026-01"
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"success",
-                "data":{"period_id":"period_1","name":"2026Q1","start_time":1735689600,"end_time":1743465600,"status":1,"created_at":1735689600}
+                "data":{"period_id":"period_1","start_month":"2026-01","end_month":"2026-01"}
             })))
             .mount(&mock_server)
             .await;
 
         let resp = v1::period::create::CreateRequest::new(
             test_config(&mock_server.uri()),
-            "2026Q1".to_string(),
-            1735689600,
-            1743465600,
+            "6969864184272078374".to_string(),
+            "2026-01".to_string(),
         )
         .execute_with_options(auth_option())
         .await
         .unwrap();
 
         assert_eq!(resp.period_id, "period_1");
+        assert_eq!(resp.end_month, "2026-01");
     }
 
     #[tokio::test]
@@ -295,24 +312,50 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/okr/v1/progress_records"))
             .and(body_json(json!({
-                "okr_id":"okr_1",
-                "content":"进展更新",
-                "progress_rate":60
+                "source_title":"周报系统",
+                "source_url":"https://www.zhoubao.com",
+                "target_id":"7041430377642082323",
+                "target_type":2,
+                "content":{"blocks":[{"type":"paragraph","paragraph":{"elements":[{"type":"textRun","textRun":{"text":"进展更新"}}]}}]},
+                "progress_rate":{"percent":60.0,"status":0}
             })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"success",
-                "data":{"progress_id":"p_1","okr_id":"okr_1","content":"进展更新","progress_rate":60,"created_at":1735689600}
+                "data":{"progress_id":"p_1","modify_time":"1735689600000","content":{"blocks":[]}}
             })))
             .mount(&mock_server)
             .await;
 
         let resp = v1::progress_record::create::CreateRequest::new(
             test_config(&mock_server.uri()),
-            "okr_1".to_string(),
-            "进展更新".to_string(),
-            60,
+            "周报系统".to_string(),
+            "https://www.zhoubao.com".to_string(),
+            "7041430377642082323".to_string(),
+            2,
+            v1::progress_record::create::ContentBlock {
+                blocks: vec![v1::progress_record::create::ContentBlockElement {
+                    block_element_type: Some("paragraph".to_string()),
+                    paragraph: Some(v1::progress_record::create::ContentParagraph {
+                        style: None,
+                        elements: vec![v1::progress_record::create::ContentParagraphElement {
+                            paragraph_element_type: Some("textRun".to_string()),
+                            text_run: Some(v1::progress_record::create::ContentTextRun {
+                                text: Some("进展更新".to_string()),
+                                style: None,
+                            }),
+                            docs_link: None,
+                            person: None,
+                        }],
+                    }),
+                    gallery: None,
+                }],
+            },
         )
+        .progress_rate(v1::progress_record::create::ProgressRateNew {
+            percent: Some(60.0),
+            status: Some(0),
+        })
         .execute_with_options(auth_option())
         .await
         .unwrap();
@@ -325,10 +368,11 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/okrs/batch_get"))
+            .and(query_param("okr_ids", "okr_1,okr_2"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"success",
-                "data":{"items":[{"okr_id":"okr_1","title":"目标1","content":"内容","period_id":"period_1","progress_rate":30,"status":1,"creator_id":"ou_1","created_at":1735689600,"updated_at":1735776000}]}
+                "data":{"okr_list":[{"id":"okr_1","name":"目标1","period_id":"period_1","objective_list":[]}]}
             })))
             .mount(&mock_server)
             .await;
@@ -341,7 +385,7 @@ mod http_tests {
         .await
         .unwrap();
 
-        assert_eq!(resp.items[0].okr_id, "okr_1");
+        assert_eq!(resp.okr_list[0].id, "okr_1");
     }
 
     #[tokio::test]
@@ -390,24 +434,21 @@ mod serialization_tests {
         test_image_upload_response_serialization,
         v1::image::upload::UploadResponse,
         v1::image::upload::UploadResponse {
-            image_id: "img_1".to_string(),
-            image_url: "https://example.com/img_1.png".to_string(),
+            file_token: "boxcnOj88GDkmWGm2zsTyCBqoLb".to_string(),
+            url: "https://example.com/img_1.png".to_string(),
         }
     );
     roundtrip_eq!(
         test_okr_batch_get_response_serialization,
         v1::okr::batch_get::BatchGetResponse,
         v1::okr::batch_get::BatchGetResponse {
-            items: vec![v1::okr::batch_get::OkrInfo {
-                okr_id: "okr_1".to_string(),
-                title: "目标1".to_string(),
-                content: "季度增长".to_string(),
-                period_id: "period_1".to_string(),
-                progress_rate: 50,
-                status: 1,
-                creator_id: "ou_1".to_string(),
-                created_at: 1735689600,
-                updated_at: 1735776000,
+            okr_list: vec![v1::okr::batch_get::OkrBatch {
+                id: "okr_1".to_string(),
+                permission: Some(1),
+                period_id: Some("period_1".to_string()),
+                name: Some("目标1".to_string()),
+                objective_list: Vec::new(),
+                confirm_status: Some(1),
             }],
         }
     );
@@ -416,11 +457,8 @@ mod serialization_tests {
         v1::period::create::CreateResponse,
         v1::period::create::CreateResponse {
             period_id: "period_1".to_string(),
-            name: "2026Q1".to_string(),
-            start_time: 1735689600,
-            end_time: 1743465600,
-            status: 1,
-            created_at: 1735689600,
+            start_month: "2026-01".to_string(),
+            end_month: "2026-01".to_string(),
         }
     );
     roundtrip_eq!(
@@ -472,10 +510,12 @@ mod serialization_tests {
         v1::progress_record::create::CreateResponse,
         v1::progress_record::create::CreateResponse {
             progress_id: "p_1".to_string(),
-            okr_id: "okr_1".to_string(),
-            content: "进展更新".to_string(),
-            progress_rate: 60,
-            created_at: 1735689600,
+            modify_time: Some("1735689600000".to_string()),
+            content: Some(v1::progress_record::create::ContentBlock { blocks: Vec::new() }),
+            progress_rate: Some(v1::progress_record::create::ProgressRateNew {
+                percent: Some(60.0),
+                status: Some(0),
+            }),
         }
     );
     roundtrip_eq!(
@@ -483,18 +523,12 @@ mod serialization_tests {
         v1::progress_record::get::GetResponse,
         v1::progress_record::get::GetResponse {
             progress_id: "p_1".to_string(),
-            okr_id: "okr_1".to_string(),
-            content: "进展更新".to_string(),
-            progress_rate: 60,
-            description: Some("说明".to_string()),
-            attachments: Some(vec![v1::progress_record::create::ProgressAttachment {
-                file_type: "image".to_string(),
-                file_url: "https://example.com/1.png".to_string(),
-                file_name: "1.png".to_string(),
-            }]),
-            creator_id: "ou_1".to_string(),
-            created_at: 1735689600,
-            updated_at: 1735776000,
+            modify_time: Some("1735689600000".to_string()),
+            content: Some(v1::progress_record::create::ContentBlock { blocks: Vec::new() }),
+            progress_rate: Some(v1::progress_record::create::ProgressRateNew {
+                percent: Some(60.0),
+                status: Some(0),
+            }),
         }
     );
     roundtrip_eq!(
@@ -507,10 +541,12 @@ mod serialization_tests {
         v1::progress_record::update::UpdateResponse,
         v1::progress_record::update::UpdateResponse {
             progress_id: "p_1".to_string(),
-            okr_id: "okr_1".to_string(),
-            content: "新进展".to_string(),
-            progress_rate: 70,
-            updated_at: 1735776000,
+            modify_time: Some("1735776000000".to_string()),
+            content: Some(v1::progress_record::create::ContentBlock { blocks: Vec::new() }),
+            progress_rate: Some(v1::progress_record::create::ProgressRateNew {
+                percent: Some(70.0),
+                status: Some(1),
+            }),
         }
     );
     roundtrip_eq!(
