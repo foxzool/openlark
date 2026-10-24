@@ -44,18 +44,8 @@ SUPPORT_APP_TYPES_EXPECTATIONS = {
         "meta.Name": "get",
         "supportAppTypes": SUPPORT_APP_TYPES_ISV_CUSTOM,
     },
-    SUBSCRIBE_NOTE_ID: {
-        "name": "订阅纪要变更事件",
-        "url": "POST:/open-apis/vc/v1/notes/subscription",
-        "meta.Name": "subscription",
-        "supportAppTypes": SUPPORT_APP_TYPES_ISV_CUSTOM,
-    },
-    UNSUBSCRIBE_NOTE_ID: {
-        "name": "取消订阅纪要变更事件",
-        "url": "POST:/open-apis/vc/v1/notes/unsubscription",
-        "meta.Name": "unsubscription",
-        "supportAppTypes": SUPPORT_APP_TYPES_ISV_CUSTOM,
-    },
+    # SUBSCRIBE_NOTE_ID / UNSUBSCRIBE_NOTE_ID 曾在本次 sync 获得 isv 支持，
+    # 2026-10-24 官方下架（见 test_catalog_sync_2026_10_24.py），不再断言。
 }
 
 

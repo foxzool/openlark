@@ -27,10 +27,10 @@ class UpdateCratesMdTests(unittest.TestCase):
 
         # meta.Version=old 不计入 non-old；spark 妙搭域 31 条；pay 3 条均为 old。
         self.assertEqual(stats["spark"], (31, 31, 0))
-        self.assertEqual(stats["vc"], (68, 68, 0))
+        self.assertEqual(stats["vc"], (66, 66, 0))
         self.assertEqual(stats["pay"], (0, 3, 3))
         self.assertEqual(stats["approval"], (47, 70, 23))
-        self.assertEqual(stats["minutes"], (10, 10, 0))
+        self.assertEqual(stats["minutes"], (8, 8, 0))
         self.assertEqual(
             sum(non_old for non_old, _, _ in stats.values()),
             CURRENT_CATALOG_NON_OLD_ROW_COUNT,
