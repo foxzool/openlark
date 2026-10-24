@@ -7,6 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -73,24 +74,20 @@ impl SearchRequest {
 /// `SearchRequestBody`。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SearchRequestBody {
-    #[serde(flatten)]
-    /// `fields` 字段。
-    pub fields: Value,
+    /// 招聘渠道 ID（必填）：官网 ID 可通过获取招聘官网列表接口获取。
+    pub job_channel_id: String,
 }
 
 impl SearchRequestBody {
-    /// 创建新的请求实例。
-    pub fn new(fields: Value) -> Self {
-        Self { fields }
+    /// 创建新的请求实例（`job_channel_id` 为官方必填字段）。
+    pub fn new(job_channel_id: impl Into<String>) -> Self {
+        Self {
+            job_channel_id: job_channel_id.into(),
+        }
     }
 
     fn validate(&self) -> SDKResult<()> {
-        if self.fields.is_null() {
-            return Err(openlark_core::error::validation_error(
-                "获取职位广告发布记录请求体不能为空",
-                "请传入有效的请求参数",
-            ));
-        }
+        validate_required!(self.job_channel_id, "job_channel_id 不能为空");
 
         Ok(())
     }
@@ -134,7 +131,8 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/job_publish_records/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": { "items": [ { "id": "1213213123123", "title": "Test" } ], "has_more": false }
             })))
             .mount(&server)
             .await;
@@ -146,15 +144,33 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(
-            config,
-            serde_json::from_value::<SearchRequestBody>(json!({})).expect("body 构造"),
-        )
-        .execute()
-        .await
-        .expect("请求应成功");
+        let resp = SearchRequest::new(config, SearchRequestBody::new("7047318856652261676"))
+            .execute()
+            .await
+            .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        let wire_body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(
+            wire_body,
+            json!({ "job_channel_id": "7047318856652261676" })
+        );
+    }
+
+    /// `job_channel_id` 缺失时应快速失败，不发起请求。
+    #[tokio::test]
+    async fn test_search_rejects_blank_job_channel_id() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let result = SearchRequest::new(config, SearchRequestBody::new("  "))
+            .execute()
+            .await;
+        assert!(result.is_err());
     }
 }
