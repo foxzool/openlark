@@ -10,9 +10,11 @@ pub use batch_delete::{
 };
 pub use create::{
     CreateWhiteboardNodeBodyV1, CreateWhiteboardNodeRequestV1, CreateWhiteboardNodeResponseV1,
-    NodePosition,
+    WhiteboardNodeV1,
 };
 pub use create_plantuml::{
     CreatePlantumlNodeBodyV1, CreatePlantumlNodeRequestV1, CreatePlantumlNodeResponseV1,
 };
-pub use list::{ListWhiteboardNodeRequestV1, ListWhiteboardNodeResponseV1, WhiteboardNode};
+pub use list::{
+    ListWhiteboardNodeRequestV1, ListWhiteboardNodeResponseV1, NodePosition, WhiteboardNode,
+};

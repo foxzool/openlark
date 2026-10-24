@@ -6,7 +6,8 @@ pub mod remove;
 // create 模块显式导出
 
 pub use create::{
-    CreateInstanceCommentBodyV4, CreateInstanceCommentRequestV4, CreateInstanceCommentResponseV4,
+    CommentAtInfoV4, CreateInstanceCommentBodyV4, CreateInstanceCommentRequestV4,
+    CreateInstanceCommentResponseV4,
 };
 // delete 模块显式导出
 pub use delete::{DeleteInstanceCommentRequestV4, DeleteInstanceCommentResponseV4};
