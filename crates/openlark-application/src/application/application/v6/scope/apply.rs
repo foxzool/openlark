@@ -1,4 +1,8 @@
 //! 向管理员申请授权
+//!
+//! 官方文档无请求体（cURL 示例无 `-d`，Go SDK 亦无参调用），授权范围由
+//! 服务端按应用未授权权限自行推导，本接口为无 body 的 POST。
+//!
 //! docPath: <https://open.feishu.cn/document/application-v6/scope/apply>
 
 use openlark_core::{
@@ -15,16 +19,6 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct ApplyScopeRequest {
     config: Arc<Config>,
-    body: ApplyScopeBody,
-}
-
-/// 向管理员申请授权的请求体。
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ApplyScopeBody {
-    /// 权限范围类型。
-    pub scope_type: String,
-    /// 原因说明。
-    pub reason: String,
 }
 
 /// 向管理员申请授权的响应。
@@ -48,10 +42,7 @@ impl ApiResponseTrait for ApplyScopeResponse {
 impl ApplyScopeRequest {
     /// 创建请求实例。
     pub fn new(config: Arc<Config>) -> Self {
-        Self {
-            config,
-            body: ApplyScopeBody::default(),
-        }
+        Self { config }
     }
 
     /// 执行向管理员申请授权请求。
@@ -65,8 +56,7 @@ impl ApplyScopeRequest {
         option: RequestOption,
     ) -> SDKResult<ApplyScopeResponse> {
         let path = "/open-apis/application/v6/scopes/apply";
-        let body = serde_json::to_value(&self.body)?;
-        let req: ApiRequest<ApplyScopeResponse> = ApiRequest::post(path).body(body);
+        let req: ApiRequest<ApplyScopeResponse> = ApiRequest::post(path);
         Transport::request_typed(req, &self.config, Some(option), "向管理员申请授权").await
     }
 }
@@ -76,7 +66,7 @@ impl ApplyScopeRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../scopes/apply → 强类型 ApplyScopeResponse 解析（双层 data 信封）。
+    /// 端到端：POST .../scopes/apply（无请求体）→ 响应解析（官方 data 无结构）。
     #[tokio::test]
     async fn test_apply_scope_returns_data_on_success() {
         use serde_json::json;
@@ -87,10 +77,10 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/application/v6/scopes/apply"))
+            .and(wiremock::matchers::body_bytes(b"".to_vec()))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
-                "msg": "success",
-                "data": { "data": { "apply_id": "apply_001", "status": "pending" } }
+                "msg": "success"
             })))
             .mount(&server)
             .await;
@@ -108,7 +98,8 @@ mod tests {
             .execute()
             .await
             .expect("向管理员申请授权应成功");
-        assert_eq!(resp.data.unwrap()["apply_id"], "apply_001");
+        // 官方 data 无结构，成功即可（无 data 字段走 empty_success）
+        assert!(resp.data.is_none());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -116,5 +107,7 @@ mod tests {
             received[0].url.path(),
             "/open-apis/application/v6/scopes/apply"
         );
+        // 官方无请求体：不得发送任何 body
+        assert!(received[0].body.is_empty());
     }
 }

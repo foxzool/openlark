@@ -4,6 +4,7 @@
 use crate::common::api_utils::serialize_params;
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -19,12 +20,18 @@ pub struct PatchMailGroupRequest {
 /// Patch Mail Group Body。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PatchMailGroupBody {
-    /// 描述。
+    /// 邮件组地址。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// 邮件组名称。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// 邮件组描述。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// owner 字段。
+    /// 谁可发送邮件到此邮件组（ANYONE/ALL_INTERNAL_USERS/ALL_GROUP_MEMBERS/CUSTOM_MEMBERS）。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
+    pub who_can_send_mail: Option<String>,
 }
 
 /// Patch Mail Group Response。
@@ -44,15 +51,27 @@ impl PatchMailGroupRequest {
         }
     }
 
+    /// email。
+    pub fn email(mut self, email: impl Into<String>) -> Self {
+        self.body.email = Some(email.into());
+        self
+    }
+
+    /// name。
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.body.name = Some(name.into());
+        self
+    }
+
     /// description。
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.body.description = Some(description.into());
         self
     }
 
-    /// owner。
-    pub fn owner(mut self, owner: impl Into<String>) -> Self {
-        self.body.owner = Some(owner.into());
+    /// who_can_send_mail（ANYONE/ALL_INTERNAL_USERS/ALL_GROUP_MEMBERS/CUSTOM_MEMBERS）。
+    pub fn who_can_send_mail(mut self, who_can_send_mail: impl Into<String>) -> Self {
+        self.body.who_can_send_mail = Some(who_can_send_mail.into());
         self
     }
 
@@ -66,6 +85,7 @@ impl PatchMailGroupRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<PatchMailGroupResponse> {
+        validate_required!(self.mailgroup_id, "mailgroup_id 不能为空");
         let path = format!("/open-apis/mail/v1/mailgroups/{}", self.mailgroup_id);
         let req: ApiRequest<PatchMailGroupResponse> =
             ApiRequest::patch(&path).body(serialize_params(&self.body, "请求")?);
@@ -114,6 +134,10 @@ mod tests {
         );
 
         let resp = PatchMailGroupRequest::new(config, "group_001")
+            .email("new_group@xxx.xx")
+            .name("new name")
+            .description("new description")
+            .who_can_send_mail("ANYONE")
             .execute()
             .await
             .expect("修改邮件组部分信息应成功");
@@ -124,6 +148,17 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/mail/v1/mailgroups/group_001"
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(
+            body,
+            json!({
+                "email": "new_group@xxx.xx",
+                "name": "new name",
+                "description": "new description",
+                "who_can_send_mail": "ANYONE"
+            })
         );
     }
 }

@@ -70,12 +70,15 @@ impl Ticket {
     }
 
     /// 获取工单图片请求。
+    ///
+    /// 官方参数为 `ticket_id` + `msg_id`（均必填）；图片 index 可在返回的
+    /// 请求上继续用 `.index(n)` 指定（post 消息必填，img 消息无需传）。
     pub fn ticket_image(
         &self,
         ticket_id: impl Into<String>,
-        image_key: impl Into<String>,
+        msg_id: impl Into<String>,
     ) -> ticket_image::GetTicketImageRequest {
-        ticket_image::GetTicketImageRequest::new(self.config.clone(), ticket_id, image_key)
+        ticket_image::GetTicketImageRequest::new(self.config.clone(), ticket_id, msg_id)
     }
 
     /// 获取工单自定义字段请求。

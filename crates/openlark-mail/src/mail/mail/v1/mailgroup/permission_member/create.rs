@@ -1,5 +1,5 @@
 //! 创建邮件组权限成员
-//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup/create>
+//! docPath: <https://open.feishu.cn/document/server-docs/mail-v1/mail-group/mailgroup-permission_member/create>
 
 use crate::common::api_utils::serialize_params;
 use openlark_core::{
@@ -8,6 +8,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -23,10 +24,17 @@ pub struct CreateMailGroupPermissionMemberRequest {
 /// Create Mail Group Permission Member Body。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateMailGroupPermissionMemberBody {
-    /// 成员 ID。
-    pub member_id: String,
-    /// member_type 字段。
+    /// 租户内用户的唯一标识（当成员类型是 USER 时有值）。
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 租户内部门的唯一标识（当成员类型是 DEPARTMENT 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 成员邮箱地址（当成员类型是 MAIL_GROUP/PUBLIC_MAILBOX 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// 成员类型（USER/DEPARTMENT/MAIL_GROUP/PUBLIC_MAILBOX）。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub member_type: Option<String>,
 }
 
@@ -60,9 +68,27 @@ impl CreateMailGroupPermissionMemberRequest {
         }
     }
 
-    /// member id。
-    pub fn member_id(mut self, member_id: impl Into<String>) -> Self {
-        self.body.member_id = member_id.into();
+    /// user id。
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.body.user_id = Some(user_id.into());
+        self
+    }
+
+    /// department id。
+    pub fn department_id(mut self, department_id: impl Into<String>) -> Self {
+        self.body.department_id = Some(department_id.into());
+        self
+    }
+
+    /// email。
+    pub fn email(mut self, email: impl Into<String>) -> Self {
+        self.body.email = Some(email.into());
+        self
+    }
+
+    /// member type（USER/DEPARTMENT/MAIL_GROUP/PUBLIC_MAILBOX）。
+    pub fn member_type(mut self, member_type: impl Into<String>) -> Self {
+        self.body.member_type = Some(member_type.into());
         self
     }
 
@@ -76,6 +102,7 @@ impl CreateMailGroupPermissionMemberRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<CreateMailGroupPermissionMemberResponse> {
+        validate_required!(self.mailgroup_id, "mailgroup_id 不能为空");
         let path = format!(
             "/open-apis/mail/v1/mailgroups/{}/permission_members",
             self.mailgroup_id
@@ -101,13 +128,17 @@ mod tests {
                 .app_secret("test_secret")
                 .build(),
         );
-        let _config = openlark_core::config::Config::builder()
-            .app_id("test_app")
-            .app_secret("test_secret")
-            .build();
         let request =
             CreateMailGroupPermissionMemberRequest::new(arc_config.clone(), "test".to_string())
-                .member_id("test".to_string());
-        let _ = request;
+                .user_id("ou_123")
+                .member_type("USER");
+        assert_eq!(request.body.user_id.as_deref(), Some("ou_123"));
+        assert_eq!(request.body.member_type.as_deref(), Some("USER"));
+        // wire format：member_type 序列化为官方字段名 type
+        let value = serde_json::to_value(&request.body).expect("序列化 body");
+        assert_eq!(
+            value,
+            serde_json::json!({ "user_id": "ou_123", "type": "USER" })
+        );
     }
 }

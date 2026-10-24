@@ -23,8 +23,8 @@ pub struct BatchDeleteMailGroupPermissionMemberRequest {
 /// Batch Delete Mail Group Permission Member Body。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BatchDeleteMailGroupPermissionMemberBody {
-    /// permission_member_ids 字段。
-    pub permission_member_ids: Vec<String>,
+    /// 本次调用删除的权限成员 ID 列表（1～200 个）。
+    pub permission_member_id_list: Vec<String>,
 }
 
 /// Batch Delete Mail Group Permission Member Response。
@@ -50,9 +50,9 @@ impl BatchDeleteMailGroupPermissionMemberRequest {
         }
     }
 
-    /// permission member ids。
-    pub fn permission_member_ids(mut self, ids: Vec<String>) -> Self {
-        self.body.permission_member_ids = ids;
+    /// permission member id list。
+    pub fn permission_member_id_list(mut self, ids: Vec<String>) -> Self {
+        self.body.permission_member_id_list = ids;
         self
     }
 
@@ -68,9 +68,9 @@ impl BatchDeleteMailGroupPermissionMemberRequest {
     ) -> SDKResult<BatchDeleteMailGroupPermissionMemberResponse> {
         validate_required!(self.mailgroup_id.trim(), "mailgroup_id 不能为空");
         validate_required_list!(
-            self.body.permission_member_ids,
-            1000,
-            "permission_member_ids 不能为空且不能超过 1000 个"
+            self.body.permission_member_id_list,
+            200,
+            "permission_member_id_list 不能为空且不能超过 200 个"
         );
 
         let path = format!(
@@ -120,7 +120,7 @@ mod tests {
         );
 
         let resp = BatchDeleteMailGroupPermissionMemberRequest::new(config, "group_001")
-            .permission_member_ids(vec!["pm1".to_string()])
+            .permission_member_id_list(vec!["pm1".to_string()])
             .execute()
             .await
             .expect("批量删除邮件组权限成员应成功");
@@ -132,5 +132,8 @@ mod tests {
             received[0].url.path(),
             "/open-apis/mail/v1/mailgroups/group_001/permission_members/batch_delete"
         );
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(body, json!({ "permission_member_id_list": ["pm1"] }));
     }
 }
