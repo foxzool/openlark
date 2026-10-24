@@ -3,6 +3,45 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// 任务成员（member）
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct TaskMember {
+    /// 成员 ID
+    #[serde(default)]
+    pub id: String,
+    /// 成员类型（如 "user"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    /// 成员角色（"assignee" 执行者 / "follower" 关注者）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// 成员名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+/// 任务时间点（start/due 对象）
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct TaskTimePoint {
+    /// 时间戳（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    /// 是否全天
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_all_day: Option<bool>,
+}
+
+/// 任务所在清单信息（task_in_tasklist_info）
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct TaskInTasklistInfo {
+    /// 任务清单 GUID
+    #[serde(default)]
+    pub tasklist_guid: String,
+    /// 分组 GUID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section_guid: Option<String>,
+}
+
 /// 创建任务请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct CreateTaskBody {

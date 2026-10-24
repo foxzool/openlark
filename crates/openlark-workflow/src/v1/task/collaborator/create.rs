@@ -2,11 +2,11 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v1/taskcollaborator/create>
 
+use crate::v1::task::models::TaskCollaboratorV1;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -15,16 +15,21 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Default)]
 /// 创建任务协作者请求体。
 pub struct CreateTaskCollaboratorBodyV1 {
-    /// 协作者用户 ID
-    pub collaborator_id: String,
+    /// 任务执行者 ID（官方已废弃，为向前兼容保留，推荐使用 id_list）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+
+    /// 执行者用户 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id_list: Option<Vec<String>>,
 }
 
 /// 创建任务协作者响应（v1）
 #[derive(Debug, Clone, Deserialize)]
 /// 创建任务协作者响应。
 pub struct CreateTaskCollaboratorResponseV1 {
-    /// 协作者用户 ID
-    pub collaborator_id: String,
+    /// 创建成功后的任务执行者
+    pub collaborator: TaskCollaboratorV1,
 }
 
 /// 创建任务协作者请求（v1）
@@ -46,9 +51,15 @@ impl CreateTaskCollaboratorRequestV1 {
         }
     }
 
-    /// 设置协作者用户 ID
-    pub fn collaborator_id(mut self, collaborator_id: impl Into<String>) -> Self {
-        self.body.collaborator_id = collaborator_id.into();
+    /// 设置任务执行者 ID（官方已废弃，推荐使用 id_list）
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.body.id = Some(id.into());
+        self
+    }
+
+    /// 设置执行者用户 ID 列表
+    pub fn id_list(mut self, id_list: Vec<impl Into<String>>) -> Self {
+        self.body.id_list = Some(id_list.into_iter().map(|v| v.into()).collect());
         self
     }
 
@@ -63,7 +74,13 @@ impl CreateTaskCollaboratorRequestV1 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateTaskCollaboratorResponseV1> {
-        validate_required!(self.body.collaborator_id.trim(), "协作者用户 ID 不能为空");
+        let id_blank = self.body.id.as_deref().is_none_or(|v| v.trim().is_empty());
+        let id_list_empty = self.body.id_list.as_ref().is_none_or(|l| l.is_empty());
+        if id_blank && id_list_empty {
+            return Err(openlark_core::error::CoreError::validation_msg(
+                "id 与 id_list 至少传一个",
+            ));
+        }
 
         let api_endpoint =
             crate::common::api_endpoints::TaskApiV1::TaskCollaboratorCreate(self.task_id.clone());
@@ -109,10 +126,28 @@ mod tests {
         );
 
         let request = CreateTaskCollaboratorRequestV1::new(config.clone(), "task_123")
-            .collaborator_id("user_456");
+            .id("user_456")
+            .id_list(vec!["user_789"]);
 
-        assert_eq!(request.body.collaborator_id, "user_456");
+        assert_eq!(request.body.id, Some("user_456".to_string()));
+        assert_eq!(request.body.id_list, Some(vec!["user_789".to_string()]));
         assert_eq!(request.task_id, "task_123");
+    }
+
+    #[test]
+    fn test_create_task_collaborator_v1_body_serialization() {
+        let body = CreateTaskCollaboratorBodyV1 {
+            id: Some("ou_99e1a581b36ecc4862cbfbce473f1234".to_string()),
+            id_list: Some(vec!["ou_99e1a581b36ecc4862cbfbce473f3123".to_string()]),
+        };
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "id": "ou_99e1a581b36ecc4862cbfbce473f1234",
+                "id_list": ["ou_99e1a581b36ecc4862cbfbce473f3123"]
+            })
+        );
     }
 
     #[test]

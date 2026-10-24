@@ -13,15 +13,35 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// 要更新的自定义字段选项数据（input_option）
+#[derive(Debug, Clone, Serialize, Default, PartialEq)]
+pub struct InputCustomFieldOption {
+    /// 选项名称（最长 50 字符）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// 颜色索引值（0~54）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color_index: Option<i32>,
+    /// 将当前选项放在某选项之前（传 option_guid）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_before: Option<String>,
+    /// 将当前选项放在某选项之后（传 option_guid）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_after: Option<String>,
+    /// 是否隐藏
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_hidden: Option<bool>,
+}
+
 /// 更新自定义字段选项请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct UpdateCustomFieldOptionBody {
-    /// 选项名称
+    /// 要更新的 option 数据
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 选项颜色
+    pub option: Option<InputCustomFieldOption>,
+    /// 要更新的字段名（支持 name/color_index/is_hidden/insert_before/insert_after，1~20 个）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<String>,
+    pub update_fields: Option<Vec<String>>,
 }
 
 /// 更新自定义字段选项响应
@@ -60,14 +80,57 @@ impl UpdateCustomFieldOptionRequest {
     }
 
     /// 设置选项名称
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.body.name = Some(name.into());
+    pub fn name(self, name: impl Into<String>) -> Self {
+        self.with_option_field("name", |option| option.name = Some(name.into()))
+    }
+
+    /// 设置颜色索引值（0~54）
+    pub fn color_index(self, color_index: i32) -> Self {
+        self.with_option_field("color_index", |option| {
+            option.color_index = Some(color_index)
+        })
+    }
+
+    /// 将当前选项放在某选项之前（传 option_guid）
+    pub fn insert_before(self, insert_before: impl Into<String>) -> Self {
+        self.with_option_field("insert_before", |option| {
+            option.insert_before = Some(insert_before.into())
+        })
+    }
+
+    /// 将当前选项放在某选项之后（传 option_guid）
+    pub fn insert_after(self, insert_after: impl Into<String>) -> Self {
+        self.with_option_field("insert_after", |option| {
+            option.insert_after = Some(insert_after.into())
+        })
+    }
+
+    /// 设置是否隐藏
+    pub fn is_hidden(self, is_hidden: bool) -> Self {
+        self.with_option_field("is_hidden", |option| option.is_hidden = Some(is_hidden))
+    }
+
+    /// 设置要更新的字段名（覆盖 builder 自动记录的值）
+    pub fn update_fields(mut self, update_fields: Vec<String>) -> Self {
+        self.body.update_fields = Some(update_fields);
         self
     }
 
-    /// 设置选项颜色
-    pub fn color(mut self, color: impl Into<String>) -> Self {
-        self.body.color = Some(color.into());
+    /// 写入嵌套 option 字段并自动记录到 update_fields。
+    fn with_option_field(
+        mut self,
+        field_name: &str,
+        apply: impl FnOnce(&mut InputCustomFieldOption),
+    ) -> Self {
+        let option = self
+            .body
+            .option
+            .get_or_insert_with(InputCustomFieldOption::default);
+        apply(option);
+        let fields = self.body.update_fields.get_or_insert_with(Vec::new);
+        if !fields.iter().any(|f| f == field_name) {
+            fields.push(field_name.to_string());
+        }
         self
     }
 
@@ -129,13 +192,54 @@ mod tests {
         );
 
         let request = UpdateCustomFieldOptionRequest::new(config, "custom_field_123", "option_456")
-            .name("中优先级")
-            .color("#00FF00");
+            .name("高优")
+            .color_index(10);
 
         assert_eq!(request.custom_field_guid, "custom_field_123");
         assert_eq!(request.option_guid, "option_456");
-        assert_eq!(request.body.name, Some("中优先级".to_string()));
-        assert_eq!(request.body.color, Some("#00FF00".to_string()));
+        assert_eq!(
+            request.body.option.as_ref().and_then(|o| o.name.as_deref()),
+            Some("高优")
+        );
+        assert_eq!(
+            request.body.update_fields.as_deref(),
+            Some(["name".to_string(), "color_index".to_string()].as_slice())
+        );
+    }
+
+    #[test]
+    fn test_update_custom_field_option_body_official_shape() {
+        // 官方请求示例：{"option": {...}, "update_fields": ["name"]}
+        let body = UpdateCustomFieldOptionBody {
+            option: Some(InputCustomFieldOption {
+                name: Some("高优".to_string()),
+                color_index: Some(10),
+                insert_before: None,
+                insert_after: None,
+                is_hidden: Some(false),
+            }),
+            update_fields: Some(vec!["name".to_string()]),
+        };
+        let json = serde_json::to_value(&body).expect("序列化请求体失败");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "option": {
+                    "name": "高优",
+                    "color_index": 10,
+                    "is_hidden": false
+                },
+                "update_fields": ["name"]
+            })
+        );
+    }
+
+    #[test]
+    fn test_update_custom_field_option_empty_body_skips_fields() {
+        // 未设置任何字段时不序列化 option/update_fields
+        let body = UpdateCustomFieldOptionBody::default();
+        let json = serde_json::to_value(&body).expect("序列化请求体失败");
+        assert_eq!(json, serde_json::json!({}));
     }
 
     #[test]

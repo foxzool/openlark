@@ -7,42 +7,24 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 
-/// 完成任务请求体（v1）
-#[derive(Debug, Clone, Serialize, Default)]
-/// 完成任务请求体。
-pub struct CompleteTaskBodyV1 {
-    /// 完成时间（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 完成时间。
-    pub completed_at: Option<String>,
-}
-
 /// 完成任务响应（v1）
+///
+/// 官方文档响应示例中 `data` 为空对象。
 #[derive(Debug, Clone, Deserialize)]
 /// 完成任务响应。
-pub struct CompleteTaskResponseV1 {
-    /// 任务 ID
-    pub id: String,
-    /// 任务标题
-    pub summary: String,
-    /// 任务是否完成
-    pub is_completed: bool,
-    /// 完成时间
-    #[serde(default)]
-    /// 完成时间。
-    pub completed_at: Option<String>,
-}
+pub struct CompleteTaskResponseV1 {}
 
 /// 完成任务请求（v1）
+///
+/// 官方接口不接受请求体。
 #[derive(Debug, Clone)]
 /// 完成任务请求构建器。
 pub struct CompleteTaskRequestV1 {
     config: Arc<Config>,
     task_id: String,
-    body: CompleteTaskBodyV1,
 }
 
 impl CompleteTaskRequestV1 {
@@ -51,14 +33,7 @@ impl CompleteTaskRequestV1 {
         Self {
             config,
             task_id: task_id.into(),
-            body: CompleteTaskBodyV1::default(),
         }
-    }
-
-    /// 设置完成时间
-    pub fn completed_at(mut self, completed_at: impl Into<String>) -> Self {
-        self.body.completed_at = Some(completed_at.into());
-        self
     }
 
     /// 执行请求
@@ -73,13 +48,7 @@ impl CompleteTaskRequestV1 {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CompleteTaskResponseV1> {
         let api_endpoint = crate::common::api_endpoints::TaskApiV1::TaskComplete(self.task_id);
-        let mut request = ApiRequest::<CompleteTaskResponseV1>::post(api_endpoint.to_url());
-
-        let body_json = serde_json::to_value(&self.body).map_err(|e| {
-            openlark_core::error::validation_error("序列化请求体失败", e.to_string().as_str())
-        })?;
-
-        request = request.body(body_json);
+        let request = ApiRequest::<CompleteTaskResponseV1>::post(api_endpoint.to_url());
 
         openlark_core::http::Transport::request_typed(
             request,
@@ -113,14 +82,9 @@ mod tests {
                 .build(),
         );
 
-        let request =
-            CompleteTaskRequestV1::new(config, "test_task_id").completed_at("2024-01-15T10:00:00Z");
+        let request = CompleteTaskRequestV1::new(config, "test_task_id");
 
         assert_eq!(request.task_id, "test_task_id");
-        assert_eq!(
-            request.body.completed_at,
-            Some("2024-01-15T10:00:00Z".to_string())
-        );
     }
 
     #[test]

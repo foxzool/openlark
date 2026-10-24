@@ -17,6 +17,10 @@ use std::sync::Arc;
 pub struct UpdateTaskCommentBodyV1 {
     /// 评论内容
     pub content: String,
+
+    /// 富文本评论内容（优先使用；与 content 同时存在时只使用富文本评论内容）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rich_content: Option<String>,
 }
 
 /// 更新任务评论响应（v1）
@@ -57,6 +61,12 @@ impl UpdateTaskCommentRequestV1 {
     /// 设置评论内容
     pub fn content(mut self, content: impl Into<String>) -> Self {
         self.body.content = content.into();
+        self
+    }
+
+    /// 设置富文本评论内容（优先使用；与 content 同时存在时只使用富文本评论内容）
+    pub fn rich_content(mut self, rich_content: impl Into<String>) -> Self {
+        self.body.rich_content = Some(rich_content.into());
         self
     }
 
@@ -118,9 +128,14 @@ mod tests {
         );
 
         let request = UpdateTaskCommentRequestV1::new(config.clone(), "task_123", "comment_456")
-            .content("更新后的评论内容");
+            .content("更新后的评论内容")
+            .rich_content("更新后的富文本评论<at id=7058204817822318612></at>");
 
         assert_eq!(request.body.content, "更新后的评论内容");
+        assert_eq!(
+            request.body.rich_content,
+            Some("更新后的富文本评论<at id=7058204817822318612></at>".to_string())
+        );
     }
 
     #[test]

@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -14,16 +15,17 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Default)]
 /// 批量删除任务关注者请求体。
 pub struct BatchDeleteTaskFollowerBodyV1 {
-    /// 需要删除的关注者用户 ID 列表
-    pub follower_ids: Vec<String>,
+    /// 要删除的关注人 ID 列表
+    pub id_list: Vec<String>,
 }
 
 /// 批量删除任务关注者响应（v1）
 #[derive(Debug, Clone, Deserialize)]
 /// 批量删除任务关注者响应。
 pub struct BatchDeleteTaskFollowerResponseV1 {
-    /// 删除失败的用户 ID 列表
-    pub failed_follower_ids: Option<Vec<String>>,
+    /// 实际删除的关注人用户 ID 列表
+    #[serde(default)]
+    pub followers: Vec<String>,
 }
 
 /// 批量删除任务关注者请求（v1）
@@ -45,9 +47,9 @@ impl BatchDeleteTaskFollowerRequestV1 {
         }
     }
 
-    /// 设置需要删除的关注者用户 ID 列表
-    pub fn follower_ids(mut self, follower_ids: Vec<impl Into<String>>) -> Self {
-        self.body.follower_ids = follower_ids.into_iter().map(|v| v.into()).collect();
+    /// 设置要删除的关注人 ID 列表
+    pub fn id_list(mut self, id_list: Vec<impl Into<String>>) -> Self {
+        self.body.id_list = id_list.into_iter().map(|v| v.into()).collect();
         self
     }
 
@@ -62,12 +64,7 @@ impl BatchDeleteTaskFollowerRequestV1 {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchDeleteTaskFollowerResponseV1> {
-        if self.body.follower_ids.is_empty() {
-            return Err(openlark_core::error::validation_error(
-                "关注者用户 ID 列表不能为空",
-                "",
-            ));
-        }
+        validate_required!(self.body.id_list, "要删除的关注人 ID 列表不能为空");
 
         let api_endpoint =
             crate::common::api_endpoints::TaskApiV1::TaskFollowerBatchDelete(self.task_id.clone());
@@ -113,10 +110,30 @@ mod tests {
         );
 
         let request = BatchDeleteTaskFollowerRequestV1::new(config.clone(), "task_123")
-            .follower_ids(vec!["user_1", "user_2"]);
+            .id_list(vec!["user_1", "user_2"]);
 
-        assert_eq!(request.body.follower_ids.len(), 2);
+        assert_eq!(request.body.id_list, vec!["user_1", "user_2"]);
         assert_eq!(request.task_id, "task_123");
+    }
+
+    #[test]
+    fn test_batch_delete_task_follower_v1_body_serialization() {
+        let body = BatchDeleteTaskFollowerBodyV1 {
+            id_list: vec![
+                "ou_13585843f02bc94923ed17a007cbc9b1".to_string(),
+                "ou_f4506885e436763c36e03c05ef1bd6f8".to_string(),
+            ],
+        };
+        let json = serde_json::to_value(&body).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "id_list": [
+                    "ou_13585843f02bc94923ed17a007cbc9b1",
+                    "ou_f4506885e436763c36e03c05ef1bd6f8"
+                ]
+            })
+        );
     }
 
     #[test]
