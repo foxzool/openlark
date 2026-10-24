@@ -87,7 +87,15 @@ biz_tags = ["auth", "passport", "verification_information", "human_authenticatio
 [crates.openlark-platform]
 src = "crates/openlark-platform/src"
 biz_tags = ["admin", "directory", "app_engine", "trust_party", "tenant", "mdm", "spark"]
-# 妙搭新接口落在既有 spark/v1/ 单层布局；按文件 alias 解析，避免 spark/ 前缀 rewrite 波及既有条目。
+# bizTag == meta.Project 的双前缀（spark/spark/ 等）统一 rewrite 到单层布局（#727）。
+implementation_path_rewrites = [
+  { from = "admin/admin/", to = "admin/" },
+  { from = "directory/directory/", to = "directory/" },
+  { from = "mdm/mdm/", to = "mdm/" },
+  { from = "spark/spark/", to = "spark/" },
+  { from = "tenant/tenant/", to = "tenant/" },
+  { from = "trust_party/trust_party/", to = "trust_party/" },
+]
 [crates.openlark-platform.implementation_path_aliases]
 "spark/spark/v1/app/open_api_analytics_overview.rs" = "spark/v1/app/analytics_overview.rs"
 "spark/spark/v1/app/open_api_credit_usage.rs" = "spark/v1/app/credit_usage.rs"
@@ -96,6 +104,11 @@ biz_tags = ["admin", "directory", "app_engine", "trust_party", "tenant", "mdm", 
 "spark/spark/v1/app/available_scope/open_api_update_miaoda_available_scope.rs" = "spark/v1/app/available_scope/update.rs"
 "spark/spark/v1/app/export.rs" = "spark/v1/app/export.rs"
 "spark/spark/v1/app/release/update.rs" = "spark/v1/app/release/update.rs"
+# 落盘目录名与 CSV meta.Name 不一致的条目：enum 是 Rust 关键字（enum_mod 避让）；
+# collboration 为官方 meta 拼写错误，落盘用正确拼写 collaboration（#727）。
+"app_engine/apaas/v1/workspace/enum/enum_get.rs" = "app_engine/apaas/v1/workspace/enum_mod/enum_get.rs"
+"app_engine/apaas/v1/workspace/enum/list.rs" = "app_engine/apaas/v1/workspace/enum_mod/list.rs"
+"directory/directory/v1/collboration_share_entity/list.rs" = "directory/v1/collaboration_share_entity/list.rs"
 
 [crates.openlark-workflow]
 src = "crates/openlark-workflow/src"
@@ -110,6 +123,8 @@ implementation_path_rewrites = [
 "task/task/v1/task/batch_delete_follower.rs" = "v1/task/follower/batch_delete.rs"
 "task/task/v2/comment/patch.rs" = "v2/comment/update.rs"
 "task/task/v2/custom_field/patch.rs" = "v2/custom_field/update.rs"
+# tasklist 暂不 alias：v2/tasklist/patch.rs（re-export 桩）与 update.rs 并存会 Ambiguous；
+# 随 #717 删除桩文件后按 comment/custom_field 同款补 "task/task/v2/tasklist/patch.rs" = "v2/tasklist/update.rs"。
 
 [crates.openlark-analytics]
 src = "crates/openlark-analytics/src"
