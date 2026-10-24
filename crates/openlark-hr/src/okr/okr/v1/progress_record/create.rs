@@ -304,16 +304,16 @@ pub struct ContentTextStyle {
 /// RGBA 颜色（content_color）
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct ContentColor {
-    /// 红 [0,255]
+    /// 红 \[0,255\]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub red: Option<i32>,
-    /// 绿 [0,255]
+    /// 绿 \[0,255\]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub green: Option<i32>,
-    /// 蓝 [0,255]
+    /// 蓝 \[0,255\]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blue: Option<i32>,
-    /// 透明度 [0,1]
+    /// 透明度 \[0,1\]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alpha: Option<f64>,
 }

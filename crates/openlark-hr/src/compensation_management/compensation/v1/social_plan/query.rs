@@ -135,7 +135,7 @@ pub struct SocialPlan {
 pub struct SocialPlanScope {
     /// 是否适用于全部
     pub is_all: bool,
-    /// 条件规则，两层结构 [条件组[条件]]：多个条件组之间为「或」关系，条件组内多个条件为「且」关系
+    /// 条件规则，两层结构 \[条件组\[条件\]\]：多个条件组之间为「或」关系，条件组内多个条件为「且」关系
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<Vec<SocialPlanCondition>>>,
 }
