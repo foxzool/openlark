@@ -263,8 +263,8 @@ impl AttendanceApiV1 {
             }
 
             // leave_employ_expire_record
-            AttendanceApiV1::LeaveEmployExpireRecordGet(record_key) => {
-                format!("/open-apis/attendance/v1/leave_employ_expire_records/{record_key}")
+            AttendanceApiV1::LeaveEmployExpireRecordGet(leave_id) => {
+                format!("/open-apis/attendance/v1/leave_employ_expire_records/{leave_id}")
             }
 
             // user_stats_data
@@ -1889,10 +1889,6 @@ pub enum OkrApiV1 {
     // === review 资源 (1个) ===
     /// 查询评审
     ReviewQuery,
-
-    // === user.okr 资源 (1个) ===
-    /// 获取用户的 OKR 列表
-    UserOkrList,
 }
 
 impl OkrApiV1 {
@@ -1929,9 +1925,6 @@ impl OkrApiV1 {
 
             // review
             OkrApiV1::ReviewQuery => "/open-apis/okr/v1/reviews/query".to_string(),
-
-            // user.okr
-            OkrApiV1::UserOkrList => "/open-apis/okr/v1/user_okrs/list".to_string(),
         }
     }
 }

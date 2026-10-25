@@ -91,35 +91,30 @@ pub struct ListResponse {
     pub page_token: Option<String>,
 }
 
-/// OKR 周期信息
+/// OKR 周期信息（官方 `period`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OkrPeriod {
     /// 周期 ID
-    pub period_id: String,
-    /// 周期名称
-    pub name: String,
-    /// 周期开始时间（Unix 时间戳）
-    pub start_time: i64,
-    /// 周期结束时间（Unix 时间戳）
-    pub end_time: i64,
-    /// 周期状态
-    /// - 1: 未开始
-    /// - 2: 进行中
-    /// - 3: 已结束
-    pub status: i32,
-    /// 周期描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 目标制定截止时间（Unix 时间戳）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_setting_deadline: Option<i64>,
-    /// 复盘时间（Unix 时间戳）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub review_time: Option<i64>,
-    /// 创建时间（Unix 时间戳）
-    pub created_at: i64,
-    /// 更新时间（Unix 时间戳）
-    pub updated_at: i64,
+    pub id: String,
+    /// 中文名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zh_name: Option<String>,
+    /// 英文名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en_name: Option<String>,
+    /// 启用状态
+    /// - 0: 正常状态
+    /// - 1: 暂不处理
+    /// - 2: 标记失效
+    /// - 3: 隐藏周期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
+    /// 周期开始时间（毫秒时间戳字符串）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_start_time: Option<String>,
+    /// 周期结束时间（毫秒时间戳字符串）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_end_time: Option<String>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -142,8 +137,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.items[]（id/zh_name/en_name/status/period_*_time）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"items": [{"id": "7071200999834255380", "zh_name": "2022 年 1 月 - 3 月", "en_name": "Jan - Mar 2022", "status": 0, "period_start_time": "1546272000000", "period_end_time": "1577721600000"}], "has_more": false}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/periods"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -166,8 +164,23 @@ mod tests {
             .await
             .expect("okr_v1_period_list 应成功");
 
-        assert!(data.items.is_empty());
-        let _ = data.has_more;
+        assert_eq!(data.items.len(), 1);
+        assert_eq!(data.items[0].id, "7071200999834255380");
+        assert_eq!(
+            data.items[0].zh_name.as_deref(),
+            Some("2022 年 1 月 - 3 月")
+        );
+        assert_eq!(data.items[0].en_name.as_deref(), Some("Jan - Mar 2022"));
+        assert_eq!(data.items[0].status, Some(0));
+        assert_eq!(
+            data.items[0].period_start_time.as_deref(),
+            Some("1546272000000")
+        );
+        assert_eq!(
+            data.items[0].period_end_time.as_deref(),
+            Some("1577721600000")
+        );
+        assert!(!data.has_more);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

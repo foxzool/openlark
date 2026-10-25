@@ -71,6 +71,9 @@ pub struct TalentOperationLogEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `operation_time` 字段。
     pub operation_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 操作人类型（当前只返回 `1`：员工）。
+    pub operator_type: Option<i32>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -88,6 +91,61 @@ pub struct DiversityInclusionRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 性别。
     pub gender: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 附加信息 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 数据来源：1 官网 / 2 详情页。
+    pub source_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建时间，毫秒时间戳。
+    pub create_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 更新时间，毫秒时间戳。
+    pub update_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 附加信息列表。
+    pub di_data: Option<Vec<DiDataItem>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 多元化附加信息条目（官方 `di_data`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DiDataItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段值，格式随字段类型不同（单选为 `"1"`；多选为 JSON 数组字符串；日期范围为时间戳数组字符串等）。
+    pub value: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段属性。
+    pub object_attribute: Option<DiDataObjectAttribute>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 多元化附加信息字段属性（官方 `object_attribute`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DiDataObjectAttribute {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段名称。
+    pub title: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段描述。
+    pub description: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段类型：1 单选 / 2 多选 / 3 月份选择 / 4 年份选择 / 5 数字 / 6 文本 / 7 多行文本 / 8 日期范围。
+    pub data_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段标签：1 性别 / 2 种族 / 3 身体情况。
+    pub tags: Option<Vec<i32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否为 FCF 数据（新加坡公平考虑框架相关）。
+    pub is_fcf_data: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否为 D&I 数据（多元化与包容性相关）。
+    pub is_di_data: Option<bool>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -802,6 +860,12 @@ pub struct AgencySummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 名称。
     pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 供应商联系人 ID，与入参 `user_id_type` 类型一致。
+    pub contactor_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 供应商联系人名称。
+    pub contactor_name: Option<crate::common::shared_models::I18nText>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `code` 字段。
     pub code: Option<String>,
@@ -834,6 +898,41 @@ pub struct AgencyAccountSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `status` 字段。
     pub status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 猎头 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 禁用原因，仅当 `status` 为 1（已禁用）时填充。
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 添加时间，毫秒时间戳。
+    pub create_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 角色：0 管理员 / 1 顾问。
+    pub role: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 猎头用户信息。
+    pub user_info: Option<AgencyAccountUser>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 猎头用户信息（官方 `agency_account_user`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct AgencyAccountUser {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用户 ID，与入参 `user_id_type` 类型一致。
+    pub user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用户名称。
+    pub name: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用户邮箱（需 `hire:agency.email:readonly` 权限才返回）。
+    pub email: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用户手机号（需 `hire:agency.mobile:readonly` 权限才返回）。
+    pub mobile: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -857,6 +956,9 @@ pub struct TalentExternalInfoRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `status` 字段。
     pub status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 人才在外部系统的创建时间，毫秒时间戳。
+    pub external_create_time: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -1437,6 +1539,9 @@ pub struct EmployeeSummary {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     /// 招聘需求 ID。
     pub job_requirement_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 飞书人事的雇佣 ID（`get_by_application` 响应返回）。
+    pub external_employment_id: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -1545,6 +1650,50 @@ pub struct BackgroundCheckOrderSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `vendor_name` 字段。
     pub vendor_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调状态：2 已安排 / 3 已完成 / 4 已终止 / 5 审批中 / 6 审批已撤回 / 8 审批通过 / 9 审批未通过。
+    pub order_status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 供应商类型：1 八方锦程 / 2 i背调 / 3 轩渡 / 127 自定义供应商。
+    pub account_third_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调套餐名称。
+    pub package: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调名称（仅用户手动录入的背调结果支持返回该字段）。
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调报告列表，按照报告创建时间降序排列。
+    pub feedback_info_list: Option<Vec<BackgroundCheckFeedbackInfo>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 背调报告信息（官方 `background_check_order_feedback_info`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct BackgroundCheckFeedbackInfo {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调报告 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调信息附件下载链接（与 `report_preview_url` 同一供应商只能支持 1 种），有效期 1 小时。
+    pub attachment_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调预览链接（与 `attachment_url` 同一供应商只能支持 1 种），有效期由供应商控制。
+    pub report_preview_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 背调结果（红灯、黄灯、蓝灯、绿灯，或更新背调进度时推送的状态）。
+    pub result: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 报告类型：1 阶段性报告 / 2 终版报告。
+    pub report_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建时间。
+    pub create_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 报告名称。
+    pub report_name: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

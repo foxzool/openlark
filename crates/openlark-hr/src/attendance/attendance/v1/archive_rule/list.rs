@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/list>
 
+use crate::common::shared_models::I18nMap;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -91,23 +92,20 @@ pub struct ListResponse {
     pub page_token: Option<String>,
 }
 
-/// 归档规则
+/// 归档规则（官方 `archive_report_meta`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ArchiveRule {
-    /// 规则 ID
-    pub rule_id: String,
-    /// 规则名称
-    pub name: String,
-    /// 考勤组 ID
-    pub group_id: String,
-    /// 归档类型
-    pub archive_type: i32,
-    /// 是否启用
-    pub is_enabled: bool,
-    /// 创建时间（Unix 时间戳）
-    pub created_at: i64,
-    /// 更新时间（Unix 时间戳）
-    pub updated_at: i64,
+    /// 归档报表规则 ID，可用于查询归档报表表头
+    pub archive_rule_id: String,
+    /// 归档报表名称（i18n_map）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_rule_name: Option<I18nMap>,
+    /// 引用报表 ID（暂时无用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report_id: Option<String>,
+    /// 引用报表名称（i18n_map）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report_name: Option<I18nMap>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -137,8 +135,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.items[]（report_id/report_name/archive_rule_id/archive_rule_name）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"items": [{"report_id": "7341290237441605652", "report_name": {"zh": "1", "en": "alice", "ja": "1"}, "archive_rule_id": "7341290237441605652", "archive_rule_name": {"zh": "1", "en": "alice", "ja": "1"}}], "page_token": "xxx", "has_more": true}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/archive_rule"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -161,7 +162,23 @@ mod tests {
             .await
             .expect("attendance_v1_archive_rule_list 应成功");
 
-        let _ = &data;
+        assert_eq!(data.items.len(), 1);
+        assert_eq!(data.items[0].archive_rule_id, "7341290237441605652");
+        assert_eq!(
+            data.items[0]
+                .archive_rule_name
+                .as_ref()
+                .and_then(|n| n.zh.as_deref()),
+            Some("1")
+        );
+        assert_eq!(
+            data.items[0]
+                .report_name
+                .as_ref()
+                .and_then(|n| n.en.as_deref()),
+            Some("alice")
+        );
+        assert!(data.has_more);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

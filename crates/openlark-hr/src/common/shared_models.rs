@@ -59,6 +59,22 @@ pub struct I18nContent {
     pub value: Option<String>,
 }
 
+/// `{zh, en, ja}` 三语 map 形式的多语言名称（官方 `i18n_map`）。
+///
+/// 例如 attendance 归档规则的 `report_name` / `archive_rule_name`。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct I18nMap {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 中文名称。
+    pub zh: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 英文名称。
+    pub en: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 日文名称。
+    pub ja: Option<String>,
+}
+
 /// 可兼容普通字符串或多语言对象的文本字段。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]

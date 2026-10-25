@@ -70,25 +70,22 @@ impl UserStatsFieldsQueryRequest {
 /// 查询归档报表表头响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserStatsFieldsQueryResponse {
-    /// 字段列表
-    pub fields: Vec<UserStatsField>,
+    /// 统计数据表头（archive_field[]）
+    #[serde(default)]
+    pub archive_report_fields: Vec<ArchiveField>,
 }
 
-/// 统计字段信息
+/// 归档报表表头字段（官方 `archive_field`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct UserStatsField {
-    /// 字段 ID
-    pub field_id: String,
+pub struct ArchiveField {
+    /// 字段编号
+    pub code: String,
     /// 字段名称
-    pub field_name: String,
-    /// 字段类型
-    pub field_type: String,
-    /// 是否显示
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_display: Option<bool>,
-    /// 排序权重
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 表头名称层级路径
+    #[serde(default)]
+    pub upper_titles: Vec<String>,
 }
 
 impl ApiResponseTrait for UserStatsFieldsQueryResponse {
@@ -119,7 +116,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{"fields": []}"#).unwrap();
+        // 官方响应示例形状：data.archive_report_fields[]（code/title/upper_titles）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"archive_report_fields": [{"code": "1", "title": "工号", "upper_titles": ["基本信息"]}]}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path(
                 "/open-apis/attendance/v1/archive_rule/user_stats_fields_query",
@@ -144,7 +145,10 @@ mod tests {
             .await
             .expect("attendance_v1_archive_rule_user_stats_fields_query 应成功");
 
-        let _ = &data;
+        assert_eq!(data.archive_report_fields.len(), 1);
+        assert_eq!(data.archive_report_fields[0].code, "1");
+        assert_eq!(data.archive_report_fields[0].title.as_deref(), Some("工号"));
+        assert_eq!(data.archive_report_fields[0].upper_titles, vec!["基本信息"]);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

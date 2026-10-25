@@ -106,7 +106,30 @@ mod tests {
                 "/open-apis/hire/v1/background_check_orders/batch_query",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "order_id": "7037986982531778860",
+                            "application_id": "6985833807195212076",
+                            "order_status": 2,
+                            "account_third_type": 1,
+                            "package": "基础版",
+                            "feedback_info_list": [
+                                {
+                                    "id": "6930815272790114324",
+                                    "attachment_url": "https://feishucdn.com/staource/v1/2de04c10",
+                                    "report_preview_url": "https://feishucdn.com/preview/file/6930815272790114324/",
+                                    "result": "红灯",
+                                    "report_type": 1,
+                                    "create_time": "1686645425868",
+                                    "report_name": "张三的背调报告"
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -118,10 +141,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        BatchQueryRequest::new(config)
+        let resp = BatchQueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        let item = resp.items.first().expect("应返回 items 列表");
+        assert_eq!(item.order_id.as_deref(), Some("7037986982531778860"));
+        // 官方响应体含 order_status / account_third_type / feedback_info_list（.md 字段表）
+        assert_eq!(item.order_status, Some(2));
+        assert_eq!(item.account_third_type, Some(1));
+        let feedback = item
+            .feedback_info_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("feedback_info_list 应反序列化");
+        assert_eq!(feedback.id.as_deref(), Some("6930815272790114324"));
+        assert_eq!(feedback.result.as_deref(), Some("红灯"));
+        assert_eq!(feedback.report_type, Some(1));
+        assert_eq!(
+            feedback.report_preview_url.as_deref(),
+            Some("https://feishucdn.com/preview/file/6930815272790114324/")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::JobRequirementSummary;
+use crate::hire::hire::common_models::JobRequirementDto;
 
 /// 获取招聘需求列表请求
 #[derive(Debug, Clone)]
@@ -81,8 +81,8 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default, alias = "job_requirements")]
-    /// 结果项列表。
-    pub items: Vec<JobRequirementSummary>,
+    /// 结果项列表（官方 `job_requirement_dto[]`）。
+    pub items: Vec<JobRequirementDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -108,14 +108,30 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET /open-apis/hire/v1/job_requirements
+    /// 端到端：GET /open-apis/hire/v1/job_requirements，响应 items 元素按官方 job_requirement_dto 形状解析。
     #[tokio::test]
     async fn test_list_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/job_requirements"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6949805467799537964",
+                            "short_code": "xx1",
+                            "name": "test",
+                            "display_progress": 1,
+                            "head_count": 11,
+                            "recruitment_type": {
+                                "id": "1213213123123",
+                                "name": { "zh_cn": "实习", "en_us": "practice" }
+                            }
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -127,10 +143,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(item.short_code.as_deref(), Some("xx1"));
+        assert_eq!(item.display_progress, Some(1));
+        assert_eq!(item.head_count, Some(11));
+        assert_eq!(
+            item.recruitment_type
+                .as_ref()
+                .and_then(|t| t.name.as_ref())
+                .and_then(|n| n.zh_cn.as_deref()),
+            Some("实习")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -93,7 +93,33 @@ mod tests {
                 "/open-apis/hire/v1/applications/diversity_inclusions/search",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6784008015948283904",
+                            "application_id": "6784008015948283905",
+                            "talent_id": "6784008015948283906",
+                            "source_type": 1,
+                            "create_time": "1681301987000",
+                            "update_time": "1681301987000",
+                            "di_data": [
+                                {
+                                    "value": "1",
+                                    "object_attribute": {
+                                        "title": { "zh_cn": "测试", "en_us": "test" },
+                                        "description": { "zh_cn": "测试", "en_us": "test" },
+                                        "data_type": 1,
+                                        "tags": [1],
+                                        "is_fcf_data": true,
+                                        "is_di_data": true
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -105,10 +131,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        let item = resp.items.first().expect("应返回 items 列表");
+        assert_eq!(item.id.as_deref(), Some("6784008015948283904"));
+        // 官方响应体含 source_type 与 di_data 嵌套（.md 字段表 + 响应示例）
+        assert_eq!(item.source_type, Some(1));
+        let di = item
+            .di_data
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("di_data 应反序列化");
+        assert_eq!(di.value.as_deref(), Some("1"));
+        let attr = di
+            .object_attribute
+            .as_ref()
+            .expect("object_attribute 应反序列化");
+        assert_eq!(attr.data_type, Some(1));
+        assert_eq!(attr.tags.as_deref(), Some(&[1][..]));
+        assert_eq!(attr.is_fcf_data, Some(true));
+        assert_eq!(attr.is_di_data, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

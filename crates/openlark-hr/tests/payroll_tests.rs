@@ -114,22 +114,25 @@ mod builder_tests {
     smoke_builder!(
         test_list_cost_allocation_plan_request_builder,
         cost_allocation_plan::list::ListRequest::new(test_config("https://open.feishu.cn"))
+            .pay_period("2023-11".to_string())
             .page_size(20)
             .page_token("next_plan".to_string())
     );
     smoke_builder!(
         test_list_cost_allocation_detail_request_builder,
         cost_allocation_detail::list::ListRequest::new(test_config("https://open.feishu.cn"))
+            .cost_allocation_plan_id("72131231231231231".to_string())
+            .pay_period("2024-06".to_string())
+            .report_type(0)
             .page_size(20)
             .page_token("next_cost_detail".to_string())
-            .activity_id("pa_1".to_string())
-            .plan_id("plan_1".to_string())
     );
     smoke_builder!(
         test_list_cost_allocation_report_request_builder,
         cost_allocation_report::list::ListRequest::new(test_config("https://open.feishu.cn"))
-            .activity_id("pa_1".to_string())
-            .plan_id("plan_1".to_string())
+            .cost_allocation_plan_id("6823630319749580304".to_string())
+            .pay_period("2023-11".to_string())
+            .report_type(1)
             .page_size(20)
             .page_token("next_cost_report".to_string())
     );
@@ -524,14 +527,24 @@ mod http_tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "datasource_id": "ds_1",
-                        "name": "薪资系统",
-                        "type_field": "api",
-                        "created_at": 1735689600,
-                        "updated_at": 1735689600
-                    }],
-                    "has_more": false
+                    // 官方响应示例形状：datasources[]（无 items 键）
+                    "page_token": "next_ds2",
+                    "has_more": false,
+                    "datasources": [{
+                        "code": "test_datasource__c",
+                        "i18n_names": [{"locale": "zh_cn", "value": "名称", "id": "723123123123123213"}],
+                        "active_status": 1,
+                        "fields": [{
+                            "code": "test__c",
+                            "i18n_names": [{"locale": "zh_cn", "value": "名称"}],
+                            "field_type": 1,
+                            "active_status": 1,
+                            "i18n_description": [{"locale": "zh_cn", "value": "描述"}],
+                            "decimal_places": 1
+                        }],
+                        "i18n_description": [{"locale": "zh_cn", "value": "外部薪资系统"}],
+                        "data_period_type": 1
+                    }]
                 }
             })))
             .mount(&mock_server)
@@ -544,7 +557,11 @@ mod http_tests {
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].datasource_id, "ds_1");
+        assert!(!resp.has_more);
+        let ds = &resp.datasources.as_ref().unwrap()[0];
+        assert_eq!(ds.code.as_deref(), Some("test_datasource__c"));
+        assert_eq!(ds.active_status, Some(1));
+        assert_eq!(ds.fields.as_ref().unwrap()[0].field_type, Some(1));
     }
 
     #[tokio::test]
@@ -553,17 +570,28 @@ mod http_tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/payroll/v1/cost_allocation_plans"))
             .and(header("Authorization", "Bearer test_token"))
+            .and(query_param("pay_period", "2023-11"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_plan"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
+                    // 官方响应示例形状：items[]{id, names, applicable_country_region, dimensions, cost_items}
                     "items": [{
-                        "plan_id": "plan_1",
-                        "name": "研发成本分摊",
-                        "created_at": 1735689600,
-                        "updated_at": 1735689600
+                        "id": "6823630319749593096",
+                        "names": [{"locale": "zh_cn", "value": "研发成本分摊"}],
+                        "applicable_country_region": "6823630319749593389",
+                        "dimensions": [{
+                            "i18n_names": [{"locale": "zh_cn", "value": "公司主体", "id": "723123123123123213"}],
+                            "api_name": "company",
+                            "obj_api_name": "jobData"
+                        }],
+                        "cost_items": [{
+                            "id": "7433424967234601004",
+                            "name": [{"locale": "zh_cn", "value": "基本工资"}],
+                            "enable_correct": true
+                        }]
                     }],
                     "has_more": false
                 }
@@ -572,13 +600,28 @@ mod http_tests {
             .await;
 
         let resp = cost_allocation_plan::list::ListRequest::new(test_config(&mock_server.uri()))
+            .pay_period("2023-11".to_string())
             .page_size(20)
             .page_token("next_plan".to_string())
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].plan_id, "plan_1");
+        assert_eq!(resp.items[0].id.as_deref(), Some("6823630319749593096"));
+        assert_eq!(
+            resp.items[0].names.as_ref().unwrap()[0].value.as_deref(),
+            Some("研发成本分摊")
+        );
+        assert_eq!(
+            resp.items[0].dimensions.as_ref().unwrap()[0]
+                .api_name
+                .as_deref(),
+            Some("company")
+        );
+        assert_eq!(
+            resp.items[0].cost_items.as_ref().unwrap()[0].enable_correct,
+            Some(true)
+        );
     }
 
     #[tokio::test]
@@ -589,20 +632,32 @@ mod http_tests {
             .and(header("Authorization", "Bearer test_token"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_cost_detail"))
-            .and(query_param("activity_id", "pa_1"))
-            .and(query_param("plan_id", "plan_1"))
+            .and(query_param("cost_allocation_plan_id", "72131231231231231"))
+            .and(query_param("pay_period", "2024-06"))
+            .and(query_param("report_type", "0"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "detail_id": "cad_1",
-                        "activity_id": "pa_1",
-                        "plan_id": "plan_1",
-                        "employee_id": "ou_1",
-                        "allocation_ratio": 0.5,
-                        "amount": 10000.0
+                    // 官方响应示例形状：cost_allocation_report_datas[]（无 items 键）
+                    "cost_allocation_report_datas": [{
+                        "data_summary_dimensions": [{
+                            "dimension_level": 1,
+                            "dimension_type": 1,
+                            "dimension_value_id": "6823630319749580306",
+                            "dimension_names": [{"locale": "zh_cn", "value": "名称"}],
+                            "dimension_titles": [{"locale": "zh_cn", "value": "名称", "id": "723123123123123213"}]
+                        }],
+                        "compensation_cost_item": {
+                            "compensation_costs": [{
+                                "compensation_cost_value": "123456.78",
+                                "i18n_names": [{"locale": "zh_cn", "value": "名称"}]
+                            }]
+                        },
+                        "employment_id": "72321836123692186"
                     }],
+                    "cost_allocation_report_names": [{"locale": "zh_cn", "value": "名称"}],
+                    "pay_period": "2024-06",
                     "has_more": false
                 }
             })))
@@ -610,15 +665,36 @@ mod http_tests {
             .await;
 
         let resp = cost_allocation_detail::list::ListRequest::new(test_config(&mock_server.uri()))
+            .cost_allocation_plan_id("72131231231231231".to_string())
+            .pay_period("2024-06".to_string())
+            .report_type(0)
             .page_size(20)
             .page_token("next_cost_detail".to_string())
-            .activity_id("pa_1".to_string())
-            .plan_id("plan_1".to_string())
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].detail_id, "cad_1");
+        assert_eq!(resp.pay_period, "2024-06");
+        let detail = &resp.cost_allocation_report_datas.as_ref().unwrap()[0];
+        assert_eq!(detail.employment_id.as_deref(), Some("72321836123692186"));
+        assert_eq!(
+            detail.data_summary_dimensions.as_ref().unwrap()[0]
+                .dimension_value_id
+                .as_deref(),
+            Some("6823630319749580306")
+        );
+        assert_eq!(
+            detail
+                .compensation_cost_item
+                .as_ref()
+                .unwrap()
+                .compensation_costs
+                .as_ref()
+                .unwrap()[0]
+                .compensation_cost_value
+                .as_deref(),
+            Some("123456.78")
+        );
     }
 
     #[tokio::test]
@@ -627,32 +703,84 @@ mod http_tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/payroll/v1/cost_allocation_reports"))
             .and(header("Authorization", "Bearer test_token"))
-            .and(query_param("plan_id", "plan_1"))
+            .and(query_param("cost_allocation_plan_id", "6823630319749580304"))
+            .and(query_param("pay_period", "2023-11"))
+            .and(query_param("report_type", "1"))
+            .and(query_param("page_size", "50"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
-                    "items": [{
-                        "report_id": "report_1",
-                        "activity_id": "pa_1",
-                        "plan_id": "plan_1",
-                        "employee_count": 120,
-                        "total_amount": 500000.0,
-                        "stats_time": 1735689600
-                    }],
-                    "has_more": false
+                    // 官方响应示例形状：pay_period + cost_allocation_report_names + cost_allocation_report_datas[]
+                    "pay_period": "2023-11",
+                    "has_more": false,
+                    "cost_allocation_report_names": [{"locale": "zh_cn", "value": "名称"}],
+                    "cost_allocation_report_datas": [{
+                        "data_summary_dimensions": [{
+                            "dimension_level": 1,
+                            "dimension_type": 1,
+                            "dimension_value_id": "6823630319749580306",
+                            "enum_dimension": {
+                                "enum_value_id": "7188920315914207276",
+                                "enum_key": "company"
+                            },
+                            "dimension_value_lookup_info": {
+                                "type": "work_calendar",
+                                "id": "6961286846093788621",
+                                "code": "D1230011115"
+                            },
+                            "dimension_names": [{"locale": "zh_cn", "value": "名称"}],
+                            "dimension_titles": [{"locale": "zh_cn", "value": "名称", "id": "723123123123123213"}]
+                        }],
+                        "compensation_cost_item": {
+                            "number_of_individuals_for_payment": 100,
+                            "compensation_costs": [{
+                                "compensation_cost_value": "123456.78",
+                                "i18n_names": [{"locale": "zh_cn", "value": "名称"}]
+                            }]
+                        }
+                    }]
                 }
             })))
             .mount(&mock_server)
             .await;
 
         let resp = cost_allocation_report::list::ListRequest::new(test_config(&mock_server.uri()))
-            .plan_id("plan_1".to_string())
+            .cost_allocation_plan_id("6823630319749580304".to_string())
+            .pay_period("2023-11".to_string())
+            .report_type(1)
+            .page_size(50)
             .execute_with_options(auth_option())
             .await
             .expect("请求应成功");
 
-        assert_eq!(resp.items[0].report_id, "report_1");
+        assert_eq!(resp.pay_period, "2023-11");
+        assert!(!resp.has_more);
+        let report_data = &resp.cost_allocation_report_datas.as_ref().unwrap()[0];
+        let dimension = &report_data.data_summary_dimensions.as_ref().unwrap()[0];
+        assert_eq!(dimension.dimension_level, Some(1));
+        assert_eq!(
+            dimension
+                .enum_dimension
+                .as_ref()
+                .and_then(|e| e.enum_key.as_deref()),
+            Some("company")
+        );
+        assert_eq!(
+            dimension
+                .dimension_value_lookup_info
+                .as_ref()
+                .and_then(|l| l.r#type.as_deref()),
+            Some("work_calendar")
+        );
+        assert_eq!(
+            report_data
+                .compensation_cost_item
+                .as_ref()
+                .unwrap()
+                .number_of_individuals_for_payment,
+            Some(100)
+        );
     }
 
     #[tokio::test]
@@ -809,17 +937,39 @@ mod serialization_tests {
         test_list_datasource_response_serialization,
         datasource::list::ListResponse,
         datasource::list::ListResponse {
-            items: vec![datasource::list::Datasource {
-                datasource_id: "ds_1".to_string(),
-                name: "薪资系统".to_string(),
-                type_field: "api".to_string(),
-                description: Some("外部薪资系统".to_string()),
-                status: Some(1),
-                created_at: 1735689600,
-                updated_at: 1735689600,
-            }],
+            page_token: Some("next_ds".to_string()),
             has_more: false,
-            page_token: None,
+            datasources: Some(vec![datasource::list::DatasourceItem {
+                code: Some("test_datasource__c".to_string()),
+                i18n_names: Some(vec![datasource::list::I18nContent {
+                    locale: Some("zh_cn".to_string()),
+                    value: Some("外部薪资系统".to_string()),
+                    id: Some("723123123123123213".to_string()),
+                }]),
+                active_status: Some(1),
+                fields: Some(vec![datasource::list::DatasourceField {
+                    code: Some("test__c".to_string()),
+                    i18n_names: Some(vec![datasource::list::I18nContent {
+                        locale: Some("zh_cn".to_string()),
+                        value: Some("基本工资".to_string()),
+                        id: None,
+                    }]),
+                    field_type: Some(1),
+                    active_status: Some(1),
+                    i18n_description: Some(vec![datasource::list::I18nContent {
+                        locale: Some("zh_cn".to_string()),
+                        value: Some("描述".to_string()),
+                        id: None,
+                    }]),
+                    decimal_places: Some(1),
+                }]),
+                i18n_description: Some(vec![datasource::list::I18nContent {
+                    locale: Some("zh_cn".to_string()),
+                    value: Some("外部薪资系统描述".to_string()),
+                    id: None,
+                }]),
+                data_period_type: Some(1),
+            }]),
         }
     );
     roundtrip_eq!(
@@ -850,14 +1000,31 @@ mod serialization_tests {
         cost_allocation_plan::list::ListResponse,
         cost_allocation_plan::list::ListResponse {
             items: vec![cost_allocation_plan::list::CostAllocationPlan {
-                plan_id: "plan_1".to_string(),
-                name: "研发成本分摊".to_string(),
-                description: Some("按部门分摊".to_string()),
-                effective_time: Some(1735689600),
-                expiration_time: None,
-                status: Some(1),
-                created_at: 1735689600,
-                updated_at: 1735689600,
+                id: Some("6823630319749593096".to_string()),
+                names: Some(vec![cost_allocation_plan::list::I18nContent {
+                    locale: Some("zh_cn".to_string()),
+                    value: Some("研发成本分摊".to_string()),
+                    id: None,
+                }]),
+                applicable_country_region: Some("6823630319749593389".to_string()),
+                dimensions: Some(vec![cost_allocation_plan::list::Dimension {
+                    i18n_names: Some(vec![cost_allocation_plan::list::I18nContent {
+                        locale: Some("zh_cn".to_string()),
+                        value: Some("公司主体".to_string()),
+                        id: Some("723123123123123213".to_string()),
+                    }]),
+                    api_name: Some("company".to_string()),
+                    obj_api_name: Some("jobData".to_string()),
+                }]),
+                cost_items: Some(vec![cost_allocation_plan::list::CostItem {
+                    id: Some("7433424967234601004".to_string()),
+                    name: Some(vec![cost_allocation_plan::list::I18nContent {
+                        locale: Some("zh_cn".to_string()),
+                        value: Some("基本工资".to_string()),
+                        id: None,
+                    }]),
+                    enable_correct: Some(true),
+                }]),
             }],
             has_more: false,
             page_token: None,
@@ -867,16 +1034,65 @@ mod serialization_tests {
         test_list_cost_allocation_detail_response_serialization,
         cost_allocation_detail::list::ListResponse,
         cost_allocation_detail::list::ListResponse {
-            items: vec![cost_allocation_detail::list::CostAllocationDetail {
-                detail_id: "cad_1".to_string(),
-                activity_id: "pa_1".to_string(),
-                plan_id: "plan_1".to_string(),
-                employee_id: "ou_1".to_string(),
-                cost_center_id: Some("cc_1".to_string()),
-                allocation_ratio: 0.5,
-                amount: 10000.0,
-                currency: Some("CNY".to_string()),
-            }],
+            cost_allocation_report_datas: Some(vec![
+                cost_allocation_detail::list::CostAllocationReportData {
+                    data_summary_dimensions: Some(vec![
+                        cost_allocation_detail::list::DataSummaryDimension {
+                            dimension_level: Some(1),
+                            dimension_type: Some(1),
+                            dimension_value_id: Some("6823630319749580306".to_string()),
+                            enum_dimension: Some(cost_allocation_detail::list::EnumDimension {
+                                enum_value_id: Some("7188920315914207276".to_string()),
+                                enum_key: Some("company".to_string()),
+                            }),
+                            dimension_value_lookup_info: Some(
+                                cost_allocation_detail::list::DimensionValueLookupInfo {
+                                    r#type: Some("work_calendar".to_string()),
+                                    id: Some("6961286846093788621".to_string()),
+                                    code: Some("D1230011115".to_string()),
+                                },
+                            ),
+                            dimension_names: Some(vec![
+                                cost_allocation_detail::list::I18nContent {
+                                    locale: Some("zh_cn".to_string()),
+                                    value: Some("名称".to_string()),
+                                    id: None,
+                                }
+                            ]),
+                            dimension_titles: Some(vec![
+                                cost_allocation_detail::list::I18nContent {
+                                    locale: Some("zh_cn".to_string()),
+                                    value: Some("名称".to_string()),
+                                    id: Some("723123123123123213".to_string()),
+                                }
+                            ]),
+                        }
+                    ]),
+                    compensation_cost_item: Some(
+                        cost_allocation_detail::list::CompensationCostItem {
+                            compensation_costs: Some(vec![
+                                cost_allocation_detail::list::CompensationCost {
+                                    compensation_cost_value: Some("123456.78".to_string()),
+                                    i18n_names: Some(vec![
+                                        cost_allocation_detail::list::I18nContent {
+                                            locale: Some("zh_cn".to_string()),
+                                            value: Some("名称".to_string()),
+                                            id: None,
+                                        }
+                                    ]),
+                                }
+                            ]),
+                        }
+                    ),
+                    employment_id: Some("72321836123692186".to_string()),
+                }
+            ]),
+            cost_allocation_report_names: Some(vec![cost_allocation_detail::list::I18nContent {
+                locale: Some("zh_cn".to_string()),
+                value: Some("名称".to_string()),
+                id: None,
+            }]),
+            pay_period: "2024-06".to_string(),
             has_more: false,
             page_token: None,
         }
@@ -885,17 +1101,65 @@ mod serialization_tests {
         test_list_cost_allocation_report_response_serialization,
         cost_allocation_report::list::ListResponse,
         cost_allocation_report::list::ListResponse {
-            items: vec![cost_allocation_report::list::CostAllocationReport {
-                report_id: "car_1".to_string(),
-                activity_id: "pa_1".to_string(),
-                plan_id: "plan_1".to_string(),
-                cost_center_id: Some("cc_1".to_string()),
-                cost_center_name: Some("研发中心".to_string()),
-                employee_count: 120,
-                total_amount: 500000.0,
-                currency: Some("CNY".to_string()),
-                stats_time: 1735689600,
-            }],
+            pay_period: "2023-11".to_string(),
+            cost_allocation_report_names: Some(vec![cost_allocation_report::list::I18nContent {
+                locale: Some("zh_cn".to_string()),
+                value: Some("名称".to_string()),
+                id: None,
+            }]),
+            cost_allocation_report_datas: Some(vec![
+                cost_allocation_report::list::CostAllocationReportData {
+                    data_summary_dimensions: Some(vec![
+                        cost_allocation_report::list::DataSummaryDimension {
+                            dimension_level: Some(1),
+                            dimension_type: Some(1),
+                            dimension_value_id: Some("6823630319749580306".to_string()),
+                            enum_dimension: Some(cost_allocation_report::list::EnumDimension {
+                                enum_value_id: Some("7188920315914207276".to_string()),
+                                enum_key: Some("company".to_string()),
+                            }),
+                            dimension_value_lookup_info: Some(
+                                cost_allocation_report::list::DimensionValueLookupInfo {
+                                    r#type: Some("work_calendar".to_string()),
+                                    id: Some("6961286846093788621".to_string()),
+                                    code: Some("D1230011115".to_string()),
+                                },
+                            ),
+                            dimension_names: Some(vec![
+                                cost_allocation_report::list::I18nContent {
+                                    locale: Some("zh_cn".to_string()),
+                                    value: Some("名称".to_string()),
+                                    id: None,
+                                }
+                            ]),
+                            dimension_titles: Some(vec![
+                                cost_allocation_report::list::I18nContent {
+                                    locale: Some("zh_cn".to_string()),
+                                    value: Some("名称".to_string()),
+                                    id: Some("723123123123123213".to_string()),
+                                }
+                            ]),
+                        },
+                    ]),
+                    compensation_cost_item: Some(
+                        cost_allocation_report::list::CompensationCostItem {
+                            number_of_individuals_for_payment: Some(100),
+                            compensation_costs: Some(vec![
+                                cost_allocation_report::list::CompensationCost {
+                                    compensation_cost_value: Some("123456.78".to_string()),
+                                    i18n_names: Some(vec![
+                                        cost_allocation_report::list::I18nContent {
+                                            locale: Some("zh_cn".to_string()),
+                                            value: Some("名称".to_string()),
+                                            id: None,
+                                        }
+                                    ]),
+                                }
+                            ]),
+                        }
+                    ),
+                },
+            ]),
             has_more: false,
             page_token: Some("next_report".to_string()),
         }

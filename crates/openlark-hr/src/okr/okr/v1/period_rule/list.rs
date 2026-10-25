@@ -70,30 +70,25 @@ impl ListRequest {
 /// 获取 OKR 周期规则响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 周期规则列表
-    pub items: Vec<PeriodRule>,
+    /// 周期规则列表（period_rule[]）
+    #[serde(default)]
+    pub period_rules: Vec<PeriodRule>,
 }
 
-/// OKR 周期规则
+/// OKR 周期规则（官方 `period_rule`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PeriodRule {
-    /// 规则 ID
-    pub rule_id: String,
-    /// 周期 ID
-    pub period_id: String,
-    /// 规则名称
-    pub name: String,
-    /// 规则类型
-    /// - 1: 评分规则
-    /// - 2: 进度更新规则
-    /// - 3: 复盘规则
-    pub rule_type: i32,
-    /// 规则配置
-    pub config: serde_json::Value,
-    /// 创建时间
-    pub created_at: i64,
-    /// 更新时间
-    pub updated_at: i64,
+    /// 周期规则 ID
+    pub period_rule_id: String,
+    /// 周期类型（year: 年度周期 / month: 月度周期）
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub period_type: Option<String>,
+    /// 周期长度（月）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<i32>,
+    /// 每年首个开始月份
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_month: Option<i32>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -116,7 +111,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        // 官方响应示例形状：data.period_rules[]（period_rule_id/type/length/first_month）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"period_rules": [{"period_rule_id": "134", "type": "year", "length": 12, "first_month": 12}]}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/period_rules"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -139,7 +138,11 @@ mod tests {
             .await
             .expect("okr_v1_period_rule_list 应成功");
 
-        assert!(data.items.is_empty());
+        assert_eq!(data.period_rules.len(), 1);
+        assert_eq!(data.period_rules[0].period_rule_id, "134");
+        assert_eq!(data.period_rules[0].period_type.as_deref(), Some("year"));
+        assert_eq!(data.period_rules[0].length, Some(12));
+        assert_eq!(data.period_rules[0].first_month, Some(12));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

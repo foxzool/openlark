@@ -108,12 +108,14 @@ pub struct QueryRequestBody {
 
 /// 查询排班表响应
 ///
-/// 官网 response `data.user_daily_shifts` 为数组，items schema 未完整给出，透传 `Value`。
+/// 官方响应体表格完整给出 `data.user_daily_shifts[]` 的全部字段
+/// （group_id/shift_id/month/user_id/day_no），与 batch_create 的
+/// [`super::batch_create::UserDailyShift`] 同构，直接复用 typed 建模。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 排班记录列表
+    /// 排班记录列表（user_daily_shift[]）
     #[serde(default)]
-    pub user_daily_shifts: Vec<serde_json::Value>,
+    pub user_daily_shifts: Vec<super::batch_create::UserDailyShift>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -148,12 +150,15 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
+        // 官方响应示例形状：data.user_daily_shifts[]（typed 元素）
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_daily_shifts/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "user_daily_shifts": [] }
+                "data": { "user_daily_shifts": [
+                    { "group_id": "6737202939523236110", "shift_id": "6753520403404030215", "month": 202101, "user_id": "abd754f7", "day_no": 21 }
+                ] }
             })))
             .mount(&server)
             .await;
@@ -170,7 +175,12 @@ mod tests {
             .await
             .expect("attendance_v1_user_daily_shift_query 应成功");
 
-        assert!(data.user_daily_shifts.is_empty());
+        assert_eq!(data.user_daily_shifts.len(), 1);
+        assert_eq!(data.user_daily_shifts[0].group_id, "6737202939523236110");
+        assert_eq!(data.user_daily_shifts[0].shift_id, "6753520403404030215");
+        assert_eq!(data.user_daily_shifts[0].month, 202_101);
+        assert_eq!(data.user_daily_shifts[0].user_id, "abd754f7");
+        assert_eq!(data.user_daily_shifts[0].day_no, 21);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

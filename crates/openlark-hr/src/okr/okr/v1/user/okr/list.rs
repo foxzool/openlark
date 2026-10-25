@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/okr-v1/user.okr/list>
 
+use crate::okr::okr::v1::okr::batch_get::OkrBatch;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -14,46 +15,79 @@ use serde::{Deserialize, Serialize};
 /// 获取用户的 OKR 列表请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
-    /// 用户 ID（必填）
+    /// 目标用户 ID（必填，路径参数）
     user_id: String,
-    /// 周期 ID（可选）
-    period_id: Option<String>,
-    /// 分页大小（可选，默认 50，最大 100）
-    page_size: Option<i32>,
-    /// 分页标记（可选）
-    page_token: Option<String>,
+    /// 请求列表的偏移（必填，对应响应体的 okr_list 字段，>= 0）
+    offset: i32,
+    /// 列表长度（必填，0-10）
+    limit: i32,
+    /// 用户 ID 类型（可选，默认 open_id）
+    user_id_type: Option<String>,
+    /// 请求 OKR 的语言版本（可选，zh_cn/en_us，默认 zh_cn）
+    lang: Option<String>,
+    /// 周期 ID 列表（可选，最多 10 个）
+    period_ids: Vec<String>,
     /// 配置信息
     config: Config,
 }
 
 impl ListRequest {
     /// 创建请求
-    pub fn new(config: Config, user_id: String) -> Self {
+    ///
+    /// - `user_id`: 目标用户 ID
+    /// - `offset`: 请求列表的偏移（>= 0）
+    /// - `limit`: 列表长度（0-10）
+    pub fn new(config: Config, user_id: String, offset: i32, limit: i32) -> Self {
         Self {
             user_id,
-            period_id: None,
-            page_size: None,
-            page_token: None,
+            offset,
+            limit,
+            user_id_type: None,
+            lang: None,
+            period_ids: Vec::new(),
             config,
         }
     }
 
-    /// 设置周期 ID（可选）
-    pub fn period_id(mut self, period_id: String) -> Self {
-        self.period_id = Some(period_id);
+    /// 设置用户 ID 类型（可选，open_id/union_id/user_id/people_admin_id）
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
         self
     }
 
-    /// 设置分页大小（可选，默认 50，最大 100）
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
+    /// 设置语言版本（可选，zh_cn/en_us）
+    pub fn lang(mut self, lang: String) -> Self {
+        self.lang = Some(lang);
         self
     }
 
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
+    /// 设置周期 ID 列表（可选，最多 10 个）
+    pub fn period_ids(mut self, period_ids: Vec<String>) -> Self {
+        self.period_ids = period_ids;
         self
+    }
+
+    fn validate(&self) -> SDKResult<()> {
+        validate_required!(self.user_id.trim(), "user_id");
+        if self.offset < 0 {
+            return Err(openlark_core::error::validation_error(
+                "offset 无效",
+                "offset 必须为不小于 0 的整数",
+            ));
+        }
+        if !(0..=10).contains(&self.limit) {
+            return Err(openlark_core::error::validation_error(
+                "limit 无效",
+                "limit 取值范围为 0-10",
+            ));
+        }
+        if !self.period_ids.is_empty() && self.period_ids.len() > 10 {
+            return Err(openlark_core::error::validation_error(
+                "period_ids 无效",
+                "period_ids 不能为空且不能超过 10 个",
+            ));
+        }
+        Ok(())
     }
 
     /// 执行请求
@@ -67,25 +101,30 @@ impl ListRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResponse> {
-        validate_required!(self.user_id.trim(), "user_id");
+        self.validate()?;
 
         let mut request = ApiRequest::<ListResponse>::get(format!(
             "/open-apis/okr/v1/users/{}/okrs",
             self.user_id
         ));
 
-        // 2. 添加查询参数
-        if let Some(ref period_id) = self.period_id {
-            request = request.query("period_id", period_id);
+        // 官方 offset/limit 类型为 string，此处以整数建模后按字符串传递
+        request = request
+            .query("offset", self.offset.to_string())
+            .query("limit", self.limit.to_string());
+
+        if let Some(ref user_id_type) = self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
         }
-        if let Some(page_size) = self.page_size {
-            request = request.query("page_size", page_size.to_string());
+        if let Some(ref lang) = self.lang {
+            request = request.query("lang", lang);
         }
-        if let Some(ref page_token) = self.page_token {
-            request = request.query("page_token", page_token);
+        // 官方类型为 string[]，与 okr/batch_get 的 okr_ids 相同以逗号拼接传递
+        if !self.period_ids.is_empty() {
+            request = request.query("period_ids", self.period_ids.join(","));
         }
 
-        // 3. 发送请求
+        // 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -99,32 +138,12 @@ impl ListRequest {
 /// 获取用户的 OKR 列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// OKR 列表
-    pub items: Vec<UserOkr>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-}
-
-/// 用户 OKR
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct UserOkr {
-    /// OKR ID
-    pub okr_id: String,
-    /// OKR 标题
-    pub title: String,
-    /// OKR 内容
-    pub content: String,
-    /// 周期 ID
-    pub period_id: String,
-    /// 进度百分比
-    pub progress_rate: i32,
-    /// 状态
-    pub status: i32,
-    /// 创建时间
-    pub created_at: i64,
+    /// OKR 列表（okr_batch[]，复用 okr/batch_get 的建模）
+    #[serde(default)]
+    pub okr_list: Vec<OkrBatch>,
+    /// OKR 周期总数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i32>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -143,14 +162,19 @@ mod tests {
     async fn test_list_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.okr_list[]（okr_batch）+ total
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"okr_list": [{"id": "7072252816005349396", "name": "2022 年 3 月", "period_id": "7067724095781142548", "permission": 1, "confirm_status": 4, "objective_list": []}], "total": 14}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/users/user_001/okrs"))
+            .and(query_param("offset", "0"))
+            .and(query_param("limit", "10"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -166,13 +190,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = ListRequest::new(config, "user_001".to_string())
+        let data = ListRequest::new(config, "user_001".to_string(), 0, 10)
             .execute()
             .await
             .expect("list 应成功");
 
-        assert!(data.items.is_empty());
-        let _ = data.has_more;
+        assert_eq!(data.okr_list.len(), 1);
+        assert_eq!(data.okr_list[0].id, "7072252816005349396");
+        assert_eq!(data.okr_list[0].confirm_status, Some(4));
+        assert_eq!(data.total, Some(14));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -180,5 +206,9 @@ mod tests {
             received[0].url.path(),
             "/open-apis/okr/v1/users/user_001/okrs"
         );
+        // 必填查询参数 offset/limit 须出现在 query string 中
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("offset=0"), "缺 offset: {query}");
+        assert!(query.contains("limit=10"), "缺 limit: {query}");
     }
 }

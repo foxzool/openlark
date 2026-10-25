@@ -157,21 +157,30 @@ mod http_tests {
                 "code":0,
                 "msg":"ok",
                 "data":{
+                    // 官方响应示例形状：item 顶层仅 user_id + system_fields + custom_fields
                     "items":[{
                         "user_id":"ou_1",
-                        "employee_no":"E001",
-                        "name":"张三",
-                        "avatar":"https://example.com/avatar.jpg",
-                        "department_ids":["d_1"],
-                        "position_id":"p_1",
-                        "position_name":"工程师",
-                        "employment_status":2,
-                        "hire_date":1735689600,
-                        "termination_date":null,
-                        "working_hours_type_id":"w_1",
-                        "cost_center_id":"c_1",
-                        "direct_manager_id":"ou_mgr",
-                        "custom_fields":{"level":"P6"}
+                        "system_fields":{
+                            "name":"张三",
+                            "en_name":"Tony Zhang",
+                            "email":"a@b.com",
+                            "mobile":"(+86) 13812345678",
+                            "department_id":"od-4d551617a5da3cec26666d33175dc8ca",
+                            "manager":{
+                                "user_id":"ou_mgr",
+                                "name":"李四",
+                                "en_name":"Tom Li"
+                            },
+                            "job":{"id":1695838220091399i64,"name":"测试工程师"},
+                            "job_level":{"id":1695838220091399i64,"name":"P6"},
+                            "work_location":{"id":1695838220091399i64,"name":"武汉"},
+                            "employee_no":"E001",
+                            "status":2,
+                            "hire_date":"2020-01-01"
+                        },
+                        "custom_fields":[
+                            {"key":"field_xxxxxxxx","label":"自定义字段 1","type":"date","value":"2021-01-13"}
+                        ]
                     }],
                     "has_more":false,
                     "page_token":"next_2"
@@ -187,7 +196,25 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].position_name, Some("工程师".to_string()));
+        let profile = &resp.items[0];
+        let system_fields = profile.system_fields.as_ref().unwrap();
+        assert_eq!(system_fields.name.as_deref(), Some("张三"));
+        assert_eq!(
+            system_fields
+                .manager
+                .as_ref()
+                .and_then(|m| m.user_id.as_deref()),
+            Some("ou_mgr")
+        );
+        assert_eq!(
+            system_fields.job.as_ref().and_then(|j| j.name.as_deref()),
+            Some("测试工程师")
+        );
+        assert_eq!(system_fields.hire_date.as_deref(), Some("2020-01-01"));
+        assert_eq!(
+            profile.custom_fields.as_ref().unwrap()[0].label.as_deref(),
+            Some("自定义字段 1")
+        );
     }
 }
 
@@ -221,20 +248,87 @@ mod serialization_tests {
         employee::list::ListResponse,
         employee::list::ListResponse {
             items: vec![employee::list::EmployeeProfile {
-                user_id: "ou_1".to_string(),
-                employee_no: Some("E001".to_string()),
-                name: Some("张三".to_string()),
-                avatar: Some("https://example.com/avatar.jpg".to_string()),
-                department_ids: Some(vec!["d_1".to_string()]),
-                position_id: Some("p_1".to_string()),
-                position_name: Some("工程师".to_string()),
-                employment_status: Some(2),
-                hire_date: Some(1735689600),
-                termination_date: None,
-                working_hours_type_id: Some("w_1".to_string()),
-                cost_center_id: Some("c_1".to_string()),
-                direct_manager_id: Some("ou_mgr".to_string()),
-                custom_fields: Some(json!({"level":"P6"})),
+                user_id: Some("ou_1".to_string()),
+                system_fields: Some(employee::list::SystemFields {
+                    name: Some("张三".to_string()),
+                    en_name: Some("Tony Zhang".to_string()),
+                    email: Some("a@b.com".to_string()),
+                    mobile: None,
+                    department_id: Some("od_1".to_string()),
+                    manager: Some(employee::list::ManagerRef {
+                        user_id: Some("ou_mgr".to_string()),
+                        name: Some("李四".to_string()),
+                        en_name: Some("Tom Li".to_string()),
+                    }),
+                    job: Some(employee::list::IdNameObject {
+                        id: Some(1695838220091399),
+                        name: Some("测试工程师".to_string()),
+                    }),
+                    job_level: None,
+                    work_location: None,
+                    gender: Some(1),
+                    birthday: None,
+                    native_region: None,
+                    ethnicity: None,
+                    marital_status: None,
+                    political_status: None,
+                    entered_workforce_date: None,
+                    id_type: Some(1),
+                    id_number: None,
+                    hukou_type: None,
+                    hukou_location: None,
+                    bank_account_number: None,
+                    bank_name: None,
+                    social_security_account: None,
+                    provident_fund_account: None,
+                    employee_no: Some("E001".to_string()),
+                    employee_type: Some(1),
+                    status: Some(2),
+                    hire_date: Some("2020-01-01".to_string()),
+                    probation_months: Some(2.0),
+                    conversion_date: None,
+                    application: None,
+                    application_status: None,
+                    last_day: None,
+                    departure_type: None,
+                    departure_reason: None,
+                    departure_notes: None,
+                    contract_company: None,
+                    contract_type: None,
+                    contract_start_date: None,
+                    contract_expiration_date: None,
+                    contract_sign_times: None,
+                    personal_email: None,
+                    family_address: None,
+                    primary_emergency_contact: None,
+                    emergency_contact: Some(vec![employee::list::EmergencyContact {
+                        name: Some("张三".to_string()),
+                        relationship: Some(1),
+                        mobile: Some("(+86) 13812345678".to_string()),
+                    }]),
+                    highest_level_of_edu: None,
+                    education: None,
+                    former_work_exp: None,
+                    work_exp: None,
+                    id_photo_po_side: None,
+                    id_photo_em_side: None,
+                    id_photo: None,
+                    diploma_photo: None,
+                    graduation_cert: None,
+                    cert_of_merit: None,
+                    offboarding_file: None,
+                    cancel_onboarding_reason: None,
+                    cancel_onboarding_notes: None,
+                    employee_form_status: None,
+                    create_time: Some(1608690517811),
+                    update_time: Some(1608690517811),
+                }),
+                custom_fields: Some(vec![employee::list::CustomField {
+                    key: Some("field_xxxxxxxx".to_string()),
+                    label: Some("自定义字段 1".to_string()),
+                    r#type: Some("date".to_string()),
+                    value: Some("2021-01-13".to_string()),
+                }]),
             }],
             has_more: false,
             page_token: Some("next_2".to_string()),
