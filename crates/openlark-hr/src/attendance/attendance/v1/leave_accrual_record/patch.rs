@@ -169,14 +169,60 @@ pub struct LangText {
     pub value: String,
 }
 
+/// 发放记录
+///
+/// 对应官方响应体 `data.record`（leave_accrual_record schema）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LeaveAccrualRecord {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放记录唯一 ID
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 员工 ID，类型对应 `user_id_type`
+    pub employment_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 假期类型 ID
+    pub leave_type_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放数量
+    pub granting_quantity: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放单位，1 表示天，2 表示小时
+    pub granting_unit: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 生效日期，格式为 `yyyy-MM-dd`
+    pub effective_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 失效日期，格式为 `yyyy-MM-dd`
+    pub expiration_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放来源，1 系统发放 / 2 手动发放 / 3 外部系统发放
+    pub granted_by: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放原因（多语言）
+    pub reason: Option<Vec<LangText>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放记录的创建时间（unix 时间戳，官方类型为 string）
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放记录的创建人 ID，类型对应 `user_id_type`
+    pub created_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放记录的更新时间（unix 时间戳，官方类型为 string）
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 发放记录的更新人 ID，类型对应 `user_id_type`
+    pub updated_by: Option<String>,
+}
+
 /// 修改发放记录响应
 ///
-/// 官网 response `data.record` 为 object，schema 未完整给出，透传 `Value`。
+/// 官方响应体 `data.record` 为 leave_accrual_record object（schema 已完整给出）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PatchResponse {
     /// 发放记录
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub record: Option<serde_json::Value>,
+    pub record: Option<LeaveAccrualRecord>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -223,7 +269,23 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "record": { "leave_granting_record_id": "6893014062142064135" } }
+                "data": {
+                    "record": {
+                        "id": "6893014062142064135",
+                        "employment_id": "6982509313466189342",
+                        "leave_type_id": "7111688079785723436",
+                        "granting_quantity": "1",
+                        "granting_unit": 1,
+                        "effective_date": "2020-01-01",
+                        "expiration_date": "2020-12-31",
+                        "granted_by": 1,
+                        "reason": [ { "lang": "zh_CN", "value": "test" } ],
+                        "created_at": "1687428000",
+                        "created_by": "6982509313466189342",
+                        "updated_at": "1687428000",
+                        "updated_by": "6982509313466189342"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -250,7 +312,19 @@ mod tests {
         .await
         .expect("attendance_v1_leave_accrual_record_patch 应成功");
 
-        assert!(data.record.is_some());
+        let record = data.record.expect("响应应包含 record");
+        assert_eq!(record.id, Some("6893014062142064135".to_string()));
+        assert_eq!(record.granting_quantity, Some("1".to_string()));
+        assert_eq!(record.granting_unit, Some(1));
+        assert_eq!(record.granted_by, Some(1));
+        assert_eq!(record.created_at, Some("1687428000".to_string()));
+        assert_eq!(
+            record.reason,
+            Some(vec![LangText {
+                lang: "zh_CN".to_string(),
+                value: "test".to_string(),
+            }])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

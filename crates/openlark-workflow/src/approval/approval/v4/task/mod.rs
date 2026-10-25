@@ -19,7 +19,7 @@ pub use add_sign::{AddSignTaskBodyV4, AddSignTaskRequestV4, AddSignTaskResponseV
 
 pub use approve::{ApproveTaskBodyV4, ApproveTaskRequestV4, ApproveTaskResponseV4};
 // query 模块显式导出
-pub use query::{QueryTaskRequestV4, QueryTaskResponseV4, TaskItemV4};
+pub use query::{QueryTaskRequestV4, QueryTaskResponseV4, TaskCountV4, TaskItemV4, TaskUrlsV4};
 // forward 模块显式导出
 pub use forward::{ForwardTaskBodyV4, ForwardTaskRequestV4, ForwardTaskResponseV4};
 // list 模块显式导出

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 /// 获取用户列表请求
 ///
-/// 支持分页及部门过滤。
+/// 支持分页。
 #[derive(Debug)]
 pub struct ListUsersRequest {
     /// 配置信息。
@@ -19,8 +19,8 @@ pub struct ListUsersRequest {
     page_size: Option<i32>,
     /// 分页标记（可选）。
     page_token: Option<String>,
-    /// 部门 ID 过滤（可选）。
-    department_id: Option<String>,
+    /// 用户 ID 类型（查询参数，可选，open_id/union_id/user_id，默认 open_id）。
+    user_id_type: Option<String>,
 }
 
 /// 获取用户列表响应
@@ -56,7 +56,7 @@ impl ListUsersRequest {
             config,
             page_size: None,
             page_token: None,
-            department_id: None,
+            user_id_type: None,
         }
     }
 
@@ -72,9 +72,9 @@ impl ListUsersRequest {
         self
     }
 
-    /// 设置部门 ID 过滤。
-    pub fn department_id(mut self, department_id: impl Into<String>) -> Self {
-        self.department_id = Some(department_id.into());
+    /// 设置用户 ID 类型（open_id/union_id/user_id，查询参数）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -88,7 +88,7 @@ impl ListUsersRequest {
         let req: ApiRequest<ListUsersResponse> = ApiRequest::get("/open-apis/acs/v1/users")
             .query_opt("page_size", self.page_size.map(|v| v.to_string()))
             .query_opt("page_token", self.page_token.as_ref())
-            .query_opt("department_id", self.department_id.as_ref())
+            .query_opt("user_id_type", self.user_id_type.as_ref())
             .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取用户列表").await
@@ -130,7 +130,7 @@ mod tests {
 
         let resp = ListUsersRequest::new(config)
             .page_size(20)
-            .department_id("dept_001")
+            .user_id_type("open_id")
             .execute()
             .await
             .expect("获取用户列表应成功");
@@ -143,6 +143,10 @@ mod tests {
         assert_eq!(received.len(), 1);
         let query = received[0].url.query().unwrap_or("");
         assert!(query.contains("page_size=20"));
-        assert!(query.contains("department_id=dept_001"));
+        assert!(query.contains("user_id_type=open_id"));
+        assert!(
+            !query.contains("department_id"),
+            "官方查询参数表中无 department_id"
+        );
     }
 }

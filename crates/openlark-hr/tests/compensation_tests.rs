@@ -156,9 +156,12 @@ mod builder_tests {
     );
     smoke_builder!(
         test_social_plan_list_request_builder,
-        social_plan::list::ListRequest::new(test_config("https://open.feishu.cn"), 1735689600)
-            .page_size(20)
-            .page_token("next_social_plan".to_string())
+        social_plan::list::ListRequest::new(
+            test_config("https://open.feishu.cn"),
+            "2024-01-01".to_string(),
+        )
+        .page_size(20)
+        .page_token("next_social_plan".to_string())
     );
     smoke_builder!(
         test_social_plan_query_request_builder,
@@ -219,17 +222,20 @@ mod validation_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/social_plans"))
-            .and(query_param("effective_date", "1735689600"))
+            .and(query_param("effective_date", "2024-01-01"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({"code":0,"msg":"ok"})))
             .mount(&mock_server)
             .await;
 
-        let err = social_plan::list::ListRequest::new(test_config(&mock_server.uri()), 1735689600)
-            .execute_with_options(auth_option())
-            .await
-            .err()
-            .unwrap()
-            .to_string();
+        let err = social_plan::list::ListRequest::new(
+            test_config(&mock_server.uri()),
+            "2024-01-01".to_string(),
+        )
+        .execute_with_options(auth_option())
+        .await
+        .err()
+        .unwrap()
+        .to_string();
         assert!(
             err.contains("查询参保方案响应数据为空")
                 || err.contains("成功响应缺少必需的 data")
@@ -779,24 +785,42 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/social_plans"))
-            .and(query_param("effective_date", "1735689600"))
+            .and(query_param("effective_date", "2024-01-01"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_social_plan"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"sp_1","name":"标准参保","effective_date":1735689600}],"has_more":false,"page_token":"next_2"}
+                "data":{
+                    "plans":[{
+                        "plan_id":"sp_1",
+                        "plan_tid":"tid_1",
+                        "name":{"zh_cn":"标准参保","en_us":"Standard plan"},
+                        "effective_date":"2024-01-01",
+                        "active":true,
+                        "insurance_type":"social_insurance",
+                        "scope":{"is_all":true,"rules":[[{"left_type":1,"operator":1,"right_values":["city_1"]}]]},
+                        "item_detail":[],
+                        "remark":{"zh_cn":"备注","en_us":"remark"}
+                    }],
+                    "has_more":false,
+                    "page_token":"next_2"
+                }
             })))
             .mount(&mock_server)
             .await;
 
-        let resp = social_plan::list::ListRequest::new(test_config(&mock_server.uri()), 1735689600)
-            .page_size(20)
-            .page_token("next_social_plan".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
-        assert_eq!(resp.items[0].id, "sp_1");
+        let resp = social_plan::list::ListRequest::new(
+            test_config(&mock_server.uri()),
+            "2024-01-01".to_string(),
+        )
+        .page_size(20)
+        .page_token("next_social_plan".to_string())
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
+        assert_eq!(resp.plans[0].plan_id, "sp_1");
+        assert_eq!(resp.page_token, Some("next_2".to_string()));
     }
 
     #[tokio::test]
@@ -1126,10 +1150,22 @@ mod serialization_tests {
         test_social_plan_list_response_serialization,
         social_plan::list::ListResponse,
         social_plan::list::ListResponse {
-            items: vec![social_plan::list::SocialPlan {
-                id: "sp_1".to_string(),
-                name: "标准参保".to_string(),
-                effective_date: 1735689600,
+            plans: vec![social_plan::query::SocialPlan {
+                plan_id: "sp_1".to_string(),
+                plan_tid: "tid_1".to_string(),
+                name: social_plan::query::I18nName {
+                    zh_cn: Some("标准参保".to_string()),
+                    en_us: Some("Standard plan".to_string()),
+                },
+                effective_date: "2024-01-01".to_string(),
+                active: true,
+                insurance_type: "social_insurance".to_string(),
+                scope: None,
+                item_detail: vec![],
+                remark: social_plan::query::I18nName {
+                    zh_cn: Some("备注".to_string()),
+                    en_us: None,
+                },
             }],
             has_more: false,
             page_token: Some("next".to_string()),

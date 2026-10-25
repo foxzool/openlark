@@ -2,9 +2,9 @@
 //!
 //! [`UserFacesService`] 是轻量门面，返回 `super::user::face::*` 下的端点构建器。
 //!
-//! 注：飞书"上传用户人脸图片"接口在真实场景下走 multipart 上传二进制图片，当前
-//! `super::user::face::update::UpdateUserFaceRequest` 接收 JSON body（字段细化/multipart
-//! 支持见 spec §9，不在本次 Transport 迁移范围）。
+//! 注：飞书"上传用户人脸图片"接口为 multipart 上传二进制图片，
+//! `super::user::face::update::UpdateUserFaceRequest` 经 `execute(file_bytes)`
+//! 接收图片内容（部件名 `files`，表单字段 `file_type`/`file_name`）。
 
 use openlark_core::config::Config;
 

@@ -156,8 +156,6 @@ mod tests {
         let response: AppTicketResendResponseData =
             serde_json::from_str(json).expect("JSON 反序列化失败");
 
-        assert!(response.data.success);
-        assert_eq!(response.data.app_ticket, "");
         assert_eq!(response.data.error_message, Some("success".to_string()));
     }
 
@@ -190,7 +188,6 @@ mod tests {
             .await
             .expect("app_ticket_resend 请求应成功");
 
-        assert!(response.data.success);
         assert_eq!(response.data.error_message, Some("success".to_string()));
 
         let received_requests = server.received_requests().await.unwrap_or_default();

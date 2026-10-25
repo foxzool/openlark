@@ -15,7 +15,7 @@ impl WikiApiV1 {
     /// 生成对应的 URL
     pub fn to_url(&self) -> String {
         match self {
-            WikiApiV1::NodeSearch => "/open-apis/wiki/v1/nodes/search".to_string(),
+            WikiApiV1::NodeSearch => "/open-apis/wiki/v2/nodes/search".to_string(),
         }
     }
 
@@ -197,7 +197,7 @@ pub enum WikiApi {
     /// 获取任务结果
     GetTask(String), // task_id
 
-    // Node Search API (V1)
+    // Node Search API (V2)
     /// 搜索Wiki节点
     SearchNodes,
 }
@@ -251,8 +251,8 @@ impl WikiApi {
                 format!("/open-apis/wiki/v2/tasks/{task_id}")
             }
 
-            // Node Search API (V1)
-            WikiApi::SearchNodes => "/open-apis/wiki/v1/nodes/search".to_string(),
+            // Node Search API (V2)
+            WikiApi::SearchNodes => "/open-apis/wiki/v2/nodes/search".to_string(),
         }
     }
 

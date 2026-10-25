@@ -155,10 +155,10 @@ async fn workflow_execution_flow(
                     .workflow
                     .approve_task(
                         ApprovalTaskAction::new(
-                            task.approval_code.clone(),
-                            task.instance_code.clone(),
+                            task.approval_code.clone().unwrap_or_default(),
+                            task.instance_code.clone().unwrap_or_default(),
                             user_id.clone(),
-                            task.task_id.clone(),
+                            task.task_id.clone().unwrap_or_default(),
                         )
                         .user_id_type("open_id")
                         .comment("workflow 示例审批通过"),

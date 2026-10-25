@@ -41,20 +41,22 @@ impl VerificationGetRequestBuilder {
 }
 
 /// 认证信息响应
+///
+/// 官方响应 data 层为 `{ "verification": { "name": ..., "has_verification": ... } }`，
+/// 参见 <https://open.feishu.cn/document/server-docs/verification-v1/get>
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VerificationGetResponse {
+    /// 认证信息
+    pub verification: VerificationInfo,
+}
+
+/// 企业认证信息
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct VerificationInfo {
     /// 企业主体名称
-    #[serde(rename = "company_name")]
-    pub company_name: String,
-    /// 是否完成企业认证
-    #[serde(rename = "is_verified")]
-    pub is_verified: bool,
-    /// 认证时间（毫秒时间戳）
-    #[serde(rename = "verification_time")]
-    pub verification_time: Option<String>,
-    /// 认证有效期（毫秒时间戳）
-    #[serde(rename = "verification_expire_time")]
-    pub verification_expire_time: Option<String>,
+    pub name: String,
+    /// 企业是否完成认证
+    pub has_verification: bool,
 }
 
 impl ApiResponseTrait for VerificationGetResponse {}
@@ -67,21 +69,39 @@ pub type VerificationGetBuilder = VerificationGetRequestBuilder;
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
+    /// 官方示例响应 data 层：{"verification":{"has_verification":true,"name":"..."}}
     #[test]
-    fn test_serialization_roundtrip() {
+    fn test_deserialize_official_example() {
+        let response: VerificationGetResponse = serde_json::from_value(json!({
+            "verification": {
+                "has_verification": true,
+                "name": "无限未来科技公司"
+            }
+        }))
+        .expect("官方示例 JSON 反序列化失败");
+
+        assert_eq!(response.verification.name, "无限未来科技公司");
+        assert!(response.verification.has_verification);
+    }
+
+    /// 序列化后键名与官方字段一致，且不再包含幻觉字段
+    #[test]
+    fn test_serialization_uses_official_keys() {
         let response = VerificationGetResponse {
-            company_name: "飞书科技有限公司".to_string(),
-            is_verified: true,
-            verification_time: Some("1710000000000".to_string()),
-            verification_expire_time: None,
+            verification: VerificationInfo {
+                name: "飞书科技有限公司".to_string(),
+                has_verification: true,
+            },
         };
 
         let json = serde_json::to_string(&response).expect("JSON 序列化失败");
-        let parsed: VerificationGetResponse =
-            serde_json::from_str(&json).expect("JSON 反序列化失败");
-
-        assert_eq!(parsed.company_name, "飞书科技有限公司");
-        assert!(parsed.is_verified);
+        assert!(json.contains("\"verification\""));
+        assert!(json.contains("\"name\""));
+        assert!(json.contains("\"has_verification\""));
+        assert!(!json.contains("company_name"));
+        assert!(!json.contains("is_verified"));
+        assert!(!json.contains("verification_time"));
     }
 }

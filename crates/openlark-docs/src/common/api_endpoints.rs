@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn test_wiki_api_v1_node_search() {
         let endpoint = WikiApiV1::NodeSearch;
-        assert_eq!(endpoint.to_url(), "/open-apis/wiki/v1/nodes/search");
+        assert_eq!(endpoint.to_url(), "/open-apis/wiki/v2/nodes/search");
     }
 
     // ========== DocsApiV1 Tests ==========

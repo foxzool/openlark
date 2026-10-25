@@ -17,6 +17,8 @@ pub struct PatchUserRequest {
     config: Config,
     /// 用户 ID（路径参数，必填）。
     user_id: String,
+    /// 用户 ID 类型（查询参数，可选，open_id/union_id/user_id，默认 open_id）。
+    user_id_type: Option<String>,
     /// 请求体（可选，调用方自行构造 JSON）。
     body: Option<serde_json::Value>,
 }
@@ -27,8 +29,15 @@ impl PatchUserRequest {
         Self {
             config,
             user_id: user_id.into(),
+            user_id_type: None,
             body: None,
         }
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id，查询参数）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 设置请求体。
@@ -48,6 +57,7 @@ impl PatchUserRequest {
 
         let path = format!("/open-apis/acs/v1/users/{}", self.user_id);
         let mut req: ApiRequest<serde_json::Value> = ApiRequest::patch(&path)
+            .query_opt("user_id_type", self.user_id_type.as_ref())
             .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
         if let Some(body) = self.body {
             req = req.body(body);
@@ -103,6 +113,7 @@ mod tests {
             .build();
 
         let data = PatchUserRequest::new(config, "u_001")
+            .user_id_type("open_id")
             .body(json!({ "name": "李四" }))
             .execute()
             .await
@@ -112,6 +123,8 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/acs/v1/users/u_001");
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("user_id_type=open_id"));
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
         assert_eq!(sent["name"], "李四");
     }

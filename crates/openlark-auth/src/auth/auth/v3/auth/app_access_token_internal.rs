@@ -157,6 +157,10 @@ mod tests {
 
         assert_eq!(response.data.app_access_token, "token123");
         assert_eq!(response.data.expires_in, 7200);
+        assert_eq!(
+            response.data.tenant_access_token,
+            Some("tenant123".to_string())
+        );
     }
 
     #[tokio::test]
@@ -192,6 +196,10 @@ mod tests {
             .expect("app_access_token_internal 请求应成功");
 
         assert_eq!(response.data.app_access_token, "app-token");
+        assert_eq!(
+            response.data.tenant_access_token,
+            Some("tenant-token".to_string())
+        );
 
         let received_requests = server.received_requests().await.unwrap_or_default();
         assert_eq!(received_requests.len(), 1);

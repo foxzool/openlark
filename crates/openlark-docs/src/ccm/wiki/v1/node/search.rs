@@ -35,6 +35,8 @@ pub struct SearchWikiRequest {
 }
 
 /// 搜索 Wiki 请求体（内部使用）
+///
+/// 官方文档请求体仅 query/space_id/node_id；分页参数走查询参数，不在此序列化。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SearchWikiRequestBody {
     query: String,
@@ -42,10 +44,6 @@ struct SearchWikiRequestBody {
     space_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     node_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    page_size: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    page_token: Option<String>,
 }
 
 /// 搜索 Wiki 响应
@@ -97,13 +95,13 @@ impl SearchWikiRequest {
         self
     }
 
-    /// 设置每页大小
+    /// 设置每页大小（查询参数，0 < page_size <= 50，默认 20）
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
     }
 
-    /// 设置页面标记
+    /// 设置页面标记（查询参数）
     pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
         self.page_token = Some(page_token.into());
         self
@@ -122,18 +120,29 @@ impl SearchWikiRequest {
     ) -> SDKResult<SearchWikiResponse> {
         validate_required!(self.query, "搜索关键词不能为空");
 
+        // 官方文档查询参数约束：0 < page_size <= 50（默认 20）
+        if let Some(page_size) = self.page_size
+            && (page_size < 1 || page_size > 50)
+        {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 必须在 1~50 之间",
+            ));
+        }
+
         let api_endpoint = WikiApiV1::NodeSearch;
 
         let request_body = SearchWikiRequestBody {
             query: self.query,
             space_id: self.space_id,
             node_id: self.node_id,
-            page_size: self.page_size,
-            page_token: self.page_token,
         };
 
+        // 分页参数按官方文档放查询参数，不进请求体
         let api_request: ApiRequest<SearchWikiResponse> = api_endpoint
             .to_request()
+            .query_opt("page_size", self.page_size.map(|v| v.to_string()))
+            .query_opt("page_token", self.page_token.as_deref())
             .body(serialize_params(&request_body, "搜索Wiki")?);
 
         Transport::request_typed(api_request, &self.config, Some(option), "搜索").await
@@ -145,15 +154,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{header, method, path};
+    use wiremock::matchers::{header, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST /open-apis/wiki/v1/nodes/search → SearchWikiResponse（items）。
+    /// 端到端：POST /open-apis/wiki/v2/nodes/search → SearchWikiResponse（items）。
+    /// 分页参数走查询参数，请求体仅 query/space_id/node_id。
     #[tokio::test]
     async fn test_search_wiki_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/open-apis/wiki/v1/nodes/search"))
+            .and(path("/open-apis/wiki/v2/nodes/search"))
+            .and(query_param("page_size", "20"))
             .and(header("Authorization", "Bearer test-tenant-token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "items": [], "has_more": false }
@@ -179,10 +190,19 @@ mod tests {
         assert!(resp.items.is_empty());
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
-        assert_eq!(received[0].url.path(), "/open-apis/wiki/v1/nodes/search");
+        assert_eq!(received[0].url.path(), "/open-apis/wiki/v2/nodes/search");
+        // 分页参数在 query string，不在请求体
+        assert!(
+            received[0]
+                .url
+                .query()
+                .unwrap_or_default()
+                .contains("page_size=20")
+        );
         let body: serde_json::Value =
             serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
         assert_eq!(body["query"], "测试");
-        assert_eq!(body["page_size"], 20);
+        assert_eq!(body.get("page_size"), None);
+        assert_eq!(body.get("page_token"), None);
     }
 }
