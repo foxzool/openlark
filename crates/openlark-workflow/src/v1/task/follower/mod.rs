@@ -16,4 +16,4 @@ pub use create::{
 // delete 模块显式导出
 pub use delete::{DeleteTaskFollowerRequestV1, DeleteTaskFollowerResponseV1};
 // list 模块显式导出
-pub use list::{ListTaskFollowerRequestV1, ListTaskFollowerResponseV1, TaskFollowerItemV1};
+pub use list::{ListTaskFollowerRequestV1, ListTaskFollowerResponseV1};

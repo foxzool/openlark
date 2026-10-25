@@ -3,13 +3,13 @@
 
 use openlark_analytics::common::{SearchResult, SearchStats};
 use openlark_analytics::search::search::v2::data_source::get::{
-    DataSourceData, GetDataSourceResponse,
+    DataSource, GetDataSourceResponse, I18nMeta,
 };
 use openlark_analytics::search::search::v2::data_source::item::get::{
     DataSourceItemData, GetDataSourceItemResponse,
 };
 use openlark_analytics::search::search::v2::schema::get::{
-    GetSchemaResponse, SchemaData, SchemaField,
+    GetSchemaResponse, Schema, SchemaDisplay, SchemaDisplayFieldMapping, SchemaProperty,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -106,61 +106,120 @@ fn search_stats_contract() {
 
 #[test]
 fn schema_data_contract() {
+    // 官方响应形状：data 内容为 { "schema": { schema_id, properties, display } }
     let response: GetSchemaResponse = parse_contract(json!({
-        "data": {
+        "schema": {
             "schema_id": "sch_001",
-            "name": "文档索引范式",
-            "fields": [
+            "display": {
+                "card_key": "search_common_card",
+                "fields_mapping": [
+                    { "display_field": "tag1", "data_field": "${priority}" },
+                    { "display_field": "summary", "data_field": "${description}" }
+                ]
+            },
+            "properties": [
                 {
-                    "field_name": "title",
-                    "field_type": "TEXT"
+                    "name": "description",
+                    "type": "text",
+                    "is_searchable": true,
+                    "is_returnable": true,
+                    "search_options": { "enable_semantic_match": true }
                 },
                 {
-                    "field_name": "created_at",
-                    "field_type": "DATETIME"
+                    "name": "priority",
+                    "type": "tag",
+                    "is_returnable": true,
+                    "type_definitions": {
+                        "tag": [ { "name": "HIGH", "color": "red", "text": "紧急" } ]
+                    }
                 }
             ]
         }
     }));
-    let schema = response.data.expect("schema data should exist");
-    assert_eq!(schema.schema_id, "sch_001");
-    assert_eq!(schema.name, "文档索引范式");
-    assert_eq!(schema.fields.len(), 2);
-    assert_eq!(schema.fields[0].field_name, "title");
-    assert_eq!(schema.fields[0].field_type, "TEXT");
-    assert_eq!(schema.fields[1].field_name, "created_at");
-    assert_eq!(schema.fields[1].field_type, "DATETIME");
+    let schema = response.schema.expect("schema should exist");
+    assert_eq!(schema.schema_id.as_deref(), Some("sch_001"));
+    let properties = schema.properties.expect("properties should exist");
+    assert_eq!(properties.len(), 2);
+    assert_eq!(properties[0].name.as_deref(), Some("description"));
+    assert_eq!(properties[0].type_.as_deref(), Some("text"));
+    assert_eq!(properties[0].is_searchable, Some(true));
+    assert_eq!(
+        properties[1]
+            .type_definitions
+            .as_ref()
+            .and_then(|d| d.tag.as_ref())
+            .map(|t| t.len()),
+        Some(1)
+    );
+    assert_eq!(
+        schema.display.as_ref().and_then(|d| d.card_key.as_deref()),
+        Some("search_common_card")
+    );
     assert_json_contract(
         &GetSchemaResponse {
-            data: Some(SchemaData {
-                schema_id: "sch_001".to_string(),
-                name: "文档索引范式".to_string(),
-                fields: vec![
-                    SchemaField {
-                        field_name: "title".to_string(),
-                        field_type: "TEXT".to_string(),
+            schema: Some(Schema {
+                schema_id: Some("sch_001".to_string()),
+                properties: Some(vec![
+                    SchemaProperty {
+                        name: Some("description".to_string()),
+                        type_: Some("text".to_string()),
+                        is_searchable: Some(true),
+                        is_sortable: None,
+                        is_returnable: Some(true),
+                        sort_options: None,
+                        type_definitions: None,
+                        search_options: None,
                     },
-                    SchemaField {
-                        field_name: "created_at".to_string(),
-                        field_type: "DATETIME".to_string(),
+                    SchemaProperty {
+                        name: Some("priority".to_string()),
+                        type_: Some("tag".to_string()),
+                        is_searchable: None,
+                        is_sortable: None,
+                        is_returnable: Some(true),
+                        sort_options: None,
+                        type_definitions: None,
+                        search_options: None,
                     },
-                ],
+                ]),
+                display: Some(SchemaDisplay {
+                    card_key: Some("search_common_card".to_string()),
+                    fields_mapping: Some(vec![
+                        SchemaDisplayFieldMapping {
+                            display_field: Some("tag1".to_string()),
+                            data_field: Some("${priority}".to_string()),
+                        },
+                        SchemaDisplayFieldMapping {
+                            display_field: Some("summary".to_string()),
+                            data_field: Some("${description}".to_string()),
+                        },
+                    ]),
+                }),
             }),
         },
+        // skip_serializing_if 不出现在 to_value 输出中
         json!({
-            "data": {
+            "schema": {
                 "schema_id": "sch_001",
-                "name": "文档索引范式",
-                "fields": [
+                "properties": [
                     {
-                        "field_name": "title",
-                        "field_type": "TEXT"
+                        "name": "description",
+                        "type": "text",
+                        "is_searchable": true,
+                        "is_returnable": true
                     },
                     {
-                        "field_name": "created_at",
-                        "field_type": "DATETIME"
+                        "name": "priority",
+                        "type": "tag",
+                        "is_returnable": true
                     }
-                ]
+                ],
+                "display": {
+                    "card_key": "search_common_card",
+                    "fields_mapping": [
+                        { "display_field": "tag1", "data_field": "${priority}" },
+                        { "display_field": "summary", "data_field": "${description}" }
+                    ]
+                }
             }
         }),
     );
@@ -168,47 +227,94 @@ fn schema_data_contract() {
 
 #[test]
 fn schema_data_roundtrip() {
-    let original = SchemaData {
-        schema_id: "sch_roundtrip".to_string(),
-        name: "测试范式".to_string(),
-        fields: vec![SchemaField {
-            field_name: "url".to_string(),
-            field_type: "URL".to_string(),
-        }],
+    let original = Schema {
+        schema_id: Some("sch_roundtrip".to_string()),
+        properties: Some(vec![SchemaProperty {
+            name: Some("url".to_string()),
+            type_: Some("text".to_string()),
+            is_searchable: None,
+            is_sortable: None,
+            is_returnable: Some(true),
+            sort_options: None,
+            type_definitions: None,
+            search_options: None,
+        }]),
+        display: None,
     };
     let json_val = to_value(&original).unwrap();
-    let restored: SchemaData = from_value(json_val.clone()).unwrap();
+    let restored: Schema = from_value(json_val.clone()).unwrap();
     assert_eq!(restored.schema_id, original.schema_id);
-    assert_eq!(restored.fields.len(), 1);
+    assert_eq!(restored.properties.as_ref().map(|p| p.len()), Some(1));
     assert_json_contract(&restored, json_val);
 }
 
 #[test]
 fn data_source_data_contract() {
+    // 官方响应形状：data 内容为 { "data_source": { id, name, state, ... } }
     let response: GetDataSourceResponse = parse_contract(json!({
-        "data": {
-            "data_source_id": "ds_001",
+        "data_source": {
+            "id": "ds_001",
             "name": "内部知识库",
-            "description": "企业内部知识库数据源"
+            "state": 0,
+            "description": "企业内部知识库数据源",
+            "create_time": "1618829192",
+            "update_time": "1618829192",
+            "is_exceed_quota": false,
+            "icon_url": "https://www.xxx.com/open.jpg",
+            "template": "search_common_card",
+            "i18n_name": { "zh_cn": "任务", "en_us": "TODO", "ja_jp": "タスク" },
+            "schema_id": "custom_schema",
+            "app_id": "cli_a1306bed4738d01b"
         }
     }));
-    let ds = response.data.expect("data source should exist");
-    assert_eq!(ds.data_source_id, "ds_001");
-    assert_eq!(ds.name, "内部知识库");
-    assert_eq!(ds.description, "企业内部知识库数据源");
+    let ds = response.data_source.expect("data source should exist");
+    assert_eq!(ds.id.as_deref(), Some("ds_001"));
+    assert_eq!(ds.name.as_deref(), Some("内部知识库"));
+    assert_eq!(ds.state, Some(0));
+    assert_eq!(ds.is_exceed_quota, Some(false));
+    assert_eq!(
+        ds.i18n_name.as_ref().and_then(|m| m.en_us.as_deref()),
+        Some("TODO")
+    );
+    assert_eq!(ds.schema_id.as_deref(), Some("custom_schema"));
     assert_json_contract(
         &GetDataSourceResponse {
-            data: Some(DataSourceData {
-                data_source_id: "ds_001".to_string(),
-                name: "内部知识库".to_string(),
-                description: "企业内部知识库数据源".to_string(),
+            data_source: Some(DataSource {
+                id: Some("ds_001".to_string()),
+                name: Some("内部知识库".to_string()),
+                state: Some(0),
+                description: Some("企业内部知识库数据源".to_string()),
+                create_time: Some("1618829192".to_string()),
+                update_time: Some("1618829192".to_string()),
+                is_exceed_quota: Some(false),
+                icon_url: Some("https://www.xxx.com/open.jpg".to_string()),
+                template: Some("search_common_card".to_string()),
+                searchable_fields: None,
+                i18n_name: Some(I18nMeta {
+                    zh_cn: Some("任务".to_string()),
+                    en_us: Some("TODO".to_string()),
+                    ja_jp: Some("タスク".to_string()),
+                }),
+                i18n_description: None,
+                schema_id: Some("custom_schema".to_string()),
+                app_id: Some("cli_a1306bed4738d01b".to_string()),
             }),
         },
+        // skip_serializing_if 不出现在 to_value 输出中
         json!({
-            "data": {
-                "data_source_id": "ds_001",
+            "data_source": {
+                "id": "ds_001",
                 "name": "内部知识库",
-                "description": "企业内部知识库数据源"
+                "state": 0,
+                "description": "企业内部知识库数据源",
+                "create_time": "1618829192",
+                "update_time": "1618829192",
+                "is_exceed_quota": false,
+                "icon_url": "https://www.xxx.com/open.jpg",
+                "template": "search_common_card",
+                "i18n_name": { "zh_cn": "任务", "en_us": "TODO", "ja_jp": "タスク" },
+                "schema_id": "custom_schema",
+                "app_id": "cli_a1306bed4738d01b"
             }
         }),
     );
@@ -216,14 +322,25 @@ fn data_source_data_contract() {
 
 #[test]
 fn data_source_data_roundtrip() {
-    let original = DataSourceData {
-        data_source_id: "ds_roundtrip".to_string(),
-        name: "测试数据源".to_string(),
-        description: "用于契约测试".to_string(),
+    let original = DataSource {
+        id: Some("ds_roundtrip".to_string()),
+        name: Some("测试数据源".to_string()),
+        state: Some(1),
+        description: Some("用于契约测试".to_string()),
+        create_time: None,
+        update_time: None,
+        is_exceed_quota: None,
+        icon_url: None,
+        template: None,
+        searchable_fields: None,
+        i18n_name: None,
+        i18n_description: None,
+        schema_id: None,
+        app_id: None,
     };
     let json_val = to_value(&original).unwrap();
-    let restored: DataSourceData = from_value(json_val.clone()).unwrap();
-    assert_eq!(restored.data_source_id, original.data_source_id);
+    let restored: DataSource = from_value(json_val.clone()).unwrap();
+    assert_eq!(restored.id, original.id);
     assert_eq!(restored.name, original.name);
     assert_eq!(restored.description, original.description);
     assert_json_contract(&restored, json_val);
@@ -308,13 +425,13 @@ fn optional_fields_search_result() {
 
 #[test]
 fn schema_empty_fields() {
-    let schema = SchemaData {
-        schema_id: "sch_empty".to_string(),
-        name: "空字段范式".to_string(),
-        fields: vec![],
+    let schema = Schema {
+        schema_id: Some("sch_empty".to_string()),
+        properties: Some(vec![]),
+        display: None,
     };
     let json_val = to_value(&schema).unwrap();
-    let restored: SchemaData = from_value(json_val).unwrap();
-    assert!(restored.fields.is_empty());
-    assert_eq!(restored.schema_id, "sch_empty");
+    let restored: Schema = from_value(json_val).unwrap();
+    assert!(restored.properties.as_ref().is_some_and(|p| p.is_empty()));
+    assert_eq!(restored.schema_id.as_deref(), Some("sch_empty"));
 }

@@ -65,6 +65,6 @@ pub use task::{
     ApproveTaskBodyV4, ApproveTaskRequestV4, ApproveTaskResponseV4, QueryTaskRequestV4,
     QueryTaskResponseV4, RejectTaskBodyV4, RejectTaskRequestV4, RejectTaskResponseV4,
     ResubmitTaskBodyV4, ResubmitTaskRequestV4, ResubmitTaskResponseV4, SearchTaskRequestV4,
-    SearchTaskResponseV4, TaskItemV4, TransferTaskBodyV4, TransferTaskRequestV4,
-    TransferTaskResponseV4,
+    SearchTaskResponseV4, TaskCountV4, TaskItemV4, TaskUrlsV4, TransferTaskBodyV4,
+    TransferTaskRequestV4, TransferTaskResponseV4,
 };

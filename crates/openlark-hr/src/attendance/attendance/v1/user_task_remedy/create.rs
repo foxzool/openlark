@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/create>
 
+use super::UserTaskRemedy;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,6 +83,7 @@ impl CreateRequest {
             work_type: self.work_type,
             remedy_time: self.remedy_time,
             reason: self.reason,
+            time: None,
         };
         let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -117,16 +119,21 @@ pub struct CreateRequestBody {
     pub remedy_time: String,
     /// 补卡原因
     pub reason: String,
+    /// 补卡时间（官方标注「字段已失效」，示例值 "-"），默认不发送
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
 }
 
 /// 通知补卡审批发起响应
 ///
-/// 官网 response `data.user_remedy` 为 object，schema 未完整给出，透传 `Value`。
+/// 官网 response `data.user_remedy` 为 `user_task_remedy` 对象，字段已全部类型化；
+/// 其中 `status`/`time`/`time_zone`/`create_time`/`update_time` 官方标注为无效字段
+/// （示例恒为 "-" 或固定审批中）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
     /// 补卡审批结果
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_remedy: Option<serde_json::Value>,
+    pub user_remedy: Option<UserTaskRemedy>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -169,7 +176,20 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "user_remedy": { "remedy_id": "r_1" } }
+                "data": { "user_remedy": {
+                    "user_id": "abd754f7",
+                    "remedy_date": 20210701,
+                    "punch_no": 0,
+                    "work_type": 1,
+                    "approval_id": "6737202939523236113",
+                    "remedy_time": "2021-07-01 08:00",
+                    "status": 2,
+                    "reason": "忘记打卡",
+                    "time": "-",
+                    "time_zone": "-",
+                    "create_time": "-",
+                    "update_time": "-"
+                } }
             })))
             .mount(&server)
             .await;
@@ -194,7 +214,12 @@ mod tests {
         .await
         .expect("attendance_v1_user_task_remedy_create 应成功");
 
-        assert!(data.user_remedy.is_some());
+        let remedy = data.user_remedy.expect("user_remedy 应存在");
+        assert_eq!(remedy.user_id, "abd754f7");
+        assert_eq!(remedy.remedy_date, 20_210_701);
+        assert_eq!(remedy.approval_id, "6737202939523236113");
+        assert_eq!(remedy.remedy_time, "2021-07-01 08:00");
+        assert_eq!(remedy.reason, "忘记打卡");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

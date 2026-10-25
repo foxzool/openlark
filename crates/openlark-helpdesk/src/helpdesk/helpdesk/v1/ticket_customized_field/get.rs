@@ -10,40 +10,22 @@ use openlark_core::{
     config::Config,
     http::Transport,
 };
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::common::api_endpoints::HelpdeskApiV1;
 
-/// 获取指定工单自定义字段响应
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetTicketCustomizedFieldResponse {
-    /// 响应数据。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<TicketCustomizedFieldItem>,
-}
+use super::models::TicketCustomizedField;
+
+/// 获取指定工单自定义字段响应。
+///
+/// 官方响应 `data` 节点即工单自定义字段详情本身（无额外包装键），
+/// 信封由 Transport 处理，故直接复用完整模型。
+pub type GetTicketCustomizedFieldResponse = TicketCustomizedField;
 
 impl ApiResponseTrait for GetTicketCustomizedFieldResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// 工单自定义字段项
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TicketCustomizedFieldItem {
-    /// 字段ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 字段名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 字段类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub field_type: Option<String>,
-    /// 是否必填
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub required: Option<bool>,
 }
 
 /// 获取指定工单自定义字段请求
@@ -133,7 +115,7 @@ mod tests {
         assert_eq!(builder.id, "field_123");
     }
 
-    /// 端到端：GET .../ticket_customized_fields/{id} → 强类型 GetTicketCustomizedFieldResponse 解析（双层 data 信封）。
+    /// 端到端：GET .../ticket_customized_fields/{id} → 强类型响应解析（单层 data 信封，官方字段名）。
     #[tokio::test]
     async fn test_get_returns_data_on_success() {
         use serde_json::json;
@@ -143,14 +125,21 @@ mod tests {
 
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/open-apis/helpdesk/v1/ticket_customized_fields/tcf_001"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(json!({
-                    "code": 0,
-                    "msg": "success",
-                    "data": { "data": { "id": "tcf_001", "name": "工单编号", "field_type": "text", "required": true } }
-                })),
-            )
+            .and(path(
+                "/open-apis/helpdesk/v1/ticket_customized_fields/tcf_001",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "ticket_customized_field_id": "tcf_001",
+                    "helpdesk_id": "hd_001",
+                    "key_name": "ticket_no",
+                    "display_name": "工单编号",
+                    "field_type": "text",
+                    "required": true
+                }
+            })))
             .mount(&server)
             .await;
 
@@ -167,7 +156,9 @@ mod tests {
             .execute()
             .await
             .expect("获取指定工单自定义字段应成功");
-        assert!(resp.data.is_some());
+        assert_eq!(resp.ticket_customized_field_id.as_deref(), Some("tcf_001"));
+        assert_eq!(resp.key_name.as_deref(), Some("ticket_no"));
+        assert_eq!(resp.required, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

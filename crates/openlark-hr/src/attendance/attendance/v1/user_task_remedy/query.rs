@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_task_remedy/query>
 
+use super::UserTaskRemedy;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -126,12 +127,12 @@ pub struct QueryRequestBody {
 
 /// 获取补卡记录响应
 ///
-/// 官网 response `data.user_remedys` 为数组，items schema 未完整给出，透传 `Value`。
+/// 官网 response `data.user_remedys` 为 `user_task_remedy[]` 数组，元素字段已全部类型化。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
     /// 补卡记录列表
     #[serde(default)]
-    pub user_remedys: Vec<serde_json::Value>,
+    pub user_remedys: Vec<UserTaskRemedy>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -171,7 +172,20 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "user_remedys": [] }
+                "data": { "user_remedys": [{
+                    "user_id": "abd754f7",
+                    "remedy_date": 20210701,
+                    "punch_no": 0,
+                    "work_type": 1,
+                    "approval_id": "6737202939523236113",
+                    "remedy_time": "2021-07-01 08:00",
+                    "status": 2,
+                    "reason": "忘记打卡",
+                    "time": "1611476284",
+                    "time_zone": "Asia/Shanghai",
+                    "create_time": "1611476284",
+                    "update_time": "1611476284"
+                }] }
             })))
             .mount(&server)
             .await;
@@ -193,7 +207,14 @@ mod tests {
         .await
         .expect("attendance_v1_user_task_remedy_query 应成功");
 
-        assert!(data.user_remedys.is_empty());
+        assert_eq!(data.user_remedys.len(), 1);
+        let remedy = &data.user_remedys[0];
+        assert_eq!(remedy.user_id, "abd754f7");
+        assert_eq!(remedy.remedy_date, 20_210_701);
+        assert_eq!(remedy.approval_id, "6737202939523236113");
+        assert_eq!(remedy.status, 2);
+        assert_eq!(remedy.time, "1611476284");
+        assert_eq!(remedy.time_zone, "Asia/Shanghai");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
