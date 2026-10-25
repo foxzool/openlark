@@ -71,27 +71,39 @@ impl QueryRequest {
 }
 
 /// 查询员工离职原因列表响应
+///
+/// 对应官方响应体 `data` 节点（`ResponseFormat::Data` 下直接反序列化）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<OffboardingInfo>,
-}
-
-/// 离职信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct OffboardingInfo {
-    /// 离职条目列表
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 离职原因列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<OffboardingItem>>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
 }
 
-/// 离职条目
+/// 离职原因条目
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct OffboardingItem {
+    /// 离职原因唯一标识，可作为操作员工离职、搜索离职信息等接口的入参
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offboarding_reason_unique_identifier: Option<String>,
+    /// 名称（多语言，`[{lang, value}]` 形态）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<crate::common::shared_models::I18nLangValue>>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 当前离职原因的父级原因唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_offboarding_reason_unique_identifier: Option<String>,
+    /// 创建时间，格式："YYYY-MM-DD HH-mm-ss"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_time: Option<String>,
+    /// 更新时间，格式："YYYY-MM-DD HH-mm-ss"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_time: Option<String>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
@@ -118,7 +130,20 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/offboardings/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "offboarding_reason_unique_identifier": "reason_for_offboarding_option8",
+                            "name": [{"lang": "zh-CN", "value": "张三"}],
+                            "active": true,
+                            "parent_offboarding_reason_unique_identifier": "offboarding_reason_1",
+                            "created_time": "2021-08-20 20:28:23",
+                            "updated_time": "2022-01-07 17:21:06"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -130,10 +155,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRequest::new(config)
+        let resp = QueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解析出离职原因列表");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].offboarding_reason_unique_identifier.as_deref(),
+            Some("reason_for_offboarding_option8")
+        );
+        assert_eq!(items[0].active, Some(true));
+        assert_eq!(
+            items[0]
+                .name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("张三")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

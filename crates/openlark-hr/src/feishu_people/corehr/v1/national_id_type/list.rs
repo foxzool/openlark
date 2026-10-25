@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::NationalIdType;
 
 /// 批量查询国家证件类型请求
 #[derive(Debug, Clone)]
@@ -80,24 +81,15 @@ impl ListRequest {
 /// 批量查询国家证件类型响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 响应数据
     /// 数据列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<NationalIdTypeItem>>,
+    pub items: Option<Vec<NationalIdType>>,
     /// 分页令牌
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否还有更多数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-}
-
-/// 国家证件类型条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct NationalIdTypeItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -121,7 +113,15 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/national_id_types"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": { "items": [{
+                    "id": "test001",
+                    "country_region_id": "6862995747139225096",
+                    "name": [{ "lang": "zh-CN", "value": "张三" }],
+                    "active": true,
+                    "code": "AUS-TFN"
+                }], "has_more": false }
             })))
             .mount(&server)
             .await;
@@ -133,10 +133,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let data = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = data.items.expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, Some("test001".to_string()));
+        assert_eq!(
+            items[0].country_region_id,
+            Some("6862995747139225096".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

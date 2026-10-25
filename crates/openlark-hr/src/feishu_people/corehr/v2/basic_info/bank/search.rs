@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.bank/search>
 
+use crate::feishu_people::corehr::v2::basic_info::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,13 +83,25 @@ pub struct SearchResponse {
 pub struct BankItem {
     /// 银行 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 银行名称
+    pub bank_id: Option<String>,
+    /// 银行名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 银行编码
+    pub bank_name: Option<Vec<I18nText>>,
+    /// 总行代码
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    pub bank_code: Option<String>,
+    /// 国家/地区 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_region_id: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
+    /// 创建时间
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    /// 更新时间
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_time: Option<String>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -115,7 +128,22 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/basic_info/banks/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "bank_id": "MDBH00000080",
+                            "bank_name": [{ "lang": "zh-CN", "value": "中文示例" }],
+                            "bank_code": "CMB",
+                            "country_region_id": "6862995757234914824",
+                            "status": 1,
+                            "create_time": "2020-01-01 00:00:00",
+                            "update_time": "2024-01-01 00:00:00"
+                        }
+                    ],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -127,10 +155,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回银行条目");
+        assert_eq!(item.bank_id.as_deref(), Some("MDBH00000080"));
+        assert_eq!(item.bank_code.as_deref(), Some("CMB"));
+        assert_eq!(
+            item.country_region_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            item.bank_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

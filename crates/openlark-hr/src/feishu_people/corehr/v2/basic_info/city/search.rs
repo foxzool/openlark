@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.city/search>
 
+use crate::feishu_people::corehr::v2::basic_info::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,13 +83,22 @@ pub struct SearchResponse {
 pub struct CityItem {
     /// 城市 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 城市名称
+    pub city_id: Option<String>,
+    /// 城市名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 城市编码
+    pub name: Option<Vec<I18nText>>,
+    /// 所属省份/主要行政区 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_region_subdivision_id: Option<String>,
+    /// 城市三位字母代码
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
+    /// 行政区划代码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subregion_code: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -115,7 +125,21 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/basic_info/cities/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "city_id": "6863333352603125255",
+                            "name": [{ "lang": "zh-CN", "value": "中文示例" }],
+                            "country_region_subdivision_id": "6863326262757164551",
+                            "code": "HRB",
+                            "subregion_code": "230100",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "7316867189967963685",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -127,10 +151,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回城市条目");
+        assert_eq!(item.city_id.as_deref(), Some("6863333352603125255"));
+        assert_eq!(item.subregion_code.as_deref(), Some("230100"));
+        assert_eq!(item.status, Some(1));
+        assert_eq!(
+            item.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -55,8 +55,9 @@ impl CreateRequest {
 /// 创建岗位信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 岗位 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -80,7 +81,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/positions"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "position_id": "12345678" }
             })))
             .mount(&server)
             .await;
@@ -92,10 +93,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.position_id.as_deref(), Some("12345678"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

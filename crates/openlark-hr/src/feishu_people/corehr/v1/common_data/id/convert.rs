@@ -61,17 +61,20 @@ impl ConvertRequest {
 /// ID 转换响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConvertResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<IdConvertInfo>,
+    /// ID 信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<IdInfo>>,
 }
 
-/// ID 转换信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct IdConvertInfo {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+/// ID 转换信息条目
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct IdInfo {
+    /// 传入的 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 目标 ID 值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<String>,
 }
 
 impl ApiResponseTrait for ConvertResponse {
@@ -95,7 +98,13 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/common_data/id/convert"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {"id": "7224321696097404460", "target_id": "7224321696097404461"}
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -107,10 +116,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ConvertRequest::new(config)
+        let resp = ConvertRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.as_ref().expect("items 应被解码");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id.as_deref(), Some("7224321696097404460"));
+        assert_eq!(items[0].target_id.as_deref(), Some("7224321696097404461"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

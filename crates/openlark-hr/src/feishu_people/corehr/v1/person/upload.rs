@@ -56,8 +56,9 @@ impl UploadRequest {
 /// 上传文件响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UploadResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 上传文件 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
 }
 
 impl ApiResponseTrait for UploadResponse {
@@ -81,7 +82,9 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/persons/upload"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": { "id": "100" }
             })))
             .mount(&server)
             .await;
@@ -93,10 +96,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        UploadRequest::new(config)
+        let resp = UploadRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.id, Some("100".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

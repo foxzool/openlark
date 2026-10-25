@@ -73,8 +73,9 @@ impl CreateRequest {
 /// CreateResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 地址 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub address_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -92,13 +93,18 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/locations/test001/addresses
+    /// （官方 data 内层键为 address_id）
     #[tokio::test]
     async fn test_create_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/locations/test001/addresses"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "address_id": "6862995757234914824"
+                }
             })))
             .mount(&server)
             .await;
@@ -110,11 +116,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .location_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.address_id.as_deref(), Some("6862995757234914824"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -56,8 +56,9 @@ impl CreateRequest {
 /// CreateResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 职等 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grade_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -81,7 +82,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/job_grades"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "grade_id": "12345678" }
             })))
             .mount(&server)
             .await;
@@ -93,10 +94,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.grade_id, Some("12345678".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -57,8 +57,9 @@ impl CreateVersionRequest {
 /// 创建成本分摊响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateVersionResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 成本分摊ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_allocation_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateVersionResponse {
@@ -82,7 +83,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/cost_allocations/create_version"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "cost_allocation_id": "12345678" }
             })))
             .mount(&server)
             .await;
@@ -94,10 +95,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateVersionRequest::new(config)
+        let resp = CreateVersionRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.cost_allocation_id, Some("12345678".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

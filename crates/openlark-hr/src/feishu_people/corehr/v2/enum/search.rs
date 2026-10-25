@@ -56,33 +56,54 @@ impl SearchRequest {
 /// 查询枚举信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SearchResponse {
-    /// 响应数据
-    /// 数据列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<EnumItem>>,
-    /// 分页令牌
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-    /// 是否还有更多数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_more: Option<bool>,
+    /// 查询的枚举信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enums: Option<Vec<EnumInfo>>,
 }
 
-/// 枚举条目信息
+/// 枚举信息（官方 enums[] 元素结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct EnumItem {
-    /// 枚举值
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub enum_value: Option<String>,
+pub struct EnumInfo {
     /// 枚举名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub enum_name: Option<String>,
-    /// 枚举编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_apiname: Option<String>,
+    /// 枚举值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_items: Option<Vec<EnumField>>,
+}
+
+/// 枚举值（官方 enum_field 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnumField {
+    /// ApiName
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_name: Option<String>,
+    /// 枚举值名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18nText>>,
+    /// 枚举值描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<Vec<I18nText>>,
+    /// 所属枚举常量 ApiName
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_api_name: Option<String>,
+    /// 顺序
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<i32>,
+    /// 状态：1 生效，0 失效
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
+}
+
+/// 官方 i18n 多语文本结构：{lang, value}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言编码（IETF BCP 47）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for SearchResponse {
@@ -106,7 +127,29 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/enums/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "enums": [
+                        {
+                            "enum_apiname": "overtime_date_type",
+                            "enum_items": [
+                                {
+                                    "api_name": "special_day",
+                                    "name": [
+                                        { "lang": "zh-CN", "value": "中文示例" }
+                                    ],
+                                    "description": [
+                                        { "lang": "zh-CN", "value": "中文示例" }
+                                    ],
+                                    "enum_api_name": "overtime_date_type",
+                                    "order": 1,
+                                    "status": 1
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -118,10 +161,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let enums = resp.enums.expect("enums 应存在");
+        assert_eq!(enums.len(), 1);
+        assert_eq!(
+            enums[0].enum_apiname,
+            Some("overtime_date_type".to_string())
+        );
+        let enum_items = enums[0].enum_items.clone().expect("enum_items 应存在");
+        assert_eq!(enum_items.len(), 1);
+        assert_eq!(enum_items[0].api_name, Some("special_day".to_string()));
+        assert_eq!(enum_items[0].order, Some(1));
+        assert_eq!(enum_items[0].status, Some(1));
+        assert_eq!(
+            enum_items[0].name,
+            Some(vec![I18nText {
+                lang: Some("zh-CN".to_string()),
+                value: Some("中文示例".to_string()),
+            }])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

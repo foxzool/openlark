@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/patch>
 
+use super::create::EmployeesInternationalAssignmentResp;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -81,8 +82,9 @@ impl PatchRequest {
 /// `PatchResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PatchResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 外派信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub international_assignment: Option<EmployeesInternationalAssignmentResp>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -108,7 +110,35 @@ mod tests {
                 "/open-apis/corehr/v2/employees/international_assignments/test001",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "international_assignment": {
+                        "work_location_id": "7127921432117937708",
+                        "service_company": "7127921432117937708",
+                        "work_shift": {
+                            "enum_name": "phone_type",
+                            "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                        },
+                        "weekly_working_hours_v2": 8,
+                        "department_id": "7127921432117937708",
+                        "compensation_type": {
+                            "enum_name": "phone_type",
+                            "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                        },
+                        "employment_id": "7127921432117937708",
+                        "custom_fields": [
+                            { "field_name": "name", "value": "Sandy" }
+                        ],
+                        "international_assignment_status": {
+                            "enum_name": "phone_type",
+                            "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                        },
+                        "effective_time": "2024-01-02",
+                        "expiration_time": "2024-01-02",
+                        "id": "7127921432117937708"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -120,11 +150,19 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        PatchRequest::new(config)
+        let resp = PatchRequest::new(config)
             .international_assignment_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let assignment = resp.international_assignment.expect("应解析外派信息");
+        assert_eq!(
+            assignment.work_location_id,
+            Some("7127921432117937708".to_string())
+        );
+        assert_eq!(assignment.weekly_working_hours_v2, Some(8.0));
+        assert_eq!(assignment.id, Some("7127921432117937708".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

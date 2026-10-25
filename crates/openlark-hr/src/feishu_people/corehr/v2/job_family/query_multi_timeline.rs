@@ -58,8 +58,66 @@ impl QueryMultiTimelineRequest {
 /// QueryMultiTimelineResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryMultiTimelineResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 序列信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<JobFamilyTimelineItem>>,
+}
+
+/// 序列时间轴信息（官方 job_family_timeline 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JobFamilyTimelineItem {
+    /// 序列版本信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_family_version_data: Option<Vec<JobFamilyVersionData>>,
+}
+
+/// 序列版本信息（官方 job_family_version_data 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JobFamilyVersionData {
+    /// 序列 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_family_id: Option<String>,
+    /// 序列版本 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_family_version_id: Option<String>,
+    /// 序列名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_family_names: Option<Vec<I18nText>>,
+    /// 当前版本生效日期（YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_date: Option<String>,
+    /// 当前版本失效日期（YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expiration_date: Option<String>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub descriptions: Option<Vec<I18nText>>,
+    /// 是否可被使用，true 为可被使用，false 为不可被使用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selectable: Option<bool>,
+    /// 上级序列 ID（若查询的是一级序列，则该字段不展示）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_job_family_id: Option<String>,
+    /// 通道 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pathway_ids: Option<Vec<String>>,
+    /// 编码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+}
+
+/// 官方 i18n 多语文本结构：{lang, value}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言（中文用 zh-CN，英文用 en-US）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for QueryMultiTimelineResponse {
@@ -85,7 +143,33 @@ mod tests {
                 "/open-apis/corehr/v2/job_families/query_multi_timeline",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "job_family_version_data": [
+                                {
+                                    "job_family_id": "4719456877659520852",
+                                    "job_family_version_id": "7238516215202170412",
+                                    "job_family_names": [
+                                        { "lang": "zh-CN", "value": "技术序列" }
+                                    ],
+                                    "effective_date": "2020-05-01",
+                                    "expiration_date": "2020-05-02",
+                                    "active": true,
+                                    "descriptions": [
+                                        { "lang": "zh-CN", "value": "负责软件产品设计与开发的序列" }
+                                    ],
+                                    "selectable": true,
+                                    "parent_job_family_id": "4698020757495316313",
+                                    "pathway_ids": ["4719519211875096301"],
+                                    "code": "123456"
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -97,10 +181,33 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryMultiTimelineRequest::new(config)
+        let resp = QueryMultiTimelineRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        let version_data = items[0]
+            .job_family_version_data
+            .clone()
+            .expect("job_family_version_data 应存在");
+        assert_eq!(version_data.len(), 1);
+        assert_eq!(
+            version_data[0].job_family_version_id,
+            Some("7238516215202170412".to_string())
+        );
+        assert_eq!(
+            version_data[0].job_family_names,
+            Some(vec![I18nText {
+                lang: Some("zh-CN".to_string()),
+                value: Some("技术序列".to_string()),
+            }])
+        );
+        assert_eq!(
+            version_data[0].pathway_ids,
+            Some(vec!["4719519211875096301".to_string()])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

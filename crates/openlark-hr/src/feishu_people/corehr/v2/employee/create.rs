@@ -98,21 +98,15 @@ impl CreateRequest {
 /// 添加人员响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 员工信息
-    pub data: Option<CreateResponseData>,
-}
-
-/// `CreateResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct CreateResponseData {
-    /// 员工 ID
-    pub id: String,
-    /// 姓名
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 邮箱
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
+    /// 雇佣信息 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 合同 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_id: Option<String>,
+    /// 任职信息 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_data_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -227,7 +221,13 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/employees"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "employment_id": "6862995757234914824",
+                    "contract_id": "6862995757234914825",
+                    "job_data_id": "6862995757234914826"
+                }
             })))
             .mount(&server)
             .await;
@@ -239,11 +239,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequestBuilder::new(config)
+        let resp = CreateRequestBuilder::new(config)
             .name("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.employment_id.as_deref(), Some("6862995757234914824"));
+        assert_eq!(resp.contract_id.as_deref(), Some("6862995757234914825"));
+        assert_eq!(resp.job_data_id.as_deref(), Some("6862995757234914826"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

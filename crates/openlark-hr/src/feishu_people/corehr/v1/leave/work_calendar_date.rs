@@ -65,25 +65,26 @@ impl WorkCalendarDateRequest {
 /// 获取工作日历日期详情响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WorkCalendarDateResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<WorkCalendarDateInfo>,
+    /// 日期列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar_dates: Option<Vec<WorkCalendarItem>>,
 }
 
-/// 工作日历日期信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct WorkCalendarDateInfo {
-    /// 工作日历条目
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<WorkCalendarItem>>,
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
-}
-
-/// 工作日历条目
+/// 工作日历条目（官方 wk_calendar_date 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct WorkCalendarItem {
+    /// 工作日历 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar_id: Option<String>,
+    /// 日期，格式："2006-01-02"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<String>,
+    /// 日期类型（day_off / public_holiday / workday）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date_type: Option<String>,
+    /// 日期 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
@@ -104,13 +105,25 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/leaves/work_calendar_date
+    /// （官方 data 内层键为 calendar_dates，元素含 calendar_id / date / date_type / id）
     #[tokio::test]
     async fn test_work_calendar_date_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/leaves/work_calendar_date"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "calendar_dates": [
+                        {
+                            "calendar_id": "7390282135276635692",
+                            "date": "2006-01-02",
+                            "date_type": "day_off",
+                            "id": "7390282135276635692"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -122,10 +135,17 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        WorkCalendarDateRequest::new(config)
+        let resp = WorkCalendarDateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let dates = resp.calendar_dates.expect("calendar_dates 应解码");
+        assert_eq!(dates.len(), 1);
+        assert_eq!(dates[0].calendar_id.as_deref(), Some("7390282135276635692"));
+        assert_eq!(dates[0].date.as_deref(), Some("2006-01-02"));
+        assert_eq!(dates[0].date_type.as_deref(), Some("day_off"));
+        assert_eq!(dates[0].id.as_deref(), Some("7390282135276635692"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

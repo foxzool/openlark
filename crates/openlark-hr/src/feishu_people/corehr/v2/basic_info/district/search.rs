@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.district/search>
 
+use crate::feishu_people::corehr::v2::basic_info::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,13 +83,19 @@ pub struct SearchResponse {
 pub struct DistrictItem {
     /// 区/县 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 区/县名称
+    pub district_id: Option<String>,
+    /// 区/县名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 区/县编码
+    pub name: Option<Vec<I18nText>>,
+    /// 所属城市 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    pub city_id: Option<String>,
+    /// 行政区划代码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subregion_code: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -115,7 +122,20 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/basic_info/districts/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "district_id": "6863333353496512007",
+                            "name": [{ "lang": "zh-CN", "value": "中文示例" }],
+                            "city_id": "6863333352603125255",
+                            "subregion_code": "230110",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "6863333354096297480",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -127,10 +147,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回区/县条目");
+        assert_eq!(item.district_id.as_deref(), Some("6863333353496512007"));
+        assert_eq!(item.city_id.as_deref(), Some("6863333352603125255"));
+        assert_eq!(item.subregion_code.as_deref(), Some("230110"));
+        assert_eq!(
+            item.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

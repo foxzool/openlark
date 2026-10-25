@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::Person;
+
 /// 创建个人信息请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -67,8 +69,9 @@ impl CreateRequest {
 /// 创建个人信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 个人信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub person: Option<Person>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -92,7 +95,25 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/persons"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "person": {
+                        "phone_number": "11111111111",
+                        "legal_name": "张三",
+                        "preferred_name": "张四",
+                        "id": "646465654545",
+                        "name_list": [{
+                            "local_primary": "黄",
+                            "local_first_name": "四",
+                            "country_region_id": "6862995757234914824",
+                            "name_type": {
+                                "enum_name": "type_1",
+                                "display": [{ "lang": "zh-CN", "value": "刘梓新" }]
+                            }
+                        }]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -104,10 +125,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let data = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let person = data.person.expect("person 应存在");
+        assert_eq!(person.phone_number, Some("11111111111".to_string()));
+        assert_eq!(person.legal_name, Some("张三".to_string()));
+        assert_eq!(person.preferred_name, Some("张四".to_string()));
+        assert_eq!(person.id, Some("646465654545".to_string()));
+        let name_list = person.name_list.expect("name_list 应存在");
+        assert_eq!(name_list.len(), 1);
+        assert_eq!(name_list[0].local_first_name, Some("四".to_string()));
+        assert_eq!(
+            name_list[0].country_region_id,
+            Some("6862995757234914824".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

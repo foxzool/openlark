@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::WorkingHoursType;
 
 /// 删除工时制度请求
 #[derive(Debug, Clone)]
@@ -67,20 +68,13 @@ impl DeleteRequest {
 }
 
 /// 删除工时制度响应
+///
+/// 官方文档响应 `data` 为空对象，无业务字段。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DeleteResponse {
-    /// 响应数据
-    /// 操作结果
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result: Option<WorkingHoursTypeItem>,
-}
-
-/// 工时制度条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct WorkingHoursTypeItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+    /// 操作结果（官方响应无此字段，保留兼容旧调用方；正常情况下为 `None`）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<WorkingHoursType>,
 }
 
 impl ApiResponseTrait for DeleteResponse {

@@ -55,10 +55,9 @@ impl ListRequest {
 /// 获取指定人员审批任务列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 响应数据
-    /// 数据列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<ApproverItem>>,
+    /// 审批任务列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approver_list: Option<Vec<ApproverItem>>,
     /// 分页令牌
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
@@ -70,6 +69,15 @@ pub struct ListResponse {
 /// 审批人条目信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ApproverItem {
+    /// 审批任务 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approver_id: Option<String>,
+    /// 流程 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<String>,
+    /// 任务状态：-2 跳过 / -1 发起 / 0 未开始 / 1 进行中 / 2 已拒绝 / 3 已通过 / 4 被撤回 / 5 抄送 / 6 表单提交 / 12 失败 / 14 已回退 / 16 发起撤销 / 18 已干预
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approver_status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -96,7 +104,19 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/approvers"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "page_token": "1",
+                    "has_more": true,
+                    "approver_list": [
+                        {
+                            "approver_id": "7410781046418966060",
+                            "process_id": "7410781046418966060",
+                            "approver_status": 1
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -108,10 +128,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let list = resp.approver_list.expect("应解析审批任务列表");
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].approver_id, Some("7410781046418966060".to_string()));
+        assert_eq!(list[0].process_id, Some("7410781046418966060".to_string()));
+        assert_eq!(list[0].approver_status, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

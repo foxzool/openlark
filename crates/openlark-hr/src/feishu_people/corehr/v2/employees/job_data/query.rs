@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::EmployeeJobData;
+
 /// `QueryRequest` 请求。
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
@@ -64,10 +66,20 @@ impl QueryRequest {
 }
 
 /// `QueryResponse` 响应。
+///
+/// 响应 `data` 子树形状：`{items: employee_job_data[], page_token, has_more}`
+/// （由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 任职信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<EmployeeJobData>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -87,11 +99,76 @@ mod tests {
     /// 端到端：POST /open-apis/corehr/v2/employees/job_datas/query
     #[tokio::test]
     async fn test_query_returns_data_on_success() {
+        let job_data = json!({
+            "job_data_id": "6890452208593372698",
+            "version_id": "6890452208593372697",
+            "employee_type_id": "6971090097697521314",
+            "working_hours_type_id": "6890452208593372680",
+            "work_location_id": "6890452208593372679",
+            "department_id": "6893014062142064135",
+            "position_id": "6893014062142064135",
+            "job_id": "6893014062142064135",
+            "job_level_id": "6893014062142064135",
+            "job_grade_id": "6893014062142064135",
+            "job_family_id": "6893014062142064135",
+            "probation_start_date": "2022-01-02",
+            "probation_end_date": "2022-03-02",
+            "primary_job_data": true,
+            "employment_id": "6893014062142064135",
+            "effective_time": "2020-01-01 00:00:00",
+            "expiration_time": "2021-01-01 00:00:00",
+            "assignment_start_reason": {
+                "enum_name": "transfer",
+                "display": [{ "lang": "zh-CN", "value": "转岗" }]
+            },
+            "probation_expected_end_date": "2022-03-02",
+            "probation_outcome": {
+                "enum_name": "positive",
+                "display": [{ "lang": "zh-CN", "value": "转正" }]
+            },
+            "direct_manager": {
+                "job_data_id": "6890452208593372698",
+                "employment_id": "6893014062142064135"
+            },
+            "dotted_line_managers": [],
+            "second_direct_manager": null,
+            "cost_center_rates": [
+                { "cost_center_id": "7142384817131652652", "rate": 100, "new_rate": 100.0 }
+            ],
+            "work_shift": {
+                "enum_name": "day_shift",
+                "display": [{ "lang": "zh-CN", "value": "白班" }]
+            },
+            "compensation_type": {
+                "enum_name": "monthly",
+                "display": [{ "lang": "zh-CN", "value": "月薪" }]
+            },
+            "service_company": "4692472714243080020",
+            "weekly_working_hours_v2": 40.0,
+            "weekly_working_hours": 40,
+            "employee_subtype_id": "6971090097697521317",
+            "job_data_reason": {
+                "enum_name": "transfer",
+                "display": [{ "lang": "zh-CN", "value": "转岗" }]
+            },
+            "pathway_id": "6893014062142064135"
+        });
+
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/employees/job_datas/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "employment_id": "6893014062142064135",
+                            "job_datas": [job_data]
+                        }
+                    ],
+                    "page_token": "1234452132",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -103,10 +180,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRequest::new(config)
+        let resp = QueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含任职信息");
+        assert_eq!(item.employment_id.as_deref(), Some("6893014062142064135"));
+        let job_data = item
+            .job_datas
+            .as_ref()
+            .and_then(|ds| ds.first())
+            .expect("job_datas 应包含任职记录");
+        assert_eq!(job_data.version_id.as_deref(), Some("6890452208593372697"));
+        assert_eq!(
+            job_data.work_location_id.as_deref(),
+            Some("6890452208593372679")
+        );
+        assert_eq!(job_data.primary_job_data, Some(true));
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

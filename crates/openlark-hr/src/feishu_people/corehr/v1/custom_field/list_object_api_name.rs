@@ -80,6 +80,21 @@ pub struct ListObjectApiNameResponse {
 /// 飞书人事对象条目
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ObjectApiNameItem {
+    /// 对象的唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object_api_name: Option<String>,
+    /// 对象名称（`{zh_cn, en_us}`）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<crate::common::shared_models::I18nText>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_open: Option<bool>,
+    /// 创建时间，秒级时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    /// 更新时间，秒级时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_time: Option<String>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
@@ -108,7 +123,21 @@ mod tests {
                 "/open-apis/corehr/v1/custom_fields/list_object_api_name",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "object_api_name": "offboarding_info",
+                            "name": {"zh_cn": "cn", "en_us": "en"},
+                            "is_open": false,
+                            "create_time": "1644992809",
+                            "update_time": "1644992809"
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "3"
+                }
             })))
             .mount(&server)
             .await;
@@ -120,10 +149,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListObjectApiNameRequest::new(config)
+        let resp = ListObjectApiNameRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解析出对象列表");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].object_api_name.as_deref(),
+            Some("offboarding_info")
+        );
+        assert_eq!(items[0].is_open, Some(false));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

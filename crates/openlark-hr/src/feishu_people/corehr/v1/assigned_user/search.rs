@@ -88,9 +88,26 @@ pub struct SearchResponse {
 /// 组织类角色授权条目
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct AssignedUserItem {
+    /// 员工 ID，可通过【搜索员工信息】接口获取详细信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 实际授权管理范围
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub management_scope_list: Option<Vec<ManagementScope>>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
+}
+
+/// 实际授权管理范围
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct ManagementScope {
+    /// 管理维度（department 部门 / work_location 工作地点 / company 公司 / social_security_location 社保城市）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub management_dimension: Option<String>,
+    /// 被授权部门/工作地点/公司/社保城市 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub obj_id: Option<String>,
 }
 
 impl ApiResponseTrait for SearchResponse {
@@ -114,7 +131,23 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/assigned_users/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "employment_id": "6967639606963471902",
+                            "management_scope_list": [
+                                {
+                                    "management_dimension": "department",
+                                    "obj_id": "7023318326176777742"
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+                }
             })))
             .mount(&server)
             .await;
@@ -126,10 +159,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解析出授权列表");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].employment_id.as_deref(),
+            Some("6967639606963471902")
+        );
+        let scopes = items[0]
+            .management_scope_list
+            .as_ref()
+            .expect("management_scope_list 应解析");
+        assert_eq!(scopes.len(), 1);
+        assert_eq!(
+            scopes[0].management_dimension.as_deref(),
+            Some("department")
+        );
+        assert_eq!(scopes[0].obj_id.as_deref(), Some("7023318326176777742"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

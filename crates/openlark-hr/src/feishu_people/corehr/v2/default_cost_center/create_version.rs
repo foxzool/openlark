@@ -57,8 +57,12 @@ impl CreateVersionRequest {
 /// 添加默认成本中心响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateVersionResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 默认成本中心id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_id: Option<String>,
+    /// 默认成本中心版本id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_tid: Option<String>,
 }
 
 impl ApiResponseTrait for CreateVersionResponse {
@@ -84,7 +88,8 @@ mod tests {
                 "/open-apis/corehr/v2/default_cost_centers/create_version",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": { "wk_id": "6862995757234914824", "wk_tid": "6862995757234914821" }
             })))
             .mount(&server)
             .await;
@@ -96,10 +101,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateVersionRequest::new(config)
+        let resp = CreateVersionRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.wk_id, Some("6862995757234914824".to_string()));
+        assert_eq!(resp.wk_tid, Some("6862995757234914821".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

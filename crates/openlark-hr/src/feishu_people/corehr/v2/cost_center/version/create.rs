@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::feishu_people::corehr::v2::cost_center::CostCenterVersion;
+
 /// 创建成本中心版本请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -70,10 +72,13 @@ impl CreateRequest {
 }
 
 /// 创建成本中心版本响应
+///
+/// 响应 `data` 子树形状：`{version: {...}}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 成本中心版本信息（官方 `cost_center.version` 结构）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<CostCenterVersion>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -97,7 +102,26 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/cost_centers/test001/versions"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "version": {
+                        "cost_center_id": "6969828847121885087",
+                        "version_id": "6969828847121885087",
+                        "name": [
+                            { "lang": "zh-CN", "value": "中文示例" }
+                        ],
+                        "code": "MDPD00000023",
+                        "parent_cost_center_id": "6862995757234914824",
+                        "managers": ["6862995757234914824"],
+                        "description": [
+                            { "lang": "zh-CN", "value": "中文示例" }
+                        ],
+                        "effective_time": "2020-01-01",
+                        "expiration_time": "2020-01-01",
+                        "active": true
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -109,11 +133,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .cost_center_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let version = resp.version.as_ref().expect("version 应存在");
+        assert_eq!(version.version_id.as_deref(), Some("6969828847121885087"));
+        assert_eq!(
+            version.cost_center_id.as_deref(),
+            Some("6969828847121885087")
+        );
+        assert_eq!(
+            version.parent_cost_center_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            version.managers.as_deref(),
+            Some(&["6862995757234914824".to_string()][..])
+        );
+        assert_eq!(version.active, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

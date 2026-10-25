@@ -73,17 +73,23 @@ impl QueryRequest {
 /// 查询部门 / 地点的 HRBP / 属地 BP响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<SecurityGroupItem>,
+    /// HRBP/属地 BP 信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hrbp_list: Option<Vec<Hrbp>>,
 }
 
-/// 角色（安全组）条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct SecurityGroupItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+/// HRBP/属地 BP 信息
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Hrbp {
+    /// HRBP/属地 BP 的雇员 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id_list: Option<Vec<String>>,
+    /// 部门 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 工作地点 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_location_id: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -107,7 +113,17 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/security_groups/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "hrbp_list": [
+                        {
+                            "employment_id_list": ["7063072995761456670"],
+                            "department_id": "7063072995761456670",
+                            "work_location_id": "6892687221355185677"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -119,10 +135,25 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRequest::new(config)
+        let resp = QueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let hrbp_list = resp.hrbp_list.expect("hrbp_list 不能为空");
+        assert_eq!(hrbp_list.len(), 1);
+        assert_eq!(
+            hrbp_list[0].employment_id_list,
+            Some(vec!["7063072995761456670".to_string()])
+        );
+        assert_eq!(
+            hrbp_list[0].department_id,
+            Some("7063072995761456670".to_string())
+        );
+        assert_eq!(
+            hrbp_list[0].work_location_id,
+            Some("6892687221355185677".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -77,8 +77,9 @@ impl PatchRequest {
 /// `PatchResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PatchResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 待入职 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_hire_id: Option<String>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -102,7 +103,7 @@ mod tests {
         Mock::given(method("PATCH"))
             .and(path("/open-apis/corehr/v2/pre_hires/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "pre_hire_id": "7345005664477775407" }
             })))
             .mount(&server)
             .await;
@@ -114,11 +115,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        PatchRequest::new(config)
+        let resp = PatchRequest::new(config)
             .pre_hire_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.pre_hire_id.as_deref(), Some("7345005664477775407"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::WorkingHoursType;
 
 /// 查询单个工时制度请求
 #[derive(Debug, Clone)]
@@ -69,9 +70,9 @@ impl GetRequest {
 /// 查询单个工时制度响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetResponse {
-    /// 工时类型信息
+    /// 工时制度信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub working_hours_type: Option<Value>,
+    pub working_hours_type: Option<WorkingHoursType>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -95,7 +96,16 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/working_hours_types/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": { "working_hours_type": {
+                    "id": "test001",
+                    "code": "1",
+                    "name": [{ "lang": "zh-CN", "value": "张三" }],
+                    "country_region_id_list": ["6890452208593356295"],
+                    "default_for_job": true,
+                    "active": true
+                } }
             })))
             .mount(&server)
             .await;
@@ -107,11 +117,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let data = GetRequest::new(config)
             .working_hours_type_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let working_hours_type = data.working_hours_type.expect("working_hours_type 应存在");
+        assert_eq!(working_hours_type.id, Some("test001".to_string()));
+        assert_eq!(
+            working_hours_type.country_region_id_list,
+            Some(vec!["6890452208593356295".to_string()])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

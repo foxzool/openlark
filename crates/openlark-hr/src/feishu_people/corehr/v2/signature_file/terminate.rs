@@ -56,8 +56,32 @@ impl TerminateRequest {
 /// 终止电子签文件响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TerminateResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 欲终止的文件总数量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_count: Option<i64>,
+    /// 成功总数量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success_count: Option<i64>,
+    /// 失败总数量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_count: Option<i64>,
+    /// 终止成功的文件 id 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success_file_id_list: Option<Vec<String>>,
+    /// 终止失败的文件 id 和对应的原因列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_file_id_and_reasons: Option<Vec<TerminateSignatureFailIdAndReason>>,
+}
+
+/// 终止失败的文件 id 和原因（官方类型 terminate_signature_fail_id_and_reason）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TerminateSignatureFailIdAndReason {
+    /// 终止操作失败的文件 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature_file_id: Option<String>,
+    /// 终止失败的原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_reason: Option<String>,
 }
 
 impl ApiResponseTrait for TerminateResponse {
@@ -81,7 +105,20 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/signature_files/terminate"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "total_count": 2,
+                    "success_count": 1,
+                    "fail_count": 1,
+                    "success_file_id_list": ["7410063506638112300"],
+                    "fail_file_id_and_reasons": [
+                        {
+                            "signature_file_id": "7345403447803379731",
+                            "fail_reason": "文件状态不允许终止"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -93,10 +130,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        TerminateRequest::new(config)
+        let resp = TerminateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.total_count, Some(2));
+        assert_eq!(resp.success_count, Some(1));
+        assert_eq!(resp.fail_count, Some(1));
+        assert_eq!(
+            resp.success_file_id_list,
+            Some(vec!["7410063506638112300".to_string()])
+        );
+        let failures = resp.fail_file_id_and_reasons.expect("应解析失败列表");
+        assert_eq!(failures.len(), 1);
+        assert_eq!(
+            failures[0].signature_file_id,
+            Some("7345403447803379731".to_string())
+        );
+        assert_eq!(
+            failures[0].fail_reason,
+            Some("文件状态不允许终止".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

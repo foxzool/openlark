@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::CostCenterVersion;
+
 /// SearchRequest
 #[derive(Debug, Clone)]
 pub struct SearchRequest {
@@ -55,10 +57,19 @@ impl SearchRequest {
 }
 
 /// SearchResponse
+///
+/// 响应 `data` 子树形状：`{items, page_token, has_more}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SearchResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 成本中心信息列表（元素为官方 `cost_center.version` 结构）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<CostCenterVersion>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
 impl ApiResponseTrait for SearchResponse {
@@ -82,7 +93,30 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/cost_centers/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "cost_center_id": "6969828847121885087",
+                            "version_id": "6969828847121885087",
+                            "name": [
+                                { "lang": "zh-CN", "value": "技术部成本中心" }
+                            ],
+                            "code": "MDPD00000023",
+                            "parent_cost_center_id": "6862995757234914824",
+                            "managers": ["6862995757234914824"],
+                            "description": [
+                                { "lang": "zh-CN", "value": "基础架构相关业务" }
+                            ],
+                            "effective_time": "2020-01-01",
+                            "expiration_time": "2020-01-01",
+                            "active": true
+                        }
+                    ],
+                    "page_token": "6969828847121885087",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -94,10 +128,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含成本中心版本");
+        assert_eq!(item.cost_center_id.as_deref(), Some("6969828847121885087"));
+        assert_eq!(item.version_id.as_deref(), Some("6969828847121885087"));
+        assert_eq!(
+            item.parent_cost_center_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            item.managers.as_deref(),
+            Some(&["6862995757234914824".to_string()][..])
+        );
+        assert_eq!(resp.has_more, Some(true));
+        assert_eq!(resp.page_token.as_deref(), Some("6969828847121885087"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::Subdivision;
 
 /// 查询单条省份/行政区信息请求
 #[derive(Debug, Clone)]
@@ -71,7 +72,7 @@ impl GetRequest {
 pub struct GetResponse {
     /// 行政区划信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subdivision: Option<Value>,
+    pub subdivision: Option<Subdivision>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -95,7 +96,19 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/subdivisions/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "subdivision": {
+                        "id": "12",
+                        "name": [ { "lang": "zh-CN", "value": "张三" } ],
+                        "country_region_id": "12",
+                        "subdivision_type": {
+                            "enum_name": "type_1",
+                            "display": [ { "lang": "zh-CN", "value": "张三" } ]
+                        }
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -107,11 +120,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .subdivision_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let subdivision = resp.subdivision.expect("subdivision 不能为空");
+        assert_eq!(subdivision.id, Some("12".to_string()));
+        assert_eq!(subdivision.country_region_id, Some("12".to_string()));
+        let subdivision_type = subdivision
+            .subdivision_type
+            .as_ref()
+            .expect("subdivision_type 不能为空");
+        assert_eq!(subdivision_type.enum_name, Some("type_1".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

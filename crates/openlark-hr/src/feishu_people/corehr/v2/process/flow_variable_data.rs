@@ -73,18 +73,140 @@ impl FlowVariableDataRequest {
 /// 获取流程数据响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FlowVariableDataResponse {
-    /// 响应数据
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<FlowVariableData>,
+    /// 流程数据
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field_variable_values: Option<Vec<FieldVariableValue>>,
+    /// 流程实例 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<String>,
 }
 
-/// 流程变量数据
+/// 流程字段变量（官方 field_variable_value 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct FlowVariableData {
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
+pub struct FieldVariableValue {
+    /// 变量唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_api_name: Option<String>,
+    /// 变量名称（官方注明查询流程数据场景通常不返回）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_name: Option<FieldVariableI18nValue>,
+    /// 变量值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_value: Option<FieldVariableValueTo>,
+    /// 在 list_values 和 record_values 中引用的变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_values: Option<Vec<FieldVariableSubValue>>,
+}
+
+/// 流程变量值（官方 field_variable_value_to 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableValueTo {
+    /// 文本值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_value: Option<String>,
+    /// 布尔值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bool_value: Option<bool>,
+    /// 数字值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub number_value: Option<String>,
+    /// 枚举值，这里是枚举的 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_value: Option<String>,
+    /// 从 1970 开始的天数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date_value: Option<String>,
+    /// 时间戳，毫秒
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date_time_value: Option<String>,
+    /// 多语字段值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i18n_value: Option<FieldVariableI18nValue>,
+    /// 对象值，包括对象 id 和对象类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object_value: Option<FieldVariableObjectValue>,
+    /// 用户 id，根据 user_type 选择对应的用户 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_value: Option<String>,
+    /// 部门 id，根据入参选择对应的部门 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_value: Option<String>,
+    /// 记录类型字段值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_values: Option<Vec<FieldVariableRecordValue>>,
+    /// 员工类型字段值，为用户 id，根据入参选择返回的用户 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_value: Option<String>,
+    /// 数组类型值，里面包含多个值，每个元素都对应 sub_values 中的数组下标
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list_values: Option<Vec<String>>,
+    /// 文件类型字段值，可通过主数据的文件下载 Open API 下载
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_value: Option<FieldVariableFileValue>,
+}
+
+/// 多语字段值（官方 field_variable_value_i18n 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableI18nValue {
+    /// 中文值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zh_cn: Option<String>,
+    /// 英文值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en_us: Option<String>,
+}
+
+/// 对象值（官方 field_variable_value_to_object 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableObjectValue {
+    /// wukong 的对象唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_id: Option<String>,
+    /// wukong 的元数据唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_api_name: Option<String>,
+}
+
+/// 文件类型字段值（官方 field_variable_value_to_file 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableFileValue {
+    /// 用于主数据文件下载接口的 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_file_id: Option<String>,
+    /// 文件名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
+    /// 文件大小，单位：Byte
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<i64>,
+    /// 文件类型，如 application/pdf
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+}
+
+/// 记录类型字段值（官方 field_variable_value_to_record 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableRecordValue {
+    /// 变量唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_api_name: Option<String>,
+    /// 变量值，对应 sub_values 中的 key
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_value_key: Option<String>,
+    /// 记录唯一 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_id: Option<String>,
+}
+
+/// list/record 类型变量值引用（官方 field_variable_sub_vlaue 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FieldVariableSubValue {
+    /// 用于关联 list_values 和 record_values 类型变量值中的 key
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    /// 变量值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<FieldVariableValueTo>,
 }
 
 impl ApiResponseTrait for FlowVariableDataResponse {
@@ -110,7 +232,40 @@ mod tests {
                 "/open-apis/corehr/v2/processes/test001/flow_variable_data",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "field_variable_values": [
+                        {
+                            "variable_api_name": "custom123",
+                            "variable_name": {
+                                "zh_cn": "北京",
+                                "en_us": "Beijing"
+                            },
+                            "variable_value": {
+                                "text_value": "测试测试",
+                                "bool_value": true,
+                                "user_value": "ou_c57053dad6eea0aea4696c48433d8562",
+                                "list_values": ["key1"],
+                                "file_value": {
+                                    "open_file_id": "66867ed00740ddd4a0bad4a5_c99b5322dc744fe4b99b76426ffe5d53",
+                                    "file_name": "file_name",
+                                    "length": 65535,
+                                    "mime_type": "application/pdf"
+                                }
+                            },
+                            "sub_values": [
+                                {
+                                    "key": "key1",
+                                    "value": {
+                                        "text_value": "测试测试"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "process_id": "7368832822481536556"
+                }
             })))
             .mount(&server)
             .await;
@@ -122,11 +277,47 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        FlowVariableDataRequest::new(config)
+        let resp = FlowVariableDataRequest::new(config)
             .process_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.process_id, Some("7368832822481536556".to_string()));
+        let values = resp
+            .field_variable_values
+            .expect("field_variable_values 应存在");
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].variable_api_name, Some("custom123".to_string()));
+        assert_eq!(
+            values[0].variable_name,
+            Some(FieldVariableI18nValue {
+                zh_cn: Some("北京".to_string()),
+                en_us: Some("Beijing".to_string()),
+            })
+        );
+        let variable_value = values[0]
+            .variable_value
+            .clone()
+            .expect("variable_value 应存在");
+        assert_eq!(
+            variable_value.user_value,
+            Some("ou_c57053dad6eea0aea4696c48433d8562".to_string())
+        );
+        assert_eq!(
+            variable_value.file_value,
+            Some(FieldVariableFileValue {
+                open_file_id: Some(
+                    "66867ed00740ddd4a0bad4a5_c99b5322dc744fe4b99b76426ffe5d53".to_string()
+                ),
+                file_name: Some("file_name".to_string()),
+                length: Some(65535),
+                mime_type: Some("application/pdf".to_string()),
+            })
+        );
+        let sub_values = values[0].sub_values.clone().expect("sub_values 应存在");
+        assert_eq!(sub_values.len(), 1);
+        assert_eq!(sub_values[0].key, Some("key1".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

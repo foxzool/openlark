@@ -9,7 +9,6 @@ use openlark_core::{
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 获取异动原因列表请求
 #[derive(Debug, Clone)]
@@ -51,8 +50,43 @@ impl QueryRequest {
 /// 获取异动原因列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 异动原因列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<TransferReasonItem>>,
+}
+
+/// 异动原因
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct TransferReasonItem {
+    /// 异动原因唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transfer_reason_unique_identifier: Option<String>,
+    /// 异动原因的名称信息（多语种）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18nItem>>,
+    /// 异动原因状态
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 上级异动原因唯一标识（顶级原因可能为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_transfer_reason_unique_identifier: Option<String>,
+    /// 创建时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_time: Option<String>,
+    /// 更新时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_time: Option<String>,
+}
+
+/// 官方 i18n 多语结构：`{lang, value}`
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct I18nItem {
+    /// 语言编码，如 `zh-CN`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -76,7 +110,20 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/transfer_reasons/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "transfer_reason_unique_identifier": "voluntary_transfer",
+                            "name": [ { "lang": "zh-CN", "value": "张三" } ],
+                            "active": true,
+                            "parent_transfer_reason_unique_identifier": "reason_for_job_change_option25",
+                            "created_time": "2021-07-04 20:30:47",
+                            "updated_time": "2022-02-28 16:27:56"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -88,10 +135,22 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRequest::new(config)
+        let resp = QueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 不能为空");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].transfer_reason_unique_identifier,
+            Some("voluntary_transfer".to_string())
+        );
+        assert_eq!(
+            items[0].parent_transfer_reason_unique_identifier,
+            Some("reason_for_job_change_option25".to_string())
+        );
+        assert_eq!(items[0].active, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

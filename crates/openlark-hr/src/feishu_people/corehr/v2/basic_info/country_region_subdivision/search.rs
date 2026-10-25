@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region_subdivision/search>
 
+use crate::feishu_people::corehr::v2::basic_info::{EnumValue, I18nText};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,13 +83,22 @@ pub struct SearchResponse {
 pub struct CountryRegionSubdivisionItem {
     /// 省份/主要行政区 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 省份/主要行政区名称
+    pub country_region_subdivision_id: Option<String>,
+    /// 省份/主要行政区名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 省份/主要行政区编码
+    pub name: Option<Vec<I18nText>>,
+    /// 所属国家/地区 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    pub country_region_id: Option<String>,
+    /// 行政区类型
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subdivision_type: Option<EnumValue>,
+    /// 省份/主要行政区编码（ISO 3166-2）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iso_code: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -117,7 +127,24 @@ mod tests {
                 "/open-apis/corehr/v2/basic_info/country_region_subdivisions/search",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "country_region_subdivision_id": "6863326571462133262",
+                            "name": [{ "lang": "zh-CN", "value": "中文示例" }],
+                            "country_region_id": "6862995791674344967",
+                            "subdivision_type": {
+                                "enum_name": "governorate",
+                                "display": [{ "lang": "zh-CN", "value": "中文示例" }]
+                            },
+                            "iso_code": "PSE-GZA",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "6891251722631890445",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -129,10 +156,38 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回省份/主要行政区条目");
+        assert_eq!(
+            item.country_region_subdivision_id.as_deref(),
+            Some("6863326571462133262")
+        );
+        assert_eq!(
+            item.country_region_id.as_deref(),
+            Some("6862995791674344967")
+        );
+        assert_eq!(item.iso_code.as_deref(), Some("PSE-GZA"));
+        assert_eq!(
+            item.subdivision_type
+                .as_ref()
+                .and_then(|t| t.enum_name.as_deref()),
+            Some("governorate")
+        );
+        assert_eq!(
+            item.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

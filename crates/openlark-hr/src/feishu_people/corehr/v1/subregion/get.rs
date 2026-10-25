@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::Subregion;
 
 /// 查询单条城市/区域信息请求
 #[derive(Debug, Clone)]
@@ -71,7 +72,7 @@ impl GetRequest {
 pub struct GetResponse {
     /// 子地区信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subregion: Option<Value>,
+    pub subregion: Option<Subregion>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -95,7 +96,16 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/subregions/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "subregion": {
+                        "id": "12",
+                        "name": [ { "lang": "zh-CN", "value": "张三" } ],
+                        "subdivision_id": "12",
+                        "superior_subregion_id": "12"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -107,11 +117,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .subregion_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let subregion = resp.subregion.expect("subregion 不能为空");
+        assert_eq!(subregion.id, Some("12".to_string()));
+        assert_eq!(subregion.subdivision_id, Some("12".to_string()));
+        assert_eq!(subregion.superior_subregion_id, Some("12".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

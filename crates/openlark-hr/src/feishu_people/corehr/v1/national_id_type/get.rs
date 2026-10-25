@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::NationalIdType;
 
 /// 查询单个国家证件类型请求
 #[derive(Debug, Clone)]
@@ -71,7 +72,7 @@ impl GetRequest {
 pub struct GetResponse {
     /// 证件类型信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub national_id_type: Option<Value>,
+    pub national_id_type: Option<NationalIdType>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -95,7 +96,17 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/national_id_types/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": { "national_id_type": {
+                    "id": "test001",
+                    "country_region_id": "6862995747139225096",
+                    "name": [{ "lang": "zh-CN", "value": "张三" }],
+                    "active": true,
+                    "validation_rule": "^\\d{9}$",
+                    "code": "AUS-TFN",
+                    "identification_type": { "enum_name": "type_1" }
+                } }
             })))
             .mount(&server)
             .await;
@@ -107,11 +118,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let data = GetRequest::new(config)
             .national_id_type_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let national_id_type = data.national_id_type.expect("national_id_type 应存在");
+        assert_eq!(national_id_type.id, Some("test001".to_string()));
+        assert_eq!(
+            national_id_type.country_region_id,
+            Some("6862995747139225096".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -56,23 +56,15 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
     /// 响应数据
-    /// 数据列表
+    /// 流程实例 ID 列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<ProcessItem>>,
+    pub process_ids: Option<Vec<String>>,
     /// 分页令牌
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否还有更多数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-}
-
-/// 流程条目信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ProcessItem {
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -96,7 +88,12 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/processes"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "process_ids": ["7278949005675988535"],
+                    "has_more": true,
+                    "page_token": "7278949005675988536"
+                }
             })))
             .mount(&server)
             .await;
@@ -108,10 +105,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(
+            resp.process_ids,
+            Some(vec!["7278949005675988535".to_string()])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

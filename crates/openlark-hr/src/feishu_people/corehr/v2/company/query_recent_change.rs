@@ -57,18 +57,18 @@ impl QueryRecentChangeRequest {
 /// 查询当前生效信息变更公司响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryRecentChangeResponse {
-    /// 响应数据
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CompanyChangeInfo>,
-}
-
-/// 公司变更信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct CompanyChangeInfo {
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
+    /// 公司 ID 列表，其中包含新建、更新以及删除的 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub company_ids: Option<Vec<String>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 目标查询时间范围内被删除的公司列表（company_ids 的子集）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_company_ids: Option<Vec<String>>,
 }
 
 impl ApiResponseTrait for QueryRecentChangeResponse {
@@ -92,7 +92,14 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/companies/query_recent_change"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "company_ids": ["7094136522860922111"],
+                    "page_token": "7094136522860922111",
+                    "has_more": true,
+                    "deleted_company_ids": ["7094136522860922111"]
+                }
             })))
             .mount(&server)
             .await;
@@ -104,10 +111,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRecentChangeRequest::new(config)
+        let resp = QueryRecentChangeRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(
+            resp.company_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
+        assert_eq!(resp.has_more, Some(true));
+        assert_eq!(
+            resp.deleted_company_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

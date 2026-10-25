@@ -60,8 +60,9 @@ impl RestoreFlowInstanceRequest {
 /// `RestoreFlowInstanceResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RestoreFlowInstanceResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 是否成功恢复入职。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<bool>,
 }
 
 impl ApiResponseTrait for RestoreFlowInstanceResponse {
@@ -85,7 +86,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/pre_hires/restore_flow_instance"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "success": true }
             })))
             .mount(&server)
             .await;
@@ -97,10 +98,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        RestoreFlowInstanceRequest::new(config)
+        let resp = RestoreFlowInstanceRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.success, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

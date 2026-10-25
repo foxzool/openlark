@@ -67,9 +67,15 @@ pub struct ListResponse {
     pub has_more: Option<bool>,
 }
 
-/// HRBP 条目信息
+/// HRBP 条目信息（官方 `bp` 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BpItem {
+    /// 部门 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 部门 HRBP 的雇佣 ID，不包括上级部门的 HRBP
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hrbp_id: Option<String>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -96,7 +102,17 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/bps"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "department_id": "4719456877659520852",
+                            "hrbp_id": "4719456877659520852"
+                        }
+                    ],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -108,10 +124,19 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含 HRBP");
+        assert_eq!(item.department_id.as_deref(), Some("4719456877659520852"));
+        assert_eq!(item.hrbp_id.as_deref(), Some("4719456877659520852"));
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::CountryRegion;
 
 /// 查询单条国家/地区信息请求
 #[derive(Debug, Clone)]
@@ -69,9 +70,9 @@ impl GetRequest {
 /// 查询单条国家/地区信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetResponse {
-    /// 国家地区信息
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country_region: Option<Value>,
+    /// 国家/地区信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country_region: Option<CountryRegion>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -95,7 +96,16 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/country_regions/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "country_region": {
+                        "id": "1",
+                        "name": [ { "lang": "zh-CN", "value": "中国" } ],
+                        "alpha_3_code": "CHN",
+                        "alpha_2_code": "CN"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -107,11 +117,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .country_region_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let country_region = resp.country_region.expect("country_region 应存在");
+        assert_eq!(country_region.id, Some("1".to_string()));
+        assert_eq!(
+            country_region
+                .name
+                .as_deref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中国")
+        );
+        assert_eq!(country_region.alpha_3_code, Some("CHN".to_string()));
+        assert_eq!(country_region.alpha_2_code, Some("CN".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

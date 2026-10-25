@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::Currency;
 
 /// 查询单个货币信息请求
 #[derive(Debug, Clone)]
@@ -65,7 +66,7 @@ impl GetRequest {
 pub struct GetResponse {
     /// 货币信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Value>,
+    pub currency: Option<Currency>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -89,7 +90,17 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/currencies/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "currency": {
+                        "id": "1",
+                        "country_region_id": "12",
+                        "currency_name": [ { "lang": "zh-CN", "value": "人民币" } ],
+                        "numeric_code": 156,
+                        "currency_alpha_3_code": "CNY"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -101,11 +112,17 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .currency_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let currency = resp.currency.expect("currency 不能为空");
+        assert_eq!(currency.id, Some("1".to_string()));
+        assert_eq!(currency.country_region_id, Some("12".to_string()));
+        assert_eq!(currency.numeric_code, Some(156));
+        assert_eq!(currency.currency_alpha_3_code, Some("CNY".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

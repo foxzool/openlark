@@ -74,8 +74,12 @@ impl RevokeRequest {
 /// RevokeResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RevokeResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 撤销结果
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<bool>,
+    /// 撤销信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
 }
 
 impl ApiResponseTrait for RevokeResponse {
@@ -99,7 +103,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/job_changes/test001/revoke"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "result": true, "message": "成功" }
             })))
             .mount(&server)
             .await;
@@ -111,11 +115,14 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        RevokeRequest::new(config)
+        let resp = RevokeRequest::new(config)
             .job_change_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.result, Some(true));
+        assert_eq!(resp.message, Some("成功".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

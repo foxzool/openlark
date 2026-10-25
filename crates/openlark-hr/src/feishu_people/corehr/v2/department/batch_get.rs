@@ -11,6 +11,8 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
+use super::search::DepartmentItem;
+
 /// 批量查询部门请求
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BatchGetRequest {
@@ -32,46 +34,14 @@ impl BatchGetRequest {
 }
 
 /// 批量查询部门响应
+///
+/// 响应 `data` 子树形状：`{items: department[]}`（由 decode 层解包）。
+/// 条目模型与 `department/search.rs` 共享（同一官方 `department` 结构）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchGetResponse {
     /// 部门列表
-    pub data: Option<BatchGetResponseData>,
-}
-
-/// `BatchGetResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BatchGetResponseData {
-    /// 部门列表
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<DepartmentItem>>,
-}
-
-/// `DepartmentItem`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct DepartmentItem {
-    /// 部门 ID
-    pub id: String,
-    /// 部门名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 父部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    /// 部门负责人 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub leader_user_id: Option<String>,
-    /// 部门编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
-    /// 描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 创建时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    /// 更新时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
 }
 
 impl ApiResponseTrait for BatchGetResponse {
@@ -153,7 +123,40 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/batch_get"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "4719456877659520852",
+                            "version_id": "6890452208593372611",
+                            "department_name": [
+                                { "lang": "zh-CN", "value": "中文示例" }
+                            ],
+                            "sub_type": {
+                                "enum_name": "phone_type",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "中文示例" }
+                                ]
+                            },
+                            "parent_department_id": "4719456877659520111",
+                            "manager": "6893013238632416777",
+                            "tree_order": "001000",
+                            "list_order": "001000-001000",
+                            "code": "D00000456",
+                            "is_root": false,
+                            "is_confidential": false,
+                            "effective_date": "2020-05-01",
+                            "expiration_date": "2020-05-02",
+                            "active": true,
+                            "description": [
+                                { "lang": "zh-CN", "value": "中文示例" }
+                            ],
+                            "cost_center_id": "7142384817131652652",
+                            "created_time": "2020-05-01 00:00:00",
+                            "updated_time": "2020-05-02 00:00:00"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -165,10 +168,36 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        BatchGetRequestBuilder::new(config, vec!["test001".to_string()])
+        let resp = BatchGetRequestBuilder::new(config, vec!["test001".to_string()])
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含部门");
+        assert_eq!(item.id, "4719456877659520852");
+        assert_eq!(item.version_id.as_deref(), Some("6890452208593372611"));
+        assert_eq!(
+            item.department_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
+        assert_eq!(
+            item.sub_type.as_ref().and_then(|t| t.enum_name.as_deref()),
+            Some("phone_type")
+        );
+        assert_eq!(
+            item.parent_department_id.as_deref(),
+            Some("4719456877659520111")
+        );
+        assert_eq!(item.manager.as_deref(), Some("6893013238632416777"));
+        assert_eq!(item.active, Some(true));
+        assert_eq!(item.created_time.as_deref(), Some("2020-05-01 00:00:00"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

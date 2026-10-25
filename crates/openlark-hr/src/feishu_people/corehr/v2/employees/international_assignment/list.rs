@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.international_assignment/list>
 
+use super::create::EmployeesInternationalAssignmentResp;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -66,8 +67,18 @@ impl ListRequest {
 /// `ListResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 外派信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<EmployeesInternationalAssignmentResp>>,
+    /// 无权限的雇佣 ID（仅在指定 employment_ids 查询时生效）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_authority_ids: Option<Vec<String>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -85,6 +96,7 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/employees/international_assignments
+    /// （官方 data 内层键为 items / no_authority_ids / page_token / has_more）
     #[tokio::test]
     async fn test_list_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -93,7 +105,59 @@ mod tests {
                 "/open-apis/corehr/v2/employees/international_assignments",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "work_location_id": "7127921432117937708",
+                            "service_company": "7127921432117937708",
+                            "work_shift": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "working_hours_type_id": "7127921432117937708",
+                            "employee_type_id": "7127921432117937708",
+                            "weekly_working_hours_v2": 8,
+                            "department_id": "7127921432117937708",
+                            "job_id": "7127921432117937708",
+                            "job_family_id": "7127921432117937708",
+                            "job_level_id": "7127921432117937708",
+                            "job_grade_id": "7127921432117937708",
+                            "compensation_type": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "direct_manager_id": "7127921432117937708",
+                            "dotted_line_manager_id": "7127921432117937708",
+                            "work_calendar_id": "7127921432117937708",
+                            "position_id": "7127921432117937708",
+                            "employment_id": "7127921432117937708",
+                            "custom_fields": [
+                                { "field_name": "name", "value": "Sandy" }
+                            ],
+                            "international_assignment_reason": "xxx 项目派遣",
+                            "description": "xxx 项目",
+                            "international_assignment_expected_end_date": "2024-01-02",
+                            "international_assignment_status": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "international_assignment_type": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "effective_time": "2024-01-02",
+                            "expiration_time": "2024-01-02",
+                            "id": "7127921432117937708"
+                        }
+                    ],
+                    "no_authority_ids": [
+                        "7127921432117937708"
+                    ],
+                    "page_token": "123",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -105,10 +169,34 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解码");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].work_location_id.as_deref(),
+            Some("7127921432117937708")
+        );
+        assert_eq!(
+            items[0].service_company.as_deref(),
+            Some("7127921432117937708")
+        );
+        assert_eq!(items[0].weekly_working_hours_v2, Some(8.0));
+        assert_eq!(
+            items[0]
+                .work_shift
+                .as_ref()
+                .and_then(|v| v.enum_name.clone()),
+            Some("phone_type".to_string())
+        );
+        assert_eq!(
+            resp.no_authority_ids,
+            Some(vec!["7127921432117937708".to_string()])
+        );
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

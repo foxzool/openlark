@@ -76,8 +76,9 @@ impl TransitTaskRequest {
 /// `TransitTaskResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TransitTaskResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 是否成功流转任务
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<bool>,
 }
 
 impl ApiResponseTrait for TransitTaskResponse {
@@ -101,7 +102,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/pre_hires/test001/transit_task"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "success": true }
             })))
             .mount(&server)
             .await;
@@ -113,11 +114,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        TransitTaskRequest::new(config)
+        let resp = TransitTaskRequest::new(config)
             .pre_hire_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.success, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

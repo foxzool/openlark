@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::NationalIdType;
+
 /// 创建国家证件类型请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -69,7 +71,7 @@ impl CreateRequest {
 pub struct CreateResponse {
     /// 证件类型信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub national_id_type: Option<Value>,
+    pub national_id_type: Option<NationalIdType>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -93,7 +95,22 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/national_id_types"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": { "national_id_type": {
+                    "id": "6888198886960137735",
+                    "country_region_id": "6862995747139225096",
+                    "name": [{ "lang": "zh-CN", "value": "张三" }],
+                    "active": true,
+                    "validation_rule": "^\\d{9}$",
+                    "validation_rule_description": [{ "lang": "zh-CN", "value": "张三" }],
+                    "code": "AUS-TFN",
+                    "identification_type": {
+                        "enum_name": "type_1",
+                        "display": [{ "lang": "zh-CN", "value": "张三" }]
+                    },
+                    "custom_fields": [{ "field_name": "name", "value": "\"Sandy\"" }]
+                } }
             })))
             .mount(&server)
             .await;
@@ -105,10 +122,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let data = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let national_id_type = data.national_id_type.expect("national_id_type 应存在");
+        assert_eq!(national_id_type.id, Some("6888198886960137735".to_string()));
+        assert_eq!(
+            national_id_type.country_region_id,
+            Some("6862995747139225096".to_string())
+        );
+        assert_eq!(national_id_type.code, Some("AUS-TFN".to_string()));
+        assert_eq!(national_id_type.active, Some(true));
+        assert_eq!(
+            national_id_type
+                .identification_type
+                .as_ref()
+                .and_then(|e| e.enum_name.clone()),
+            Some("type_1".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
