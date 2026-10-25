@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
+use crate::common::shared_models::I18nText;
+use crate::hire::hire::common_models::CommonSchema;
 
 /// 获取招聘需求模板列表请求
 #[derive(Debug, Clone)]
@@ -81,14 +82,31 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 结果项列表（官方 `job_requirement_schema[]`）。
+    pub items: Vec<JobRequirementSchema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 是否还有更多结果。
     pub has_more: Option<bool>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 招聘需求模板（官方 `job_requirement_schema` 对象，顶层仅 id/name/object_list）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobRequirementSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘需求模板 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘需求模板名称。
+    pub name: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘需求模板模块列表。
+    pub object_list: Option<Vec<CommonSchema>>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

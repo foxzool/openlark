@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
-
 /// 获取招聘流程信息请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -81,14 +79,57 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 结果项列表（官方 `job_processes[]`）。
+    pub items: Vec<JobProcess>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 是否还有更多结果。
     pub has_more: Option<bool>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 招聘流程（官方 `job_processes` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobProcess {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 流程 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 流程中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 流程英文名称。
+    pub en_name: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    /// 流程类型（1：社招流程 2：校招流程）。
+    pub process_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 阶段列表。
+    pub stage_list: Option<Vec<JobProcessStage>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 招聘流程阶段（官方 `job_processes_stage` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobProcessStage {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 阶段 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 阶段中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 阶段英文名称。
+    pub en_name: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    /// 阶段类型（1：筛选型 2：评估型 3：笔试型 4：面试型 5：Offer 型 6：待入职 7：已入职 8：其它类型 255：系统默认）。
+    pub stage_type: Option<i32>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

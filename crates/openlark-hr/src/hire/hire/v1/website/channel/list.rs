@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::WebsiteChannelSummary;
+use crate::hire::hire::common_models::WebsiteChannelInfo;
 
 /// 获取招聘官网推广渠道列表请求
 #[derive(Debug, Clone)]
@@ -68,9 +68,9 @@ impl ListRequest {
 /// 获取招聘官网推广渠道列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
-    #[serde(default, alias = "channels")]
-    /// 结果项列表。
-    pub items: Vec<WebsiteChannelSummary>,
+    /// 官网推广渠道列表（官方键为 `website_channel_list`）。
+    #[serde(default, alias = "website_channel_list", alias = "channels")]
+    pub items: Vec<WebsiteChannelInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -103,7 +103,18 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/websites/test001/channels"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok", "data": {
+                    "has_more": true,
+                    "page_token": "eyJvZmZzZXQiOjEwLCJ0aW1NTUyMjM2NzIsImlkIjpudWxsfQ",
+                    "website_channel_list": [
+                        {
+                            "id": "7085989097067563300",
+                            "name": "微信推广渠道",
+                            "link": "http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5",
+                            "code": "A1KM6A5"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -115,11 +126,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .website_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].id.as_deref(), Some("7085989097067563300"));
+        assert_eq!(resp.items[0].name.as_deref(), Some("微信推广渠道"));
+        assert_eq!(
+            resp.items[0].link.as_deref(),
+            Some("http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5")
+        );
+        assert_eq!(resp.items[0].code.as_deref(), Some("A1KM6A5"));
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -12,7 +12,45 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
+/// Offer 审批流适用部门（官方 `department`：`{id, name, en_name}`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct OfferApprovalTemplateDepartment {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 部门 ID，与入参 `department_id_type` 类型一致。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 部门中文名。
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 部门英文名。
+    pub en_name: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// Offer 审批流（官方 `offer_approval_template`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct OfferApprovalTemplate {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Offer 审批流 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Offer 审批流名称。
+    pub name: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建时间戳（单位：毫秒）。
+    pub create_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 备注。
+    pub remark: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 适用部门列表。
+    pub department_list: Option<Vec<OfferApprovalTemplateDepartment>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
 
 /// 获取 Offer 审批流列表请求
 #[derive(Debug, Clone)]
@@ -71,7 +109,7 @@ impl ListRequest {
 pub struct ListResponse {
     #[serde(default)]
     /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    pub items: Vec<OfferApprovalTemplate>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -97,14 +135,37 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET /open-apis/hire/v1/offer_approval_templates
+    /// 端到端：GET /open-apis/hire/v1/offer_approval_templates，items 元素按官方形状解析。
     #[tokio::test]
     async fn test_list_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/offer_approval_templates"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "has_more": true,
+                    "page_token": "1234452132",
+                    "items": [
+                        {
+                            "id": "1213213123123",
+                            "name": {
+                                "zh_cn": "Offer 审批流1",
+                                "en_us": "Offer approval flow config 1"
+                            },
+                            "create_time": "1628512038000",
+                            "remark": "test",
+                            "department_list": [
+                                {
+                                    "id": "1213213123123",
+                                    "name": "部门名A",
+                                    "en_name": "DepartmentA"
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -116,10 +177,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let template = resp.items.first().expect("应解析出 1 个审批流");
+        assert_eq!(template.id.as_deref(), Some("1213213123123"));
+        assert_eq!(
+            template.name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("Offer 审批流1")
+        );
+        assert_eq!(template.create_time.as_deref(), Some("1628512038000"));
+        assert_eq!(template.remark.as_deref(), Some("test"));
+        let department = template
+            .department_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应解析出 department_list");
+        assert_eq!(department.id.as_deref(), Some("1213213123123"));
+        assert_eq!(department.name.as_deref(), Some("部门名A"));
+        assert_eq!(department.en_name.as_deref(), Some("DepartmentA"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

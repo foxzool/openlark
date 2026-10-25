@@ -13,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::ApplicationInterviewRecord;
-
 /// `ListRequestBody`。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListRequestBody {
@@ -112,14 +110,98 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default, alias = "items")]
-    /// `records` 字段。
-    pub records: Vec<ApplicationInterviewRecord>,
+    /// `records` 字段（官方 `items`，元素为 `interview[]`）。
+    pub records: Vec<Interview>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 是否还有更多结果。
     pub has_more: Option<bool>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试（官方 `interview` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct Interview {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试开始时间（毫秒时间戳）。
+    pub begin_time: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试结束时间（毫秒时间戳）。
+    pub end_time: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次（从 0 开始计数）。
+    pub round: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试关联的投递阶段。
+    pub stage_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试官记录列表。
+    pub interview_record_list: Option<Vec<InterviewRecord>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试官记录（官方 `interview_record` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct InterviewRecord {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试记录 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试官用户 ID。
+    pub user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 系统预设「记录」题目内容。
+    pub content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 建议定级下限的职级 ID。
+    pub min_job_level_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 建议定级上限的职级 ID。
+    pub max_job_level_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 提交状态（1：已提交 2：未提交）。
+    pub commit_status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试结论（1：通过 2：未通过 3：未开始 4：未提交 5：未到场）。
+    pub conclusion: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评分。
+    pub interview_score: Option<InterviewScore>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试评分（官方 `interview_score` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct InterviewScore {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评分 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 分数级别。
+    pub level: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 中文描述。
+    pub zh_description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 英文名称。
+    pub en_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 英文描述。
+    pub en_description: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

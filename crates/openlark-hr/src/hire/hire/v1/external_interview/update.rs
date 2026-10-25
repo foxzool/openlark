@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalInterview;
+
 /// 更新外部面试请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
@@ -81,17 +83,20 @@ impl UpdateRequest {
 /// 更新外部面试响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct UpdateResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `external_interview` 字段（官方响应 data 下唯一容器）。
+    pub external_interview: Option<ExternalInterview>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `external_interview_id` 字段。
+    /// `external_interview_id` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub external_interview_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `application_id` 字段。
+    /// `application_id` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub application_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `result` 字段。
+    /// `result` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub result: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
+    /// `success` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub success: Option<bool>,
     #[serde(default, flatten)]
     /// 扩展字段。
@@ -119,7 +124,35 @@ mod tests {
         Mock::given(method("PUT"))
             .and(path("/open-apis/hire/v1/external_interviews/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok",
+                "data": {
+                    "external_interview": {
+                        "external_application_id": "6960663240925956437",
+                        "id": "6960663240925956436",
+                        "participate_status": 1,
+                        "begin_time": 1618500278638i64,
+                        "end_time": 1618500278639i64,
+                        "interview_assessments": [
+                            {
+                                "id": "6989181065243969836",
+                                "username": "张三",
+                                "conclusion": 1,
+                                "assessment_dimension_list": [
+                                    {
+                                        "score": 99,
+                                        "option": "选项1",
+                                        "options": ["选项1"],
+                                        "content": "面试内容结果补充",
+                                        "assessment_type": 1,
+                                        "title": "心理测试",
+                                        "description": "心理测试描述"
+                                    }
+                                ],
+                                "content": "面试内容结果补充"
+                            }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -131,11 +164,30 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        UpdateRequest::new(config)
+        let resp = UpdateRequest::new(config)
             .external_interview_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        let interview = resp
+            .external_interview
+            .expect("应返回 external_interview 容器");
+        assert_eq!(interview.id.as_deref(), Some("6960663240925956436"));
+        assert_eq!(interview.participate_status, Some(1));
+        assert_eq!(interview.begin_time, Some(1618500278638));
+        let assessment = interview
+            .interview_assessments
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应返回面试评价列表");
+        assert_eq!(assessment.username.as_deref(), Some("张三"));
+        let dimension = assessment
+            .assessment_dimension_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应返回评价维度列表");
+        assert_eq!(dimension.score, Some(99));
+        assert_eq!(dimension.title.as_deref(), Some("心理测试"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::JobSummary;
+use super::models::JobDetail;
 
 /// 获取职位列表请求
 #[derive(Debug, Clone)]
@@ -83,7 +83,7 @@ impl ListRequest {
 pub struct ListResponse {
     #[serde(default)]
     /// 结果项列表。
-    pub items: Vec<JobSummary>,
+    pub items: Vec<JobDetail>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -106,10 +106,84 @@ impl ApiResponseTrait for ListResponse {
 mod tests {
     use super::*;
     use openlark_core::testing::prelude::TestConfigBuilder;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, ResponseTemplate};
 
     #[test]
     fn test_list_request_builder_new() {
         let request = ListRequest::new(TestConfigBuilder::new().build()).page_size(1);
         let _ = request;
+    }
+
+    /// 端到端：GET /open-apis/hire/v1/jobs，响应 items 元素按官方 job 形状（id/title/description）解析。
+    #[tokio::test]
+    async fn test_list_parses_official_job_shape() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/hire/v1/jobs"))
+            .and(query_param("page_size", "10"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "ok",
+                "data": {
+                    "items": [
+                        {
+                            "id": "7379609334215919883",
+                            "title": "测试职位",
+                            "description": "这是一个测试职位",
+                            "code": "R18",
+                            "requirement": "要求应届生",
+                            "recruitment_type": {
+                                "id": "7379609334215919883",
+                                "zh_name": "全职",
+                                "en_name": "FullTime",
+                                "active_status": 1
+                            },
+                            "department": {
+                                "id": "od-xxxx",
+                                "zh_name": "字节跳动",
+                                "en_name": "Bytedance"
+                            },
+                            "active_status": 1,
+                            "process_type": 1,
+                            "process_id": "1",
+                            "process_name": "校招招聘流程"
+                        }
+                    ],
+                    "has_more": false
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ListRequest::new(config)
+            .page_size(10)
+            .execute()
+            .await
+            .expect("请求应成功");
+
+        let job = resp.items.first().expect("应解析出 1 个职位");
+        assert_eq!(job.id.as_deref(), Some("7379609334215919883"));
+        assert_eq!(job.title.as_deref(), Some("测试职位"));
+        assert_eq!(job.description.as_deref(), Some("这是一个测试职位"));
+        assert_eq!(
+            job.recruitment_type
+                .as_ref()
+                .and_then(|r| r.zh_name.as_deref()),
+            Some("全职")
+        );
+        assert_eq!(
+            job.department.as_ref().and_then(|d| d.en_name.as_deref()),
+            Some("Bytedance")
+        );
     }
 }

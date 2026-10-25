@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalOffer;
+
 /// 更新外部 Offer请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
@@ -78,17 +80,20 @@ impl UpdateRequest {
 /// 更新外部 Offer响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct UpdateResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `external_offer` 字段（官方响应 data 下唯一容器）。
+    pub external_offer: Option<ExternalOffer>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `external_offer_id` 字段。
+    /// `external_offer_id` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub external_offer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `offer_id` 字段。
+    /// `offer_id` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub offer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `result` 字段。
+    /// `result` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub result: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
+    /// `success` 字段（旧版平铺字段，官方现行响应中不存在，保留以兼容既有消费者）。
     pub success: Option<bool>,
     #[serde(default, flatten)]
     /// 扩展字段。
@@ -116,7 +121,19 @@ mod tests {
         Mock::given(method("PUT"))
             .and(path("/open-apis/hire/v1/external_offers/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "external_offer": {
+                        "id": "6989202908470446380",
+                        "external_application_id": "7395015673275697419",
+                        "biz_create_time": "1721899352428",
+                        "owner": "张三",
+                        "offer_status": "已发送",
+                        "attachment_list": [
+                            { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 126371 }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -128,11 +145,25 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        UpdateRequest::new(config)
+        let resp = UpdateRequest::new(config)
             .external_offer_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        let offer = resp.external_offer.expect("应返回 external_offer 容器");
+        assert_eq!(offer.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(
+            offer.external_application_id.as_deref(),
+            Some("7395015673275697419")
+        );
+        assert_eq!(offer.owner.as_deref(), Some("张三"));
+        assert_eq!(offer.offer_status.as_deref(), Some("已发送"));
+        let attachment = offer
+            .attachment_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应返回附件列表");
+        assert_eq!(attachment.size, Some(126371));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

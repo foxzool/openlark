@@ -13,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
-
 /// 根据简历附件创建招聘官网投递任务请求
 #[derive(Debug, Clone)]
 pub struct CreateByAttachmentRequest {
@@ -68,9 +66,9 @@ impl CreateByAttachmentRequest {
 /// 根据简历附件创建招聘官网投递任务响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateByAttachmentResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `delivery_task` 字段。
-    pub delivery_task: Option<WebsiteDeliveryTaskResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 异步任务 ID，可根据此 ID 通过获取招聘官网投递任务结果接口查询最终的投递结果。
+    pub task_id: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -99,7 +97,7 @@ mod tests {
                 "/open-apis/hire/v1/websites/test001/deliveries/create_by_attachment",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok", "data": { "task_id": "f1c2a0f138ec492d99d7ab73594158ad" }
             })))
             .mount(&server)
             .await;
@@ -111,11 +109,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateByAttachmentRequest::new(config)
+        let resp = CreateByAttachmentRequest::new(config)
             .website_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(
+            resp.task_id.as_deref(),
+            Some("f1c2a0f138ec492d99d7ab73594158ad")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

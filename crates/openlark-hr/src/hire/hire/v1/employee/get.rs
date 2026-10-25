@@ -97,7 +97,28 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/employees/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "employee": {
+                        "id": "7095600054216542508",
+                        "application_id": "7073372582620416300",
+                        "onboard_status": 1,
+                        "conversion_status": 1,
+                        "onboard_time": 1637596800000i64,
+                        "expected_conversion_time": 1637596800000i64,
+                        "actual_conversion_time": 1637596800000i64,
+                        "overboard_time": 1637596800000i64,
+                        "overboard_note": "职业发展考虑",
+                        "onboard_city_code": "CT_2",
+                        "department": "6966123381141866028",
+                        "leader": "ou-xxx",
+                        "sequence": "6937934036379650311",
+                        "level": "7006234385490345986",
+                        "employee_type": "1",
+                        "job_requirement_id": "123123123213"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -109,11 +130,19 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .employee_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let employee = resp.employee.as_ref().expect("employee 应存在");
+        assert_eq!(employee.id.as_deref(), Some("7095600054216542508"));
+        assert_eq!(employee.conversion_status, Some(1));
+        assert_eq!(employee.onboard_time, Some(1637596800000));
+        assert_eq!(employee.overboard_note.as_deref(), Some("职业发展考虑"));
+        assert_eq!(employee.leader.as_deref(), Some("ou-xxx"));
+        assert_eq!(employee.job_requirement_id.as_deref(), Some("123123123213"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,8 +10,9 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
-use crate::hire::hire::common_models::ExternalInterviewAssessmentResult;
+use crate::hire::hire::common_models::ExternalInterviewAssessment;
 
 /// 创建外部面评请求
 #[derive(Debug, Clone)]
@@ -66,9 +67,12 @@ impl CreateRequest {
 /// 创建外部面评响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
-    #[serde(flatten)]
-    /// `assessment` 字段。
-    pub assessment: ExternalInterviewAssessmentResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 外部面评信息。
+    pub external_interview_assessment: Option<ExternalInterviewAssessment>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -85,14 +89,35 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST /open-apis/hire/v1/external_interview_assessments
+    /// 端到端：POST /open-apis/hire/v1/external_interview_assessments，响应按官方 `data.external_interview_assessment` 形状解析。
     #[tokio::test]
     async fn test_create_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/external_interview_assessments"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "assessment": {  } }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "external_interview_assessment": {
+                        "id": "6989181065243969836",
+                        "username": "shaojiale",
+                        "conclusion": 1,
+                        "assessment_dimension_list": [
+                            {
+                                "score": 99,
+                                "option": "opt",
+                                "options": ["opt"],
+                                "content": "content",
+                                "assessment_type": 1,
+                                "title": "title",
+                                "description": "desc"
+                            }
+                        ],
+                        "content": "hello world",
+                        "external_interview_id": "6986199832494934316"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -104,10 +129,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let assessment = resp
+            .external_interview_assessment
+            .expect("应解析出 external_interview_assessment");
+        assert_eq!(assessment.id.as_deref(), Some("6989181065243969836"));
+        assert_eq!(assessment.username.as_deref(), Some("shaojiale"));
+        assert_eq!(assessment.conclusion, Some(1));
+        assert_eq!(assessment.content.as_deref(), Some("hello world"));
+        assert_eq!(
+            assessment.external_interview_id.as_deref(),
+            Some("6986199832494934316")
+        );
+        let dimension = assessment
+            .assessment_dimension_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应解析出 assessment_dimension_list");
+        assert_eq!(dimension.score, Some(99));
+        assert_eq!(dimension.title.as_deref(), Some("title"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalApplication;
+
 /// 删除外部投递请求
 #[derive(Debug, Clone)]
 pub struct DeleteRequest {
@@ -78,6 +80,9 @@ pub struct DeleteResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `success` 字段。
     pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 外部投递信息（官方 `external_application` 容器）。
+    pub external_application: Option<ExternalApplication>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -104,7 +109,21 @@ mod tests {
         Mock::given(method("DELETE"))
             .and(path("/open-apis/hire/v1/external_applications/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok",
+                "data": {
+                    "external_application": {
+                        "id": "6989202908470446380",
+                        "job_recruitment_type": 1,
+                        "job_title": "高级Java",
+                        "resume_source": "lagou",
+                        "stage": "简历初筛",
+                        "talent_id": "6960663240925956459",
+                        "termination_reason": "不合适",
+                        "delivery_type": 1,
+                        "modify_time": 1618500278645i64,
+                        "termination_type": "HR 主动终止"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -116,11 +135,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        DeleteRequest::new(config)
+        let resp = DeleteRequest::new(config)
             .external_application_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        let ext_app = resp
+            .external_application
+            .as_ref()
+            .expect("external_application 应被类型化解析");
+        assert_eq!(ext_app.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(ext_app.job_title.as_deref(), Some("高级Java"));
+        assert_eq!(ext_app.resume_source.as_deref(), Some("lagou"));
+        assert_eq!(ext_app.stage.as_deref(), Some("简历初筛"));
+        assert_eq!(ext_app.termination_reason.as_deref(), Some("不合适"));
+        assert_eq!(ext_app.delivery_type, Some(1));
+        assert_eq!(ext_app.modify_time, Some(1618500278645));
+        assert_eq!(ext_app.termination_type.as_deref(), Some("HR 主动终止"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

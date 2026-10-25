@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::JobPublishRecordSummary;
+use crate::hire::hire::v1::referral_website::job_post::list::ReferralWebsiteJobPostItem;
 
 /// 获取职位广告发布记录请求
 #[derive(Debug, Clone)]
@@ -97,8 +97,8 @@ impl SearchRequestBody {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct SearchResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<JobPublishRecordSummary>,
+    /// 结果项列表（官方 `website_job_post[]`）。
+    pub items: Vec<ReferralWebsiteJobPostItem>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -132,7 +132,24 @@ mod tests {
             .and(path("/open-apis/hire/v1/job_publish_records/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
-                "data": { "items": [ { "id": "1213213123123", "title": "Test" } ], "has_more": false }
+                "data": {
+                    "items": [
+                        {
+                            "id": "6791698585114724616",
+                            "title": "后端开发",
+                            "job_id": "6791698585114724616",
+                            "job_code": "A106043",
+                            "job_expire_time": "1722441599999",
+                            "job_active_status": 1,
+                            "job_process_type": 1,
+                            "job_recruitment_type": {
+                                "id": "101",
+                                "name": { "zh_cn": "全职", "en_us": "Full-time" }
+                            }
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -149,6 +166,18 @@ mod tests {
             .await
             .expect("请求应成功");
         assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.title.as_deref(), Some("后端开发"));
+        assert_eq!(item.job_code.as_deref(), Some("A106043"));
+        assert_eq!(item.job_expire_time.as_deref(), Some("1722441599999"));
+        assert_eq!(item.job_active_status, Some(1));
+        assert_eq!(item.job_process_type, Some(1));
+        assert_eq!(
+            item.job_recruitment_type
+                .as_ref()
+                .and_then(|t| t.id.as_deref()),
+            Some("101")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

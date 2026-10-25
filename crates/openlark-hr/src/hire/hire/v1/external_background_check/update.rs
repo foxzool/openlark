@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalBackgroundCheck;
+
 /// 更新外部背调请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
@@ -84,18 +86,9 @@ impl UpdateRequest {
 /// 更新外部背调响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct UpdateResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `external_background_check_id` 字段。
-    pub external_background_check_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `application_id` 字段。
-    pub application_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `result` 字段。
-    pub result: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
-    pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `external_background_check` 字段（官方响应 data 下唯一容器）。
+    pub external_background_check: Option<ExternalBackgroundCheck>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -124,7 +117,19 @@ mod tests {
                 "/open-apis/hire/v1/external_background_checks/test001",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok",
+                "data": {
+                    "external_background_check": {
+                        "id": "6989202908470446380",
+                        "external_application_id": "7003247299220982060",
+                        "date": 1626602069393i64,
+                        "name": "张三的背调",
+                        "result": "已通过",
+                        "attachment_list": [
+                            { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 2827182 }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -136,11 +141,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        UpdateRequest::new(config)
+        let resp = UpdateRequest::new(config)
             .external_background_check_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        // 官方响应 data.external_background_check 容器（.md L63-72）
+        let check = resp
+            .external_background_check
+            .as_ref()
+            .expect("external_background_check 应反序列化");
+        assert_eq!(check.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(check.result.as_deref(), Some("已通过"));
+        assert_eq!(
+            check
+                .attachment_list
+                .as_ref()
+                .and_then(|v| v.first())
+                .and_then(|v| v.size),
+            Some(2827182)
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

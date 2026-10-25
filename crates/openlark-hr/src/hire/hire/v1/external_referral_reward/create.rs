@@ -66,6 +66,9 @@ impl CreateRequest {
 /// 导入外部内推奖励响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建的内推奖励的 id。
+    pub id: Option<String>,
     #[serde(flatten)]
     /// `reward` 字段。
     pub reward: ExternalReferralRewardResult,
@@ -92,7 +95,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/external_referral_rewards"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "reward": {  } }
+                "code": 0, "msg": "success", "data": { "id": "6930815272790114324" }
             })))
             .mount(&server)
             .await;
@@ -104,10 +107,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        // 官方响应 data 仅含 id（.md L97/L105）
+        assert_eq!(resp.id.as_deref(), Some("6930815272790114324"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalOffer;
+
 /// 创建外部 Offer请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -64,18 +66,9 @@ impl CreateRequest {
 /// 创建外部 Offer响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `external_offer_id` 字段。
-    pub external_offer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `offer_id` 字段。
-    pub offer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `status` 字段。
-    pub status: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
-    pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `external_offer` 字段（官方响应 data 下唯一容器）。
+    pub external_offer: Option<ExternalOffer>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -102,7 +95,19 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/external_offers"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "external_offer": {
+                        "id": "6989202908470446380",
+                        "external_application_id": "7395015673275697419",
+                        "biz_create_time": "1721899352428",
+                        "owner": "张三",
+                        "offer_status": "已发送",
+                        "attachment_list": [
+                            { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 126371 }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -114,10 +119,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        // 官方响应 data.external_offer 容器（.md L56-65）
+        let offer = resp
+            .external_offer
+            .as_ref()
+            .expect("external_offer 应反序列化");
+        assert_eq!(offer.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(offer.biz_create_time.as_deref(), Some("1721899352428"));
+        assert_eq!(
+            offer
+                .attachment_list
+                .as_ref()
+                .and_then(|v| v.first())
+                .and_then(|v| v.size),
+            Some(126371)
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

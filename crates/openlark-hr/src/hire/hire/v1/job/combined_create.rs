@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use super::models::JobDetail;
+
 /// 新建职位请求
 #[derive(Debug, Clone)]
 pub struct CombinedCreateRequest {
@@ -387,18 +389,26 @@ pub struct CombinedJobObjectValueMap {
     pub value: Option<String>,
 }
 
+/// 新建职位响应默认职位广告（官方 `combined_job_result_default_job_post`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DefaultJobPost {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 默认职位广告的 ID。
+    pub id: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 新建职位响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CombinedCreateResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `job_id` 字段。
-    pub job_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `active_status` 字段。
-    pub active_status: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
-    pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位广告。
+    pub default_job_post: Option<DefaultJobPost>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位。
+    pub job: Option<JobDetail>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -425,7 +435,28 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/jobs/combined_create"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "job": { "id": "7281257045172308287" } }
+                "code": 0,
+                "msg": "ok",
+                "data": {
+                    "default_job_post": { "id": "6960663240925956568" },
+                    "job": {
+                        "id": "7281257045172308287",
+                        "title": "测试职位",
+                        "description": "这是一个测试职位",
+                        "code": "Z188",
+                        "recruitment_type": {
+                            "id": "7281257045172308287",
+                            "zh_name": "全职",
+                            "en_name": "FullTime",
+                            "active_status": 1
+                        },
+                        "department": {
+                            "id": "7281257045172308287",
+                            "zh_name": "字节跳动",
+                            "en_name": "Bytedance"
+                        }
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -485,11 +516,21 @@ mod tests {
             })
         );
         assert_eq!(
-            resp.extra
-                .get("job")
-                .and_then(|j| j.get("id"))
-                .and_then(|v| v.as_str()),
-            Some("7281257045172308287")
+            resp.default_job_post.as_ref().and_then(|p| p.id.as_deref()),
+            Some("6960663240925956568")
+        );
+        let job = resp.job.as_ref().expect("应解析出 job 容器");
+        assert_eq!(job.id.as_deref(), Some("7281257045172308287"));
+        assert_eq!(job.title.as_deref(), Some("测试职位"));
+        assert_eq!(
+            job.recruitment_type
+                .as_ref()
+                .and_then(|r| r.zh_name.as_deref()),
+            Some("全职")
+        );
+        assert_eq!(
+            job.department.as_ref().and_then(|d| d.zh_name.as_deref()),
+            Some("字节跳动")
         );
     }
 

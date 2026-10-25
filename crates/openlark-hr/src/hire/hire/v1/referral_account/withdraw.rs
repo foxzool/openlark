@@ -11,7 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::hire::hire::common_models::ReferralAccountOperationResult;
+use crate::hire::hire::common_models::{BonusAmount, ReferralAccountOperationResult};
 
 /// 全额提取内推账户余额请求
 #[derive(Debug, Clone)]
@@ -69,6 +69,15 @@ pub struct WithdrawResponse {
     #[serde(flatten)]
     /// `operation` 字段。
     pub operation: ReferralAccountOperationResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 提取单 ID。
+    pub external_order_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 交易时间（毫秒时间戳）。
+    pub trans_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 提取详情（官方 `bonus_amount`）。
+    pub withdrawal_details: Option<BonusAmount>,
 }
 
 impl ApiResponseTrait for WithdrawResponse {
@@ -92,7 +101,17 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/referral_account/test001/withdraw"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "operation": {  } }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "external_order_id": "6942778198054125570",
+                    "trans_time": "1683634459543",
+                    "withdrawal_details": {
+                        "point_bonus": 100,
+                        "cash_bonus": [
+                            { "currency_type": "CNY", "amount": 100 }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -104,11 +123,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        WithdrawRequest::new(config)
+        let resp = WithdrawRequest::new(config)
             .account_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(
+            resp.external_order_id.as_deref(),
+            Some("6942778198054125570")
+        );
+        assert_eq!(resp.trans_time.as_deref(), Some("1683634459543"));
+        let details = resp
+            .withdrawal_details
+            .as_ref()
+            .expect("withdrawal_details 应被类型化解析");
+        assert_eq!(details.point_bonus, Some(100));
+        assert_eq!(
+            details
+                .cash_bonus
+                .as_ref()
+                .and_then(|l| l.first())
+                .and_then(|c| c.currency_type.as_deref()),
+            Some("CNY")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

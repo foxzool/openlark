@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
+use crate::common::shared_models::I18nText;
 
 /// `ListRequestBody`。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -98,12 +98,58 @@ impl ListRequest {
     }
 }
 
+/// 面试评价表（官方 `interview_round_type_assessment_template`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct InterviewRoundTypeAssessmentTemplate {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表 ID。在面试评价表更新时，评价表 ID 也会更新。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表对应的业务 ID。在面试评价表更新时，业务 ID 保持不变。
+    pub biz_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表名称。
+    pub name: Option<I18nText>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试轮次类型（官方 `interview_round_type`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct InterviewRoundType {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型 ID。在面试轮次类型更新时，类型 ID 也会更新。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型对应的业务 ID。在面试轮次类型更新时，业务 ID 保持不变。
+    pub biz_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型名称。
+    pub name: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位流程类型：1 社招流程 / 2 校招流程。
+    pub process_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 启用状态：1 启用 / 2 未启用。
+    pub active_status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表。
+    pub interview_assessment_template_info: Option<InterviewRoundTypeAssessmentTemplate>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 获取面试轮次类型列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型启用状态：1 已启用 / 2 未启用。
+    pub active_status: Option<i32>,
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 面试轮次类型列表。
+    pub items: Vec<InterviewRoundType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -136,7 +182,23 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/interview_round_types"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok", "data": {
+                    "active_status": 1,
+                    "items": [
+                        {
+                            "id": "7012129842917869868",
+                            "biz_id": "7012129842917869868",
+                            "name": { "zh_cn": "默认面试轮次类型", "en_us": "default interview round type" },
+                            "process_type": 1,
+                            "active_status": 1,
+                            "interview_assessment_template_info": {
+                                "id": "7012129842917869868",
+                                "biz_id": "7012129842917869868",
+                                "name": { "zh_cn": "默认面试评价表", "en_us": "default interview assessment template" }
+                            }
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -148,10 +210,25 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.active_status, Some(1));
+        assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("7012129842917869868"));
+        assert_eq!(item.biz_id.as_deref(), Some("7012129842917869868"));
+        assert_eq!(item.process_type, Some(1));
+        assert_eq!(
+            item.name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("默认面试轮次类型")
+        );
+        let template = item
+            .interview_assessment_template_info
+            .as_ref()
+            .expect("interview_assessment_template_info 应存在");
+        assert_eq!(template.biz_id.as_deref(), Some("7012129842917869868"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
