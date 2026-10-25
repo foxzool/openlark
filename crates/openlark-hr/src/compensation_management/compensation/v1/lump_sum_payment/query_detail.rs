@@ -80,7 +80,7 @@ impl QueryDetailRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryDetailResponse {
     /// 一次性支付授予明细列表
-    pub items: Vec<LumpSumPaymentDetail>,
+    pub records: Vec<LumpSumPaymentDetail>,
     /// 是否有更多数据
     pub has_more: bool,
     /// 分页标记
@@ -88,17 +88,53 @@ pub struct QueryDetailResponse {
     pub page_token: Option<String>,
 }
 
-/// 一次性支付明细
+/// 一次性支付明细（官方 lump_sum_payment_detail）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LumpSumPaymentDetail {
-    /// 明细 ID
+    /// 一次性支付记录明细 id
     pub id: String,
-    /// 支付记录 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_id: Option<String>,
-    /// 员工 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 一次性支付记录 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_id: Option<String>,
+    /// 员工 id，具体类型由入参中的 user_id_type 指定
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// 一次性支付明细发放金额，可转数字的字符串
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_amount: Option<String>,
+    /// 发放状态：to_be_issued-应发放 not_issued-不发放
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_status: Option<String>,
+    /// 发放方式：with_salary-随工资发放 with_cash-现金发放 with_year_end_bonus-随年终奖发放
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_way: Option<String>,
+    /// 发放日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_time: Option<String>,
+    /// 币种 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency_id: Option<String>,
+    /// 申请发放日期（需字段权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub belong_time: Option<String>,
+    /// 创建时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    /// 更新时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modify_time: Option<String>,
+    /// 发放国家 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_country_region_id: Option<String>,
+    /// 发放薪资组 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_pay_group_id: Option<String>,
+    /// 一次性支付明细所属期开始日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_reference_period_start_date: Option<String>,
+    /// 一次性支付明细所属期结束日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_reference_period_end_date: Option<String>,
 }
 
 impl ApiResponseTrait for QueryDetailResponse {
@@ -121,8 +157,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.records[]（含全部明细字段）+ 分页
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"records": [{"id": "7395133551102200876", "record_id": "7395133551102168108", "user_id": "7337149697626801708", "issuance_amount": "2000.00", "issuance_status": "to_be_issued", "issuance_way": "with_salary", "issuance_time": "2024-08-01", "currency_id": "6863329932261459464", "belong_time": "2025-01-20", "create_time": "2024-08-01 12:34:56", "modify_time": "2024-08-01 12:34:56", "issuance_country_region_id": "6862995757234914824", "issuance_pay_group_id": "6862995757234914824", "detail_reference_period_start_date": "2024-08-01", "detail_reference_period_end_date": "2024-08-01"}], "has_more": true, "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0="}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path(
                 "/open-apis/compensation/v1/lump_sum_payment/query_detail",
@@ -147,8 +186,35 @@ mod tests {
             .await
             .expect("查询一次性支付明细应成功");
 
-        assert!(!data.has_more);
-        assert!(data.items.is_empty());
+        assert!(data.has_more);
+        assert_eq!(data.records.len(), 1);
+        let detail = &data.records[0];
+        assert_eq!(detail.id, "7395133551102200876");
+        assert_eq!(detail.record_id.as_deref(), Some("7395133551102168108"));
+        assert_eq!(detail.issuance_amount.as_deref(), Some("2000.00"));
+        assert_eq!(detail.issuance_status.as_deref(), Some("to_be_issued"));
+        assert_eq!(detail.issuance_way.as_deref(), Some("with_salary"));
+        assert_eq!(detail.issuance_time.as_deref(), Some("2024-08-01"));
+        assert_eq!(detail.currency_id.as_deref(), Some("6863329932261459464"));
+        assert_eq!(detail.belong_time.as_deref(), Some("2025-01-20"));
+        assert_eq!(detail.create_time.as_deref(), Some("2024-08-01 12:34:56"));
+        assert_eq!(detail.modify_time.as_deref(), Some("2024-08-01 12:34:56"));
+        assert_eq!(
+            detail.issuance_country_region_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            detail.issuance_pay_group_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            detail.detail_reference_period_start_date.as_deref(),
+            Some("2024-08-01")
+        );
+        assert_eq!(
+            detail.detail_reference_period_end_date.as_deref(),
+            Some("2024-08-01")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -156,9 +156,12 @@ mod builder_tests {
     );
     smoke_builder!(
         test_social_plan_list_request_builder,
-        social_plan::list::ListRequest::new(test_config("https://open.feishu.cn"), 1735689600)
-            .page_size(20)
-            .page_token("next_social_plan".to_string())
+        social_plan::list::ListRequest::new(
+            test_config("https://open.feishu.cn"),
+            "2024-01-01".to_string(),
+        )
+        .page_size(20)
+        .page_token("next_social_plan".to_string())
     );
     smoke_builder!(
         test_social_plan_query_request_builder,
@@ -188,7 +191,8 @@ mod validation_tests {
             .execute_with_options(auth_option())
             .await
             .expect("empty success should decode to empty CreateResponse");
-        assert!(data.archive_id.is_none());
+        assert!(data.unique_id.is_none());
+        assert!(data.archive_tid.is_none());
     }
 
     #[tokio::test]
@@ -219,17 +223,20 @@ mod validation_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/social_plans"))
-            .and(query_param("effective_date", "1735689600"))
+            .and(query_param("effective_date", "2024-01-01"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({"code":0,"msg":"ok"})))
             .mount(&mock_server)
             .await;
 
-        let err = social_plan::list::ListRequest::new(test_config(&mock_server.uri()), 1735689600)
-            .execute_with_options(auth_option())
-            .await
-            .err()
-            .unwrap()
-            .to_string();
+        let err = social_plan::list::ListRequest::new(
+            test_config(&mock_server.uri()),
+            "2024-01-01".to_string(),
+        )
+        .execute_with_options(auth_option())
+        .await
+        .err()
+        .unwrap()
+        .to_string();
         assert!(
             err.contains("查询参保方案响应数据为空")
                 || err.contains("成功响应缺少必需的 data")
@@ -276,10 +283,11 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/archives"))
             .and(header("Authorization", "Bearer test_token"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(json!({"code":0,"msg":"ok","data":{"archive_id":"arc_1"}})),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code":0,
+                "msg":"ok",
+                "data":{"unique_id":"123e4567-e89b-42d3-a456-426614174000","archive_tid":"arc_1"}
+            })))
             .mount(&mock_server)
             .await;
 
@@ -287,7 +295,11 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.archive_id, Some("arc_1".to_string()));
+        assert_eq!(
+            resp.unique_id,
+            Some("123e4567-e89b-42d3-a456-426614174000".to_string())
+        );
+        assert_eq!(resp.archive_tid, Some("arc_1".to_string()));
     }
 
     #[tokio::test]
@@ -322,7 +334,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"reason_1","name":"晋升","reason_type":1}]}
+                "data":{"items":[{"id":"reason_1","name":"晋升","note":"晋升调薪","active_status":1,"i18n_names":[{"locale":"zh_cn","value":"晋升"}],"i18n_notes":[{"locale":"zh_cn","value":"晋升调薪"}]}],"has_more":false}
             })))
             .mount(&mock_server)
             .await;
@@ -331,7 +343,7 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].name, "晋升");
+        assert_eq!(resp.items[0].name.as_deref(), Some("晋升"));
     }
 
     #[tokio::test]
@@ -344,7 +356,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"indicator_1","name":"总包","indicator_type":1,"formula":"base+bonus"}],"has_more":false,"page_token":"next_2"}
+                "data":{"items":[{"id":"indicator_1","name":"总包","value_type":"money","active_status":1,"i18n_names":[{"locale":"zh_cn","value":"总包"}]}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -356,6 +368,8 @@ mod http_tests {
             .await
             .unwrap();
         assert_eq!(resp.items[0].id, "indicator_1");
+        assert_eq!(resp.items[0].value_type.as_deref(), Some("money"));
+        assert_eq!(resp.items[0].active_status, Some(1));
     }
 
     #[tokio::test]
@@ -368,7 +382,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"item_1","name":"基本工资","item_type":1,"include_in_social_insurance":true}],"has_more":false,"page_token":"next_2"}
+                "data":{"items":[{"id":"item_1","name":"基本工资","description":"每月份的薪酬","category_id":"cat_1","value_type":"money","pay_off_frequency_type":"month","decimal_places":2,"active_status":1,"i18n_names":[{"locale":"zh_cn","value":"基本工资"}],"i18n_descriptions":[{"locale":"zh_cn","value":"每月份的薪酬"}]}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -379,7 +393,8 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert!(resp.items[0].include_in_social_insurance);
+        assert_eq!(resp.items[0].value_type.as_deref(), Some("money"));
+        assert_eq!(resp.items[0].decimal_places, Some(2));
     }
 
     #[tokio::test]
@@ -390,7 +405,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"cat_1","name":"固定","category_type":1}]}
+                "data":{"items":[{"id":"cat_1","name":"固定","i18n_names":[{"locale":"zh_cn","value":"固定"}]}],"has_more":false}
             })))
             .mount(&mock_server)
             .await;
@@ -399,7 +414,12 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].category_type, 1);
+        assert_eq!(
+            resp.items[0].i18n_names.as_ref().unwrap()[0]
+                .locale
+                .as_deref(),
+            Some("zh_cn")
+        );
     }
 
     #[tokio::test]
@@ -412,7 +432,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"lump_1","success":true}]}
+                "data":{"operate_results":[{"id":"lump_1","unique_id":"lump_unique_1","code":0,"message":"Success"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -423,7 +443,7 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert!(resp.results.unwrap()[0].success);
+        assert_eq!(resp.operate_results.unwrap()[0].code, Some(0));
     }
 
     #[tokio::test]
@@ -436,7 +456,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"lump_1","success":true}]}
+                "data":{"operate_results":[{"id":"lump_1","unique_id":"lump_unique_1","code":21270202,"message":"uqniue id conflict"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -447,7 +467,10 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert_eq!(resp.results.unwrap()[0].id, Some("lump_1".to_string()));
+        assert_eq!(
+            resp.operate_results.unwrap()[0].id,
+            Some("lump_1".to_string())
+        );
     }
 
     #[tokio::test]
@@ -460,7 +483,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"lump_1","success":true}]}
+                "data":{"operate_results":[{"id":"lump_1","unique_id":"lump_unique_1","code":0,"message":"Success"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -471,7 +494,10 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert!(resp.results.unwrap()[0].success);
+        assert_eq!(
+            resp.operate_results.unwrap()[0].message.as_deref(),
+            Some("Success")
+        );
     }
 
     #[tokio::test]
@@ -484,7 +510,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"lump_1","user_id":"ou_1","amount":1000.0}],"has_more":false,"page_token":"next_2"}
+                "data":{"records":[{"id":"lump_1","user_id":"ou_1","total_amount":"1000.00","binding_period":2,"currency_id":"cur_1","issuance_frequency":1,"item_id":"item_1","details":[{"id":"detail_1","record_id":"lump_1","user_id":"ou_1","issuance_amount":"1000.00","issuance_status":"to_be_issued","issuance_way":"with_salary","issuance_time":"2024-08-01","currency_id":"cur_1"}],"binding_period_decimal":"2"}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -495,7 +521,13 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].amount, Some(1000.0));
+        assert_eq!(resp.records[0].total_amount.as_deref(), Some("1000.00"));
+        assert_eq!(
+            resp.records[0].details.as_ref().unwrap()[0]
+                .issuance_amount
+                .as_deref(),
+            Some("1000.00")
+        );
     }
 
     #[tokio::test]
@@ -508,7 +540,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"detail_1","payment_id":"lump_1","user_id":"ou_1"}],"has_more":false,"page_token":"next_2"}
+                "data":{"records":[{"id":"detail_1","record_id":"lump_1","user_id":"ou_1","issuance_amount":"1000.00","issuance_status":"to_be_issued","issuance_way":"with_salary","issuance_time":"2024-08-01","currency_id":"cur_1","belong_time":"2025-01-20","create_time":"2024-08-01 12:34:56","modify_time":"2024-08-01 12:34:56","issuance_country_region_id":"cr_1","issuance_pay_group_id":"pg_1","detail_reference_period_start_date":"2024-08-01","detail_reference_period_end_date":"2024-08-01"}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -521,7 +553,11 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert_eq!(resp.items[0].payment_id, Some("lump_1".to_string()));
+        assert_eq!(resp.records[0].record_id, Some("lump_1".to_string()));
+        assert_eq!(
+            resp.records[0].issuance_status,
+            Some("to_be_issued".to_string())
+        );
     }
 
     #[tokio::test]
@@ -534,7 +570,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"plan_1","name":"标准方案","status":1,"effective_date":1735689600}],"has_more":false,"page_token":"next_2"}
+                "data":{"items":[{"id":"plan_1","tid":"tid_1","name":"标准方案","description":"标准方案描述","effective_date":"2024-01-01","plan_scope":{"is_all":false,"plan_conditions":[{"left_type":7,"operator":1,"right_value":["dept_1"]}]},"currency_id":"cur_1","probation_salary_status":true,"i18n_names":[{"locale":"zh_cn","value":"标准方案"}],"i18n_descriptions":[{"locale":"zh_cn","value":"标准方案描述"}]}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -546,6 +582,7 @@ mod http_tests {
             .await
             .unwrap();
         assert_eq!(resp.items[0].name, "标准方案");
+        assert_eq!(resp.items[0].effective_date, "2024-01-01");
     }
 
     #[tokio::test]
@@ -558,7 +595,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"rec_1","success":true}]}
+                "data":{"operate_results":[{"id":"rec_1","unique_id":"u_1","code":0,"message":"Success"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -569,7 +606,9 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert!(resp.results.unwrap()[0].success);
+        let results = resp.operate_results.unwrap();
+        assert_eq!(results[0].id, Some("rec_1".to_string()));
+        assert_eq!(results[0].code, Some(0));
     }
 
     #[tokio::test]
@@ -582,7 +621,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"rec_1","success":true}]}
+                "data":{"operate_results":[{"id":"rec_1","unique_id":"u_1","code":0,"message":"Success"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -593,7 +632,10 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert_eq!(resp.results.unwrap()[0].id, Some("rec_1".to_string()));
+        assert_eq!(
+            resp.operate_results.unwrap()[0].id,
+            Some("rec_1".to_string())
+        );
     }
 
     #[tokio::test]
@@ -606,7 +648,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"results":[{"id":"rec_1","success":true}]}
+                "data":{"operate_results":[{"id":"rec_1","unique_id":"u_1","code":0,"message":"Success"}]}
             })))
             .mount(&mock_server)
             .await;
@@ -617,7 +659,9 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert!(resp.results.unwrap()[0].success);
+        let results = resp.operate_results.unwrap();
+        assert_eq!(results[0].id, Some("rec_1".to_string()));
+        assert_eq!(results[0].code, Some(0));
     }
 
     #[tokio::test]
@@ -630,7 +674,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"rec_1","user_id":"ou_1","amount":3000.0}],"has_more":false,"page_token":"next_2"}
+                "data":{"records":[{"id":"rec_1","unique_id":"u_1","user_id":"ou_1","item_id":"item_1","issuance_type":"with_salary","each_amount":"3000.00","start_date":"2024-01-10","end_date":"2025-01-20","issuance_period":"year","currency_id":"cur_1","remark":"备注","issuance_country_region_id":"cr_1"}],"has_more":false,"page_token":"next_2"}
             })))
             .mount(&mock_server)
             .await;
@@ -641,7 +685,8 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].id, "rec_1");
+        assert_eq!(resp.records[0].id, "rec_1");
+        assert_eq!(resp.records[0].each_amount.as_deref(), Some("3000.00"));
     }
 
     #[tokio::test]
@@ -762,7 +807,7 @@ mod http_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"ins_1","name":"养老保险","insurance_type":1}]}
+                "data":{"items":[{"id":"ins_1","name":{"zh_cn":"养老保险","en_us":"endowment insurance"},"insurance_type":"social_insurance","active":true,"is_system":true}]}
             })))
             .mount(&mock_server)
             .await;
@@ -771,7 +816,9 @@ mod http_tests {
             .execute_with_options(auth_option())
             .await
             .unwrap();
-        assert_eq!(resp.items[0].name, "养老保险");
+        assert_eq!(resp.items[0].name.zh_cn, Some("养老保险".to_string()));
+        assert_eq!(resp.items[0].insurance_type, "social_insurance");
+        assert_eq!(resp.items[0].active, Some(true));
     }
 
     #[tokio::test]
@@ -779,24 +826,42 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/social_plans"))
-            .and(query_param("effective_date", "1735689600"))
+            .and(query_param("effective_date", "2024-01-01"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_social_plan"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
-                "data":{"items":[{"id":"sp_1","name":"标准参保","effective_date":1735689600}],"has_more":false,"page_token":"next_2"}
+                "data":{
+                    "plans":[{
+                        "plan_id":"sp_1",
+                        "plan_tid":"tid_1",
+                        "name":{"zh_cn":"标准参保","en_us":"Standard plan"},
+                        "effective_date":"2024-01-01",
+                        "active":true,
+                        "insurance_type":"social_insurance",
+                        "scope":{"is_all":true,"rules":[[{"left_type":1,"operator":1,"right_values":["city_1"]}]]},
+                        "item_detail":[],
+                        "remark":{"zh_cn":"备注","en_us":"remark"}
+                    }],
+                    "has_more":false,
+                    "page_token":"next_2"
+                }
             })))
             .mount(&mock_server)
             .await;
 
-        let resp = social_plan::list::ListRequest::new(test_config(&mock_server.uri()), 1735689600)
-            .page_size(20)
-            .page_token("next_social_plan".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
-        assert_eq!(resp.items[0].id, "sp_1");
+        let resp = social_plan::list::ListRequest::new(
+            test_config(&mock_server.uri()),
+            "2024-01-01".to_string(),
+        )
+        .page_size(20)
+        .page_token("next_social_plan".to_string())
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
+        assert_eq!(resp.plans[0].plan_id, "sp_1");
+        assert_eq!(resp.page_token, Some("next_2".to_string()));
     }
 
     #[tokio::test]
@@ -873,7 +938,8 @@ mod serialization_tests {
         test_archive_create_response_serialization,
         archive::create::CreateResponse,
         archive::create::CreateResponse {
-            archive_id: Some("arc_1".to_string())
+            unique_id: Some("123e4567-e89b-42d3-a456-426614174000".to_string()),
+            archive_tid: Some("arc_1".to_string()),
         }
     );
     roundtrip_eq!(
@@ -883,7 +949,23 @@ mod serialization_tests {
             items: vec![archive::query::Archive {
                 id: "arc_1".to_string(),
                 user_id: Some("ou_1".to_string()),
+                tid: Some("tid_1".to_string()),
                 plan_id: Some("plan_1".to_string()),
+                plan_tid: Some("plan_tid_1".to_string()),
+                currency_id: Some("cur_1".to_string()),
+                change_reason_id: None,
+                change_description: None,
+                effective_date: Some("2024-01-01".to_string()),
+                expiration_date: None,
+                salary_level_id: None,
+                created_time: None,
+                updated_time: None,
+                archive_items: Some(vec![archive::query::ArchiveItem {
+                    item_id: Some("item_1".to_string()),
+                    item_result: Some("15000".to_string()),
+                    item_result_regular: Some("18000".to_string()),
+                }]),
+                archive_indicators: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -895,9 +977,17 @@ mod serialization_tests {
         change_reason::list::ListResponse {
             items: vec![change_reason::list::ChangeReason {
                 id: "reason_1".to_string(),
-                name: "晋升".to_string(),
-                reason_type: 1,
+                name: Some("晋升".to_string()),
+                note: Some("晋升调薪".to_string()),
+                active_status: Some(1),
+                i18n_names: Some(vec![openlark_hr::common::shared_models::I18nContent {
+                    locale: Some("zh_cn".to_string()),
+                    value: Some("晋升".to_string()),
+                }]),
+                i18n_notes: None,
             }],
+            has_more: false,
+            page_token: None,
         }
     );
     roundtrip_eq!(
@@ -907,8 +997,9 @@ mod serialization_tests {
             items: vec![indicator::list::Indicator {
                 id: "ind_1".to_string(),
                 name: "总包".to_string(),
-                indicator_type: 1,
-                formula: Some("base+bonus".to_string()),
+                value_type: Some("money".to_string()),
+                active_status: Some(1),
+                i18n_names: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -921,8 +1012,14 @@ mod serialization_tests {
             items: vec![item::list::CompensationItem {
                 id: "item_1".to_string(),
                 name: "基本工资".to_string(),
-                item_type: 1,
-                include_in_social_insurance: true,
+                description: Some("每月份的薪酬".to_string()),
+                category_id: None,
+                value_type: Some("money".to_string()),
+                pay_off_frequency_type: Some("month".to_string()),
+                decimal_places: Some(2),
+                active_status: Some(1),
+                i18n_names: None,
+                i18n_descriptions: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -935,17 +1032,24 @@ mod serialization_tests {
             items: vec![item_category::list::ItemCategory {
                 id: "cat_1".to_string(),
                 name: "固定".to_string(),
-                category_type: 1,
+                i18n_names: Some(vec![openlark_hr::common::shared_models::I18nContent {
+                    locale: Some("zh_cn".to_string()),
+                    value: Some("固定".to_string()),
+                }]),
             }],
+            has_more: false,
+            page_token: None,
         }
     );
     roundtrip_eq!(
         test_lump_sum_batch_create_response_serialization,
         lump_sum_payment::batch_create::BatchCreateResponse,
         lump_sum_payment::batch_create::BatchCreateResponse {
-            results: Some(vec![lump_sum_payment::batch_create::BatchCreateResult {
+            operate_results: Some(vec![lump_sum_payment::batch_create::BatchCreateResult {
                 id: Some("lump_1".to_string()),
-                success: true,
+                unique_id: Some("lump_unique_1".to_string()),
+                code: Some(0),
+                message: Some("Success".to_string()),
             }]),
         }
     );
@@ -953,9 +1057,11 @@ mod serialization_tests {
         test_lump_sum_batch_remove_response_serialization,
         lump_sum_payment::batch_remove::BatchRemoveResponse,
         lump_sum_payment::batch_remove::BatchRemoveResponse {
-            results: Some(vec![lump_sum_payment::batch_remove::BatchRemoveResult {
+            operate_results: Some(vec![lump_sum_payment::batch_remove::BatchRemoveResult {
                 id: Some("lump_1".to_string()),
-                success: true,
+                unique_id: Some("lump_unique_1".to_string()),
+                code: Some(21270202),
+                message: Some("uqniue id conflict".to_string()),
             }]),
         }
     );
@@ -963,9 +1069,11 @@ mod serialization_tests {
         test_lump_sum_batch_update_response_serialization,
         lump_sum_payment::batch_update::BatchUpdateResponse,
         lump_sum_payment::batch_update::BatchUpdateResponse {
-            results: Some(vec![lump_sum_payment::batch_update::BatchUpdateResult {
+            operate_results: Some(vec![lump_sum_payment::batch_update::BatchUpdateResult {
                 id: Some("lump_1".to_string()),
-                success: true,
+                unique_id: Some("lump_unique_1".to_string()),
+                code: Some(0),
+                message: Some("Success".to_string()),
             }]),
         }
     );
@@ -973,10 +1081,27 @@ mod serialization_tests {
         test_lump_sum_query_response_serialization,
         lump_sum_payment::query::QueryResponse,
         lump_sum_payment::query::QueryResponse {
-            items: vec![lump_sum_payment::query::LumpSumPayment {
+            records: vec![lump_sum_payment::query::LumpSumPayment {
                 id: "lump_1".to_string(),
+                unique_id: Some("lump_unique_1".to_string()),
                 user_id: Some("ou_1".to_string()),
-                amount: Some(1000.0),
+                total_amount: Some("1000.00".to_string()),
+                binding_period: Some(2),
+                currency_id: Some("cur_1".to_string()),
+                issuance_frequency: Some(1),
+                item_id: Some("item_1".to_string()),
+                remark: None,
+                issuance_detail_text: None,
+                apply_source: Some(1),
+                return_amount_before_tax: None,
+                return_amount_after_tax: None,
+                binding_period_offboarding_type: None,
+                create_time: None,
+                modify_time: None,
+                reference_period_start_date: None,
+                reference_period_end_date: None,
+                details: None,
+                binding_period_decimal: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -986,10 +1111,22 @@ mod serialization_tests {
         test_lump_sum_query_detail_response_serialization,
         lump_sum_payment::query_detail::QueryDetailResponse,
         lump_sum_payment::query_detail::QueryDetailResponse {
-            items: vec![lump_sum_payment::query_detail::LumpSumPaymentDetail {
+            records: vec![lump_sum_payment::query_detail::LumpSumPaymentDetail {
                 id: "detail_1".to_string(),
-                payment_id: Some("lump_1".to_string()),
+                record_id: Some("lump_1".to_string()),
                 user_id: Some("ou_1".to_string()),
+                issuance_amount: Some("1000.00".to_string()),
+                issuance_status: Some("to_be_issued".to_string()),
+                issuance_way: Some("with_salary".to_string()),
+                issuance_time: Some("2024-08-01".to_string()),
+                currency_id: Some("cur_1".to_string()),
+                belong_time: None,
+                create_time: None,
+                modify_time: None,
+                issuance_country_region_id: None,
+                issuance_pay_group_id: None,
+                detail_reference_period_start_date: None,
+                detail_reference_period_end_date: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -1001,9 +1138,24 @@ mod serialization_tests {
         plan::list::ListResponse {
             items: vec![plan::list::Plan {
                 id: "plan_1".to_string(),
+                tid: Some("tid_1".to_string()),
                 name: "标准方案".to_string(),
-                status: 1,
-                effective_date: 1735689600,
+                description: Some("标准方案描述".to_string()),
+                effective_date: "2024-01-01".to_string(),
+                plan_scope: Some(plan::list::PlanScope {
+                    is_all: Some(false),
+                    plan_conditions: Some(vec![plan::list::PlanCondition {
+                        left_type: Some(7),
+                        operator: Some(1),
+                        right_value: Some(vec!["dept_1".to_string()]),
+                    }]),
+                }),
+                currency_id: Some("cur_1".to_string()),
+                probation_salary_status: Some(true),
+                plan_items: None,
+                plan_indicators: None,
+                i18n_names: None,
+                i18n_descriptions: None,
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -1013,9 +1165,11 @@ mod serialization_tests {
         test_recurring_batch_create_response_serialization,
         recurring_payment::batch_create::BatchCreateResponse,
         recurring_payment::batch_create::BatchCreateResponse {
-            results: Some(vec![recurring_payment::batch_create::BatchCreateResult {
+            operate_results: Some(vec![recurring_payment::batch_create::BatchCreateResult {
                 id: Some("rec_1".to_string()),
-                success: true,
+                unique_id: Some("u_1".to_string()),
+                code: Some(0),
+                message: Some("Success".to_string()),
             }]),
         }
     );
@@ -1023,9 +1177,11 @@ mod serialization_tests {
         test_recurring_batch_remove_response_serialization,
         recurring_payment::batch_remove::BatchRemoveResponse,
         recurring_payment::batch_remove::BatchRemoveResponse {
-            results: Some(vec![recurring_payment::batch_remove::BatchRemoveResult {
+            operate_results: Some(vec![recurring_payment::batch_remove::BatchRemoveResult {
                 id: Some("rec_1".to_string()),
-                success: true,
+                unique_id: Some("u_1".to_string()),
+                code: Some(0),
+                message: Some("Success".to_string()),
             }]),
         }
     );
@@ -1033,9 +1189,11 @@ mod serialization_tests {
         test_recurring_batch_update_response_serialization,
         recurring_payment::batch_update::BatchUpdateResponse,
         recurring_payment::batch_update::BatchUpdateResponse {
-            results: Some(vec![recurring_payment::batch_update::BatchUpdateResult {
+            operate_results: Some(vec![recurring_payment::batch_update::BatchUpdateResult {
                 id: Some("rec_1".to_string()),
-                success: true,
+                unique_id: Some("u_1".to_string()),
+                code: Some(0),
+                message: Some("Success".to_string()),
             }]),
         }
     );
@@ -1043,10 +1201,19 @@ mod serialization_tests {
         test_recurring_query_response_serialization,
         recurring_payment::query::QueryResponse,
         recurring_payment::query::QueryResponse {
-            items: vec![recurring_payment::query::RecurringPayment {
+            records: vec![recurring_payment::query::RecurringPayment {
                 id: "rec_1".to_string(),
+                unique_id: Some("u_1".to_string()),
                 user_id: Some("ou_1".to_string()),
-                amount: Some(3000.0),
+                item_id: Some("item_1".to_string()),
+                issuance_type: Some("with_salary".to_string()),
+                each_amount: Some("3000.00".to_string()),
+                start_date: Some("2024-01-10".to_string()),
+                end_date: Some("2025-01-20".to_string()),
+                issuance_period: Some("year".to_string()),
+                currency_id: Some("cur_1".to_string()),
+                remark: Some("备注".to_string()),
+                issuance_country_region_id: Some("cr_1".to_string()),
             }],
             has_more: false,
             page_token: Some("next".to_string()),
@@ -1117,8 +1284,14 @@ mod serialization_tests {
         social_insurance::list::ListResponse {
             items: vec![social_insurance::list::SocialInsurance {
                 id: "ins_1".to_string(),
-                name: "养老保险".to_string(),
-                insurance_type: 1,
+                name: openlark_hr::common::shared_models::I18nText {
+                    zh_cn: Some("养老保险".to_string()),
+                    en_us: Some("endowment insurance".to_string()),
+                    extra: std::collections::HashMap::new(),
+                },
+                insurance_type: "social_insurance".to_string(),
+                active: Some(true),
+                is_system: Some(true),
             }],
         }
     );
@@ -1126,10 +1299,22 @@ mod serialization_tests {
         test_social_plan_list_response_serialization,
         social_plan::list::ListResponse,
         social_plan::list::ListResponse {
-            items: vec![social_plan::list::SocialPlan {
-                id: "sp_1".to_string(),
-                name: "标准参保".to_string(),
-                effective_date: 1735689600,
+            plans: vec![social_plan::query::SocialPlan {
+                plan_id: "sp_1".to_string(),
+                plan_tid: "tid_1".to_string(),
+                name: social_plan::query::I18nName {
+                    zh_cn: Some("标准参保".to_string()),
+                    en_us: Some("Standard plan".to_string()),
+                },
+                effective_date: "2024-01-01".to_string(),
+                active: true,
+                insurance_type: "social_insurance".to_string(),
+                scope: None,
+                item_detail: vec![],
+                remark: social_plan::query::I18nName {
+                    zh_cn: Some("备注".to_string()),
+                    en_us: None,
+                },
             }],
             has_more: false,
             page_token: Some("next".to_string()),

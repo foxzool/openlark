@@ -1,7 +1,8 @@
 //! 获取周期任务（指定用户）
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/performance-v1/stage_task/find_by_user_list>
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/performance-v1/stage_task/find_by_user_list>
 
+use crate::performance::performance::v1::stage_task::models::{SemesterBaseInfo, StageTask};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -145,21 +146,14 @@ pub struct FindByUserListRequestBody {
 }
 
 /// 获取周期任务（指定用户）响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct FindByUserListResponse {
+    /// 周期基本信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<SemesterBaseInfo>,
     /// 周期任务列表
-    pub items: Vec<StageTask>,
-}
-
-/// 周期任务
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct StageTask {
-    /// 用户 ID
-    pub user_id: String,
-    /// 阶段 ID
-    pub stage_id: String,
-    /// 任务状态
-    pub status: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<StageTask>>,
 }
 
 impl ApiResponseTrait for FindByUserListResponse {
@@ -182,7 +176,40 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        // 使用官方响应示例的真实 shape（base 容器 + stage_num_lists /
+        // stage_task_info_lists，注意示例中任务分类键名为 task_option）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{
+                "base": {
+                    "end_time": "1748707140000",
+                    "semester_id": "7235911950407352321",
+                    "semester_name": { "en-US": "Demo Semester", "zh-CN": "示例周期" },
+                    "start_time": "1684684800000"
+                },
+                "items": [
+                    {
+                        "stage_num_lists": [
+                            { "task_option": 1, "stage_num": 1 },
+                            { "task_option": 2, "stage_num": 1 },
+                            { "task_option": 3, "stage_num": 0 }
+                        ],
+                        "stage_task_info_lists": [
+                            {
+                                "deadline": "1717142244000",
+                                "jump_url": "https://performance.feishu-pre.cn/perf/review/7235911950407352321/7235906557915987996/members",
+                                "name": { "en-US": "confirm_invitation", "zh-CN": "360° 确认" },
+                                "need_todo_count": 10,
+                                "stage_id": "7270346432875692033",
+                                "stage_task_status": "need_todo",
+                                "task_option": 1
+                            }
+                        ],
+                        "user_id": "bega29ca"
+                    }
+                ]
+            }"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path(
                 "/open-apis/performance/v1/stage_tasks/find_by_user_list",
@@ -218,7 +245,35 @@ mod tests {
             .await
             .expect("performance_v1_stage_task_find_by_user_list 应成功");
 
-        assert!(data.items.is_empty());
+        let base = data.base.as_ref().expect("base 应存在");
+        assert_eq!(base.semester_id.as_deref(), Some("7235911950407352321"));
+        assert_eq!(
+            base.semester_name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("示例周期")
+        );
+        assert_eq!(base.start_time.as_deref(), Some("1684684800000"));
+        assert_eq!(base.end_time.as_deref(), Some("1748707140000"));
+        let items = data.items.as_ref().expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].user_id.as_deref(), Some("bega29ca"));
+        let nums = items[0]
+            .stage_num_lists
+            .as_ref()
+            .expect("stage_num_lists 应存在");
+        assert_eq!(nums.len(), 3);
+        assert_eq!(nums[0].task_option_id, Some(1));
+        assert_eq!(nums[0].stage_num, Some(1));
+        let infos = items[0]
+            .stage_task_info_lists
+            .as_ref()
+            .expect("stage_task_info_lists 应存在");
+        assert_eq!(infos[0].stage_id.as_deref(), Some("7270346432875692033"));
+        assert_eq!(infos[0].stage_task_status.as_deref(), Some("need_todo"));
+        assert_eq!(infos[0].need_todo_count, Some(10));
+        assert_eq!(
+            infos[0].name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("360° 确认")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

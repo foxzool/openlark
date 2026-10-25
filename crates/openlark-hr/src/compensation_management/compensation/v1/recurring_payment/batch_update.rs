@@ -51,19 +51,26 @@ impl BatchUpdateRequest {
 /// 批量更正经常性支付记录响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchUpdateResponse {
-    /// 更新结果列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub results: Option<Vec<BatchUpdateResult>>,
+    /// 每条记录的操作结果列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operate_results: Option<Vec<BatchUpdateResult>>,
 }
 
-/// 批量更新结果
+/// 批量更正操作结果（官方 recurring_payment_operate_result）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchUpdateResult {
-    /// 记录 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 操作记录的 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// 是否成功
-    pub success: bool,
+    /// 操作的记录的 unique_id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_id: Option<String>,
+    /// 操作结果状态码（0 表示成功，21280001 等为具体错误）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<i32>,
+    /// 操作结果描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
 }
 
 impl ApiResponseTrait for BatchUpdateResponse {
@@ -86,7 +93,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        // 官方响应示例形状：data.operate_results[]（含 code/unique_id/message）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"operate_results": [{"id": "7390583861280556588", "unique_id": "7390583861280556588", "code": 21270202, "message": "uqniue id conflict"}]}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path(
                 "/open-apis/compensation/v1/recurring_payment/batch_update",
@@ -111,7 +122,12 @@ mod tests {
             .await
             .expect("批量更新经常性支付应成功");
 
-        assert!(data.results.is_none());
+        let results = data.operate_results.expect("operate_results 应存在");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id.as_deref(), Some("7390583861280556588"));
+        assert_eq!(results[0].unique_id.as_deref(), Some("7390583861280556588"));
+        assert_eq!(results[0].code, Some(21270202));
+        assert_eq!(results[0].message.as_deref(), Some("uqniue id conflict"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

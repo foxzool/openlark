@@ -45,6 +45,20 @@ pub struct I18nLangValue {
     pub value: Option<String>,
 }
 
+/// `{locale, value}` 形式的多语言内容（官方 `i18n_content[]` 数组元素）。
+///
+/// 与 [`I18nText`]（`{zh_cn, en_us}` map 形态）不同，这是数组元素形态，
+/// 例如 compensation 域的 `i18n_names: [{locale, value}]`。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct I18nContent {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 语言版本（如 `zh_cn`、`en-US`）。
+    pub locale: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 语言名称（对应语种的文本内容）。
+    pub value: Option<String>,
+}
+
 /// 可兼容普通字符串或多语言对象的文本字段。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]

@@ -10,6 +10,8 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::shared_models::I18nContent;
+
 /// 批量查询薪资项请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -98,10 +100,30 @@ pub struct CompensationItem {
     pub id: String,
     /// 薪资项名称
     pub name: String,
-    /// 薪资项类型
-    pub item_type: i32,
-    /// 是否计入社保
-    pub include_in_social_insurance: bool,
+    /// 薪资项描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// 薪资项分类 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_id: Option<String>,
+    /// 薪资项数值类型：money-金额 number-数值 percent-百分比
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_type: Option<String>,
+    /// 发放频率：year/half_year/quarterly/bimonthly/month/biweekly/week/day/hour
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pay_off_frequency_type: Option<String>,
+    /// 小数位数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decimal_places: Option<i32>,
+    /// 启用状态：1-启用 0-禁用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_status: Option<i32>,
+    /// 多语言名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i18n_names: Option<Vec<I18nContent>>,
+    /// 多语言描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i18n_descriptions: Option<Vec<I18nContent>>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -124,8 +146,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.items[]（含 value_type/i18n 等）+ 分页
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"items": [{"id": "7196951947268589113", "name": "基本月薪", "description": "每月份的薪酬", "category_id": "7196951947268589223", "value_type": "money", "pay_off_frequency_type": "month", "decimal_places": 2, "active_status": 1, "i18n_names": [{"locale": "zh_cn", "value": "中文名称"}], "i18n_descriptions": [{"locale": "zh_cn", "value": "中文名称"}]}], "page_token": "1234452132", "has_more": true}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/items"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -148,8 +173,29 @@ mod tests {
             .await
             .expect("查询薪资项应成功");
 
-        assert!(!data.has_more);
-        assert!(data.items.is_empty());
+        assert!(data.has_more);
+        assert_eq!(data.items.len(), 1);
+        assert_eq!(data.items[0].id, "7196951947268589113");
+        assert_eq!(data.items[0].name, "基本月薪");
+        assert_eq!(data.items[0].value_type.as_deref(), Some("money"));
+        assert_eq!(
+            data.items[0].pay_off_frequency_type.as_deref(),
+            Some("month")
+        );
+        assert_eq!(data.items[0].decimal_places, Some(2));
+        assert_eq!(data.items[0].active_status, Some(1));
+        assert_eq!(
+            data.items[0].i18n_names.as_ref().unwrap()[0]
+                .locale
+                .as_deref(),
+            Some("zh_cn")
+        );
+        assert_eq!(
+            data.items[0].i18n_descriptions.as_ref().unwrap()[0]
+                .value
+                .as_deref(),
+            Some("中文名称")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

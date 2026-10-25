@@ -10,6 +10,8 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::common::shared_models::I18nText;
+
 /// 获取险种配置列表请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -61,12 +63,18 @@ pub struct ListResponse {
 /// 险种配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SocialInsurance {
-    /// 险种 ID
+    /// 险种唯一 ID
     pub id: String,
-    /// 险种名称
-    pub name: String,
-    /// 险种类型
-    pub insurance_type: i32,
+    /// 险种名称（多语种）
+    pub name: I18nText,
+    /// 险种类型：social_insurance-社保 provident_fund-公积金
+    pub insurance_type: String,
+    /// 启用状态：true-启用 false-停用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 是否为系统预置险种：true-预置险种 false-自定义险种
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_system: Option<bool>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -89,7 +97,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{"items": []}"#).unwrap();
+        // 官方响应示例形状：data.items[]（name 为 i18n 对象、insurance_type 为字符串枚举）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"items": [{"id": "7207415762276992556", "name": {"zh_cn": "生育保险", "en_us": "maternity insurance"}, "insurance_type": "social_insurance", "active": true, "is_system": true}]}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/social_insurances"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -112,7 +124,16 @@ mod tests {
             .await
             .expect("查询险种应成功");
 
-        assert!(data.items.is_empty());
+        assert_eq!(data.items.len(), 1);
+        assert_eq!(data.items[0].id, "7207415762276992556");
+        assert_eq!(data.items[0].name.zh_cn.as_deref(), Some("生育保险"));
+        assert_eq!(
+            data.items[0].name.en_us.as_deref(),
+            Some("maternity insurance")
+        );
+        assert_eq!(data.items[0].insurance_type, "social_insurance");
+        assert_eq!(data.items[0].active, Some(true));
+        assert_eq!(data.items[0].is_system, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
