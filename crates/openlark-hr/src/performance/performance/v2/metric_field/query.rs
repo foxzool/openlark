@@ -1,8 +1,8 @@
 //! 获取指标字段列表
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/metric_field/query>
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/performance-v2/metric_field/query>
 
-use openlark_core::validate_required;
+use crate::common::shared_models::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -14,36 +14,24 @@ use serde::{Deserialize, Serialize};
 /// 获取指标字段列表请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 指标库 ID（必填）
-    metric_lib_id: String,
-    /// 分页大小（可选）
-    page_size: Option<i32>,
-    /// 分页标记（可选）
-    page_token: Option<String>,
+    /// 指标的字段 ID 列表（可选，≤50，不填获取全部指标字段）
+    field_ids: Option<Vec<String>>,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config, metric_lib_id: String) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
-            metric_lib_id,
-            page_size: None,
-            page_token: None,
+            field_ids: None,
             config,
         }
     }
 
-    /// 设置分页大小（可选）
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
-        self
-    }
-
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
+    /// 设置指标的字段 ID 列表（可选，≤50）
+    pub fn field_ids(mut self, field_ids: Vec<String>) -> Self {
+        self.field_ids = Some(field_ids);
         self
     }
 
@@ -60,20 +48,21 @@ impl QueryRequest {
     ) -> SDKResult<QueryResponse> {
         use crate::common::api_endpoints::PerformanceApiV1;
 
-        validate_required!(self.metric_lib_id.trim(), "metric_lib_id");
-
         // 1. 构建端点
         let api_endpoint = PerformanceApiV1::MetricFieldQuery;
-        let mut request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
 
-        // 2. 添加查询参数（可选）
-        request = request.query("metric_lib_id", &self.metric_lib_id);
-        if let Some(page_size) = self.page_size {
-            request = request.query("page_size", page_size.to_string());
-        }
-        if let Some(ref page_token) = self.page_token {
-            request = request.query("page_token", page_token);
-        }
+        // 2. 构建请求体
+        let request_body = QueryRequestBody {
+            field_ids: self.field_ids,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "请求体序列化失败",
+                format!("无法序列化请求参数: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
 
         // 3. 发送请求
         Transport::request_typed(
@@ -86,29 +75,34 @@ impl QueryRequest {
     }
 }
 
-/// 获取指标字段列表响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct QueryResponse {
-    /// 指标字段列表
-    pub items: Vec<MetricField>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记
+/// 请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryRequestBody {
+    /// 指标的字段 ID 列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    pub field_ids: Option<Vec<String>>,
 }
 
-/// 指标字段信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// 获取指标字段列表响应
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct QueryResponse {
+    /// 指标字段信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<MetricField>>,
+}
+
+/// 指标字段信息（官方 metric_field 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct MetricField {
-    /// 字段 ID
-    pub id: String,
-    /// 字段名称
-    pub name: String,
-    /// 字段类型
-    pub field_type: i32,
-    /// 是否必填
-    pub required: bool,
+    /// 指标字段 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field_id: Option<String>,
+    /// 指标字段名称（i18n）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<I18nText>,
+    /// 指标字段类型：text 文本 / number 数字 / pencentage 百分比 / person 人员单选
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -127,14 +121,28 @@ mod tests {
     async fn test_performance_v2_metric_field_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 使用官方响应示例的真实 shape（field_id/i18n name/type）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{
+                "items": [
+                    {
+                        "field_id": "7272581996315099155",
+                        "name": { "zh_cn": "销量", "en_us": "Sales" },
+                        "type": "text"
+                    }
+                ]
+            }"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/performance/v2/metric_fields/query"))
+            .and(body_json(json!({
+                "field_ids": ["7293169069640630291"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -150,13 +158,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config, "metric_lib_001".to_string())
+        let data = QueryRequest::new(config)
+            .field_ids(vec!["7293169069640630291".to_string()])
             .execute()
             .await
             .expect("performance_v2_metric_field_query 应成功");
 
-        assert!(data.items.is_empty());
-        assert!(!data.has_more);
+        let items = data.items.as_ref().expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].field_id.as_deref(), Some("7272581996315099155"));
+        assert_eq!(
+            items[0].name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("销量")
+        );
+        assert_eq!(
+            items[0].name.as_ref().and_then(|n| n.en_us.as_deref()),
+            Some("Sales")
+        );
+        assert_eq!(items[0].r#type.as_deref(), Some("text"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

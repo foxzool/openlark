@@ -79,8 +79,8 @@ impl QueryRequest {
 /// 查询经常性支付记录响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 经常性支付记录列表
-    pub items: Vec<RecurringPayment>,
+    /// 经常性支付授予记录列表
+    pub records: Vec<RecurringPayment>,
     /// 是否有更多数据
     pub has_more: bool,
     /// 分页标记
@@ -88,17 +88,44 @@ pub struct QueryResponse {
     pub page_token: Option<String>,
 }
 
-/// 经常性支付
+/// 经常性支付记录（官方 recurring_payment）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecurringPayment {
-    /// 支付记录 ID
+    /// 经常性支付记录 id
     pub id: String,
-    /// 员工 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 外部幂等 id，由上游业务决定
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_id: Option<String>,
+    /// 员工 id，具体类型由入参中的 user_id_type 指定（需字段权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
-    /// 金额
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    /// 薪酬项 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item_id: Option<String>,
+    /// 发放方式：with_salary-随工资发放 with_cash-现金发放 with_physical_distribution-实物发放 with_year_end_bonus-随年终奖发放
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_type: Option<String>,
+    /// 单次发放金额，字符串表达的数字
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub each_amount: Option<String>,
+    /// 发放开始日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    /// 发放结束日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+    /// 发放频率：year/half_year/quarterly/bimonthly/month/biweekly/week/day/hour
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_period: Option<String>,
+    /// 币种 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency_id: Option<String>,
+    /// 备注
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remark: Option<String>,
+    /// 发放国家 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuance_country_region_id: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -121,8 +148,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.records[]（含 12 字段）+ 分页
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"records": [{"id": "7397033607132351532", "unique_id": "7402510801304718380_7309316347007764012_7402523725868058156_1726070400000_10000", "user_id": "7337149697626801708", "item_id": "7411039006180312620", "issuance_type": "with_salary", "each_amount": "24.00", "start_date": "2024-01-10", "end_date": "2025-01-20", "issuance_period": "year", "currency_id": "6863329932261459464", "remark": "这是个备注", "issuance_country_region_id": "6862995745046267400"}], "has_more": true, "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0="}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/recurring_payment/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -145,8 +175,16 @@ mod tests {
             .await
             .expect("查询经常性支付应成功");
 
-        assert!(!data.has_more);
-        assert!(data.items.is_empty());
+        assert!(data.has_more);
+        assert_eq!(data.records.len(), 1);
+        let record = &data.records[0];
+        assert_eq!(record.id, "7397033607132351532");
+        assert_eq!(record.each_amount.as_deref(), Some("24.00"));
+        assert_eq!(record.issuance_type.as_deref(), Some("with_salary"));
+        assert_eq!(record.issuance_period.as_deref(), Some("year"));
+        assert_eq!(record.start_date.as_deref(), Some("2024-01-10"));
+        assert_eq!(record.end_date.as_deref(), Some("2025-01-20"));
+        assert_eq!(record.currency_id.as_deref(), Some("6863329932261459464"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

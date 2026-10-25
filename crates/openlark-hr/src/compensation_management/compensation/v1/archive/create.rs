@@ -51,9 +51,12 @@ impl CreateRequest {
 /// 创建薪资档案响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 薪资档案 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub archive_id: Option<String>,
+    /// 定调薪任务创建的唯一 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_id: Option<String>,
+    /// 薪资档案的 TID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_tid: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -63,7 +66,10 @@ impl ApiResponseTrait for CreateResponse {
 
     /// 官方成功响应可能无 `data`；全 Option 字段时声明空成功（非 `{}` 探测）。
     fn empty_success() -> Option<Self> {
-        Some(Self { archive_id: None })
+        Some(Self {
+            unique_id: None,
+            archive_tid: None,
+        })
     }
 }
 
@@ -81,7 +87,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        // 官方响应示例形状：data 含 unique_id + archive_tid
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"unique_id": "123e4567-e89b-42d3-a456-426614174000", "archive_tid": "7434007780111336970"}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/archives"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -104,7 +114,11 @@ mod tests {
             .await
             .expect("创建薪资档案应成功");
 
-        assert!(data.archive_id.is_none());
+        assert_eq!(
+            data.unique_id.as_deref(),
+            Some("123e4567-e89b-42d3-a456-426614174000")
+        );
+        assert_eq!(data.archive_tid.as_deref(), Some("7434007780111336970"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

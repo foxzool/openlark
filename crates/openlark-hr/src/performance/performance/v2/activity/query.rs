@@ -1,7 +1,8 @@
 //! 获取项目列表
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/performance-v2/activity/query>
+//! docPath: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/performance-v2/activity/query>
 
+use crate::common::shared_models::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -13,12 +14,12 @@ use serde::{Deserialize, Serialize};
 /// 获取项目列表请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 搜索关键字，支持按项目名称搜索（可选）
-    name: Option<String>,
-    /// 分页大小（可选）
-    page_size: Option<i32>,
-    /// 分页标记（可选）
-    page_token: Option<String>,
+    /// 评估周期 ID 列表（可选，≤10；填写 activity_ids 时无效）
+    semester_ids: Option<Vec<String>>,
+    /// 项目 ID 列表（可选，≤50）
+    activity_ids: Option<Vec<String>>,
+    /// 用户 ID 类型（可选 query 参数，默认 open_id）
+    user_id_type: Option<String>,
     /// 配置信息
     config: Config,
 }
@@ -27,28 +28,28 @@ impl QueryRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
         Self {
-            name: None,
-            page_size: None,
-            page_token: None,
+            semester_ids: None,
+            activity_ids: None,
+            user_id_type: None,
             config,
         }
     }
 
-    /// 设置搜索关键字（可选）
-    pub fn name(mut self, name: String) -> Self {
-        self.name = Some(name);
+    /// 设置评估周期 ID 列表（可选，≤10）
+    pub fn semester_ids(mut self, semester_ids: Vec<String>) -> Self {
+        self.semester_ids = Some(semester_ids);
         self
     }
 
-    /// 设置分页大小（可选）
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
+    /// 设置项目 ID 列表（可选，≤50）
+    pub fn activity_ids(mut self, activity_ids: Vec<String>) -> Self {
+        self.activity_ids = Some(activity_ids);
         self
     }
 
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
+    /// 设置用户 ID 类型（可选 query 参数，默认 open_id）
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
         self
     }
 
@@ -67,18 +68,21 @@ impl QueryRequest {
 
         // 1. 构建端点
         let api_endpoint = PerformanceApiV1::ActivityQuery;
-        let mut request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url())
+            .query_opt("user_id_type", self.user_id_type);
 
-        // 2. 添加查询参数（可选）
-        if let Some(ref name) = self.name {
-            request = request.query("name", name);
-        }
-        if let Some(page_size) = self.page_size {
-            request = request.query("page_size", page_size.to_string());
-        }
-        if let Some(ref page_token) = self.page_token {
-            request = request.query("page_token", page_token);
-        }
+        // 2. 构建请求体（semester_ids 与 activity_ids 均可不填，都不填时返回空数据）
+        let request_body = QueryRequestBody {
+            semester_ids: self.semester_ids,
+            activity_ids: self.activity_ids,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "请求体序列化失败",
+                format!("无法序列化请求参数: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
 
         // 3. 发送请求
         Transport::request_typed(
@@ -91,29 +95,58 @@ impl QueryRequest {
     }
 }
 
-/// 获取项目列表响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct QueryResponse {
-    /// 项目列表
-    pub items: Vec<Activity>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记
+/// 请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryRequestBody {
+    /// 评估周期 ID 列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    pub semester_ids: Option<Vec<String>>,
+    /// 项目 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity_ids: Option<Vec<String>>,
 }
 
-/// 项目信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// 获取项目列表响应
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct QueryResponse {
+    /// 项目列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub activities: Option<Vec<Activity>>,
+}
+
+/// 项目信息（官方 activity 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Activity {
     /// 项目 ID
-    pub id: String,
-    /// 项目名称
-    pub name: String,
-    /// 项目状态
-    pub status: i32,
-    /// 创建时间
-    pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 项目名称（i18n）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<I18nText>,
+    /// 项目描述（i18n）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<I18nText>,
+    /// 周期 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub semester_id: Option<String>,
+    /// 项目模式：metric_development / performance_review / metric_development_and_performance_review
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// 项目状态：configurable / unable / initiating / enabled / finished
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress: Option<String>,
+    /// 项目创建时间，毫秒时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    /// 项目更新时间，毫秒时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modify_time: Option<String>,
+    /// 项目创建人 ID，与入参 user_id_type 类型一致（需字段权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_user_id: Option<String>,
+    /// 项目更新人 ID，与入参 user_id_type 类型一致（需字段权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modify_user_id: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -132,14 +165,36 @@ mod tests {
     async fn test_performance_v2_activity_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 使用官方响应示例的真实 shape（activities 容器 + i18n name/description）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{
+                "activities": [
+                    {
+                        "id": "7343513161666707459",
+                        "name": { "zh_cn": "项目一", "en_us": "Activity 1" },
+                        "description": { "zh_cn": "体验", "en_us": "Interactive experience" },
+                        "semester_id": "7343513161666707459",
+                        "mode": "performance_review",
+                        "progress": "configurable",
+                        "create_time": "1691951256000",
+                        "modify_time": "1691951256000",
+                        "create_user_id": "6924187793321444877",
+                        "modify_user_id": "6924187793321444877"
+                    }
+                ]
+            }"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/performance/v2/activity/query"))
+            .and(body_json(json!({
+                "semester_ids": ["6992035450862224940"],
+                "activity_ids": ["7343513161666707459"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -156,12 +211,30 @@ mod tests {
             .build();
 
         let data = QueryRequest::new(config)
+            .semester_ids(vec!["6992035450862224940".to_string()])
+            .activity_ids(vec!["7343513161666707459".to_string()])
+            .user_id_type("open_id".to_string())
             .execute()
             .await
             .expect("performance_v2_activity_query 应成功");
 
-        assert!(data.items.is_empty());
-        assert!(!data.has_more);
+        let activities = data.activities.as_ref().expect("activities 应存在");
+        assert_eq!(activities.len(), 1);
+        assert_eq!(activities[0].id.as_deref(), Some("7343513161666707459"));
+        assert_eq!(
+            activities[0].name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("项目一")
+        );
+        assert_eq!(
+            activities[0]
+                .description
+                .as_ref()
+                .and_then(|d| d.en_us.as_deref()),
+            Some("Interactive experience")
+        );
+        assert_eq!(activities[0].mode.as_deref(), Some("performance_review"));
+        assert_eq!(activities[0].progress.as_deref(), Some("configurable"));
+        assert_eq!(activities[0].create_time.as_deref(), Some("1691951256000"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

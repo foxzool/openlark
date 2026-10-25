@@ -16,6 +16,8 @@ pub mod metric_lib;
 pub mod metric_tag;
 /// metric_template 子模块。
 pub mod metric_template;
+/// 共享模型。
+pub mod models;
 /// question 子模块。
 pub mod question;
 /// review_data 子模块。
