@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::ExternalApplicationSummary;
+use crate::hire::hire::common_models::ExternalApplication;
 
 /// 查询外部投递列表请求
 #[derive(Debug, Clone)]
@@ -68,8 +68,8 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default, alias = "records")]
-    /// 结果项列表。
-    pub items: Vec<ExternalApplicationSummary>,
+    /// 结果项列表（官方 `external_application[]`）。
+    pub items: Vec<ExternalApplication>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -102,7 +102,26 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/external_applications"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6989202908470446380",
+                            "job_recruitment_type": 1,
+                            "job_title": "高级Java",
+                            "resume_source": "lagou",
+                            "stage": "简历初筛",
+                            "talent_id": "6960663240925956459",
+                            "termination_reason": "不合适",
+                            "delivery_type": 1,
+                            "modify_time": 1618500278645i64,
+                            "create_time": 1618500278644i64,
+                            "termination_type": "HR 主动终止"
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "cursor_ext_app"
+                }
             })))
             .mount(&server)
             .await;
@@ -114,10 +133,21 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(item.job_recruitment_type, Some(1));
+        assert_eq!(item.job_title.as_deref(), Some("高级Java"));
+        assert_eq!(item.resume_source.as_deref(), Some("lagou"));
+        assert_eq!(item.stage.as_deref(), Some("简历初筛"));
+        assert_eq!(item.delivery_type, Some(1));
+        assert_eq!(item.modify_time, Some(1618500278645));
+        assert_eq!(item.create_time, Some(1618500278644));
+        assert_eq!(item.termination_type.as_deref(), Some("HR 主动终止"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

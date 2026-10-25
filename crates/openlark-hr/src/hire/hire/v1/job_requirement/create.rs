@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::JobRequirementDto;
+
 /// 创建招聘需求请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -363,18 +365,9 @@ pub struct JobRequirementCustomizedData {
 /// 创建招聘需求响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `job_requirement_id` 字段。
-    pub job_requirement_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `job_id` 字段。
-    pub job_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// 标题。
-    pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `status` 字段。
-    pub status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘需求信息。
+    pub job_requirement: Option<JobRequirementDto>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -394,14 +387,44 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST /open-apis/hire/v1/job_requirements
+    /// 端到端：POST /open-apis/hire/v1/job_requirements，响应按官方 `data.job_requirement` 形状解析。
     #[tokio::test]
     async fn test_create_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/job_requirements"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "job_requirement_id": "6952811314255265796" }
+                "code": 0,
+                "msg": "SUCCESS",
+                "data": {
+                    "job_requirement": {
+                        "id": "6949805467799537964",
+                        "short_code": "R01905",
+                        "name": "HR部门春季招聘需求",
+                        "display_progress": 1,
+                        "head_count": 10,
+                        "recruitment_type": {
+                            "id": "101",
+                            "name": {
+                                "zh_cn": "社招-全职",
+                                "en_us": "Social recruitment - Full time"
+                            }
+                        },
+                        "employee_type": {
+                            "id": "6807409776231254285",
+                            "name": { "zh_cn": "专家", "en_us": "specialist" }
+                        },
+                        "category": 1,
+                        "priority": 1,
+                        "process_type": 1,
+                        "job_type": {
+                            "id": "6920523524664496628",
+                            "name": { "zh_cn": "技术", "en_us": "Tech" },
+                            "parent_id": "0"
+                        },
+                        "approval_status": 3
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -426,9 +449,31 @@ mod tests {
             .execute()
             .await
             .expect("请求应成功");
+        let requirement = resp.job_requirement.expect("应解析出 job_requirement");
+        assert_eq!(requirement.id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(requirement.short_code.as_deref(), Some("R01905"));
+        assert_eq!(requirement.head_count, Some(10));
         assert_eq!(
-            resp.job_requirement_id.as_deref(),
-            Some("6952811314255265796")
+            requirement
+                .recruitment_type
+                .as_ref()
+                .and_then(|r| r.id.as_deref()),
+            Some("101")
+        );
+        assert_eq!(
+            requirement
+                .employee_type
+                .as_ref()
+                .and_then(|e| e.name.as_ref().and_then(|n| n.zh_cn.as_deref())),
+            Some("专家")
+        );
+        assert_eq!(requirement.approval_status, Some(3));
+        assert_eq!(
+            requirement
+                .job_type
+                .as_ref()
+                .and_then(|t| t.parent_id.as_deref()),
+            Some("0")
         );
 
         let received = server.received_requests().await.unwrap_or_default();

@@ -12,7 +12,27 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
+use crate::hire::hire::common_models::CommonSchema;
+
+/// 信息登记表（官方 `registration_schema`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 信息登记表 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 信息登记表名称。
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 登记表适用场景：5 面试登记表 / 6 入职登记表 / 14 信息更新登记表。
+    pub scenarios: Option<Vec<i32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块列表（官方 `common_schema[]`）。
+    pub objects: Option<Vec<CommonSchema>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
 
 /// 获取信息登记表列表请求
 #[derive(Debug, Clone)]
@@ -57,8 +77,8 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 结果项列表（官方 `registration_schema[]`）。
+    pub items: Vec<RegistrationSchema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -91,7 +111,28 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/registration_schemas"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6930815272790114324",
+                            "name": "默认登记表",
+                            "scenarios": [5],
+                            "objects": [
+                                {
+                                    "id": "6930815272790114324",
+                                    "name": { "zh_cn": "基本信息", "en_us": "Basic Info" },
+                                    "object_type": 11,
+                                    "is_customized": false,
+                                    "is_required": true,
+                                    "is_visible": true,
+                                    "active_status": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -103,10 +144,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("6930815272790114324"));
+        assert_eq!(item.name.as_deref(), Some("默认登记表"));
+        assert_eq!(item.scenarios.as_deref(), Some(&[5][..]));
+        let objects = item.objects.as_ref().expect("objects 应被类型化解析");
+        assert_eq!(objects.len(), 1);
+        assert_eq!(objects[0].id.as_deref(), Some("6930815272790114324"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

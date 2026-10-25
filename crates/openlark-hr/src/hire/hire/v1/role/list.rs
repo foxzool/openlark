@@ -106,6 +106,15 @@ pub struct RoleItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `role_type` 字段。
     pub role_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否在角色上配置业务管理范围（仅 role/get 详情返回）。
+    pub has_business_management_scope: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 社招权限配置，仅当 scope_of_application 为「社招」或「都包含」时有值（仅 role/get 详情返回）。
+    pub socail_permission_collection: Option<super::get::PermissionCollection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 校招权限配置，仅当 scope_of_application 为「校招」或「都包含」时有值（仅 role/get 详情返回）。
+    pub campus_permission_collection: Option<super::get::PermissionCollection>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

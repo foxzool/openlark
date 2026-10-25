@@ -136,7 +136,19 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/interview_tasks"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok", "data": {
+                    "has_more": true,
+                    "page_token": "eyJvZmZzZXQiOjEwLCJ0aW1lc3RhbXAiOjE2Mjc1NTUyMjM2NzIsImlkIjpudWxsfQ==",
+                    "items": [
+                        {
+                            "id": "6989202908470446380",
+                            "job_id": "6897921873523247373",
+                            "talent_id": "7046263097923537196",
+                            "application_id": "7046315599510833452",
+                            "activity_status": 1
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -148,10 +160,22 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(resp.items[0].job_id.as_deref(), Some("6897921873523247373"));
+        assert_eq!(
+            resp.items[0].talent_id.as_deref(),
+            Some("7046263097923537196")
+        );
+        assert_eq!(
+            resp.items[0].application_id.as_deref(),
+            Some("7046315599510833452")
+        );
+        assert_eq!(resp.items[0].activity_status, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

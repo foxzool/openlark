@@ -129,14 +129,46 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET /open-apis/hire/v1/interviews
+    /// 端到端：GET /open-apis/hire/v1/interviews，响应 items 元素按官方 `interview_extend` 形状解析（含 interview_record_list）。
     #[tokio::test]
     async fn test_list_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/interviews"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6949805467799537964",
+                            "begin_time": 1618899376474i64,
+                            "end_time": 1618999376474i64,
+                            "round": 0,
+                            "interview_record_list": [
+                                {
+                                    "id": "6949805467799537964",
+                                    "user_id": "1618899376474",
+                                    "content": "符合要求，推荐录用",
+                                    "commit_status": 1,
+                                    "conclusion": 1,
+                                    "interview_score": {
+                                        "id": "6949805467799537964",
+                                        "level": 3,
+                                        "zh_name": "第一轮面试",
+                                        "zh_description": "通过，能力达到要求，建议录用",
+                                        "en_name": "English name",
+                                        "en_description": "Pass"
+                                    },
+                                    "interviewer": {
+                                        "id": "1213213123123",
+                                        "name": { "zh_cn": "周小二", "en_us": "Tony Ma" }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -148,10 +180,31 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let interview = resp.items.first().expect("应解析出 1 个面试");
+        assert_eq!(interview.id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(interview.begin_time, Some(1618899376474));
+        assert_eq!(interview.end_time, Some(1618999376474));
+        assert_eq!(interview.round, Some(0));
+        let record = interview
+            .interview_record_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("应解析出 interview_record_list");
+        assert_eq!(record.id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(record.commit_status, Some(1));
+        assert_eq!(record.conclusion, Some(1));
+        assert_eq!(
+            record
+                .interview_score
+                .as_ref()
+                .and_then(|s| s.zh_name.as_deref()),
+            Some("第一轮面试")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

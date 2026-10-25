@@ -610,6 +610,7 @@ mod serialization_tests {
         test_application_create_response_serialization,
         application::create::CreateResponse,
         application::create::CreateResponse {
+            id: Some("ap_001".to_string()),
             application_id: Some("ap_001".to_string()),
             talent_id: Some("talent_001".to_string()),
             job_id: Some("job_001".to_string()),
@@ -628,6 +629,7 @@ mod serialization_tests {
         test_application_get_response_serialization,
         application::get::GetResponse,
         application::get::GetResponse {
+            application: None,
             application_id: Some("ap_001".to_string()),
             talent_id: Some("talent_001".to_string()),
             job_id: Some("job_001".to_string()),
@@ -646,33 +648,91 @@ mod serialization_tests {
         test_application_get_detail_response_serialization,
         application::get_detail::GetDetailResponse,
         application::get_detail::GetDetailResponse {
-            application_id: Some("ap_001".to_string()),
-            talent_id: Some("talent_001".to_string()),
-            job_id: Some("job_001".to_string()),
-            application_status: Some(2),
-            stage_id: Some("stage_offer".to_string()),
-            stage_name: Some("Offer".to_string()),
-            job_info: Some(openlark_hr::hire::hire::common_models::ApplicationJobInfo {
-                job_id: Some("job_001".to_string()),
-                job_name: Some("后端工程师".to_string()),
-                extra: Default::default(),
-            }),
-            talent_info: Some(
-                openlark_hr::hire::hire::common_models::ApplicationTalentInfo {
+            application_detail: Some(application::get_detail::ApplicationDetailInfo {
+                basic_info: Some(application::get_detail::ApplicationDetailBasicInfo {
+                    id: Some("ap_001".to_string()),
+                    job_id: Some("job_001".to_string()),
                     talent_id: Some("talent_001".to_string()),
-                    talent_name: Some("张三".to_string()),
-                    mobile: None,
+                    stage: Some(application::get_detail::ApplicationStageInfo {
+                        id: Some("stage_offer".to_string()),
+                        zh_name: Some("Offer".to_string()),
+                        en_name: Some("Offer".to_string()),
+                        stage_type: Some(5),
+                        extra: Default::default(),
+                    }),
+                    active_status: Some(1),
+                    delivery_type: Some(1),
+                    resume_source_info: None,
+                    website_resume_source: None,
+                    talent_attachment_resume_id: None,
+                    stage_time_list: None,
+                    onboard_status: Some(1),
+                    application_preferred_city_list: None,
+                    termination_reason: None,
+                    creator_id: None,
+                    owner_id: None,
+                    terminator_id: None,
+                    create_time: None,
+                    modify_time: None,
+                    lock_status: None,
+                    termination_reason_note: None,
+                    extra: Default::default(),
+                }),
+                job: Some(application::get_detail::ApplicationDetailJobInfo {
+                    id: Some("job_001".to_string()),
+                    name: Some("后端工程师".to_string()),
+                    code: None,
+                    description: None,
+                    requirement: None,
+                    recruitment_type: None,
+                    department: None,
+                    process_type: None,
+                    process_id: None,
+                    city_list: None,
+                    extra: Default::default(),
+                }),
+                talent: Some(application::get_detail::TalentBasicInfoV2 {
+                    id: Some("talent_001".to_string()),
+                    name: Some("张三".to_string()),
+                    mobile_code: None,
+                    mobile_number: None,
                     email: Some("zhangsan@example.com".to_string()),
                     extra: Default::default(),
-                }
-            ),
-            offer_info: Some(
-                openlark_hr::hire::hire::common_models::ApplicationOfferInfo {
-                    offer_id: Some("offer_001".to_string()),
-                    offer_status: Some(1),
+                }),
+                evaluations: None,
+                interview_aggregation: None,
+                offer: Some(application::get_detail::OfferInfoV2 {
+                    offer_basic: Some(application::get_detail::OfferBasicInfoV2 {
+                        id: Some("offer_001".to_string()),
+                        offer_status: Some(10),
+                        leader: None,
+                        employee_type: None,
+                        department: None,
+                        sequence: None,
+                        level: None,
+                        company_main_body: None,
+                        job_requirement_id: None,
+                        probation_month: None,
+                        contract_period: None,
+                        onboard_date: None,
+                        owner: None,
+                        onboard_address: None,
+                        work_address: None,
+                        remark: None,
+                        attachment_list: None,
+                        customize_info_list: None,
+                        create_time: None,
+                        extra: Default::default(),
+                    }),
+                    offer_salary: None,
                     extra: Default::default(),
-                }
-            ),
+                }),
+                employee: None,
+                agency: None,
+                portal: None,
+                referral: None,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -768,6 +828,7 @@ mod serialization_tests {
         test_application_transfer_onboard_response_serialization,
         application::transfer_onboard::TransferOnboardResponse,
         application::transfer_onboard::TransferOnboardResponse {
+            employee: None,
             operation: openlark_hr::hire::hire::common_models::ApplicationOperationResult {
                 application_id: Some("app_1".to_string()),
                 stage_id: None,
@@ -803,12 +864,20 @@ mod serialization_tests {
         external_background_check::batch_query::BatchQueryResponse,
         external_background_check::batch_query::BatchQueryResponse {
             items: vec![
-                openlark_hr::hire::hire::common_models::ExternalBackgroundCheckSummary {
-                    external_background_check_id: Some("bg_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(1),
-                    vendor_name: Some("iBackground".to_string()),
+                openlark_hr::hire::hire::common_models::ExternalBackgroundCheck {
+                    id: Some("bg_1".to_string()),
+                    external_application_id: Some("app_1".to_string()),
+                    date: Some(1626602069393),
+                    name: Some("张三的背调".to_string()),
+                    result: Some("已通过".to_string()),
+                    attachment_list: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalBackgroundCheckAttachment {
+                            id: Some("attach_1".to_string()),
+                            name: Some("test_resume.pdf".to_string()),
+                            size: Some(126371),
+                            extra: Default::default(),
+                        }
+                    ]),
                     extra: Default::default(),
                 }
             ],
@@ -821,10 +890,24 @@ mod serialization_tests {
         test_external_background_check_create_response_serialization,
         external_background_check::create::CreateResponse,
         external_background_check::create::CreateResponse {
-            external_background_check_id: Some("bg_1".to_string()),
-            application_id: Some("app_1".to_string()),
-            status: Some(1),
-            success: Some(true),
+            external_background_check: Some(
+                openlark_hr::hire::hire::common_models::ExternalBackgroundCheck {
+                    id: Some("bg_1".to_string()),
+                    external_application_id: Some("app_1".to_string()),
+                    date: Some(1626602069393),
+                    name: Some("张三的背调".to_string()),
+                    result: Some("已通过".to_string()),
+                    attachment_list: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalBackgroundCheckAttachment {
+                            id: Some("attach_1".to_string()),
+                            name: Some("test_resume.pdf".to_string()),
+                            size: Some(126371),
+                            extra: Default::default(),
+                        }
+                    ]),
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -842,10 +925,24 @@ mod serialization_tests {
         test_external_background_check_update_response_serialization,
         external_background_check::update::UpdateResponse,
         external_background_check::update::UpdateResponse {
-            external_background_check_id: Some("bg_1".to_string()),
-            application_id: Some("app_1".to_string()),
-            result: Some(true),
-            success: Some(true),
+            external_background_check: Some(
+                openlark_hr::hire::hire::common_models::ExternalBackgroundCheck {
+                    id: Some("bg_1".to_string()),
+                    external_application_id: Some("app_1".to_string()),
+                    date: Some(1626602069393),
+                    name: Some("张三的背调".to_string()),
+                    result: Some("已通过".to_string()),
+                    attachment_list: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalBackgroundCheckAttachment {
+                            id: Some("attach_1".to_string()),
+                            name: Some("test_resume.pdf".to_string()),
+                            size: Some(2827182),
+                            extra: Default::default(),
+                        }
+                    ]),
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -854,13 +951,34 @@ mod serialization_tests {
         external_interview::batch_query::BatchQueryResponse,
         external_interview::batch_query::BatchQueryResponse {
             items: vec![
-                openlark_hr::hire::hire::common_models::ExternalInterviewSummary {
-                    external_interview_id: Some("iv_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(2),
-                    interview_round_name: Some("一面".to_string()),
-                    start_time: Some("2026-05-01T10:00:00Z".to_string()),
+                openlark_hr::hire::hire::common_models::ExternalInterview {
+                    external_application_id: Some("app_1".to_string()),
+                    id: Some("iv_1".to_string()),
+                    participate_status: Some(2),
+                    begin_time: Some(1618500278638),
+                    end_time: Some(1618500278639),
+                    interview_assessments: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalInterviewAssessment {
+                            id: Some("assess_1".to_string()),
+                            username: Some("张三".to_string()),
+                            conclusion: Some(2),
+                            assessment_dimension_list: Some(vec![
+                                openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentDimension {
+                                    score: Some(99),
+                                    option: Some("选项1".to_string()),
+                                    options: Some(vec!["选项1".to_string()]),
+                                    content: Some("这是一个测试内容".to_string()),
+                                    assessment_type: Some(1),
+                                    title: Some("心理测试".to_string()),
+                                    description: Some("心理测试题目".to_string()),
+                                    extra: Default::default(),
+                                }
+                            ]),
+                            content: Some("这是一个心理测试题目".to_string()),
+                            external_interview_id: None,
+                            extra: Default::default(),
+                        }
+                    ]),
                     extra: Default::default(),
                 }
             ],
@@ -873,10 +991,38 @@ mod serialization_tests {
         test_external_interview_create_response_serialization,
         external_interview::create::CreateResponse,
         external_interview::create::CreateResponse {
-            external_interview_id: Some("iv_1".to_string()),
-            application_id: Some("app_1".to_string()),
-            status: Some(1),
-            success: Some(true),
+            external_interview: Some(
+                openlark_hr::hire::hire::common_models::ExternalInterview {
+                    external_application_id: Some("app_1".to_string()),
+                    id: Some("iv_1".to_string()),
+                    participate_status: Some(1),
+                    begin_time: Some(1618500278638),
+                    end_time: Some(1618500278639),
+                    interview_assessments: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalInterviewAssessment {
+                            id: Some("assess_1".to_string()),
+                            username: Some("张三".to_string()),
+                            conclusion: Some(1),
+                            assessment_dimension_list: Some(vec![
+                                openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentDimension {
+                                    score: Some(99),
+                                    option: None,
+                                    options: None,
+                                    content: Some("不错的面试内容".to_string()),
+                                    assessment_type: Some(1),
+                                    title: Some("面试测试".to_string()),
+                                    description: Some("这是一次测试".to_string()),
+                                    extra: Default::default(),
+                                }
+                            ]),
+                            content: Some("第一次面试".to_string()),
+                            external_interview_id: None,
+                            extra: Default::default(),
+                        }
+                    ]),
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -894,6 +1040,38 @@ mod serialization_tests {
         test_external_interview_update_response_serialization,
         external_interview::update::UpdateResponse,
         external_interview::update::UpdateResponse {
+            external_interview: Some(
+                openlark_hr::hire::hire::common_models::ExternalInterview {
+                    external_application_id: Some("app_1".to_string()),
+                    id: Some("iv_1".to_string()),
+                    participate_status: Some(1),
+                    begin_time: Some(1618500278638),
+                    end_time: Some(1618500278639),
+                    interview_assessments: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalInterviewAssessment {
+                            id: Some("assess_1".to_string()),
+                            username: Some("张三".to_string()),
+                            conclusion: Some(1),
+                            assessment_dimension_list: Some(vec![
+                                openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentDimension {
+                                    score: Some(99),
+                                    option: Some("选项1".to_string()),
+                                    options: Some(vec!["选项1".to_string()]),
+                                    content: Some("面试内容结果补充".to_string()),
+                                    assessment_type: Some(1),
+                                    title: Some("心理测试".to_string()),
+                                    description: Some("心理测试描述".to_string()),
+                                    extra: Default::default(),
+                                }
+                            ]),
+                            content: Some("面试内容结果补充".to_string()),
+                            external_interview_id: None,
+                            extra: Default::default(),
+                        }
+                    ]),
+                    extra: Default::default(),
+                }
+            ),
             external_interview_id: Some("iv_1".to_string()),
             application_id: Some("app_1".to_string()),
             result: Some(true),
@@ -905,6 +1083,7 @@ mod serialization_tests {
         test_tripartite_agreement_create_response_serialization,
         tripartite_agreement::create::CreateResponse,
         tripartite_agreement::create::CreateResponse {
+            id: Some("agree_1".to_string()),
             agreement_id: Some("agree_1".to_string()),
             application_id: Some("app_1".to_string()),
             status: Some(1),
@@ -926,16 +1105,14 @@ mod serialization_tests {
         test_tripartite_agreement_list_response_serialization,
         tripartite_agreement::list::ListResponse,
         tripartite_agreement::list::ListResponse {
-            items: vec![
-                openlark_hr::hire::hire::common_models::TripartiteAgreementSummary {
-                    agreement_id: Some("agree_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(1),
-                    sign_status: Some(2),
-                    extra: Default::default(),
-                }
-            ],
+            items: vec![tripartite_agreement::list::TripartiteAgreementInfo {
+                id: Some("agree_1".to_string()),
+                application_id: Some("app_1".to_string()),
+                state: Some(1),
+                create_time: Some("1698292282660".to_string()),
+                modify_time: Some("1698292282661".to_string()),
+                extra: Default::default(),
+            }],
             page_token: Some("cursor_agree".to_string()),
             has_more: Some(false),
             extra: Default::default(),
@@ -956,9 +1133,53 @@ mod serialization_tests {
         test_job_combined_create_response_serialization,
         job::combined_create::CombinedCreateResponse,
         job::combined_create::CombinedCreateResponse {
-            job_id: Some("job_001".to_string()),
-            active_status: Some(1),
-            success: Some(true),
+            default_job_post: Some(job::combined_create::DefaultJobPost {
+                id: Some("post_001".to_string()),
+                extra: Default::default(),
+            }),
+            job: Some(job::models::JobDetail {
+                id: Some("job_001".to_string()),
+                title: Some("后端工程师".to_string()),
+                description: None,
+                code: None,
+                requirement: None,
+                active_status: Some(1),
+                recruitment_type: None,
+                department: None,
+                city: None,
+                min_job_level: None,
+                max_job_level: None,
+                highlight_list: None,
+                job_category: None,
+                job_type: None,
+                create_user_id: None,
+                create_time: None,
+                update_time: None,
+                process_type: None,
+                process_id: None,
+                process_name: None,
+                process_en_name: None,
+                customized_data_list: None,
+                job_function: None,
+                subject: None,
+                head_count: None,
+                experience: None,
+                expiry_time: None,
+                min_salary: None,
+                max_salary: None,
+                required_degree: None,
+                city_list: None,
+                job_attribute: None,
+                create_timestamp: None,
+                update_timestamp: None,
+                expiry_timestamp: None,
+                target_major_list: None,
+                job_manager: None,
+                interview_registration_schema_info: None,
+                onboard_registration_schema_info: None,
+                portal_website_apply_form_schema_info: None,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -966,6 +1187,7 @@ mod serialization_tests {
         test_job_get_response_serialization,
         job::get::GetResponse,
         job::get::GetResponse {
+            job: None,
             job_id: Some("job_001".to_string()),
             job_name: Some("后端工程师".to_string()),
             active_status: Some(1),
@@ -990,24 +1212,83 @@ mod serialization_tests {
         test_job_get_detail_response_serialization,
         job::get_detail::GetDetailResponse,
         job::get_detail::GetDetailResponse {
-            job_id: Some("job_001".to_string()),
-            job_name: Some("后端工程师".to_string()),
-            active_status: Some(1),
-            process_id: Some("process_1".to_string()),
-            process_name: Some("标准流程".to_string()),
-            department_id: Some("dept_1".to_string()),
-            job_description: Some("负责核心服务开发".to_string()),
-            recruiters: Some(vec![
-                openlark_hr::hire::hire::common_models::JobRecruiterRecord {
-                    recruiter_id: Some("rec_1".to_string()),
-                    manager_id: None,
-                    user_id: Some("ou_1".to_string()),
-                    name: Some("招聘负责人".to_string()),
-                    role: Some("owner".to_string()),
-                    role_type: Some(1),
+            job_detail: Some(job::get_detail::JobDetailInfo {
+                basic_info: Some(job::get_detail::JobDetailBasicInfo {
+                    id: Some("job_001".to_string()),
+                    title: Some("后端工程师".to_string()),
+                    description: Some("负责核心服务开发".to_string()),
+                    code: Some("R18".to_string()),
+                    requirement: None,
+                    recruitment_type: None,
+                    department: Some(openlark_hr::common::shared_models::IdNameObject {
+                        id: Some("dept_1".to_string()),
+                        name: Some(openlark_hr::common::shared_models::I18nText {
+                            zh_cn: Some("飞书".to_string()),
+                            en_us: Some("Lark".to_string()),
+                            extra: Default::default(),
+                        }),
+                        extra: Default::default(),
+                    }),
+                    min_job_level: None,
+                    max_job_level: None,
+                    highlight_list: None,
+                    job_category: None,
+                    job_type: None,
+                    active_status: Some(1),
+                    creator_id: None,
+                    create_time: None,
+                    update_time: None,
+                    process_type: Some(1),
+                    process_id: Some("process_1".to_string()),
+                    process_name: None,
+                    customized_data_list: None,
+                    job_function: None,
+                    subject: None,
+                    head_count: Some(1),
+                    experience: None,
+                    expiry_time: None,
+                    min_salary: None,
+                    max_salary: None,
+                    required_degree: None,
+                    city_list: None,
+                    job_attribute: None,
+                    target_major_list: None,
+                    storefront_mode: Some(1),
                     extra: Default::default(),
-                }
-            ]),
+                }),
+                recruiter: Some(job::get_detail::JobUserInfo {
+                    id: Some("ou_1".to_string()),
+                    name: Some(openlark_hr::common::shared_models::I18nText {
+                        zh_cn: Some("招聘负责人".to_string()),
+                        en_us: Some("Recruiter".to_string()),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                }),
+                assistant_list: None,
+                hiring_manager_list: None,
+                job_requirement_list: Some(vec![job::get_detail::JobRequirementSimple {
+                    id: Some("req_1".to_string()),
+                    short_code: Some("2232".to_string()),
+                    name: Some("华中大区部门".to_string()),
+                    department_id: Some("dept_1".to_string()),
+                    extra: Default::default(),
+                }]),
+                address_list: None,
+                job_config: None,
+                storefront_list: None,
+                tag_list: Some(vec![job::get_detail::JobDetailTag {
+                    id: Some("tag_1".to_string()),
+                    name: Some(openlark_hr::common::shared_models::I18nText {
+                        zh_cn: Some("985、211".to_string()),
+                        en_us: Some("985、211".to_string()),
+                        extra: Default::default(),
+                    }),
+                    order: Some(1),
+                    extra: Default::default(),
+                }]),
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1018,6 +1299,26 @@ mod serialization_tests {
             job_id: Some("job_001".to_string()),
             result: Some(true),
             success: Some(true),
+            default_job_post: Some(job::combined_update::DefaultJobPostRef {
+                id: Some("6960663240925956568".to_string()),
+                extra: Default::default(),
+            }),
+            job: Some(job::combined_update::CombinedJob {
+                id: Some("7281257045172308287".to_string()),
+                title: Some("测试职位".to_string()),
+                head_count: Some(100),
+                experience: Some(1),
+                ..Default::default()
+            }),
+            job_manager: Some(job::combined_update::JobManagerView {
+                id: Some("1618209327096".to_string()),
+                recruiter_id: Some("ou_efk39117c300506837def50545420c6a".to_string()),
+                hiring_manager_id_list: Some(vec![
+                    "on_94a1ee5551019f18cd73d9f111898cf2".to_string()
+                ]),
+                assistant_id_list: None,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1025,15 +1326,47 @@ mod serialization_tests {
         test_job_list_response_serialization,
         job::list::ListResponse,
         job::list::ListResponse {
-            items: vec![openlark_hr::hire::hire::common_models::JobSummary {
-                job_id: Some("job_001".to_string()),
-                job_name: Some("后端工程师".to_string()),
+            items: vec![job::models::JobDetail {
+                id: Some("job_001".to_string()),
+                title: Some("后端工程师".to_string()),
+                description: Some("负责核心服务开发".to_string()),
+                code: Some("R18".to_string()),
+                requirement: None,
                 active_status: Some(1),
-                process_id: Some("process_1".to_string()),
-                process_name: Some("标准流程".to_string()),
-                department_id: Some("dept_1".to_string()),
-                job_description: None,
-                recruiters: None,
+                recruitment_type: None,
+                department: None,
+                city: None,
+                min_job_level: None,
+                max_job_level: None,
+                highlight_list: None,
+                job_category: None,
+                job_type: None,
+                create_user_id: None,
+                create_time: None,
+                update_time: None,
+                process_type: None,
+                process_id: None,
+                process_name: None,
+                process_en_name: None,
+                customized_data_list: None,
+                job_function: None,
+                subject: None,
+                head_count: None,
+                experience: None,
+                expiry_time: None,
+                min_salary: None,
+                max_salary: None,
+                required_degree: None,
+                city_list: None,
+                job_attribute: None,
+                create_timestamp: None,
+                update_timestamp: None,
+                expiry_timestamp: None,
+                target_major_list: None,
+                job_manager: None,
+                interview_registration_schema_info: None,
+                onboard_registration_schema_info: None,
+                portal_website_apply_form_schema_info: None,
                 extra: Default::default(),
             }],
             page_token: Some("cursor_job".to_string()),
@@ -1074,6 +1407,36 @@ mod serialization_tests {
                 offer_application_form_id: Some("form_offer".to_string()),
                 extra: Default::default(),
             },
+            job_config: Some(job::config::JobConfigResult {
+                id: Some("job_001".to_string()),
+                offer_apply_schema: Some(openlark_hr::common::shared_models::IdNameObject {
+                    id: Some("form_offer".to_string()),
+                    name: Some(openlark_hr::common::shared_models::I18nText {
+                        zh_cn: Some("申请表1".to_string()),
+                        en_us: Some("Offer Apply 1".to_string()),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                }),
+                recommended_evaluator_list: Some(vec![
+                    openlark_hr::common::shared_models::IdNameObject {
+                        id: Some("ou_1".to_string()),
+                        name: Some(openlark_hr::common::shared_models::I18nText {
+                            zh_cn: Some("张三".to_string()),
+                            en_us: Some("ZhangSan".to_string()),
+                            extra: Default::default(),
+                        }),
+                        extra: Default::default(),
+                    }
+                ]),
+                job_attribute: Some(1),
+                interview_registration: Some(job::config::RegistrationInfo {
+                    schema_id: Some("schema_interview".to_string()),
+                    name: Some("默认登记表".to_string()),
+                    extra: Default::default(),
+                }),
+                ..Default::default()
+            }),
         }
     );
     roundtrip_eq!(
@@ -1091,6 +1454,13 @@ mod serialization_tests {
             }],
             page_token: None,
             has_more: Some(false),
+            info: Some(job::recruiter::JobRecruiterInfo {
+                id: Some("job_001".to_string()),
+                recruiter_id: Some("rec_1".to_string()),
+                hiring_manager_id_list: Some(vec!["mgr_1".to_string()]),
+                assistant_id_list: None,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1101,6 +1471,20 @@ mod serialization_tests {
             job_id: Some("job_001".to_string()),
             result: Some(true),
             success: Some(true),
+            job_config: Some(job::update_config::JobConfigResult {
+                offer_apply_schema: Some(openlark_hr::common::shared_models::IdNameObject {
+                    id: Some("7392444731470563625".to_string()),
+                    ..Default::default()
+                }),
+                id: Some("6960663240925956574".to_string()),
+                interview_registration: Some(job::update_config::RegistrationInfo {
+                    schema_id: Some("6930815272790114324".to_string()),
+                    name: Some("默认登记表".to_string()),
+                    extra: Default::default(),
+                }),
+                job_attribute: Some(1),
+                ..Default::default()
+            }),
             extra: Default::default(),
         }
     );
@@ -1108,10 +1492,22 @@ mod serialization_tests {
         test_external_application_create_response_serialization,
         external_application::create::CreateResponse,
         external_application::create::CreateResponse {
-            external_application_id: Some("ext_app_1".to_string()),
-            application_id: Some("app_1".to_string()),
-            status: Some(1),
-            success: Some(true),
+            external_application: Some(
+                openlark_hr::hire::hire::common_models::ExternalApplication {
+                    id: Some("ext_app_1".to_string()),
+                    job_recruitment_type: Some(1),
+                    job_title: Some("高级 Java".to_string()),
+                    resume_source: Some("内推".to_string()),
+                    stage: Some("简历初筛".to_string()),
+                    talent_id: Some("talent_1".to_string()),
+                    termination_reason: None,
+                    delivery_type: Some(1),
+                    modify_time: Some(1618500278645),
+                    create_time: Some(1618500278644),
+                    termination_type: None,
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -1122,6 +1518,22 @@ mod serialization_tests {
             external_application_id: Some("ext_app_1".to_string()),
             result: Some(true),
             success: Some(true),
+            external_application: Some(
+                openlark_hr::hire::hire::common_models::ExternalApplication {
+                    id: Some("ext_app_1".to_string()),
+                    job_recruitment_type: Some(1),
+                    job_title: Some("高级Java".to_string()),
+                    resume_source: Some("lagou".to_string()),
+                    stage: Some("简历初筛".to_string()),
+                    talent_id: Some("talent_1".to_string()),
+                    termination_reason: Some("不合适".to_string()),
+                    delivery_type: Some(1),
+                    modify_time: Some(1618500278645),
+                    create_time: None,
+                    termination_type: Some("HR 主动终止".to_string()),
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -1130,13 +1542,18 @@ mod serialization_tests {
         external_application::list::ListResponse,
         external_application::list::ListResponse {
             items: vec![
-                openlark_hr::hire::hire::common_models::ExternalApplicationSummary {
-                    external_application_id: Some("ext_app_1".to_string()),
-                    application_id: Some("app_1".to_string()),
+                openlark_hr::hire::hire::common_models::ExternalApplication {
+                    id: Some("ext_app_1".to_string()),
+                    job_recruitment_type: Some(1),
+                    job_title: Some("高级Java".to_string()),
+                    resume_source: Some("Boss".to_string()),
+                    stage: Some("简历初筛".to_string()),
                     talent_id: Some("talent_1".to_string()),
-                    job_id: Some("job_1".to_string()),
-                    status: Some(1),
-                    source_name: Some("Boss".to_string()),
+                    termination_reason: None,
+                    delivery_type: Some(2),
+                    modify_time: Some(1618500278645),
+                    create_time: Some(1618500278644),
+                    termination_type: None,
                     extra: Default::default(),
                 }
             ],
@@ -1153,6 +1570,22 @@ mod serialization_tests {
             application_id: Some("app_1".to_string()),
             result: Some(true),
             success: Some(true),
+            external_application: Some(
+                openlark_hr::hire::hire::common_models::ExternalApplication {
+                    id: Some("ext_app_1".to_string()),
+                    job_recruitment_type: Some(1),
+                    job_title: Some("高级Java".to_string()),
+                    resume_source: Some("内推".to_string()),
+                    stage: Some("简历初筛".to_string()),
+                    talent_id: Some("talent_1".to_string()),
+                    termination_reason: None,
+                    delivery_type: Some(1),
+                    modify_time: Some(1618500278645),
+                    create_time: Some(1618500278644),
+                    termination_type: None,
+                    extra: Default::default(),
+                }
+            ),
             extra: Default::default(),
         }
     );
@@ -1160,10 +1593,22 @@ mod serialization_tests {
         test_external_offer_create_response_serialization,
         external_offer::create::CreateResponse,
         external_offer::create::CreateResponse {
-            external_offer_id: Some("ext_offer_1".to_string()),
-            offer_id: Some("offer_1".to_string()),
-            status: Some(1),
-            success: Some(true),
+            external_offer: Some(openlark_hr::hire::hire::common_models::ExternalOffer {
+                id: Some("ext_offer_1".to_string()),
+                external_application_id: Some("app_1".to_string()),
+                biz_create_time: Some("1721899352428".to_string()),
+                owner: Some("张三".to_string()),
+                offer_status: Some("已发送".to_string()),
+                attachment_list: Some(vec![
+                    openlark_hr::hire::hire::common_models::ExternalCommonAttachment {
+                        id: Some("attach_1".to_string()),
+                        name: Some("test_resume.pdf".to_string()),
+                        size: Some(126371),
+                        extra: Default::default(),
+                    }
+                ]),
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1181,16 +1626,22 @@ mod serialization_tests {
         test_external_offer_batch_query_response_serialization,
         external_offer::batch_query::BatchQueryResponse,
         external_offer::batch_query::BatchQueryResponse {
-            items: vec![
-                openlark_hr::hire::hire::common_models::ExternalOfferSummary {
-                    external_offer_id: Some("ext_offer_1".to_string()),
-                    offer_id: Some("offer_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(2),
-                    extra: Default::default(),
-                }
-            ],
+            items: vec![openlark_hr::hire::hire::common_models::ExternalOffer {
+                id: Some("ext_offer_1".to_string()),
+                external_application_id: Some("app_1".to_string()),
+                biz_create_time: Some("1721899352428".to_string()),
+                owner: Some("张三".to_string()),
+                offer_status: Some("已发送".to_string()),
+                attachment_list: Some(vec![
+                    openlark_hr::hire::hire::common_models::ExternalCommonAttachment {
+                        id: Some("attach_1".to_string()),
+                        name: Some("test_resume.pdf".to_string()),
+                        size: Some(126371),
+                        extra: Default::default(),
+                    }
+                ]),
+                extra: Default::default(),
+            }],
             page_token: Some("cursor_ext_offer".to_string()),
             has_more: Some(false),
             extra: Default::default(),
@@ -1200,6 +1651,22 @@ mod serialization_tests {
         test_external_offer_update_response_serialization,
         external_offer::update::UpdateResponse,
         external_offer::update::UpdateResponse {
+            external_offer: Some(openlark_hr::hire::hire::common_models::ExternalOffer {
+                id: Some("ext_offer_1".to_string()),
+                external_application_id: Some("app_1".to_string()),
+                biz_create_time: Some("1721899352428".to_string()),
+                owner: Some("张三".to_string()),
+                offer_status: Some("已发送".to_string()),
+                attachment_list: Some(vec![
+                    openlark_hr::hire::hire::common_models::ExternalCommonAttachment {
+                        id: Some("attach_1".to_string()),
+                        name: Some("test_resume.pdf".to_string()),
+                        size: Some(126371),
+                        extra: Default::default(),
+                    }
+                ]),
+                extra: Default::default(),
+            }),
             external_offer_id: Some("ext_offer_1".to_string()),
             offer_id: Some("offer_1".to_string()),
             result: Some(true),
@@ -1211,16 +1678,10 @@ mod serialization_tests {
         test_website_channel_create_response_serialization,
         website::channel::create::CreateResponse,
         website::channel::create::CreateResponse {
-            channel: Some(
-                openlark_hr::hire::hire::common_models::WebsiteChannelSummary {
-                    channel_id: Some("channel_1".to_string()),
-                    website_id: Some("site_1".to_string()),
-                    name: Some("Boss".to_string()),
-                    code: Some("boss".to_string()),
-                    active_status: Some(1),
-                    extra: Default::default(),
-                }
-            ),
+            id: Some("7085989097067563300".to_string()),
+            name: Some("官网微信渠道".to_string()),
+            link: Some("http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5".to_string()),
+            code: Some("A1KM6A5".to_string()),
             extra: Default::default(),
         }
     );
@@ -1238,16 +1699,13 @@ mod serialization_tests {
         test_website_channel_list_response_serialization,
         website::channel::list::ListResponse,
         website::channel::list::ListResponse {
-            items: vec![
-                openlark_hr::hire::hire::common_models::WebsiteChannelSummary {
-                    channel_id: Some("channel_1".to_string()),
-                    website_id: Some("site_1".to_string()),
-                    name: Some("Boss".to_string()),
-                    code: Some("boss".to_string()),
-                    active_status: Some(1),
-                    extra: Default::default(),
-                }
-            ],
+            items: vec![openlark_hr::hire::hire::common_models::WebsiteChannelInfo {
+                id: Some("7085989097067563300".to_string()),
+                name: Some("微信推广渠道".to_string()),
+                link: Some("http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5".to_string()),
+                code: Some("A1KM6A5".to_string()),
+                extra: Default::default(),
+            }],
             page_token: Some("cursor_channel".to_string()),
             has_more: Some(false),
             extra: Default::default(),
@@ -1257,16 +1715,10 @@ mod serialization_tests {
         test_website_channel_update_response_serialization,
         website::channel::update::UpdateResponse,
         website::channel::update::UpdateResponse {
-            channel: Some(
-                openlark_hr::hire::hire::common_models::WebsiteChannelSummary {
-                    channel_id: Some("channel_1".to_string()),
-                    website_id: Some("site_1".to_string()),
-                    name: Some("Boss".to_string()),
-                    code: Some("boss".to_string()),
-                    active_status: Some(1),
-                    extra: Default::default(),
-                }
-            ),
+            id: Some("7085989097067563300".to_string()),
+            name: Some("微信推广渠道".to_string()),
+            link: Some("http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5".to_string()),
+            code: Some("A1KM6A5".to_string()),
             extra: Default::default(),
         }
     );
@@ -1274,16 +1726,7 @@ mod serialization_tests {
         test_website_delivery_create_by_attachment_response_serialization,
         website::delivery::create_by_attachment::CreateByAttachmentResponse,
         website::delivery::create_by_attachment::CreateByAttachmentResponse {
-            delivery_task: Some(
-                openlark_hr::hire::hire::common_models::WebsiteDeliveryTaskResult {
-                    delivery_task_id: Some("task_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(1),
-                    error_message: None,
-                    extra: Default::default(),
-                }
-            ),
+            task_id: Some("f1c2a0f138ec492d99d7ab73594158ad".to_string()),
             extra: Default::default(),
         }
     );
@@ -1291,16 +1734,16 @@ mod serialization_tests {
         test_website_delivery_create_by_resume_response_serialization,
         website::delivery::create_by_resume::CreateByResumeResponse,
         website::delivery::create_by_resume::CreateByResumeResponse {
-            delivery_task: Some(
-                openlark_hr::hire::hire::common_models::WebsiteDeliveryTaskResult {
-                    delivery_task_id: Some("task_1".to_string()),
-                    application_id: Some("app_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    status: Some(1),
-                    error_message: None,
-                    extra: Default::default(),
-                }
-            ),
+            delivery: Some(openlark_hr::hire::hire::common_models::WebsiteDeliveryDto {
+                application_id: Some("app_1".to_string()),
+                id: Some("delivery_1".to_string()),
+                job_id: Some("job_1".to_string()),
+                job_post_id: Some("post_1".to_string()),
+                portal_resume_id: Some("resume_1".to_string()),
+                user_id: Some("user_1".to_string()),
+                talent_id: Some("talent_1".to_string()),
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1308,14 +1751,20 @@ mod serialization_tests {
         test_website_delivery_task_get_response_serialization,
         website::delivery_task::get::GetResponse,
         website::delivery_task::get::GetResponse {
-            delivery_task: openlark_hr::hire::hire::common_models::WebsiteDeliveryTaskResult {
-                delivery_task_id: Some("task_1".to_string()),
-                application_id: Some("app_1".to_string()),
-                talent_id: Some("talent_1".to_string()),
-                status: Some(2),
-                error_message: Some("invalid resume".to_string()),
+            status: Some(2),
+            delivery: Some(website::delivery_task::get::WebsiteDeliveryDto {
+                application_id: Some("6960663240925956657".to_string()),
+                id: Some("6960663240925956655".to_string()),
+                job_id: Some("6960663240925956659".to_string()),
+                job_post_id: Some("6960663240925956658".to_string()),
+                portal_resume_id: Some("6960663240925956660".to_string()),
+                user_id: Some("6960663240925956656".to_string()),
+                talent_id: Some("7095600054216542508".to_string()),
                 extra: Default::default(),
-            },
+            }),
+            status_msg: Some(" ".to_string()),
+            extra_info: Some("  ".to_string()),
+            extra: Default::default(),
         }
     );
     roundtrip_eq!(
@@ -1330,6 +1779,32 @@ mod serialization_tests {
                     title: Some("后端工程师".to_string()),
                     active_status: Some(1),
                     job_channel_id: Some("channel_1".to_string()),
+                    id: Some("post_1".to_string()),
+                    job_code: Some("007".to_string()),
+                    job_expire_time: None,
+                    job_active_status: Some(1),
+                    job_process_type: Some(1),
+                    job_recruitment_type: None,
+                    job_department: None,
+                    job_type: None,
+                    min_job_level: None,
+                    max_job_level: None,
+                    address: None,
+                    min_salary: None,
+                    max_salary: None,
+                    required_degree: None,
+                    experience: None,
+                    headcount: None,
+                    high_light_list: None,
+                    description: None,
+                    requirement: None,
+                    creator: None,
+                    create_time: None,
+                    modify_time: None,
+                    job_function: None,
+                    subject: None,
+                    address_list: None,
+                    target_major_list: None,
                     extra: Default::default(),
                 }
             ),
@@ -1348,6 +1823,32 @@ mod serialization_tests {
                     title: Some("后端工程师".to_string()),
                     active_status: Some(1),
                     job_channel_id: Some("channel_1".to_string()),
+                    id: Some("post_1".to_string()),
+                    job_code: Some("007".to_string()),
+                    job_expire_time: None,
+                    job_active_status: Some(1),
+                    job_process_type: Some(1),
+                    job_recruitment_type: None,
+                    job_department: None,
+                    job_type: None,
+                    min_job_level: None,
+                    max_job_level: None,
+                    address: None,
+                    min_salary: None,
+                    max_salary: None,
+                    required_degree: None,
+                    experience: None,
+                    headcount: None,
+                    high_light_list: None,
+                    description: None,
+                    requirement: None,
+                    creator: None,
+                    create_time: None,
+                    modify_time: None,
+                    job_function: None,
+                    subject: None,
+                    address_list: None,
+                    target_major_list: None,
                     extra: Default::default(),
                 }
             ],
@@ -1368,6 +1869,32 @@ mod serialization_tests {
                     title: Some("后端工程师".to_string()),
                     active_status: Some(1),
                     job_channel_id: Some("channel_1".to_string()),
+                    id: Some("post_1".to_string()),
+                    job_code: Some("007".to_string()),
+                    job_expire_time: None,
+                    job_active_status: Some(1),
+                    job_process_type: Some(1),
+                    job_recruitment_type: None,
+                    job_department: None,
+                    job_type: None,
+                    min_job_level: None,
+                    max_job_level: None,
+                    address: None,
+                    min_salary: None,
+                    max_salary: None,
+                    required_degree: None,
+                    experience: None,
+                    headcount: None,
+                    high_light_list: None,
+                    description: None,
+                    requirement: None,
+                    creator: None,
+                    create_time: None,
+                    modify_time: None,
+                    job_function: None,
+                    subject: None,
+                    address_list: None,
+                    target_major_list: None,
                     extra: Default::default(),
                 }
             ],
@@ -1387,6 +1914,9 @@ mod serialization_tests {
                     user_id: Some("ou_1".to_string()),
                     email: Some("test@example.com".to_string()),
                     mobile: Some("13800000000".to_string()),
+                    name: Some("张敏".to_string()),
+                    external_id: Some("ext_1".to_string()),
+                    mobile_country_code: Some("CN_1".to_string()),
                     extra: Default::default(),
                 }
             ),
@@ -1397,12 +1927,45 @@ mod serialization_tests {
         test_agency_batch_query_response_serialization,
         agency::batch_query::BatchQueryResponse,
         agency::batch_query::BatchQueryResponse {
-            items: vec![openlark_hr::hire::hire::common_models::AgencySummary {
-                agency_id: Some("agency_1".to_string()),
-                name: Some("猎企 A".to_string()),
-                code: Some("A001".to_string()),
-                active_status: Some(1),
-                status: None,
+            items: vec![agency::batch_query::AgencySupplier {
+                id: Some("7398493486516799788".to_string()),
+                name: Some("北极无敌猎头".to_string()),
+                label_list: Some(vec![agency::batch_query::AgencySupplierLabel {
+                    id: Some("6887469228283299336".to_string()),
+                    name: Some(openlark_hr::common::shared_models::I18nText {
+                        zh_cn: Some("东方树叶".to_string()),
+                        en_us: Some("oriental Leaves".to_string()),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                }]),
+                admin_list: Some(vec![agency::batch_query::AgencySupplierAdmin {
+                    user_id: Some("7398493486516799788".to_string()),
+                    name: Some(openlark_hr::common::shared_models::I18nText {
+                        zh_cn: Some("张三".to_string()),
+                        en_us: Some("ZhangSan".to_string()),
+                        extra: Default::default(),
+                    }),
+                    email: Some("283xxxx2171813@qq.com".to_string()),
+                    extra: Default::default(),
+                }]),
+                agency_protect_time: Some(agency::batch_query::AgencySupplierProtectTime {
+                    day: Some(180),
+                    use_default: Some(true),
+                    extra: Default::default(),
+                }),
+                cooperation_create_time: Some("1639992265035".to_string()),
+                cooperation_start_time: Some("1639992265035".to_string()),
+                cooperation_end_time: Some("1639992265035".to_string()),
+                cooperation_status: Some(1),
+                invite_email: Some("28933718393.qq.com".to_string()),
+                supplier_area: Some(1),
+                talent_protect_time: Some(agency::batch_query::AgencySupplierTalentProtectTime {
+                    day: Some(180),
+                    use_default: Some(true),
+                    forever: Some(true),
+                    extra: Default::default(),
+                }),
                 extra: Default::default(),
             }],
             page_token: Some("cursor_agency".to_string()),
@@ -1468,18 +2031,38 @@ mod serialization_tests {
         test_agency_protect_search_response_serialization,
         agency::protect_search::ProtectSearchResponse,
         agency::protect_search::ProtectSearchResponse {
-            items: vec![
-                openlark_hr::hire::hire::common_models::AgencyProtectionSummary {
-                    protection_id: Some("protect_1".to_string()),
-                    agency_id: Some("agency_1".to_string()),
-                    talent_id: Some("talent_1".to_string()),
-                    expiration_time: Some("2026-12-31T00:00:00Z".to_string()),
-                    status: Some(1),
+            is_onboarded: Some(false),
+            onboarded_in_protection: Some(false),
+            onboarded_protection: Some(agency::protect_search::AgencyProtection {
+                protection_type: Some(1),
+                application_id: Some("app_1".to_string()),
+                start_time: Some("1700023694629".to_string()),
+                expire_time: Some("1700023694630".to_string()),
+                agency_supplier_id: Some("supplier_1".to_string()),
+                agency_supplier_name: Some(openlark_hr::common::shared_models::I18nText {
+                    zh_cn: Some("超越猎头公司".to_string()),
+                    en_us: Some("chaoyue head-hunting company".to_string()),
                     extra: Default::default(),
-                }
-            ],
-            page_token: Some("cursor_protect".to_string()),
-            has_more: Some(false),
+                }),
+                agency_supplier_user_id: Some("supplier_user_1".to_string()),
+                agency_supplier_user_name: Some(openlark_hr::common::shared_models::I18nText {
+                    zh_cn: Some("张三".to_string()),
+                    en_us: Some("zhangsan".to_string()),
+                    extra: Default::default(),
+                }),
+                extra: Default::default(),
+            }),
+            protection_list: vec![agency::protect_search::AgencyProtection {
+                protection_type: Some(2),
+                application_id: Some("app_1".to_string()),
+                start_time: Some("1700023694629".to_string()),
+                expire_time: Some("1700023694630".to_string()),
+                agency_supplier_id: Some("supplier_1".to_string()),
+                agency_supplier_name: None,
+                agency_supplier_user_id: None,
+                agency_supplier_user_name: None,
+                extra: Default::default(),
+            }],
             extra: Default::default(),
         }
     );
@@ -1611,6 +2194,7 @@ mod serialization_tests {
                 status: Some(1),
                 onboard_status: Some(2),
                 extra: Default::default(),
+                ..Default::default()
             }),
             extra: Default::default(),
         }
@@ -1626,6 +2210,7 @@ mod serialization_tests {
                 status: Some(1),
                 onboard_status: Some(2),
                 extra: Default::default(),
+                ..Default::default()
             }),
             extra: Default::default(),
         }
@@ -1641,6 +2226,7 @@ mod serialization_tests {
                 status: Some(2),
                 onboard_status: Some(2),
                 extra: Default::default(),
+                ..Default::default()
             }),
             extra: Default::default(),
         }
@@ -1656,12 +2242,50 @@ mod serialization_tests {
                 success: Some(true),
                 extra: Default::default(),
             },
+            account: Some(referral_account::create::ReferralAccount {
+                account_id: Some("acc_1".to_string()),
+                assets: Some(referral_account::create::ReferralAccountAssets {
+                    confirmed_bonus: Some(openlark_hr::hire::hire::common_models::BonusAmount {
+                        point_bonus: Some(100),
+                        cash_bonus: Some(vec![
+                            openlark_hr::hire::hire::common_models::CashAmount {
+                                currency_type: Some("CNY".to_string()),
+                                amount: Some(100.0),
+                                extra: Default::default(),
+                            }
+                        ]),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                }),
+                status: Some(2),
+                extra: Default::default(),
+            }),
         }
     );
     roundtrip_eq!(
         test_referral_account_enable_response_serialization,
         referral_account::enable::EnableResponse,
         referral_account::enable::EnableResponse {
+            account: Some(referral_account::create::ReferralAccount {
+                account_id: Some("acc_1".to_string()),
+                assets: Some(referral_account::create::ReferralAccountAssets {
+                    confirmed_bonus: Some(openlark_hr::hire::hire::common_models::BonusAmount {
+                        point_bonus: Some(100),
+                        cash_bonus: Some(vec![
+                            openlark_hr::hire::hire::common_models::CashAmount {
+                                currency_type: Some("CNY".to_string()),
+                                amount: Some(100.0),
+                                extra: Default::default(),
+                            }
+                        ]),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                }),
+                status: Some(1),
+                extra: Default::default(),
+            }),
             operation: openlark_hr::hire::hire::common_models::ReferralAccountOperationResult {
                 account_id: Some("acc_1".to_string()),
                 status: Some(1),
@@ -1682,20 +2306,46 @@ mod serialization_tests {
                 success: Some(true),
                 extra: Default::default(),
             },
+            external_order_id: Some("order_1".to_string()),
+            trans_time: Some("1683634459543".to_string()),
+            withdrawal_details: Some(openlark_hr::hire::hire::common_models::BonusAmount {
+                point_bonus: Some(100),
+                cash_bonus: Some(vec![openlark_hr::hire::hire::common_models::CashAmount {
+                    currency_type: Some("CNY".to_string()),
+                    amount: Some(100.0),
+                    extra: Default::default(),
+                }]),
+                extra: Default::default(),
+            }),
         }
     );
     roundtrip_eq!(
         test_external_interview_assessment_create_response_serialization,
         external_interview_assessment::create::CreateResponse,
         external_interview_assessment::create::CreateResponse {
-            assessment: openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentResult {
-                external_interview_assessment_id: Some("assess_1".to_string()),
-                external_interview_id: Some("iv_1".to_string()),
-                status: Some(1),
-                result: Some(true),
-                success: Some(true),
-                extra: Default::default(),
-            },
+            external_interview_assessment: Some(
+                openlark_hr::hire::hire::common_models::ExternalInterviewAssessment {
+                    id: Some("assess_1".to_string()),
+                    username: Some("shaojiale".to_string()),
+                    conclusion: Some(1),
+                    assessment_dimension_list: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentDimension {
+                            score: Some(99),
+                            option: Some("opt".to_string()),
+                            options: Some(vec!["opt".to_string()]),
+                            content: Some("content".to_string()),
+                            assessment_type: Some(1),
+                            title: Some("title".to_string()),
+                            description: Some("desc".to_string()),
+                            extra: Default::default(),
+                        }
+                    ]),
+                    content: Some("hello world".to_string()),
+                    external_interview_id: Some("iv_1".to_string()),
+                    extra: Default::default(),
+                }
+            ),
+            extra: Default::default(),
         }
     );
     roundtrip_eq!(
@@ -1710,6 +2360,28 @@ mod serialization_tests {
                 success: Some(true),
                 extra: Default::default(),
             },
+            external_interview_assessment: Some(
+                openlark_hr::hire::hire::common_models::ExternalInterviewAssessment {
+                    id: Some("assess_1".to_string()),
+                    username: Some("shaojiale".to_string()),
+                    conclusion: Some(2),
+                    assessment_dimension_list: Some(vec![
+                        openlark_hr::hire::hire::common_models::ExternalInterviewAssessmentDimension {
+                            score: Some(99),
+                            option: Some("opt".to_string()),
+                            options: Some(vec!["opt1".to_string()]),
+                            content: Some("content".to_string()),
+                            assessment_type: Some(1),
+                            title: Some("title".to_string()),
+                            description: Some("desc".to_string()),
+                            extra: Default::default(),
+                        }
+                    ]),
+                    content: Some("hello world".to_string()),
+                    external_interview_id: Some("iv_1".to_string()),
+                    extra: Default::default(),
+                }
+            ),
         }
     );
     roundtrip_eq!(
@@ -1723,6 +2395,11 @@ mod serialization_tests {
                 status: Some(2),
                 interview_round_name: Some("一面".to_string()),
                 start_time: Some("2026-05-01T10:00:00Z".to_string()),
+                id: Some("iv_1".to_string()),
+                begin_time: None,
+                end_time: None,
+                round: Some(0),
+                interview_record_list: None,
                 extra: Default::default(),
             }],
             page_token: Some("cursor_interview".to_string()),
@@ -1734,15 +2411,23 @@ mod serialization_tests {
         test_interview_get_by_talent_response_serialization,
         interview::get_by_talent::GetByTalentResponse,
         interview::get_by_talent::GetByTalentResponse {
-            interview: Some(openlark_hr::hire::hire::common_models::InterviewSummary {
-                interview_id: Some("iv_1".to_string()),
-                application_id: Some("app_1".to_string()),
-                talent_id: Some("talent_1".to_string()),
-                status: Some(2),
-                interview_round_name: Some("一面".to_string()),
-                start_time: Some("2026-05-01T10:00:00Z".to_string()),
+            items: vec![interview::get_by_talent::TalentInterviewItem {
+                application_id: Some("6949805467799537964".to_string()),
+                interview_list: vec![interview::get_by_talent::InterviewExtendItem {
+                    id: Some("6949805467799537964".to_string()),
+                    begin_time: Some(1618899376474),
+                    end_time: Some(1618999376474),
+                    round: Some(0),
+                    interview_type: Some(1),
+                    contact_mobile: Some("13333333333".to_string()),
+                    video_type: Some(1),
+                    arrangement_status: Some(1),
+                    arrangement_type: Some(1),
+                    arrangement_appointment_kind: Some(1),
+                    ..Default::default()
+                }],
                 extra: Default::default(),
-            }),
+            }],
             extra: Default::default(),
         }
     );
@@ -1788,6 +2473,7 @@ mod serialization_tests {
         test_external_referral_reward_create_response_serialization,
         external_referral_reward::create::CreateResponse,
         external_referral_reward::create::CreateResponse {
+            id: Some("reward_1".to_string()),
             reward: openlark_hr::hire::hire::common_models::ExternalReferralRewardResult {
                 external_referral_reward_id: Some("reward_1".to_string()),
                 account_id: Some("acc_1".to_string()),
@@ -1946,10 +2632,44 @@ mod serialization_tests {
         test_job_requirement_create_response_serialization,
         job_requirement::create::CreateResponse,
         job_requirement::create::CreateResponse {
-            job_requirement_id: Some("jr_1".to_string()),
-            job_id: Some("job_1".to_string()),
-            title: Some("招聘需求 A".to_string()),
-            status: Some(1),
+            job_requirement: Some(openlark_hr::hire::hire::common_models::JobRequirementDto {
+                id: Some("jr_1".to_string()),
+                short_code: Some("R01905".to_string()),
+                name: Some("HR部门春季招聘需求".to_string()),
+                display_progress: Some(1),
+                head_count: Some(10),
+                recruitment_type: None,
+                employee_type: None,
+                max_level: None,
+                min_level: None,
+                sequence: None,
+                category: Some(1),
+                department: None,
+                recruiter_list: None,
+                jr_hiring_managers: None,
+                direct_leader_list: None,
+                start_time: None,
+                deadline: None,
+                priority: Some(1),
+                required_degree: None,
+                max_salary: None,
+                min_salary: None,
+                address: None,
+                description: None,
+                customized_data_list: None,
+                process_type: Some(1),
+                job_type: None,
+                create_time: None,
+                creator_id: None,
+                update_time: None,
+                employment_job_id: None,
+                position_id: None,
+                completion_time: None,
+                approval_status: Some(3),
+                job_id_list: None,
+                count_data: None,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }
     );
@@ -1986,16 +2706,23 @@ mod serialization_tests {
         test_job_requirement_list_by_id_response_serialization,
         job_requirement::list_by_id::ListByIdResponse,
         job_requirement::list_by_id::ListByIdResponse {
-            items: vec![
-                openlark_hr::hire::hire::common_models::JobRequirementSummary {
-                    job_requirement_id: Some("jr_1".to_string()),
-                    job_id: Some("job_1".to_string()),
-                    title: None,
-                    name: Some("需求 A".to_string()),
-                    status: Some(1),
-                    extra: Default::default(),
-                }
-            ],
+            items: vec![openlark_hr::hire::hire::common_models::JobRequirementDto {
+                id: Some("jr_1".to_string()),
+                short_code: Some("xx1".to_string()),
+                name: Some("需求 A".to_string()),
+                display_progress: Some(1),
+                head_count: Some(11),
+                job_id_list: Some(vec!["job_1".to_string()]),
+                count_data: Some(
+                    openlark_hr::hire::hire::common_models::JobRequirementCountData {
+                        offer_count: Some(1),
+                        pre_hire_count: Some(2),
+                        complete_count: Some(3),
+                        extra: Default::default(),
+                    }
+                ),
+                ..Default::default()
+            }],
             page_token: Some("cursor_jr_id".to_string()),
             has_more: Some(false),
             extra: Default::default(),
@@ -2036,16 +2763,55 @@ mod serialization_tests {
         test_interview_feedback_form_list_response_serialization,
         interview_feedback_form::list::ListResponse,
         interview_feedback_form::list::ListResponse {
-            items: vec![openlark_hr::common::shared_models::CatalogItem {
+            items: vec![interview_feedback_form::list::InterviewFeedbackForm {
                 id: Some("form_1".to_string()),
-                title: Some(openlark_hr::common::shared_models::FlexibleText::I18n(
-                    openlark_hr::common::shared_models::I18nText {
-                        zh_cn: Some("通用评价表".to_string()),
-                        en_us: Some("Default Form".to_string()),
+                version: Some(1),
+                name: Some(openlark_hr::common::shared_models::I18nText {
+                    zh_cn: Some("通用评价表".to_string()),
+                    en_us: Some("Default Form".to_string()),
+                    extra: Default::default(),
+                }),
+                form_type: Some(2),
+                score_calculation_config: Some(
+                    interview_feedback_form::list::ScoreCalculationConfig {
+                        enabled: Some(true),
+                        calculation_mode: Some(1),
                         extra: Default::default(),
                     },
-                )),
-                ..Default::default()
+                ),
+                modules: Some(vec![
+                    interview_feedback_form::list::InterviewFeedbackFormModule {
+                        id: Some("module_1".to_string()),
+                        name: Some(openlark_hr::common::shared_models::I18nText {
+                            zh_cn: Some("模块一".to_string()),
+                            en_us: Some("Module 1".to_string()),
+                            extra: Default::default(),
+                        }),
+                        description: None,
+                        module_type: Some(2),
+                        sequence: Some(1),
+                        weight: Some(1.0),
+                        dimensions: Some(vec![
+                            interview_feedback_form::list::InterviewFeedbackFormDimension {
+                                id: Some("dim_1".to_string()),
+                                name: Some(openlark_hr::common::shared_models::I18nText {
+                                    zh_cn: Some("维度一".to_string()),
+                                    en_us: Some("Dimension 1".to_string()),
+                                    extra: Default::default(),
+                                }),
+                                description: None,
+                                dimension_type: Some(1),
+                                enabled: Some(true),
+                                sequence: Some(1),
+                                is_required: Some(true),
+                                weight: Some(1.0),
+                                extra: Default::default(),
+                            }
+                        ]),
+                        extra: Default::default(),
+                    }
+                ]),
+                extra: Default::default(),
             }],
             page_token: None,
             has_more: Some(false),
@@ -2225,6 +2991,7 @@ mod serialization_tests {
         test_job_manager_get_response_serialization,
         job::manager::get::GetResponse,
         job::manager::get::GetResponse {
+            info: None,
             manager: Some(openlark_hr::hire::hire::common_models::JobRecruiterRecord {
                 manager_id: Some("mgr_1".to_string()),
                 ..Default::default()
@@ -2247,11 +3014,13 @@ mod serialization_tests {
         test_interviewer_patch_response_serialization,
         interviewer::patch::PatchResponse,
         interviewer::patch::PatchResponse {
-            interviewer: openlark_hr::hire::hire::common_models::InterviewerOperationResult {
-                interviewer_id: Some("interviewer_1".to_string()),
-                verify_status: Some(2),
-                ..Default::default()
-            }
+            interviewer: Some(
+                openlark_hr::hire::hire::common_models::InterviewerOperationResult {
+                    interviewer_id: Some("interviewer_1".to_string()),
+                    verify_status: Some(2),
+                    ..Default::default()
+                }
+            )
         }
     );
     roundtrip_eq!(
@@ -2263,7 +3032,14 @@ mod serialization_tests {
                 manager_id: Some("mgr_1".to_string()),
                 success: Some(true),
                 ..Default::default()
-            }
+            },
+            job_manager: Some(job::manager::batch_update::JobManagerView {
+                id: Some("job_1".to_string()),
+                recruiter_id: Some("rec_1".to_string()),
+                hiring_manager_id_list: Some(vec!["mgr_1".to_string()]),
+                assistant_id_list: None,
+                extra: Default::default(),
+            }),
         }
     );
     roundtrip_eq!(
@@ -2288,8 +3064,11 @@ mod serialization_tests {
         interview_task::list::ListResponse {
             items: vec![
                 openlark_hr::hire::hire::common_models::InterviewTaskSummary {
-                    interview_id: Some("interview_1".to_string()),
-                    status: Some(2),
+                    id: Some("6989202908470446380".to_string()),
+                    job_id: Some("6897921873523247373".to_string()),
+                    talent_id: Some("7046263097923537196".to_string()),
+                    application_id: Some("7046315599510833452".to_string()),
+                    activity_status: Some(1),
                     ..Default::default()
                 }
             ],
@@ -2329,12 +3108,14 @@ mod serialization_tests {
         test_exam_create_response_serialization,
         exam::create::CreateResponse,
         exam::create::CreateResponse {
-            operation: openlark_hr::hire::hire::common_models::GenericOperationResult {
-                exam_id: Some("exam_1".to_string()),
-                application_id: Some("app_1".to_string()),
-                success: Some(true),
-                ..Default::default()
-            }
+            exam_id: Some("7031822096580868396".to_string()),
+            application_id: Some("7031822096580868396".to_string()),
+            exam_resource_name: Some("测试名字".to_string()),
+            score: Some(95.5),
+            uuid: Some("6949805467799537964".to_string()),
+            operator_id: Some("ou_xxx".to_string()),
+            operate_time: Some("1637295516451".to_string()),
+            extra: Default::default(),
         }
     );
     roundtrip_eq!(

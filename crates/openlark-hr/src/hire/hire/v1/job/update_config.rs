@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::common::shared_models::IdNameObject;
+
 /// 更新职位设置请求
 #[derive(Debug, Clone)]
 pub struct UpdateConfigRequest {
@@ -296,6 +298,98 @@ pub struct InterviewAppointmentConfigContent {
     pub cancel_interview_notification_template_id: Option<String>,
 }
 
+/// 登记表/申请表信息（官方 `registration_info`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationInfo {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 登记表 ID。
+    pub schema_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 登记表名称。
+    pub name: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 建议面试官轮次（官方 `job_config_interview_round`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobConfigInterviewRound {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试官列表。
+    pub interviewer_list: Option<Vec<IdNameObject>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次。
+    pub round: Option<i32>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试轮次类型配置（官方 `job_config_round_type_result`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobConfigRoundTypeResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型。
+    pub assessment_round: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表。
+    pub assessment_template: Option<IdNameObject>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位设置（官方 `job_config_result`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobConfigResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Offer 申请表。
+    pub offer_apply_schema: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Offer 审批流程。
+    pub offer_process_conf: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 建议评估人列表。
+    pub recommended_evaluator_list: Option<Vec<IdNameObject>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试评价表。
+    pub assessment_template: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 建议面试官列表。
+    pub interview_round_list: Option<Vec<JobConfigInterviewRound>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘需求。
+    pub job_requirement_list: Option<Vec<IdNameObject>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试登记表。
+    pub interview_registration: Option<RegistrationInfo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 入职登记表。
+    pub onboard_registration: Option<RegistrationInfo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试轮次类型列表。
+    pub interview_round_type_list: Option<Vec<JobConfigRoundTypeResult>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 关联职位列表。
+    pub related_job_list: Option<Vec<IdNameObject>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位属性：1 实体职位 / 2 虚拟职位。
+    pub job_attribute: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试官安排面试配置。
+    pub interview_appointment_config: Option<InterviewAppointmentConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 官网申请表。
+    pub portal_website_apply_form_schema_info: Option<RegistrationInfo>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 更新职位设置响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct UpdateConfigResponse {
@@ -308,6 +402,9 @@ pub struct UpdateConfigResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `success` 字段。
     pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位设置。
+    pub job_config: Option<JobConfigResult>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -334,7 +431,73 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/jobs/test001/update_config"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "job_id": "test001", "success": true }
+                "code": 0, "msg": "ok", "data": {
+                    "job_config": {
+                        "offer_apply_schema": {
+                            "id": "7392444731470563625",
+                            "name": { "zh_cn": "测试 Offer 申请表", "en_us": "Test Offer 申请表" }
+                        },
+                        "offer_process_conf": {
+                            "id": "7392444731470563625",
+                            "name": { "zh_cn": "审批流程1", "en_us": "Test Process 1" }
+                        },
+                        "recommended_evaluator_list": [
+                            { "id": "7392444731470563625", "name": { "zh_cn": "张三", "en_us": "ZhangSan" } }
+                        ],
+                        "assessment_template": {
+                            "id": "7392444731470563625",
+                            "name": { "zh_cn": "评价表1", "en_us": "assessment_template·1" }
+                        },
+                        "id": "6960663240925956574",
+                        "interview_round_list": [
+                            {
+                                "interviewer_list": [
+                                    { "id": "7392444731470563625", "name": { "zh_cn": "张三", "en_us": "ZhangSan" } }
+                                ],
+                                "round": 1
+                            }
+                        ],
+                        "job_requirement_list": [
+                            { "id": "6930815272790114324", "name": { "zh_cn": "校招需求", "en_us": "campus jr" } }
+                        ],
+                        "interview_registration": { "schema_id": "6930815272790114324", "name": "默认登记表" },
+                        "onboard_registration": { "schema_id": "6930815272790114324", "name": "默认登记表" },
+                        "interview_round_type_list": [
+                            {
+                                "assessment_round": {
+                                    "id": "7392444731470563625",
+                                    "name": { "zh_cn": "测试类型", "en_us": "Test type" }
+                                },
+                                "assessment_template": {
+                                    "id": "7392444731470563625",
+                                    "name": { "zh_cn": "评价表1", "en_us": "assessment_template·1" }
+                                }
+                            }
+                        ],
+                        "related_job_list": [
+                            { "id": "6930815272790114324", "name": { "zh_cn": "测试职位", "en_us": "test job" } }
+                        ],
+                        "job_attribute": 1,
+                        "interview_appointment_config": {
+                            "enable_interview_appointment_by_interviewer": true,
+                            "config": {
+                                "interview_type": 1,
+                                "talent_timezone_code": "Asia/Shanghai",
+                                "contact_user_id": "ou_c99c5f35d542efc7ee492afe11af19ef",
+                                "contact_mobile": "177xxxx1773",
+                                "contact_email": "test@open.com",
+                                "address_id": "6960663240925956576",
+                                "video_type": 1,
+                                "cc": ["ou_c99c5f35d542efc7ee492afe11af19ef"],
+                                "remark": "这个职位最好选择现场牛客网面试",
+                                "interview_notification_template_id": "6960663240925956573",
+                                "appointment_notification_template_id": "6960663240925956573",
+                                "cancel_interview_notification_template_id": "6960663240925956573"
+                            }
+                        },
+                        "portal_website_apply_form_schema_info": { "schema_id": "6930815272790114324", "name": "默认申请表" }
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -365,7 +528,61 @@ mod tests {
             .execute()
             .await
             .expect("请求应成功");
-        assert_eq!(resp.job_id.as_deref(), Some("test001"));
+        let job_config = resp.job_config.as_ref().expect("job_config 应存在");
+        assert_eq!(job_config.id.as_deref(), Some("6960663240925956574"));
+        assert_eq!(
+            job_config
+                .offer_apply_schema
+                .as_ref()
+                .and_then(|v| v.name.as_ref())
+                .and_then(|n| n.zh_cn.as_deref()),
+            Some("测试 Offer 申请表")
+        );
+        assert_eq!(
+            job_config
+                .recommended_evaluator_list
+                .as_ref()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            job_config
+                .interview_round_list
+                .as_ref()
+                .unwrap()
+                .first()
+                .unwrap()
+                .round,
+            Some(1)
+        );
+        assert_eq!(
+            job_config
+                .interview_registration
+                .as_ref()
+                .and_then(|v| v.name.as_deref()),
+            Some("默认登记表")
+        );
+        assert_eq!(
+            job_config
+                .interview_round_type_list
+                .as_ref()
+                .unwrap()
+                .first()
+                .unwrap()
+                .assessment_round
+                .as_ref()
+                .and_then(|v| v.id.as_deref()),
+            Some("7392444731470563625")
+        );
+        assert_eq!(job_config.job_attribute, Some(1));
+        assert_eq!(
+            job_config
+                .portal_website_apply_form_schema_info
+                .as_ref()
+                .and_then(|v| v.schema_id.as_deref()),
+            Some("6930815272790114324")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

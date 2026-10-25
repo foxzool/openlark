@@ -12,7 +12,28 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::TripartiteAgreementSummary;
+/// 三方协议信息（官方 tripartite_agreement_info）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TripartiteAgreementInfo {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 三方协议 ID。
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 投递 ID。
+    pub application_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 三方协议状态。
+    pub state: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 三方协议创建时间，毫秒时间戳。
+    pub create_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 三方协议修改时间，毫秒时间戳。
+    pub modify_time: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
 
 /// 获取三方协议请求
 #[derive(Debug, Clone)]
@@ -71,7 +92,7 @@ impl ListRequest {
 pub struct ListResponse {
     #[serde(default, alias = "agreements")]
     /// 结果项列表。
-    pub items: Vec<TripartiteAgreementSummary>,
+    pub items: Vec<TripartiteAgreementInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -104,7 +125,16 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/tripartite_agreements"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [{
+                        "id": "6930815272790114324",
+                        "application_id": "6930815272790114325",
+                        "state": 1,
+                        "create_time": "1698292282660",
+                        "modify_time": "1698292282661"
+                    }]
+                }
             })))
             .mount(&server)
             .await;
@@ -116,10 +146,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        // 官方 item 形状为 id/state/create_time/modify_time（.md L44-65）
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].id.as_deref(), Some("6930815272790114324"));
+        assert_eq!(resp.items[0].state, Some(1));
+        assert_eq!(resp.items[0].create_time.as_deref(), Some("1698292282660"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

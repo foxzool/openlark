@@ -192,6 +192,27 @@ fn referral_account_and_search_contracts_are_typed() {
         referrals.items[0].application_ids.as_ref().map(|v| v.len()),
         Some(1)
     );
+
+    // 官方形状：get_by_application 返回 referral 容器，含 referral_user_id 叶子
+    let referral_by_application: referral::get_by_application::GetByApplicationResponse =
+        parse_contract(json!({
+            "referral": {
+                "id": "7392247983414413606",
+                "application_id": "643452344576878",
+                "referral_user_id": "ou_669760b021dbd9edbf2f3dc11b3a25ed",
+                "referral_user": {
+                    "id": "ou_669760b021dbd9edbf2f3dc11b3a25ed",
+                    "name": {"zh_cn": "张三", "en_us": "zhangsan"}
+                }
+            }
+        }));
+    assert_eq!(
+        referral_by_application
+            .referral
+            .as_ref()
+            .and_then(|v| v.referral_user_id.as_deref()),
+        Some("ou_669760b021dbd9edbf2f3dc11b3a25ed")
+    );
 }
 
 #[test]
@@ -541,6 +562,11 @@ fn application_contracts_are_typed() {
     }));
     assert_eq!(created.application_id.as_deref(), Some("app_1"));
 
+    // 官方形状：create 响应 data 顶层仅含投递 ID
+    let created_official: application::create::CreateResponse =
+        parse_contract(json!({ "id": "6920175883425581324" }));
+    assert_eq!(created_official.id.as_deref(), Some("6920175883425581324"));
+
     let get_resp: application::get::GetResponse = parse_contract(json!({
         "application_id": "app_1",
         "talent_id": "talent_1",
@@ -555,22 +581,98 @@ fn application_contracts_are_typed() {
         Some("后端工程师")
     );
 
+    // 官方形状：data 下唯一键为 application 容器（含嵌套 stage/resume_source_info 等）
+    let get_official: application::get::GetResponse = parse_contract(json!({
+        "application": {
+            "id": "6949805467799537964",
+            "job_id": "6843547872837273223",
+            "talent_id": "6843547872837273223",
+            "resume_source_id": "6583482347283472832",
+            "stage": {
+                "id": "614218419274131",
+                "zh_name": "面试",
+                "en_name": "Interview",
+                "type": 1
+            },
+            "active_status": 1,
+            "delivery_type": 1,
+            "resume_source_info": {
+                "id": "614218419274131",
+                "name": {"zh_cn": "测试", "en_us": "test"},
+                "resume_source_type": 10002
+            },
+            "stage_time_list": [
+                {"stage_id": "614218419274131", "enter_time": "1632991542615"}
+            ],
+            "application_preferred_city_list": [
+                {"code": "1111", "name": {"zh_cn": "测试", "en_us": "test"}}
+            ]
+        }
+    }));
+    let application_obj = get_official
+        .application
+        .as_ref()
+        .expect("application 应存在");
+    assert_eq!(application_obj.id.as_deref(), Some("6949805467799537964"));
+    assert_eq!(application_obj.delivery_type, Some(1));
+    assert_eq!(
+        application_obj.stage.as_ref().and_then(|v| v.stage_type),
+        Some(1)
+    );
+    assert_eq!(
+        application_obj
+            .resume_source_info
+            .as_ref()
+            .and_then(|v| v.resume_source_type),
+        Some(10002)
+    );
+    assert_eq!(
+        application_obj.stage_time_list.as_ref().map(|v| v.len()),
+        Some(1)
+    );
+
     let detail: application::get_detail::GetDetailResponse = parse_contract(json!({
-        "application_id": "app_1",
-        "talent_info": {
-            "talent_id": "talent_1",
-            "talent_name": "张三",
-            "email": "zhangsan@example.com"
-        },
-        "job_info": {"job_id": "job_1", "job_name": "后端工程师"},
-        "offer_info": {"offer_id": "offer_1", "offer_status": 2}
+        "application_detail": {
+            "basic_info": {
+                "id": "app_1",
+                "talent_id": "talent_1",
+                "stage": {"id": "stage_1", "zh_name": "面试", "en_name": "Interview", "type": 4},
+                "delivery_type": 1,
+                "resume_source_info": {
+                    "id": "source_1",
+                    "name": {"zh_cn": "内推", "en_us": "Referral"},
+                    "resume_source_type": 10002
+                }
+            },
+            "talent": {"id": "talent_1", "name": "张三", "email": "zhangsan@example.com"},
+            "job": {"id": "job_1", "name": "后端工程师"},
+            "offer": {"offer_basic": {"id": "offer_1", "offer_status": 10}}
+        }
     }));
     assert_eq!(
         detail
-            .talent_info
+            .application_detail
             .as_ref()
-            .and_then(|v| v.talent_name.as_deref()),
+            .and_then(|v| v.talent.as_ref())
+            .and_then(|v| v.name.as_deref()),
         Some("张三")
+    );
+    assert_eq!(
+        detail
+            .application_detail
+            .as_ref()
+            .and_then(|v| v.basic_info.as_ref())
+            .and_then(|v| v.delivery_type),
+        Some(1)
+    );
+    assert_eq!(
+        detail
+            .application_detail
+            .as_ref()
+            .and_then(|v| v.offer.as_ref())
+            .and_then(|v| v.offer_basic.as_ref())
+            .and_then(|v| v.id.as_deref()),
+        Some("offer_1")
     );
 
     let list: application::list::ListResponse = parse_contract(json!({
@@ -587,31 +689,74 @@ fn application_contracts_are_typed() {
     assert_eq!(list.page_token.as_deref(), Some("cursor_app"));
 
     let interviews: application::interview::list::ListResponse = parse_contract(json!({
-        "records": [{
-            "interview_id": "iv_1",
-            "interview_round_id": "round_1",
-            "interview_round_name": "一面",
-            "status": 2,
-            "interviewer": {"id": "ou_1", "name": {"zh_cn": "面试官", "en_us": "Interviewer"}},
-            "score": {"score": 88.0, "total_score": 100.0}
+        "items": [{
+            "id": "6949805467799537964",
+            "begin_time": 1618899376474i64,
+            "end_time": 1618999376474i64,
+            "round": 0,
+            "stage_id": "634324253532232",
+            "interview_record_list": [{
+                "id": "6949805467799537964",
+                "user_id": "1618899376474",
+                "content": "代码还行，只是不够聪明",
+                "min_job_level_id": "6435238827342432",
+                "max_job_level_id": "643523885843573",
+                "commit_status": 1,
+                "conclusion": 1,
+                "interview_score": {
+                    "id": "6949805467799537964",
+                    "level": 3,
+                    "zh_name": "3",
+                    "zh_description": "通过, 能力达到要求, 建议录用",
+                    "en_name": "three",
+                    "en_description": "Pass, ability to meet the requirements, suggest to hire"
+                }
+            }]
         }],
         "has_more": false
     }));
-    assert_eq!(interviews.records[0].interview_id.as_deref(), Some("iv_1"));
     assert_eq!(
-        interviews.records[0].score.as_ref().and_then(|v| v.score),
-        Some(88.0)
+        interviews.records[0].id.as_deref(),
+        Some("6949805467799537964")
+    );
+    assert_eq!(interviews.records[0].begin_time, Some(1618899376474));
+    assert_eq!(interviews.records[0].round, Some(0));
+    assert_eq!(
+        interviews.records[0].stage_id.as_deref(),
+        Some("634324253532232")
+    );
+    let record = interviews.records[0]
+        .interview_record_list
+        .as_ref()
+        .and_then(|v| v.first())
+        .expect("interview_record_list 应存在");
+    assert_eq!(record.min_job_level_id.as_deref(), Some("6435238827342432"));
+    assert_eq!(record.commit_status, Some(1));
+    assert_eq!(
+        record.interview_score.as_ref().and_then(|v| v.level),
+        Some(3)
     );
 }
 
 #[test]
 fn job_contracts_are_typed() {
     let created: job::combined_create::CombinedCreateResponse = parse_contract(json!({
-        "job_id": "job_1",
-        "active_status": 1,
-        "success": true
+        "default_job_post": { "id": "post_1" },
+        "job": {
+            "id": "job_1",
+            "title": "后端工程师",
+            "recruitment_type": {
+                "id": "6001",
+                "zh_name": "全职",
+                "en_name": "FullTime",
+                "active_status": 1
+            }
+        }
     }));
-    assert_eq!(created.job_id.as_deref(), Some("job_1"));
+    assert_eq!(
+        created.job.as_ref().and_then(|j| j.id.as_deref()),
+        Some("job_1")
+    );
 
     let get_resp: job::get::GetResponse = parse_contract(json!({
         "job_id": "job_1",
@@ -631,49 +776,148 @@ fn job_contracts_are_typed() {
     assert_eq!(get_resp.job_name.as_deref(), Some("后端工程师"));
     assert_eq!(get_resp.recruiters.as_ref().map(|v| v.len()), Some(1));
 
-    let detail: job::get_detail::GetDetailResponse = parse_contract(json!({
-        "job_id": "job_1",
-        "job_name": "后端工程师",
-        "job_description": "负责核心服务开发",
-        "recruiters": [{
-            "recruiter_id": "rec_1",
-            "name": "招聘负责人"
-        }]
+    // 官方形状：data 下唯一键为 job 容器（含 id/title/嵌套 recruitment_type/department 等）
+    let get_official: job::get::GetResponse = parse_contract(json!({
+        "job": {
+            "id": "6001",
+            "title": "测试职位",
+            "description": "职位描述文本",
+            "code": "R18",
+            "requirement": "职位要求文本",
+            "recruitment_type": {
+                "id": "6001",
+                "zh_name": "全职",
+                "en_name": "FullTime",
+                "active_status": 1
+            },
+            "department": {
+                "id": "od-xxxx",
+                "zh_name": "字节跳动",
+                "en_name": "Bytedance"
+            }
+        }
     }));
-    assert_eq!(detail.job_description.as_deref(), Some("负责核心服务开发"));
+    let job_obj = get_official.job.as_ref().expect("job 容器应存在");
+    assert_eq!(job_obj.id.as_deref(), Some("6001"));
+    assert_eq!(job_obj.title.as_deref(), Some("测试职位"));
+    assert_eq!(job_obj.requirement.as_deref(), Some("职位要求文本"));
+    assert_eq!(
+        job_obj.recruitment_type.as_ref().and_then(|v| v.id.clone()),
+        Some("6001".to_string())
+    );
+    assert_eq!(
+        job_obj.department.as_ref().and_then(|v| v.en_name.clone()),
+        Some("Bytedance".to_string())
+    );
+
+    let detail: job::get_detail::GetDetailResponse = parse_contract(json!({
+        "job_detail": {
+            "basic_info": {
+                "id": "job_1",
+                "title": "后端工程师",
+                "description": "负责核心服务开发"
+            },
+            "recruiter": {
+                "id": "ou_1",
+                "name": {"zh_cn": "招聘负责人", "en_us": "Recruiter"}
+            }
+        }
+    }));
+    assert_eq!(
+        detail
+            .job_detail
+            .as_ref()
+            .and_then(|v| v.basic_info.as_ref())
+            .and_then(|v| v.description.as_deref()),
+        Some("负责核心服务开发")
+    );
+    assert_eq!(
+        detail
+            .job_detail
+            .as_ref()
+            .and_then(|v| v.recruiter.as_ref())
+            .and_then(|v| v.id.as_deref()),
+        Some("ou_1")
+    );
 
     let listed: job::list::ListResponse = parse_contract(json!({
         "items": [{
-            "job_id": "job_1",
-            "job_name": "后端工程师",
+            "id": "job_1",
+            "title": "后端工程师",
+            "description": "这是一个测试职位",
+            "code": "R18",
             "active_status": 1,
+            "recruitment_type": {
+                "id": "6001",
+                "zh_name": "全职",
+                "en_name": "FullTime",
+                "active_status": 1
+            },
+            "department": {
+                "id": "od-xxxx",
+                "zh_name": "字节跳动",
+                "en_name": "Bytedance"
+            },
             "process_name": "标准流程"
         }],
         "has_more": true,
         "page_token": "cursor_job"
     }));
-    assert_eq!(listed.items[0].job_id.as_deref(), Some("job_1"));
+    assert_eq!(listed.items[0].id.as_deref(), Some("job_1"));
+    assert_eq!(
+        listed.items[0]
+            .recruitment_type
+            .as_ref()
+            .and_then(|r| r.zh_name.as_deref()),
+        Some("全职")
+    );
     assert_eq!(listed.page_token.as_deref(), Some("cursor_job"));
 
     let config: job::config::ConfigResponse = parse_contract(json!({
-        "job_id": "job_1",
-        "process_id": "process_1",
-        "process_name": "标准流程",
-        "job_requirement_schema_id": "schema_job",
-        "offer_application_form_id": "form_offer"
+        "job_config": {
+            "offer_apply_schema": {
+                "id": "form_offer",
+                "name": { "zh_cn": "申请表1", "en_us": "Offer Apply 1" }
+            },
+            "recommended_evaluator_list": [
+                { "id": "ou_1", "name": { "zh_cn": "张三", "en_us": "ZhangSan" } }
+            ],
+            "id": "job_1",
+            "job_attribute": 1,
+            "interview_registration": { "schema_id": "schema_interview", "name": "默认登记表" }
+        }
     }));
-    assert_eq!(config.config.process_id.as_deref(), Some("process_1"));
+    assert_eq!(
+        config
+            .job_config
+            .as_ref()
+            .and_then(|c| c.offer_apply_schema.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        Some("form_offer")
+    );
+    assert_eq!(
+        config
+            .job_config
+            .as_ref()
+            .and_then(|c| c.interview_registration.as_ref())
+            .and_then(|r| r.schema_id.as_deref()),
+        Some("schema_interview")
+    );
 
     let recruiters: job::recruiter::RecruiterResponse = parse_contract(json!({
-        "recruiters": [{
+        "info": {
+            "id": "job_1",
             "recruiter_id": "rec_1",
-            "user_id": "ou_1",
-            "name": "招聘负责人",
-            "role_type": 1
-        }],
-        "has_more": false
+            "hiring_manager_id_list": ["mgr_1"],
+            "assistant_id_list": ["ast_1"]
+        }
     }));
-    assert_eq!(recruiters.recruiters[0].user_id.as_deref(), Some("ou_1"));
+    let recruiter_info = recruiters.info.as_ref().expect("info 应被类型化解析");
+    assert_eq!(recruiter_info.recruiter_id.as_deref(), Some("rec_1"));
+    assert_eq!(
+        recruiter_info.hiring_manager_id_list.as_deref(),
+        Some(&["mgr_1".to_string()][..])
+    );
 
     let opened: job::open::OpenResponse = parse_contract(json!({
         "job_id": "job_1",
@@ -703,109 +947,198 @@ fn job_contracts_are_typed() {
 #[test]
 fn external_application_and_offer_contracts_are_typed() {
     let ext_app_created: external_application::create::CreateResponse = parse_contract(json!({
-        "external_application_id": "ext_app_1",
-        "application_id": "app_1",
-        "status": 1,
-        "success": true
+        "external_application": {
+            "id": "ext_app_1",
+            "job_recruitment_type": 1,
+            "job_title": "高级 Java",
+            "resume_source": "内推",
+            "stage": "简历初筛",
+            "talent_id": "talent_1",
+            "delivery_type": 1,
+            "modify_time": 1618500278645i64,
+            "create_time": 1618500278644i64
+        }
     }));
     assert_eq!(
-        ext_app_created.external_application_id.as_deref(),
+        ext_app_created
+            .external_application
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
         Some("ext_app_1")
     );
 
     let ext_app_list: external_application::list::ListResponse = parse_contract(json!({
         "items": [{
-            "external_application_id": "ext_app_1",
-            "application_id": "app_1",
+            "id": "ext_app_1",
+            "job_recruitment_type": 1,
+            "job_title": "高级Java",
+            "resume_source": "Boss",
+            "stage": "简历初筛",
             "talent_id": "talent_1",
-            "job_id": "job_1",
-            "status": 1,
-            "source_name": "Boss"
+            "delivery_type": 2,
+            "modify_time": 1618500278645i64,
+            "create_time": 1618500278644i64
         }],
         "has_more": false
     }));
-    assert_eq!(ext_app_list.items[0].source_name.as_deref(), Some("Boss"));
+    assert_eq!(ext_app_list.items[0].id.as_deref(), Some("ext_app_1"));
+    assert_eq!(ext_app_list.items[0].resume_source.as_deref(), Some("Boss"));
 
     let ext_app_updated: external_application::update::UpdateResponse = parse_contract(json!({
-        "external_application_id": "ext_app_1",
-        "result": true
+        "external_application": {
+            "id": "ext_app_1",
+            "job_recruitment_type": 1,
+            "job_title": "高级Java",
+            "resume_source": "内推",
+            "stage": "简历初筛",
+            "talent_id": "talent_1",
+            "delivery_type": 1,
+            "modify_time": 1618500278645i64,
+            "create_time": 1618500278644i64,
+            "termination_type": "HR 主动终止"
+        }
     }));
-    assert_eq!(ext_app_updated.result, Some(true));
+    assert_eq!(
+        ext_app_updated
+            .external_application
+            .as_ref()
+            .and_then(|a| a.id.as_deref()),
+        Some("ext_app_1")
+    );
 
     let ext_offer_created: external_offer::create::CreateResponse = parse_contract(json!({
-        "external_offer_id": "ext_offer_1",
-        "offer_id": "offer_1",
-        "status": 2,
-        "success": true
+        "external_offer": {
+            "id": "ext_offer_1",
+            "external_application_id": "app_1",
+            "biz_create_time": "1721899352428",
+            "owner": "张三",
+            "offer_status": "已发送",
+            "attachment_list": [
+                {"id": "attach_1", "name": "test_resume.pdf", "size": 126371}
+            ]
+        }
     }));
-    assert_eq!(ext_offer_created.offer_id.as_deref(), Some("offer_1"));
+    assert_eq!(
+        ext_offer_created
+            .external_offer
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
+        Some("ext_offer_1")
+    );
 
     let ext_offer_list: external_offer::batch_query::BatchQueryResponse = parse_contract(json!({
         "items": [{
-            "external_offer_id": "ext_offer_1",
-            "offer_id": "offer_1",
-            "application_id": "app_1",
-            "talent_id": "talent_1",
-            "status": 2
+            "id": "6989202908470446380",
+            "external_application_id": "7395015673275697419",
+            "biz_create_time": "1721899352428",
+            "owner": "张三",
+            "offer_status": "已发送",
+            "attachment_list": [
+                { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 126371 }
+            ]
         }],
         "page_token": "cursor_ext_offer"
     }));
-    assert_eq!(ext_offer_list.items[0].status, Some(2));
+    assert_eq!(
+        ext_offer_list.items[0].id.as_deref(),
+        Some("6989202908470446380")
+    );
+    assert_eq!(
+        ext_offer_list.items[0].offer_status.as_deref(),
+        Some("已发送")
+    );
+    assert_eq!(
+        ext_offer_list.items[0]
+            .attachment_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .and_then(|a| a.size),
+        Some(126371)
+    );
     assert_eq!(
         ext_offer_list.page_token.as_deref(),
         Some("cursor_ext_offer")
     );
 
     let ext_offer_updated: external_offer::update::UpdateResponse = parse_contract(json!({
-        "external_offer_id": "ext_offer_1",
-        "offer_id": "offer_1",
-        "result": true
+        "external_offer": {
+            "id": "6989202908470446380",
+            "external_application_id": "7395015673275697419",
+            "biz_create_time": "1721899352428",
+            "owner": "张三",
+            "offer_status": "已发送",
+            "attachment_list": [
+                { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 126371 }
+            ]
+        }
     }));
     assert_eq!(
-        ext_offer_updated.external_offer_id.as_deref(),
-        Some("ext_offer_1")
+        ext_offer_updated
+            .external_offer
+            .as_ref()
+            .and_then(|o| o.id.as_deref()),
+        Some("6989202908470446380")
     );
 }
 
 #[test]
 fn website_channel_delivery_and_job_post_contracts_are_typed() {
     let channel_created: website::channel::create::CreateResponse = parse_contract(json!({
-        "channel": {
-            "channel_id": "channel_1",
-            "website_id": "site_1",
-            "name": "Boss",
-            "code": "boss",
-            "active_status": 1
-        }
+        "id": "7085989097067563300",
+        "name": "官网微信渠道",
+        "link": "http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5",
+        "code": "A1KM6A5"
     }));
+    assert_eq!(channel_created.id.as_deref(), Some("7085989097067563300"));
     assert_eq!(
-        channel_created
-            .channel
-            .as_ref()
-            .and_then(|v| v.channel_id.as_deref()),
-        Some("channel_1")
+        channel_created.link.as_deref(),
+        Some("http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5")
     );
 
     let channels: website::channel::list::ListResponse = parse_contract(json!({
-        "items": [{
-            "channel_id": "channel_1",
-            "website_id": "site_1",
-            "name": "Boss",
-            "code": "boss",
-            "active_status": 1
+        "website_channel_list": [{
+            "id": "7085989097067563300",
+            "name": "微信推广渠道",
+            "link": "http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5",
+            "code": "A1KM6A5"
         }],
         "has_more": false
     }));
-    assert_eq!(channels.items[0].code.as_deref(), Some("boss"));
+    assert_eq!(channels.items.len(), 1);
+    assert_eq!(channels.items[0].code.as_deref(), Some("A1KM6A5"));
+    assert_eq!(channels.items[0].name.as_deref(), Some("微信推广渠道"));
+
+    let channel_updated: website::channel::update::UpdateResponse = parse_contract(json!({
+        "id": "7085989097067563300",
+        "name": "微信推广渠道",
+        "link": "http://recrui-demo.jobs.xxx.cn/485083/?spread=A1KM6A5",
+        "code": "A1KM6A5"
+    }));
+    assert_eq!(channel_updated.name.as_deref(), Some("微信推广渠道"));
 
     let delivery: website::delivery_task::get::GetResponse = parse_contract(json!({
-        "delivery_task_id": "task_1",
-        "application_id": "app_1",
-        "talent_id": "talent_1",
         "status": 2,
-        "error_message": "invalid resume"
+        "delivery": {
+            "application_id": "6960663240925956657",
+            "id": "6960663240925956655",
+            "job_id": "6960663240925956659",
+            "job_post_id": "6960663240925956658",
+            "portal_resume_id": "6960663240925956660",
+            "user_id": "6960663240925956656",
+            "talent_id": "7095600054216542508"
+        },
+        "status_msg": " ",
+        "extra_info": "  "
     }));
-    assert_eq!(delivery.delivery_task.status, Some(2));
+    assert_eq!(delivery.status, Some(2));
+    assert_eq!(
+        delivery
+            .delivery
+            .as_ref()
+            .and_then(|v| v.portal_resume_id.as_deref()),
+        Some("6960663240925956660")
+    );
+    assert_eq!(delivery.status_msg.as_deref(), Some(" "));
 
     let post: website::job_post::get::GetResponse = parse_contract(json!({
         "job_post": {
@@ -856,14 +1189,29 @@ fn website_channel_delivery_and_job_post_contracts_are_typed() {
 fn agency_contracts_are_typed() {
     let batch: agency::batch_query::BatchQueryResponse = parse_contract(json!({
         "items": [{
-            "agency_id": "agency_1",
-            "name": "猎企 A",
-            "code": "A001",
-            "active_status": 1
+            "id": "7398493486516799788",
+            "name": "北极无敌猎头",
+            "admin_list": [{
+                "user_id": "7398493486516799788",
+                "name": {"zh_cn": "张三", "en_us": "ZhangSan"},
+                "email": "283xxxx2171813@qq.com"
+            }],
+            "agency_protect_time": { "day": 180, "use_default": true },
+            "cooperation_status": 1,
+            "supplier_area": 1,
+            "talent_protect_time": { "day": 180, "use_default": true, "forever": true }
         }],
         "has_more": false
     }));
-    assert_eq!(batch.items[0].agency_id.as_deref(), Some("agency_1"));
+    assert_eq!(batch.items[0].id.as_deref(), Some("7398493486516799788"));
+    assert_eq!(
+        batch.items[0]
+            .admin_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .and_then(|a| a.email.as_deref()),
+        Some("283xxxx2171813@qq.com")
+    );
 
     let get_resp: agency::get::GetResponse = parse_contract(json!({
         "agency": {
@@ -892,15 +1240,40 @@ fn agency_contracts_are_typed() {
     );
 
     let protect_search: agency::protect_search::ProtectSearchResponse = parse_contract(json!({
-        "items": [{
-            "protection_id": "protect_1",
-            "agency_id": "agency_1",
-            "talent_id": "talent_1",
-            "status": 1
-        }],
-        "page_token": "cursor_protect"
+        "is_onboarded": true,
+        "onboarded_in_protection": true,
+        "onboarded_protection": {
+            "protection_type": 1,
+            "application_id": "app_1",
+            "start_time": "1700023694629",
+            "expire_time": "1700023694630",
+            "agency_supplier_id": "supplier_1",
+            "agency_supplier_name": {"zh_cn": "超越猎头公司", "en_us": "chaoyue head-hunting company"},
+            "agency_supplier_user_id": "supplier_user_1",
+            "agency_supplier_user_name": {"zh_cn": "张三", "en_us": "zhangsan"}
+        },
+        "protection_list": [
+            {
+                "protection_type": 2,
+                "application_id": "app_1",
+                "start_time": "1700023694629",
+                "expire_time": "1700023694630",
+                "agency_supplier_id": "supplier_1",
+                "agency_supplier_name": {"zh_cn": "超越猎头公司", "en_us": "chaoyue head-hunting company"},
+                "agency_supplier_user_id": "supplier_user_1",
+                "agency_supplier_user_name": {"zh_cn": "张三", "en_us": "zhangsan"}
+            }
+        ]
     }));
-    assert_eq!(protect_search.page_token.as_deref(), Some("cursor_protect"));
+    assert_eq!(protect_search.is_onboarded, Some(true));
+    assert_eq!(protect_search.protection_list.len(), 1);
+    assert_eq!(
+        protect_search
+            .onboarded_protection
+            .as_ref()
+            .and_then(|v| v.agency_supplier_id.as_deref()),
+        Some("supplier_1")
+    );
 
     let operate: agency::operate_agency_account::OperateAgencyAccountResponse =
         parse_contract(json!({
@@ -978,23 +1351,53 @@ fn talent_and_job_requirement_contracts_are_typed() {
 
     let requirement_by_id: job_requirement::list_by_id::ListByIdResponse = parse_contract(json!({
         "items": [{
-            "job_requirement_id": "jr_1",
-            "job_id": "job_1",
-            "name": "需求 A"
+            "id": "jr_1",
+            "short_code": "xx1",
+            "name": "需求 A",
+            "display_progress": 1,
+            "head_count": 11,
+            "job_id_list": ["job_1"],
+            "count_data": {
+                "offer_count": 1,
+                "pre_hire_count": 2,
+                "complete_count": 3
+            }
         }]
     }));
+    assert_eq!(requirement_by_id.items[0].id.as_deref(), Some("jr_1"));
     assert_eq!(
-        requirement_by_id.items[0].job_requirement_id.as_deref(),
-        Some("jr_1")
+        requirement_by_id.items[0].short_code.as_deref(),
+        Some("xx1")
+    );
+    assert_eq!(requirement_by_id.items[0].head_count, Some(11));
+    assert_eq!(
+        requirement_by_id.items[0]
+            .count_data
+            .as_ref()
+            .and_then(|c| c.offer_count),
+        Some(1)
     );
 
     let requirement_create: job_requirement::create::CreateResponse = parse_contract(json!({
-        "job_requirement_id": "jr_1",
-        "job_id": "job_1",
-        "title": "招聘需求 A",
-        "status": 1
+        "job_requirement": {
+            "id": "jr_1",
+            "short_code": "R01905",
+            "name": "招聘需求 A",
+            "display_progress": 1,
+            "head_count": 10,
+            "recruitment_type": {
+                "id": "101",
+                "name": { "zh_cn": "社招-全职", "en_us": "Social recruitment - Full time" }
+            }
+        }
     }));
-    assert_eq!(requirement_create.job_id.as_deref(), Some("job_1"));
+    assert_eq!(
+        requirement_create
+            .job_requirement
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
+        Some("jr_1")
+    );
 
     let requirement_update: job_requirement::update::UpdateResponse = parse_contract(json!({
         "job_requirement_id": "jr_1",
@@ -1040,7 +1443,40 @@ fn application_mutation_contracts_are_typed() {
     }));
     assert_eq!(terminate.operation.result, Some(true));
 
+    // 官方形状：data 下唯一键为 employee 容器（16 个叶子字段）
     let transfer_onboard: application::transfer_onboard::TransferOnboardResponse =
+        parse_contract(json!({
+            "employee": {
+                "id": "7095600054216542508",
+                "application_id": "7073372582620416300",
+                "onboard_status": 1,
+                "conversion_status": 1,
+                "onboard_time": 1637596800000i64,
+                "expected_conversion_time": 1637596800000i64,
+                "actual_conversion_time": 1637596800000i64,
+                "overboard_time": 1637596800000i64,
+                "overboard_note": "职业发展考虑",
+                "onboard_city_code": "CT_2",
+                "department": "6966123381141866028",
+                "leader": "ou-xxx",
+                "sequence": "6937934036379650311",
+                "level": "7006234385490345986",
+                "employee_type": "1",
+                "job_requirement_id": "123123123213"
+            }
+        }));
+    let onboard_employee = transfer_onboard.employee.as_ref().expect("employee 应存在");
+    assert_eq!(onboard_employee.id.as_deref(), Some("7095600054216542508"));
+    assert_eq!(onboard_employee.conversion_status, Some(1));
+    assert_eq!(onboard_employee.onboard_time, Some(1637596800000));
+    assert_eq!(
+        onboard_employee.overboard_note.as_deref(),
+        Some("职业发展考虑")
+    );
+    assert_eq!(onboard_employee.leader.as_deref(), Some("ou-xxx"));
+
+    // 兼容旧平铺载荷：operation flatten 兜底仍可反序列化
+    let transfer_onboard_legacy: application::transfer_onboard::TransferOnboardResponse =
         parse_contract(json!({
             "application_id": "app_1",
             "employee_id": "emp_1",
@@ -1048,7 +1484,7 @@ fn application_mutation_contracts_are_typed() {
             "success": true
         }));
     assert_eq!(
-        transfer_onboard.operation.employee_id.as_deref(),
+        transfer_onboard_legacy.operation.employee_id.as_deref(),
         Some("emp_1")
     );
 
@@ -1082,48 +1518,107 @@ fn external_background_interview_and_agreement_contracts_are_typed() {
 
     let background_created: external_background_check::create::CreateResponse =
         parse_contract(json!({
-            "external_background_check_id": "bg_1",
-            "application_id": "app_1",
-            "status": 1,
-            "success": true
+            "external_background_check": {
+                "id": "bg_1",
+                "external_application_id": "app_1",
+                "date": 1626602069393i64,
+                "name": "张三的背调",
+                "result": "已通过",
+                "attachment_list": [
+                    { "id": "attach_1", "name": "test_resume.pdf", "size": 126371 }
+                ]
+            }
         }));
     assert_eq!(
-        background_created.external_background_check_id.as_deref(),
+        background_created
+            .external_background_check
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
         Some("bg_1")
     );
 
     let interviews: external_interview::batch_query::BatchQueryResponse = parse_contract(json!({
         "items": [{
-            "external_interview_id": "iv_1",
-            "application_id": "app_1",
-            "talent_id": "talent_1",
-            "status": 2,
-            "interview_round_name": "一面"
+            "external_application_id": "app_1",
+            "id": "iv_1",
+            "participate_status": 2,
+            "begin_time": 1618500278638i64,
+            "end_time": 1618500278639i64,
+            "interview_assessments": [{
+                "id": "assess_1",
+                "username": "张三",
+                "conclusion": 2,
+                "assessment_dimension_list": [{
+                    "score": 99,
+                    "assessment_type": 1,
+                    "title": "心理测试"
+                }],
+                "content": "这是一个心理测试题目"
+            }]
         }]
     }));
+    assert_eq!(interviews.items[0].id.as_deref(), Some("iv_1"));
     assert_eq!(
-        interviews.items[0].interview_round_name.as_deref(),
-        Some("一面")
+        interviews.items[0]
+            .interview_assessments
+            .as_ref()
+            .and_then(|v| v.first())
+            .and_then(|v| v.username.as_deref()),
+        Some("张三")
     );
 
     let interview_updated: external_interview::update::UpdateResponse = parse_contract(json!({
-        "external_interview_id": "iv_1",
-        "application_id": "app_1",
-        "result": true
+        "external_interview": {
+            "external_application_id": "6960663240925956437",
+            "id": "6960663240925956436",
+            "participate_status": 1,
+            "begin_time": 1618500278638i64,
+            "end_time": 1618500278639i64,
+            "interview_assessments": [{
+                "id": "6989181065243969836",
+                "username": "张三",
+                "conclusion": 1,
+                "assessment_dimension_list": [{
+                    "score": 99,
+                    "option": "选项1",
+                    "options": ["选项1"],
+                    "content": "面试内容结果补充",
+                    "assessment_type": 1,
+                    "title": "心理测试",
+                    "description": "心理测试描述"
+                }],
+                "content": "面试内容结果补充"
+            }]
+        }
     }));
-    assert_eq!(interview_updated.result, Some(true));
+    assert_eq!(
+        interview_updated
+            .external_interview
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
+        Some("6960663240925956436")
+    );
+    assert_eq!(
+        interview_updated
+            .external_interview
+            .as_ref()
+            .and_then(|v| v.interview_assessments.as_ref())
+            .and_then(|l| l.first())
+            .and_then(|a| a.username.as_deref()),
+        Some("张三")
+    );
 
     let agreements: tripartite_agreement::list::ListResponse = parse_contract(json!({
         "items": [{
-            "agreement_id": "agree_1",
+            "id": "agree_1",
             "application_id": "app_1",
-            "talent_id": "talent_1",
-            "status": 1,
-            "sign_status": 2
+            "state": 1,
+            "create_time": "1698292282660",
+            "modify_time": "1698292282661"
         }],
         "has_more": false
     }));
-    assert_eq!(agreements.items[0].agreement_id.as_deref(), Some("agree_1"));
+    assert_eq!(agreements.items[0].id.as_deref(), Some("agree_1"));
 
     let agreement_create: tripartite_agreement::create::CreateResponse = parse_contract(json!({
         "agreement_id": "agree_1",
@@ -1225,25 +1720,59 @@ fn remaining_low_volume_contracts_are_typed() {
     );
 
     let referral_enable: referral_account::enable::EnableResponse = parse_contract(json!({
-        "account_id": "acc_1",
-        "result": true,
-        "success": true
+        "account": {
+            "account_id": "6942778198054125570",
+            "assets": {
+                "confirmed_bonus": {
+                    "point_bonus": 100,
+                    "cash_bonus": [{ "currency_type": "CNY", "amount": 100 }]
+                }
+            },
+            "status": 1
+        }
     }));
     assert_eq!(
-        referral_enable.operation.account_id.as_deref(),
-        Some("acc_1")
+        referral_enable
+            .account
+            .as_ref()
+            .and_then(|a| a.account_id.as_deref()),
+        Some("6942778198054125570")
+    );
+    assert_eq!(
+        referral_enable
+            .account
+            .as_ref()
+            .and_then(|a| a.assets.as_ref())
+            .and_then(|s| s.confirmed_bonus.as_ref())
+            .and_then(|b| b.point_bonus),
+        Some(100)
     );
 
     let assessment: external_interview_assessment::create::CreateResponse = parse_contract(json!({
-        "external_interview_assessment_id": "assess_1",
-        "external_interview_id": "iv_1",
-        "status": 1
+        "external_interview_assessment": {
+            "id": "assess_1",
+            "username": "shaojiale",
+            "conclusion": 1,
+            "assessment_dimension_list": [
+                {
+                    "score": 99,
+                    "option": "opt",
+                    "options": ["opt"],
+                    "content": "content",
+                    "assessment_type": 1,
+                    "title": "title",
+                    "description": "desc"
+                }
+            ],
+            "content": "hello world",
+            "external_interview_id": "iv_1"
+        }
     }));
     assert_eq!(
         assessment
-            .assessment
-            .external_interview_assessment_id
-            .as_deref(),
+            .external_interview_assessment
+            .as_ref()
+            .and_then(|v| v.id.as_deref()),
         Some("assess_1")
     );
 
@@ -1367,23 +1896,37 @@ fn tail_get_and_operation_contracts_are_typed() {
     );
 
     let interviewer_patch: interviewer::patch::PatchResponse = parse_contract(json!({
-        "interviewer_id": "int_1",
-        "user_id": "ou_1",
-        "verify_status": 2
+        "interviewer": {
+            "interviewer_id": "int_1",
+            "user_id": "ou_1",
+            "verify_status": 2
+        }
     }));
     assert_eq!(
-        interviewer_patch.interviewer.user_id.as_deref(),
+        interviewer_patch
+            .interviewer
+            .as_ref()
+            .and_then(|v| v.user_id.as_deref()),
         Some("ou_1")
     );
 
     let manager_update: job::manager::batch_update::BatchUpdateResponse = parse_contract(json!({
-        "job_id": "job_1",
-        "manager_id": "mgr_1",
-        "success": true
+        "job_manager": {
+            "id": "job_1",
+            "recruiter_id": "rec_1",
+            "hiring_manager_id_list": ["mgr_1"],
+            "assistant_id_list": ["ast_1"]
+        }
     }));
+    let job_manager = manager_update
+        .job_manager
+        .as_ref()
+        .expect("job_manager 应被类型化解析");
+    assert_eq!(job_manager.id.as_deref(), Some("job_1"));
+    assert_eq!(job_manager.recruiter_id.as_deref(), Some("rec_1"));
     assert_eq!(
-        manager_update.operation.manager_id.as_deref(),
-        Some("mgr_1")
+        job_manager.hiring_manager_id_list.as_deref(),
+        Some(&["mgr_1".to_string()][..])
     );
 
     let interview_record: interview_record_v1::get::GetResponse = parse_contract(json!({
@@ -1411,11 +1954,18 @@ fn tail_get_and_operation_contracts_are_typed() {
     assert_eq!(publish.operation.publish_id.as_deref(), Some("pub_1"));
 
     let exam_result: exam::create::CreateResponse = parse_contract(json!({
-        "exam_id": "exam_1",
-        "application_id": "app_1",
-        "success": true
+        "exam_id": "7031822096580868396",
+        "application_id": "7031822096580868396",
+        "exam_resource_name": "测试名字",
+        "score": 95.5,
+        "uuid": "6949805467799537964",
+        "operator_id": "ou_xxx",
+        "operate_time": "1637295516451"
     }));
-    assert_eq!(exam_result.operation.exam_id.as_deref(), Some("exam_1"));
+    assert_eq!(exam_result.exam_id.as_deref(), Some("7031822096580868396"));
+    assert_eq!(exam_result.exam_resource_name.as_deref(), Some("测试名字"));
+    assert_eq!(exam_result.score, Some(95.5));
+    assert_eq!(exam_result.uuid.as_deref(), Some("6949805467799537964"));
 
     let ehr_task: ehr_import_task::patch::PatchResponse = parse_contract(json!({
         "task_id": "task_1",
@@ -1456,104 +2006,363 @@ fn tail_catalog_and_search_contracts_are_typed() {
 
     let job_schemas: job_schema::list::ListResponse = parse_contract(json!({
         "items": [{
-            "id": "schema_1",
-            "title": {"zh_cn": "标准职位模板", "en_us": "Default Job Schema"},
-            "version": 3
-        }]
+            "id": "6949805467799537964",
+            "name": {"zh_cn": "社招模板", "en_us": "Social Job Template"},
+            "scenario_type": 1,
+            "object_list": [{
+                "id": "6949805467799537964",
+                "name": {"zh_cn": "基础信息", "en_us": "Basic info"},
+                "description": {"zh_cn": "职位基础信息", "en_us": "Job basic info"},
+                "setting": {
+                    "object_type": 1,
+                    "config": {
+                        "options": [{
+                            "key": "1",
+                            "name": {"zh_cn": "选项A", "en_us": "Option A"},
+                            "description": {"zh_cn": "选项A描述", "en_us": "Description of option A"},
+                            "active_status": 1
+                        }]
+                    }
+                },
+                "is_customized": true,
+                "is_required": false,
+                "active_status": 1,
+                "children_list": [{
+                    "id": "6949805467799537964",
+                    "name": {"zh_cn": "职位类型", "en_us": "Job type"},
+                    "setting": {"object_type": 1, "config": {}},
+                    "parent_id": "6949805467799537964",
+                    "is_customized": true,
+                    "is_required": false,
+                    "active_status": 1
+                }]
+            }]
+        }],
+        "has_more": true,
+        "page_token": "1234452132"
     }));
-    assert_eq!(job_schemas.items[0].version, Some(3));
+    assert_eq!(job_schemas.items[0].scenario_type, Some(1));
+    assert_eq!(
+        job_schemas.items[0]
+            .name
+            .as_ref()
+            .and_then(|v| v.zh_cn.as_deref()),
+        Some("社招模板")
+    );
+    let module = job_schemas.items[0]
+        .object_list
+        .as_ref()
+        .and_then(|v| v.first())
+        .expect("object_list 应存在");
+    assert_eq!(module.setting.as_ref().and_then(|v| v.object_type), Some(1));
+    assert_eq!(
+        module
+            .children_list
+            .as_ref()
+            .and_then(|v| v.first())
+            .and_then(|c| c.parent_id.as_deref()),
+        Some("6949805467799537964")
+    );
 
     let interview_forms: interview_feedback_form::list::ListResponse = parse_contract(json!({
         "items": [{
             "id": "form_1",
-            "title": {"zh_cn": "通用评价表", "en_us": "Default Form"}
+            "name": {"zh_cn": "通用评价表", "en_us": "Default Form"},
+            "type": 2,
+            "score_calculation_config": {"enabled": true, "calculation_mode": 1},
+            "modules": [{
+                "id": "module_1",
+                "name": {"zh_cn": "模块一", "en_us": "Module 1"},
+                "type": 2,
+                "sequence": 1,
+                "weight": 1.0
+            }]
         }],
         "has_more": false
     }));
     assert_eq!(
         interview_forms.items[0]
-            .title
+            .name
             .as_ref()
-            .and_then(|value| value.zh_cn_or_plain()),
+            .and_then(|value| value.zh_cn.as_deref()),
         Some("通用评价表")
     );
+    assert_eq!(
+        interview_forms.items[0]
+            .score_calculation_config
+            .as_ref()
+            .and_then(|value| value.calculation_mode),
+        Some(1)
+    );
 
-    let interview_schemas: interview_registration_schema::list::ListResponse =
-        parse_contract(json!({
+    let interview_schemas: interview_registration_schema::list::ListResponse = parse_contract(
+        json!({
             "items": [{
-                "id": "schema_interview_1",
-                "name": {"zh_cn": "校招登记表", "en_us": "Campus Schema"},
-                "status": 1
+                "id": "7044739584859326764",
+                "name": "默认面试登记表",
+                "is_used_as_interview": true,
+                "object_list": [{
+                    "id": "6949805467799537964",
+                    "name": {"zh_cn": "登记表模块", "en_us": "interview module"},
+                    "description": {"zh_cn": "用于面试登记的模块", "en_us": "module used for interview"},
+                    "setting": {
+                        "object_type": 11,
+                        "config": {
+                            "options": [{
+                                "key": "test",
+                                "name": {"zh_cn": "模块选项", "en_us": "module option"},
+                                "description": {"zh_cn": "用于模块的选项", "en_us": "option for module"},
+                                "active_status": 1
+                            }]
+                        }
+                    },
+                    "is_customized": true,
+                    "is_required": false,
+                    "is_visible": true,
+                    "active_status": 1,
+                    "children_list": [{
+                        "id": "6949805467799537964",
+                        "name": {"zh_cn": "登记表字段", "en_us": "interview registration field"},
+                        "setting": { "object_type": 1, "config": { "options": [] } },
+                        "parent_id": "6949805467799537964",
+                        "is_customized": true,
+                        "is_required": false,
+                        "is_visible": true,
+                        "active_status": 1
+                    }]
+                }]
             }],
+            "has_more": true,
             "page_token": "cursor_5"
-        }));
+        }),
+    );
+    let schema_item = &interview_schemas.items[0];
+    assert_eq!(schema_item.is_used_as_interview, Some(true));
+    assert_eq!(schema_item.name.as_deref(), Some("默认面试登记表"));
+    let schema_object = schema_item.object_list.as_ref().unwrap().first().unwrap();
+    assert_eq!(
+        schema_object.setting.as_ref().unwrap().object_type,
+        Some(11)
+    );
+    assert_eq!(
+        schema_object
+            .children_list
+            .as_ref()
+            .unwrap()
+            .first()
+            .unwrap()
+            .parent_id
+            .as_deref(),
+        Some("6949805467799537964")
+    );
     assert_eq!(interview_schemas.page_token.as_deref(), Some("cursor_5"));
 
     let round_types: interview_round_type::list::ListResponse = parse_contract(json!({
+        "active_status": 1,
         "items": [{
-            "id": "round_1",
-            "description": {"zh_cn": "技术一面", "en_us": "Tech Round 1"}
+            "id": "7012129842917869868",
+            "biz_id": "7012129842917869868",
+            "name": {"zh_cn": "默认面试轮次类型", "en_us": "default interview round type"},
+            "process_type": 1,
+            "active_status": 1,
+            "interview_assessment_template_info": {
+                "id": "7012129842917869868",
+                "biz_id": "7012129842917869868",
+                "name": {"zh_cn": "默认面试评价表", "en_us": "default interview assessment template"}
+            }
         }]
     }));
+    assert_eq!(round_types.active_status, Some(1));
+    let round_type_item = &round_types.items[0];
     assert_eq!(
-        round_types.items[0]
-            .description
+        round_type_item.biz_id.as_deref(),
+        Some("7012129842917869868")
+    );
+    assert_eq!(
+        round_type_item
+            .name
             .as_ref()
-            .and_then(|value| value.zh_cn_or_plain()),
-        Some("技术一面")
+            .and_then(|value| value.zh_cn.as_deref()),
+        Some("默认面试轮次类型")
+    );
+    assert_eq!(
+        round_type_item
+            .interview_assessment_template_info
+            .as_ref()
+            .and_then(|value| value.biz_id.as_deref()),
+        Some("7012129842917869868")
     );
 
     let interview_tasks: interview_task::list::ListResponse = parse_contract(json!({
         "items": [{
-            "interview_id": "interview_1",
-            "application_id": "app_1",
-            "status": 2,
-            "interviewer": {"id": "ou_interviewer"}
-        }]
+            "id": "6989202908470446380",
+            "job_id": "6897921873523247373",
+            "talent_id": "7046263097923537196",
+            "application_id": "7046315599510833452",
+            "activity_status": 1
+        }],
+        "has_more": true
     }));
-    assert_eq!(
-        interview_tasks.items[0].interview_id.as_deref(),
-        Some("interview_1")
-    );
+    let task_item = &interview_tasks.items[0];
+    assert_eq!(task_item.id.as_deref(), Some("6989202908470446380"));
+    assert_eq!(task_item.job_id.as_deref(), Some("6897921873523247373"));
+    assert_eq!(task_item.talent_id.as_deref(), Some("7046263097923537196"));
+    assert_eq!(task_item.activity_status, Some(1));
 
     let registrations: registration_schema::list::ListResponse = parse_contract(json!({
         "items": [{
             "id": "reg_schema_1",
-            "name": {"zh_cn": "默认申请表", "en_us": "Apply Schema"}
+            "name": "默认登记表",
+            "scenarios": [5, 6],
+            "objects": [{
+                "id": "obj_1",
+                "name": {"zh_cn": "基本信息", "en_us": "Basic Info"},
+                "is_required": true
+            }]
         }]
     }));
     assert_eq!(registrations.items[0].id.as_deref(), Some("reg_schema_1"));
+    assert_eq!(
+        registrations.items[0].scenarios.as_deref(),
+        Some(&[5, 6][..])
+    );
+    assert_eq!(
+        registrations.items[0]
+            .objects
+            .as_ref()
+            .and_then(|l| l.first())
+            .and_then(|o| o.id.as_deref()),
+        Some("obj_1")
+    );
 
     let portal_schemas: portal_apply_schema::list::ListResponse = parse_contract(json!({
         "items": [{
             "id": "portal_schema_1",
-            "title": {"zh_cn": "官网投递", "en_us": "Portal Apply"}
+            "name": "默认官网申请表",
+            "scenarios": [14],
+            "objects": [{
+                "id": "obj_1",
+                "name": {"zh_cn": "基本信息", "en_us": "Basic Information"},
+                "setting": {
+                    "object_type": 1,
+                    "config": {
+                        "options": [{
+                            "key": "Option1",
+                            "name": {"zh_cn": "选项一", "en_us": "Option1"},
+                            "active_status": 1
+                        }]
+                    }
+                },
+                "is_customized": true,
+                "is_required": false,
+                "is_visible": true,
+                "active_status": 1,
+                "children_list": [{
+                    "id": "field_1",
+                    "name": {"zh_cn": "自定义字段", "en_us": "Custom Field"},
+                    "parent_id": "obj_1",
+                    "is_customized": true,
+                    "is_required": false,
+                    "is_visible": true,
+                    "active_status": 1
+                }]
+            }]
         }]
     }));
     assert_eq!(
         portal_schemas.items[0].id.as_deref(),
         Some("portal_schema_1")
     );
+    assert_eq!(
+        portal_schemas.items[0].scenarios.as_deref(),
+        Some(&[14][..])
+    );
+    assert_eq!(
+        portal_schemas.items[0]
+            .objects
+            .as_ref()
+            .and_then(|l| l.first())
+            .and_then(|o| o.children_list.as_ref())
+            .and_then(|l| l.first())
+            .and_then(|c| c.parent_id.as_deref()),
+        Some("obj_1")
+    );
 
     let questionnaires: questionnaire::list::ListResponse = parse_contract(json!({
         "items": [{
-            "id": "questionnaire_1",
-            "name": {"zh_cn": "问卷 A", "en_us": "Questionnaire A"}
-        }]
+            "questionnaire_id": "7037986982531778860",
+            "application_id": "6985833807195212076",
+            "interview_id": "7038435261598763308",
+            "version": 59,
+            "questions": [{
+                "question_id": "6950930570311829804",
+                "question_name": "你的总体评价如何？",
+                "question_en_name": "How would you describe your overall experience?",
+                "question_desc": "测试描述内容",
+                "question_en_desc": "Test Text",
+                "question_type": 4,
+                "is_required": true,
+                "select_option_result_list": [{
+                    "option_id": "6950930570311993644",
+                    "option_name": "选项一",
+                    "option_en_name": "Option 1",
+                    "option_desc": "测试选项描述",
+                    "option_en_desc": "Test Option Desc",
+                    "is_selected": true
+                }],
+                "five_start_scoring_result": {
+                    "highest_score_desc": "非常好",
+                    "highest_score_en_desc": "Very Good",
+                    "lowest_score_desc": "非常差",
+                    "lowest_score_en_desc": "Very Bad",
+                    "score_result": 4
+                },
+                "description_result": "测试描述内容"
+            }],
+            "has_answers": true,
+            "update_time": "1644412504000"
+        }],
+        "has_more": true
     }));
+    let questionnaire_item = &questionnaires.items[0];
     assert_eq!(
-        questionnaires.items[0].id.as_deref(),
-        Some("questionnaire_1")
+        questionnaire_item.questionnaire_id.as_deref(),
+        Some("7037986982531778860")
+    );
+    assert_eq!(questionnaire_item.version, Some(59));
+    let question = questionnaire_item
+        .questions
+        .as_ref()
+        .unwrap()
+        .first()
+        .unwrap();
+    assert_eq!(question.question_id.as_deref(), Some("6950930570311829804"));
+    assert_eq!(question.question_type, Some(4));
+    assert_eq!(
+        question
+            .five_start_scoring_result
+            .as_ref()
+            .and_then(|value| value.score_result),
+        Some(4.0)
     );
 
     let resume_sources: resume_source::list::ListResponse = parse_contract(json!({
         "items": [{
-            "id": "source_1",
-            "code": "campus",
-            "name": {"zh_cn": "校园招聘", "en_us": "Campus"}
-        }]
+            "id": "10000",
+            "zh_name": "内推",
+            "en_name": "referral",
+            "active_status": 1,
+            "resume_source_type": "10001"
+        }],
+        "page_token": "1",
+        "has_more": true
     }));
-    assert_eq!(resume_sources.items[0].code.as_deref(), Some("campus"));
+    assert_eq!(resume_sources.items[0].id.as_deref(), Some("10000"));
+    assert_eq!(resume_sources.items[0].zh_name.as_deref(), Some("内推"));
+    assert_eq!(
+        resume_sources.items[0].resume_source_type.as_deref(),
+        Some("10001")
+    );
 
     let job_functions: job_function::list::ListResponse = parse_contract(json!({
         "items": [{
@@ -1569,21 +2378,99 @@ fn tail_catalog_and_search_contracts_are_typed() {
 
     let job_processes: job_process::list::ListResponse = parse_contract(json!({
         "items": [{
-            "id": "process_1",
-            "active_status": 1,
-            "name": {"zh_cn": "标准流程", "en_us": "Default Process"}
-        }]
-    }));
-    assert_eq!(job_processes.items[0].active_status, Some(1));
-
-    let job_requirement_schemas: job_requirement_schema::list::ListResponse =
-        parse_contract(json!({
-            "items": [{
-                "id": "jr_schema_1",
-                "version": 7
+            "id": "7383889964737988883",
+            "zh_name": "社招流程",
+            "en_name": "Social Process",
+            "type": 1,
+            "stage_list": [{
+                "id": "6793210103211510024",
+                "zh_name": "面试阶段",
+                "en_name": "Interivew",
+                "type": 1
             }]
-        }));
-    assert_eq!(job_requirement_schemas.items[0].version, Some(7));
+        }],
+        "has_more": true,
+        "page_token": "7342029494511126794"
+    }));
+    assert_eq!(
+        job_processes.items[0].id.as_deref(),
+        Some("7383889964737988883")
+    );
+    assert_eq!(job_processes.items[0].process_type, Some(1));
+    let stage = job_processes.items[0]
+        .stage_list
+        .as_ref()
+        .and_then(|v| v.first())
+        .expect("stage_list 应存在");
+    assert_eq!(stage.zh_name.as_deref(), Some("面试阶段"));
+    assert_eq!(stage.stage_type, Some(1));
+
+    let job_requirement_schemas: job_requirement_schema::list::ListResponse = parse_contract(
+        json!({
+            "items": [{
+                "id": "6949805467799537964",
+                "name": {"zh_cn": "关键职位招聘需求模板", "en_us": "Recruitment requirements template"},
+                "object_list": [{
+                    "id": "6949805467799537964",
+                    "name": {"zh_cn": "默认模块", "en_us": "Default module"},
+                    "description": {"zh_cn": "通用模块", "en_us": "Generic module"},
+                    "setting": {"object_type": 11, "config": {}},
+                    "is_customized": true,
+                    "is_required": false,
+                    "active_status": 1,
+                    "children_list": [{
+                        "id": "6949805467799537964",
+                        "name": {"zh_cn": "工作地点", "en_us": "workplace"},
+                        "setting": {
+                            "object_type": 1,
+                            "config": {
+                                "options": [{
+                                    "key": "Beijing",
+                                    "name": {"zh_cn": "北京", "en_us": "Beijing"},
+                                    "description": {"zh_cn": "北京", "en_us": "Beijing"},
+                                    "active_status": 1
+                                }]
+                            }
+                        },
+                        "parent_id": "6949805467799537964",
+                        "is_customized": true,
+                        "is_required": false,
+                        "active_status": 1
+                    }]
+                }]
+            }],
+            "has_more": true
+        }),
+    );
+    let jr_schema = &job_requirement_schemas.items[0];
+    assert_eq!(jr_schema.id.as_deref(), Some("6949805467799537964"));
+    assert_eq!(
+        jr_schema.name.as_ref().and_then(|v| v.zh_cn.as_deref()),
+        Some("关键职位招聘需求模板")
+    );
+    let module = jr_schema
+        .object_list
+        .as_ref()
+        .and_then(|v| v.first())
+        .expect("object_list 应存在");
+    assert_eq!(
+        module.setting.as_ref().and_then(|v| v.object_type),
+        Some(11)
+    );
+    let child = module
+        .children_list
+        .as_ref()
+        .and_then(|v| v.first())
+        .expect("children_list 应存在");
+    assert_eq!(child.parent_id.as_deref(), Some("6949805467799537964"));
+    let option = child
+        .setting
+        .as_ref()
+        .and_then(|v| v.config.as_ref())
+        .and_then(|v| v.options.as_ref())
+        .and_then(|v| v.first())
+        .expect("options 应存在");
+    assert_eq!(option.key.as_deref(), Some("Beijing"));
 
     let offer_templates: offer_approval_template::list::ListResponse = parse_contract(json!({
         "items": [{
@@ -1595,12 +2482,31 @@ fn tail_catalog_and_search_contracts_are_typed() {
 
     let tests: hire_test::search::SearchResponse = parse_contract(json!({
         "items": [{
-            "id": "test_1",
-            "title": {"zh_cn": "Java 笔试", "en_us": "Java Test"}
+            "test_id": "test_1",
+            "application_id": "app_1",
+            "test_paper_id": "paper_1",
+            "test_paper_name": "Java 笔试",
+            "reply_status": 1,
+            "test_status": 3,
+            "test_schedule": {
+                "start_time": "1621390695000",
+                "end_time": "1632839400000"
+            },
+            "result_detail_list": [{ "subject": "Java 基础", "result": "合格" }],
+            "score": "95"
         }],
         "has_more": false
     }));
-    assert_eq!(tests.items[0].id.as_deref(), Some("test_1"));
+    assert_eq!(tests.items[0].test_id.as_deref(), Some("test_1"));
+    assert_eq!(tests.items[0].test_paper_id.as_deref(), Some("paper_1"));
+    assert_eq!(tests.items[0].test_status, Some(3));
+    assert_eq!(
+        tests.items[0]
+            .test_schedule
+            .as_ref()
+            .and_then(|s| s.start_time.as_deref()),
+        Some("1621390695000")
+    );
 
     let logs: talent_operation_log::search::SearchResponse = parse_contract(json!({
         "items": [{
@@ -1624,21 +2530,44 @@ fn tail_catalog_and_search_contracts_are_typed() {
     let publish_records: job_publish_record::search::SearchResponse = parse_contract(json!({
         "items": [{
             "id": "record_1",
+            "title": "后端开发",
             "job_id": "job_1",
-            "channel_id": "channel_1",
-            "publish_status": 2
+            "job_code": "A106043",
+            "job_expire_time": "1722441599999",
+            "job_active_status": 1,
+            "job_process_type": 1,
+            "job_recruitment_type": {
+                "id": "101",
+                "name": {"zh_cn": "全职", "en_us": "Full-time"}
+            }
         }]
     }));
     assert_eq!(
-        publish_records.items[0].channel_id.as_deref(),
-        Some("channel_1")
+        publish_records.items[0].job_code.as_deref(),
+        Some("A106043")
+    );
+    assert_eq!(publish_records.items[0].job_active_status, Some(1));
+    assert_eq!(
+        publish_records.items[0]
+            .job_recruitment_type
+            .as_ref()
+            .and_then(|t| t.id.as_deref()),
+        Some("101")
     );
 
     let queried_locations: location::query::QueryResponse = parse_contract(json!({
         "items": [{
-            "id": "loc_1",
-            "name": {"zh_cn": "上海", "en_us": "Shanghai"}
+            "country": {
+                "country_code": "CN_1",
+                "country_name_info": {"zh_name": "上海", "en_name": "Shanghai", "py_name": "shanghai"}
+            }
         }]
     }));
-    assert_eq!(queried_locations.items[0].id.as_deref(), Some("loc_1"));
+    assert_eq!(
+        queried_locations.items[0]
+            .country
+            .as_ref()
+            .and_then(|v| v.country_code.as_deref()),
+        Some("CN_1")
+    );
 }

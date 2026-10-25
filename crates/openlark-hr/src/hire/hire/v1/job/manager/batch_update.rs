@@ -10,6 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 
 use crate::hire::hire::common_models::JobManagerOperationResult;
 
@@ -148,12 +150,35 @@ impl BatchUpdateRequestBody {
     }
 }
 
+/// 职位负责人（官方 `job.manager`，响应侧形态）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobManagerView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘负责人 ID，与 `user_id_type` 查询参数类型一致。
+    pub recruiter_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用人经理 ID 列表，与 `user_id_type` 查询参数类型一致。
+    pub hiring_manager_id_list: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘协助人 ID 列表，与 `user_id_type` 查询参数类型一致。
+    pub assistant_id_list: Option<Vec<String>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 更新职位相关人员响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct BatchUpdateResponse {
     #[serde(flatten)]
     /// `operation` 字段。
     pub operation: JobManagerOperationResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位负责人。
+    pub job_manager: Option<JobManagerView>,
 }
 
 impl ApiResponseTrait for BatchUpdateResponse {
@@ -208,13 +233,15 @@ mod tests {
             .execute()
             .await
             .expect("请求应成功");
+        let job_manager = resp
+            .job_manager
+            .as_ref()
+            .expect("job_manager 应被类型化解析");
+        assert_eq!(job_manager.id.as_deref(), Some("1618209327096"));
+        assert_eq!(job_manager.recruiter_id.as_deref(), Some("1612209227096"));
         assert_eq!(
-            resp.operation
-                .extra
-                .get("job_manager")
-                .and_then(|j| j.get("id"))
-                .and_then(|v| v.as_str()),
-            Some("1618209327096")
+            job_manager.hiring_manager_id_list.as_deref(),
+            Some(&["on_94a1ee5551019f18cd73f9f111898cf2".to_string()][..])
         );
 
         let received = server.received_requests().await.unwrap_or_default();

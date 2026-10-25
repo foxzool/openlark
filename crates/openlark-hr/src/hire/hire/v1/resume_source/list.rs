@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
-
 /// 获取简历来源列表请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -57,14 +55,37 @@ impl ListRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 结果项列表（官方 `resume_source[]`，平铺 5 字段）。
+    pub items: Vec<ResumeSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 是否还有更多结果。
     pub has_more: Option<bool>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 简历来源（官方 `resume_source` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct ResumeSource {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 简历来源 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 简历来源中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 简历来源英文名称。
+    pub en_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 启用状态（1：已启用 2：已禁用）。
+    pub active_status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 来源类型（字符串枚举：10000 内推 … 10009 实习生转正）。
+    pub resume_source_type: Option<String>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,

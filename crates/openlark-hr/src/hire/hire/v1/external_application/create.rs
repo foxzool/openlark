@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::hire::hire::common_models::ExternalApplication;
+
 /// 创建外部投递请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -65,18 +67,9 @@ impl CreateRequest {
 /// 创建外部投递响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `external_application_id` 字段。
-    pub external_application_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `application_id` 字段。
-    pub application_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `status` 字段。
-    pub status: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `success` 字段。
-    pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 外部投递信息。
+    pub external_application: Option<ExternalApplication>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -96,14 +89,30 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST /open-apis/hire/v1/external_applications
+    /// 端到端：POST /open-apis/hire/v1/external_applications，响应按官方 `data.external_application` 形状解析。
     #[tokio::test]
     async fn test_create_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/external_applications"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "ok",
+                "data": {
+                    "external_application": {
+                        "id": "6989202908470446380",
+                        "job_recruitment_type": 1,
+                        "job_title": "高级Java",
+                        "resume_source": "内推",
+                        "stage": "简历初筛阶段",
+                        "talent_id": "6960663240925956459",
+                        "termination_reason": "不合适",
+                        "delivery_type": 1,
+                        "modify_time": 1618500278645i64,
+                        "create_time": 1618500278644i64,
+                        "termination_type": "HR 主动终止"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -115,10 +124,21 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
+            .request_body(json!({ "talent_id": "6960663240925956459" }))
             .execute()
             .await
             .expect("请求应成功");
+
+        let application = resp
+            .external_application
+            .expect("应解析出 external_application");
+        assert_eq!(application.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(application.job_title.as_deref(), Some("高级Java"));
+        assert_eq!(application.resume_source.as_deref(), Some("内推"));
+        assert_eq!(application.stage.as_deref(), Some("简历初筛阶段"));
+        assert_eq!(application.delivery_type, Some(1));
+        assert_eq!(application.create_time, Some(1618500278644));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

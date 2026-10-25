@@ -14,6 +14,8 @@ pub mod get_detail;
 pub mod list;
 /// manager 子模块。
 pub mod manager;
+/// models 子模块。
+pub mod models;
 /// open 子模块。
 pub mod open;
 /// recruiter 子模块。

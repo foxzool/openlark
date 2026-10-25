@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::common::shared_models::CatalogItem;
+use crate::common::shared_models::I18nText;
 
 /// `ListRequestBody`。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -98,12 +98,147 @@ impl ListRequest {
     }
 }
 
+/// 登记表选项（官方 `common_schema_option`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchemaOption {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项 ID。
+    pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项名称。
+    pub name: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项描述。
+    pub description: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否启用：1 已启用 / 2 已停用。
+    pub active_status: Option<i32>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 登记表配置信息（官方 `common_schema_config`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchemaConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项信息，仅在类型为单选、多选时有值。
+    pub options: Option<Vec<RegistrationSchemaOption>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 登记表模块/字段信息（官方 `common_schema_setting`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchemaSetting {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段类型（模块信息中固定返回 11）。
+    pub object_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 配置信息。
+    pub config: Option<RegistrationSchemaConfig>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 登记表模块（官方 `common_schema`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchemaObject {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块名称。
+    pub name: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块描述。
+    pub description: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块信息。
+    pub setting: Option<RegistrationSchemaSetting>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否是自定义模块。
+    pub is_customized: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否必填。
+    pub is_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否可见。
+    pub is_visible: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否启用：1 已启用 / 2 已停用。
+    pub active_status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段列表。
+    pub children_list: Option<Vec<RegistrationSchemaChild>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 登记表字段（官方 `common_schema_child`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RegistrationSchemaChild {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段名称。
+    pub name: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段描述。
+    pub description: Option<I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段信息。
+    pub setting: Option<RegistrationSchemaSetting>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 所属模块 ID。
+    pub parent_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否是自定义字段。
+    pub is_customized: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否必填。
+    pub is_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否可见。
+    pub is_visible: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否启用：1 已启用 / 2 已停用。
+    pub active_status: Option<i32>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 面试登记表（官方 `interview_registration_schema`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct InterviewRegistrationSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试登记表 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 面试登记表名称。
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 是否用作全局面试登记表。
+    pub is_used_as_interview: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 模块列表。
+    pub object_list: Option<Vec<RegistrationSchemaObject>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 获取面试登记表列表响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListResponse {
     #[serde(default)]
-    /// 结果项列表。
-    pub items: Vec<CatalogItem>,
+    /// 面试登记表列表。
+    pub items: Vec<InterviewRegistrationSchema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -136,7 +271,66 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/interview_registration_schemas"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "ok", "data": {
+                    "items": [
+                        {
+                            "id": "7044739584859326764",
+                            "name": "默认面试登记表",
+                            "is_used_as_interview": true,
+                            "object_list": [
+                                {
+                                    "id": "6949805467799537964",
+                                    "name": { "zh_cn": "登记表模块", "en_us": "interview module" },
+                                    "description": { "zh_cn": "用于面试登记的模块", "en_us": "module used for interview" },
+                                    "setting": {
+                                        "object_type": 11,
+                                        "config": {
+                                            "options": [
+                                                {
+                                                    "key": "test",
+                                                    "name": { "zh_cn": "模块选项", "en_us": "module option" },
+                                                    "description": { "zh_cn": "用于模块的选项", "en_us": "option for module" },
+                                                    "active_status": 1
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "is_customized": true,
+                                    "is_required": false,
+                                    "is_visible": true,
+                                    "active_status": 1,
+                                    "children_list": [
+                                        {
+                                            "id": "6949805467799537964",
+                                            "name": { "zh_cn": "登记表字段", "en_us": "interview registration field" },
+                                            "description": { "zh_cn": "用于登记表的字段", "en_us": "field for interview registration" },
+                                            "setting": {
+                                                "object_type": 1,
+                                                "config": {
+                                                    "options": [
+                                                        {
+                                                            "key": "1",
+                                                            "name": { "zh_cn": "选项A", "en_us": "option A" },
+                                                            "description": { "zh_cn": "字段选项", "en_us": "option for field" },
+                                                            "active_status": 1
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "parent_id": "6949805467799537964",
+                                            "is_customized": true,
+                                            "is_required": false,
+                                            "is_visible": true,
+                                            "active_status": 1
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "eyJvZmZzZXQiOjEwLCJ0aW1lc3RhbXAiOjE2Mjc1NTUyMjM2NzIsImlkIjpudWxsfQ=="
+                }
             })))
             .mount(&server)
             .await;
@@ -148,10 +342,38 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("7044739584859326764"));
+        assert_eq!(item.name.as_deref(), Some("默认面试登记表"));
+        assert_eq!(item.is_used_as_interview, Some(true));
+        let object = item
+            .object_list
+            .as_ref()
+            .expect("object_list 应存在")
+            .first()
+            .unwrap();
+        assert_eq!(object.setting.as_ref().unwrap().object_type, Some(11));
+        let child = object.children_list.as_ref().unwrap().first().unwrap();
+        assert_eq!(child.parent_id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(
+            child
+                .setting
+                .as_ref()
+                .unwrap()
+                .config
+                .as_ref()
+                .unwrap()
+                .options
+                .as_ref()
+                .unwrap()
+                .len(),
+            1
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

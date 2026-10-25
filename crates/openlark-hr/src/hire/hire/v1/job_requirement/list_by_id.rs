@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::JobRequirementSummary;
+use crate::hire::hire::common_models::JobRequirementDto;
 
 /// 获取招聘需求信息请求
 #[derive(Debug, Clone)]
@@ -134,8 +134,8 @@ impl ListByIdRequestBody {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ListByIdResponse {
     #[serde(default, alias = "job_requirements")]
-    /// 结果项列表。
-    pub items: Vec<JobRequirementSummary>,
+    /// 结果项列表（官方 `job_requirement_dto[]`）。
+    pub items: Vec<JobRequirementDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -170,7 +170,15 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": {
-                    "job_requirements": [ { "id": "6952811314255265796" } ],
+                    "job_requirements": [
+                        {
+                            "id": "6949805467799537964",
+                            "short_code": "xx1",
+                            "name": "test",
+                            "display_progress": 1,
+                            "head_count": 11
+                        }
+                    ],
                     "has_more": false
                 }
             })))
@@ -192,6 +200,12 @@ mod tests {
         .await
         .expect("请求应成功");
         assert_eq!(resp.items.len(), 1);
+        let item = &resp.items[0];
+        assert_eq!(item.id.as_deref(), Some("6949805467799537964"));
+        assert_eq!(item.short_code.as_deref(), Some("xx1"));
+        assert_eq!(item.name.as_deref(), Some("test"));
+        assert_eq!(item.display_progress, Some(1));
+        assert_eq!(item.head_count, Some(11));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

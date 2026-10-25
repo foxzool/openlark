@@ -12,7 +12,9 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::hire::hire::common_models::ExternalInterviewAssessmentResult;
+use crate::hire::hire::common_models::{
+    ExternalInterviewAssessment, ExternalInterviewAssessmentResult,
+};
 
 /// 更新外部面评请求
 #[derive(Debug, Clone)]
@@ -88,6 +90,9 @@ pub struct PatchResponse {
     #[serde(flatten)]
     /// `assessment` 字段。
     pub assessment: ExternalInterviewAssessmentResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 外部面评信息（官方 `data.external_interview_assessment` 容器）。
+    pub external_interview_assessment: Option<ExternalInterviewAssessment>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -113,7 +118,27 @@ mod tests {
                 "/open-apis/hire/v1/external_interview_assessments/test001",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "assessment": {  } }
+                "code": 0, "msg": "success",
+                "data": {
+                    "external_interview_assessment": {
+                        "id": "6989181065243969836",
+                        "username": "shaojiale",
+                        "conclusion": 1,
+                        "assessment_dimension_list": [
+                            {
+                                "score": 99,
+                                "option": "opt",
+                                "options": ["opt1"],
+                                "content": "content",
+                                "assessment_type": 1,
+                                "title": "title",
+                                "description": "desc"
+                            }
+                        ],
+                        "content": "hello world",
+                        "external_interview_id": "6986199832494934316"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -125,11 +150,30 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        PatchRequest::new(config)
+        let resp = PatchRequest::new(config)
             .external_interview_assessment_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        let assessment = resp
+            .external_interview_assessment
+            .as_ref()
+            .expect("external_interview_assessment 应被类型化解析");
+        assert_eq!(assessment.id.as_deref(), Some("6989181065243969836"));
+        assert_eq!(assessment.username.as_deref(), Some("shaojiale"));
+        assert_eq!(assessment.conclusion, Some(1));
+        assert_eq!(assessment.content.as_deref(), Some("hello world"));
+        assert_eq!(
+            assessment.external_interview_id.as_deref(),
+            Some("6986199832494934316")
+        );
+        let dimension = assessment
+            .assessment_dimension_list
+            .as_ref()
+            .and_then(|l| l.first())
+            .expect("assessment_dimension_list 应被类型化解析");
+        assert_eq!(dimension.score, Some(99));
+        assert_eq!(dimension.assessment_type, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

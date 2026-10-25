@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
+use crate::hire::hire::common_models::WebsiteDeliveryDto;
 
 /// 新建招聘官网投递请求
 #[derive(Debug, Clone)]
@@ -68,9 +68,9 @@ impl CreateByResumeRequest {
 /// 新建招聘官网投递响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateByResumeResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// `delivery_task` 字段。
-    pub delivery_task: Option<WebsiteDeliveryTaskResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 官网投递信息。
+    pub delivery: Option<WebsiteDeliveryDto>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -90,7 +90,7 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST /open-apis/hire/v1/websites/test001/deliveries/create_by_resume
+    /// 端到端：POST /open-apis/hire/v1/websites/test001/deliveries/create_by_resume，响应按官方 `data.delivery` 形状解析。
     #[tokio::test]
     async fn test_create_by_resume_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -99,7 +99,19 @@ mod tests {
                 "/open-apis/hire/v1/websites/test001/deliveries/create_by_resume",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "ok",
+                "data": {
+                    "delivery": {
+                        "application_id": "6960663240925956657",
+                        "id": "6960663240925956655",
+                        "job_id": "6960663240925956659",
+                        "job_post_id": "6960663240925956658",
+                        "portal_resume_id": "6960663240925956660",
+                        "user_id": "6960663240925956656",
+                        "talent_id": "7095600054216542508"
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -111,11 +123,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateByResumeRequest::new(config)
+        let resp = CreateByResumeRequest::new(config)
             .website_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let delivery = resp.delivery.expect("应解析出 delivery");
+        assert_eq!(
+            delivery.application_id.as_deref(),
+            Some("6960663240925956657")
+        );
+        assert_eq!(delivery.id.as_deref(), Some("6960663240925956655"));
+        assert_eq!(delivery.job_id.as_deref(), Some("6960663240925956659"));
+        assert_eq!(delivery.job_post_id.as_deref(), Some("6960663240925956658"));
+        assert_eq!(
+            delivery.portal_resume_id.as_deref(),
+            Some("6960663240925956660")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

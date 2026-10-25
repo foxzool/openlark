@@ -10,8 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::hire::hire::common_models::WebsiteDeliveryTaskResult;
+use serde_json::Value;
+use std::collections::HashMap;
 
 /// 获取招聘官网投递任务结果请求
 #[derive(Debug, Clone)]
@@ -73,12 +73,53 @@ impl GetRequest {
     }
 }
 
+/// 官网投递信息（官方 `website_delivery_dto`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct WebsiteDeliveryDto {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 投递 ID。
+    pub application_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// ID（官方标注为废弃字段，请勿使用）。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub job_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位广告 ID。
+    pub job_post_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 官网简历 ID。
+    pub portal_resume_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 官网用户 ID。
+    pub user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 人才 ID。
+    pub talent_id: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 获取招聘官网投递任务结果响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct GetResponse {
-    #[serde(flatten)]
-    /// `delivery_task` 字段。
-    pub delivery_task: WebsiteDeliveryTaskResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 任务状态：0 新建 / 1 处理中 / 2 成功 / 3 失败。
+    pub status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 官网投递信息。
+    pub delivery: Option<WebsiteDeliveryDto>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 状态信息，仅在任务状态为失败（3）时返回。
+    pub status_msg: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 附加信息，失败且重复投递时返回重复投递的 ID。
+    pub extra_info: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -104,7 +145,20 @@ mod tests {
                 "/open-apis/hire/v1/websites/test001/delivery_tasks/test001",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "delivery_task": {  } }
+                "code": 0, "msg": "ok", "data": {
+                    "status": 2,
+                    "delivery": {
+                        "application_id": "6960663240925956657",
+                        "id": "6960663240925956655",
+                        "job_id": "6960663240925956659",
+                        "job_post_id": "6960663240925956658",
+                        "portal_resume_id": "6960663240925956660",
+                        "user_id": "6960663240925956656",
+                        "talent_id": "7095600054216542508"
+                    },
+                    "status_msg": " ",
+                    "extra_info": "  "
+                }
             })))
             .mount(&server)
             .await;
@@ -116,12 +170,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .website_id("test001".to_string())
             .delivery_task_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.status, Some(2));
+        let delivery = resp.delivery.as_ref().expect("delivery 应存在");
+        assert_eq!(
+            delivery.application_id.as_deref(),
+            Some("6960663240925956657")
+        );
+        assert_eq!(
+            delivery.portal_resume_id.as_deref(),
+            Some("6960663240925956660")
+        );
+        assert_eq!(delivery.talent_id.as_deref(), Some("7095600054216542508"));
+        assert_eq!(resp.status_msg.as_deref(), Some(" "));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

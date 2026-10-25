@@ -66,9 +66,9 @@ impl PatchRequest {
 /// 更新面试官信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct PatchResponse {
-    #[serde(flatten)]
-    /// `interviewer` 字段。
-    pub interviewer: InterviewerOperationResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `interviewer` 字段（官方响应 data 下唯一容器）。
+    pub interviewer: Option<InterviewerOperationResult>,
 }
 
 impl ApiResponseTrait for PatchResponse {
@@ -92,7 +92,13 @@ mod tests {
         Mock::given(method("PATCH"))
             .and(path("/open-apis/hire/v1/interviewers/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "interviewer": {  } }
+                "code": 0, "msg": "success",
+                "data": {
+                    "interviewer": {
+                        "user_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                        "verify_status": 1
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -104,11 +110,19 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        PatchRequest::new(config)
+        let resp = PatchRequest::new(config)
             .interviewer_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        // 官方响应 data.interviewer 下含 user_id/verify_status（.md L70-72）
+        let interviewer = resp.interviewer.as_ref().expect("interviewer 应反序列化");
+        assert_eq!(
+            interviewer.user_id.as_deref(),
+            Some("ou_7dab8a3d3cdcc9da365777c7ad535d62")
+        );
+        assert_eq!(interviewer.verify_status, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

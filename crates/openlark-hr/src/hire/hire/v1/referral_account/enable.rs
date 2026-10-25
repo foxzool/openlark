@@ -11,6 +11,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use super::create::ReferralAccount;
 use crate::hire::hire::common_models::ReferralAccountOperationResult;
 
 /// 启用内推账户请求
@@ -64,8 +65,11 @@ impl EnableRequest {
 /// 启用内推账户响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct EnableResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `account` 字段（官方响应 data 下唯一容器，与注册内推账户响应同构）。
+    pub account: Option<ReferralAccount>,
     #[serde(flatten)]
-    /// `operation` 字段。
+    /// `operation` 字段（旧版共享操作结果平铺；官方现行响应中这些键不存在，保留以兼容既有消费者；其内部 `extra` 兜底未建模键）。
     pub operation: ReferralAccountOperationResult,
 }
 
@@ -90,7 +94,21 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/referral_account/enable"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "operation": {  } }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "account": {
+                        "account_id": "6942778198054125570",
+                        "assets": {
+                            "confirmed_bonus": {
+                                "point_bonus": 100,
+                                "cash_bonus": [
+                                    { "currency_type": "CNY", "amount": 100 }
+                                ]
+                            }
+                        },
+                        "status": 1
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -102,11 +120,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        EnableRequest::new(config)
+        let resp = EnableRequest::new(config)
             .account_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+        let account = resp.account.expect("应返回 account 容器");
+        assert_eq!(account.account_id.as_deref(), Some("6942778198054125570"));
+        assert_eq!(account.status, Some(1));
+        let bonus = account
+            .assets
+            .as_ref()
+            .and_then(|a| a.confirmed_bonus.as_ref())
+            .expect("应返回已确认奖励");
+        assert_eq!(bonus.point_bonus, Some(100));
+        assert_eq!(
+            bonus
+                .cash_bonus
+                .as_ref()
+                .and_then(|l| l.first())
+                .and_then(|c| c.amount),
+            Some(100.0)
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

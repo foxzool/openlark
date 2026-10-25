@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::hire::hire::common_models::ExternalOfferSummary;
+use crate::hire::hire::common_models::ExternalOffer;
 
 /// 查询外部 Offer 列表请求
 #[derive(Debug, Clone)]
@@ -70,7 +70,7 @@ impl BatchQueryRequest {
 pub struct BatchQueryResponse {
     #[serde(default, alias = "records")]
     /// 结果项列表。
-    pub items: Vec<ExternalOfferSummary>,
+    pub items: Vec<ExternalOffer>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 下一页分页标记。
     pub page_token: Option<String>,
@@ -103,7 +103,23 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/external_offers/batch_query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "SUCCESS",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6989202908470446380",
+                            "external_application_id": "7395015673275697419",
+                            "biz_create_time": "1721899352428",
+                            "owner": "张三",
+                            "offer_status": "已发送",
+                            "attachment_list": [
+                                { "id": "6987954043925432620", "name": "test_resume.pdf", "size": 126371 }
+                            ]
+                        }
+                    ],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -115,10 +131,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        BatchQueryRequest::new(config)
+        let resp = BatchQueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        let item = resp.items.first().expect("应返回 items 列表");
+        assert_eq!(item.id.as_deref(), Some("6989202908470446380"));
+        assert_eq!(item.offer_status.as_deref(), Some("已发送"));
+        assert_eq!(
+            item.attachment_list
+                .as_ref()
+                .and_then(|l| l.first())
+                .and_then(|a| a.size),
+            Some(126371)
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

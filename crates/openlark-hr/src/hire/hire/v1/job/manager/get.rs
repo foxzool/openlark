@@ -71,9 +71,32 @@ impl GetRequest {
 /// 获取职位上的招聘人员信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct GetResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `info` 字段（官方响应 data 下的职位负责人容器）。
+    pub info: Option<JobManagerInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `manager` 字段。
     pub manager: Option<JobRecruiterRecord>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位负责人（官方 `job.manager` 对象）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobManagerInfo {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘负责人 ID，仅一位。
+    pub recruiter_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用人经理 ID 列表。
+    pub hiring_manager_id_list: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 协助人 ID 列表。
+    pub assistant_id_list: Option<Vec<String>>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -100,7 +123,16 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/hire/v1/jobs/test001/managers/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "info": {
+                        "id": "1618209327096",
+                        "recruiter_id": "ou_efk39117c300506837def50545420c6a",
+                        "hiring_manager_id_list": ["on_94a1ee5551019f18cd73d9f111898cf2"],
+                        "assistant_id_list": ["on_94a1ee5551019f18cd73d9f111898cf2"]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -112,11 +144,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config, "test001".to_string())
+        let resp = GetRequest::new(config, "test001".to_string())
             .manager_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let info = resp.info.as_ref().expect("info 容器应存在");
+        assert_eq!(info.id.as_deref(), Some("1618209327096"));
+        assert_eq!(
+            info.recruiter_id.as_deref(),
+            Some("ou_efk39117c300506837def50545420c6a")
+        );
+        assert_eq!(
+            info.hiring_manager_id_list.as_ref().map(|v| v.len()),
+            Some(1)
+        );
+        assert_eq!(info.assistant_id_list.as_ref().map(|v| v.len()), Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,8 +10,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::hire::hire::common_models::GenericOperationResult;
+use std::collections::HashMap;
 
 /// 添加笔试结果请求
 #[derive(Debug, Clone)]
@@ -69,9 +68,30 @@ impl CreateRequest {
 /// 添加笔试结果响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
-    #[serde(flatten)]
-    /// `operation` 字段。
-    pub operation: GenericOperationResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 笔试 ID。
+    pub exam_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 投递 ID。
+    pub application_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 试卷名称。
+    pub exam_resource_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 笔试分数。
+    pub score: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 附件 ID。
+    pub uuid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 操作人用户 open_id。
+    pub operator_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 操作时间戳（单位：毫秒）。
+    pub operate_time: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -95,7 +115,15 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/exams"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "operation": {  } }
+                "code": 0, "msg": "ok", "data": {
+                    "exam_id": "7031822096580868396",
+                    "application_id": "7031822096580868396",
+                    "exam_resource_name": "测试名字",
+                    "score": 95.5,
+                    "uuid": "6949805467799537964",
+                    "operator_id": "ou_xxx",
+                    "operate_time": "1637295516451"
+                }
             })))
             .mount(&server)
             .await;
@@ -107,10 +135,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.exam_id.as_deref(), Some("7031822096580868396"));
+        assert_eq!(resp.exam_resource_name.as_deref(), Some("测试名字"));
+        assert_eq!(resp.score, Some(95.5));
+        assert_eq!(resp.uuid.as_deref(), Some("6949805467799537964"));
+        assert_eq!(resp.operator_id.as_deref(), Some("ou_xxx"));
+        assert_eq!(resp.operate_time.as_deref(), Some("1637295516451"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

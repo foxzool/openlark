@@ -14,6 +14,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 use super::combined_create::{CombinedJobObjectValueMap, JobManager};
+use crate::common::shared_models::{CodeNameObject, IdNameObject};
 
 /// 更新职位请求
 #[derive(Debug, Clone)]
@@ -346,6 +347,264 @@ impl CombinedUpdateRequestBody {
     }
 }
 
+/// `{id, zh_name, en_name, active_status}` 形式的职位引用对象
+/// （官方 `job_recruitment_type` / `job_department` / `job_level` / `job_category` /
+/// `job_type` / `job_highlight` / `target_major_info` 共享形状）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobNamedRef {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 标识。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 英文名称。
+    pub en_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 启用状态：1 启用 / 2 未启用。
+    pub active_status: Option<i32>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 工作城市（官方 `job_city`，`{city_code, zh_name, en_name}`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobCityRef {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作城市码，详情请查看查询地点列表接口。
+    pub city_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作城市中文名称。
+    pub zh_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作城市英文名称。
+    pub en_name: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位自定义字段选项（官方 `job_customized_option`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobCustomizedOption {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项 ID。
+    pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 选项名称。
+    pub name: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位自定义字段时间段（官方 `job_customized_time_range`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobCustomizedTimeRange {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 开始时间，毫秒时间戳。
+    pub start_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 结束时间，毫秒时间戳。
+    pub end_time: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位自定义字段值（官方 `job_customized_value`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobCustomizedValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为单行文本、多行文本、模块、默认字段时，从此字段取值。
+    pub content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为单选时，从此字段取值。
+    pub option: Option<JobCustomizedOption>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为多选时，从此字段取值。
+    pub option_list: Option<Vec<JobCustomizedOption>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为时间段时，从此字段取值。
+    pub time_range: Option<JobCustomizedTimeRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为日期选择、月份选择、年份选择时，从此字段取值，毫秒级时间戳。
+    pub time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当字段类型为数字时，从此字段取值。
+    pub number: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位自定义字段（官方 `job_customized_data`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobCustomizedData {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 自定义字段 ID。
+    pub object_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 自定义字段名称。
+    pub name: Option<crate::common::shared_models::I18nText>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 字段类型：1 单行文本 / 2 多行文本 / 3 单选 / 4 多选 / 5 日期 / 6 月份选择 /
+    /// 7 年份选择 / 8 时间段 / 9 数字 / 10 默认字段 / 11 模块。
+    pub object_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 自定义字段值。
+    pub value: Option<JobCustomizedValue>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位（官方 `job`，`combined_update` 响应内嵌容器）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CombinedJob {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位名称。
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位描述。
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位编号。
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位要求。
+    pub requirement: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 雇佣类型。
+    pub recruitment_type: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 部门。
+    pub department: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作城市。
+    pub city: Option<JobCityRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 最低职级。
+    pub min_job_level: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 最高职级。
+    pub max_job_level: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位亮点。
+    pub highlight_list: Option<Vec<JobNamedRef>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位序列。
+    pub job_category: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位类别。
+    pub job_type: Option<JobNamedRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建人 ID，若为空则为系统或其他对接系统创建。
+    pub create_user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建时间（已废弃，请使用 `create_timestamp`）。
+    pub create_time: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 更新时间（已废弃，请使用 `update_timestamp`）。
+    pub update_time: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘流程类型：1 社招流程 / 2 校招流程。
+    pub process_type: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘流程 ID。
+    pub process_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘流程中文名称。
+    pub process_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘流程英文名称。
+    pub process_en_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 自定义字段列表。
+    pub customized_data_list: Option<Vec<JobCustomizedData>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职能分类。
+    pub job_function: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 项目。
+    pub subject: Option<IdNameObject>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘数量。
+    pub head_count: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作经验要求（1-8 枚举，详见官方文档）。
+    pub experience: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 到期日期（已废弃，请使用 `expiry_timestamp`）。
+    pub expiry_time: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 最低薪资，单位：K。
+    pub min_salary: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 最高薪资，单位：K。
+    pub max_salary: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 学历要求（1-8/20 枚举，详见官方文档）。
+    pub required_degree: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 工作城市列表。
+    pub city_list: Option<Vec<CodeNameObject>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位属性：1 实体职位 / 2 虚拟职位。
+    pub job_attribute: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 创建时间，毫秒时间戳。
+    pub create_timestamp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 更新时间，毫秒时间戳。
+    pub update_timestamp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 到期时间，毫秒时间戳；`is_never_expired` 为 true 时该字段不生效。
+    pub expiry_timestamp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 目标专业列表。
+    pub target_major_list: Option<Vec<JobNamedRef>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 默认职位广告（官方 `combined_job_result_default_job_post`）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DefaultJobPostRef {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 默认职位广告的 ID，可通过职位发布至官网接口发布至官网。
+    pub id: Option<String>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
+/// 职位负责人（官方 `job.manager`，响应视图：字段全部可选）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct JobManagerView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位 ID。
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 招聘负责人 ID，与入参 `user_id_type` 类型一致。
+    pub recruiter_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 用人经理 ID 列表，与入参 `user_id_type` 类型一致。
+    pub hiring_manager_id_list: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 协助人 ID 列表，与入参 `user_id_type` 类型一致。
+    pub assistant_id_list: Option<Vec<String>>,
+    #[serde(default, flatten)]
+    /// 扩展字段。
+    pub extra: HashMap<String, Value>,
+}
+
 /// 更新职位响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CombinedUpdateResponse {
@@ -358,6 +617,15 @@ pub struct CombinedUpdateResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `success` 字段。
     pub success: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位广告。
+    pub default_job_post: Option<DefaultJobPostRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位。
+    pub job: Option<CombinedJob>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 职位负责人。
+    pub job_manager: Option<JobManagerView>,
     #[serde(default, flatten)]
     /// 扩展字段。
     pub extra: HashMap<String, Value>,
@@ -380,11 +648,108 @@ mod tests {
     /// 端到端：POST /open-apis/hire/v1/jobs/test001/combined_update
     #[tokio::test]
     async fn test_combined_update_returns_data_on_success() {
+        // 响应示例的 `job` 对象键较多，单独构造以避免 `json!` 宏超过默认递归深度。
+        let customized_value = json!({
+            "content": "这是一个单行文本",
+            "option": {
+                "key": "7281257045172308287",
+                "name": { "zh_cn": "选项 A", "en_us": "Option A" }
+            },
+            "option_list": [
+                { "key": "7281257045172308287", "name": { "zh_cn": "选项 A", "en_us": "Option A" } }
+            ],
+            "time_range": { "start_time": "1622484739955", "end_time": "1622484739955" },
+            "time": "1625456721000",
+            "number": "111"
+        });
+        let job = json!({
+            "id": "7281257045172308287",
+            "title": "测试职位",
+            "description": "这是一个测试职位",
+            "code": "Z88",
+            "requirement": "要求高学历人才",
+            "recruitment_type": {
+                "id": "7281257045172308287",
+                "zh_name": "全职",
+                "en_name": "FullTime",
+                "active_status": 1
+            },
+            "department": {
+                "id": "7281257045172308287",
+                "zh_name": "字节跳动",
+                "en_name": "Bytedance"
+            },
+            "city": { "city_code": "CT_20", "zh_name": "成都", "en_name": "Chengdu" },
+            "min_job_level": {
+                "id": "7281257045172308287",
+                "zh_name": "级别-2",
+                "en_name": "level-2",
+                "active_status": 1
+            },
+            "max_job_level": {
+                "id": "7281257045172308287",
+                "zh_name": "级别-2",
+                "en_name": "level-2",
+                "active_status": 1
+            },
+            "highlight_list": [
+                { "id": "7281257045172308287", "zh_name": "团队氛围好", "en_name": "Positive team atmosphere" }
+            ],
+            "job_category": {
+                "id": "7281257045172308287",
+                "zh_name": "序列-A",
+                "en_name": "category-A",
+                "active_status": 1
+            },
+            "job_type": { "id": "6890840777044265230", "zh_name": "金融", "en_name": "Finance" },
+            "create_user_id": "7281257045172308287",
+            "create_time": 1617170925462i64,
+            "update_time": 1617170925462i64,
+            "process_type": 1,
+            "process_id": "1",
+            "process_name": "流程中文名",
+            "process_en_name": "流程英文名",
+            "customized_data_list": [
+                {
+                    "object_id": "7281257045172308287",
+                    "name": { "zh_cn": "字段 1", "en_us": "field 1" },
+                    "object_type": 1,
+                    "value": customized_value
+                }
+            ],
+            "job_function": { "id": "7281257045172308287", "name": { "zh_cn": "测试职能", "en_us": "test job function" } },
+            "subject": { "id": "7281257045172308287", "name": { "zh_cn": "测试项目", "en_us": "test subject" } },
+            "head_count": 100,
+            "experience": 1,
+            "expiry_time": 1622484739955i64,
+            "min_salary": 10,
+            "max_salary": 20,
+            "required_degree": 1,
+            "city_list": [
+                { "code": "CT_223", "name": { "zh_cn": "成都", "en_us": "Chengdu" } }
+            ],
+            "job_attribute": 1,
+            "create_timestamp": "1617170925462",
+            "update_timestamp": "1617170925462",
+            "expiry_timestamp": "1622484739955",
+            "target_major_list": [
+                { "id": "MDMJ00000067", "zh_name": "考古", "en_name": "archeology" }
+            ]
+        });
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/jobs/test001/combined_update"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "job_id": "test001", "success": true }
+                "code": 0, "msg": "ok", "data": {
+                    "default_job_post": { "id": "6960663240925956568" },
+                    "job": job,
+                    "job_manager": {
+                        "id": "1618209327096",
+                        "recruiter_id": "ou_efk39117c300506837def50545420c6a",
+                        "hiring_manager_id_list": ["on_94a1ee5551019f18cd73d9f111898cf2"],
+                        "assistant_id_list": ["on_94a1ee5551019f18cd73d9f111898cf2"]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -415,7 +780,63 @@ mod tests {
             .execute()
             .await
             .expect("请求应成功");
-        assert_eq!(resp.job_id.as_deref(), Some("test001"));
+        assert_eq!(
+            resp.default_job_post.as_ref().and_then(|v| v.id.as_deref()),
+            Some("6960663240925956568")
+        );
+        let job = resp.job.as_ref().expect("job 应存在");
+        assert_eq!(job.id.as_deref(), Some("7281257045172308287"));
+        assert_eq!(job.title.as_deref(), Some("测试职位"));
+        assert_eq!(
+            job.recruitment_type
+                .as_ref()
+                .and_then(|v| v.zh_name.as_deref()),
+            Some("全职")
+        );
+        assert_eq!(
+            job.recruitment_type.as_ref().unwrap().active_status,
+            Some(1)
+        );
+        assert_eq!(
+            job.department.as_ref().and_then(|v| v.en_name.as_deref()),
+            Some("Bytedance")
+        );
+        assert_eq!(
+            job.city.as_ref().unwrap().city_code.as_deref(),
+            Some("CT_20")
+        );
+        assert_eq!(job.head_count, Some(100));
+        assert_eq!(job.experience, Some(1));
+        assert_eq!(job.customized_data_list.as_ref().unwrap().len(), 1);
+        assert_eq!(
+            job.city_list
+                .as_ref()
+                .unwrap()
+                .first()
+                .unwrap()
+                .code
+                .as_deref(),
+            Some("CT_223")
+        );
+        assert_eq!(
+            job.target_major_list
+                .as_ref()
+                .unwrap()
+                .first()
+                .unwrap()
+                .zh_name
+                .as_deref(),
+            Some("考古")
+        );
+        let job_manager = resp.job_manager.as_ref().expect("job_manager 应存在");
+        assert_eq!(
+            job_manager.recruiter_id.as_deref(),
+            Some("ou_efk39117c300506837def50545420c6a")
+        );
+        assert_eq!(
+            job_manager.hiring_manager_id_list.as_ref().unwrap().len(),
+            1
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

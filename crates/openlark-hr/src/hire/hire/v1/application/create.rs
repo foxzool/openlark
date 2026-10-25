@@ -77,6 +77,9 @@ impl CreateRequest {
 /// 创建投递响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct CreateResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 投递 ID（官方响应 data 顶层唯一字段）。
+    pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `application_id` 字段。
     pub application_id: Option<String>,
@@ -124,7 +127,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/applications"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success", "data": { "id": "6920175883425581324" }
             })))
             .mount(&server)
             .await;
@@ -136,11 +139,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .request_body(json!({"k": "v"}))
             .execute()
             .await
             .expect("请求应成功");
+        assert_eq!(resp.id.as_deref(), Some("6920175883425581324"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

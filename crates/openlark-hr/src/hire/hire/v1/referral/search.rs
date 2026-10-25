@@ -122,6 +122,9 @@ pub struct ReferralItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `create_time` 字段。
     pub create_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 内推人 ID，与 `user_id_type` 类型一致。
+    pub referral_user_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// `referral_user` 字段。
     pub referral_user: Option<IdNameObject>,
