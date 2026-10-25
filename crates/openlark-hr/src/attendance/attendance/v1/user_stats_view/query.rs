@@ -70,28 +70,66 @@ impl QueryRequest {
 /// 查询统计设置响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 统计视图列表
-    pub items: Vec<UserStatsView>,
+    /// 统计视图（官方 `data.view`）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<UserStatsViewDetail>,
 }
 
-/// 统计视图设置
+/// 统计视图详情（官方 `user_stats_view`，响应体形态）
+///
+/// 与 [`super::update::UserStatsView`]（请求体方向，仅 code+value）不同，
+/// 响应侧的 child_item 额外携带 title/column_type/read_only/min_value/max_value。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct UserStatsView {
-    /// 视图 ID
+pub struct UserStatsViewDetail {
+    /// 视图 ID，可用于更新统计设置
     pub view_id: String,
-    /// 视图名称
-    pub name: String,
-    /// 考勤组 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub group_id: Option<String>,
-    /// 是否为默认视图
-    pub is_default: bool,
-    /// 显示字段 ID 列表
-    pub field_ids: Vec<String>,
-    /// 创建时间（Unix 时间戳）
-    pub created_at: i64,
-    /// 更新时间（Unix 时间戳）
-    pub updated_at: i64,
+    /// 视图类型（daily: 日度统计 / month: 月度统计）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stats_type: Option<String>,
+    /// 操作者的用户 ID，对应 employee_type
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 用户设置字段
+    #[serde(default)]
+    pub items: Vec<ViewItem>,
+}
+
+/// 统计视图字段项（官方 `item`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ViewItem {
+    /// 标题编号
+    pub code: String,
+    /// 标题名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 子标题
+    #[serde(default)]
+    pub child_items: Vec<ViewDetailChildItem>,
+}
+
+/// 统计视图子标题项（官方 `child_item`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ViewDetailChildItem {
+    /// 子标题编号
+    pub code: String,
+    /// 开关字段（0: 关闭，1: 开启）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// 子标题名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 列类型（0: 未知（默认），1: 复选框，2: 文本）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column_type: Option<i32>,
+    /// 是否只读
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_only: Option<bool>,
+    /// 最小值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_value: Option<String>,
+    /// 最大值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_value: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -122,8 +160,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.view.items[].child_items[]（含 column_type/read_only/min_value/max_value）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"view": {"view_id": "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09", "stats_type": "daily", "user_id": "dd31248a", "items": [{"code": "522", "title": "考勤基础字段", "child_items": [{"code": "50101", "value": "1", "title": "姓名", "column_type": 0, "read_only": true, "min_value": "", "max_value": ""}]}]}}"#,
+        )
+        .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_stats_views/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -146,7 +187,22 @@ mod tests {
             .await
             .expect("attendance_v1_user_stats_view_query 应成功");
 
-        let _ = &data;
+        let view = data.view.expect("响应缺 view");
+        assert_eq!(
+            view.view_id,
+            "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09"
+        );
+        assert_eq!(view.stats_type.as_deref(), Some("daily"));
+        assert_eq!(view.user_id.as_deref(), Some("dd31248a"));
+        assert_eq!(view.items.len(), 1);
+        let child = &view.items[0].child_items[0];
+        assert_eq!(child.code, "50101");
+        assert_eq!(child.value.as_deref(), Some("1"));
+        assert_eq!(child.title.as_deref(), Some("姓名"));
+        assert_eq!(child.column_type, Some(0));
+        assert_eq!(child.read_only, Some(true));
+        assert_eq!(child.min_value.as_deref(), Some(""));
+        assert_eq!(child.max_value.as_deref(), Some(""));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

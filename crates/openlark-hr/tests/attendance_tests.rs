@@ -437,7 +437,7 @@ mod http_tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/groups/g_1/list_user"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code":0,"msg":"success","data":{"items":[{"user_id":"ou_1","join_time":1735689600}],"has_more":false}
+                "code":0,"msg":"success","data":{"users":[{"user_id":"ou_1","department_ids":["od-fcb45c28a45311afd440b7869541fce8"]}],"has_more":false}
             })))
             .mount(&mock_server)
             .await;
@@ -449,7 +449,11 @@ mod http_tests {
         .execute_with_options(auth_option())
         .await
         .unwrap();
-        assert_eq!(resp.items[0].user_id, "ou_1");
+        assert_eq!(resp.users[0].user_id, "ou_1");
+        assert_eq!(
+            resp.users[0].department_ids,
+            vec!["od-fcb45c28a45311afd440b7869541fce8"]
+        );
     }
 
     #[tokio::test]
@@ -664,10 +668,9 @@ mod serialization_tests {
         test_list_user_response_serialization,
         group::list_user::ListUserResponse,
         group::list_user::ListUserResponse {
-            items: vec![group::list_user::GroupMember {
+            users: vec![group::list_user::GroupMember {
                 user_id: "ou_1".to_string(),
-                user_name: Some("张三".to_string()),
-                join_time: 1735689600,
+                department_ids: vec!["od-fcb45c28a45311afd440b7869541fce8".to_string()],
             }],
             has_more: false,
             page_token: None,
@@ -808,11 +811,17 @@ mod serialization_tests {
         test_query_user_allowed_remedys_response_serialization,
         user_task_remedy::query_user_allowed_remedys::QueryUserAllowedRemedysResponse,
         user_task_remedy::query_user_allowed_remedys::QueryUserAllowedRemedysResponse {
-            items: vec![
-                user_task_remedy::query_user_allowed_remedys::AllowedRemedy {
-                    start_time: 1735689600,
-                    end_time: 1735776000,
-                    day_of_week: 1,
+            user_allowed_remedys: vec![
+                user_task_remedy::query_user_allowed_remedys::UserAllowedRemedy {
+                    user_id: "abd754f7".to_string(),
+                    remedy_date: Some(20_210_701),
+                    is_free_punch: Some(false),
+                    punch_no: Some(0),
+                    work_type: Some(1),
+                    punch_status: Some("Lack".to_string()),
+                    normal_punch_time: Some("2021-07-01 09:00".to_string()),
+                    remedy_start_time: Some("2021-07-01 08:00".to_string()),
+                    remedy_end_time: Some("2021-07-01 10:00".to_string()),
                 }
             ],
         }
@@ -856,7 +865,34 @@ mod serialization_tests {
         test_query_user_approval_response_serialization,
         user_approval::query::QueryResponse,
         user_approval::query::QueryResponse {
-            user_approvals: vec![json!({"approval_id": "a_1"})],
+            user_approvals: vec![user_approval::query::UserApproval {
+                user_id: "ou_1".to_string(),
+                date: Some("20210104".to_string()),
+                outs: Some(vec![user_approval::query::UserOut {
+                    approval_id: Some("6737202939523236113".to_string()),
+                    uniq_id: Some("9496E43696967658A512969523E89870".to_string()),
+                    unit: Some(1),
+                    interval: Some(8),
+                    start_time: Some("2021-01-04 09:00:00".to_string()),
+                    end_time: Some("2021-01-04 19:00:00".to_string()),
+                    i18n_names: Some(user_approval::create::I18nNames {
+                        ch: Some("中文描述".to_string()),
+                        en: None,
+                        ja: None,
+                    }),
+                    default_locale: Some("ch".to_string()),
+                    reason: Some("外出办事".to_string()),
+                    approve_pass_time: Some("2021-01-04 12:00:00".to_string()),
+                    approve_apply_time: Some("2021-01-04 11:00:00".to_string()),
+                    idempotent_id: None,
+                    correct_process_id: None,
+                    cancel_process_id: None,
+                    process_id: None,
+                }]),
+                leaves: None,
+                overtime_works: None,
+                trips: None,
+            }],
         }
     );
     roundtrip_eq!(
@@ -892,11 +928,10 @@ mod serialization_tests {
         test_get_user_setting_response_serialization,
         user_setting::query::QueryResponse,
         user_setting::query::QueryResponse {
-            items: vec![user_setting::query::UserSetting {
-                user_id: "ou_1".to_string(),
-                face_recognition_enabled: true,
-                photo_id: Some("p_1".to_string()),
-                photo_upload_time: Some(1735689600),
+            user_settings: vec![user_setting::query::UserSetting {
+                user_id: "abd754f7".to_string(),
+                face_key: Some("xxxxxb306842b1c189bc5212eefxxxxx".to_string()),
+                face_key_update_time: Some("1625681917".to_string()),
             }],
         }
     );

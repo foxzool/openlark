@@ -89,25 +89,24 @@ impl ListUserRequest {
 /// 查询考勤组下所有成员响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListUserResponse {
-    /// 成员列表
-    pub items: Vec<GroupMember>,
-    /// 是否有更多数据
+    /// 考勤组成员列表（user_base[]）
+    #[serde(default)]
+    pub users: Vec<GroupMember>,
+    /// 是否还有更多项
     pub has_more: bool,
     /// 分页标记，用于获取下一页数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
 }
 
-/// 考勤组成员
+/// 考勤组成员（官方 `user_base`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupMember {
-    /// 用户 ID
+    /// 用户 ID，对应 employee_type
     pub user_id: String,
-    /// 用户名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_name: Option<String>,
-    /// 加入时间（Unix 时间戳）
-    pub join_time: i64,
+    /// 该用户所属部门 ID 列表（该用户所属的部门树，从直属部门到根部门，对应 dept_type）
+    #[serde(default)]
+    pub department_ids: Vec<String>,
 }
 
 impl ApiResponseTrait for ListUserResponse {
@@ -137,8 +136,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.users[]（user_id + department_ids）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"users": [{"user_id": "5874663B", "department_ids": ["od-fcb45c28a45311afd440b7869541fce8"]}], "page_token": "92xKiuWrBCSweSZJBSTpag%3D%3D", "has_more": false}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/groups/group_001/list_user"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -161,7 +163,13 @@ mod tests {
             .await
             .expect("attendance_v1_group_list_user 应成功");
 
-        let _ = &data;
+        assert_eq!(data.users.len(), 1);
+        assert_eq!(data.users[0].user_id, "5874663B");
+        assert_eq!(
+            data.users[0].department_ids,
+            vec!["od-fcb45c28a45311afd440b7869541fce8"]
+        );
+        assert!(!data.has_more);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

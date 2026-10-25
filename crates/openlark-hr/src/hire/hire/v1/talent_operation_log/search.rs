@@ -102,7 +102,23 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/talent_operation_logs/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "application_id": "6949805467799537964",
+                            "talent_id": "6843547872837273223",
+                            "operator": {
+                                "id": "ou_016632190e242d8c9eed0a542b00756c",
+                                "name": { "zh_cn": "张三", "en_us": "Tom" }
+                            },
+                            "operation_type": "3001",
+                            "operation_time": "1618500278663",
+                            "operator_type": 1
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -114,10 +130,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        let item = resp.items.first().expect("应返回 items 列表");
+        assert_eq!(item.application_id.as_deref(), Some("6949805467799537964"));
+        // 官方响应体含 operator_type（.md 响应体表：操作人类型，当前只返回 1：员工）
+        assert_eq!(item.operator_type, Some(1));
+        assert_eq!(item.operation_type.as_deref(), Some("3001"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

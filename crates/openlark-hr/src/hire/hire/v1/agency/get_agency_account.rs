@@ -111,7 +111,25 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/agencies/get_agency_account"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6995312261554538796",
+                            "reason": "这个猎头很不负责",
+                            "create_time": "1639992265035",
+                            "status": 1,
+                            "user_info": {
+                                "user_id": "7398623155442682156",
+                                "name": { "zh_cn": "张三", "en_us": "Zhangsan" },
+                                "email": "2718827211111.com",
+                                "mobile": "18790871118"
+                            },
+                            "role": 1
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -123,10 +141,21 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetAgencyAccountRequest::new(config)
+        let resp = GetAgencyAccountRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+        let item = resp.items.first().expect("应返回 items 列表");
+        assert_eq!(item.id.as_deref(), Some("6995312261554538796"));
+        assert_eq!(item.role, Some(1));
+        // 官方响应体含 user_info 嵌套（agency_account_user：user_id/name/email/mobile）
+        let user_info = item.user_info.as_ref().expect("user_info 应反序列化");
+        assert_eq!(user_info.user_id.as_deref(), Some("7398623155442682156"));
+        assert_eq!(
+            user_info.name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("张三")
+        );
+        assert_eq!(user_info.email.as_deref(), Some("2718827211111.com"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

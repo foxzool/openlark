@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_approval/query>
 
+use super::create::{I18nNames, RegionPlace};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -156,12 +157,218 @@ pub struct QueryRequestBody {
 
 /// 获取审批数据响应
 ///
-/// 官网 response `data.user_approvals` 为数组，items schema 未完整给出，透传 `Value`。
+/// 官方响应体表格完整给出 `data.user_approvals[]` 的全部字段，
+/// 与 create（写入审批结果）共享 schema 但方向不同，此处为响应专用建模：
+/// 除 `user_id` 外全部字段 `Option` + `serde(default)`，服务端缺字段时不会硬解析失败。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 审批数据列表
+    /// 审批结果列表（user_approval[]）
     #[serde(default)]
-    pub user_approvals: Vec<serde_json::Value>,
+    pub user_approvals: Vec<UserApproval>,
+}
+
+/// 审批信息（响应体 `user_approval`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserApproval {
+    /// 审批用户 ID，类型与 employee_type 的取值一致
+    pub user_id: String,
+    /// 审批作用日期，格式 yyyyMMdd
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<String>,
+    /// 外出信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outs: Option<Vec<UserOut>>,
+    /// 请假信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub leaves: Option<Vec<UserLeave>>,
+    /// 加班信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overtime_works: Option<Vec<UserOvertimeWork>>,
+    /// 出差信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trips: Option<Vec<UserTrip>>,
+}
+
+/// 外出记录（响应体 `user_out`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserOut {
+    /// 审批实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    /// 外出类型唯一 ID，代表一种外出类型，长度小于 14
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uniq_id: Option<String>,
+    /// 外出时长单位：1 天、2 小时、3 半天、4 半小时
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<i32>,
+    /// 关联审批单外出时长，单位为秒，与 unit 无关
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval: Option<i64>,
+    /// 开始时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// 结束时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// 外出多语言展示
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i18n_names: Option<I18nNames>,
+    /// 默认语言类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_locale: Option<String>,
+    /// 外出理由
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 审批通过时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_pass_time: Option<String>,
+    /// 审批申请时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_apply_time: Option<String>,
+    /// 唯一幂等键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_id: Option<String>,
+    /// 更正流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correct_process_id: Option<Vec<String>>,
+    /// 撤销流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_process_id: Option<Vec<String>>,
+    /// 发起流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<Vec<String>>,
+}
+
+/// 请假记录（响应体 `user_leave`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserLeave {
+    /// 审批实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    /// 假期类型唯一 ID，代表一种假期类型，长度小于 14
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uniq_id: Option<String>,
+    /// 假期时长单位：1 天、2 小时、3 半天、4 半小时
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<i32>,
+    /// 关联审批单休假时长，单位为秒，与 unit 无关
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval: Option<i64>,
+    /// 开始时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// 结束时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// 假期多语言展示
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i18n_names: Option<I18nNames>,
+    /// 默认语言类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_locale: Option<String>,
+    /// 请假理由
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 审批通过时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_pass_time: Option<String>,
+    /// 审批申请时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_apply_time: Option<String>,
+    /// 唯一幂等键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_id: Option<String>,
+}
+
+/// 加班记录（响应体 `user_overtime_work`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserOvertimeWork {
+    /// 审批实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    /// 加班时长
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
+    /// 加班时长单位：1 天、2 小时、3 半天、4 半小时
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<i32>,
+    /// 加班日期类型：1 工作日、2 休息日、3 节假日
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<i32>,
+    /// 加班规则类型：0 不关联加班规则、1 调休、2 加班费、3 关联加班规则
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub overtime_type: Option<i32>,
+    /// 开始时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// 结束时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// 加班事由
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 唯一幂等键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_id: Option<String>,
+    /// 更正流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correct_process_id: Option<Vec<String>>,
+    /// 撤销流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_process_id: Option<Vec<String>>,
+    /// 发起流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<Vec<String>>,
+}
+
+/// 出差记录（响应体 `user_trip`）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserTrip {
+    /// 审批实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    /// 开始时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// 结束时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// 出差理由
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 审批通过时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_pass_time: Option<String>,
+    /// 审批申请时间，格式 yyyy-MM-dd HH:mm:ss
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approve_apply_time: Option<String>,
+    /// 唯一幂等键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_id: Option<String>,
+    /// 更正流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correct_process_id: Option<Vec<String>>,
+    /// 撤销流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_process_id: Option<Vec<String>>,
+    /// 发起流程实例 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<Vec<String>>,
+    /// 出发地（只有一个）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub departure: Option<RegionPlace>,
+    /// 目的地（可写多个）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destinations: Option<Vec<RegionPlace>>,
+    /// 交通工具（1 飞机，2 火车，3 汽车，4 高铁/动车，5 船，6 其他）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transportation: Option<Vec<i32>>,
+    /// 出差类型：1 单程、2 往返
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trip_type: Option<i32>,
+    /// 出差备注
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remarks: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -196,12 +403,29 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
+        // 官方响应示例形状：data.user_approvals[]（typed 元素，此处取 outs 分支）
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_approvals/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "user_approvals": [] }
+                "data": { "user_approvals": [
+                    {
+                        "user_id": "abd754f7",
+                        "date": "20210104",
+                        "outs": [{
+                            "approval_id": "6737202939523236113",
+                            "uniq_id": "9496E43696967658A512969523E89870",
+                            "unit": 1,
+                            "interval": 8,
+                            "start_time": "2021-01-04 09:00:00",
+                            "end_time": "2021-01-04 19:00:00",
+                            "i18n_names": { "ch": "中文描述", "en": "English description", "ja": "日本語の説明" },
+                            "default_locale": "ch",
+                            "reason": "外出办事"
+                        }]
+                    }
+                ] }
             })))
             .mount(&server)
             .await;
@@ -218,7 +442,24 @@ mod tests {
             .await
             .expect("attendance_v1_user_approval_query 应成功");
 
-        assert!(data.user_approvals.is_empty());
+        assert_eq!(data.user_approvals.len(), 1);
+        let approval = &data.user_approvals[0];
+        assert_eq!(approval.user_id, "abd754f7");
+        assert_eq!(approval.date.as_deref(), Some("20210104"));
+        let outs = approval.outs.as_ref().expect("响应缺 outs");
+        assert_eq!(outs.len(), 1);
+        assert_eq!(outs[0].approval_id.as_deref(), Some("6737202939523236113"));
+        assert_eq!(
+            outs[0].uniq_id.as_deref(),
+            Some("9496E43696967658A512969523E89870")
+        );
+        assert_eq!(outs[0].unit, Some(1));
+        assert_eq!(outs[0].interval, Some(8));
+        assert_eq!(
+            outs[0].i18n_names.as_ref().and_then(|n| n.ch.as_deref()),
+            Some("中文描述")
+        );
+        assert_eq!(outs[0].reason.as_deref(), Some("外出办事"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

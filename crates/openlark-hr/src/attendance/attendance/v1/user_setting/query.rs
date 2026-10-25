@@ -79,23 +79,22 @@ pub struct QueryRequestBody {
 /// 批量查询用户人脸识别信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 用户人脸识别信息列表
-    pub items: Vec<UserSetting>,
+    /// 用户设置信息列表（user_setting[]）
+    #[serde(default)]
+    pub user_settings: Vec<UserSetting>,
 }
 
-/// 用户人脸识别信息
+/// 用户人脸识别信息（官方 `user_setting`）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserSetting {
-    /// 用户 ID
+    /// 用户 ID，对应 employee_type
     pub user_id: String,
-    /// 是否开启人脸识别
-    pub face_recognition_enabled: bool,
-    /// 人脸照片 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub photo_id: Option<String>,
-    /// 照片上传时间（Unix 时间戳）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub photo_upload_time: Option<i64>,
+    /// 人脸照片文件 ID，可用于下载用户人脸识别照片
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub face_key: Option<String>,
+    /// 人脸照片更新时间，精确到秒的时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub face_key_update_time: Option<String>,
 }
 
 impl ApiResponseTrait for QueryResponse {
@@ -125,8 +124,11 @@ mod tests {
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"items": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.user_settings[]（user_id/face_key/face_key_update_time）
+        let data_body: serde_json::Value = serde_json::from_str(
+            r#"{"user_settings": [{"user_id": "abd754f7", "face_key": "xxxxxb306842b1c189bc5212eefxxxxx", "face_key_update_time": "1625681917"}]}"#,
+        )
+        .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/user_settings/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -149,7 +151,16 @@ mod tests {
             .await
             .expect("attendance_v1_user_setting_query 应成功");
 
-        let _ = &data;
+        assert_eq!(data.user_settings.len(), 1);
+        assert_eq!(data.user_settings[0].user_id, "abd754f7");
+        assert_eq!(
+            data.user_settings[0].face_key.as_deref(),
+            Some("xxxxxb306842b1c189bc5212eefxxxxx")
+        );
+        assert_eq!(
+            data.user_settings[0].face_key_update_time.as_deref(),
+            Some("1625681917")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -145,18 +145,22 @@ mod builder_tests {
         test_review_query_builder,
         v1::review::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
-            "period_1".to_string(),
+            vec!["ou_1".to_string()],
+            vec!["period_1".to_string()],
         )
-        .page_size(20)
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_user_okr_list_builder,
         v1::user::okr::list::ListRequest::new(
             test_config("https://open.feishu.cn"),
             "ou_1".to_string(),
+            0,
+            10,
         )
-        .period_id("period_1".to_string())
-        .page_size(20)
+        .user_id_type("open_id".to_string())
+        .lang("zh_cn".to_string())
+        .period_ids(vec!["period_1".to_string()])
     );
 }
 
@@ -393,24 +397,34 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/okr/v1/reviews/query"))
-            .and(query_param("period_id", "period_1"))
+            .and(query_param("user_ids", "ou_1"))
+            .and(query_param("period_ids", "period_1"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"success",
-                "data":{"items":[{"review_id":"r_1","period_id":"period_1","user_id":"ou_1","content":"复盘","score":4,"self_assessment":"较好","submitted_at":1735689600}],"has_more":false}
+                "data":{"review_list":[{"review_period_list":[{"cycle_review_list":[{"create_time":"1646902033525","url":"https://example.feishu.cn/docs/doc1"}],"period_id":"period_1","progress_report_list":[]}],"user_id":{"open_id":"ou_1","user_id":"6969855501744834092"}}]}
             })))
             .mount(&mock_server)
             .await;
 
         let resp = v1::review::query::QueryRequest::new(
             test_config(&mock_server.uri()),
-            "period_1".to_string(),
+            vec!["ou_1".to_string()],
+            vec!["period_1".to_string()],
         )
         .execute_with_options(auth_option())
         .await
         .unwrap();
 
-        assert_eq!(resp.items[0].review_id, "r_1");
+        assert_eq!(resp.review_list.len(), 1);
+        assert_eq!(
+            resp.review_list[0]
+                .user_id
+                .as_ref()
+                .and_then(|u| u.open_id.as_deref()),
+            Some("ou_1")
+        );
+        assert_eq!(resp.review_list[0].review_period_list.len(), 1);
     }
 }
 
@@ -466,16 +480,12 @@ mod serialization_tests {
         v1::period::list::ListResponse,
         v1::period::list::ListResponse {
             items: vec![v1::period::list::OkrPeriod {
-                period_id: "period_1".to_string(),
-                name: "2026Q1".to_string(),
-                start_time: 1735689600,
-                end_time: 1743465600,
-                status: 2,
-                description: Some("季度目标".to_string()),
-                target_setting_deadline: Some(1736294400),
-                review_time: Some(1743379200),
-                created_at: 1735689600,
-                updated_at: 1735776000,
+                id: "7071200999834255380".to_string(),
+                zh_name: Some("2022 年 1 月 - 3 月".to_string()),
+                en_name: Some("Jan - Mar 2022".to_string()),
+                status: Some(0),
+                period_start_time: Some("1546272000000".to_string()),
+                period_end_time: Some("1577721600000".to_string()),
             }],
             has_more: false,
             page_token: None,
@@ -494,14 +504,11 @@ mod serialization_tests {
         test_period_rule_list_response_serialization,
         v1::period_rule::list::ListResponse,
         v1::period_rule::list::ListResponse {
-            items: vec![v1::period_rule::list::PeriodRule {
-                rule_id: "rule_1".to_string(),
-                period_id: "period_1".to_string(),
-                name: "评分规则".to_string(),
-                rule_type: 1,
-                config: json!({"score_weight": 0.6}),
-                created_at: 1735689600,
-                updated_at: 1735776000,
+            period_rules: vec![v1::period_rule::list::PeriodRule {
+                period_rule_id: "134".to_string(),
+                period_type: Some("year".to_string()),
+                length: Some(12),
+                first_month: Some(12),
             }],
         }
     );
@@ -553,36 +560,35 @@ mod serialization_tests {
         test_review_query_response_serialization,
         v1::review::query::QueryResponse,
         v1::review::query::QueryResponse {
-            items: vec![v1::review::query::ReviewInfo {
-                review_id: "review_1".to_string(),
-                period_id: "period_1".to_string(),
-                user_id: "ou_1".to_string(),
-                content: "复盘内容".to_string(),
-                score: 4,
-                self_assessment: "表现良好".to_string(),
-                peer_assessment: Some("协作优秀".to_string()),
-                improvement_plan: Some("加强复盘节奏".to_string()),
-                submitted_at: 1735689600,
+            review_list: vec![v1::review::query::OkrReview {
+                user_id: Some(v1::okr::batch_get::OkrUser {
+                    open_id: Some("ou_e6139117c300506837def50545420c6a".to_string()),
+                    user_id: Some("6969855501744834092".to_string()),
+                }),
+                review_period_list: vec![v1::review::query::OkrReviewPeriod {
+                    period_id: Some("period_1".to_string()),
+                    cycle_review_list: vec![v1::review::query::OkrReviewPeriodUrl {
+                        url: Some("https://example.feishu.cn/docs/doc1".to_string()),
+                        create_time: Some("1646902033525".to_string()),
+                    }],
+                    progress_report_list: Vec::new(),
+                }],
             }],
-            has_more: false,
-            page_token: None,
         }
     );
     roundtrip_eq!(
         test_user_okr_list_response_serialization,
         v1::user::okr::list::ListResponse,
         v1::user::okr::list::ListResponse {
-            items: vec![v1::user::okr::list::UserOkr {
-                okr_id: "okr_1".to_string(),
-                title: "增长目标".to_string(),
-                content: "季度增长 20%".to_string(),
-                period_id: "period_1".to_string(),
-                progress_rate: 45,
-                status: 1,
-                created_at: 1735689600,
+            okr_list: vec![v1::okr::batch_get::OkrBatch {
+                id: "7072252816005349396".to_string(),
+                permission: Some(1),
+                period_id: Some("period_1".to_string()),
+                name: Some("2022 年 3 月".to_string()),
+                objective_list: Vec::new(),
+                confirm_status: Some(4),
             }],
-            has_more: false,
-            page_token: None,
+            total: Some(14),
         }
     );
 }
