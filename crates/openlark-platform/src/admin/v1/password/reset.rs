@@ -14,7 +14,9 @@ use serde::{Deserialize, Serialize};
 /// 重置用户密码的请求构建器。
 pub struct ResetPasswordRequestBuilder {
     user_id: String,
-    new_password: String,
+    password: PasswordParam,
+    /// 用户 ID 类型（查询参数，可选 open_id/union_id/user_id，默认 open_id）
+    user_id_type: Option<String>,
     config: Config,
 }
 
@@ -23,7 +25,8 @@ impl ResetPasswordRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             user_id: String::new(),
-            new_password: String::new(),
+            password: PasswordParam::default(),
+            user_id_type: None,
             config,
         }
     }
@@ -34,9 +37,15 @@ impl ResetPasswordRequestBuilder {
         self
     }
 
-    /// 设置新密码。
+    /// 设置新密码（官方请求体嵌套在 password.ent_email_password）。
     pub fn new_password(mut self, new_password: impl Into<String>) -> Self {
-        self.new_password = new_password.into();
+        self.password.ent_email_password = new_password.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（查询参数，可选 open_id/union_id/user_id，默认 open_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -51,37 +60,48 @@ impl ResetPasswordRequestBuilder {
         option: RequestOption,
     ) -> SDKResult<ResetPasswordResponse> {
         validate_required!(self.user_id, "用户ID不能为空");
-        validate_required!(self.new_password, "新密码不能为空");
+        validate_required!(self.password.ent_email_password, "新密码不能为空");
 
         let request_body = ResetPasswordRequest {
             user_id: self.user_id,
-            new_password: self.new_password,
+            password: self.password,
         };
 
         let api_request: ApiRequest<ResetPasswordResponse> =
             ApiRequest::post("/open-apis/admin/v1/password/reset")
-                .body(serde_json::to_value(&request_body)?);
+                .body(serde_json::to_value(&request_body)?)
+                .query_opt("user_id_type", self.user_id_type);
 
         Transport::request_typed(api_request, &self.config, Some(option), "重置用户密码").await
     }
 }
 
+/// 重置用户密码请求体（官方形状：密码嵌套在 password 对象内）。
 #[derive(Debug, Serialize)]
 struct ResetPasswordRequest {
     user_id: String,
-    new_password: String,
+    password: PasswordParam,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-/// 重置用户密码的响应。
-pub struct ResetPasswordResponse {
-    /// 执行结果。
-    pub result: String,
+/// 密码参数（官方嵌套容器）。
+#[derive(Debug, Default, Serialize)]
+struct PasswordParam {
+    /// 企业邮箱密码
+    ent_email_password: String,
 }
+
+/// 重置用户密码的响应（官方成功响应 data 为空对象，无业务字段）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ResetPasswordResponse {}
 
 impl ApiResponseTrait for ResetPasswordResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
+    }
+
+    /// 官方成功响应无业务字段，data 为空对象 `{}` 或整个缺失时给出空成功值
+    fn empty_success() -> Option<Self> {
+        Some(Self::default())
     }
 }
 
@@ -92,22 +112,26 @@ pub type ResetPasswordBuilder = ResetPasswordRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path, query_param};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST .../admin/v1/password/reset → 强类型 ResetPasswordResponse。
+    /// 端到端：POST 官方嵌套请求体 + user_id_type 查询参数 → 成功响应 data 为空对象。
     #[tokio::test]
-    async fn test_reset_password_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
+    async fn test_reset_password_sends_official_body_and_returns_empty_data() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/admin/v1/password/reset"))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "password": { "ent_email_password": "NewP@ssw0rd!" },
+                "user_id": "u_001"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "result": "success" }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -122,10 +146,11 @@ mod tests {
         let resp = ResetPasswordRequestBuilder::new(config)
             .user_id("u_001")
             .new_password("NewP@ssw0rd!")
+            .user_id_type("open_id")
             .execute()
             .await
             .expect("重置用户密码应成功");
-        assert_eq!(resp.result, "success");
+        let _ = resp;
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

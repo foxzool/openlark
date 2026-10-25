@@ -16,37 +16,31 @@ use std::sync::Arc;
 use crate::common::api_endpoints::HelpdeskApiV1;
 
 /// 获取指定知识库分类响应
+///
+/// 官方响应 `data` 节点即分类详情本身（无额外包装键），信封由 Transport 处理。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetCategoryResponse {
-    /// 响应数据。
+    /// 知识库分类ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CategoryItem>,
+    pub category_id: Option<String>,
+    /// 知识库分类ID（旧版，请使用 category_id）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 分类名称
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// 服务台ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub helpdesk_id: Option<String>,
+    /// 语言
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 impl ApiResponseTrait for GetCategoryResponse {
     fn data_format() -> ResponseFormat {
         ResponseFormat::Data
     }
-}
-
-/// 知识库分类项
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CategoryItem {
-    /// 分类ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 分类名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 分类描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// 父分类ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    /// 排序
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<i32>,
 }
 
 /// 获取指定知识库分类请求
@@ -126,7 +120,7 @@ mod tests {
         assert_eq!(builder.id, "category_123");
     }
 
-    /// 端到端：GET .../categories/{id} → 强类型 GetCategoryResponse 解析（双层 data 信封）。
+    /// 端到端：GET .../categories/{id} → 强类型 GetCategoryResponse 解析（单层 data 信封，官方字段名）。
     #[tokio::test]
     async fn test_get_category_returns_data_on_success() {
         use serde_json::json;
@@ -140,7 +134,13 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "data": { "id": "cat_001", "name": "公告分类" } }
+                "data": {
+                    "category_id": "cat_001",
+                    "id": "cat_001",
+                    "name": "公告分类",
+                    "helpdesk_id": "hd_001",
+                    "language": "zh_cn"
+                }
             })))
             .mount(&server)
             .await;
@@ -158,7 +158,8 @@ mod tests {
             .execute()
             .await
             .expect("获取分类应成功");
-        assert_eq!(resp.data.unwrap().id.as_deref(), Some("cat_001"));
+        assert_eq!(resp.category_id.as_deref(), Some("cat_001"));
+        assert_eq!(resp.name.as_deref(), Some("公告分类"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

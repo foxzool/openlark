@@ -593,7 +593,7 @@ impl WorkflowService {
             items.retain(|item| item.status == *status);
         }
         if let Some(instance_code) = &query.instance_code {
-            items.retain(|item| item.instance_code == *instance_code);
+            items.retain(|item| item.instance_code.as_deref() == Some(instance_code.as_str()));
         }
 
         Ok(items)

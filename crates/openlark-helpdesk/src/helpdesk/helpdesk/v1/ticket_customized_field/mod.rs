@@ -58,6 +58,11 @@ impl TicketCustomizedField {
 pub use create::{CreateTicketCustomizedFieldRequest, CreateTicketCustomizedFieldRequestBuilder};
 pub use delete::{DeleteTicketCustomizedFieldRequest, DeleteTicketCustomizedFieldRequestBuilder};
 pub use get::{GetTicketCustomizedFieldRequest, GetTicketCustomizedFieldRequestBuilder};
+pub use list::ListTicketCustomizedFieldRequestBody;
 pub use list::{ListTicketCustomizedFieldRequest, ListTicketCustomizedFieldRequestBuilder};
-pub use models::{TicketCustomizedFieldDropdownOption, TicketCustomizedFieldDropdownOptions};
+// 注：完整字段模型 TicketCustomizedField 与本模块服务结构体同名，
+// 经 `models::TicketCustomizedField` 访问，不再在此 re-export。
+pub use models::{
+    TicketCustomizedFieldDropdownOption, TicketCustomizedFieldDropdownOptions, TicketUser,
+};
 pub use patch::{PatchTicketCustomizedFieldRequest, PatchTicketCustomizedFieldRequestBuilder};

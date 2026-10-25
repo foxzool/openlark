@@ -6,10 +6,6 @@ use chrono::{DateTime, Utc};
 use openlark_core::api::responses::ApiResponseTrait;
 use serde::{Deserialize, Serialize};
 
-fn default_app_ticket_resend_success() -> bool {
-    true
-}
-
 /// 访问令牌响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AccessTokenResponse {
@@ -21,6 +17,10 @@ pub struct AccessTokenResponse {
     /// 租户标识（租户在飞书上的唯一标识）
     #[serde(default)]
     pub tenant_key: String,
+    /// 租户访问令牌（自建应用获取 app_access_token 时官方响应同时返回；
+    /// 商店应用响应无此字段，反序列化为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_access_token: Option<String>,
     /// 令牌类型
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_type: Option<String>,
@@ -39,16 +39,13 @@ pub struct TenantAccessTokenResponse {
     pub token_type: Option<String>,
 }
 
-/// 应用票据响应
+/// 应用票据重发响应
+///
+/// 官方响应体仅含 code/msg 两字段（该接口触发事件推送，并不直接返回 app_ticket），
+/// 故此处仅保留 error_message 承载 msg 语义；code 由框架响应层承载。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppTicketResponse {
-    /// 应用票据
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub app_ticket: String,
-    /// 操作结果
-    #[serde(default = "default_app_ticket_resend_success")]
-    pub success: bool,
-    /// 错误信息
+    /// 错误信息（对应官方响应的 msg 字段）
     #[serde(default, alias = "msg", skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
 }
@@ -56,7 +53,6 @@ pub struct AppTicketResponse {
 // 为所有响应类型实现ApiResponseTrait
 impl ApiResponseTrait for AccessTokenResponse {}
 impl ApiResponseTrait for TenantAccessTokenResponse {}
-impl ApiResponseTrait for AppTicketResponse {}
 
 /// 应用访问令牌请求（自建应用）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +156,7 @@ mod tests {
             app_access_token: "test_token".to_string(),
             expires_in: 3600,
             tenant_key: "test_tenant".to_string(),
+            tenant_access_token: Some("test_tenant_token".to_string()),
             token_type: Some("Bearer".to_string()),
         };
 

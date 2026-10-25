@@ -18,9 +18,9 @@ impl AccessRecordsService {
         Self { config }
     }
 
-    /// 获取门禁记录列表。
-    pub fn list(&self) -> super::access_record::list::ListAccessRecordsRequest {
-        super::access_record::list::ListAccessRecordsRequest::new(self.config.clone())
+    /// 获取门禁记录列表（查询参数 `from`/`to` 必填，单位秒）。
+    pub fn list(&self, from: i64, to: i64) -> super::access_record::list::ListAccessRecordsRequest {
+        super::access_record::list::ListAccessRecordsRequest::new(self.config.clone(), from, to)
     }
 
     /// 下载开门时的人脸识别照片。

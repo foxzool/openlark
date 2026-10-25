@@ -13,16 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// `ListRequestBody`。
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ListRequestBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    page_size: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    page_token: Option<String>,
-}
-
 /// 获取面试记录列表请求
+///
+/// 官方文档将 `page_size` / `page_token` / `user_id_type` 列为查询参数，
+/// 其中 `page_size` 必填且不能超过 50。
 #[derive(Debug, Clone)]
 pub struct ListRequest {
     /// 配置信息
@@ -30,6 +24,7 @@ pub struct ListRequest {
     application_id: String,
     page_size: Option<i32>,
     page_token: Option<String>,
+    user_id_type: Option<String>,
 }
 
 impl ListRequest {
@@ -40,6 +35,7 @@ impl ListRequest {
             application_id: String::new(),
             page_size: None,
             page_token: None,
+            user_id_type: None,
         }
     }
 
@@ -61,6 +57,12 @@ impl ListRequest {
         self
     }
 
+    /// 设置用户 ID 类型（`open_id` / `union_id` / `user_id`，默认 `open_id`）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<ListResponse> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
@@ -75,27 +77,23 @@ impl ListRequest {
         use crate::common::api_endpoints::HireApiV1;
 
         validate_required!(self.application_id.trim(), "投递 ID 不能为空");
-        if let Some(size) = self.page_size
-            && !(1..=100).contains(&size)
-        {
+        // 官方文档：page_size 必填，不能超过 50
+        let page_size = self.page_size.ok_or_else(|| {
+            openlark_core::error::validation_error("page_size", "page_size 不能为空")
+        })?;
+        if !(1..=50).contains(&page_size) {
             return Err(openlark_core::error::validation_error(
                 "分页大小超出范围",
-                "page_size 必须在 1-100 之间",
+                "page_size 必须在 1-50 之间",
             ));
         }
 
         let api_endpoint = HireApiV1::ApplicationInterviewList(self.application_id.clone());
-        let request = ApiRequest::<ListResponse>::get(api_endpoint.to_url());
-        let request_body = ListRequestBody {
-            page_size: self.page_size,
-            page_token: self.page_token,
-        };
-        let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
+        // GET 请求：page_size / page_token / user_id_type 均为查询参数，不走请求体
+        let request = ApiRequest::<ListResponse>::get(api_endpoint.to_url())
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type);
         Transport::request_typed(
             request,
             &self.config,
@@ -242,11 +240,16 @@ mod tests {
 
         ListRequest::new(config)
             .application_id("test001".to_string())
+            .page_size(10)
             .execute()
             .await
             .expect("请求应成功");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        // 官方契约：page_size 等为查询参数，GET 不携带请求体
+        let req = &received[0];
+        assert!(req.url.query().unwrap_or_default().contains("page_size=10"));
+        assert!(req.body.is_empty());
     }
 }

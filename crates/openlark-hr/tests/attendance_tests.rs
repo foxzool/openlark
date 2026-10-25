@@ -768,14 +768,40 @@ mod serialization_tests {
         test_create_user_task_remedy_response_serialization,
         user_task_remedy::create::CreateResponse,
         user_task_remedy::create::CreateResponse {
-            user_remedy: Some(serde_json::json!({ "remedy_id": "r_1" })),
+            user_remedy: Some(user_task_remedy::UserTaskRemedy {
+                user_id: "abd754f7".to_string(),
+                remedy_date: 20_210_701,
+                punch_no: 0,
+                work_type: 1,
+                approval_id: "6737202939523236113".to_string(),
+                remedy_time: "2021-07-01 08:00".to_string(),
+                status: 2,
+                reason: "忘记打卡".to_string(),
+                time: "-".to_string(),
+                time_zone: "-".to_string(),
+                create_time: "-".to_string(),
+                update_time: "-".to_string(),
+            }),
         }
     );
     roundtrip_eq!(
         test_query_user_task_remedy_response_serialization,
         user_task_remedy::query::QueryResponse,
         user_task_remedy::query::QueryResponse {
-            user_remedys: vec![serde_json::json!({ "remedy_id": "r_1" })],
+            user_remedys: vec![user_task_remedy::UserTaskRemedy {
+                user_id: "abd754f7".to_string(),
+                remedy_date: 20_210_701,
+                punch_no: 0,
+                work_type: 1,
+                approval_id: "6737202939523236113".to_string(),
+                remedy_time: "2021-07-01 08:00".to_string(),
+                status: 2,
+                reason: "忘记打卡".to_string(),
+                time: "1611476284".to_string(),
+                time_zone: "Asia/Shanghai".to_string(),
+                create_time: "1611476284".to_string(),
+                update_time: "1611476284".to_string(),
+            }],
         }
     );
     roundtrip_eq!(

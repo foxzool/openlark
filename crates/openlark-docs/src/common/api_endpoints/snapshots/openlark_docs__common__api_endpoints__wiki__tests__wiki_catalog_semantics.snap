@@ -17,4 +17,4 @@ UpdateSpaceNodeTitle("", "") | Post | /open-apis/wiki/v2/spaces//nodes//update_t
 CopySpaceNode("", "") | Post | /open-apis/wiki/v2/spaces//nodes//copy | Some([User, Tenant])
 MoveDocsToWiki("") | Post | /open-apis/wiki/v2/spaces//nodes/move_docs_to_wiki | Some([User, Tenant])
 GetTask("") | Get | /open-apis/wiki/v2/tasks/ | Some([User, Tenant])
-SearchNodes | Post | /open-apis/wiki/v1/nodes/search | Some([User, Tenant])
+SearchNodes | Post | /open-apis/wiki/v2/nodes/search | Some([User, Tenant])

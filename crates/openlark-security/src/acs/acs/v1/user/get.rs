@@ -16,6 +16,8 @@ pub struct GetUserRequest {
     config: Config,
     /// 用户 ID（路径参数，必填）。
     user_id: String,
+    /// 用户 ID 类型（查询参数，可选，open_id/union_id/user_id，默认 open_id）。
+    user_id_type: Option<String>,
 }
 
 impl GetUserRequest {
@@ -24,7 +26,14 @@ impl GetUserRequest {
         Self {
             config,
             user_id: user_id.into(),
+            user_id_type: None,
         }
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id，查询参数）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行请求，返回用户信息（响应 `data` 字段内容）。
@@ -37,8 +46,9 @@ impl GetUserRequest {
         validate_required!(self.user_id, "user_id 不能为空");
 
         let path = format!("/open-apis/acs/v1/users/{}", self.user_id);
-        let req: ApiRequest<serde_json::Value> =
-            ApiRequest::get(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
+        let req: ApiRequest<serde_json::Value> = ApiRequest::get(&path)
+            .query_opt("user_id_type", self.user_id_type.as_ref())
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "获取单个用户信息").await
     }
@@ -103,6 +113,7 @@ mod tests {
             .build();
 
         let data = GetUserRequest::new(config, "u_001")
+            .user_id_type("open_id")
             .execute()
             .await
             .expect("获取用户信息应成功");
@@ -112,5 +123,7 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/acs/v1/users/u_001");
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("user_id_type=open_id"));
     }
 }

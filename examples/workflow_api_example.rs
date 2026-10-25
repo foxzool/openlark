@@ -63,10 +63,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         workflow_service
             .approve_task(
                 ApprovalTaskAction::new(
-                    task.approval_code.clone(),
-                    task.instance_code.clone(),
+                    task.approval_code.clone().unwrap_or_default(),
+                    task.instance_code.clone().unwrap_or_default(),
                     "ou_example_user",
-                    task.task_id.clone(),
+                    task.task_id.clone().unwrap_or_default(),
                 )
                 .user_id_type("open_id")
                 .comment("自动化示例通过"),
