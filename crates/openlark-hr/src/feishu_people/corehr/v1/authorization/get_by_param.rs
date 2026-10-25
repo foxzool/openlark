@@ -73,9 +73,9 @@ impl GetByParamRequest {
 /// 查询单个用户授权响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetByParamResponse {
-    /// 授权信息
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub authorization: Option<Value>,
+    /// 角色授权信息（官方键名为 role_authorization）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role_authorization: Option<super::query::RoleAuthorization>,
 }
 
 impl ApiResponseTrait for GetByParamResponse {
@@ -99,7 +99,36 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/authorizations/get_by_param"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "role_authorization": {
+                        "employment_id": "6967639606963471902",
+                        "permission_detail_list": [
+                            {
+                                "role": {
+                                    "id": "7034393015968122400",
+                                    "code": "department_manager",
+                                    "name": { "zh_cn": "部门经理", "en_us": "department manager" },
+                                    "description": { "zh_cn": "描述", "en_us": "description" },
+                                    "org_truncation": [
+                                        { "org_key": "department", "type": 0, "depth": 0 }
+                                    ]
+                                },
+                                "assigned_organization_list": [
+                                    [
+                                        {
+                                            "org_key": "department",
+                                            "org_name": { "zh_cn": "部门", "en_us": "department" },
+                                            "org_id_list": ["6967639606963471902"]
+                                        }
+                                    ]
+                                ],
+                                "update_time": "1720584039"
+                            }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -111,10 +140,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetByParamRequest::new(config)
+        let resp = GetByParamRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let authorization = resp
+            .role_authorization
+            .as_ref()
+            .expect("role_authorization 应解码");
+        assert_eq!(
+            authorization.employment_id.as_deref(),
+            Some("6967639606963471902")
+        );
+        let details = authorization
+            .permission_detail_list
+            .as_ref()
+            .expect("permission_detail_list 应解码");
+        assert_eq!(details.len(), 1);
+        let role = details[0].role.as_ref().expect("role 应解码");
+        assert_eq!(role.id.as_deref(), Some("7034393015968122400"));
+        let truncation = role.org_truncation.as_ref().expect("org_truncation 应解码");
+        assert_eq!(truncation[0].depth, Some(0));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

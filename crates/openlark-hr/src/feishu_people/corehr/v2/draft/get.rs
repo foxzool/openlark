@@ -10,7 +10,6 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 根据组织架构调整 ID 查询发起的流程信息请求
 #[derive(Debug, Clone)]
@@ -59,18 +58,26 @@ impl GetRequest {
 /// 根据组织架构调整 ID 查询发起的流程信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetResponse {
-    /// 响应数据
-    /// draft信息
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub draft: Option<DraftInfo>,
+    /// 组织架构调整 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub draft_id: Option<String>,
+    /// 组织架构调整状态：0 编辑中 / 1 审批中 / 2 已完成 / 3 已撤销
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub draft_status: Option<String>,
+    /// 组织架构调整流程信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_infos: Option<Vec<ProcessInfo>>,
 }
 
-/// 草稿信息
+/// 组织架构调整流程信息
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct DraftInfo {
-    /// 兼容保留字段
-    #[serde(flatten)]
-    pub extra: Value,
+pub struct ProcessInfo {
+    /// 组织架构调整流程 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<String>,
+    /// 组织架构调整流程状态（官方标注不建议使用，推荐使用 draft_status）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_group_status: Option<String>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -94,7 +101,18 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/drafts/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "draft_id": "6991776076699549697",
+                    "draft_status": "1",
+                    "process_infos": [
+                        {
+                            "process_id": "6991776076699549697",
+                            "approval_group_status": "1"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -106,11 +124,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .draft_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.draft_id, Some("6991776076699549697".to_string()));
+        assert_eq!(resp.draft_status, Some("1".to_string()));
+        let infos = resp.process_infos.expect("应解析流程信息列表");
+        assert_eq!(infos.len(), 1);
+        assert_eq!(infos[0].process_id, Some("6991776076699549697".to_string()));
+        assert_eq!(infos[0].approval_group_status, Some("1".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

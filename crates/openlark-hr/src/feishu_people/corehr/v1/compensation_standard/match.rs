@@ -75,19 +75,104 @@ impl MatchRequest {
 }
 
 /// 获取员工薪资标准响应
+///
+/// 对应官方响应体 `data` 节点（`cpst_match_item`，`ResponseFormat::Data`
+/// 下直接反序列化）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MatchResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CompensationStandardInfo>,
-}
-
-/// 薪资标准信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CompensationStandardInfo {
+    /// 薪资标准表 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub standard_id: Option<String>,
+    /// 薪资等级
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grade: Option<CpstGrade>,
+    /// 生效时间（毫秒级时间戳）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
+}
+
+/// 薪资等级
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstGrade {
+    /// 薪资等级 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grade_id: Option<String>,
+    /// 薪资等级时间轴 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grade_tid: Option<String>,
+    /// 带宽上下限和标准值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grade_standard_value: Option<CpstGradeStandardValue>,
+    /// 币种
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency: Option<CpstCurrency>,
+    /// 薪资标准描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<crate::common::shared_models::I18nText>,
+}
+
+/// 带宽上下限和标准值
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstGradeStandardValue {
+    /// 薪资标准的关联对象，项目或者指标
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reference_object: Option<CpstReferenceObject>,
+    /// 薪资标准类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub standard_type: Option<CpstStandardType>,
+    /// 上下限
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub band_width: Option<CpstBandWidth>,
+    /// 标准值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub standard_value: Option<String>,
+}
+
+/// 薪资标准的关联对象（项目或指标）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstReferenceObject {
+    /// cpst_item（项目）/ cpst_indicator（指标）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_name: Option<String>,
+    /// 值列表，例如薪资项和薪资统计指标 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
+/// 薪资标准类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstStandardType {
+    /// standard_value（标准值）/ bandwidth_and_standard_value（上下限和标准值）/ bandwidth_upper_and_lower_limit（上下限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_name: Option<String>,
+}
+
+/// 上下限
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstBandWidth {
+    /// 上限
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upper_limit: Option<String>,
+    /// 下限
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lower_limit: Option<String>,
+}
+
+/// 币种
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CpstCurrency {
+    /// 币种 ID，可通过【查询货币信息】接口获取
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency_id: Option<String>,
+    /// 币种 code
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 币种名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<crate::common::shared_models::I18nText>,
 }
 
 impl ApiResponseTrait for MatchResponse {
@@ -111,7 +196,27 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/compensation_standards/match"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "effective_time": "1660924800000",
+                    "grade": {
+                        "currency": {
+                            "code": "CNY",
+                            "currency_id": "6863329932261459464",
+                            "name": {"en_us": "Renminbi (Chinese) yuan", "zh_cn": "人民币元"}
+                        },
+                        "grade_id": "7174758360888215084",
+                        "grade_standard_value": {
+                            "band_width": {"lower_limit": "5000", "upper_limit": "10000"},
+                            "reference_object": {"api_name": "cpst_item", "id": "7156853394442044972"},
+                            "standard_type": {"api_name": "bandwidth_and_standard_value"},
+                            "standard_value": "8888"
+                        },
+                        "grade_tid": "7174758360888247852"
+                    },
+                    "standard_id": "7174758593538295340"
+                }
             })))
             .mount(&server)
             .await;
@@ -123,10 +228,41 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        MatchRequest::new(config)
+        let resp = MatchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.standard_id.as_deref(), Some("7174758593538295340"));
+        assert_eq!(resp.effective_time.as_deref(), Some("1660924800000"));
+        let grade = resp.grade.as_ref().expect("grade 应解析");
+        assert_eq!(grade.grade_id.as_deref(), Some("7174758360888215084"));
+        assert_eq!(
+            grade
+                .currency
+                .as_ref()
+                .and_then(|c| c.currency_id.as_deref()),
+            Some("6863329932261459464")
+        );
+        let standard_value = grade
+            .grade_standard_value
+            .as_ref()
+            .expect("grade_standard_value 应解析");
+        assert_eq!(standard_value.standard_value.as_deref(), Some("8888"));
+        assert_eq!(
+            standard_value
+                .band_width
+                .as_ref()
+                .and_then(|b| b.upper_limit.as_deref()),
+            Some("10000")
+        );
+        assert_eq!(
+            standard_value
+                .reference_object
+                .as_ref()
+                .and_then(|r| r.api_name.as_deref()),
+            Some("cpst_item")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

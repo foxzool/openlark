@@ -66,25 +66,26 @@ impl WorkCalendarRequest {
 /// 获取工作日历响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WorkCalendarResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<WorkCalendarInfo>,
+    /// 工作日历列表，对应入参的 wk_calendar_ids
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_calendars: Option<Vec<WorkCalendarDetail>>,
+    /// 入参 count=true 时返回符合条件的工作日历总数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<i32>,
 }
 
-/// 工作日历信息
+/// 工作日历详情（官方 work_calendar_detail 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct WorkCalendarInfo {
-    /// 工作日历条目
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<WorkCalendarItem>>,
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
-}
-
-/// 工作日历条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct WorkCalendarItem {
+pub struct WorkCalendarDetail {
+    /// 工作日历 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar_id: Option<String>,
+    /// 工作日历名称（官方 wk_calendar_i18n：{zh_cn, en_us}）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar_name: Option<crate::common::shared_models::I18nText>,
+    /// 工作日历是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enable: Option<bool>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
@@ -105,13 +106,28 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/leaves/work_calendar
+    /// （官方 data 内层键为 work_calendars / count）
     #[tokio::test]
     async fn test_work_calendar_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/leaves/work_calendar"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "work_calendars": [
+                        {
+                            "calendar_id": "7136914415957591596",
+                            "calendar_name": {
+                                "zh_cn": "日历1",
+                                "en_us": "calendar1"
+                            },
+                            "enable": true
+                        }
+                    ],
+                    "count": 20
+                }
             })))
             .mount(&server)
             .await;
@@ -123,10 +139,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        WorkCalendarRequest::new(config)
+        let resp = WorkCalendarRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let calendars = resp.work_calendars.expect("work_calendars 应解码");
+        assert_eq!(calendars.len(), 1);
+        assert_eq!(
+            calendars[0].calendar_id.as_deref(),
+            Some("7136914415957591596")
+        );
+        assert_eq!(
+            calendars[0]
+                .calendar_name
+                .as_ref()
+                .and_then(|n| n.zh_cn.clone()),
+            Some("日历1".to_string())
+        );
+        assert_eq!(calendars[0].enable, Some(true));
+        assert_eq!(resp.count, Some(20));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

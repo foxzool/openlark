@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::NationalIdType;
 
 /// 删除国家证件类型请求
 #[derive(Debug, Clone)]
@@ -67,20 +68,13 @@ impl DeleteRequest {
 }
 
 /// 删除国家证件类型响应
+///
+/// 官方文档响应 `data` 为空对象，无业务字段。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DeleteResponse {
-    /// 响应数据
-    /// 操作结果
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result: Option<NationalIdTypeItem>,
-}
-
-/// 国家证件类型条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct NationalIdTypeItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+    /// 操作结果（官方响应无此字段，保留兼容旧调用方；正常情况下为 `None`）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<NationalIdType>,
 }
 
 impl ApiResponseTrait for DeleteResponse {

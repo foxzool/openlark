@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.currency/search>
 
+use crate::feishu_people::corehr::v2::basic_info::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -84,13 +85,22 @@ pub struct SearchResponse {
 pub struct CurrencyItem {
     /// 货币 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 货币名称
+    pub currency_id: Option<String>,
+    /// 货币所属国家/地区 ID 列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 货币编码
+    pub country_region_id_list: Option<Vec<String>>,
+    /// 货币名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    pub currency_name: Option<Vec<I18nText>>,
+    /// 数字代码（ISO 4217）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub numeric_code: Option<i32>,
+    /// 三位字母代码（ISO 4217）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency_alpha_3_code: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -117,7 +127,21 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/basic_info/currencies/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "currency_id": "6863329932261459464",
+                            "country_region_id_list": ["6862995757234914824"],
+                            "currency_name": [{ "lang": "zh-CN", "value": "中文示例" }],
+                            "numeric_code": 156,
+                            "currency_alpha_3_code": "CNY",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "6863329958782043655",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -129,10 +153,30 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回货币条目");
+        assert_eq!(item.currency_id.as_deref(), Some("6863329932261459464"));
+        assert_eq!(
+            item.country_region_id_list.as_deref(),
+            Some(&["6862995757234914824".to_string()][..])
+        );
+        assert_eq!(item.numeric_code, Some(156));
+        assert_eq!(item.currency_alpha_3_code.as_deref(), Some("CNY"));
+        assert_eq!(
+            item.currency_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

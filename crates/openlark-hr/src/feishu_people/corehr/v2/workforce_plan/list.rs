@@ -53,10 +53,48 @@ impl ListRequest {
 }
 
 /// 查询编制规划方案响应
+///
+/// 官方响应字段直接平铺在 `data` 顶层（`items` + `total`）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
     /// 响应数据
-    pub data: Value,
+    /// 编制规划方案列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<WorkforcePlan>>,
+    /// 满足条件的方案总数
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<i32>,
+}
+
+/// 编制规划方案
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WorkforcePlan {
+    /// 编制规划方案 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workforce_plan_id: Option<String>,
+    /// 编制规划方案名称（i18n 多语数组）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workforce_plan_name: Option<Vec<I18nText>>,
+    /// 开始日期（YYYY-MM-DD）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    /// 结束日期（YYYY-MM-DD）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+    /// 是否启用（true 启用 / false 停用）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+}
+
+/// 官方 i18n 多语文本结构：{lang, value}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言信息（中文为 zh-CN，英文为 en-US）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -80,7 +118,19 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/workforce_plans"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "workforce_plan_id": "123456",
+                            "workforce_plan_name": [{ "lang": "zh-CN", "value": "张三" }],
+                            "start_date": "2020-10-01",
+                            "end_date": "2020-10-31",
+                            "active": true
+                        }
+                    ],
+                    "total": 100
+                }
             })))
             .mount(&server)
             .await;
@@ -92,10 +142,26 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.total, Some(100));
+        let plan = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回编制规划方案条目");
+        assert_eq!(plan.workforce_plan_id.as_deref(), Some("123456"));
+        assert_eq!(plan.active, Some(true));
+        assert_eq!(
+            plan.workforce_plan_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("张三")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

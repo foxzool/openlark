@@ -9,7 +9,6 @@ use openlark_core::{
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 查询指定时范围内当前版本信息发生变更的岗位请求
 #[derive(Debug, Clone)]
@@ -46,8 +45,18 @@ impl QueryRecentChangeRequest {
 /// 查询指定时范围内当前版本信息发生变更的岗位响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryRecentChangeResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 岗位 ID 列表，其中包含新建、更新以及删除的 ID 列表
+    #[serde(default)]
+    pub position_ids: Vec<String>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 目标查询时间范围内被删除的岗位列表，是 position_ids 的子集
+    #[serde(default)]
+    pub deleted_position_ids: Vec<String>,
 }
 
 impl ApiResponseTrait for QueryRecentChangeResponse {
@@ -71,7 +80,14 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/positions/query_recent_change"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "position_ids": ["7094136522860922111"],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true,
+                    "deleted_position_ids": ["7094136522860922111"]
+                }
             })))
             .mount(&server)
             .await;
@@ -83,10 +99,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRecentChangeRequest::new(config)
+        let resp = QueryRecentChangeRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.position_ids, vec!["7094136522860922111".to_string()]);
+        assert_eq!(
+            resp.deleted_position_ids,
+            vec!["7094136522860922111".to_string()]
+        );
+        assert_eq!(resp.has_more, Some(true));
+        assert!(resp.page_token.is_some());
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

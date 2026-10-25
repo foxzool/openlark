@@ -67,8 +67,9 @@ impl TransformOnboardingTaskRequest {
 /// `TransformOnboardingTaskResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TransformOnboardingTaskResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 是否成功流转任务，流转成功时返回 true，流转失败时返回 false
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<bool>,
 }
 
 impl ApiResponseTrait for TransformOnboardingTaskResponse {
@@ -94,7 +95,7 @@ mod tests {
                 "/open-apis/corehr/v2/pre_hires/transform_onboarding_task",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": { "success": true }
             })))
             .mount(&server)
             .await;
@@ -106,10 +107,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        TransformOnboardingTaskRequest::new(config)
+        let resp = TransformOnboardingTaskRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.success, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

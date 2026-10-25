@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::CorehrV2Job;
+
 /// ListRequest
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -54,10 +56,19 @@ impl ListRequest {
 }
 
 /// ListResponse
+///
+/// 响应 `data` 子树形状：`{items: job[], has_more, page_token}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 查询的职务信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<CorehrV2Job>>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -81,7 +92,30 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/jobs"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "4698040628992333549",
+                            "code": "JP422119",
+                            "name": [{ "lang": "zh-CN", "value": "软件工程师" }],
+                            "description": [{ "lang": "zh-CN", "value": "负责后端开发" }],
+                            "active": true,
+                            "job_title": [{ "lang": "zh-CN", "value": "高级" }],
+                            "pathway_id": "4719519211875096301",
+                            "job_family_id_list": ["4719519211875096301"],
+                            "job_level_id_list": ["4719519212005299950"],
+                            "working_hours_type_id": "6890452208593372679",
+                            "effective_time": "2020-01-01 00:00:00",
+                            "expiration_time": "2021-01-01 00:00:00",
+                            "custom_fields": [
+                                { "field_name": "name", "value": "Sandy" }
+                            ]
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "1234452132"
+                }
             })))
             .mount(&server)
             .await;
@@ -93,10 +127,27 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let job = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含职务");
+        assert_eq!(job.id.as_deref(), Some("4698040628992333549"));
+        assert_eq!(
+            job.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("软件工程师")
+        );
+        assert_eq!(job.active, Some(true));
+        assert_eq!(resp.has_more, Some(true));
+        assert_eq!(resp.page_token.as_deref(), Some("1234452132"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

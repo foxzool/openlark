@@ -9,7 +9,8 @@ use openlark_core::{
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::PreHire;
 
 /// 批量查询待入职信息请求
 #[derive(Debug, Clone)]
@@ -88,8 +89,15 @@ impl ListRequest {
 /// 批量查询待入职信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ListResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 查询的待入职信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<PreHire>>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 分页标记（`has_more` 为 `true` 时返回）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -113,7 +121,34 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/pre_hires"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [{
+                        "ats_application_id": "4719168654814483759",
+                        "id": "154545454",
+                        "hire_date": "2020-01-01",
+                        "employee_type": {
+                            "enum_name": "type_1",
+                            "display": [{ "lang": "zh-CN", "value": "正式" }]
+                        },
+                        "worker_id": "1245646",
+                        "employee_type_id": "正式",
+                        "person_id": "656464648662",
+                        "onboarding_status": {
+                            "enum_name": "preboarding",
+                            "display": [{ "lang": "zh-CN", "value": "待入职" }]
+                        },
+                        "cost_center_rate": [{ "cost_center_id": "6890452208593356295", "rate": 100 }],
+                        "work_email_list": [{
+                            "email": "test@example.com",
+                            "is_primary": true,
+                            "is_public": false
+                        }],
+                        "department_id": "od-xxx"
+                    }],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -125,10 +160,21 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let data = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = data.items.expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].ats_application_id,
+            Some("4719168654814483759".to_string())
+        );
+        assert_eq!(items[0].worker_id, Some("1245646".to_string()));
+        assert_eq!(items[0].person_id, Some("656464648662".to_string()));
+        assert_eq!(items[0].hire_date, Some("2020-01-01".to_string()));
+        assert_eq!(data.has_more, Some(false));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

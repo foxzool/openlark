@@ -71,30 +71,38 @@ impl SubmitRequest {
 }
 
 /// 操作员工离职响应
+///
+/// 对应官方响应体 `data` 节点（`ResponseFormat::Data` 下直接反序列化），
+/// 官方 `data` 为扁平对象，字段直接平铺在本结构体上。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SubmitResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<OffboardingInfo>,
-}
-
-/// 离职信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct OffboardingInfo {
-    /// 离职条目列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<OffboardingItem>>,
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
-}
-
-/// 离职条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct OffboardingItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+    /// 离职记录 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offboarding_id: Option<String>,
+    /// 雇员 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 离职原因唯一标识，可通过【查询员工离职原因列表】接口获取
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offboarding_reason_unique_identifier: Option<String>,
+    /// 离职日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offboarding_date: Option<String>,
+    /// 离职原因说明
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offboarding_reason_explanation: Option<String>,
+    /// 是否加入离职屏蔽名单
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub add_block_list: Option<bool>,
+    /// 屏蔽原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_reason: Option<String>,
+    /// 屏蔽原因说明
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_reason_explanation: Option<String>,
+    /// 创建时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_time: Option<String>,
 }
 
 impl ApiResponseTrait for SubmitResponse {
@@ -118,7 +126,19 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/offboardings/submit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "offboarding_id": "7095671727698478604",
+                    "employment_id": "6982509313466189342",
+                    "offboarding_reason_unique_identifier": "reason_for_offboarding_option8",
+                    "offboarding_date": "2022-05-18",
+                    "offboarding_reason_explanation": "离职原因说明",
+                    "add_block_list": false,
+                    "block_reason": "红线",
+                    "block_reason_explanation": "xx 年 xx 月 xx 日因 xx 原因红线",
+                    "created_time": "2022-05-09 17:50:17"
+                }
             })))
             .mount(&server)
             .await;
@@ -130,10 +150,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SubmitRequest::new(config)
+        let resp = SubmitRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.offboarding_id.as_deref(), Some("7095671727698478604"));
+        assert_eq!(
+            resp.offboarding_reason_unique_identifier.as_deref(),
+            Some("reason_for_offboarding_option8")
+        );
+        assert_eq!(resp.add_block_list, Some(false));
+        assert_eq!(resp.block_reason.as_deref(), Some("红线"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -64,10 +64,13 @@ impl CreateRequest {
 }
 
 /// `CreateResponse` 响应。
+///
+/// 对应官方响应体 `data` 节点（`ResponseFormat::Data` 下直接反序列化）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 待入职 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_hire_id: Option<String>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -91,7 +94,11 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/pre_hires"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "pre_hire_id": "6966234786251671053"
+                }
             })))
             .mount(&server)
             .await;
@@ -103,10 +110,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.pre_hire_id.as_deref(), Some("6966234786251671053"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

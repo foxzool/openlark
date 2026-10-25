@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::CustomFieldItem;
+
 /// 获取自定义字段列表请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
@@ -71,33 +73,19 @@ impl QueryRequest {
 }
 
 /// 获取自定义字段列表响应
+///
+/// 对应官方响应体 `data` 节点（`ResponseFormat::Data` 下直接反序列化）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<CustomFieldInfo>,
-}
-
-/// 自定义字段信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CustomFieldInfo {
     /// 自定义字段列表
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<CustomFieldItem>>,
     /// 分页令牌
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否还有更多数据
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
-}
-
-/// 自定义字段条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CustomFieldItem {
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
@@ -124,7 +112,32 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/custom_fields/query"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "custom_api_name": "custom_field_33__c",
+                            "name": {"zh_cn": "cn", "en_us": "en"},
+                            "description": {"zh_cn": "cn", "en_us": "en"},
+                            "is_open": true,
+                            "is_required": true,
+                            "is_unique": true,
+                            "object_api_name": "offboarding_info",
+                            "type": 1,
+                            "common_schema_config": {
+                                "text_field_setting": {
+                                    "is_multilingual": true,
+                                    "is_multiline": true,
+                                    "max_length": 1,
+                                    "is_url_type": true
+                                }
+                            },
+                            "create_time": "1625542287",
+                            "update_time": "1625542639"
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -136,10 +149,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRequest::new(config)
+        let resp = QueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解析出自定义字段列表");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].custom_api_name.as_deref(),
+            Some("custom_field_33__c")
+        );
+        assert_eq!(items[0].is_open, Some(true));
+        assert_eq!(items[0].r#type, Some(1));
+        assert_eq!(
+            items[0].name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("cn")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

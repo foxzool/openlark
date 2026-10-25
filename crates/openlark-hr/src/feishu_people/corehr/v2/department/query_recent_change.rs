@@ -58,8 +58,18 @@ impl QueryRecentChangeRequest {
 /// QueryRecentChangeResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryRecentChangeResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 部门 ID 列表，其中包含新建、更新以及删除的 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_ids: Option<Vec<String>>,
+    /// 目标查询时间范围内被删除的部门列表（department_ids 的子集）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_department_ids: Option<Vec<String>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
 impl ApiResponseTrait for QueryRecentChangeResponse {
@@ -77,13 +87,25 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/departments/query_recent_change
+    /// （官方 data 内层键为 department_ids / deleted_department_ids / page_token / has_more）
     #[tokio::test]
     async fn test_query_recent_change_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/departments/query_recent_change"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "department_ids": [
+                        "7094136522860922111"
+                    ],
+                    "deleted_department_ids": [
+                        "7094136522860922111"
+                    ],
+                    "page_token": "7094136522860922111",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -95,10 +117,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRecentChangeRequest::new(config)
+        let resp = QueryRecentChangeRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(
+            resp.department_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
+        assert_eq!(
+            resp.deleted_department_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

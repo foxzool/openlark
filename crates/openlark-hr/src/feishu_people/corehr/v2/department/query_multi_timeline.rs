@@ -71,43 +71,124 @@ impl QueryMultiTimelineRequest {
 /// 批量查询部门版本信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryMultiTimelineResponse {
-    /// 原始响应数据。
-    pub data: Option<QueryMultiTimelineResponseData>,
-}
-
-/// `QueryMultiTimelineResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct QueryMultiTimelineResponseData {
+    /// 部门信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<DepartmentTimelineItem>>,
     /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否有更多数据
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-    /// 部门版本列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<DepartmentTimelineItem>>,
 }
 
-/// `DepartmentTimelineItem`。
+/// 部门版本信息（官方 department_timeline 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DepartmentTimelineItem {
     /// 部门 ID
-    pub id: String,
-    /// 版本 ID
-    pub timeline_id: String,
-    /// 生效时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub effective_time: Option<String>,
-    /// 失效时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiration_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 部门版本 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     /// 部门名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 父部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub names: Option<Vec<I18nText>>,
+    /// 部门子类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_type: Option<EnumValue>,
+    /// 上级部门 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_department_id: Option<String>,
+    /// 部门负责人雇佣 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manager: Option<String>,
+    /// 编码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 版本生效日期（YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_date: Option<String>,
+    /// 版本失效日期（YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expiration_date: Option<String>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub descriptions: Option<Vec<I18nText>>,
+    /// 自定义字段
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_fields: Option<Vec<CustomFieldData>>,
+    /// 树形排序
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tree_order: Option<String>,
+    /// 列表排序
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list_order: Option<String>,
+    /// 是否根部门
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_root: Option<bool>,
+    /// 是否保密
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_confidential: Option<bool>,
+    /// 岗职管理模式
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub staffing_model: Option<EnumValue>,
+    /// 成本中心 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_center_id: Option<String>,
+}
+
+/// 多语文本（官方 i18n 结构：{lang, value}）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言，中文用 zh-CN，英文用 en-US
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// 官方 enum 类型字段结构：{enum_name, display: i18n[]}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnumValue {
+    /// 枚举值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_name: Option<String>,
+    /// 枚举多语展示
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display: Option<Vec<I18nText>>,
+}
+
+/// 自定义字段名称（官方 custom_name 结构：{zh_cn, en_us}）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CustomFieldName {
+    /// 中文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zh_cn: Option<String>,
+    /// 英文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en_us: Option<String>,
+}
+
+/// 自定义字段（官方 custom_field_data 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CustomFieldData {
+    /// 自定义字段 apiname，即自定义字段的唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_api_name: Option<String>,
+    /// 自定义字段名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<CustomFieldName>,
+    /// 自定义字段类型
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<i64>,
+    /// 字段值，是 json 转义后的字符串
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for QueryMultiTimelineResponse {
@@ -215,7 +296,34 @@ mod tests {
                 "/open-apis/corehr/v2/departments/query_multi_timeline",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "4719456877659520852",
+                            "version_id": "7238516215202170412",
+                            "names": [
+                                { "lang": "zh-CN", "value": "中文示例" }
+                            ],
+                            "sub_type": {
+                                "enum_name": "phone_type",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "中文示例" }
+                                ]
+                            },
+                            "parent_department_id": "4719456877659520111",
+                            "manager": "6893013238632416777",
+                            "code": "D00000456",
+                            "effective_date": "2020-05-01",
+                            "active": true,
+                            "expiration_date": "2020-05-02",
+                            "is_root": false
+                        }
+                    ],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -227,10 +335,34 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryMultiTimelineRequestBuilder::new(config)
+        let resp = QueryMultiTimelineRequestBuilder::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解码");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].version_id.as_deref(), Some("7238516215202170412"));
+        assert_eq!(
+            items[0]
+                .names
+                .as_ref()
+                .and_then(|names| names.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中文示例")
+        );
+        assert_eq!(
+            items[0]
+                .sub_type
+                .as_ref()
+                .and_then(|s| s.enum_name.as_deref()),
+            Some("phone_type")
+        );
+        assert_eq!(
+            items[0].parent_department_id.as_deref(),
+            Some("4719456877659520111")
+        );
+        assert_eq!(items[0].effective_date.as_deref(), Some("2020-05-01"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

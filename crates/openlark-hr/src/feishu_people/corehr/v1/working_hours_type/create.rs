@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::WorkingHoursType;
+
 /// 创建工时制度请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -67,9 +69,9 @@ impl CreateRequest {
 /// 创建工时制度响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 工时类型信息
+    /// 工时制度信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub working_hours_type: Option<Value>,
+    pub working_hours_type: Option<WorkingHoursType>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -93,7 +95,17 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/working_hours_types"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": { "working_hours_type": {
+                    "id": "6890452208593372679",
+                    "code": "1",
+                    "name": [{ "lang": "zh-CN", "value": "张三" }],
+                    "country_region_id_list": ["6890452208593356295"],
+                    "default_for_job": true,
+                    "active": true,
+                    "custom_fields": [{ "field_name": "name", "value": "\"Sandy\"" }]
+                } }
             })))
             .mount(&server)
             .await;
@@ -105,10 +117,22 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let data = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let working_hours_type = data.working_hours_type.expect("working_hours_type 应存在");
+        assert_eq!(
+            working_hours_type.id,
+            Some("6890452208593372679".to_string())
+        );
+        assert_eq!(
+            working_hours_type.country_region_id_list,
+            Some(vec!["6890452208593356295".to_string()])
+        );
+        assert_eq!(working_hours_type.default_for_job, Some(true));
+        assert_eq!(working_hours_type.active, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

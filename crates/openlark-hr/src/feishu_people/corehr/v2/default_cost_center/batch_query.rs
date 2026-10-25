@@ -57,8 +57,71 @@ impl BatchQueryRequest {
 /// 查询默认成本中心响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchQueryResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 员工默认成本中心列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<EmployeeDefaultCostCenter>>,
+}
+
+/// 员工默认成本中心（employee_default_cost_center）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmployeeDefaultCostCenter {
+    /// 用户ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 默认成本中心信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_cost_centers: Option<Vec<EmploymentDefaultCostCenter>>,
+}
+
+/// 默认成本中心信息（employment_default_cost_center）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmploymentDefaultCostCenter {
+    /// 默认成本中心ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_id: Option<String>,
+    /// 默认成本中心版本ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wk_tid: Option<String>,
+    /// 生效日期
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
+    /// 成本中心ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_center_id: Option<String>,
+    /// 任职ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_data_id: Option<String>,
+    /// 是否继承自岗位/部门的默认成本中心
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_inherit: Option<bool>,
+    /// 继承来源
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inherit_source: Option<EnumValue>,
+    /// 变更原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// 官方 enum 类型字段结构：{enum_name, display: i18n[]}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnumValue {
+    /// 枚举值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_name: Option<String>,
+    /// 枚举多语展示
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display: Option<Vec<I18nText>>,
+}
+
+/// 官方 i18n 多语文本结构：{lang, value}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言编码（IETF BCP 47）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for BatchQueryResponse {
@@ -84,7 +147,29 @@ mod tests {
                 "/open-apis/corehr/v2/default_cost_centers/batch_query",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "employment_id": "7475686493613920050",
+                            "default_cost_centers": [
+                                {
+                                    "wk_id": "703912325303191204",
+                                    "wk_tid": "703912321231239801",
+                                    "effective_time": "2024-12-01",
+                                    "cost_center_id": "7039123253031711012",
+                                    "job_data_id": "7039123253031711012",
+                                    "is_inherit": true,
+                                    "inherit_source": {
+                                        "enum_name": "phone_type",
+                                        "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                                    },
+                                    "reason": "异动"
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -96,10 +181,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        BatchQueryRequest::new(config)
+        let resp = BatchQueryRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应存在");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].employment_id,
+            Some("7475686493613920050".to_string())
+        );
+        let centers = items[0]
+            .default_cost_centers
+            .as_ref()
+            .expect("default_cost_centers 应存在");
+        assert_eq!(centers.len(), 1);
+        assert_eq!(centers[0].wk_tid, Some("703912321231239801".to_string()));
+        let inherit_source = centers[0]
+            .inherit_source
+            .as_ref()
+            .expect("inherit_source 应存在");
+        assert_eq!(inherit_source.enum_name, Some("phone_type".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

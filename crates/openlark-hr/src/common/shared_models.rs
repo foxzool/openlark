@@ -31,6 +31,20 @@ pub struct I18nText {
     pub extra: HashMap<String, Value>,
 }
 
+/// `{lang, value}` 形式的多语言条目（官方 i18n 数组元素）。
+///
+/// 与 [`I18nText`]（`{zh_cn, en_us}` map 形态）不同，这是数组元素形态，
+/// 例如 corehr 假期类型名称 `leave_type_name: [{lang, value}]`。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct I18nLangValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 语言编码（如 `zh-CN`、`zh_CN`）。
+    pub lang: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 文本内容。
+    pub value: Option<String>,
+}
+
 /// 可兼容普通字符串或多语言对象的文本字段。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]

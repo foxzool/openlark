@@ -67,36 +67,20 @@ impl EditRequest {
 /// 编辑离职信息响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EditResponse {
-    /// 响应数据
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<OffboardingItem>,
+    /// 编辑字段数据信息（官方 data.data 为 object_field_data[]）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<Vec<ObjectFieldData>>,
 }
 
-/// 离职信息
+/// 对象字段数据（官方 object_field_data 结构）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct OffboardingItem {
-    /// 离职 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offboarding_id: Option<String>,
-    /// 雇佣 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub employment_id: Option<String>,
-    /// 用户 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// 离职日期
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offboarding_date: Option<String>,
-    /// 离职状态
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// 更新时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-    /// 预留扩展字段
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub extra: Option<Value>,
+pub struct ObjectFieldData {
+    /// 字段名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field_name: Option<String>,
+    /// 字段值，是 json 转义后的字符串
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for EditResponse {
@@ -120,7 +104,13 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/offboardings/edit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "data": [
+                        { "field_name": "name", "value": "Sandy" }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -132,10 +122,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        EditRequest::new(config)
+        let resp = EditRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let fields = resp.data.expect("data 应解码");
+        assert_eq!(fields.len(), 1);
+        assert_eq!(fields[0].field_name.as_deref(), Some("name"));
+        assert_eq!(fields[0].value.as_deref(), Some("Sandy"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

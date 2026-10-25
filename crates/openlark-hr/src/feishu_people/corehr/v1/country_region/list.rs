@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::CountryRegion;
 
 /// 批量查询国家/地区信息请求
 #[derive(Debug, Clone)]
@@ -83,21 +84,13 @@ pub struct ListResponse {
     /// 响应数据
     /// 数据列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<CountryRegionItem>>,
+    pub items: Option<Vec<CountryRegion>>,
     /// 分页令牌
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否还有更多数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-}
-
-/// 国家/地区条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct CountryRegionItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -121,7 +114,20 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/country_regions"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "1",
+                            "name": [ { "lang": "zh-CN", "value": "中国" } ],
+                            "alpha_3_code": "CHN",
+                            "alpha_2_code": "CN"
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "1234452132"
+                }
             })))
             .mount(&server)
             .await;
@@ -133,10 +139,17 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 不能为空");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, Some("1".to_string()));
+        assert_eq!(items[0].name.as_deref().map(|n| n.len()), Some(1));
+        assert_eq!(items[0].alpha_3_code, Some("CHN".to_string()));
+        assert_eq!(items[0].alpha_2_code, Some("CN".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

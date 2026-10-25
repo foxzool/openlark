@@ -856,51 +856,58 @@ mod serialization_tests {
         test_ser_employee_v2_create,
         employee_v2::create::CreateResponse,
         employee_v2::create::CreateResponse {
-            data: Some(employee_v2::create::CreateResponseData {
-                id: "e_2".to_string(),
-                name: Some("李四".to_string()),
-                email: None,
-            })
+            employment_id: Some("e_2".to_string()),
+            contract_id: Some("c_2".to_string()),
+            job_data_id: Some("jd_2".to_string()),
         }
     );
     roundtrip_eq!(
         test_ser_employee_v2_search,
         employee_v2::search::SearchResponse,
         employee_v2::search::SearchResponse {
-            data: Some(employee_v2::search::SearchResponseData {
-                page_token: None,
-                has_more: Some(false),
-                items: Some(vec![employee_v2::search::EmployeeItem {
-                    id: "e_2".to_string(),
-                    name: Some("李四".to_string()),
-                    email: None,
-                    phone: None,
-                    department_id: None,
-                    position_id: None,
-                    employee_no: None,
-                    hire_date: None,
-                    status: None,
-                }]),
-            })
+            page_token: None,
+            has_more: Some(false),
+            items: Some(vec![employee_v2::search::EmployeeItem {
+                employment_id: Some("e_2".to_string()),
+                employment_id_v2: Some("e_2".to_string()),
+                ats_application_id: None,
+                prehire_id: None,
+                employee_number: Some("1000000".to_string()),
+                employee_type_id: None,
+                employee_subtype_id: None,
+                department_id: None,
+                department_id_v2: None,
+                job_level_id: None,
+                position_id: None,
+                job_level: None,
+            }]),
         }
     );
     roundtrip_eq!(
         test_ser_employee_v2_batch_get,
         employee_v2::batch_get::BatchGetResponse,
         employee_v2::batch_get::BatchGetResponse {
-            data: Some(employee_v2::batch_get::BatchGetResponseData {
-                items: Some(vec![employee_v2::batch_get::EmployeeItem {
-                    id: "e_2".to_string(),
-                    name: Some("李四".to_string()),
-                    email: None,
-                    phone: None,
-                    department_id: None,
-                    position_id: None,
-                    employee_no: None,
-                    hire_date: None,
-                    status: None,
-                }])
-            })
+            items: Some(vec![employee_v2::batch_get::EmployeeItem {
+                id: None,
+                name: Some("李四".to_string()),
+                email: None,
+                phone: None,
+                department_id: None,
+                position_id: None,
+                employee_no: None,
+                hire_date: None,
+                status: None,
+                employment_id: Some("e_2".to_string()),
+                employment_id_v2: None,
+                ats_application_id: None,
+                prehire_id: None,
+                employee_number: Some("1000000".to_string()),
+                employee_type_id: None,
+                employee_subtype_id: None,
+                department_id_v2: None,
+                job_level_id: None,
+                job_level: None,
+            }])
         }
     );
 
@@ -965,14 +972,23 @@ mod serialization_tests {
         test_ser_position_create,
         position::create::CreateResponse,
         position::create::CreateResponse {
-            data: json!({"id":"p_1"})
+            position_id: Some("p_1".to_string())
         }
     );
     roundtrip_eq!(
         test_ser_position_query,
         position::query::QueryResponse,
         position::query::QueryResponse {
-            data: json!({"items":[]})
+            items: Some(vec![position::query::PositionItem {
+                position_id: Some("p_1".to_string()),
+                names: Some(vec![position::query::I18nText {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("高级产品经理".to_string())
+                }]),
+                ..Default::default()
+            }]),
+            page_token: None,
+            has_more: Some(true)
         }
     );
     roundtrip_eq!(
@@ -1000,7 +1016,10 @@ mod serialization_tests {
         test_ser_position_recent_change,
         position::query_recent_change::QueryRecentChangeResponse,
         position::query_recent_change::QueryRecentChangeResponse {
-            data: json!({"items":[]})
+            position_ids: vec!["7094136522860922111".to_string()],
+            page_token: None,
+            has_more: Some(false),
+            deleted_position_ids: vec!["7094136522860922111".to_string()],
         }
     );
 
@@ -1141,18 +1160,31 @@ mod serialization_tests {
         test_ser_country_region_get,
         country_region::get::GetResponse,
         country_region::get::GetResponse {
-            country_region: Some(json!({"country_region_id":"cn"}))
+            country_region: Some(country_region::models::CountryRegion {
+                id: Some("1".to_string()),
+                name: Some(vec![country_region::models::I18n {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("中国".to_string()),
+                }]),
+                alpha_3_code: Some("CHN".to_string()),
+                alpha_2_code: Some("CN".to_string()),
+                extra: std::collections::HashMap::new(),
+            })
         }
     );
     roundtrip_eq!(
         test_ser_country_region_list,
         country_region::list::ListResponse,
         country_region::list::ListResponse {
-            items: Some(vec![country_region::list::CountryRegionItem {
-                extra: std::collections::HashMap::from([(
-                    "country_region_id".to_string(),
-                    json!("cn"),
-                )]),
+            items: Some(vec![country_region::models::CountryRegion {
+                id: Some("1".to_string()),
+                name: Some(vec![country_region::models::I18n {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("中国".to_string()),
+                }]),
+                alpha_3_code: Some("CHN".to_string()),
+                alpha_2_code: Some("CN".to_string()),
+                extra: std::collections::HashMap::new(),
             }]),
             page_token: None,
             has_more: None,

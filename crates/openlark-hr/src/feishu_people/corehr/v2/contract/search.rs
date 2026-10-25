@@ -11,6 +11,8 @@ use openlark_core::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::feishu_people::corehr::v2::probation::search::EnumValue;
+
 /// 搜索合同请求
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SearchRequest {
@@ -60,40 +62,65 @@ impl SearchRequest {
 }
 
 /// 搜索合同响应
+///
+/// 响应 `data` 子树形状：`{items, page_token, has_more}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SearchResponse {
-    /// 合同列表
-    pub data: Option<SearchResponseData>,
-}
-
-/// `SearchResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SearchResponseData {
-    /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-    /// 是否有更多数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_more: Option<bool>,
-    /// 合同列表
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 查询的合同信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<ContractItem>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
-/// `ContractItem`。
+/// `ContractItem`（官方 `contract` 结构，多为字段级权限门控，未授权不返回）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ContractItem {
     /// 合同 ID
     pub id: String,
-    /// 合同名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 员工 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub employee_id: Option<String>,
-    /// 合同状态
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    /// 合同开始日期（需 corehr:contract.period:read/write 权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
+    /// 合同结束日期（需 corehr:contract.period:read/write 权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_end_date: Option<String>,
+    /// 实际结束日期（需 corehr:contract.period:read/write 权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expiration_time: Option<String>,
+    /// 雇佣 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 合同类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_type: Option<EnumValue>,
+    /// 合同主体（需 corehr:contract.company:read/write 权限）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_party_company_id: Option<String>,
+    /// 个人信息 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub person_id: Option<String>,
+    /// 期限类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_type: Option<EnumValue>,
+    /// 合同编号
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_number: Option<String>,
+    /// 签订类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_type: Option<EnumValue>,
+    /// 合同协议状态
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_status: Option<EnumValue>,
+    /// 续签状态
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renewal_status: Option<EnumValue>,
+    /// 第几次签署
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_times: Option<i64>,
 }
 
 impl ApiResponseTrait for SearchResponse {
@@ -187,7 +214,54 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/contracts/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "7147527056140813828",
+                            "effective_time": "2023-01-01 00:00:00",
+                            "contract_end_date": "2024-01-01",
+                            "expiration_time": "2023-11-01 00:00:00",
+                            "employment_id": "6893014062142064135",
+                            "contract_type": {
+                                "enum_name": "labor_contract",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "劳动合同" }
+                                ]
+                            },
+                            "first_party_company_id": "7091599096804394540",
+                            "person_id": "7088589447189022252",
+                            "duration_type": {
+                                "enum_name": "fix_term",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "固定期限" }
+                                ]
+                            },
+                            "contract_number": "HT-2023-001",
+                            "signing_type": {
+                                "enum_name": "new_sign",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "新签" }
+                                ]
+                            },
+                            "contract_status": {
+                                "enum_name": "effective",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "生效中" }
+                                ]
+                            },
+                            "renewal_status": {
+                                "enum_name": "not_renewal",
+                                "display": [
+                                    { "lang": "zh-CN", "value": "不续签" }
+                                ]
+                            },
+                            "signing_times": 1
+                        }
+                    ],
+                    "has_more": false
+                }
             })))
             .mount(&server)
             .await;
@@ -199,10 +273,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequestBuilder::new(config)
+        let resp = SearchRequestBuilder::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含合同");
+        assert_eq!(item.id, "7147527056140813828");
+        assert_eq!(item.effective_time.as_deref(), Some("2023-01-01 00:00:00"));
+        assert_eq!(item.contract_end_date.as_deref(), Some("2024-01-01"));
+        assert_eq!(item.expiration_time.as_deref(), Some("2023-11-01 00:00:00"));
+        assert_eq!(item.employment_id.as_deref(), Some("6893014062142064135"));
+        assert_eq!(
+            item.contract_type
+                .as_ref()
+                .and_then(|t| t.enum_name.as_deref()),
+            Some("labor_contract")
+        );
+        assert_eq!(item.signing_times, Some(1));
+        assert_eq!(resp.has_more, Some(false));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

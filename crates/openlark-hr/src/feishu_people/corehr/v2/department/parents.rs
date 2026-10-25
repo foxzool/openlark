@@ -26,34 +26,55 @@ impl ParentsRequest {
 }
 
 /// 获取父部门信息响应
+///
+/// 响应 `data` 子树形状：`{items: [{department_id, parent_department_list}]}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ParentsResponse {
-    /// 父部门列表
-    pub data: Option<ParentsResponseData>,
-}
-
-/// `ParentsResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ParentsResponseData {
-    /// 父部门列表（按层级从顶部门到直接父部门排序）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// 父部门查询结果列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<DepartmentItem>>,
 }
 
-/// `DepartmentItem`。
+/// `DepartmentItem`（官方 `department_parents` 结构）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DepartmentItem {
     /// 部门 ID
-    pub id: String,
-    /// 部门名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 父部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    /// 部门编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 父部门列表，部门按照至底向上的顺序返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_department_list: Option<Vec<DepartmentParentInfo>>,
+}
+
+/// `DepartmentParentInfo`（官方 `department_parent_info` 结构）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DepartmentParentInfo {
+    /// 部门 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_id: Option<String>,
+    /// 部门名称（i18n 多语）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub department_name: Option<Vec<I18nText>>,
+    /// 上级部门 ID（若查询的是一级部门，则该字段不展示）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_department_id: Option<String>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 是否根部门
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_root: Option<bool>,
+}
+
+/// 官方 i18n 多语文本结构：`{lang, value}`。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言（如 zh-CN / en-US）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for ParentsResponse {
@@ -128,7 +149,26 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/parents"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "department_id": "6893014062142064111",
+                            "parent_department_list": [
+                                {
+                                    "department_id": "4719456877659520852",
+                                    "department_name": [
+                                        { "lang": "zh-CN", "value": "张三" }
+                                    ],
+                                    "parent_department_id": "4719456877659520111",
+                                    "active": true,
+                                    "is_root": true
+                                }
+                            ]
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -140,10 +180,37 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ParentsRequestBuilder::new(config, "test001".to_string())
+        let resp = ParentsRequestBuilder::new(config, "test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("items 应包含部门父级查询结果");
+        assert_eq!(item.department_id.as_deref(), Some("6893014062142064111"));
+        let parent = item
+            .parent_department_list
+            .as_ref()
+            .and_then(|list| list.first())
+            .expect("parent_department_list 应包含父部门");
+        assert_eq!(parent.department_id.as_deref(), Some("4719456877659520852"));
+        assert_eq!(
+            parent
+                .department_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("张三")
+        );
+        assert_eq!(
+            parent.parent_department_id.as_deref(),
+            Some("4719456877659520111")
+        );
+        assert_eq!(parent.active, Some(true));
+        assert_eq!(parent.is_root, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

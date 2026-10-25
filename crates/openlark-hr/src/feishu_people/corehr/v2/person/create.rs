@@ -11,6 +11,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::PersonInfo;
+
 /// `CreateRequest` 请求。
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
@@ -64,10 +66,13 @@ impl CreateRequest {
 }
 
 /// `CreateResponse` 响应。
+///
+/// 响应 `data` 子树形状：`{person: {...}}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 个人信息（官方 `person_info` 结构）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub person: Option<PersonInfo>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -91,7 +96,33 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/persons"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "person": {
+                        "person_id": "6919733936050406926",
+                        "phone_number": "13649211111",
+                        "legal_name": "张三",
+                        "preferred_name": "刘梓新(Henry)",
+                        "preferred_local_full_name": "刘梓新",
+                        "preferred_english_full_name": "Henry",
+                        "name_list": [
+                            {
+                                "local_primary": "黄",
+                                "local_first_name": "四",
+                                "country_region_id": "6862995757234914824",
+                                "name_type": {
+                                    "enum_name": "legal_name",
+                                    "display": [
+                                        { "lang": "zh-CN", "value": "中文示例" }
+                                    ]
+                                },
+                                "first_name": "帅",
+                                "full_name": "王大帅"
+                            }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -103,10 +134,32 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let person = resp.person.as_ref().expect("person 应存在");
+        assert_eq!(person.person_id.as_deref(), Some("6919733936050406926"));
+        assert_eq!(person.legal_name.as_deref(), Some("张三"));
+        assert_eq!(person.preferred_name.as_deref(), Some("刘梓新(Henry)"));
+        assert_eq!(person.preferred_local_full_name.as_deref(), Some("刘梓新"));
+        assert_eq!(person.preferred_english_full_name.as_deref(), Some("Henry"));
+        let name = person
+            .name_list
+            .as_ref()
+            .and_then(|list| list.first())
+            .expect("name_list 应包含姓名");
+        assert_eq!(name.local_primary.as_deref(), Some("黄"));
+        assert_eq!(name.local_first_name.as_deref(), Some("四"));
+        assert_eq!(
+            name.country_region_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(
+            name.name_type.as_ref().and_then(|t| t.enum_name.as_deref()),
+            Some("legal_name")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -71,44 +71,58 @@ impl QueryOperationLogsRequest {
 /// 批量查询部门操作日志响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryOperationLogsResponse {
-    /// 原始响应数据。
-    pub data: Option<QueryOperationLogsResponseData>,
-}
-
-/// `QueryOperationLogsResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct QueryOperationLogsResponseData {
-    /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-    /// 是否有更多数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_more: Option<bool>,
     /// 操作日志列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<OperationLogItem>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op_logs: Option<Vec<OpLog>>,
+    /// 下一页 token
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
-/// `OperationLogItem`。
+/// 操作日志（官方类型 organization_op_log）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct OperationLogItem {
-    /// 操作日志 ID
-    pub id: String,
+pub struct OpLog {
     /// 部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub department_id: Option<String>,
-    /// 操作类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub operation_type: Option<String>,
-    /// 操作人 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub operator_id: Option<String>,
-    /// 操作时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub operate_time: Option<String>,
-    /// 操作详情
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object_id: Option<String>,
+    /// 字段变化列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changes: Option<Vec<OperationLogEntityField>>,
+    /// 操作人工号
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operator: Option<String>,
+    /// 操作类型：10 新建部门记录 / 20 新建、复制部门版本 / 50 编辑部门版本 / 60 撤销部门版本 / 70 停用部门 / 80 启用部门 / 90 删除部门记录 / 100 自定义部门排序 / 110 更新部门 / 120 编辑部门关联规则
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_type: Option<i32>,
+    /// 操作时间（带时分秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_time: Option<String>,
+    /// 操作生效时间（被操作部门版本的生效日期）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
+    /// 操作原因说明
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_reason: Option<String>,
+    /// 调整原因列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub change_reasons: Option<Vec<String>>,
+}
+
+/// 字段变化（官方类型 operation_log_entity_field）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationLogEntityField {
+    /// 变更字段
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field: Option<String>,
+    /// 旧值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before: Option<String>,
+    /// 新值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after: Option<String>,
 }
 
 impl ApiResponseTrait for QueryOperationLogsResponse {
@@ -216,7 +230,30 @@ mod tests {
                 "/open-apis/corehr/v2/departments/query_operation_logs",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "op_logs": [
+                        {
+                            "object_id": "7094136522860922111",
+                            "changes": [
+                                {
+                                    "field": "description",
+                                    "before": "优秀部门",
+                                    "after": "更优秀的部门"
+                                }
+                            ],
+                            "operator": "E001",
+                            "operation_type": 10,
+                            "operation_time": "2023-11-15 19:25:45",
+                            "effective_time": "2023-10-28",
+                            "operation_reason": "因人员调整,变更部门负责人为张三",
+                            "change_reasons": ["新建部门"]
+                        }
+                    ],
+                    "next_page_token": "2",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -228,10 +265,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryOperationLogsRequestBuilder::new(config)
+        let resp = QueryOperationLogsRequestBuilder::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let logs = resp.op_logs.expect("应解析操作日志列表");
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].object_id, Some("7094136522860922111".to_string()));
+        assert_eq!(logs[0].operator, Some("E001".to_string()));
+        assert_eq!(logs[0].operation_type, Some(10));
+        let changes = logs[0].changes.as_deref().expect("应解析字段变化列表");
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].field, Some("description".to_string()));
+        assert_eq!(changes[0].before, Some("优秀部门".to_string()));
+        assert_eq!(changes[0].after, Some("更优秀的部门".to_string()));
+        assert_eq!(logs[0].change_reasons, Some(vec!["新建部门".to_string()]));
+        assert_eq!(resp.next_page_token, Some("2".to_string()));
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

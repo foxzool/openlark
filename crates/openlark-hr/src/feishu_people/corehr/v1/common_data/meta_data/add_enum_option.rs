@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::common::shared_models::I18nText;
+
 /// 增加字段枚举值选项请求
 #[derive(Debug, Clone)]
 pub struct AddEnumOptionRequest {
@@ -68,17 +70,26 @@ impl AddEnumOptionRequest {
 /// 增加字段枚举值选项响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AddEnumOptionResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<EnumOptionInfo>,
+    /// 枚举字段 API name
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_field_api_name: Option<String>,
+    /// 枚举全部选项列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_field_options: Option<Vec<EnumFieldOption>>,
 }
 
-/// 枚举值选项信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct EnumOptionInfo {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+/// 枚举值选项（官方 enum_field_option 结构）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnumFieldOption {
+    /// 枚举值选项 API Name，即选项的唯一标识
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub option_api_name: Option<String>,
+    /// 是否启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 选项名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<I18nText>,
 }
 
 impl ApiResponseTrait for AddEnumOptionResponse {
@@ -104,7 +115,21 @@ mod tests {
                 "/open-apis/corehr/v1/common_data/meta_data/add_enum_option",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "enum_field_api_name": "final_assessment_grade",
+                    "enum_field_options": [
+                        {
+                            "option_api_name": "grade_e",
+                            "active": true,
+                            "name": {
+                                "zh_cn": "cn",
+                                "en_us": "en"
+                            }
+                        }
+                    ]
+                }
             })))
             .mount(&server)
             .await;
@@ -116,10 +141,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        AddEnumOptionRequest::new(config)
+        let resp = AddEnumOptionRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(
+            resp.enum_field_api_name.as_deref(),
+            Some("final_assessment_grade")
+        );
+        let options = resp.enum_field_options.expect("enum_field_options 应解码");
+        assert_eq!(options.len(), 1);
+        assert_eq!(options[0].option_api_name.as_deref(), Some("grade_e"));
+        assert_eq!(options[0].active, Some(true));
+        assert_eq!(
+            options[0].name.as_ref().and_then(|n| n.zh_cn.as_deref()),
+            Some("cn")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

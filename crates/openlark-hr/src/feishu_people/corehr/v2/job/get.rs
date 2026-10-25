@@ -12,6 +12,8 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::models::CorehrV2Job;
+
 /// GetRequest
 #[derive(Debug, Clone)]
 pub struct GetRequest {
@@ -71,10 +73,13 @@ impl GetRequest {
 }
 
 /// GetResponse
+///
+/// 响应 `data` 子树形状：`{job}`（由 decode 层解包）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 职务信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job: Option<CorehrV2Job>,
 }
 
 impl ApiResponseTrait for GetResponse {
@@ -98,7 +103,26 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/jobs/test001"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success",
+                "data": {
+                    "job": {
+                        "id": "4698040628992333549",
+                        "code": "JP422119",
+                        "name": [{ "lang": "zh-CN", "value": "软件工程师" }],
+                        "description": [{ "lang": "zh-CN", "value": "负责公司软件产品的开发与维护" }],
+                        "active": true,
+                        "job_title": [{ "lang": "zh-CN", "value": "高级" }],
+                        "pathway_id": "4719519211875096301",
+                        "job_family_id_list": ["4719519211875096301"],
+                        "job_level_id_list": ["4719519212005299950"],
+                        "working_hours_type_id": "6890452208593372679",
+                        "effective_time": "2020-01-01 00:00:00",
+                        "expiration_time": "2021-01-01 00:00:00",
+                        "custom_fields": [
+                            { "field_name": "name", "value": "Sandy" }
+                        ]
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -110,11 +134,24 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        GetRequest::new(config)
+        let resp = GetRequest::new(config)
             .job_id("test001".to_string())
             .execute()
             .await
             .expect("请求应成功");
+
+        let job = resp.job.as_ref().expect("应包含职务信息");
+        assert_eq!(job.id.as_deref(), Some("4698040628992333549"));
+        assert_eq!(job.code.as_deref(), Some("JP422119"));
+        assert_eq!(
+            job.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("软件工程师")
+        );
+        assert_eq!(job.active, Some(true));
+        assert_eq!(job.job_level_id_list.as_ref().map(|l| l.len()), Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

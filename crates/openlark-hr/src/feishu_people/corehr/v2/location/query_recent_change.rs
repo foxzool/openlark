@@ -58,8 +58,18 @@ impl QueryRecentChangeRequest {
 /// QueryRecentChangeResponse
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryRecentChangeResponse {
-    /// 响应数据
-    pub data: Value,
+    /// 地点 ID 列表，其中包含新建、更新以及删除的 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location_ids: Option<Vec<String>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// 目标查询时间范围内被删除的地点列表（location_ids 的子集）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_location_ids: Option<Vec<String>>,
 }
 
 impl ApiResponseTrait for QueryRecentChangeResponse {
@@ -83,7 +93,14 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/locations/query_recent_change"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "location_ids": ["7094136522860922111"],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true,
+                    "deleted_location_ids": ["7094136522860922111"]
+                }
             })))
             .mount(&server)
             .await;
@@ -95,10 +112,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        QueryRecentChangeRequest::new(config)
+        let resp = QueryRecentChangeRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(
+            resp.location_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
+        assert_eq!(resp.has_more, Some(true));
+        assert_eq!(
+            resp.deleted_location_ids,
+            Some(vec!["7094136522860922111".to_string()])
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

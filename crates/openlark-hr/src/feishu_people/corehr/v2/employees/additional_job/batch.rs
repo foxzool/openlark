@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/employees.additional_job/batch>
 
+use super::models::AdditionalJob;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -66,8 +67,15 @@ impl BatchRequest {
 /// `BatchResponse` 响应。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchResponse {
-    /// 原始响应数据。
-    pub data: Value,
+    /// 兼职信息列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<AdditionalJob>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
 impl ApiResponseTrait for BatchResponse {
@@ -85,13 +93,49 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/employees/additional_jobs/batch
+    /// （官方 data 内层键为 items / page_token / has_more）
     #[tokio::test]
     async fn test_batch_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/employees/additional_jobs/batch"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "6890452208593372679",
+                            "employee_type_id": "6890452208593372679",
+                            "working_hours_type_id": "6890452208593372679",
+                            "work_location_id": "6890452208593372679",
+                            "department_id": "6890452208593372679",
+                            "job_id": "6890452208593372679",
+                            "job_level_id": "6890452208593372679",
+                            "job_family_id": "1245678",
+                            "employment_id": "6893014062142064135",
+                            "start_date": "2020-05-01",
+                            "end_date": "2020-05-02",
+                            "direct_manager_id": "6890452208593372680",
+                            "dotted_line_manager_id": "6890452208593372680",
+                            "work_shift": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "compensation_type": {
+                                "enum_name": "phone_type",
+                                "display": [ { "lang": "zh-CN", "value": "中文示例" } ]
+                            },
+                            "service_company": "6890452208593372680",
+                            "weekly_working_hours": "5",
+                            "work_calendar_id": "6890452208593372680",
+                            "position_id": "6890452208593372680",
+                            "employee_subtype_id": "6890452208593372680"
+                        }
+                    ],
+                    "page_token": "eVQrYzJ",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -103,10 +147,30 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        BatchRequest::new(config)
+        let resp = BatchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解码");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id.as_deref(), Some("6890452208593372679"));
+        assert_eq!(
+            items[0].work_location_id.as_deref(),
+            Some("6890452208593372679")
+        );
+        assert_eq!(
+            items[0].dotted_line_manager_id.as_deref(),
+            Some("6890452208593372680")
+        );
+        assert_eq!(
+            items[0]
+                .work_shift
+                .as_ref()
+                .and_then(|v| v.enum_name.clone()),
+            Some("phone_type".to_string())
+        );
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

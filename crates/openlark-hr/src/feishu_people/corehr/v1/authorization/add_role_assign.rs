@@ -74,28 +74,9 @@ impl AddRoleAssignRequest {
 /// 为用户授权角色响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AddRoleAssignResponse {
-    /// 响应数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<AuthorizationInfo>,
-}
-
-/// 授权信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct AuthorizationInfo {
-    /// 角色授权列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub role_assignments: Option<Vec<RoleAssignmentInfo>>,
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
-}
-
-/// 角色授权条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct RoleAssignmentInfo {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
+    /// 授权 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assign_id: Option<String>,
 }
 
 impl ApiResponseTrait for AddRoleAssignResponse {
@@ -119,7 +100,7 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/authorizations/add_role_assign"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success", "data": { "assign_id": "67489937334909845" }
             })))
             .mount(&server)
             .await;
@@ -131,10 +112,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        AddRoleAssignRequest::new(config)
+        let resp = AddRoleAssignRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        assert_eq!(resp.assign_id.as_deref(), Some("67489937334909845"));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

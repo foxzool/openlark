@@ -71,11 +71,63 @@ impl CreateRequest {
 }
 
 /// 创建假期发放记录响应
+///
+/// 对应官方响应体 `data` 节点（`ResponseFormat::Data` 下直接反序列化）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateResponse {
-    /// 假期授予记录
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub record: Option<Value>,
+    /// 假期发放记录
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub leave_granting_record: Option<LeaveGrantingRecord>,
+}
+
+/// 假期发放记录
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct LeaveGrantingRecord {
+    /// 假期发放记录 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 员工 ID，对应 user_id_type
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employment_id: Option<String>,
+    /// 假期类型 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub leave_type_id: Option<String>,
+    /// 发放数量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub granting_quantity: Option<String>,
+    /// 发放时长单位（1 天 / 2 小时）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub granting_unit: Option<i32>,
+    /// 生效时间，格式为 yyyy-MM-dd
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_date: Option<String>,
+    /// 失效时间（根据休假规则自动计算），格式为 yyyy-MM-dd
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expiration_date: Option<String>,
+    /// 发放来源（1 系统发放 / 2 手动发放 / 3 外部系统发放）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub granted_by: Option<i32>,
+    /// 发放原因（多语言，`[{lang, value}]` 形态）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<Vec<crate::common::shared_models::I18nLangValue>>,
+    /// 发放记录的创建时间，毫秒级时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// 发放记录的创建人，值为创建人的员工 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_by: Option<String>,
+    /// 发放记录的更新时间，毫秒级时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// 发放记录的更新人，值为更新人的员工 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_by: Option<String>,
+    /// 是否参与折算（1 不参与折算 / 2 参与折算）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section_type: Option<i32>,
+    /// 透传的扩展字段
+    #[serde(flatten)]
+    pub extra: std::collections::HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for CreateResponse {
@@ -99,7 +151,26 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/leave_granting_records"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "leave_granting_record": {
+                        "id": "6893014062142064135",
+                        "employment_id": "6893014062142064135",
+                        "leave_type_id": "6893014062142064135",
+                        "granting_quantity": "0.5",
+                        "granting_unit": 1,
+                        "effective_date": "2022-01-01",
+                        "expiration_date": "2022-01-01",
+                        "granted_by": 3,
+                        "reason": [{"lang": "zh_CN", "value": "张三"}],
+                        "created_at": "1608725989000",
+                        "created_by": "646465654545",
+                        "updated_at": "1608725989000",
+                        "updated_by": "646465654545",
+                        "section_type": 1
+                    }
+                }
             })))
             .mount(&server)
             .await;
@@ -111,10 +182,18 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        CreateRequest::new(config)
+        let resp = CreateRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let record = resp
+            .leave_granting_record
+            .expect("leave_granting_record 应解析");
+        assert_eq!(record.id.as_deref(), Some("6893014062142064135"));
+        assert_eq!(record.granting_quantity.as_deref(), Some("0.5"));
+        assert_eq!(record.granting_unit, Some(1));
+        assert_eq!(record.granted_by, Some(3));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

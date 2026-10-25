@@ -44,38 +44,29 @@ impl TreeRequest {
 /// 查询指定生效日期的部门架构树响应
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TreeResponse {
-    /// 部门树
-    pub data: Option<TreeResponseData>,
-}
-
-/// `TreeResponseData`。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct TreeResponseData {
     /// 部门树节点
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<DepartmentNode>>,
+    /// 分页标记，当 has_more 为 true 时返回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
+    /// 是否还有更多项
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
 }
 
-/// `DepartmentNode`。
+/// `DepartmentNode`（官方 department_tree 结构）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DepartmentNode {
     /// 部门 ID
-    pub id: String,
-    /// 部门名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 部门编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
-    /// 父部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    /// 子部门列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub children: Option<Vec<DepartmentNode>>,
-    /// 部门负责人 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub leader_user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 部门绝对层级，根部门层级为 0
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level: Option<i32>,
+    /// 下级部门 ID 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub children: Option<Vec<String>>,
 }
 
 impl ApiResponseTrait for TreeResponse {
@@ -157,13 +148,28 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/departments/tree
+    /// （官方 data 内层键为 items / page_token / has_more，children 为部门 ID 字符串列表）
     #[tokio::test]
     async fn test_tree_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/tree"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "4719456877659520852",
+                            "level": 1,
+                            "children": [
+                                "7094136522860922111"
+                            ]
+                        }
+                    ],
+                    "page_token": "eVQrYzJBNDNONlk4VFZBZVlSdzlKdFJ4bVVHVExENDNKVHoxaVdiVnViQT0=",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -175,10 +181,20 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        TreeRequestBuilder::new(config)
+        let resp = TreeRequestBuilder::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 应解码");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id.as_deref(), Some("4719456877659520852"));
+        assert_eq!(items[0].level, Some(1));
+        assert_eq!(
+            items[0].children.as_deref(),
+            Some(&["7094136522860922111".to_string()][..])
+        );
+        assert_eq!(resp.has_more, Some(true));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -79,9 +79,61 @@ pub struct ListResponse {
 /// 角色（安全组）条目
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct SecurityGroupItem {
+    /// 角色 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 角色 code，通常用于与其他系统进行交互
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 角色名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<SecurityGroupName>,
+    /// 状态：1 = 停用；2 = 启用；3 = 待启用
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_status: Option<i32>,
+    /// 角色描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<SecurityGroupName>,
+    /// 角色类型：3 = 组织类角色；7 = 非组织类角色
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group_type: Option<i32>,
+    /// 创建人：`sys` 表示系统创建角色；用户 ID 表示自定义角色
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_by: Option<String>,
+    /// 更新时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_time: Option<String>,
+    /// 组织管理维度
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_truncation: Option<Vec<OrgTruncation>>,
     /// 透传的扩展字段
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, Value>,
+}
+
+/// 角色名称/描述：`{zh_cn, en_us}`
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct SecurityGroupName {
+    /// 中文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zh_cn: Option<String>,
+    /// 英文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en_us: Option<String>,
+}
+
+/// 组织管理维度：`{org_key, type, depth}`
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct OrgTruncation {
+    /// 组织管理维度名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_key: Option<String>,
+    /// 下钻类型：0 = 对当前及下级管理维度均有权限；1 = 只对当前管理维度有权限
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<i32>,
+    /// 下钻深度
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub depth: Option<i32>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -105,7 +157,27 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/security_groups"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "7034393015968122400",
+                            "code": "department_manager",
+                            "name": { "zh_cn": "cn", "en_us": "en" },
+                            "active_status": 1,
+                            "description": { "zh_cn": "cn", "en_us": "en" },
+                            "group_type": 1,
+                            "created_by": "6967639606963471902",
+                            "update_time": "1",
+                            "org_truncation": [
+                                { "org_key": "department", "type": 0, "depth": 0 }
+                            ]
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "1234452132"
+                }
             })))
             .mount(&server)
             .await;
@@ -117,10 +189,28 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 不能为空");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, Some("7034393015968122400".to_string()));
+        assert_eq!(items[0].code, Some("department_manager".to_string()));
+        assert_eq!(items[0].created_by, Some("6967639606963471902".to_string()));
+        assert_eq!(items[0].active_status, Some(1));
+        assert_eq!(items[0].group_type, Some(1));
+        let name = items[0].name.as_ref().expect("name 不能为空");
+        assert_eq!(name.zh_cn, Some("cn".to_string()));
+        assert_eq!(name.en_us, Some("en".to_string()));
+        let org_truncation = items[0]
+            .org_truncation
+            .as_deref()
+            .expect("org_truncation 不能为空");
+        assert_eq!(org_truncation.len(), 1);
+        assert_eq!(org_truncation[0].org_key, Some("department".to_string()));
+        assert_eq!(org_truncation[0].r#type, Some(0));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

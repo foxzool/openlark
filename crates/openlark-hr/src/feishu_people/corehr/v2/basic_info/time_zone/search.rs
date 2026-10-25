@@ -81,17 +81,34 @@ pub struct SearchResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TimeZoneItem {
     /// 时区 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 时区名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_zone_id: Option<String>,
+    /// 时区名称（多语）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18nText>>,
     /// 时区编码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_zone_code: Option<String>,
+    /// UTC 时区偏移量（分钟）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub utc_offset: Option<String>,
+    /// 状态：1 生效 / 0 失效
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
+}
+
+/// 官方 i18n 多语文本结构：{lang, value}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct I18nText {
+    /// 语言编码（IETF BCP 47）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl ApiResponseTrait for SearchResponse {
@@ -115,7 +132,23 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/basic_info/time_zones/search"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "time_zone_id": "6862995813451171342",
+                            "name": [
+                                { "lang": "zh-CN", "value": "中文示例" }
+                            ],
+                            "time_zone_code": "Pacific/Niue",
+                            "utc_offset": "-660",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "6862995813451171342",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -127,10 +160,29 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("应解析时区列表");
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].time_zone_id,
+            Some("6862995813451171342".to_string())
+        );
+        assert_eq!(
+            items[0].name.as_deref(),
+            Some(
+                &[I18nText {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("中文示例".to_string()),
+                }][..]
+            )
+        );
+        assert_eq!(items[0].time_zone_code, Some("Pacific/Niue".to_string()));
+        assert_eq!(items[0].utc_offset, Some("-660".to_string()));
+        assert_eq!(items[0].status, Some(1));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -10,7 +10,8 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::models::Subregion;
 
 /// 批量查询城市/区域信息请求
 #[derive(Debug, Clone)]
@@ -83,21 +84,13 @@ pub struct ListResponse {
     /// 响应数据
     /// 数据列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<SubregionItem>>,
+    pub items: Option<Vec<Subregion>>,
     /// 分页令牌
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
     /// 是否还有更多数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
-}
-
-/// 城市/区域条目
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct SubregionItem {
-    /// 透传的扩展字段
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, Value>,
 }
 
 impl ApiResponseTrait for ListResponse {
@@ -121,7 +114,20 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v1/subregions"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "12",
+                            "name": [ { "lang": "zh-CN", "value": "张三" } ],
+                            "subdivision_id": "12",
+                            "superior_subregion_id": "12"
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "1234452132"
+                }
             })))
             .mount(&server)
             .await;
@@ -133,10 +139,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        ListRequest::new(config)
+        let resp = ListRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let items = resp.items.expect("items 不能为空");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, Some("12".to_string()));
+        assert_eq!(items[0].subdivision_id, Some("12".to_string()));
+        assert_eq!(items[0].superior_subregion_id, Some("12".to_string()));
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);

@@ -2,6 +2,7 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/basic_info.country_region/search>
 
+use crate::feishu_people::corehr::v2::basic_info::I18nText;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -82,13 +83,25 @@ pub struct SearchResponse {
 pub struct CountryRegionItem {
     /// 国家/地区 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// 国家/地区名称
+    pub country_region_id: Option<String>,
+    /// 国家/地区名称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// 国家/地区编码
+    pub name: Option<Vec<I18nText>>,
+    /// 国家/地区全称（i18n 多语数组）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
+    pub full_name: Option<Vec<I18nText>>,
+    /// 国家/地区两位字母编码（ISO 3166-1）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alpha_2_code: Option<String>,
+    /// 国家/地区三位字母编码（ISO 3166-1）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alpha_3_code: Option<String>,
+    /// 国际电话区号
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_code: Option<String>,
+    /// 状态（1 生效 / 0 失效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     /// 兼容保留字段
     #[serde(flatten)]
     pub extra: Value,
@@ -117,7 +130,22 @@ mod tests {
                 "/open-apis/corehr/v2/basic_info/country_regions/search",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": {  }
+                "code": 0, "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "country_region_id": "6862995757234914824",
+                            "name": [{ "lang": "zh-CN", "value": "中国" }],
+                            "full_name": [{ "lang": "zh-CN", "value": "中华人民共和国" }],
+                            "alpha_2_code": "CN",
+                            "alpha_3_code": "CHN",
+                            "global_code": "+86",
+                            "status": 1
+                        }
+                    ],
+                    "page_token": "6862995772275688974",
+                    "has_more": true
+                }
             })))
             .mount(&server)
             .await;
@@ -129,10 +157,36 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        SearchRequest::new(config)
+        let resp = SearchRequest::new(config)
             .execute()
             .await
             .expect("请求应成功");
+
+        let item = resp
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .expect("应返回国家/地区条目");
+        assert_eq!(
+            item.country_region_id.as_deref(),
+            Some("6862995757234914824")
+        );
+        assert_eq!(item.alpha_2_code.as_deref(), Some("CN"));
+        assert_eq!(item.global_code.as_deref(), Some("+86"));
+        assert_eq!(
+            item.name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中国")
+        );
+        assert_eq!(
+            item.full_name
+                .as_ref()
+                .and_then(|n| n.first())
+                .and_then(|n| n.value.as_deref()),
+            Some("中华人民共和国")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
