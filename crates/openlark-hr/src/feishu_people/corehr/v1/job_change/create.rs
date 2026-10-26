@@ -7,6 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,19 +17,64 @@ use serde_json::Value;
 pub struct CreateRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 请求体
+    body: CreateBody,
 }
 
 impl CreateRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: CreateBody::default(),
+        }
     }
 
-    /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置异动方式 `transfer_mode`（必填：1 直接异动（无审批）/ 2 正常异动（完整流程））。
+    pub fn transfer_mode(mut self, transfer_mode: i32) -> Self {
+        self.body.transfer_mode = transfer_mode;
+        self
+    }
+
+    /// 设置雇员 ID `employment_id`（必填）。
+    pub fn employment_id(mut self, employment_id: String) -> Self {
+        self.body.employment_id = employment_id;
+        self
+    }
+
+    /// 设置异动类型唯一标识 `transfer_type_unique_identifier`（必填）。
+    pub fn transfer_type_unique_identifier(mut self, v: String) -> Self {
+        self.body.transfer_type_unique_identifier = v;
+        self
+    }
+
+    /// 设置异动生效日期 `effective_date`（必填，格式 `YYYY-MM-DD`）。
+    pub fn effective_date(mut self, effective_date: String) -> Self {
+        self.body.effective_date = effective_date;
+        self
+    }
+
+    /// 设置异动详细信息 `transfer_info`（必填，字段均为可选）。
+    pub fn transfer_info(mut self, transfer_info: TransferInfo) -> Self {
+        self.body.transfer_info = transfer_info;
+        self
+    }
+
+    /// 设置审批流程 ID `flow_id`（可选）。
+    pub fn flow_id(mut self, flow_id: String) -> Self {
+        self.body.flow_id = Some(flow_id);
+        self
+    }
+
+    /// 设置异动唯一标识 `transfer_key`（可选）。
+    pub fn transfer_key(mut self, transfer_key: String) -> Self {
+        self.body.transfer_key = Some(transfer_key);
+        self
+    }
+
+    /// 设置操作发起人 ID `initiator_id`（可选）。
+    pub fn initiator_id(mut self, initiator_id: String) -> Self {
+        self.body.initiator_id = Some(initiator_id);
         self
     }
 
@@ -43,14 +89,51 @@ impl CreateRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateResponse> {
-        let mut request = ApiRequest::<CreateResponse>::post("/open-apis/corehr/v1/job_changes");
+        use crate::common::api_endpoints::FeishuPeopleApiV1;
 
-        if let Some(body) = self.body {
-            request = request.body(body);
+        validate_required!(self.body.employment_id, "employment_id 不能为空");
+        validate_required!(
+            self.body.transfer_type_unique_identifier,
+            "transfer_type_unique_identifier 不能为空"
+        );
+        validate_required!(self.body.effective_date, "effective_date 不能为空");
+        if !matches!(self.body.transfer_mode, 1 | 2) {
+            return Err(openlark_core::error::validation_error(
+                "transfer_mode",
+                "transfer_mode 须为 1（直接异动，无审批）或 2（正常异动，完整流程）",
+            ));
         }
+
+        let api_endpoint = FeishuPeopleApiV1::JobChangeCreate;
+        let request = ApiRequest::<CreateResponse>::post(api_endpoint.to_url())
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
+}
+
+/// 发起员工异动请求体（`transfer_mode`/`employment_id`/`transfer_type_unique_identifier`/`effective_date`/`transfer_info` 必填）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateBody {
+    /// 异动方式：1 直接异动（无审批）；2 正常异动（完整流程）
+    pub transfer_mode: i32,
+    /// 雇员 id，可通过【搜索员工信息】接口获取
+    pub employment_id: String,
+    /// 异动类型唯一标识，可通过【获取异动类型列表】接口获取详细信息
+    pub transfer_type_unique_identifier: String,
+    /// 异动生效日期，格式 `YYYY-MM-DD`
+    pub effective_date: String,
+    /// 异动详细信息
+    pub transfer_info: TransferInfo,
+    /// 异动发起后审批流程 id，可通过【流程-获取单个流程列表】获取详细信息
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flow_id: Option<String>,
+    /// 异动唯一标识
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transfer_key: Option<String>,
+    /// 操作发起人 ID，为空时默认系统发起人
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initiator_id: Option<String>,
 }
 
 /// CreateResponse（官方 data 节点内容，类型名 job_change）
@@ -393,6 +476,16 @@ mod tests {
             .build();
 
         let resp = CreateRequest::new(config)
+            .transfer_mode(2)
+            .employment_id("ou_a294793e8fa21529f2a60e3e9de45520".to_string())
+            .transfer_type_unique_identifier("reporting_line_change".to_string())
+            .effective_date("2022-04-08".to_string())
+            .transfer_info(TransferInfo {
+                remark: Some("备注".to_string()),
+                target_department: Some("6966236933198579209".to_string()),
+                ..Default::default()
+            })
+            .initiator_id("6982509313466189341".to_string())
             .execute()
             .await
             .expect("请求应成功");
@@ -438,5 +531,46 @@ mod tests {
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        // 请求体须与官方文档一致：transfer_mode/employment_id/异动类型/生效日期/transfer_info
+        let sent: Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "transfer_mode": 2,
+                "employment_id": "ou_a294793e8fa21529f2a60e3e9de45520",
+                "transfer_type_unique_identifier": "reporting_line_change",
+                "effective_date": "2022-04-08",
+                "transfer_info": {
+                    "remark": "备注",
+                    "target_department": "6966236933198579209"
+                },
+                "initiator_id": "6982509313466189341"
+            })
+        );
+    }
+
+    /// 必填校验：缺必填字段 / 非法 transfer_mode 快速失败
+    #[tokio::test]
+    async fn test_create_missing_required_fields_rejected() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let err = CreateRequest::new(config.clone())
+            .execute()
+            .await
+            .expect_err("缺必填字段应被拒绝");
+        assert!(err.to_string().contains("employment_id"), "实际: {err}");
+
+        let err = CreateRequest::new(config)
+            .transfer_mode(9)
+            .employment_id("ou_x".to_string())
+            .transfer_type_unique_identifier("t".to_string())
+            .effective_date("2022-04-08".to_string())
+            .execute()
+            .await
+            .expect_err("非法 transfer_mode 应被拒绝");
+        assert!(err.to_string().contains("transfer_mode"), "实际: {err}");
     }
 }

@@ -10,9 +10,32 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::feishu_people::corehr::v2::cost_center::CostCenterVersion;
+use crate::feishu_people::corehr::v2::cost_center::{CostCenterVersion, I18nText};
+
+/// 更正成本中心版本请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PatchBody {
+    /// 成本中心名称（i18n 多语）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18nText>>,
+    /// 成本中心编码（不能与其他记录的编码重复）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 上级成本中心 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_cost_center_id: Option<String>,
+    /// 成本中心负责人 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub managers: Option<Vec<String>>,
+    /// 成本中心描述（i18n 多语）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<Vec<I18nText>>,
+    /// 版本生效日期（必填，格式：YYYY-MM-DD，范围 1900-01-01～9999-12-31）
+    pub effective_time: String,
+    /// 操作原因（必填）
+    pub operation_reason: String,
+}
 
 /// 更正成本中心版本请求
 #[derive(Debug, Clone)]
@@ -21,7 +44,10 @@ pub struct PatchRequest {
     config: Config,
     cost_center_id: Option<String>,
     version_id: Option<String>,
-    body: Option<Value>,
+    /// 请求体
+    body: PatchBody,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl PatchRequest {
@@ -31,7 +57,8 @@ impl PatchRequest {
             config,
             cost_center_id: None,
             version_id: None,
-            body: None,
+            body: PatchBody::default(),
+            user_id_type: None,
         }
     }
 
@@ -48,8 +75,56 @@ impl PatchRequest {
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: PatchBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置成本中心名称（i18n 多语）。
+    pub fn name(mut self, name: Vec<I18nText>) -> Self {
+        self.body.name = Some(name);
+        self
+    }
+
+    /// 设置成本中心编码。
+    pub fn code(mut self, code: impl Into<String>) -> Self {
+        self.body.code = Some(code.into());
+        self
+    }
+
+    /// 设置上级成本中心 ID。
+    pub fn parent_cost_center_id(mut self, parent_cost_center_id: impl Into<String>) -> Self {
+        self.body.parent_cost_center_id = Some(parent_cost_center_id.into());
+        self
+    }
+
+    /// 设置成本中心负责人 ID 列表。
+    pub fn managers(mut self, managers: Vec<String>) -> Self {
+        self.body.managers = Some(managers);
+        self
+    }
+
+    /// 设置成本中心描述（i18n 多语）。
+    pub fn description(mut self, description: Vec<I18nText>) -> Self {
+        self.body.description = Some(description);
+        self
+    }
+
+    /// 设置版本生效日期（格式：YYYY-MM-DD，必填）。
+    pub fn effective_time(mut self, effective_time: impl Into<String>) -> Self {
+        self.body.effective_time = effective_time.into();
+        self
+    }
+
+    /// 设置操作原因（必填）。
+    pub fn operation_reason(mut self, operation_reason: impl Into<String>) -> Self {
+        self.body.operation_reason = operation_reason.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -68,14 +143,14 @@ impl PatchRequest {
         let version_id = self.version_id.unwrap_or_default();
         validate_required!(cost_center_id.trim(), "cost_center_id 不能为空");
         validate_required!(version_id.trim(), "version_id 不能为空");
+        validate_required!(self.body.effective_time, "effective_time 不能为空");
+        validate_required!(self.body.operation_reason, "operation_reason 不能为空");
 
-        let mut request = ApiRequest::<PatchResponse>::patch(format!(
+        let request = ApiRequest::<PatchResponse>::patch(format!(
             "/open-apis/corehr/v2/cost_centers/{cost_center_id}/versions/{version_id}"
-        ));
-
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        ))
+        .query_opt("user_id_type", self.user_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -102,7 +177,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：PATCH /open-apis/corehr/v2/cost_centers/test001/versions/test001
@@ -113,6 +188,19 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/cost_centers/test001/versions/test001",
             ))
+            .and(body_json(json!({
+                "name": [
+                    { "lang": "zh-CN", "value": "基础架构" }
+                ],
+                "code": "MDPD00000023",
+                "parent_cost_center_id": "6862995757234914824",
+                "managers": ["6862995757234914824"],
+                "description": [
+                    { "lang": "zh-CN", "value": "基础架构相关业务" }
+                ],
+                "effective_time": "2020-01-01",
+                "operation_reason": "强行操作"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -148,6 +236,19 @@ mod tests {
         let resp = PatchRequest::new(config)
             .cost_center_id("test001".to_string())
             .version_id("test001".to_string())
+            .name(vec![I18nText {
+                lang: Some("zh-CN".to_string()),
+                value: Some("基础架构".to_string()),
+            }])
+            .code("MDPD00000023")
+            .parent_cost_center_id("6862995757234914824")
+            .managers(vec!["6862995757234914824".to_string()])
+            .description(vec![I18nText {
+                lang: Some("zh-CN".to_string()),
+                value: Some("基础架构相关业务".to_string()),
+            }])
+            .effective_time("2020-01-01")
+            .operation_reason("强行操作")
             .execute()
             .await
             .expect("请求应成功");

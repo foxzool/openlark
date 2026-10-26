@@ -9,7 +9,7 @@ pub use batch_del::BatchDelUserFlowRequest;
 pub use get::GetUserFlowRequest;
 pub use models::{
     BatchCreateUserFlowRequestBody, BatchCreateUserFlowResponse, BatchDelUserFlowRequestBody,
-    BatchDelUserFlowResponse, BatchDelUserFlowResult, GetUserFlowRequestBody, GetUserFlowResponse,
+    BatchDelUserFlowResponse, GetUserFlowRequestBody, GetUserFlowResponse,
     QueryUserFlowRequestBody, QueryUserFlowResponse, UserFlowInfo, UserFlowRecord, UserFlowResult,
 };
 pub use query::QueryUserFlowRequest;

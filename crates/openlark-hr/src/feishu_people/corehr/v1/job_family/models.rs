@@ -40,6 +40,10 @@ pub struct JobFamily {
 pub struct CreateRequestBody {
     /// 序列名称（必填）
     pub name: String,
+    /// 是否启用（必填）
+    pub active: bool,
+    /// 版本生效日期（格式：YYYY-MM-DD 00:00:00，必填）
+    pub effective_time: String,
     /// 序列描述
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,

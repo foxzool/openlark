@@ -420,6 +420,15 @@ mod http_tests {
 
         let resp = department::CreateRequest::new(test_config(&server.uri()))
             .name("研发部".to_string())
+            .hiberarchy_common(department::HiberarchyCommon {
+                name: Some(vec![department::I18n {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("研发部".to_string()),
+                }]),
+                active: Some(true),
+                ..Default::default()
+            })
+            .effective_time("2020-05-01 00:00:00".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -462,6 +471,7 @@ mod http_tests {
         let resp = department::PatchRequest::new(test_config(&server.uri()))
             .department_id("d_1".to_string())
             .name("研发一部".to_string())
+            .effective_time("2020-05-01 00:00:00".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -522,6 +532,9 @@ mod http_tests {
 
         let resp = contract::CreateRequest::new(test_config(&server.uri()))
             .employee_id("e_1".to_string())
+            .employment_id("6893013238632416776".to_string())
+            .first_party_company_id("6892686614112241165".to_string())
+            .effective_time("2050-01-01 00:00:00".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -623,6 +636,15 @@ mod http_tests {
 
         let resp = location::CreateRequest::new(test_config(&server.uri()))
             .name("上海办公室".to_string())
+            .hiberarchy_common(location::HiberarchyCommon {
+                name: Some(vec![location::I18n {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("上海办公室".to_string()),
+                }]),
+                active: Some(true),
+                ..Default::default()
+            })
+            .effective_time("2020-05-01 00:00:00".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();

@@ -1,36 +1,52 @@
 //! 查询统计设置
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/user_stats_view/query>
+//!
+//! 必填 query 参数 `employee_type`；请求体为 locale/stats_type/user_id。
 
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询统计设置请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 考勤组 ID（可选）
-    group_id: Option<String>,
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
+    /// 语言类型（必填）：en / ja / zh
+    locale: String,
+    /// 统计类型（必填）：daily-日度统计，month-月度统计
+    stats_type: String,
+    /// 操作者的用户 ID，对应 employee_type（官方表格标可选，系统升级后新系统要求必填）
+    user_id: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
+    /// - `locale`: 语言类型（必填）
+    /// - `stats_type`: 统计类型（必填）
+    pub fn new(config: Config, employee_type: String, locale: String, stats_type: String) -> Self {
         Self {
-            group_id: None,
+            employee_type,
+            locale,
+            stats_type,
+            user_id: None,
             config,
         }
     }
 
-    /// 设置考勤组 ID（可选）
-    pub fn group_id(mut self, group_id: String) -> Self {
-        self.group_id = Some(group_id);
+    /// 设置操作者的用户 ID，对应 employee_type（系统升级后新系统要求必填）
+    pub fn user_id(mut self, user_id: String) -> Self {
+        self.user_id = Some(user_id);
         self
     }
 
@@ -47,16 +63,31 @@ impl QueryRequest {
     ) -> SDKResult<QueryResponse> {
         use crate::common::api_endpoints::AttendanceApiV1;
 
-        // 1. 构建端点
+        // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.locale, "locale 不能为空");
+        validate_required!(self.stats_type, "stats_type 不能为空");
+
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserStatsViewQuery;
-        let mut request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
-        // 2. 添加查询参数（可选）
-        if let Some(ref group_id) = self.group_id {
-            request = request.query("group_id", group_id);
-        }
+        // 3. 构建请求体
+        let request_body = QueryRequestBody {
+            locale: self.locale,
+            stats_type: self.stats_type,
+            user_id: self.user_id,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "构建请求体失败",
+                format!("序列化请求体失败: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
 
-        // 3. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -65,6 +96,18 @@ impl QueryRequest {
         )
         .await
     }
+}
+
+/// 查询统计设置请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryRequestBody {
+    /// 语言类型：en-英语，ja-日语，zh-中文
+    pub locale: String,
+    /// 统计类型：daily-日度统计，month-月度统计
+    pub stats_type: String,
+    /// 操作者的用户 ID，对应 employee_type（系统升级后新系统要求必填）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 }
 
 /// 查询统计设置响应
@@ -147,8 +190,13 @@ mod tests {
 
     #[test]
     fn test_query_request_builder_new() {
-        let request =
-            QueryRequest::new(TestConfigBuilder::new().build()).group_id("test".to_string());
+        let request = QueryRequest::new(
+            TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
+            "zh".to_string(),
+            "daily".to_string(),
+        )
+        .user_id("dd31248a".to_string());
         let _ = request;
     }
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
@@ -156,7 +204,7 @@ mod tests {
     async fn test_attendance_v1_user_stats_view_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -167,6 +215,7 @@ mod tests {
         .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_stats_views/query"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -182,10 +231,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config)
-            .execute()
-            .await
-            .expect("attendance_v1_user_stats_view_query 应成功");
+        let data = QueryRequest::new(
+            config,
+            "employee_id".to_string(),
+            "zh".to_string(),
+            "daily".to_string(),
+        )
+        .user_id("dd31248a".to_string())
+        .execute()
+        .await
+        .expect("attendance_v1_user_stats_view_query 应成功");
 
         let view = data.view.expect("响应缺 view");
         assert_eq!(
@@ -210,5 +265,17 @@ mod tests {
             received[0].url.path(),
             "/open-apis/attendance/v1/user_stats_views/query"
         );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"locale\""), "请求体缺 locale: {body}");
+        assert!(
+            body.contains("\"stats_type\""),
+            "请求体缺 stats_type: {body}"
+        );
+        assert!(body.contains("\"user_id\""), "请求体缺 user_id: {body}");
     }
 }

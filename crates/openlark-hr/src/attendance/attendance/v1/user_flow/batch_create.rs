@@ -15,6 +15,8 @@ use super::models::{BatchCreateUserFlowRequestBody, BatchCreateUserFlowResponse,
 /// 导入打卡流水请求
 #[derive(Debug, Clone)]
 pub struct BatchCreateUserFlowRequest {
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
     /// 打卡流水记录列表
     flow_records: Vec<UserFlowRecord>,
     /// 配置信息
@@ -25,9 +27,16 @@ impl BatchCreateUserFlowRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
         Self {
+            employee_type: String::new(),
             flow_records: Vec::new(),
             config,
         }
+    }
+
+    /// 设置员工 ID 类型（必填，query 参数）
+    pub fn employee_type(mut self, employee_type: String) -> Self {
+        self.employee_type = employee_type;
+        self
     }
 
     /// 添加打卡流水记录
@@ -56,6 +65,7 @@ impl BatchCreateUserFlowRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required_list!(
             self.flow_records,
             100,
@@ -72,9 +82,10 @@ impl BatchCreateUserFlowRequest {
             );
         }
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserFlowBatchCreate;
-        let request = ApiRequest::<BatchCreateUserFlowResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<BatchCreateUserFlowResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 序列化请求体
         let request_body = BatchCreateUserFlowRequestBody {
@@ -129,13 +140,14 @@ mod tests {
     async fn test_attendance_v1_user_flow_batch_create_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         let data_body: serde_json::Value = serde_json::from_str(r#"{"results": []}"#).unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_flows/batch_create"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -152,6 +164,7 @@ mod tests {
             .build();
 
         let data = BatchCreateUserFlowRequest::new(config)
+            .employee_type("employee_id".to_string())
             .add_flow_record(UserFlowRecord {
                 user_id: "user_id_1".to_string(),
                 punch_time: "2024-01-01 09:00:00".to_string(),

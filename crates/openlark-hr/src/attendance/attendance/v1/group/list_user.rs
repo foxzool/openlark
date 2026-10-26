@@ -14,9 +14,15 @@ use serde::{Deserialize, Serialize};
 /// 查询考勤组下所有成员请求
 #[derive(Debug, Clone)]
 pub struct ListUserRequest {
-    /// 考勤组 ID（必填）
+    /// 考勤组 ID（必填，路径参数）
     group_id: String,
-    /// 分页大小（可选，默认 50，最大 100）
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
+    /// 部门 ID 的类型（必填，query 参数）：open_id
+    dept_type: String,
+    /// 查询的考勤组成员的打卡类型（必填）：0-全部打卡类型，1-需要打卡类型，2-无需打卡类型
+    member_clock_type: i32,
+    /// 分页大小（可选，默认 10，取值范围 1-50）
     page_size: Option<i32>,
     /// 分页标记（可选）
     page_token: Option<String>,
@@ -26,16 +32,30 @@ pub struct ListUserRequest {
 
 impl ListUserRequest {
     /// 创建请求
-    pub fn new(config: Config, group_id: String) -> Self {
+    ///
+    /// - `group_id`: 考勤组 ID（路径参数，必填）
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
+    /// - `dept_type`: 部门 ID 的类型（query 参数，必填，暂只支持 open_id）
+    /// - `member_clock_type`: 查询的考勤组成员的打卡类型（query 参数，必填）
+    pub fn new(
+        config: Config,
+        group_id: String,
+        employee_type: String,
+        dept_type: String,
+        member_clock_type: i32,
+    ) -> Self {
         Self {
             group_id,
+            employee_type,
+            dept_type,
+            member_clock_type,
             page_size: None,
             page_token: None,
             config,
         }
     }
 
-    /// 设置分页大小（可选，默认 50，最大 100）
+    /// 设置分页大小（可选，默认 10，取值范围 1-50）
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
@@ -62,12 +82,17 @@ impl ListUserRequest {
 
         // 1. 验证必填字段
         validate_required!(self.group_id.trim(), "group_id");
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.dept_type, "dept_type 不能为空");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加 query 参数（employee_type/dept_type/member_clock_type 必填）
         let api_endpoint = AttendanceApiV1::GroupListUser(self.group_id.clone());
-        let mut request = ApiRequest::<ListUserResponse>::get(api_endpoint.to_url());
+        let mut request = ApiRequest::<ListUserResponse>::get(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type)
+            .query("dept_type", &self.dept_type)
+            .query("member_clock_type", self.member_clock_type.to_string());
 
-        // 3. 添加查询参数（可选）
+        // 3. 添加可选查询参数
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string());
         }
@@ -124,7 +149,13 @@ mod tests {
 
     #[test]
     fn test_list_user_request_builder_new() {
-        let request = ListUserRequest::new(TestConfigBuilder::new().build(), "test".to_string());
+        let request = ListUserRequest::new(
+            TestConfigBuilder::new().build(),
+            "test".to_string(),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            1,
+        );
         let _ = request;
     }
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
@@ -132,7 +163,7 @@ mod tests {
     async fn test_attendance_v1_group_list_user_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -143,6 +174,9 @@ mod tests {
         .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/groups/group_001/list_user"))
+            .and(query_param("employee_type", "employee_id"))
+            .and(query_param("dept_type", "open_id"))
+            .and(query_param("member_clock_type", "1"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -158,10 +192,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = ListUserRequest::new(config, "group_001".to_string())
-            .execute()
-            .await
-            .expect("attendance_v1_group_list_user 应成功");
+        let data = ListUserRequest::new(
+            config,
+            "group_001".to_string(),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            1,
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_group_list_user 应成功");
 
         assert_eq!(data.users.len(), 1);
         assert_eq!(data.users[0].user_id, "5874663B");
@@ -176,6 +216,19 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/groups/group_001/list_user"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
+        );
+        assert!(
+            query.contains("dept_type=open_id"),
+            "缺必填 query 参数 dept_type: {query}"
+        );
+        assert!(
+            query.contains("member_clock_type=1"),
+            "缺必填 query 参数 member_clock_type: {query}"
         );
     }
 }

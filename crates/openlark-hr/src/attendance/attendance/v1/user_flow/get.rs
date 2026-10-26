@@ -17,8 +17,8 @@ use super::models::GetUserFlowResponse;
 pub struct GetUserFlowRequest {
     /// 打卡流水 ID
     user_flow_id: String,
-    /// 用户 ID 类型，可选值：open_id、union_id、user_id
-    user_id_type: Option<String>,
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
     /// 配置信息
     config: Config,
 }
@@ -28,7 +28,7 @@ impl GetUserFlowRequest {
     pub fn new(config: Config) -> Self {
         Self {
             user_flow_id: String::new(),
-            user_id_type: None,
+            employee_type: String::new(),
             config,
         }
     }
@@ -39,9 +39,9 @@ impl GetUserFlowRequest {
         self
     }
 
-    /// 设置用户 ID 类型（可选）
-    pub fn user_id_type(mut self, user_id_type: String) -> Self {
-        self.user_id_type = Some(user_id_type);
+    /// 设置员工 ID 类型（必填，query 参数）
+    pub fn employee_type(mut self, employee_type: String) -> Self {
+        self.employee_type = employee_type;
         self
     }
 
@@ -60,17 +60,14 @@ impl GetUserFlowRequest {
 
         // 1. 验证必填字段
         validate_required!(self.user_flow_id.trim(), "打卡流水 ID 不能为空");
+        validate_required!(self.employee_type, "employee_type 不能为空");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserFlowGet(self.user_flow_id.clone()).to_url();
-        let mut request = ApiRequest::<GetUserFlowResponse>::get(&api_endpoint);
+        let request = ApiRequest::<GetUserFlowResponse>::get(&api_endpoint)
+            .query("employee_type", &self.employee_type);
 
-        // 3. 添加查询参数（可选）
-        if let Some(ref user_id_type) = self.user_id_type {
-            request = request.query("user_id_type", user_id_type);
-        }
-
-        // 4. 发送请求
+        // 3. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -97,13 +94,15 @@ mod tests {
     #[test]
     fn test_get_user_flow_request_builder_new() {
         let request = GetUserFlowRequest::new(TestConfigBuilder::new().build())
-            .user_flow_id("test".to_string());
+            .user_flow_id("test".to_string())
+            .employee_type("employee_id".to_string());
         let _ = request;
     }
 
     #[test]
     fn test_get_user_flow_request_validation_fails_on_default_request() {
-        let request = GetUserFlowRequest::new(TestConfigBuilder::new().build());
+        let request = GetUserFlowRequest::new(TestConfigBuilder::new().build())
+            .user_flow_id("flow_001".to_string());
         let rt = tokio::runtime::Runtime::new().expect("创建 tokio runtime 失败");
         let result = rt.block_on(request.execute());
         assert!(result.is_err());
@@ -113,7 +112,7 @@ mod tests {
     async fn test_attendance_v1_user_flow_get_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -121,6 +120,7 @@ mod tests {
             serde_json::from_str(r#"{"flow_info": {"user_flow_id": "test", "user_id": "test", "punch_date": "test", "punch_time": "test", "punch_type": 0, "punch_method": 0}}"#).unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/user_flows/user_flow_001"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -138,6 +138,7 @@ mod tests {
 
         let data = GetUserFlowRequest::new(config)
             .user_flow_id("user_flow_001".to_string())
+            .employee_type("employee_id".to_string())
             .execute()
             .await
             .expect("attendance_v1_user_flow_get 应成功");

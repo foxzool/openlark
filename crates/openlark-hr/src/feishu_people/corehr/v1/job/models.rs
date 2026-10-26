@@ -57,6 +57,10 @@ pub struct CustomField {
 pub struct CreateRequestBody {
     /// 职务名称（必填）
     pub name: String,
+    /// 是否启用（必填）
+    pub active: bool,
+    /// 版本生效日期（格式：YYYY-MM-DD 00:00:00，必填）
+    pub effective_time: String,
     /// 职务编码
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,

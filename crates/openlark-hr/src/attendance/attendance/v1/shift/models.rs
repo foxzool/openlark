@@ -29,6 +29,8 @@ pub struct CreateShiftRequestBody {
     pub flexible_off_duty_time: Option<i32>,
     /// 打卡时段列表（必填）
     pub punch_times: Vec<PunchTime>,
+    /// 打卡规则（必填，官方 punch_time_rule[]）
+    pub punch_time_rule: Vec<PunchTimeRule>,
     /// 迟到规则
     #[serde(skip_serializing_if = "Option::is_none")]
     pub late_rule: Option<LateRule>,
@@ -68,6 +70,36 @@ pub struct CreateShiftRequestBody {
     /// 补卡限制周期（单位：天）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remedy_period: Option<i32>,
+}
+
+/// 打卡规则（官方 `punch_time_rule` 元素）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PunchTimeRule {
+    /// 上班时间，例如 `"9:00"`；跨天在 24 小时基础上累加（如次日 2 点为 `"26:00"`）
+    pub on_time: String,
+    /// 下班时间，例如 `"18:00"`
+    pub off_time: String,
+    /// 晚到多久记为迟到（分钟）
+    pub late_minutes_as_late: i32,
+    /// 晚到多久记为缺卡（分钟）
+    pub late_minutes_as_lack: i32,
+    /// 最早多久可打上班卡（分钟，最大 720）
+    pub on_advance_minutes: i32,
+    /// 早退多久记为早退（分钟）
+    pub early_minutes_as_early: i32,
+    /// 早退多久记为缺卡（分钟）
+    pub early_minutes_as_lack: i32,
+    /// 最晚多久可打下班卡（分钟，最大 960）
+    pub off_delay_minutes: i32,
+    /// 晚到多久记为严重迟到（分钟）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub late_minutes_as_serious_late: Option<i32>,
+    /// 是否不需要打上班卡（第一段打卡规则须为 false）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_need_on: Option<bool>,
+    /// 是否不需要打下班卡
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_need_off: Option<bool>,
 }
 
 /// 打卡时段

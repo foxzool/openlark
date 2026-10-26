@@ -107,11 +107,46 @@ pub struct DepartmentTreeNode {
 
 // 创建部门相关模型
 
+/// 官方 i18n 多语结构：`{lang, value}`
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct I18n {
+    /// 语言编码，如 `zh-CN`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// 官方 `hiberarchy_common` 结构（组织实体公共字段：名称、描述、上级、启停用状态、编码等）
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct HiberarchyCommon {
+    /// 上级组织 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    /// 名称（i18n 多语，创建时必填）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18n>>,
+    /// 是否启用（创建时必填）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 编码（不能与其他记录的编码重复）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 描述（i18n 多语）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<Vec<I18n>>,
+}
+
 /// 创建部门请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateRequestBody {
     /// 部门名称（必填）
     pub name: String,
+    /// 组织实体公共字段（必填：名称、启停用状态等基础信息）
+    pub hiberarchy_common: HiberarchyCommon,
+    /// 版本生效日期（格式：YYYY-MM-DD 00:00:00，必填）
+    pub effective_time: String,
     /// 父部门 ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_department_id: Option<String>,
@@ -200,6 +235,11 @@ pub struct PatchRequestBody {
     /// 部门名称
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// 组织实体公共字段（名称、描述、上级、启停用状态、编码等基础信息）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hiberarchy_common: Option<HiberarchyCommon>,
+    /// 生效时间（必填，格式：YYYY-MM-DD 00:00:00）
+    pub effective_time: String,
     /// 父部门 ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_department_id: Option<String>,

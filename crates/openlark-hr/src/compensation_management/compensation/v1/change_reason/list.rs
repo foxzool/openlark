@@ -15,6 +15,10 @@ use crate::common::shared_models::I18nContent;
 /// 批量查询定调薪原因请求
 #[derive(Debug, Clone)]
 pub struct ListRequest {
+    /// 分页大小（查询参数，官方必填，取值范围 1～500，默认 100）
+    page_size: Option<i32>,
+    /// 分页标记（查询参数，可选，第一次请求不填）
+    page_token: Option<String>,
     /// 配置信息
     config: Config,
 }
@@ -22,7 +26,23 @@ pub struct ListRequest {
 impl ListRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config }
+        Self {
+            page_size: None,
+            page_token: None,
+            config,
+        }
+    }
+
+    /// 设置分页大小（官方必填，取值范围 1～500）
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记（可选）
+    pub fn page_token(mut self, page_token: String) -> Self {
+        self.page_token = Some(page_token);
+        self
     }
 
     /// 执行请求
@@ -38,9 +58,15 @@ impl ListRequest {
     ) -> SDKResult<ListResponse> {
         use crate::common::api_endpoints::CompensationApiV1;
 
-        // 1. 构建端点
+        // 1. 构建端点与查询参数
         let api_endpoint = CompensationApiV1::ChangeReasonList;
-        let request = ApiRequest::<ListResponse>::get(api_endpoint.to_url());
+        let mut request = ApiRequest::<ListResponse>::get(api_endpoint.to_url());
+        if let Some(page_size) = self.page_size {
+            request = request.query("page_size", page_size.to_string());
+        }
+        if let Some(ref page_token) = self.page_token {
+            request = request.query("page_token", page_token);
+        }
 
         // 2. 发送请求
         Transport::request_typed(
@@ -103,7 +129,7 @@ mod tests {
     async fn test_list_change_reasons_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -114,6 +140,8 @@ mod tests {
         .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/compensation/v1/change_reasons"))
+            .and(query_param("page_size", "100"))
+            .and(query_param("page_token", "12314342"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -130,6 +158,8 @@ mod tests {
             .build();
 
         let data = ListRequest::new(config)
+            .page_size(100)
+            .page_token("12314342".to_string())
             .execute()
             .await
             .expect("查询调薪原因应成功");

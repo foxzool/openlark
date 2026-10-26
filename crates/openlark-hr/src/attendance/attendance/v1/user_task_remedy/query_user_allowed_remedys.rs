@@ -14,16 +14,29 @@ use serde::{Deserialize, Serialize};
 /// 获取可补卡时间请求
 #[derive(Debug, Clone)]
 pub struct QueryUserAllowedRemedysRequest {
-    /// 用户 ID（必填）
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
+    /// 用户 ID（必填，对应 employee_type）
     user_id: String,
+    /// 补卡日期（必填，格式为 yyyyMMdd）
+    remedy_date: i32,
     /// 配置信息
     config: Config,
 }
 
 impl QueryUserAllowedRemedysRequest {
     /// 创建请求
-    pub fn new(config: Config, user_id: String) -> Self {
-        Self { user_id, config }
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数）
+    /// - `user_id`: 用户 ID
+    /// - `remedy_date`: 补卡日期（`yyyyMMdd`）
+    pub fn new(config: Config, employee_type: String, user_id: String, remedy_date: i32) -> Self {
+        Self {
+            employee_type,
+            user_id,
+            remedy_date,
+            config,
+        }
     }
 
     /// 执行请求
@@ -40,15 +53,26 @@ impl QueryUserAllowedRemedysRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.user_id.trim(), "user_id");
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.user_id.trim(), "user_id 不能为空");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserTaskRemedyQueryUserAllowedRemedys;
-        let mut request =
-            ApiRequest::<QueryUserAllowedRemedysResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryUserAllowedRemedysResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
-        // 3. 添加查询参数
-        request = request.query("user_id", &self.user_id);
+        // 3. 构建请求体
+        let request_body = QueryUserAllowedRemedysRequestBody {
+            user_id: self.user_id,
+            remedy_date: self.remedy_date,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "构建请求体失败",
+                format!("序列化请求体失败: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
 
         // 4. 发送请求
         Transport::request_typed(
@@ -59,6 +83,15 @@ impl QueryUserAllowedRemedysRequest {
         )
         .await
     }
+}
+
+/// 获取可补卡时间请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryUserAllowedRemedysRequestBody {
+    /// 用户 ID，对应 employee_type
+    pub user_id: String,
+    /// 补卡日期，格式为 yyyyMMdd
+    pub remedy_date: i32,
 }
 
 /// 获取可补卡时间响应
@@ -117,7 +150,9 @@ mod tests {
     fn test_query_user_allowed_remedys_request_builder_new() {
         let request = QueryUserAllowedRemedysRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             "test".to_string(),
+            20_210_104,
         );
         let _ = request;
     }
@@ -127,7 +162,7 @@ mod tests {
      {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -140,6 +175,7 @@ mod tests {
             .and(path(
                 "/open-apis/attendance/v1/user_task_remedys/query_user_allowed_remedys",
             ))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -155,10 +191,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryUserAllowedRemedysRequest::new(config, "user_001".to_string())
-            .execute()
-            .await
-            .expect("attendance_v1_user_task_remedy_query_user_allowed_remedys 应成功");
+        let data = QueryUserAllowedRemedysRequest::new(
+            config,
+            "employee_id".to_string(),
+            "user_001".to_string(),
+            20_210_104,
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_user_task_remedy_query_user_allowed_remedys 应成功");
 
         assert_eq!(data.user_allowed_remedys.len(), 1);
         let remedy = &data.user_allowed_remedys[0];
@@ -181,6 +222,12 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_task_remedys/query_user_allowed_remedys"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"user_id\""), "请求体缺 user_id: {body}");
+        assert!(
+            body.contains("\"remedy_date\""),
+            "请求体缺 remedy_date: {body}"
         );
     }
 }

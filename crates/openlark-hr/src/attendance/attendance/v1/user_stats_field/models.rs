@@ -7,55 +7,64 @@ use serde::{Deserialize, Serialize};
 /// 查询统计字段定义请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryRequestBody {
-    /// 考勤组 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub unit_id: Option<String>,
-    /// 统计类型，可选值：daily（日度统计）、monthly（月度统计）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stat_type: Option<String>,
-    /// 用户 ID 列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_ids: Option<Vec<String>>,
-    /// 查询的起始日期，格式为 yyyy-MM-dd
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_date: Option<String>,
-    /// 查询的结束日期，格式为 yyyy-MM-dd
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_date: Option<String>,
-    /// 是否包含下属，默认值为 false
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_include_subordinate: Option<bool>,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
-}
-
-/// 统计字段信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct StatField {
-    /// 字段 ID
-    pub field_id: String,
-    /// 字段名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub field_name: Option<String>,
-    /// 字段类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub field_type: Option<String>,
-    /// 字段描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub field_desc: Option<String>,
+    /// 语言类型（必填）：en-英语，ja-日语，zh-中文
+    pub locale: String,
+    /// 统计类型（必填）：daily-日度统计，month-月度统计
+    pub stats_type: String,
+    /// 开始时间，格式 yyyyMMdd（官方标注「无效字段」，仍必填）
+    pub start_date: i32,
+    /// 结束时间，格式 yyyyMMdd（时间间隔不超过 40 天；官方标注「无效字段」，仍必填）
+    pub end_date: i32,
 }
 
 /// 查询统计字段定义响应
+///
+/// 官方响应 `data.user_stats_field` 为统计数据表头对象。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct QueryResponse {
-    /// 统计字段列表
-    pub stat_fields: Vec<StatField>,
-    /// 是否有更多数据
-    pub has_more: bool,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    /// 统计数据表头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_stats_field: Option<UserStatsField>,
+}
+
+/// 统计数据表头（user_stats_field）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UserStatsField {
+    /// 统计类型：daily-日度统计，month-月度统计
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stats_type: Option<String>,
+    /// 用户 ID，字段已废弃
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 字段列表
+    #[serde(default)]
+    pub fields: Vec<StatsFieldGroup>,
+}
+
+/// 统计字段分组（field）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StatsFieldGroup {
+    /// 分组编号
+    pub code: String,
+    /// 分组名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 字段列表
+    #[serde(default)]
+    pub child_fields: Vec<StatsChildField>,
+}
+
+/// 统计子字段（child_field）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StatsChildField {
+    /// 字段编号
+    pub code: String,
+    /// 字段名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 时间单位（该字段已停止使用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_unit: Option<String>,
 }
 
 #[cfg(test)]
@@ -64,17 +73,42 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_stat_field_serialization_roundtrip() {
-        let field = StatField {
-            field_id: "f_1".to_string(),
-            field_name: Some("出勤天数".to_string()),
-            field_type: Some("number".to_string()),
-            field_desc: Some("统计字段".to_string()),
-        };
+    fn test_query_response_deserialize_official_example() {
+        let response: QueryResponse = serde_json::from_value(serde_json::json!({
+            "user_stats_field": {
+                "stats_type": "month",
+                "user_id": "",
+                "fields": [
+                    {
+                        "code": "501",
+                        "title": "Basic info",
+                        "child_fields": [
+                            {"code": "50103", "title": "Employee ID"}
+                        ]
+                    },
+                    {
+                        "code": "524",
+                        "title": "Daily statistics",
+                        "child_fields": [
+                            {"code": "2021-03-16", "title": "2021-03-16 Tue", "time_unit": "Minute"}
+                        ]
+                    }
+                ]
+            }
+        }))
+        .expect("反序列化失败");
 
-        let text = serde_json::to_string(&field).expect("序列化失败");
-        let parsed: StatField = serde_json::from_str(&text).expect("反序列化失败");
-        assert_eq!(parsed.field_id, "f_1");
-        assert_eq!(parsed.field_type.as_deref(), Some("number"));
+        let stats_field = response.user_stats_field.expect("user_stats_field 应存在");
+        assert_eq!(stats_field.stats_type.as_deref(), Some("month"));
+        assert_eq!(stats_field.fields.len(), 2);
+        assert_eq!(stats_field.fields[0].code, "501");
+        assert_eq!(
+            stats_field.fields[0].child_fields[0].title.as_deref(),
+            Some("Employee ID")
+        );
+        assert_eq!(
+            stats_field.fields[1].child_fields[0].time_unit.as_deref(),
+            Some("Minute")
+        );
     }
 }

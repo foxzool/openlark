@@ -7,13 +7,15 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required_list,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询排班表请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
     /// 用户 ID 列表（必填，最多 50 人）
     user_ids: Vec<String>,
     /// 查询起始工作日（必填，格式 `yyyyMMdd`）
@@ -27,16 +29,19 @@ pub struct QueryRequest {
 impl QueryRequest {
     /// 创建请求
     ///
+    /// - `employee_type`: 员工 ID 类型（query 参数）
     /// - `user_ids`: 用户 ID 列表（最多 50 人）
     /// - `check_date_from`: 起始工作日（`yyyyMMdd`）
     /// - `check_date_to`: 结束工作日（`yyyyMMdd`）
     pub fn new(
         config: Config,
+        employee_type: String,
         user_ids: Vec<String>,
         check_date_from: i32,
         check_date_to: i32,
     ) -> Self {
         Self {
+            employee_type,
             user_ids,
             check_date_from,
             check_date_to,
@@ -58,6 +63,7 @@ impl QueryRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
         if self.check_date_to < self.check_date_from {
             return Err(openlark_core::error::validation_error(
@@ -66,9 +72,10 @@ impl QueryRequest {
             ));
         }
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserDailyShiftQuery;
-        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = QueryRequestBody {
@@ -134,6 +141,7 @@ mod tests {
     fn test_query_request_builder_new() {
         let request = QueryRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             vec!["abd754f7".to_string()],
             20_190_817,
             20_190_820,
@@ -146,13 +154,14 @@ mod tests {
     async fn test_attendance_v1_user_daily_shift_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         // 官方响应示例形状：data.user_daily_shifts[]（typed 元素）
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_daily_shifts/query"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -170,10 +179,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config, vec!["abd754f7".to_string()], 20_190_817, 20_190_820)
-            .execute()
-            .await
-            .expect("attendance_v1_user_daily_shift_query 应成功");
+        let data = QueryRequest::new(
+            config,
+            "employee_id".to_string(),
+            vec!["abd754f7".to_string()],
+            20_190_817,
+            20_190_820,
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_user_daily_shift_query 应成功");
 
         assert_eq!(data.user_daily_shifts.len(), 1);
         assert_eq!(data.user_daily_shifts[0].group_id, "6737202939523236110");

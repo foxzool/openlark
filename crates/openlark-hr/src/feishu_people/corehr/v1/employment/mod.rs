@@ -12,6 +12,6 @@ pub use create::CreateRequest;
 pub use delete::DeleteRequest;
 pub use models::{
     CreateRequestBody, CreateResponse, CustomField, DeleteRequestBody, DeleteResponse, Employment,
-    PatchRequestBody, PatchResponse,
+    EnumValue, PatchRequestBody, PatchResponse,
 };
 pub use patch::PatchRequest;

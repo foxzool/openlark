@@ -14,12 +14,24 @@
 //!
 //! ```no_run
 //! use openlark_hr::HrClient;
-//! use openlark_hr::attendance::attendance::v1::group::CreateGroupRequest;
+//! use openlark_hr::attendance::attendance::v1::group::{AttendanceGroup, CreateGroupRequest};
 //! # let config: openlark_core::config::Config = unimplemented!();
 //! let client = HrClient::new(config);
 //! // 真实资源直达：Config-direct Request 自带 builder + execute()
-//! let _request = CreateGroupRequest::new(client.config().clone())
-//!     .group_name("技术部".to_string());
+//! let group = AttendanceGroup::new(
+//!     "技术部".to_string(),
+//!     "Asia/Shanghai".to_string(),
+//!     vec!["2bg4a9be".to_string()],
+//!     1,
+//!     vec![],
+//!     1,
+//! );
+//! let _request = CreateGroupRequest::new(
+//!     client.config().clone(),
+//!     "employee_id".to_string(),
+//!     "open_id".to_string(),
+//!     group,
+//! );
 //! // .execute().await?  // 发送请求（需 async runtime，示例省略）
 //! ```
 //!

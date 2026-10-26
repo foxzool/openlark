@@ -19,6 +19,10 @@ pub struct CreateRequest {
     config: Config,
     /// 职级名称（必填）
     name: String,
+    /// 职级数值（必填，取值范围 0-99999999，数值越大职级越高）
+    level_order: i32,
+    /// 是否启用（必填，默认启用）
+    active: bool,
     /// 职级等级
     level: Option<i32>,
     /// 职级描述
@@ -33,6 +37,8 @@ impl CreateRequest {
         Self {
             config,
             name: String::new(),
+            level_order: 0,
+            active: true,
             level: None,
             description: None,
             job_family_id: None,
@@ -42,6 +48,18 @@ impl CreateRequest {
     /// 设置职级名称（必填）
     pub fn name(mut self, name: String) -> Self {
         self.name = name;
+        self
+    }
+
+    /// 设置职级数值（必填，取值范围 0-99999999）
+    pub fn level_order(mut self, level_order: i32) -> Self {
+        self.level_order = level_order;
+        self
+    }
+
+    /// 设置是否启用（必填）
+    pub fn active(mut self, active: bool) -> Self {
+        self.active = active;
         self
     }
 
@@ -86,6 +104,8 @@ impl CreateRequest {
         // 3. 序列化请求体
         let request_body = CreateRequestBody {
             name: self.name,
+            level_order: self.level_order,
+            active: self.active,
             level: self.level,
             description: self.description,
             job_family_id: self.job_family_id,
@@ -113,7 +133,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/job_levels
@@ -122,6 +142,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/job_levels"))
+            .and(body_partial_json(json!({
+                "name": "test001",
+                "level_order": 5,
+                "active": true
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "job_level_id": "" }
             })))
@@ -137,6 +162,8 @@ mod tests {
 
         CreateRequest::new(config)
             .name("test001".to_string())
+            .level_order(5)
+            .active(true)
             .execute()
             .await
             .expect("请求应成功");

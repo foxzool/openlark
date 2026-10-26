@@ -76,11 +76,27 @@ pub struct CustomField {
 
 // 创建雇佣信息相关模型
 
+/// 官方 enum 结构：`{enum_name}`（如 employment_status 雇佣状态）
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct EnumValue {
+    /// 枚举值（如 "hired"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_name: Option<String>,
+}
+
 /// 创建雇佣信息请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateRequestBody {
     /// 员工 ID（必填）
     pub employee_id: String,
+    /// 入职日期（格式：YYYY-MM-DD HH:mm:ss，必填）
+    pub effective_time: String,
+    /// 个人信息 ID（必填，由创建个人信息接口生成）
+    pub person_id: String,
+    /// 是否是主雇佣信息（必填）
+    pub primary_employment: bool,
+    /// 雇佣状态（必填，枚举值如 hired）
+    pub employment_status: EnumValue,
     /// 部门 ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub department_id: Option<String>,

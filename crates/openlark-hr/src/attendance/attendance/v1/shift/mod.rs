@@ -15,7 +15,7 @@ pub use get::GetShiftRequest;
 pub use list::ListShiftRequest;
 pub use models::{
     CreateShiftRequestBody, CreateShiftResponse, DeleteShiftResponse, EarlyLeaveRule,
-    GetShiftResponse, LateRule, ListShiftResponse, OvertimeRule, PunchPlace, PunchTime, PunchWifi,
-    QueryShiftResponse, RestRule, ShiftInfo, ShiftListItem,
+    GetShiftResponse, LateRule, ListShiftResponse, OvertimeRule, PunchPlace, PunchTime,
+    PunchTimeRule, PunchWifi, QueryShiftResponse, RestRule, ShiftInfo, ShiftListItem,
 };
 pub use query::QueryShiftRequest;

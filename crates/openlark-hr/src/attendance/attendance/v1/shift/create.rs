@@ -12,7 +12,7 @@ use openlark_core::{
 
 use super::models::{
     CreateShiftRequestBody, CreateShiftResponse, EarlyLeaveRule, LateRule, OvertimeRule, PunchTime,
-    RestRule,
+    PunchTimeRule, RestRule,
 };
 
 /// 创建班次请求
@@ -34,6 +34,8 @@ pub struct CreateShiftRequest {
     flexible_off_duty_time: Option<i32>,
     /// 打卡时段列表（必填）
     punch_times: Vec<PunchTime>,
+    /// 打卡规则（必填，官方 punch_time_rule[]）
+    punch_time_rule: Vec<PunchTimeRule>,
     /// 迟到规则
     late_rule: Option<LateRule>,
     /// 早退规则
@@ -73,6 +75,7 @@ impl CreateShiftRequest {
             flexible_on_duty_time: None,
             flexible_off_duty_time: None,
             punch_times: Vec::new(),
+            punch_time_rule: Vec::new(),
             late_rule: None,
             early_leave_rule: None,
             rest_rule: None,
@@ -136,6 +139,18 @@ impl CreateShiftRequest {
     /// 添加单个打卡时段
     pub fn add_punch_time(mut self, punch_time: PunchTime) -> Self {
         self.punch_times.push(punch_time);
+        self
+    }
+
+    /// 设置打卡规则列表（必填，官方 punch_time_rule）
+    pub fn punch_time_rule(mut self, punch_time_rule: Vec<PunchTimeRule>) -> Self {
+        self.punch_time_rule = punch_time_rule;
+        self
+    }
+
+    /// 添加单条打卡规则
+    pub fn add_punch_time_rule(mut self, rule: PunchTimeRule) -> Self {
+        self.punch_time_rule.push(rule);
         self
     }
 
@@ -235,6 +250,12 @@ impl CreateShiftRequest {
                 "至少需要设置一个打卡时段",
             ));
         }
+        if self.punch_time_rule.is_empty() {
+            return Err(openlark_core::error::validation_error(
+                "打卡规则不能为空",
+                "至少需要设置一条打卡规则（punch_time_rule）",
+            ));
+        }
 
         // 2. 构建端点
         let api_endpoint = AttendanceApiV1::ShiftCreate;
@@ -249,6 +270,7 @@ impl CreateShiftRequest {
             flexible_on_duty_time: self.flexible_on_duty_time,
             flexible_off_duty_time: self.flexible_off_duty_time,
             punch_times: self.punch_times,
+            punch_time_rule: self.punch_time_rule,
             late_rule: self.late_rule,
             early_leave_rule: self.early_leave_rule,
             rest_rule: self.rest_rule,
@@ -341,6 +363,19 @@ mod tests {
                 on_duty_wifis: None,
                 off_duty_wifis: None,
             })
+            .add_punch_time_rule(PunchTimeRule {
+                on_time: "9:00".to_string(),
+                off_time: "18:00".to_string(),
+                late_minutes_as_late: 30,
+                late_minutes_as_lack: 60,
+                on_advance_minutes: 60,
+                early_minutes_as_early: 30,
+                early_minutes_as_lack: 60,
+                off_delay_minutes: 60,
+                late_minutes_as_serious_late: None,
+                no_need_on: None,
+                no_need_off: None,
+            })
             .execute()
             .await
             .expect("attendance_v1_shift_create 应成功");
@@ -350,5 +385,11 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/attendance/v1/shifts");
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(
+            body.contains("\"punch_time_rule\""),
+            "请求体缺 punch_time_rule: {body}"
+        );
+        assert!(body.contains("\"on_time\""), "请求体缺 on_time: {body}");
     }
 }

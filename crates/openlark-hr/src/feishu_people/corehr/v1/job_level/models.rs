@@ -43,6 +43,10 @@ pub struct JobLevel {
 pub struct CreateRequestBody {
     /// 职级名称（必填）
     pub name: String,
+    /// 职级数值（必填，取值范围 0-99999999，数值越大职级越高）
+    pub level_order: i32,
+    /// 是否启用（必填）
+    pub active: bool,
     /// 职级等级
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,

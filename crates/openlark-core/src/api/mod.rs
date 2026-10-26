@@ -105,6 +105,10 @@ pub struct ApiRequest<R> {
     pub(crate) url: String,
     pub(crate) headers: HashMap<String, String>,
     pub(crate) query: HashMap<String, String>,
+    /// 同名多次传递的查询参数（官方文档要求 repeated 传递的场景，如
+    /// `?statuses=1&statuses=2`）。`query` 是单值 HashMap 无法表达，序列化时
+    /// 追加在 `query` 之后。
+    pub(crate) query_multi: Vec<(String, String)>,
     pub(crate) body: Option<RequestData>,
     pub(crate) file: Option<Vec<u8>>,
     /// multipart 文件部件名（None 时使用默认值 "file"；部件名为接口常量，要求 'static）
@@ -122,6 +126,7 @@ impl<R> ApiRequest<R> {
             url: url.into(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,
@@ -138,6 +143,7 @@ impl<R> ApiRequest<R> {
             url: url.into(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,
@@ -154,6 +160,7 @@ impl<R> ApiRequest<R> {
             url: url.into(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,
@@ -170,6 +177,7 @@ impl<R> ApiRequest<R> {
             url: url.into(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,
@@ -186,6 +194,7 @@ impl<R> ApiRequest<R> {
             url: url.into(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,
@@ -223,6 +232,23 @@ impl<R> ApiRequest<R> {
     {
         if let Some(v) = value {
             self.query.insert(key.into(), v.into());
+        }
+        self
+    }
+
+    /// 添加同名多次传递的查询参数（如 `statuses=1&statuses=2`）
+    ///
+    /// 部分官方接口要求同一参数名多次传递不同值（如 corehr 流程实例列表的
+    /// `statuses`）；`query`/`query_opt` 受单值限制无法表达，须用本方法。
+    pub fn query_multi<K, V, I>(mut self, key: K, values: I) -> Self
+    where
+        K: Into<String>,
+        I: IntoIterator<Item = V>,
+        V: Into<String>,
+    {
+        let key = key.into();
+        for value in values {
+            self.query_multi.push((key.clone(), value.into()));
         }
         self
     }
@@ -281,16 +307,20 @@ impl<R> ApiRequest<R> {
 
     /// 构建完整 URL（包含查询参数）
     pub fn build_url(&self) -> String {
-        if self.query.is_empty() {
+        let mut pairs: Vec<String> = self
+            .query
+            .iter()
+            .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
+            .collect();
+        pairs.extend(
+            self.query_multi
+                .iter()
+                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v))),
+        );
+        if pairs.is_empty() {
             self.url.clone()
         } else {
-            let query_string = self
-                .query
-                .iter()
-                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
-                .collect::<Vec<_>>()
-                .join("&");
-            format!("{}?{}", self.url, query_string)
+            format!("{}?{}", self.url, pairs.join("&"))
         }
     }
 
@@ -394,6 +424,7 @@ impl<R> Default for ApiRequest<R> {
             url: String::default(),
             headers: HashMap::new(),
             query: HashMap::new(),
+            query_multi: Vec::new(),
             body: None,
             file: None,
             file_part_name: None,

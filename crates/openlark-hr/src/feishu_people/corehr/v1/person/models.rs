@@ -539,3 +539,74 @@ pub struct PersonFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
 }
+
+// 创建个人信息相关模型
+
+/// 创建个人信息请求体
+///
+/// 顶层字段与官方文档对齐：`name_list` 必填，其余可选。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateRequestBody {
+    /// 姓名（必填）
+    pub name_list: Vec<PersonName>,
+    /// 性别
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gender: Option<EnumValue>,
+    /// 出生日期（格式：YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date_of_birth: Option<String>,
+    /// 国籍 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nationality_id: Option<String>,
+    /// 民族 / 种族
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub race: Option<EnumValue>,
+    /// 婚姻状况
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marital_status: Option<EnumValue>,
+    /// 电话列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone_list: Option<Vec<Phone>>,
+    /// 地址列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub address_list: Option<Vec<Address>>,
+    /// 邮箱列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_list: Option<Vec<Email>>,
+    /// 工作履历
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_experience_list: Option<Vec<WorkExperience>>,
+    /// 教育经历
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub education_list: Option<Vec<Education>>,
+    /// 银行账号
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bank_account_list: Option<Vec<BankAccount>>,
+    /// 证件号码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub national_id_list: Option<Vec<NationalId>>,
+    /// 亲属
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dependent_list: Option<Vec<Dependent>>,
+    /// 紧急联系人
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub emergency_contact_list: Option<Vec<EmergencyContact>>,
+    /// 参加工作日期（格式：YYYY-MM-DD）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date_entered_workforce: Option<String>,
+    /// 头像资源的 id
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_image_id: Option<String>,
+    /// 自定义字段
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_fields: Option<Vec<ObjectFieldData>>,
+    /// 纳税身份信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resident_tax_id_list: Option<Vec<String>>,
+    /// 年龄
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub age: Option<i64>,
+    /// 个人资料
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub personal_profile: Option<Vec<PersonalProfile>>,
+}

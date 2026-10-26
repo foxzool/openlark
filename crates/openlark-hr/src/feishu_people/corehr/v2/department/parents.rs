@@ -7,22 +7,16 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 
 use serde::{Deserialize, Serialize};
 
-/// 获取父部门信息请求
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ParentsRequest {
-    /// 部门 ID
-    pub department_id: String,
-}
-
-impl ParentsRequest {
-    /// 创建请求
-    pub fn new(department_id: String) -> Self {
-        Self { department_id }
-    }
+/// 获取父部门信息请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParentsBody {
+    /// 部门 ID 列表（必填，一次性最多传入 100 个）
+    pub department_id_list: Vec<String>,
 }
 
 /// 获取父部门信息响应
@@ -87,16 +81,26 @@ impl ApiResponseTrait for ParentsResponse {
 #[derive(Debug, Clone)]
 pub struct ParentsRequestBuilder {
     config: Config,
-    department_id: String,
+    /// 部门 ID 列表（必填，一次性最多传入 100 个）
+    department_id_list: Vec<String>,
+    /// 部门 ID 类型（open_department_id/department_id/people_corehr_department_id）
+    department_id_type: Option<String>,
 }
 
 impl ParentsRequestBuilder {
     /// 创建请求构建器
-    pub fn new(config: Config, department_id: String) -> Self {
+    pub fn new(config: Config, department_id_list: Vec<String>) -> Self {
         Self {
             config,
-            department_id,
+            department_id_list,
+            department_id_type: None,
         }
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
+        self
     }
 
     /// 执行请求
@@ -110,18 +114,19 @@ impl ParentsRequestBuilder {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ParentsResponse> {
-        use crate::common::api_endpoints::FeishuPeopleApiV2;
+        validate_required_list!(
+            self.department_id_list,
+            100,
+            "department_id_list 不能为空且不能超过 100 个"
+        );
 
         // 构建端点
-        let api_endpoint = FeishuPeopleApiV2::DepartmentParents(self.department_id.clone());
-        let request = ApiRequest::<ParentsResponse>::post(api_endpoint.to_url()).body(
-            serde_json::to_value(ParentsRequest::new(self.department_id)).map_err(|e| {
-                openlark_core::error::validation_error(
-                    "获取父部门信息请求序列化失败",
-                    e.to_string(),
-                )
-            })?,
-        );
+        let request =
+            ApiRequest::<ParentsResponse>::post("/open-apis/corehr/v2/departments/parents")
+                .query_opt("department_id_type", self.department_id_type)
+                .body(serde_json::to_value(ParentsBody {
+                    department_id_list: self.department_id_list,
+                })?);
 
         // 发送请求
         Transport::request_typed(
@@ -139,7 +144,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/departments/parents
@@ -148,6 +153,9 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/parents"))
+            .and(body_json(json!({
+                "department_id_list": ["6893014062142064111"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -180,7 +188,7 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = ParentsRequestBuilder::new(config, "test001".to_string())
+        let resp = ParentsRequestBuilder::new(config, vec!["6893014062142064111".to_string()])
             .execute()
             .await
             .expect("请求应成功");

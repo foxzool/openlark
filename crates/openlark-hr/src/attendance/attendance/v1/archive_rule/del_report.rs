@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 /// 删除归档报表行数据请求
 #[derive(Debug, Clone)]
 pub struct DelReportRequest {
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
     /// 月份，格式 `yyyyMM`（必填）
     month: String,
     /// 操作者 ID（必填）
@@ -29,16 +31,19 @@ pub struct DelReportRequest {
 impl DelReportRequest {
     /// 创建请求
     ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
     /// - `month`: 月份，格式 `yyyyMM`
     /// - `operator_id`: 操作者 ID
     /// - `archive_rule_id`: 归档规则 ID
     pub fn new(
         config: Config,
+        employee_type: String,
         month: String,
         operator_id: String,
         archive_rule_id: String,
     ) -> Self {
         Self {
+            employee_type,
             month,
             operator_id,
             archive_rule_id,
@@ -67,13 +72,15 @@ impl DelReportRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required!(self.month.trim(), "month");
         validate_required!(self.operator_id.trim(), "operator_id");
         validate_required!(self.archive_rule_id.trim(), "archive_rule_id");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::ArchiveRuleDelReport;
-        let request = ApiRequest::<DelReportResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<DelReportResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = DelReportRequestBody {
@@ -137,6 +144,7 @@ mod tests {
     fn test_del_report_request_builder_new() {
         let request = DelReportRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             "202409".to_string(),
             "a111xd".to_string(),
             "1".to_string(),
@@ -150,13 +158,14 @@ mod tests {
     async fn test_attendance_v1_archive_rule_del_report_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         // 飞书官网 response data 为空对象
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/archive_rule/del_report"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -174,6 +183,7 @@ mod tests {
 
         let _data = DelReportRequest::new(
             config,
+            "employee_id".to_string(),
             "202409".to_string(),
             "a111xd".to_string(),
             "1".to_string(),
@@ -189,6 +199,11 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/archive_rule/del_report"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
         );
         let body = String::from_utf8(received[0].body.clone()).unwrap();
         assert!(body.contains("\"month\""), "请求体缺 month: {body}");

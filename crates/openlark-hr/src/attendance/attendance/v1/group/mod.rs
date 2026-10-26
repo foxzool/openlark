@@ -12,7 +12,10 @@ pub use get::GetGroupRequest;
 pub use list::ListGroupRequest;
 pub use list_user::{GroupMember, ListUserRequest, ListUserResponse};
 pub use models::{
-    CreateGroupRequestBody, CreateGroupResponse, DeleteGroupResponse, GetGroupResponse, GroupInfo,
-    GroupListItem, ListGroupResponse, OvertimeInfo, SearchGroupResponse, ShiftInfo, WorkDayConfig,
+    AntiCheatPunchConfig, AttendanceGroup, AttendanceLocation, AttendanceMachine,
+    ClockInAbnormalSettings, CreateGroupRequestBody, CreateGroupResponse, DeleteGroupResponse,
+    FreePunchCfg, GetGroupResponse, GroupInfo, GroupListItem, LeaveNeedPunchCfg, ListGroupResponse,
+    MemberStatusChange, OvertimeClockCfg, OvertimeInfo, PunchMember, PunchSpecialDateShift,
+    ScopeGroup, ScopeValue, SearchGroupResponse, ShiftInfo, WorkDayConfig,
 };
 pub use search::SearchGroupRequest;

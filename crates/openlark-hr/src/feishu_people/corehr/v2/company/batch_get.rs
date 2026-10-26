@@ -11,23 +11,42 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// 通过公司 ID 批量获取公司信息请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchGetBody {
+    /// 需要查询的公司 ID 列表（必填，长度范围 1～100）
+    pub company_ids: Vec<String>,
+}
+
 /// 通过公司 ID 批量获取公司信息请求
 #[derive(Debug, Clone)]
 pub struct BatchGetRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: BatchGetBody,
 }
 
 impl BatchGetRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: BatchGetBody {
+                company_ids: Vec::new(),
+            },
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: BatchGetBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置需要查询的公司 ID 列表（必填，最多 100 个）。
+    pub fn company_ids(mut self, company_ids: Vec<String>) -> Self {
+        self.body.company_ids = company_ids;
         self
     }
 
@@ -42,12 +61,15 @@ impl BatchGetRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchGetResponse> {
-        let mut request =
-            ApiRequest::<BatchGetResponse>::post("/open-apis/corehr/v2/companies/batch_get");
+        openlark_core::validate_required_list!(
+            self.body.company_ids,
+            100,
+            "company_ids 不能为空且不能超过 100 个"
+        );
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request =
+            ApiRequest::<BatchGetResponse>::post("/open-apis/corehr/v2/companies/batch_get")
+                .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -141,7 +163,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/companies/batch_get
@@ -150,6 +172,9 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/companies/batch_get"))
+            .and(body_json(json!({
+                "company_ids": ["4692472714243080020"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": {
@@ -184,6 +209,7 @@ mod tests {
             .build();
 
         let resp = BatchGetRequest::new(config)
+            .company_ids(vec!["4692472714243080020".to_string()])
             .execute()
             .await
             .expect("请求应成功");

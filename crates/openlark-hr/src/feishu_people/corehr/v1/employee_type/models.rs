@@ -37,6 +37,10 @@ pub struct EmployeeType {
 pub struct CreateRequestBody {
     /// 人员类型名称（必填）
     pub name: String,
+    /// 是否为默认人员类型，每个租户只能定义一个默认人员类型（必填）
+    pub default_employee_type: bool,
+    /// 是否启用（必填）
+    pub active: bool,
     /// 人员类型描述
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
