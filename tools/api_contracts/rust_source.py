@@ -576,6 +576,22 @@ def extract_manual_auth_token(text: str) -> str:
     return ""
 
 
+def has_value_body_passthrough(text: str) -> bool:
+    """检测请求体是否以 serde_json::Value 透传（无类型建模但 wire 不破）。
+
+    形态：Request struct 的 ``body: serde_json::Value`` / ``body: Option<Value>``
+    字段，或 ``.body(serde_json::to_value(...))`` / ``.body(Value::...)`` 调用。
+    这类 API 调用方可自行组装官方字段，属于「补类型」工作而非 wire-broken。
+    """
+    if re.search(r"body\s*:\s*(?:Option<)?serde_json::Value", text):
+        return True
+    if re.search(r"body\s*:\s*(?:Option<)?\bValue\b", text):
+        return True
+    if re.search(r"\.body\s*\(\s*serde_json::to_value", text):
+        return True
+    return False
+
+
 def has_flatten_value_passthrough(text: str) -> bool:
     """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
 
@@ -981,6 +997,7 @@ def scan_api_file(
         fields=extract_rust_fields(fields_text),
         response_fields=extract_rust_response_fields(fields_text),
         has_flatten_value_passthrough=has_flatten_value_passthrough(fields_text),
+        has_value_body_passthrough=has_value_body_passthrough(text),
         access_token_types=access_token_types,
         manual_auth_token=extract_manual_auth_token(text),
     )
