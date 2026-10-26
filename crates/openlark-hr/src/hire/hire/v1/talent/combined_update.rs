@@ -10,85 +10,28 @@ use openlark_core::{
     validate_required,
 };
 
-use super::models::{
-    CombinedUpdateRequestBody, CombinedUpdateResponse, TalentEducation, TalentWorkExperience,
-};
+use super::models::{CombinedUpdateRequestBody, CombinedUpdateResponse};
 
 /// 综合更新候选人请求
 #[derive(Debug, Clone)]
 pub struct CombinedUpdateRequest {
     /// 配置信息
     config: Config,
-    /// 候选人 ID（必填）
-    talent_id: String,
-    /// 候选人姓名
-    name: Option<String>,
-    /// 邮箱
-    email: Option<String>,
-    /// 手机号
-    phone: Option<String>,
-    /// 简历内容（HTML格式）
-    resume: Option<String>,
-    /// 教育经历
-    education_list: Option<Vec<TalentEducation>>,
-    /// 工作经历
-    work_experience_list: Option<Vec<TalentWorkExperience>>,
+    request_body: CombinedUpdateRequestBody,
 }
 
 impl CombinedUpdateRequest {
-    /// 创建请求
-    pub fn new(config: Config) -> Self {
+    /// 创建请求（`talent_id` 与 `basic_info` 必填）
+    pub fn new(config: Config, request_body: CombinedUpdateRequestBody) -> Self {
         Self {
             config,
-            talent_id: String::new(),
-            name: None,
-            email: None,
-            phone: None,
-            resume: None,
-            education_list: None,
-            work_experience_list: None,
+            request_body,
         }
     }
 
-    /// 设置候选人 ID（必填）
-    pub fn talent_id(mut self, talent_id: String) -> Self {
-        self.talent_id = talent_id;
-        self
-    }
-
-    /// 设置候选人姓名
-    pub fn name(mut self, name: String) -> Self {
-        self.name = Some(name);
-        self
-    }
-
-    /// 设置邮箱
-    pub fn email(mut self, email: String) -> Self {
-        self.email = Some(email);
-        self
-    }
-
-    /// 设置手机号
-    pub fn phone(mut self, phone: String) -> Self {
-        self.phone = Some(phone);
-        self
-    }
-
-    /// 设置简历内容（HTML格式）
-    pub fn resume(mut self, resume: String) -> Self {
-        self.resume = Some(resume);
-        self
-    }
-
-    /// 设置教育经历
-    pub fn education_list(mut self, education_list: Vec<TalentEducation>) -> Self {
-        self.education_list = Some(education_list);
-        self
-    }
-
-    /// 设置工作经历
-    pub fn work_experience_list(mut self, work_experience_list: Vec<TalentWorkExperience>) -> Self {
-        self.work_experience_list = Some(work_experience_list);
+    /// 设置请求体。
+    pub fn request_body(mut self, request_body: CombinedUpdateRequestBody) -> Self {
+        self.request_body = request_body;
         self
     }
 
@@ -105,45 +48,19 @@ impl CombinedUpdateRequest {
     ) -> SDKResult<CombinedUpdateResponse> {
         use crate::common::api_endpoints::HireApiV1;
 
-        // 1. 验证必填字段
-        validate_required!(self.talent_id.trim(), "候选人 ID 不能为空");
+        // 验证必填字段
+        validate_required!(self.request_body.talent_id.trim(), "人才 ID 不能为空");
 
-        // 验证至少有一个更新字段
-        let has_update = self.name.is_some()
-            || self.email.is_some()
-            || self.phone.is_some()
-            || self.resume.is_some()
-            || self.education_list.is_some()
-            || self.work_experience_list.is_some();
-        if !has_update {
-            return Err(openlark_core::error::validation_error(
-                "缺少更新字段",
-                "更新候选人时至少需要提供一个更新字段",
-            ));
-        }
-
-        // 2. 构建端点
         let api_endpoint = HireApiV1::TalentCombinedUpdate;
-        let request = ApiRequest::<CombinedUpdateResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<CombinedUpdateResponse>::post(api_endpoint.to_url()).body(
+            serde_json::to_value(&self.request_body).map_err(|e| {
+                openlark_core::error::validation_error(
+                    "请求体序列化失败",
+                    format!("无法序列化请求参数: {e}"),
+                )
+            })?,
+        );
 
-        // 3. 序列化请求体
-        let request_body = CombinedUpdateRequestBody {
-            talent_id: self.talent_id,
-            name: self.name,
-            email: self.email,
-            phone: self.phone,
-            resume: self.resume,
-            education_list: self.education_list,
-            work_experience_list: self.work_experience_list,
-        };
-        let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
-
-        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -161,23 +78,77 @@ impl ApiResponseTrait for CombinedUpdateResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
-    use openlark_core::testing::prelude::TestConfigBuilder;
+    use crate::hire::hire::v1::talent::models::TalentCombinedBasicInfo;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    #[test]
-    fn test_combined_update_request_builder_new() {
-        let request = CombinedUpdateRequest::new(TestConfigBuilder::new().build())
-            .talent_id("test".to_string());
-        let _ = request;
+    /// 端到端：POST /open-apis/hire/v1/talents/combined_update，请求体按官方形状（talent_id + basic_info 必填）
+    #[tokio::test]
+    async fn test_combined_update_sends_official_body_shape() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/hire/v1/talents/combined_update"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "ok", "data": { "result": true }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CombinedUpdateRequest::new(
+            config,
+            CombinedUpdateRequestBody::new(
+                "7158793341499426348".to_string(),
+                TalentCombinedBasicInfo {
+                    name: Some("张三".to_string()),
+                    email: Some("16xx1@126.com".to_string()),
+                    ..Default::default()
+                },
+            ),
+        )
+        .execute()
+        .await
+        .expect("请求应成功");
+        assert!(resp.result);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        // 请求体须与官方文档一致：talent_id + basic_info 嵌套结构
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(
+            sent,
+            json!({
+                "talent_id": "7158793341499426348",
+                "basic_info": { "name": "张三", "email": "16xx1@126.com" }
+            })
+        );
     }
 
-    #[test]
-    fn test_combined_update_request_validation_fails_on_default_request() {
-        let request = CombinedUpdateRequest::new(TestConfigBuilder::new().build());
-        let rt = tokio::runtime::Runtime::new().expect("创建 tokio runtime 失败");
-        let result = rt.block_on(request.execute());
-        assert!(result.is_err());
+    /// 缺 talent_id 时快速失败，不发起请求。
+    #[tokio::test]
+    async fn test_combined_update_rejects_blank_talent_id() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let err = CombinedUpdateRequest::new(
+            config,
+            CombinedUpdateRequestBody::new("  ", TalentCombinedBasicInfo::default()),
+        )
+        .execute()
+        .await
+        .expect_err("缺 talent_id 应被拒绝");
+        assert!(err.to_string().contains("人才 ID"), "实际: {err}");
     }
 }

@@ -7,27 +7,45 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// 删除岗位请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DelPositionBody {
+    /// 岗位 ID（必填），可通过查询岗位信息接口获得
+    pub position_id: String,
+}
 
 /// 删除岗位请求
 #[derive(Debug, Clone)]
 pub struct DelPositionRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: DelPositionBody,
 }
 
 impl DelPositionRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: DelPositionBody::default(),
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: DelPositionBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置岗位 ID（必填）。
+    pub fn position_id(mut self, position_id: impl Into<String>) -> Self {
+        self.body.position_id = position_id.into();
         self
     }
 
@@ -42,12 +60,11 @@ impl DelPositionRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DelPositionResponse> {
-        let mut request =
-            ApiRequest::<DelPositionResponse>::post("/open-apis/corehr/v2/positions/del_position");
+        validate_required!(self.body.position_id, "position_id 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request =
+            ApiRequest::<DelPositionResponse>::post("/open-apis/corehr/v2/positions/del_position")
+                .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -71,15 +88,19 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/positions/del_position
+    /// （官方请求体为 {position_id}，必填）
     #[tokio::test]
     async fn test_del_position_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/positions/del_position"))
+            .and(body_json(json!({
+                "position_id": "6862995757234914824"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "data": {} }
             })))
@@ -94,6 +115,7 @@ mod tests {
             .build();
 
         DelPositionRequest::new(config)
+            .position_id("6862995757234914824")
             .execute()
             .await
             .expect("请求应成功");

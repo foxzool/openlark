@@ -10,7 +10,13 @@ use openlark_core::{
     validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 撤销异动请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RevokeBody {
+    /// 操作人 id（必填，关联了流程的异动需要操作人有流程管理员和审批单管理员权限）
+    pub operator_id: String,
+}
 
 /// RevokeRequest
 #[derive(Debug, Clone)]
@@ -19,8 +25,10 @@ pub struct RevokeRequest {
     config: Config,
     /// 异动 ID
     job_change_id: Option<String>,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 请求体
+    body: RevokeBody,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_admin_id/people_corehr_id）
+    user_id_type: Option<String>,
 }
 
 impl RevokeRequest {
@@ -29,7 +37,8 @@ impl RevokeRequest {
         Self {
             config,
             job_change_id: None,
-            body: None,
+            body: RevokeBody::default(),
+            user_id_type: None,
         }
     }
 
@@ -40,8 +49,20 @@ impl RevokeRequest {
     }
 
     /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: RevokeBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置操作人 id（必填）。
+    pub fn operator_id(mut self, operator_id: impl Into<String>) -> Self {
+        self.body.operator_id = operator_id.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_admin_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -58,14 +79,13 @@ impl RevokeRequest {
     ) -> SDKResult<RevokeResponse> {
         let job_change_id = self.job_change_id.unwrap_or_default();
         validate_required!(job_change_id.trim(), "job_change_id 不能为空");
+        validate_required!(self.body.operator_id, "operator_id 不能为空");
 
-        let mut request = ApiRequest::<RevokeResponse>::post(format!(
+        let request = ApiRequest::<RevokeResponse>::post(format!(
             "/open-apis/corehr/v2/job_changes/{job_change_id}/revoke"
-        ));
-
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        ))
+        .query_opt("user_id_type", self.user_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -93,7 +113,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/job_changes/test001/revoke
@@ -102,6 +122,9 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/job_changes/test001/revoke"))
+            .and(body_json(json!({
+                "operator_id": "ou_a294793e8fa21529f2a60e3e9de45520"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "result": true, "message": "成功" }
             })))
@@ -117,6 +140,7 @@ mod tests {
 
         let resp = RevokeRequest::new(config)
             .job_change_id("test001".to_string())
+            .operator_id("ou_a294793e8fa21529f2a60e3e9de45520")
             .execute()
             .await
             .expect("请求应成功");

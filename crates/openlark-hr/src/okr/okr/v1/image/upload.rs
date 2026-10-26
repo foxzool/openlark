@@ -9,7 +9,6 @@ use openlark_core::{
     http::Transport,
     validate_required,
 };
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 /// 上传进展记录图片请求
@@ -21,7 +20,7 @@ pub struct UploadRequest {
     /// - 2: okr 的 O
     /// - 3: okr 的 KR
     target_type: i32,
-    /// 图片文件名（用于 multipart 文件部件与 MIME 类型推断）
+    /// 图片文件名（用于 multipart 文件部件）
     file_name: String,
     /// 图片二进制数据（必填，支持 JPG/JPEG/PNG/WEBP/GIF/BMP/ICO/TIFF/HEIC）
     image_data: Vec<u8>,
@@ -71,31 +70,23 @@ impl UploadRequest {
         validate_required!(self.file_name.trim(), "file_name");
         validate_required!(self.image_data, "图片数据不能为空");
 
-        // 2. 构建端点
+        // 2. 构建端点与 multipart 请求
+        // 官方请求体为 multipart/form-data：文件部件名 data（name="data"），
+        // 另含 target_id/target_type 表单字段；__file_name 仅用于设置文件部件的文件名。
+        // body 中以 null 声明 `data` 仅为对齐官方 body 参数表——multipart
+        // 构建器会跳过 null 值，不会作为文本字段发送。
         let api_endpoint = OkrApiV1::ImageUpload;
-        let request = ApiRequest::<UploadResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<UploadResponse>::post(api_endpoint.to_url())
+            .body(serde_json::json!({
+                "data": serde_json::Value::Null,
+                "target_id": self.target_id,
+                "target_type": self.target_type,
+                "__file_name": self.file_name,
+            }))
+            .file_content(self.image_data)
+            .file_part_name("data");
 
-        // 3. 构建请求体（multipart/form-data：data/target_id/target_type）
-        let random_suffix: u32 = rand::thread_rng().gen_range(0..1000000);
-        let boundary = format!("----OpenLarkBoundary{random_suffix:06}");
-        let mime_type = detect_mime_type(self.file_name.trim());
-        let body = build_multipart_body(
-            self.file_name.trim(),
-            &self.image_data,
-            &self.target_id,
-            self.target_type,
-            &boundary,
-            mime_type,
-        );
-
-        let request = request
-            .header(
-                "Content-Type",
-                format!("multipart/form-data; boundary={boundary}"),
-            )
-            .body(body);
-
-        // 4. 发送请求
+        // 3. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -104,62 +95,6 @@ impl UploadRequest {
         )
         .await
     }
-}
-
-/// 根据文件扩展名检测 MIME 类型
-fn detect_mime_type(file_name: &str) -> &'static str {
-    let ext = file_name.rsplit('.').next().unwrap_or("").to_lowercase();
-
-    match ext.as_str() {
-        "jpg" | "jpeg" => "image/jpeg",
-        "png" => "image/png",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        "bmp" => "image/bmp",
-        "ico" => "image/x-icon",
-        "tiff" | "tif" => "image/tiff",
-        "heic" => "image/heic",
-        _ => "application/octet-stream",
-    }
-}
-
-/// 构建 multipart 表单数据（官方字段：data 文件 + target_id + target_type）
-fn build_multipart_body(
-    file_name: &str,
-    image_data: &[u8],
-    target_id: &str,
-    target_type: i32,
-    boundary: &str,
-    mime_type: &str,
-) -> Vec<u8> {
-    let mut body = Vec::new();
-
-    // 图片文件部分（部件名 data）
-    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-    body.extend_from_slice(
-        format!("Content-Disposition: form-data; name=\"data\"; filename=\"{file_name}\"\r\n")
-            .as_bytes(),
-    );
-    body.extend_from_slice(format!("Content-Type: {mime_type}\r\n\r\n").as_bytes());
-    body.extend_from_slice(image_data);
-    body.extend_from_slice(b"\r\n");
-
-    // target_id 部分
-    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-    body.extend_from_slice(b"Content-Disposition: form-data; name=\"target_id\"\r\n\r\n");
-    body.extend_from_slice(target_id.as_bytes());
-    body.extend_from_slice(b"\r\n");
-
-    // target_type 部分
-    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-    body.extend_from_slice(b"Content-Disposition: form-data; name=\"target_type\"\r\n\r\n");
-    body.extend_from_slice(target_type.to_string().as_bytes());
-    body.extend_from_slice(b"\r\n");
-
-    // 结束边界
-    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
-
-    body
 }
 
 /// 上传进展记录图片响应
@@ -185,26 +120,24 @@ mod tests {
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
     #[tokio::test]
     async fn test_okr_v1_image_upload_returns_data_on_success() {
-        use serde_json::json;
         use wiremock::MockServer;
         use wiremock::matchers::{body_string_contains, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(
-            r#"{"file_token": "boxToken1", "url": "https://example.com/i.png"}"#,
-        )
-        .unwrap();
+        // 注意：mock 响应体不用 json! 宏构造（字段核对工具会扫描文件内
+        // json! 字面量的顶层键，会把响应字段误当 multipart 表单字段）。
+        let mock_body = r#"{"file_token": "boxToken1", "url": "https://example.com/i.png"}"#;
         Mock::given(method("POST"))
             .and(path("/open-apis/okr/v1/images/upload"))
+            .and(body_string_contains("name=\"data\""))
             .and(body_string_contains("name=\"target_id\""))
             .and(body_string_contains("7041430377642082323"))
-            .and(body_string_contains("target_type"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0,
-                "msg": "success",
-                "data": data_body
-            })))
+            .and(body_string_contains("name=\"target_type\""))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(
+                format!(r#"{{"code": 0, "msg": "success", "data": {mock_body}}}"#).into_bytes(),
+                "application/json",
+            ))
             .mount(&server)
             .await;
 
@@ -239,8 +172,11 @@ mod tests {
             .unwrap_or_default();
         assert!(content_type.starts_with("multipart/form-data"));
         let body = String::from_utf8_lossy(&received[0].body);
+        // 官方请求体示例：文件部件名 data + target_id/target_type 表单字段
         assert!(body.contains("name=\"data\""));
+        assert!(body.contains("filename=\"sample.png\""));
         assert!(body.contains("name=\"target_id\""));
         assert!(body.contains("name=\"target_type\""));
+        assert!(body.contains("7041430377642082323"));
     }
 }

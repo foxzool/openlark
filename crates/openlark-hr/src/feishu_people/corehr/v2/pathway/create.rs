@@ -2,32 +2,77 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/pathway/create>
 
+use crate::common::shared_models::I18nLangValue;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 创建通道请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateBody {
+    /// 通道名称（必填，i18n 多语，最多 2 条；名称不能包含「/」「；」「;」「\」「'」字符）
+    pub names: Vec<I18nLangValue>,
+    /// 通道编码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 通道描述（i18n 多语，最多 2 条）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub descriptions: Option<Vec<I18nLangValue>>,
+}
 
 /// 创建通道请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: CreateBody,
+    /// 用于幂等控制的 client_token
+    client_token: Option<String>,
 }
 
 impl CreateRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: CreateBody::default(),
+            client_token: None,
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: CreateBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置通道名称（必填，i18n 多语）。
+    pub fn names(mut self, names: Vec<I18nLangValue>) -> Self {
+        self.body.names = names;
+        self
+    }
+
+    /// 设置通道编码。
+    pub fn code(mut self, code: impl Into<String>) -> Self {
+        self.body.code = Some(code.into());
+        self
+    }
+
+    /// 设置通道描述（i18n 多语）。
+    pub fn descriptions(mut self, descriptions: Vec<I18nLangValue>) -> Self {
+        self.body.descriptions = Some(descriptions);
+        self
+    }
+
+    /// 设置用于幂等控制的 client_token。
+    pub fn client_token(mut self, client_token: impl Into<String>) -> Self {
+        self.client_token = Some(client_token.into());
         self
     }
 
@@ -42,11 +87,11 @@ impl CreateRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateResponse> {
-        let mut request = ApiRequest::<CreateResponse>::post("/open-apis/corehr/v2/pathways");
+        validate_required!(self.body.names, "names 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<CreateResponse>::post("/open-apis/corehr/v2/pathways")
+            .query_opt("client_token", self.client_token)
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -71,7 +116,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/pathways
@@ -80,6 +125,16 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/pathways"))
+            .and(query_param("client_token", "12454646"))
+            .and(body_json(json!({
+                "code": "A01234",
+                "names": [
+                    { "lang": "zh-CN", "value": "中文示例" }
+                ],
+                "descriptions": [
+                    { "lang": "zh-CN", "value": "中文示例" }
+                ]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "pathway_id": "12345678" }
             })))
@@ -94,6 +149,16 @@ mod tests {
             .build();
 
         let resp = CreateRequest::new(config)
+            .names(vec![I18nLangValue {
+                lang: Some("zh-CN".to_string()),
+                value: Some("中文示例".to_string()),
+            }])
+            .code("A01234")
+            .descriptions(vec![I18nLangValue {
+                lang: Some("zh-CN".to_string()),
+                value: Some("中文示例".to_string()),
+            }])
+            .client_token("12454646")
             .execute()
             .await
             .expect("请求应成功");

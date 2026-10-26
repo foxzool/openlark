@@ -10,76 +10,28 @@ use openlark_core::{
     validate_required,
 };
 
-use super::models::{
-    CombinedCreateRequestBody, CombinedCreateResponse, TalentEducation, TalentWorkExperience,
-};
+use super::models::{CombinedCreateRequestBody, CombinedCreateResponse};
 
 /// 综合创建候选人请求
 #[derive(Debug, Clone)]
 pub struct CombinedCreateRequest {
     /// 配置信息
     config: Config,
-    /// 候选人姓名（必填）
-    name: String,
-    /// 邮箱
-    email: Option<String>,
-    /// 手机号
-    phone: Option<String>,
-    /// 简历内容（HTML格式）
-    resume: Option<String>,
-    /// 教育经历
-    education_list: Option<Vec<TalentEducation>>,
-    /// 工作经历
-    work_experience_list: Option<Vec<TalentWorkExperience>>,
+    request_body: CombinedCreateRequestBody,
 }
 
 impl CombinedCreateRequest {
-    /// 创建请求
-    pub fn new(config: Config) -> Self {
+    /// 创建请求（`basic_info` 必填，其内 `name` 必填）
+    pub fn new(config: Config, request_body: CombinedCreateRequestBody) -> Self {
         Self {
             config,
-            name: String::new(),
-            email: None,
-            phone: None,
-            resume: None,
-            education_list: None,
-            work_experience_list: None,
+            request_body,
         }
     }
 
-    /// 设置候选人姓名（必填）
-    pub fn name(mut self, name: String) -> Self {
-        self.name = name;
-        self
-    }
-
-    /// 设置邮箱
-    pub fn email(mut self, email: String) -> Self {
-        self.email = Some(email);
-        self
-    }
-
-    /// 设置手机号
-    pub fn phone(mut self, phone: String) -> Self {
-        self.phone = Some(phone);
-        self
-    }
-
-    /// 设置简历内容（HTML格式）
-    pub fn resume(mut self, resume: String) -> Self {
-        self.resume = Some(resume);
-        self
-    }
-
-    /// 设置教育经历
-    pub fn education_list(mut self, education_list: Vec<TalentEducation>) -> Self {
-        self.education_list = Some(education_list);
-        self
-    }
-
-    /// 设置工作经历
-    pub fn work_experience_list(mut self, work_experience_list: Vec<TalentWorkExperience>) -> Self {
-        self.work_experience_list = Some(work_experience_list);
+    /// 设置请求体。
+    pub fn request_body(mut self, request_body: CombinedCreateRequestBody) -> Self {
+        self.request_body = request_body;
         self
     }
 
@@ -96,40 +48,25 @@ impl CombinedCreateRequest {
     ) -> SDKResult<CombinedCreateResponse> {
         use crate::common::api_endpoints::HireApiV1;
 
-        // 1. 验证必填字段
-        validate_required!(self.name.trim(), "候选人姓名不能为空");
+        // 验证必填字段：basic_info.name
+        let name = self
+            .request_body
+            .basic_info
+            .name
+            .clone()
+            .unwrap_or_default();
+        validate_required!(name.trim(), "basic_info.name 不能为空");
 
-        // 验证至少有一个联系方式
-        let has_contact = self.email.as_ref().map(|e| !e.is_empty()).unwrap_or(false)
-            || self.phone.as_ref().map(|p| !p.is_empty()).unwrap_or(false);
-        if !has_contact {
-            return Err(openlark_core::error::validation_error(
-                "缺少联系方式",
-                "创建候选人时至少需要提供邮箱或手机号",
-            ));
-        }
-
-        // 2. 构建端点
         let api_endpoint = HireApiV1::TalentCombinedCreate;
-        let request = ApiRequest::<CombinedCreateResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<CombinedCreateResponse>::post(api_endpoint.to_url()).body(
+            serde_json::to_value(&self.request_body).map_err(|e| {
+                openlark_core::error::validation_error(
+                    "请求体序列化失败",
+                    format!("无法序列化请求参数: {e}"),
+                )
+            })?,
+        );
 
-        // 3. 序列化请求体
-        let request_body = CombinedCreateRequestBody {
-            name: self.name,
-            email: self.email,
-            phone: self.phone,
-            resume: self.resume,
-            education_list: self.education_list,
-            work_experience_list: self.work_experience_list,
-        };
-        let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
-
-        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -147,84 +84,85 @@ impl ApiResponseTrait for CombinedCreateResponse {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 mod tests {
     use super::*;
-    use openlark_core::config::Config;
+    use crate::hire::hire::v1::talent::models::TalentCombinedBasicInfo;
     use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    fn create_test_config() -> Config {
-        Config::builder()
-            .app_id("test_app")
-            .app_secret("test_secret")
-            .build()
-    }
+    /// 端到端：POST /open-apis/hire/v1/talents/combined_create，请求体按官方形状（basic_info 必填）
+    #[tokio::test]
+    async fn test_combined_create_sends_official_body_shape() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/hire/v1/talents/combined_create"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "ok", "data": { "talent_id": "7017428969192859009" }
+            })))
+            .mount(&server)
+            .await;
 
-    #[test]
-    fn test_talent_combined_create_request_builder() {
-        let request = CombinedCreateRequest::new(create_test_config())
-            .name("张三".to_string())
-            .email("zhangsan@example.com".to_string())
-            .resume("<p>简历内容</p>".to_string());
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
 
-        assert_eq!(request.name, "张三");
-        assert_eq!(request.email.as_deref(), Some("zhangsan@example.com"));
-        assert_eq!(request.resume.as_deref(), Some("<p>简历内容</p>"));
-    }
-
-    #[test]
-    fn test_talent_combined_create_request_body_serialize() {
-        let request = CombinedCreateRequest::new(create_test_config())
-            .name("李四".to_string())
-            .phone("13800000000".to_string());
-
-        let body = CombinedCreateRequestBody {
-            name: request.name,
-            email: request.email,
-            phone: request.phone,
-            resume: request.resume,
-            education_list: request.education_list,
-            work_experience_list: request.work_experience_list,
+        let basic_info = TalentCombinedBasicInfo {
+            name: Some("小明".to_string()),
+            mobile: Some("182900291190".to_string()),
+            mobile_country_code: Some("CN_1".to_string()),
+            email: Some("16xx1@126.com".to_string()),
+            ..Default::default()
         };
+        let resp = CombinedCreateRequest::new(
+            config,
+            CombinedCreateRequestBody::new(basic_info)
+                .resume_source_id("1".to_string())
+                .folder_id_list(vec!["6942778198054125570".to_string()]),
+        )
+        .execute()
+        .await
+        .expect("请求应成功");
+        assert_eq!(resp.talent_id, "7017428969192859009");
 
-        let value = serde_json::to_value(body).expect("序列化请求体失败");
-        assert_eq!(value["name"], json!("李四"));
-        assert_eq!(value["phone"], json!("13800000000"));
-        assert!(value.get("email").is_none());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        // 请求体须与官方文档一致：basic_info 嵌套结构
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(
+            sent,
+            json!({
+                "resume_source_id": "1",
+                "folder_id_list": ["6942778198054125570"],
+                "basic_info": {
+                    "name": "小明",
+                    "mobile": "182900291190",
+                    "mobile_country_code": "CN_1",
+                    "email": "16xx1@126.com"
+                }
+            })
+        );
     }
 
-    #[test]
-    fn test_talent_combined_create_response_deserialize() {
-        let value = json!({"talent_id": "talent_123"});
-        let response: CombinedCreateResponse =
-            serde_json::from_value(value).expect("反序列化响应失败");
-        assert_eq!(response.talent_id, "talent_123");
-    }
+    /// basic_info.name 缺失时快速失败，不发起请求。
+    #[tokio::test]
+    async fn test_combined_create_rejects_missing_name() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
 
-    #[test]
-    fn test_talent_combined_create_validation() {
-        let request = CombinedCreateRequest::new(create_test_config()).name("   ".to_string());
-        let result: SDKResult<()> = (|| {
-            validate_required!(request.name.trim(), "候选人姓名不能为空");
-            let has_contact = request
-                .email
-                .as_ref()
-                .map(|email| !email.is_empty())
-                .unwrap_or(false)
-                || request
-                    .phone
-                    .as_ref()
-                    .map(|phone| !phone.is_empty())
-                    .unwrap_or(false);
-            if !has_contact {
-                return Err(openlark_core::error::validation_error(
-                    "缺少联系方式",
-                    "创建候选人时至少需要提供邮箱或手机号",
-                ));
-            }
-            Ok(())
-        })();
-
-        assert!(result.is_err());
+        let err = CombinedCreateRequest::new(
+            config,
+            CombinedCreateRequestBody::new(TalentCombinedBasicInfo::default()),
+        )
+        .execute()
+        .await
+        .expect_err("缺 basic_info.name 应被拒绝");
+        assert!(err.to_string().contains("name"), "实际: {err}");
     }
 }

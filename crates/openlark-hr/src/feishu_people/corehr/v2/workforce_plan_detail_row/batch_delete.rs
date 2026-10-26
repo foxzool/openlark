@@ -3,36 +3,59 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/corehr-v2/workforce_plan_detail_row/batchDelete>
 
 use openlark_core::{
-    SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
-    config::Config,
-    http::Transport,
+    SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::batch_save::WorkforcePlanDetailRow;
+
+/// 批量删除明细行请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BatchdeleteBody {
+    /// 编制规划 id（必填）
+    pub workforce_plan_id: String,
+    /// 明细行列表（必填，1～5 条）
+    pub items: Vec<WorkforcePlanDetailRow>,
+}
 
 /// 批量删除明细行请求
 #[derive(Debug, Clone)]
 pub struct BatchdeleteRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    body: BatchdeleteBody,
 }
 
 impl BatchdeleteRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: BatchdeleteBody::default(),
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: BatchdeleteBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置编制规划 id（必填）。
+    pub fn workforce_plan_id(mut self, workforce_plan_id: impl Into<String>) -> Self {
+        self.body.workforce_plan_id = workforce_plan_id.into();
+        self
+    }
+
+    /// 设置明细行列表（必填，1～5 条）。
+    pub fn items(mut self, items: Vec<WorkforcePlanDetailRow>) -> Self {
+        self.body.items = items;
         self
     }
 
     /// 执行请求
-    pub async fn execute(self) -> SDKResult<BatchdeleteResponse> {
+    pub async fn execute(self) -> SDKResult<serde_json::Value> {
         self.execute_with_options(openlark_core::req_option::RequestOption::default())
             .await
     }
@@ -41,38 +64,35 @@ impl BatchdeleteRequest {
     pub async fn execute_with_options(
         self,
         option: openlark_core::req_option::RequestOption,
-    ) -> SDKResult<BatchdeleteResponse> {
-        let mut request = ApiRequest::<BatchdeleteResponse>::post(
-            "/open-apis/corehr/v2/workforce_plan_detail_row/batchDelete",
-        );
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+    ) -> SDKResult<serde_json::Value> {
+        validate_required!(self.body.workforce_plan_id, "workforce_plan_id 不能为空");
+        validate_required_list!(self.body.items, 5, "items 不能为空且单次最多 5 条");
+        for item in &self.body.items {
+            validate_required_list!(item.dimensions, 20, "dimensions 不能为空且单次最多 20 条");
+            for dimension in &item.dimensions {
+                validate_required!(dimension.dimension_key, "dimension_key 不能为空");
+                validate_required!(dimension.dimension_value, "dimension_value 不能为空");
+            }
         }
 
+        let request = ApiRequest::<serde_json::Value>::post(
+            "/open-apis/corehr/v2/workforce_plan_detail_row/batchDelete",
+        )
+        .body(serde_json::to_value(&self.body)?);
+
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
-    }
-}
-
-/// 批量删除明细行响应
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BatchdeleteResponse {
-    /// 响应数据
-    pub data: Value,
-}
-
-impl ApiResponseTrait for BatchdeleteResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::feishu_people::corehr::v2::workforce_plan_detail_row::batch_save::{
+        DimensionEntity, WorkforcePlanEaiDetail,
+    };
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/workforce_plan_detail_row/batchDelete
@@ -83,8 +103,23 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/workforce_plan_detail_row/batchDelete",
             ))
+            .and(body_json(json!({
+                "workforce_plan_id": "7435976673130317356",
+                "items": [
+                    {
+                        "dimensions": [
+                            { "dimension_key": "department", "dimension_value": "7371716294248908332" },
+                            { "dimension_key": "location", "dimension_value": "7312702817660487212" }
+                        ],
+                        "plan_value": "919",
+                        "eai_details": [
+                            { "date": "2029-01-31", "estimated_active_individuals": "9" }
+                        ]
+                    }
+                ]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "code": 0, "msg": "success", "data": { "data": {} }
+                "code": 0, "msg": "success", "data": {}
             })))
             .mount(&server)
             .await;
@@ -97,6 +132,25 @@ mod tests {
             .build();
 
         BatchdeleteRequest::new(config)
+            .workforce_plan_id("7435976673130317356")
+            .items(vec![WorkforcePlanDetailRow {
+                dimensions: vec![
+                    DimensionEntity {
+                        dimension_key: "department".to_string(),
+                        dimension_value: "7371716294248908332".to_string(),
+                    },
+                    DimensionEntity {
+                        dimension_key: "location".to_string(),
+                        dimension_value: "7312702817660487212".to_string(),
+                    },
+                ],
+                plan_value: Some("919".to_string()),
+                eai_details: Some(vec![WorkforcePlanEaiDetail {
+                    date: Some("2029-01-31".to_string()),
+                    estimated_active_individuals: Some("9".to_string()),
+                }]),
+                multi_period_values: None,
+            }])
             .execute()
             .await
             .expect("请求应成功");

@@ -7,9 +7,29 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// 删除默认成本中心请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RemoveVersionBody {
+    /// 员工雇佣 ID（必填）
+    pub employment_id: String,
+    /// 默认成本中心信息（wk_id 与 wk_tid 必填）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_cost_center: Option<RemoveDefaultCostCenter>,
+}
+
+/// 删除默认成本中心的成本中心信息（官方 employment_default_cost_center 结构）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RemoveDefaultCostCenter {
+    /// 默认成本中心 ID（必填）
+    pub wk_id: String,
+    /// 默认成本中心版本 ID（必填）
+    pub wk_tid: String,
+}
 
 /// 删除默认成本中心请求
 #[derive(Debug, Clone)]
@@ -17,7 +37,12 @@ pub struct RemoveVersionRequest {
     /// 配置信息
     config: Config,
     version_id: Option<String>,
-    body: Option<Value>,
+    /// 请求体
+    body: RemoveVersionBody,
+    /// 幂等标识，服务端会忽略 client_token 重复的请求
+    client_token: Option<String>,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
 }
 
 impl RemoveVersionRequest {
@@ -26,7 +51,9 @@ impl RemoveVersionRequest {
         Self {
             config,
             version_id: None,
-            body: None,
+            body: RemoveVersionBody::default(),
+            client_token: None,
+            user_id_type: None,
         }
     }
 
@@ -37,8 +64,32 @@ impl RemoveVersionRequest {
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: RemoveVersionBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置员工雇佣 ID（必填）。
+    pub fn employment_id(mut self, employment_id: impl Into<String>) -> Self {
+        self.body.employment_id = employment_id.into();
+        self
+    }
+
+    /// 设置默认成本中心信息（wk_id 与 wk_tid 必填）。
+    pub fn default_cost_center(mut self, default_cost_center: RemoveDefaultCostCenter) -> Self {
+        self.body.default_cost_center = Some(default_cost_center);
+        self
+    }
+
+    /// 设置幂等标识。
+    pub fn client_token(mut self, client_token: impl Into<String>) -> Self {
+        self.client_token = Some(client_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -53,13 +104,18 @@ impl RemoveVersionRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<RemoveVersionResponse> {
-        let mut request = ApiRequest::<RemoveVersionResponse>::post(
-            "/open-apis/corehr/v2/default_cost_centers/remove_version",
-        );
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        validate_required!(self.body.employment_id, "employment_id 不能为空");
+        if let Some(default_cost_center) = &self.body.default_cost_center {
+            validate_required!(default_cost_center.wk_id, "wk_id 不能为空");
+            validate_required!(default_cost_center.wk_tid, "wk_tid 不能为空");
         }
+
+        let request = ApiRequest::<RemoveVersionResponse>::post(
+            "/open-apis/corehr/v2/default_cost_centers/remove_version",
+        )
+        .query_opt("client_token", self.client_token)
+        .query_opt("user_id_type", self.user_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -83,7 +139,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/default_cost_centers/remove_version
@@ -94,6 +150,13 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/default_cost_centers/remove_version",
             ))
+            .and(body_json(json!({
+                "employment_id": "6862995757234914821",
+                "default_cost_center": {
+                    "wk_id": "703912325303191204",
+                    "wk_tid": "703912321231239801"
+                }
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "data": {} }
             })))
@@ -108,6 +171,11 @@ mod tests {
             .build();
 
         RemoveVersionRequest::new(config)
+            .employment_id("6862995757234914821")
+            .default_cost_center(RemoveDefaultCostCenter {
+                wk_id: "703912325303191204".to_string(),
+                wk_tid: "703912321231239801".to_string(),
+            })
             .execute()
             .await
             .expect("请求应成功");

@@ -51,8 +51,11 @@ pub use list::ListRequest;
 pub use models::{
     BatchGetIdRequestBody, BatchGetIdResponse, CombinedCreateRequestBody, CombinedCreateResponse,
     CombinedUpdateRequestBody, CombinedUpdateResponse, GetRequestBody, GetResponse,
-    ListRequestBody, ListResponse, Talent, TalentContact, TalentEducation, TalentIdInfo,
-    TalentWorkExperience,
+    ListRequestBody, ListResponse, Talent, TalentCombinedAwardInfo, TalentCombinedBasicInfo,
+    TalentCombinedCareerInfo, TalentCombinedEducationInfo, TalentCombinedLanguageInfo,
+    TalentCombinedProjectInfo, TalentCombinedSnsInfo, TalentCombinedWorkInfo, TalentContact,
+    TalentCustomizedDataObjectValue, TalentCustomizedDataObjectValueChild, TalentEducation,
+    TalentIdInfo, TalentIdentificationInfo, TalentSelfEvaluation, TalentWorkExperience,
 };
 /// 人才入职状态相关类型。
 pub use onboard_status::{OnboardStatusRequest, OnboardStatusResponse};

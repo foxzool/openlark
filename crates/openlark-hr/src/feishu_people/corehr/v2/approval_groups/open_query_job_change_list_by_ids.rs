@@ -7,27 +7,81 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 批量查询人员调整内容请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OpenQueryJobChangeListByIdsBody {
+    /// 人员异动记录 ID List（必须是 process_id 对应流程下的人员调整记录 ID，最多 100 条）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_change_ids: Option<Vec<String>>,
+    /// 是否返回部门全路径（默认 false）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need_department_path: Option<bool>,
+}
 
 /// 批量查询人员调整内容请求
 #[derive(Debug, Clone)]
 pub struct OpenQueryJobChangeListByIdsRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: OpenQueryJobChangeListByIdsBody,
+    /// 组织架构调整流程 ID（必填）
+    process_id: String,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
+    /// 此次调用中使用的部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl OpenQueryJobChangeListByIdsRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: OpenQueryJobChangeListByIdsBody::default(),
+            process_id: String::new(),
+            user_id_type: None,
+            department_id_type: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置请求体
+    pub fn body(mut self, body: OpenQueryJobChangeListByIdsBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置人员异动记录 ID 列表。
+    pub fn job_change_ids(mut self, job_change_ids: Vec<String>) -> Self {
+        self.body.job_change_ids = Some(job_change_ids);
+        self
+    }
+
+    /// 设置是否返回部门全路径。
+    pub fn need_department_path(mut self, need_department_path: bool) -> Self {
+        self.body.need_department_path = Some(need_department_path);
+        self
+    }
+
+    /// 设置组织架构调整流程 ID（必填）。
+    pub fn process_id(mut self, process_id: impl Into<String>) -> Self {
+        self.process_id = process_id.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -42,13 +96,15 @@ impl OpenQueryJobChangeListByIdsRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<OpenQueryJobChangeListByIdsResponse> {
-        let mut request = ApiRequest::<OpenQueryJobChangeListByIdsResponse>::post(
-            "/open-apis/corehr/v2/approval_groups/open_query_job_change_list_by_ids",
-        );
+        validate_required!(self.process_id, "process_id 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<OpenQueryJobChangeListByIdsResponse>::post(
+            "/open-apis/corehr/v2/approval_groups/open_query_job_change_list_by_ids",
+        )
+        .query("process_id", self.process_id)
+        .query_opt("user_id_type", self.user_id_type)
+        .query_opt("department_id_type", self.department_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -201,7 +257,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/approval_groups/open_query_job_change_list_by_ids
@@ -212,6 +268,11 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/approval_groups/open_query_job_change_list_by_ids",
             ))
+            .and(query_param("process_id", "6991776076699549697"))
+            .and(body_json(json!({
+                "job_change_ids": ["6991776076699549697"],
+                "need_department_path": false
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -260,6 +321,9 @@ mod tests {
             .build();
 
         let resp = OpenQueryJobChangeListByIdsRequest::new(config)
+            .process_id("6991776076699549697")
+            .job_change_ids(vec!["6991776076699549697".to_string()])
+            .need_department_path(false)
             .execute()
             .await
             .expect("请求应成功");

@@ -17,5 +17,7 @@ pub use models::{
     CalendarByScopeRequestBody, CalendarByScopeResponse, LeaveBalance, LeaveBalancesRequestBody,
     LeaveBalancesResponse,
 };
-pub use work_calendar::WorkCalendarRequest;
-pub use work_calendar_date::WorkCalendarDateRequest;
+pub use work_calendar::{
+    WorkCalendarOption, WorkCalendarRequest, WorkCalendarRequestBody, WorkCalendarSortOption,
+};
+pub use work_calendar_date::{WorkCalendarDateRequest, WorkCalendarDateRequestBody};

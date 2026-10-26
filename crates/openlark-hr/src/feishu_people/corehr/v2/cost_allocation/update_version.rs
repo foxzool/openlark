@@ -12,13 +12,57 @@ use openlark_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// 更新成本分摊请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateVersionBody {
+    /// 员工雇佣 ID，可通过【搜索员工信息】接口获取
+    pub employment_id: String,
+    /// 成本分摊（更新时内部 `wk_id` 必填）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_allocation: Option<CostAllocationForUpdate>,
+}
+
+/// 成本分摊（官方 employment_cost_allocation，更新场景，`wk_id` 必填）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CostAllocationForUpdate {
+    /// 成本分摊 ID，可通过【查询成本分摊】接口获取
+    pub wk_id: String,
+    /// 分摊生效日期，格式 "YYYY-MM-DD"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
+    /// 分摊失效日期，格式 "YYYY-MM-DD"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration_time: Option<String>,
+    /// 成本分摊明细（最多 10000 条）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_data_cost_center_id: Option<Vec<JobDataCostCenterForUpdate>>,
+    /// 变更原因
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// 成本分摊明细（官方 job_data_cost_center，更新场景字段均可选）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct JobDataCostCenterForUpdate {
+    /// 成本中心 ID，可通过【搜索成本中心信息】接口获取
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_center_id: Option<String>,
+    /// 分摊比例
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub new_rate: Option<f64>,
+}
+
 /// 更新成本分摊请求
 #[derive(Debug, Clone)]
 pub struct UpdateVersionRequest {
     /// 配置信息
     config: Config,
-    version_id: Option<String>,
-    body: Option<Value>,
+    /// 请求体
+    body: UpdateVersionBody,
+    /// 用于幂等控制的 client_token
+    client_token: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl UpdateVersionRequest {
@@ -26,20 +70,39 @@ impl UpdateVersionRequest {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            version_id: None,
-            body: None,
+            body: UpdateVersionBody::default(),
+            client_token: None,
+            user_id_type: None,
         }
     }
 
-    /// 设置 `version_id`。
-    pub fn version_id(mut self, version_id: impl Into<String>) -> Self {
-        self.version_id = Some(version_id.into());
+    /// 设置请求体。
+    pub fn body(mut self, body: UpdateVersionBody) -> Self {
+        self.body = body;
         self
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置员工雇佣 ID。
+    pub fn employment_id(mut self, employment_id: impl Into<String>) -> Self {
+        self.body.employment_id = employment_id.into();
+        self
+    }
+
+    /// 设置成本分摊（更新时 `wk_id` 必填）。
+    pub fn cost_allocation(mut self, cost_allocation: CostAllocationForUpdate) -> Self {
+        self.body.cost_allocation = Some(cost_allocation);
+        self
+    }
+
+    /// 设置用于幂等控制的 client_token。
+    pub fn client_token(mut self, client_token: impl Into<String>) -> Self {
+        self.client_token = Some(client_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -54,16 +117,17 @@ impl UpdateVersionRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<UpdateVersionResponse> {
-        let version_id = self.version_id.unwrap_or_default();
-        validate_required!(version_id.trim(), "version_id 不能为空");
-        let mut payload = self.body.unwrap_or_else(|| serde_json::json!({}));
-        if let Some(body) = payload.as_object_mut() {
-            body.insert("version_id".to_string(), Value::String(version_id));
+        validate_required!(self.body.employment_id, "employment_id 不能为空");
+        if let Some(cost_allocation) = &self.body.cost_allocation {
+            validate_required!(cost_allocation.wk_id, "cost_allocation.wk_id 不能为空");
         }
+
         let request = ApiRequest::<UpdateVersionResponse>::post(
             "/open-apis/corehr/v2/cost_allocations/update_version",
         )
-        .body(payload);
+        .query_opt("client_token", self.client_token)
+        .query_opt("user_id_type", self.user_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -87,7 +151,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/cost_allocations/update_version
@@ -96,6 +160,22 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/cost_allocations/update_version"))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "employment_id": "6862995757234914821",
+                "cost_allocation": {
+                    "wk_id": "703912325303191204",
+                    "effective_time": "2024-12-01",
+                    "expiration_time": "2024-12-02",
+                    "job_data_cost_center_id": [
+                        {
+                            "cost_center_id": "6950635856373745165",
+                            "new_rate": 50.2
+                        }
+                    ],
+                    "reason": "异动"
+                }
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "data": {} }
             })))
@@ -110,7 +190,18 @@ mod tests {
             .build();
 
         UpdateVersionRequest::new(config)
-            .version_id("test001".to_string())
+            .employment_id("6862995757234914821")
+            .cost_allocation(CostAllocationForUpdate {
+                wk_id: "703912325303191204".to_string(),
+                effective_time: Some("2024-12-01".to_string()),
+                expiration_time: Some("2024-12-02".to_string()),
+                job_data_cost_center_id: Some(vec![JobDataCostCenterForUpdate {
+                    cost_center_id: Some("6950635856373745165".to_string()),
+                    new_rate: Some(50.2),
+                }]),
+                reason: Some("异动".to_string()),
+            })
+            .user_id_type("open_id")
             .execute()
             .await
             .expect("请求应成功");

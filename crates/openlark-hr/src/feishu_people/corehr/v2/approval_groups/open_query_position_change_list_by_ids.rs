@@ -7,27 +7,83 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// 批量查询岗位调整内容请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OpenQueryPositionChangeListByIdsBody {
+    /// 岗位调整记录 ID 列表（1～100 条；必须是查询参数 process_id 对应流程下的岗位调整记录 ID，
+    /// 未设置时查询到的岗位调整记录为空）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_change_ids: Option<Vec<String>>,
+    /// 是否返回部门全路径（组织架构调整中新建部门未生效时用于数据查询）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need_department_path: Option<bool>,
+}
 
 /// 批量查询岗位调整内容请求
 #[derive(Debug, Clone)]
 pub struct OpenQueryPositionChangeListByIdsRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: OpenQueryPositionChangeListByIdsBody,
+    /// 组织架构调整流程 ID（必填）
+    process_id: String,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
+    /// 部门 ID 类型（open_department_id/department_id/people_corehr_department_id）
+    department_id_type: Option<String>,
 }
 
 impl OpenQueryPositionChangeListByIdsRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: OpenQueryPositionChangeListByIdsBody::default(),
+            process_id: String::new(),
+            user_id_type: None,
+            department_id_type: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置请求体
+    pub fn body(mut self, body: OpenQueryPositionChangeListByIdsBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置岗位调整记录 ID 列表（1～100 条）。
+    pub fn position_change_ids(mut self, position_change_ids: Vec<String>) -> Self {
+        self.body.position_change_ids = Some(position_change_ids);
+        self
+    }
+
+    /// 设置是否返回部门全路径。
+    pub fn need_department_path(mut self, need_department_path: bool) -> Self {
+        self.body.need_department_path = Some(need_department_path);
+        self
+    }
+
+    /// 设置组织架构调整流程 ID（必填）。
+    pub fn process_id(mut self, process_id: impl Into<String>) -> Self {
+        self.process_id = process_id.into();
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -42,13 +98,15 @@ impl OpenQueryPositionChangeListByIdsRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<OpenQueryPositionChangeListByIdsResponse> {
-        let mut request = ApiRequest::<OpenQueryPositionChangeListByIdsResponse>::post(
-            "/open-apis/corehr/v2/approval_groups/open_query_position_change_list_by_ids",
-        );
+        validate_required!(self.process_id, "process_id 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<OpenQueryPositionChangeListByIdsResponse>::post(
+            "/open-apis/corehr/v2/approval_groups/open_query_position_change_list_by_ids",
+        )
+        .query("process_id", self.process_id)
+        .query_opt("user_id_type", self.user_id_type)
+        .query_opt("department_id_type", self.department_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -267,7 +325,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/approval_groups/open_query_position_change_list_by_ids
@@ -278,6 +336,11 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/approval_groups/open_query_position_change_list_by_ids",
             ))
+            .and(query_param("process_id", "6893014062142064111"))
+            .and(body_json(json!({
+                "position_change_ids": ["6893014062142064111"],
+                "need_department_path": false
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -346,6 +409,9 @@ mod tests {
             .build();
 
         let resp = OpenQueryPositionChangeListByIdsRequest::new(config)
+            .process_id("6893014062142064111")
+            .position_change_ids(vec!["6893014062142064111".to_string()])
+            .need_department_path(false)
             .execute()
             .await
             .expect("请求应成功");

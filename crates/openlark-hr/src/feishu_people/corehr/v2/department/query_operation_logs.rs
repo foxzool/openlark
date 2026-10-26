@@ -6,64 +6,45 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
+    validate_required, validate_required_list,
 };
 
 use serde::{Deserialize, Serialize};
 
-/// 批量查询部门操作日志请求
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct QueryOperationLogsRequest {
-    /// 部门 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub department_id: Option<String>,
-    /// 开始时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_time: Option<String>,
-    /// 结束时间
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_time: Option<String>,
-    /// 分页大小（1-100，默认 20）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_size: Option<i32>,
-    /// 分页标记
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+/// 批量查询部门操作日志请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QueryOperationLogsBody {
+    /// 部门 ID 列表（必填，1～100 个）
+    pub department_ids: Vec<String>,
+    /// 查询的起始操作日期（必填，格式 "YYYY-MM-DD"，不含时分秒）
+    pub start_date: String,
+    /// 查询的截止操作日期（必填，格式 "YYYY-MM-DD"，起止跨度最大 366 天）
+    pub end_date: String,
 }
 
-impl QueryOperationLogsRequest {
-    /// 创建请求
+impl QueryOperationLogsBody {
+    /// 创建请求体
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// 设置部门 ID
-    pub fn department_id(mut self, department_id: String) -> Self {
-        self.department_id = Some(department_id);
+    /// 设置部门 ID 列表
+    pub fn department_ids(mut self, department_ids: Vec<String>) -> Self {
+        self.department_ids = department_ids;
         self
     }
 
-    /// 设置开始时间
-    pub fn start_time(mut self, start_time: String) -> Self {
-        self.start_time = Some(start_time);
+    /// 设置查询的起始操作日期（格式 "YYYY-MM-DD"）
+    pub fn start_date(mut self, start_date: String) -> Self {
+        self.start_date = start_date;
         self
     }
 
-    /// 设置结束时间
-    pub fn end_time(mut self, end_time: String) -> Self {
-        self.end_time = Some(end_time);
-        self
-    }
-
-    /// 设置分页大小
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
-        self
-    }
-
-    /// 设置分页标记
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
+    /// 设置查询的截止操作日期（格式 "YYYY-MM-DD"）
+    pub fn end_date(mut self, end_date: String) -> Self {
+        self.end_date = end_date;
         self
     }
 }
@@ -135,7 +116,13 @@ impl ApiResponseTrait for QueryOperationLogsResponse {
 #[derive(Debug, Clone)]
 pub struct QueryOperationLogsRequestBuilder {
     config: Config,
-    request: QueryOperationLogsRequest,
+    body: QueryOperationLogsBody,
+    /// 分页大小（必填，最大 1000，取值范围 1～1000）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
+    /// 部门 ID 类型（open_department_id/department_id/people_corehr_department_id）
+    department_id_type: Option<String>,
 }
 
 impl QueryOperationLogsRequestBuilder {
@@ -143,37 +130,52 @@ impl QueryOperationLogsRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            request: QueryOperationLogsRequest::new(),
+            body: QueryOperationLogsBody::new(),
+            page_size: None,
+            page_token: None,
+            department_id_type: None,
         }
     }
 
-    /// 设置部门 ID
-    pub fn department_id(mut self, department_id: String) -> Self {
-        self.request = self.request.department_id(department_id);
+    /// 设置请求体
+    pub fn body(mut self, body: QueryOperationLogsBody) -> Self {
+        self.body = body;
         self
     }
 
-    /// 设置开始时间
-    pub fn start_time(mut self, start_time: String) -> Self {
-        self.request = self.request.start_time(start_time);
+    /// 设置部门 ID 列表（必填，1～100 个）
+    pub fn department_ids(mut self, department_ids: Vec<String>) -> Self {
+        self.body.department_ids = department_ids;
         self
     }
 
-    /// 设置结束时间
-    pub fn end_time(mut self, end_time: String) -> Self {
-        self.request = self.request.end_time(end_time);
+    /// 设置查询的起始操作日期（必填，格式 "YYYY-MM-DD"）
+    pub fn start_date(mut self, start_date: impl Into<String>) -> Self {
+        self.body.start_date = start_date.into();
         self
     }
 
-    /// 设置分页大小
+    /// 设置查询的截止操作日期（必填，格式 "YYYY-MM-DD"）
+    pub fn end_date(mut self, end_date: impl Into<String>) -> Self {
+        self.body.end_date = end_date.into();
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1～1000）
     pub fn page_size(mut self, page_size: i32) -> Self {
-        self.request = self.request.page_size(page_size);
+        self.page_size = Some(page_size);
         self
     }
 
     /// 设置分页标记
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.request = self.request.page_token(page_token);
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -190,17 +192,27 @@ impl QueryOperationLogsRequestBuilder {
     ) -> SDKResult<QueryOperationLogsResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV2;
 
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=1000).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～1000"));
+        }
+        validate_required_list!(
+            self.body.department_ids,
+            100,
+            "department_ids 不能为空且最多 100 个"
+        );
+        validate_required!(self.body.start_date, "start_date 不能为空");
+        validate_required!(self.body.end_date, "end_date 不能为空");
+
         // 构建端点
         let api_endpoint = FeishuPeopleApiV2::DepartmentQueryOperationLogs;
-        let request = ApiRequest::<QueryOperationLogsResponse>::post(api_endpoint.to_url());
-
-        // 序列化请求体
-        let request = request.body(serde_json::to_value(&self.request).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
+        let request = ApiRequest::<QueryOperationLogsResponse>::post(api_endpoint.to_url())
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("department_id_type", self.department_id_type)
+            .body(serde_json::to_value(&self.body)?);
 
         // 发送请求
         Transport::request_typed(
@@ -218,7 +230,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/departments/query_operation_logs
@@ -229,6 +241,12 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/departments/query_operation_logs",
             ))
+            .and(query_param("page_size", "100"))
+            .and(body_json(json!({
+                "department_ids": ["7094136522860922222"],
+                "start_date": "2023-01-01",
+                "end_date": "2024-01-01"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -266,6 +284,10 @@ mod tests {
             .build();
 
         let resp = QueryOperationLogsRequestBuilder::new(config)
+            .department_ids(vec!["7094136522860922222".to_string()])
+            .start_date("2023-01-01")
+            .end_date("2024-01-01")
+            .page_size(100)
             .execute()
             .await
             .expect("请求应成功");

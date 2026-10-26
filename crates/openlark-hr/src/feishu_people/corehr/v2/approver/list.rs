@@ -6,7 +6,9 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,18 +18,58 @@ use serde_json::Value;
 pub struct ListRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 分页大小（必填，取值范围 1～100，默认 20）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
+    /// 指定人员 id（必填，按 user_id_type 类型传递）
+    user_id: String,
+    /// 任务状态（-1 发起 / 1 进行中 / 2 已拒绝 / 3 已通过 / 5 抄送 / 6 表单提交 / 12 失败 / 14 已回退）
+    approver_status: Option<i32>,
 }
 
 impl ListRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            page_size: None,
+            page_token: None,
+            user_id_type: None,
+            user_id: String::new(),
+            approver_status: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置分页大小（必填，取值范围 1～100）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置指定人员 id（必填，按 user_id_type 类型传递）。
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.user_id = user_id.into();
+        self
+    }
+
+    /// 设置任务状态。
+    pub fn approver_status(mut self, approver_status: i32) -> Self {
+        self.approver_status = Some(approver_status);
         self
     }
 
@@ -42,11 +84,23 @@ impl ListRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResponse> {
-        let mut request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/approvers");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=100).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～100"));
         }
+        validate_required!(self.user_id, "user_id 不能为空");
+
+        let request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/approvers")
+            .query("page_size", page_size.to_string())
+            .query("user_id", self.user_id)
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type)
+            .query_opt(
+                "approver_status",
+                self.approver_status.map(|status| status.to_string()),
+            );
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -94,7 +148,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/approvers
@@ -103,6 +157,8 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/approvers"))
+            .and(query_param("page_size", "20"))
+            .and(query_param("user_id", "ou_91791271921729102012"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -129,6 +185,8 @@ mod tests {
             .build();
 
         let resp = ListRequest::new(config)
+            .page_size(20)
+            .user_id("ou_91791271921729102012")
             .execute()
             .await
             .expect("请求应成功");
