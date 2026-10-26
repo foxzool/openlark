@@ -52,7 +52,11 @@ python3 tools/validate_api_contracts.py \
   --report-dir /tmp/openlark-api-contracts-live-endpoints
 ```
 
-该模式通过统一的 Official Document Evidence `collect` seam 获取 Endpoint Evidence，再和 Rust 实现比较。CI monitor 使用 Structured-only composition，不安装 Playwright；需要 rendered fallback 但 adapter 不可用时会明确记录 non-passing Evidence 与既有 finding code。全仓 endpoint strict 继续使用 checked-in CSV，避免官方页面暂时不健康导致永久红灯；人工命令可组合 `--live-endpoints --strict endpoint`，同时保留既有 strict 退出码用途。
+该模式通过统一的 Official Document Evidence `collect` seam 获取 Endpoint Evidence，再和 Rust 实现比较。CI monitor 使用无浏览器 composition：优先 Structured Detail，在明确的详情缺失场景回退到官方 Markdown；仍需 rendered fallback 但 adapter 不可用时会明确记录 non-passing Evidence 与既有 finding code。全仓 endpoint strict 继续使用 checked-in CSV，避免官方页面暂时不健康导致永久红灯；人工命令可组合 `--live-endpoints --strict endpoint`，同时保留既有 strict 退出码用途。
+
+Markdown fallback 仅在 `get_detail` 返回合法 JSON 且 `code=41404`，或 `code=0`、`data.content` 为非空文档字符串且缺少 `apiSchema` 时触发。超时、HTTP 错误、坏 JSON、其他业务错误和已有但不完整的 `apiSchema` 不触发此回退。Markdown URL 使用 CSV 的 canonical `fullPath` 拼接 `https://open.feishu.cn{fullPath}.md`，不使用可能重定向到其他文档的 `docPath`。
+
+Markdown 作为独立的 `markdown_document` 来源保存原文、摘要、获取时间、解释器版本和逐维度 acquisition trail，支持 fresh、prefer-snapshot 和 recorded-only。只有明确的 HTTP URL/Method 行、Authorization 行和可确认的平面字段表可以成为 `Trusted`；缺章节、必填性未知、重复字段名、对象或复合类型导致的层级不明均保留 `Incomplete`。示例 JSON 不用于证明字段完整性；缺 Authorization 行也不推断为无需 token。不同来源的字段不会拼接成完整契约。manual/full composition 只把剩余未 `Trusted` 的维度继续交给 Rendered Document；CI 未安装 Playwright 时，该步明确为 `Unavailable`。
 
 ### 1.3 Field live 校验
 
@@ -117,7 +121,7 @@ python3 tools/validate_api_contracts.py \
   --report-dir /tmp/openlark-api-contracts-tokens
 ```
 
-Token oracle 同样来自 Official Document Evidence `collect` seam。Structured Detail 无法产生 Trusted Tokens Evidence 时，manual/full composition 可逐维度回退到 live Rendered Document；CI composition 不安装 Playwright，fallback 不可用会明确返回 `Unavailable`，不会静默跳过或把 Recorded Snapshot 冒充 fresh evidence。
+Token oracle 同样来自 Official Document Evidence `collect` seam。Structured Detail 无法产生 Trusted Tokens Evidence 时，符合上述条件的接口先尝试官方 Markdown，manual/full composition 再逐维度回退到 live Rendered Document；CI composition 不安装 Playwright，rendered fallback 不可用会明确返回 `Unavailable`，不会静默跳过或把 Recorded Snapshot 冒充 fresh evidence。
 
 判定规则（被测对象 = Rust 声明的有效 token 集合，未显式声明时取默认 `[User, Tenant]`）：
 
@@ -137,7 +141,7 @@ non-strict monitor 采集并上传报告；新增 strict API 必须先满足 §1
 
 ### 1.5 Field Evidence monitor 与 strict 准入
 
-Structured-only composition 当前无法让 attendance/docs 的 Request Fields 与 Response
+无浏览器 composition（Structured Detail + 条件 Markdown fallback）不能保证 attendance/docs 的 Request Fields 与 Response
 Fields 全部成为 `Trusted`；CI 不安装 Playwright，因此这两个域不能继续伪装成 strict
 pass。完整 live 采集保留为 monitor，field strict inventory 暂为空。
 
@@ -312,7 +316,7 @@ just api-contract-fields openlark-ai 1
 - 字段级 Rust comparison 目前只消费 request/response 顶层 `FieldObservation`。
 - 嵌套字段、query/path 参数尚未纳入 strict comparison。
 - endpoint 解析对**无法识别**的复杂动态拼接仍会给出 `W_ENDPOINT_UNRESOLVED`，不会单独触发 endpoint strict 失败。
-- live acquisition 统一位于 Official Document Evidence 模块；manual/full 可用 Playwright fallback，CI 为 Structured-only 且 fail closed。
+- live acquisition 统一位于 Official Document Evidence 模块；结构化详情在明确缺失时可回退到官方 Markdown，manual/full 可继续使用 Playwright fallback，CI 无浏览器且 fail closed。Markdown 拍平的嵌套表不支持字段层级证明；field strict inventory 不因此扩容。
 
 ### 6.1 Docs CatalogEndpoint 解析（#568）
 
