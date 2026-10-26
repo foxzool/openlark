@@ -13,10 +13,11 @@ use openlark_mail::mail::mail::v1::public_mailbox::alias::models::{
     DeletePublicMailboxAliasResponse, PublicMailboxAliasItem, PublicMailboxAliasListResponse,
 };
 use openlark_mail::mail::mail::v1::public_mailbox::member::models::{
-    BatchCreatePublicMailboxMemberBody, BatchDeletePublicMailboxMemberBody,
-    ClearPublicMailboxMemberResponse, CreatePublicMailboxMemberBody,
-    CreatePublicMailboxMemberResponse, DeletePublicMailboxMemberResponse,
-    GetPublicMailboxMemberResponse, PublicMailboxMemberItem, PublicMailboxMemberListResponse,
+    BatchCreatePublicMailboxMemberBody, BatchCreatePublicMailboxMemberItem,
+    BatchDeletePublicMailboxMemberBody, ClearPublicMailboxMemberResponse,
+    CreatePublicMailboxMemberBody, CreatePublicMailboxMemberResponse,
+    DeletePublicMailboxMemberResponse, GetPublicMailboxMemberResponse, PublicMailboxMemberItem,
+    PublicMailboxMemberListResponse,
 };
 use openlark_mail::mail::mail::v1::public_mailbox::models::{
     CreatePublicMailboxBody, CreatePublicMailboxResponse, DeletePublicMailboxResponse,
@@ -431,14 +432,21 @@ fn public_mailbox_member_list_response_contract() {
 #[test]
 fn public_mailbox_member_batch_bodies_contract() {
     let batch_create = BatchCreatePublicMailboxMemberBody {
-        emails: vec!["a@x.com".to_string(), "b@x.com".to_string()],
+        items: vec![BatchCreatePublicMailboxMemberItem {
+            member_id: None,
+            user_id: Some("ou_123".to_string()),
+            member_type: Some("USER".to_string()),
+        }],
     };
-    assert_json_contract(&batch_create, json!({"emails": ["a@x.com", "b@x.com"]}));
+    assert_json_contract(
+        &batch_create,
+        json!({"items": [ { "user_id": "ou_123", "type": "USER" } ]}),
+    );
 
     let batch_delete = BatchDeletePublicMailboxMemberBody {
-        member_ids: vec!["id1".to_string(), "id2".to_string()],
+        member_id_list: vec!["id1".to_string(), "id2".to_string()],
     };
-    assert_json_contract(&batch_delete, json!({"member_ids": ["id1", "id2"]}));
+    assert_json_contract(&batch_delete, json!({"member_id_list": ["id1", "id2"]}));
 }
 
 #[test]

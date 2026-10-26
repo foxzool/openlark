@@ -10,8 +10,8 @@ pub mod user_active_meeting;
 
 /// 会中倒计时请求与模型。
 pub use countdown::{BotCountdownAction, BotCountdownBody, BotCountdownRequest};
-/// 获取会议事件请求。
-pub use events::GetBotEventsRequest;
+/// 获取会议事件请求与查询参数。
+pub use events::{GetBotEventsQuery, GetBotEventsRequest};
 /// 加入会议请求与模型。
 pub use join::{BotJoinedMeeting, JoinBotBody, JoinBotRequest, JoinBotResponse, JoinIdentify};
 /// 离开会议请求与模型。

@@ -41,6 +41,11 @@ impl Rule {
         delete::DeleteMailboxRuleRequest::new(self.config.clone(), self.mailbox_id.clone(), rule_id)
     }
 
+    /// 创建更新请求。
+    pub fn update(&self, rule_id: impl Into<String>) -> update::UpdateMailboxRuleRequest {
+        update::UpdateMailboxRuleRequest::new(self.config.clone(), self.mailbox_id.clone(), rule_id)
+    }
+
     /// reorder。
     pub fn reorder(&self) -> reorder::ReorderMailboxRuleRequest {
         reorder::ReorderMailboxRuleRequest::new(self.config.clone(), self.mailbox_id.clone())

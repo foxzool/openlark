@@ -7,6 +7,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -17,7 +18,8 @@ pub struct GetAttachmentDownloadUrlRequest {
     config: Arc<Config>,
     user_mailbox_id: String,
     message_id: String,
-    attachment_id: String,
+    /// 附件 id 列表（必填，1-20 个）。
+    attachment_ids: Vec<String>,
 }
 
 /// 获取附件下载链接的响应。
@@ -48,13 +50,13 @@ impl GetAttachmentDownloadUrlRequest {
         config: Arc<Config>,
         user_mailbox_id: impl Into<String>,
         message_id: impl Into<String>,
-        attachment_id: impl Into<String>,
+        attachment_ids: Vec<String>,
     ) -> Self {
         Self {
             config,
             user_mailbox_id: user_mailbox_id.into(),
             message_id: message_id.into(),
-            attachment_id: attachment_id.into(),
+            attachment_ids,
         }
     }
 
@@ -68,12 +70,17 @@ impl GetAttachmentDownloadUrlRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<GetAttachmentDownloadUrlResponse> {
+        validate_required_list!(
+            self.attachment_ids,
+            20,
+            "attachment_ids 不能为空且不能超过 20 个"
+        );
         let path = format!(
             "/open-apis/mail/v1/user_mailboxes/{}/messages/{}/attachments/download_url",
             self.user_mailbox_id, self.message_id
         );
         let req: ApiRequest<GetAttachmentDownloadUrlResponse> =
-            ApiRequest::get(&path).query("attachment_id", self.attachment_id);
+            ApiRequest::get(&path).query("attachment_ids", self.attachment_ids.join(","));
 
         Transport::request_typed(req, &self.config, Some(option), "获取附件下载链接").await
     }
@@ -84,7 +91,7 @@ impl GetAttachmentDownloadUrlRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../user_mailboxes/{umb}/messages/{msg}/attachments/download_url → 强类型 GetAttachmentDownloadUrlResponse 解析（双层 data 信封）。
+    /// 端到端：GET .../user_mailboxes/{umb}/messages/{msg}/attachments/download_url?attachment_ids=... → 强类型 GetAttachmentDownloadUrlResponse 解析（双层 data 信封）。
     #[tokio::test]
     async fn test_download_url_returns_data_on_success() {
         use serde_json::json;
@@ -114,10 +121,15 @@ mod tests {
                 .build(),
         );
 
-        let resp = GetAttachmentDownloadUrlRequest::new(config, "umb_001", "msg_001", "att_001")
-            .execute()
-            .await
-            .expect("获取附件下载链接应成功");
+        let resp = GetAttachmentDownloadUrlRequest::new(
+            config,
+            "umb_001",
+            "msg_001",
+            vec!["att_001".to_string()],
+        )
+        .execute()
+        .await
+        .expect("获取附件下载链接应成功");
         let data = resp.data.expect("响应 data 应非空");
         assert_eq!(data.download_url, "https://example.com/file.zip");
         assert_eq!(data.expire_time, "2026-07-08T00:00:00Z");
@@ -128,6 +140,18 @@ mod tests {
             received[0].url.path(),
             "/open-apis/mail/v1/user_mailboxes/umb_001/messages/msg_001/attachments/download_url"
         );
-        assert_eq!(received[0].url.query(), Some("attachment_id=att_001"));
+        // 官方查询参数为 attachment_ids（复数，数组 1-20 个）
+        assert_eq!(received[0].url.query(), Some("attachment_ids=att_001"));
+    }
+
+    /// attachment_ids 为空应快速失败，不发请求。
+    #[tokio::test]
+    async fn test_download_url_rejects_empty_attachment_ids() {
+        let config = Arc::new(Config::default());
+        let err = GetAttachmentDownloadUrlRequest::new(config, "umb_001", "msg_001", vec![])
+            .execute()
+            .await
+            .expect_err("attachment_ids 为空应报错");
+        assert!(err.to_string().contains("attachment_ids"));
     }
 }

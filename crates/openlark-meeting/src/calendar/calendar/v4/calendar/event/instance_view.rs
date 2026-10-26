@@ -6,12 +6,28 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
     validate_required,
 };
+use serde::{Deserialize, Serialize};
 
 /// 查询日程视图请求
 pub struct InstanceViewCalendarEventRequest {
     config: Config,
     calendar_id: String,
-    query_params: Vec<(String, String)>,
+    /// 查询参数
+    query: InstanceViewCalendarEventQuery,
+}
+
+/// 查询日程视图查询参数
+///
+/// start_time/end_time 必填（区间需小于 40 天）；user_id_type 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstanceViewCalendarEventQuery {
+    /// 开始时间（Unix 时间戳，单位秒），与 end_time 构成查询区间
+    pub start_time: String,
+    /// 结束时间（Unix 时间戳，单位秒），与 start_time 构成查询区间
+    pub end_time: String,
+    /// 用户 ID 类型：open_id / union_id / user_id（默认 open_id）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id_type: Option<String>,
 }
 
 impl InstanceViewCalendarEventRequest {
@@ -20,7 +36,11 @@ impl InstanceViewCalendarEventRequest {
         Self {
             config,
             calendar_id: String::new(),
-            query_params: Vec::new(),
+            query: InstanceViewCalendarEventQuery {
+                start_time: String::new(),
+                end_time: String::new(),
+                user_id_type: None,
+            },
         }
     }
 
@@ -30,9 +50,21 @@ impl InstanceViewCalendarEventRequest {
         self
     }
 
-    /// 追加查询参数
-    pub fn query_param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.query_params.push((key.into(), value.into()));
+    /// 设置开始时间（Unix 时间戳，单位秒）
+    pub fn start_time(mut self, start_time: impl Into<String>) -> Self {
+        self.query.start_time = start_time.into();
+        self
+    }
+
+    /// 设置结束时间（Unix 时间戳，单位秒）
+    pub fn end_time(mut self, end_time: impl Into<String>) -> Self {
+        self.query.end_time = end_time.into();
+        self
+    }
+
+    /// 设置用户 ID 类型：open_id / union_id / user_id
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.query.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -46,15 +78,18 @@ impl InstanceViewCalendarEventRequest {
     /// 执行请求（带选项）
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         validate_required!(self.calendar_id, "calendar_id 不能为空");
+        validate_required!(self.query.start_time, "start_time 不能为空");
+        validate_required!(self.query.end_time, "end_time 不能为空");
 
         // url: GET:/open-apis/calendar/v4/calendars/:calendar_id/events/instance_view
-        let mut req: ApiRequest<serde_json::Value> = ApiRequest::get(format!(
+        let q = self.query;
+        let req: ApiRequest<serde_json::Value> = ApiRequest::get(format!(
             "/open-apis/calendar/v4/calendars/{}/events/instance_view",
             self.calendar_id
-        ));
-        for (k, v) in self.query_params {
-            req = req.query(k, v);
-        }
+        ))
+        .query("start_time", q.start_time)
+        .query("end_time", q.end_time)
+        .query_opt("user_id_type", q.user_id_type);
 
         Transport::request_typed(req, &self.config, Some(option), "查询日程视图").await
     }
@@ -64,7 +99,7 @@ impl InstanceViewCalendarEventRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../events/instance_view → 裸 Value 解析（单层 data 信封，带 start_time 查询参数）。
+    /// 端到端：GET .../events/instance_view → 裸 Value 解析（单层 data 信封）+ 官方必填查询参数。
     #[tokio::test]
     async fn test_instance_view_calendar_event_returns_data_on_success() {
         use serde_json::json;
@@ -94,7 +129,8 @@ mod tests {
 
         let resp = InstanceViewCalendarEventRequest::new(config)
             .calendar_id("cal_001")
-            .query_param("start_time", "1700000000")
+            .start_time("1700000000")
+            .end_time("1700345600")
             .execute()
             .await
             .expect("查询日程视图应成功");
@@ -106,6 +142,9 @@ mod tests {
             received[0].url.path(),
             "/open-apis/calendar/v4/calendars/cal_001/events/instance_view"
         );
-        assert_eq!(received[0].url.query(), Some("start_time=1700000000"));
+        // 官方必填查询参数：start_time/end_time
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("start_time=1700000000"));
+        assert!(query.contains("end_time=1700345600"));
     }
 }

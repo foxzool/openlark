@@ -4,6 +4,7 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 
 use super::models::{BatchFreebusyRequestBody, BatchFreebusyResponse};
@@ -35,6 +36,9 @@ impl BatchFreebusyRequest {
         body: BatchFreebusyRequestBody,
         option: RequestOption,
     ) -> SDKResult<BatchFreebusyResponse> {
+        validate_required!(body.time_min, "time_min 不能为空");
+        validate_required!(body.time_max, "time_max 不能为空");
+        validate_required_list!(body.user_ids, 10, "user_ids 不能为空且不能超过 10 个");
         let api_endpoint = CalendarApiV4::FreebusyBatch;
         let req: ApiRequest<BatchFreebusyResponse> = ApiRequest::post(api_endpoint.to_url())
             .body(serialize_params(&body, "批量查询主日历日程忙闲信息")?);
@@ -89,11 +93,12 @@ mod tests {
             .build();
 
         let body = BatchFreebusyRequestBody {
+            time_min: "2020-10-28T12:00:00+08:00".to_string(),
+            time_max: "2020-10-29T12:00:00+08:00".to_string(),
             user_ids: vec!["user_001".to_string()],
-            start_time: 1000,
-            end_time: 2000,
-            calendar_ids: None,
-            time_zone: None,
+            include_external_calendar: None,
+            only_busy: None,
+            need_rsvp_status: None,
         };
 
         let resp = BatchFreebusyRequest::new(config)
@@ -111,5 +116,11 @@ mod tests {
             "/open-apis/calendar/v4/freebusy/batch"
         );
         assert_eq!(received[0].method, "POST");
+        // 官方请求体字段：time_min/time_max/user_ids
+        let sent: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(sent["time_min"], "2020-10-28T12:00:00+08:00");
+        assert_eq!(sent["time_max"], "2020-10-29T12:00:00+08:00");
+        assert_eq!(sent["user_ids"], serde_json::json!(["user_001"]));
     }
 }

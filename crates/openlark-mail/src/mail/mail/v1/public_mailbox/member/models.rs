@@ -83,18 +83,34 @@ pub struct DeletePublicMailboxMemberResponse {
     pub success: bool,
 }
 
-/// 批量创建公共邮箱成员请求体
+/// 批量添加公共邮箱成员请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct BatchCreatePublicMailboxMemberBody {
-    /// 成员邮箱地址列表
-    pub emails: Vec<String>,
+    /// 本次调用添加的公共邮箱成员列表（1～200 个）。
+    pub items: Vec<BatchCreatePublicMailboxMemberItem>,
+}
+
+/// 批量添加公共邮箱成员的成员项（public_mailbox.member）。
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct BatchCreatePublicMailboxMemberItem {
+    /// 公共邮箱内成员唯一标识（请求体中不用填）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_id: Option<String>,
+
+    /// 租户内用户的唯一标识（当成员类型是 USER 时有值）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+
+    /// 成员类型（USER：内部用户）。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub member_type: Option<String>,
 }
 
 /// 批量删除公共邮箱成员请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct BatchDeletePublicMailboxMemberBody {
-    /// 成员 ID 列表
-    pub member_ids: Vec<String>,
+    /// 本次调用删除的公共邮箱成员 ID 列表（1～200 个）。
+    pub member_id_list: Vec<String>,
 }
 
 /// 清空公共邮箱成员响应

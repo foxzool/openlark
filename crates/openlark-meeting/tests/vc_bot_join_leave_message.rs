@@ -15,7 +15,7 @@ use openlark_meeting::vc::vc::v1::bot::{
 use serde_json::json;
 use wiremock::{
     Mock, MockServer, ResponseTemplate,
-    matchers::{body_json, header, method, path},
+    matchers::{body_json, header, method, path, query_param},
 };
 
 fn test_config(base_url: impl Into<String>) -> Config {
@@ -248,10 +248,25 @@ async fn message_posts_official_contract_and_parses_typed_data() {
 }
 
 #[tokio::test]
+async fn bot_events_rejects_missing_meeting_id_before_sending_request() {
+    let server = MockServer::start().await;
+
+    let result = GetBotEventsRequest::new(test_config(server.uri()))
+        .execute_with_options(tenant_option())
+        .await;
+    let error = result.expect_err("缺 meeting_id 应在发起网络请求前被拒绝");
+    assert!(error.to_string().contains("meeting_id"));
+    assert_no_http(&server).await;
+}
+
+#[tokio::test]
 async fn existing_bot_events_get_path_is_unchanged() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/open-apis/vc/v1/bots/events"))
+        .and(query_param("meeting_id", "om_evt"))
+        .and(query_param("page_size", "20"))
+        .and(query_param("user_id_type", "open_id"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code": 0,
             "msg": "success",
@@ -261,6 +276,9 @@ async fn existing_bot_events_get_path_is_unchanged() {
         .await;
 
     GetBotEventsRequest::new(test_config(server.uri()))
+        .meeting_id("om_evt")
+        .page_size(20)
+        .user_id_type("open_id")
         .execute_with_options(tenant_option())
         .await
         .expect("获取会议事件应成功");

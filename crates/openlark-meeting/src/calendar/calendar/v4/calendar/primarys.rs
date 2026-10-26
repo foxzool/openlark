@@ -4,17 +4,53 @@
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required_list,
 };
+use serde::{Deserialize, Serialize};
+
+use crate::common::api_utils::serialize_params;
+use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 批量获取主日历信息请求
 pub struct PrimarysCalendarRequest {
     config: Config,
+    /// 请求体
+    body: PrimarysCalendarRequestBody,
+    /// 用户 ID 类型（查询参数，可选）
+    user_id_type: Option<String>,
+}
+
+/// 批量获取主日历信息请求体
+///
+/// user_ids 必填，1 ～ 10 个。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrimarysCalendarRequestBody {
+    /// 用户 ID 列表（与查询参数 user_id_type 匹配），1 ～ 10 个
+    pub user_ids: Vec<String>,
 }
 
 impl PrimarysCalendarRequest {
     /// 创建请求实例。
     pub fn new(config: Config) -> Self {
-        Self { config }
+        Self {
+            config,
+            body: PrimarysCalendarRequestBody {
+                user_ids: Vec::new(),
+            },
+            user_id_type: None,
+        }
+    }
+
+    /// 设置用户 ID 列表（与 user_id_type 匹配，1 ～ 10 个）
+    pub fn user_ids(mut self, user_ids: Vec<String>) -> Self {
+        self.body.user_ids = user_ids;
+        self
+    }
+
+    /// 设置用户 ID 类型：open_id / union_id / user_id（默认 open_id）
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行请求
@@ -26,9 +62,13 @@ impl PrimarysCalendarRequest {
 
     /// 执行请求（带选项）
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
+        validate_required_list!(self.body.user_ids, 10, "user_ids 不能为空且不能超过 10 个");
+
         // url: POST:/open-apis/calendar/v4/calendars/primarys
         let req: ApiRequest<serde_json::Value> =
-            ApiRequest::post("/open-apis/calendar/v4/calendars/primarys");
+            ApiRequest::post(format!("{}/primarys", CALENDAR_V4_CALENDARS))
+                .body(serialize_params(&self.body, "批量获取主日历信息")?)
+                .query_opt("user_id_type", self.user_id_type);
 
         Transport::request_typed(req, &self.config, Some(option), "批量获取主日历信息").await
     }
@@ -38,7 +78,7 @@ impl PrimarysCalendarRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../calendars/primarys → 裸 Value 解析（单层 data 信封）。
+    /// 端到端：POST .../calendars/primarys → 裸 Value 解析（单层 data 信封）+ 官方必填请求体 user_ids。
     #[tokio::test]
     async fn test_primarys_calendar_returns_data_on_success() {
         use serde_json::json;
@@ -69,6 +109,7 @@ mod tests {
             .build();
 
         let resp = PrimarysCalendarRequest::new(config)
+            .user_ids(vec!["u_001".to_string()])
             .execute()
             .await
             .expect("批量获取主日历信息应成功");
@@ -80,5 +121,9 @@ mod tests {
             received[0].url.path(),
             "/open-apis/calendar/v4/calendars/primarys"
         );
+        // 官方必填请求体字段：user_ids
+        let sent: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为 JSON");
+        assert_eq!(sent["user_ids"], serde_json::json!(["u_001"]));
     }
 }
