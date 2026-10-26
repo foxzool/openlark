@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,12 +17,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct DepartmentFilterRequestBuilder {
     config: Config,
-    /// 父部门 ID
-    parent_id: Option<String>,
-    /// 页码
-    page: Option<u32>,
-    /// 每页数量
-    page_size: Option<u32>,
+    /// 查询条件
+    filter: MultiFilterCondition,
+    /// 需要查询的字段列表
+    required_fields: Vec<String>,
+    /// 分页信息
+    page_request: PageCondition,
+    /// 用户 ID 类型（查询参数，可选：open_id/union_id/employee_id）
+    employee_id_type: Option<String>,
+    /// 部门 ID 类型（查询参数，可选：department_id/open_department_id）
+    department_id_type: Option<String>,
 }
 
 impl DepartmentFilterRequestBuilder {
@@ -29,27 +34,71 @@ impl DepartmentFilterRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            parent_id: None,
-            page: None,
-            page_size: None,
+            filter: MultiFilterCondition::default(),
+            required_fields: Vec::new(),
+            page_request: PageCondition::default(),
+            employee_id_type: None,
+            department_id_type: None,
         }
     }
 
-    /// 设置父部门 ID
-    pub fn parent_id(mut self, parent_id: impl Into<String>) -> Self {
-        self.parent_id = Some(parent_id.into());
+    /// 添加比较表达式（多个表达式之间的关系为「且」）。
+    ///
+    /// `field` 仅支持 `parent_department_id`；`operator` 可选 `eq`/`in`；
+    /// `value` 为转义后的 JSON 字符串（如 `"\"0\""`）。
+    pub fn condition(
+        mut self,
+        field: impl Into<String>,
+        operator: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        self.filter.conditions.push(FilterCondition {
+            field: field.into(),
+            operator: operator.into(),
+            value: value.into(),
+        });
         self
     }
 
-    /// 设置页码
-    pub fn page(mut self, page: u32) -> Self {
-        self.page = Some(page);
+    /// 设置比较表达式列表
+    pub fn conditions(mut self, conditions: Vec<FilterCondition>) -> Self {
+        self.filter.conditions = conditions;
         self
     }
 
-    /// 设置每页数量
+    /// 添加需要查询的字段（如 "name"）
+    pub fn required_field(mut self, field: impl Into<String>) -> Self {
+        self.required_fields.push(field.into());
+        self
+    }
+
+    /// 设置需要查询的字段列表
+    pub fn required_fields(mut self, fields: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.required_fields = fields.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// 设置本次请求条数（最大 100 条，默认 20）
     pub fn page_size(mut self, page_size: u32) -> Self {
-        self.page_size = Some(page_size);
+        self.page_request.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记（第一次传空或不传，后续传上一次返回的 page_token）
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_request.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（查询参数）
+    pub fn employee_id_type(mut self, employee_id_type: impl Into<String>) -> Self {
+        self.employee_id_type = Some(employee_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（查询参数）
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -63,32 +112,63 @@ impl DepartmentFilterRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<DepartmentFilterResponse> {
-        let url = "/open-apis/directory/v1/departments/filter".to_string();
+        validate_required!(self.filter.conditions, "filter.conditions 不能为空");
+        validate_required!(self.required_fields, "required_fields 不能为空");
 
-        let request = DepartmentFilterRequest {
-            parent_id: self.parent_id,
-            page: self.page,
-            page_size: self.page_size,
+        let url = "/open-apis/directory/v1/departments/filter";
+
+        let body = DepartmentFilterBody {
+            filter: self.filter,
+            required_fields: self.required_fields,
+            page_request: self.page_request,
         };
 
-        let req: ApiRequest<DepartmentFilterResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<DepartmentFilterResponse> = ApiRequest::post(url)
+            .body(serde_json::to_value(&body)?)
+            .query_opt("employee_id_type", self.employee_id_type)
+            .query_opt("department_id_type", self.department_id_type);
+        Transport::request_typed(req, &self.config, Some(option), "获取部门列表").await
     }
 }
 
-/// 获取部门列表请求
+/// 获取部门列表请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct DepartmentFilterRequest {
-    /// 父部门 ID
-    #[serde(rename = "parent_id", skip_serializing_if = "Option::is_none")]
-    parent_id: Option<String>,
-    /// 页码
-    #[serde(rename = "page", skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
-    /// 每页数量
-    #[serde(rename = "page_size", skip_serializing_if = "Option::is_none")]
-    page_size: Option<u32>,
+pub struct DepartmentFilterBody {
+    /// 查询条件
+    pub filter: MultiFilterCondition,
+    /// 需要查询的字段列表，如 ["name"]（不传则不会返回任何字段）
+    pub required_fields: Vec<String>,
+    /// 分页信息
+    pub page_request: PageCondition,
+}
+
+/// 查询条件（官方 multi_filter_condition）
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct MultiFilterCondition {
+    /// 比较表达式列表（0~10 个），多个表达式之间的关系为「且」
+    pub conditions: Vec<FilterCondition>,
+}
+
+/// 比较表达式（官方 filter_condition）
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FilterCondition {
+    /// 筛选条件的左值，部门仅支持 `parent_department_id`
+    pub field: String,
+    /// 比较操作符，可选 `eq`（等于）/ `in`（属于任一）
+    pub operator: String,
+    /// 筛选条件的右值，为转义后的 JSON 字符串（如 `"\"0\""`）
+    pub value: String,
+}
+
+/// 分页参数（官方 page_condition）
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct PageCondition {
+    /// 本次请求条数，最大 100 条，默认 20
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_size: Option<u32>,
+    /// 分页标记，顺序分页查询，第一次传空或不传
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 /// 部门简要信息
@@ -135,18 +215,32 @@ pub type DepartmentFilterBuilder = DepartmentFilterRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST .../directory/v1/departments/filter → 强类型 DepartmentFilterResponse。
+    /// 端到端：POST 官方 filter + required_fields + page_request 请求体 → 强类型 DepartmentFilterResponse。
     #[tokio::test]
     async fn test_filter_department_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/directory/v1/departments/filter"))
+            .and(body_json(json!({
+                "filter": {
+                    "conditions": [
+                        {
+                            "field": "parent_department_id",
+                            "operator": "eq",
+                            "value": "\"0\""
+                        }
+                    ]
+                },
+                "required_fields": ["name"],
+                "page_request": {
+                    "page_size": 20
+                }
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -174,8 +268,8 @@ mod tests {
             .build();
 
         let resp = DepartmentFilterRequestBuilder::new(config)
-            .parent_id("dept_000")
-            .page(1)
+            .condition("parent_department_id", "eq", "\"0\"")
+            .required_field("name")
             .page_size(20)
             .execute()
             .await
@@ -193,5 +287,30 @@ mod tests {
             "/open-apis/directory/v1/departments/filter"
         );
         assert_eq!(received[0].method, "POST");
+    }
+
+    /// 必填校验：conditions 为空时不发请求。
+    #[tokio::test]
+    async fn test_filter_department_validates_required_fields() {
+        let server = MockServer::start().await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let result = DepartmentFilterRequestBuilder::new(config)
+            .required_field("name")
+            .execute()
+            .await;
+        assert!(result.is_err());
+        assert!(
+            server
+                .received_requests()
+                .await
+                .unwrap_or_default()
+                .is_empty()
+        );
     }
 }

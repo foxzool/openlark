@@ -6,11 +6,9 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, validate_required,
 };
 
-use crate::{
-    common::api_utils::serialize_params,
-    endpoints::IM_V1_PINS,
-    im::v1::pin::models::{CreatePinBody, CreatePinResponse},
-};
+use crate::{common::api_utils::serialize_params, endpoints::IM_V1_PINS};
+// 单独平铺 import：Body/Response 定义在同目录 models.rs，供字段契约核对工具识别
+use crate::im::v1::pin::models::{CreatePinBody, CreatePinResponse};
 
 /// Pin 消息请求
 ///

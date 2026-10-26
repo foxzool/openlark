@@ -135,10 +135,9 @@ fn admin_badge_contracts() {
     assert_eq!(rt.items[0].badge_id, "b_001");
 
     let img: CreateBadgeImageResponse = parse_contract(json!({
-        "image_id": "img_001",
-        "image_url": "https://cdn.example/img.png"
+        "image_key": "f02a98aa-1413-4af6-93ab-431ba9e5f2cg"
     }));
-    assert_eq!(img.image_id, "img_001");
+    assert_eq!(img.image_key, "f02a98aa-1413-4af6-93ab-431ba9e5f2cg");
 }
 
 #[test]

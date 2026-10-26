@@ -5,11 +5,11 @@
 use openlark_core::{SDKResult, api::ApiRequest, config::Config, error, http::Transport};
 
 use crate::{
-    common::api_utils::serialize_params,
-    endpoints::IM_V2_FEED_CARDS,
+    common::api_utils::serialize_params, endpoints::IM_V2_FEED_CARDS,
     im::v1::message::models::UserIdType,
-    im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody},
 };
+// 单独平铺 import：Body/Response 定义在同目录 models.rs，供字段契约核对工具识别
+use crate::im::v2::feed_card::models::{FeedCardActionResponse, FeedCardTimeSensitiveBody};
 
 /// 机器人单聊即时提醒请求
 pub struct BotTimeSentiveRequest {

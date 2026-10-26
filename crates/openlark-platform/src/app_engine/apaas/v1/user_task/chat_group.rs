@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,12 +19,8 @@ pub struct ChatGroupRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
-    /// 群名称
-    name: Option<String>,
-    /// 群成员 ID 列表
-    owner_ids: Vec<String>,
-    /// 群成员 ID 列表
-    member_ids: Vec<String>,
+    /// 请求体
+    body: ChatGroupBody,
 }
 
 impl ChatGroupRequestBuilder {
@@ -32,40 +29,51 @@ impl ChatGroupRequestBuilder {
         Self {
             config,
             task_id: task_id.into(),
-            name: None,
-            owner_ids: Vec::new(),
-            member_ids: Vec::new(),
+            body: ChatGroupBody {
+                operator_user_id: String::new(),
+                invite_user_ids: None,
+                chat_id: None,
+                chat_name: None,
+            },
         }
     }
 
-    /// 设置群名称
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
+    /// 设置操作人 kunlunUserID
+    pub fn operator_user_id(mut self, operator_user_id: impl Into<String>) -> Self {
+        self.body.operator_user_id = operator_user_id.into();
         self
     }
 
-    /// 添加群主 ID
-    pub fn owner_id(mut self, owner_id: impl Into<String>) -> Self {
-        self.owner_ids.push(owner_id.into());
+    /// 添加邀请进群用户 kunlunID
+    pub fn invite_user_id(mut self, invite_user_id: impl Into<String>) -> Self {
+        self.body
+            .invite_user_ids
+            .get_or_insert_with(Vec::new)
+            .push(invite_user_id.into());
         self
     }
 
-    /// 添加多个群主 ID
-    pub fn owner_ids(mut self, owner_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.owner_ids.extend(owner_ids.into_iter().map(Into::into));
+    /// 添加多个邀请进群用户 kunlunID（长度范围 1～20）
+    pub fn invite_user_ids(
+        mut self,
+        invite_user_ids: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.body
+            .invite_user_ids
+            .get_or_insert_with(Vec::new)
+            .extend(invite_user_ids.into_iter().map(Into::into));
         self
     }
 
-    /// 添加群成员 ID
-    pub fn member_id(mut self, member_id: impl Into<String>) -> Self {
-        self.member_ids.push(member_id.into());
+    /// 设置要拉入的群 openID（为空则新建群）
+    pub fn chat_id(mut self, chat_id: impl Into<String>) -> Self {
+        self.body.chat_id = Some(chat_id.into());
         self
     }
 
-    /// 添加多个群成员 ID
-    pub fn member_ids(mut self, member_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.member_ids
-            .extend(member_ids.into_iter().map(Into::into));
+    /// 设置群名称（当 chat_id 为空时用该名称创建群聊）
+    pub fn chat_name(mut self, chat_name: impl Into<String>) -> Self {
+        self.body.chat_name = Some(chat_name.into());
         self
     }
 
@@ -76,32 +84,31 @@ impl ChatGroupRequestBuilder {
 
     /// 使用选项执行请求
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<ChatGroupResponse> {
+        validate_required!(self.body.operator_user_id, "操作人ID不能为空");
+
         let url = format!("/open-apis/apaas/v1/user_tasks/{}/chat_group", self.task_id);
 
-        let request = ChatGroupRequest {
-            name: self.name,
-            owner_ids: self.owner_ids,
-            member_ids: self.member_ids,
-        };
-
         let req: ApiRequest<ChatGroupResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+            ApiRequest::post(&url).body(serde_json::to_value(&self.body)?);
         Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
-/// 发起群聊请求
+/// 发起群聊请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct ChatGroupRequest {
-    /// 群名称
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
-    /// 群主 ID 列表
-    #[serde(rename = "owner_ids", skip_serializing_if = "Vec::is_empty")]
-    owner_ids: Vec<String>,
-    /// 群成员 ID 列表
-    #[serde(rename = "member_ids", skip_serializing_if = "Vec::is_empty")]
-    member_ids: Vec<String>,
+pub struct ChatGroupBody {
+    /// 操作人 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "operator_user_id")]
+    pub operator_user_id: String,
+    /// 邀请进群用户 kunlunID 列表（长度范围 1～20）
+    #[serde(rename = "invite_user_ids", skip_serializing_if = "Option::is_none")]
+    pub invite_user_ids: Option<Vec<String>>,
+    /// 要拉入的群 openID，为空则新建群
+    #[serde(rename = "chat_id", skip_serializing_if = "Option::is_none")]
+    pub chat_id: Option<String>,
+    /// 群名称，当 chat_id 为空时用该名称创建群聊
+    #[serde(rename = "chat_name", skip_serializing_if = "Option::is_none")]
+    pub chat_name: Option<String>,
 }
 
 /// 发起群聊响应
@@ -163,9 +170,9 @@ mod tests {
             .build();
 
         let resp = ChatGroupRequestBuilder::new(config, "task_001")
-            .name("任务协作群")
-            .owner_id("u_001")
-            .member_ids(vec!["u_002".to_string(), "u_003".to_string()])
+            .operator_user_id("u_001")
+            .invite_user_ids(vec!["u_002".to_string(), "u_003".to_string()])
+            .chat_name("任务协作群")
             .execute()
             .await
             .expect("发起群聊应成功");
@@ -178,6 +185,16 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_tasks/task_001/chat_group"
+        );
+        // 请求体须与官方文档一致：operator_user_id + 可选 invite_user_ids/chat_id/chat_name
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "operator_user_id": "u_001",
+                "invite_user_ids": ["u_002", "u_003"],
+                "chat_name": "任务协作群"
+            })
         );
     }
 }

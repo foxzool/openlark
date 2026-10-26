@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,8 +19,8 @@ pub struct ExpeditingRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
-    /// 用户 ID
-    user_ids: Vec<String>,
+    /// 请求体
+    body: ExpeditingBody,
 }
 
 impl ExpeditingRequestBuilder {
@@ -28,19 +29,42 @@ impl ExpeditingRequestBuilder {
         Self {
             config,
             task_id: task_id.into(),
-            user_ids: Vec::new(),
+            body: ExpeditingBody {
+                operator_user_id: String::new(),
+                expediting_user_ids: Vec::new(),
+                opinion: None,
+            },
         }
     }
 
-    /// 添加用户 ID
-    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
-        self.user_ids.push(user_id.into());
+    /// 设置操作人 kunlunUserID
+    pub fn operator_user_id(mut self, operator_user_id: impl Into<String>) -> Self {
+        self.body.operator_user_id = operator_user_id.into();
         self
     }
 
-    /// 添加多个用户 ID
-    pub fn user_ids(mut self, user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.user_ids.extend(user_ids.into_iter().map(Into::into));
+    /// 添加催办用户 ID
+    pub fn expediting_user_id(mut self, expediting_user_id: impl Into<String>) -> Self {
+        self.body
+            .expediting_user_ids
+            .push(expediting_user_id.into());
+        self
+    }
+
+    /// 添加多个催办用户 ID（长度范围 1～20）
+    pub fn expediting_user_ids(
+        mut self,
+        expediting_user_ids: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.body
+            .expediting_user_ids
+            .extend(expediting_user_ids.into_iter().map(Into::into));
+        self
+    }
+
+    /// 设置催办理由
+    pub fn opinion(mut self, opinion: impl Into<String>) -> Self {
+        self.body.opinion = Some(opinion.into());
         self
     }
 
@@ -54,24 +78,33 @@ impl ExpeditingRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<ExpeditingResponse> {
+        validate_required!(self.body.operator_user_id, "操作人ID不能为空");
+        validate_required_list!(
+            self.body.expediting_user_ids,
+            20,
+            "催办用户ID列表不能为空且不能超过 20 个"
+        );
+
         let url = format!("/open-apis/apaas/v1/user_tasks/{}/expediting", self.task_id);
 
-        let request = ExpeditingRequest {
-            user_ids: self.user_ids,
-        };
-
         let req: ApiRequest<ExpeditingResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+            ApiRequest::post(&url).body(serde_json::to_value(&self.body)?);
         Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
-/// 催办请求
+/// 催办请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct ExpeditingRequest {
-    /// 用户 ID 列表
-    #[serde(rename = "user_ids")]
-    user_ids: Vec<String>,
+pub struct ExpeditingBody {
+    /// 操作人 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "operator_user_id")]
+    pub operator_user_id: String,
+    /// 催办人的 kunlunID 列表，可通过 aPaaS 用户管理页面获取（长度范围 1～20）
+    #[serde(rename = "expediting_user_ids")]
+    pub expediting_user_ids: Vec<String>,
+    /// 催办理由
+    #[serde(rename = "opinion", skip_serializing_if = "Option::is_none")]
+    pub opinion: Option<String>,
 }
 
 /// 催办响应
@@ -129,7 +162,9 @@ mod tests {
             .build();
 
         let resp = ExpeditingRequestBuilder::new(config, "task_001")
-            .user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .operator_user_id("u_000")
+            .expediting_user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .opinion("请尽快处理")
             .execute()
             .await
             .expect("催办人工任务应成功");
@@ -141,6 +176,16 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_tasks/task_001/expediting"
+        );
+        // 请求体须与官方文档一致：operator_user_id + expediting_user_ids + 可选 opinion
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "operator_user_id": "u_000",
+                "expediting_user_ids": ["u_001", "u_002"],
+                "opinion": "请尽快处理"
+            })
         );
     }
 }

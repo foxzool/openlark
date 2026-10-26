@@ -8,7 +8,7 @@ use openlark_core::{
     config::Config,
     error,
     http::Transport,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +32,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UrgentSmsBody {
     /// 需要接收短信加急的用户 ID 列表。
-    user_id_list: Vec<String>,
+    pub user_id_list: Vec<String>,
 }
 
 impl Default for UrgentSmsBody {
@@ -134,12 +134,11 @@ impl UrgentSmsRequest {
     ) -> SDKResult<UrgentSmsResponse> {
         // === 必填字段验证 ===
         validate_required!(self.message_id, "message_id 不能为空");
-        if body.user_id_list.is_empty() {
-            return Err(error::validation_error(
-                "user_id_list 不能为空".to_string(),
-                "加急用户列表至少包含 1 项".to_string(),
-            ));
-        }
+        validate_required_list!(
+            body.user_id_list,
+            200,
+            "user_id_list 不能为空且不能超过 200 个"
+        );
         let user_id_type = self.user_id_type.ok_or_else(|| {
             error::validation_error(
                 "user_id_type 不能为空".to_string(),

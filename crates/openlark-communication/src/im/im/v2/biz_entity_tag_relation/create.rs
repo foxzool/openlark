@@ -9,8 +9,9 @@ use openlark_core::{
 use crate::{
     common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V2_BIZ_ENTITY_TAG_RELATION,
-    im::v2::biz_entity_tag_relation::models::BizEntityTagRelationBody,
 };
+// 单独平铺 import：Body 定义在同目录 models.rs，供字段契约核对工具识别
+use crate::im::v2::biz_entity_tag_relation::models::BizEntityTagRelationBody;
 
 /// 绑定标签到群请求
 pub struct CreateBizEntityTagRelationRequest {
