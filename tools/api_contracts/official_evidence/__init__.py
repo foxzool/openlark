@@ -1283,7 +1283,21 @@ def _walk_schema_properties(
     if "properties" not in schema:
         return (), False
     properties = schema.get("properties")
-    if not isinstance(properties, dict):
+    # 官方 schema 存在两代格式（2026-10 核实，交接审计 #739 后续）：
+    # - dict 旧格式：{字段名: {type, ...}}，必填在顶层 required: [...]
+    # - list 新格式：[{name, type, required, description, ...}, ...]，
+    #   字段名/必填内嵌元素；嵌套对象在元素内递归携带 properties（同为 list）
+    if isinstance(properties, list):
+        entries: list[tuple[Any, Any]] = [
+            (element.get("name"), element)
+            for element in properties
+            if isinstance(element, dict)
+        ]
+        invalid = len(properties) - len(entries)
+    elif isinstance(properties, dict):
+        entries = list(properties.items())
+        invalid = 0
+    else:
         return (), False
     required_value = schema.get("required")
     required_names = (
@@ -1292,8 +1306,8 @@ def _walk_schema_properties(
         else None
     )
     observations: list[FieldObservation] = []
-    complete = True
-    for raw_name, definition in properties.items():
+    complete = invalid == 0
+    for raw_name, definition in entries:
         if not isinstance(raw_name, str) or not raw_name or not isinstance(definition, dict):
             complete = False
             continue

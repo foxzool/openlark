@@ -128,6 +128,33 @@ def compare_request_fields(
             )
         ]
     if not rust_contract.fields:
+        # 官方存在必填请求体字段而 Rust 完全没有请求 struct：
+        # - Value 透传（body: serde_json::Value）→ WARN untyped（能发，缺类型）
+        # - 真没有 → 发空 body 调用必失败，ERROR（mail users/query 类）
+        required_names = [
+            field.name for field in official_fields if field.required
+        ]
+        if rust_contract.has_value_body_passthrough:
+            return [
+                finding(
+                    "WARN",
+                    "W_REQUEST_UNTYPED",
+                    "Request body is passed through as serde_json::Value; official fields are not typed.",
+                    api,
+                    official=", ".join(field.name for field in official_fields[:12]),
+                )
+            ]
+        if required_names:
+            return [
+                finding(
+                    "ERROR",
+                    "E_REQUEST_BODY_NOT_MODELED",
+                    "Official request body has required fields but no request struct was modeled.",
+                    api,
+                    official=", ".join(required_names),
+                    rust="<no request struct>",
+                )
+            ]
         return [
             finding(
                 "WARN",

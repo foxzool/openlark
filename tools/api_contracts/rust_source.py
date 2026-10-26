@@ -576,6 +576,22 @@ def extract_manual_auth_token(text: str) -> str:
     return ""
 
 
+def has_value_body_passthrough(text: str) -> bool:
+    """检测请求体是否以 serde_json::Value 透传（无类型建模但 wire 不破）。
+
+    形态：Request struct 的 ``body: serde_json::Value`` / ``body: Option<Value>``
+    字段，或 ``.body(serde_json::to_value(...))`` / ``.body(Value::...)`` 调用。
+    这类 API 调用方可自行组装官方字段，属于「补类型」工作而非 wire-broken。
+    """
+    if re.search(r"body\s*:\s*(?:Option<)?serde_json::Value", text):
+        return True
+    if re.search(r"body\s*:\s*(?:Option<)?\bValue\b", text):
+        return True
+    if re.search(r"\.body\s*\(\s*serde_json::to_value", text):
+        return True
+    return False
+
+
 def has_flatten_value_passthrough(text: str) -> bool:
     """检测 request struct 是否有 ``#[serde(flatten)]`` 字段。
 
@@ -965,15 +981,134 @@ def scan_api_file(
         resolved_methods,
     )
     access_token_types = extract_access_token_types(text)
+    # Body/Response struct 按仓库约定常落在同目录/父目录 models.rs（或 models/），
+    # 单文件扫描看不到 → W_*_FIELDS_UNRESOLVED 假性跳过比对。这里把本文件
+    # import 的 struct 定义块拼进字段扫描文本（endpoint/token 仍用原文，防噪音）；
+    # 只拼 import 的名字，避免 models.rs 里其他 API 的同 suffix struct 污染。
+    imported_blocks = _imported_struct_blocks(text, path, crate_src)
+    fields_text = (
+        text + "\n\n// ---- validator: 从 models import 的 struct（字段扫描用） ----\n" + imported_blocks
+        if imported_blocks
+        else text
+    )
     return RustApiContract(
         rel_path=expected_file,
         endpoint_calls=extract_endpoint_calls(text, resolver),
-        fields=extract_rust_fields(text),
-        response_fields=extract_rust_response_fields(text),
-        has_flatten_value_passthrough=has_flatten_value_passthrough(text),
+        fields=extract_rust_fields(fields_text),
+        response_fields=extract_rust_response_fields(fields_text),
+        has_flatten_value_passthrough=has_flatten_value_passthrough(fields_text),
+        has_value_body_passthrough=has_value_body_passthrough(text),
         access_token_types=access_token_types,
         manual_auth_token=extract_manual_auth_token(text),
     )
+
+
+_USE_CLAUSE_RE = re.compile(r"\buse\s+([^;{]+(?:\{[^}]*\})?)\s*;")
+
+
+def _parse_use_clause(clause: str) -> tuple[list[str], list[str]] | None:
+    """解析 use 子句 → (模块路径段, import 的名字列表)。
+
+    支持 ``crate::a::b::{X, Y as Z}`` / ``crate::a::b::X`` / ``super::models::X``；
+    其余（外部 crate、裸 glob）返回 None。
+    """
+    clause = clause.strip()
+    brace = clause.find("{")
+    names: list[str] = []
+    if brace >= 0:
+        path_part = clause[:brace].strip().rstrip(":").strip()
+        for item in clause[brace + 1 : clause.rfind("}")].split(","):
+            item = item.strip()
+            if not item or item == "*":
+                continue
+            names.append(item.split(" as ")[0].strip())
+    else:
+        segments = [seg for seg in clause.split("::") if seg and seg != "self"]
+        if len(segments) < 2:
+            return None
+        path_part = "::".join(segments[:-1])
+        names.append(segments[-1])
+    parts = [seg for seg in path_part.split("::") if seg and seg != "self"]
+    if not parts:
+        return None
+    if parts[0] not in ("crate", "super", "self"):
+        return None
+    return parts, names
+
+
+def _struct_blocks_for(text: str, wanted: set[str]) -> Iterable[tuple[str, str]]:
+    """产出 (struct 名, 含前置 attrs 的完整定义块)。"""
+    for match in re.finditer(r"pub\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)", text):
+        struct_name = match.group(1)
+        if struct_name not in wanted:
+            continue
+        open_brace = text.find("{", match.end() - 1)
+        if open_brace < 0:
+            continue
+        close_brace = find_matching_brace(text, open_brace)
+        if close_brace < 0:
+            continue
+        start = match.start()
+        attrs = preceding_attrs(text, start)
+        if attrs:
+            # 只在本 struct 之前的前缀里找 attrs 起点：公共 derive 行在全文 rfind
+            # 会命中后面其他 struct 的同名 attrs（start > close_brace → 空切片）
+            attr_start = text[: start].rfind(attrs)
+            if attr_start >= 0:
+                start = attr_start
+        yield struct_name, text[start : close_brace + 1]
+
+
+def _imported_struct_blocks(text: str, file_path: Path, crate_src: Path) -> str:
+    import_names: set[str] = set()
+    candidates: set[Path] = set()
+    file_dir = file_path.parent
+    for clause_match in _USE_CLAUSE_RE.finditer(text):
+        parsed = _parse_use_clause(clause_match.group(1))
+        if parsed is None:
+            continue
+        path_parts, names = parsed
+        import_names.update(names)
+        # 模块路径 → 候选文件（crate:: 从 src 根；super:: 按层级上移；self:: 当前目录）
+        if path_parts[0] == "crate":
+            base = crate_src.joinpath(*path_parts[1:])
+            base = base.parent if base.name == "mod" else base
+            candidates.add(Path(str(base) + ".rs"))
+            candidates.add(base / "mod.rs")
+        elif path_parts[0] == "super":
+            ups = path_parts.count("super") if path_parts[0] == "super" else 0
+            idx = 0
+            while idx < len(path_parts) and path_parts[idx] == "super":
+                idx += 1
+            base = file_dir
+            for _ in range(idx - 1):
+                base = base.parent
+            base = base.joinpath(*path_parts[idx:])
+            candidates.add(Path(str(base) + ".rs"))
+        elif path_parts[0] == "self":
+            base = file_dir.joinpath(*path_parts[1:])
+            candidates.add(Path(str(base) + ".rs"))
+    # 仓库约定的同目录 models（兄弟或父级都试一层）
+    candidates.add(file_dir / "models.rs")
+    candidates.update(file_dir.glob("models/*.rs"))
+    parent_models = file_dir.parent / "models.rs"
+    candidates.add(parent_models)
+    blocks: list[str] = []
+    seen: set[str] = set()
+    for cand in sorted(candidates):
+        try:
+            if not cand.is_file():
+                continue
+            models_text = cand.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for struct_name, block in _struct_blocks_for(models_text, import_names):
+            key = f"{struct_name}"
+            if key in seen:
+                continue
+            seen.add(key)
+            blocks.append(f"// from {cand.name}\n{block}")
+    return "\n\n".join(blocks)
 
 
 class RustSourceContractAdapter:

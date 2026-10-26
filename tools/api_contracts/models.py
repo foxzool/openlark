@@ -76,6 +76,10 @@ class RustApiContract:
     # request struct 含 #[serde(flatten)] 字段时，视为该 API 透传所有官方 optional
     # request 字段（透传 Value 或 typed 枚举，非 correctness bug）。
     has_flatten_value_passthrough: bool = False
+    # 请求体以 serde_json::Value 透传（body: Value / .body(to_value(...))）：
+    # 调用方能正常发官方字段（wire 不破），但缺类型建模——分类为 untyped warn
+    # 而非 error，避免把「补类型」工作误判为「发不出去」。
+    has_value_body_passthrough: bool = False
     # Rust 侧声明的有效 token 类型（飞书凭证名）。未显式调用
     # .with_supported_access_token_types(...) 时取 DEFAULT_ACCESS_TOKEN_TYPES。
     access_token_types: tuple[str, ...] = DEFAULT_ACCESS_TOKEN_TYPES

@@ -477,3 +477,114 @@ class OfficialEvidenceCollectTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ListSchemaWalkTests(unittest.TestCase):
+    """官方 list 格式 properties（2026-10 变更）解析回归。"""
+
+    def test_list_properties_trusted_with_inline_required(self) -> None:
+        from tools.api_contracts.official_evidence import (
+            EvidenceSource,
+            _walk_schema_properties,
+        )
+
+        schema = {
+            "type": "object",
+            "properties": [
+                {"name": "user_ids", "type": "array", "required": True},
+                {"name": "user_id_type", "type": "string", "required": False},
+            ],
+        }
+        obs, complete = _walk_schema_properties(
+            schema, location="request_body", source=EvidenceSource.STRUCTURED_DETAIL
+        )
+        self.assertTrue(complete)
+        self.assertEqual([o.path for o in obs], [("user_ids",), ("user_id_type",)])
+        self.assertEqual([o.required for o in obs], [True, False])
+
+    def test_list_properties_nested_object_recursion(self) -> None:
+        from tools.api_contracts.official_evidence import (
+            EvidenceSource,
+            _walk_schema_properties,
+        )
+
+        schema = {
+            "type": "object",
+            "properties": [
+                {
+                    "name": "tasklist",
+                    "type": "object",
+                    "required": True,
+                    "properties": [
+                        {"name": "name", "type": "string", "required": False},
+                    ],
+                },
+            ],
+        }
+        obs, complete = _walk_schema_properties(
+            schema, location="request_body", source=EvidenceSource.STRUCTURED_DETAIL
+        )
+        self.assertTrue(complete)
+        self.assertEqual([o.path for o in obs], [("tasklist",), ("tasklist", "name")])
+
+    def test_dict_properties_still_supported(self) -> None:
+        from tools.api_contracts.official_evidence import (
+            EvidenceSource,
+            _walk_schema_properties,
+        )
+
+        schema = {
+            "type": "object",
+            "required": ["email_list"],
+            "properties": {
+                "email_list": {"type": "array"},
+            },
+        }
+        obs, complete = _walk_schema_properties(
+            schema, location="request_body", source=EvidenceSource.STRUCTURED_DETAIL
+        )
+        self.assertTrue(complete)
+        self.assertEqual(obs[0].path, ("email_list",))
+        self.assertTrue(obs[0].required)
+
+
+class MissingBodySemanticsTests(unittest.TestCase):
+    """官方必填 body 而无请求 struct → E_REQUEST_BODY_NOT_MODELED。"""
+
+    def test_required_official_fields_without_rust_body_is_error(self) -> None:
+        from tools.api_contracts.compare import compare_request_fields
+        from tools.api_contracts.models import ApiIdentity, OfficialField
+        from tools.api_contracts.rust_source import RustApiContract
+
+        api = ApiIdentity(
+            api_id="1", name="x", biz_tag="m", meta_project="m", meta_version="v1",
+            meta_resource="r", meta_name="q", url="POST:/x", doc_path="",
+            expected_file="m/m/v1/r/q.rs", full_path="/reference/x",
+        )
+        contract = RustApiContract(rel_path="m/v1/r/q.rs")
+        findings = compare_request_fields(
+            api,
+            (OfficialField(name="email_list", required=True, location="request_body", field_type="array", source="structured_detail"),),
+            contract,
+        )
+        self.assertEqual(findings[0].severity, "ERROR")
+        self.assertEqual(findings[0].code, "E_REQUEST_BODY_NOT_MODELED")
+
+    def test_optional_only_official_fields_without_rust_body_stays_warn(self) -> None:
+        from tools.api_contracts.compare import compare_request_fields
+        from tools.api_contracts.models import ApiIdentity, OfficialField
+        from tools.api_contracts.rust_source import RustApiContract
+
+        api = ApiIdentity(
+            api_id="1", name="x", biz_tag="m", meta_project="m", meta_version="v1",
+            meta_resource="r", meta_name="q", url="POST:/x", doc_path="",
+            expected_file="m/m/v1/r/q.rs", full_path="/reference/x",
+        )
+        contract = RustApiContract(rel_path="m/v1/r/q.rs")
+        findings = compare_request_fields(
+            api,
+            (OfficialField(name="note", required=False, location="request_body", field_type="string", source="structured_detail"),),
+            contract,
+        )
+        self.assertEqual(findings[0].severity, "WARN")
+        self.assertEqual(findings[0].code, "W_REQUEST_FIELDS_UNRESOLVED")
