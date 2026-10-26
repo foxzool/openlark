@@ -128,6 +128,22 @@ def compare_request_fields(
             )
         ]
     if not rust_contract.fields:
+        # 官方存在必填请求体字段而 Rust 完全没有请求 struct → 发空 body，调用必失败，
+        # 升级为 ERROR（此前与「解析不出」混为 WARN，掩盖了 mail users/query 类缺 body 缺陷）。
+        required_names = [
+            field.name for field in official_fields if field.required
+        ]
+        if required_names:
+            return [
+                finding(
+                    "ERROR",
+                    "E_REQUEST_BODY_NOT_MODELED",
+                    "Official request body has required fields but no request struct was modeled.",
+                    api,
+                    official=", ".join(required_names),
+                    rust="<no request struct>",
+                )
+            ]
         return [
             finding(
                 "WARN",
