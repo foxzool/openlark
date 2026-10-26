@@ -132,6 +132,9 @@ impl UnifiedRequestBuilder {
         for (k, v) in &req.query {
             url.query_pairs_mut().append_pair(k, v);
         }
+        for (k, v) in &req.query_multi {
+            url.query_pairs_mut().append_pair(k, v);
+        }
 
         Ok(url)
     }

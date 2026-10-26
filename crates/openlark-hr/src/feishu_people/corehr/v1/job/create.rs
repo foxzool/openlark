@@ -19,6 +19,10 @@ pub struct CreateRequest {
     config: Config,
     /// 职务名称（必填）
     name: String,
+    /// 是否启用（必填，默认启用）
+    active: bool,
+    /// 版本生效日期（格式：YYYY-MM-DD 00:00:00，必填）
+    effective_time: String,
     /// 职务编码
     code: Option<String>,
     /// 职务描述
@@ -41,6 +45,8 @@ impl CreateRequest {
         Self {
             config,
             name: String::new(),
+            active: true,
+            effective_time: String::new(),
             code: None,
             description: None,
             status: None,
@@ -53,6 +59,18 @@ impl CreateRequest {
     /// 设置职务名称（必填）
     pub fn name(mut self, name: String) -> Self {
         self.name = name;
+        self
+    }
+
+    /// 设置是否启用（必填）
+    pub fn active(mut self, active: bool) -> Self {
+        self.active = active;
+        self
+    }
+
+    /// 设置版本生效日期（必填，格式：YYYY-MM-DD 00:00:00）
+    pub fn effective_time(mut self, effective_time: String) -> Self {
+        self.effective_time = effective_time;
         self
     }
 
@@ -109,6 +127,7 @@ impl CreateRequest {
 
         // 1. 验证必填字段
         validate_required!(self.name.trim(), "职务名称不能为空");
+        validate_required!(self.effective_time.trim(), "版本生效日期不能为空");
 
         // 2. 构建端点
         let api_endpoint = FeishuPeopleApiV1::JobCreate;
@@ -117,6 +136,8 @@ impl CreateRequest {
         // 3. 序列化请求体
         let request_body = CreateRequestBody {
             name: self.name,
+            active: self.active,
+            effective_time: self.effective_time,
             code: self.code,
             description: self.description,
             status: self.status,
@@ -147,7 +168,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/jobs
@@ -156,6 +177,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/jobs"))
+            .and(body_partial_json(json!({
+                "name": "test001",
+                "active": true,
+                "effective_time": "2020-01-01 00:00:00"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "job_id": "" }
             })))
@@ -171,6 +197,8 @@ mod tests {
 
         CreateRequest::new(config)
             .name("test001".to_string())
+            .active(true)
+            .effective_time("2020-01-01 00:00:00".to_string())
             .execute()
             .await
             .expect("请求应成功");

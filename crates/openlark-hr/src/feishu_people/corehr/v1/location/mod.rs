@@ -15,7 +15,7 @@ pub use delete::DeleteRequest;
 pub use get::GetRequest;
 pub use list::ListRequest;
 pub use models::{
-    CreateRequestBody, CreateResponse, DeleteResponse, GetResponse, ListRequestBody, ListResponse,
-    Location, PatchRequestBody, PatchResponse,
+    CreateRequestBody, CreateResponse, DeleteResponse, GetResponse, HiberarchyCommon, I18n,
+    ListRequestBody, ListResponse, Location, PatchRequestBody, PatchResponse,
 };
 pub use patch::PatchRequest;

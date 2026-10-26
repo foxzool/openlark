@@ -8,28 +8,26 @@ use serde_json::Value;
 /// 查询统计数据请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryRequestBody {
-    /// 查询的起始日期，格式为 yyyy-MM-dd
-    pub start_date: String,
-    /// 查询的结束日期，格式为 yyyy-MM-dd
-    pub end_date: String,
-    /// 查询的用户 ID 列表，最多支持 50 个用户
+    /// 语言类型，可选值：en、ja、zh
+    pub locale: String,
+    /// 统计类型，可选值：daily（日度统计）、month（月度统计）
+    pub stats_type: String,
+    /// 开始时间，格式 yyyyMMdd
+    pub start_date: i32,
+    /// 结束时间，格式 yyyyMMdd（时间间隔不超过 31 天）
+    pub end_date: i32,
+    /// 查询的用户 ID 列表，与 employee_type 对应（不超过 200 个）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_ids: Option<Vec<String>>,
-    /// 查询的考勤组 ID 列表
+    /// 是否包含离职人员和转出人员，默认为 false
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub group_ids: Option<Vec<String>>,
-    /// 用户 ID 类型，可选值：open_id、union_id、user_id
+    pub need_history: Option<bool>,
+    /// 是否只展示员工当前所属考勤组数据，默认为 false
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id_type: Option<String>,
-    /// 统计类型，可选值：day（日度统计）、month（月度统计）
+    pub current_group_only: Option<bool>,
+    /// 操作者的用户 ID，与 employee_type 对应
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub stats_type: Option<String>,
-    /// 分页大小，默认值为 100，最大值为 200
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_size: Option<i32>,
-    /// 分页标记，用于获取下一页数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    pub user_id: Option<String>,
 }
 
 /// 用户统计数据项

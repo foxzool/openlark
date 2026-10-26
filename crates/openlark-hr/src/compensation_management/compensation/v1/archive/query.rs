@@ -7,31 +7,65 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 批量查询员工薪资档案请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 分页大小（可选）
+    /// 用户 ID 列表（必填，与入参 user_id_type 类型一致，最少 1 个、最大 100 个）
+    user_id_list: Vec<String>,
+    /// 档案 Tid 列表（可选，最多 100 个）
+    tid_list: Option<Vec<String>>,
+    /// 生效开始时间（可选，格式 YYYY-MM-DD）
+    effective_start_date: Option<String>,
+    /// 生效结束时间（可选，格式 YYYY-MM-DD）
+    effective_end_date: Option<String>,
+    /// 分页大小（查询参数，官方必填，取值范围 1～500，默认 100）
     page_size: Option<i32>,
-    /// 分页标记（可选）
+    /// 分页标记（查询参数，可选）
     page_token: Option<String>,
+    /// 用户 ID 类型（查询参数：open_id/union_id/user_id/people_corehr_id，默认 open_id）
+    user_id_type: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, user_id_list: Vec<String>) -> Self {
         Self {
+            user_id_list,
+            tid_list: None,
+            effective_start_date: None,
+            effective_end_date: None,
             page_size: None,
             page_token: None,
+            user_id_type: None,
             config,
         }
     }
 
-    /// 设置分页大小（可选）
+    /// 设置档案 Tid 列表（可选，最多 100 个）
+    pub fn tid_list(mut self, tid_list: Vec<String>) -> Self {
+        self.tid_list = Some(tid_list);
+        self
+    }
+
+    /// 设置生效开始时间（可选，格式 YYYY-MM-DD）
+    pub fn effective_start_date(mut self, effective_start_date: String) -> Self {
+        self.effective_start_date = Some(effective_start_date);
+        self
+    }
+
+    /// 设置生效结束时间（可选，格式 YYYY-MM-DD）
+    pub fn effective_end_date(mut self, effective_end_date: String) -> Self {
+        self.effective_end_date = Some(effective_end_date);
+        self
+    }
+
+    /// 设置分页大小（官方必填，取值范围 1～500）
     pub fn page_size(mut self, page_size: i32) -> Self {
         self.page_size = Some(page_size);
         self
@@ -40,6 +74,12 @@ impl QueryRequest {
     /// 设置分页标记（可选）
     pub fn page_token(mut self, page_token: String) -> Self {
         self.page_token = Some(page_token);
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id，默认 open_id）
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
         self
     }
 
@@ -56,16 +96,42 @@ impl QueryRequest {
     ) -> SDKResult<QueryResponse> {
         use crate::common::api_endpoints::CompensationApiV1;
 
+        // 1. 验证必填字段
+        validate_required_list!(
+            self.user_id_list,
+            100,
+            "user_id_list 不能为空且不能超过 100 个"
+        );
+
+        // 2. 构建端点与查询参数
         let api_endpoint = CompensationApiV1::ArchiveQuery;
         let mut request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
-
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string());
         }
         if let Some(ref page_token) = self.page_token {
             request = request.query("page_token", page_token);
         }
+        if let Some(ref user_id_type) = self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
+        }
 
+        // 3. 构建请求体
+        let request_body = QueryRequestBody {
+            user_id_list: self.user_id_list,
+            tid_list: self.tid_list,
+            effective_start_date: self.effective_start_date,
+            effective_end_date: self.effective_end_date,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "构建请求体失败",
+                format!("序列化请求体失败: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
+
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -74,6 +140,22 @@ impl QueryRequest {
         )
         .await
     }
+}
+
+/// 批量查询员工薪资档案请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryRequestBody {
+    /// 用户 ID 列表，与入参 user_id_type 类型一致（1～100 个）
+    pub user_id_list: Vec<String>,
+    /// 档案 Tid 列表（1～100 个）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tid_list: Option<Vec<String>>,
+    /// 生效开始时间，格式 YYYY-MM-DD
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_start_date: Option<String>,
+    /// 生效结束时间，格式 YYYY-MM-DD
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_end_date: Option<String>,
 }
 
 /// 批量查询员工薪资档案响应
@@ -181,7 +263,7 @@ mod tests {
     async fn test_query_archives_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -192,6 +274,14 @@ mod tests {
         .unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/compensation/v1/archives/query"))
+            .and(query_param("page_size", "100"))
+            .and(query_param("user_id_type", "open_id"))
+            .and(body_json(json!({
+                "user_id_list": ["7117649868058789407"],
+                "tid_list": ["141541351"],
+                "effective_start_date": "2022-05-10",
+                "effective_end_date": "2023-05-15"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -207,7 +297,12 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config)
+        let data = QueryRequest::new(config, vec!["7117649868058789407".to_string()])
+            .page_size(100)
+            .user_id_type("open_id".to_string())
+            .tid_list(vec!["141541351".to_string()])
+            .effective_start_date("2022-05-10".to_string())
+            .effective_end_date("2023-05-15".to_string())
             .execute()
             .await
             .expect("查询薪资档案应成功");
@@ -236,5 +331,19 @@ mod tests {
             received[0].url.path(),
             "/open-apis/compensation/v1/archives/query"
         );
+    }
+
+    /// user_id_list 为必填（1～100 个）
+    #[tokio::test]
+    async fn test_query_archives_validates_required_fields() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url("https://127.0.0.1:9")
+            .enable_token_cache(false)
+            .build();
+
+        let result = QueryRequest::new(config, vec![]).execute().await;
+        assert!(result.is_err());
     }
 }

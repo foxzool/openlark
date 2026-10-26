@@ -21,6 +21,10 @@ pub struct PatchRequest {
     department_id: String,
     /// 部门名称
     name: Option<String>,
+    /// 组织实体公共字段（名称、描述、上级、启停用状态、编码等基础信息）
+    hiberarchy_common: Option<super::models::HiberarchyCommon>,
+    /// 生效时间（必填，格式：YYYY-MM-DD 00:00:00）
+    effective_time: String,
     /// 父部门 ID
     parent_department_id: Option<String>,
     /// 部门负责人列表
@@ -42,6 +46,8 @@ impl PatchRequest {
             config,
             department_id: String::new(),
             name: None,
+            hiberarchy_common: None,
+            effective_time: String::new(),
             parent_department_id: None,
             leader_user_ids: None,
             code: None,
@@ -59,6 +65,18 @@ impl PatchRequest {
     /// 设置部门名称
     pub fn name(mut self, name: String) -> Self {
         self.name = Some(name);
+        self
+    }
+
+    /// 设置组织实体公共字段（多语名称、启停用状态、编码、描述等）
+    pub fn hiberarchy_common(mut self, hiberarchy_common: super::models::HiberarchyCommon) -> Self {
+        self.hiberarchy_common = Some(hiberarchy_common);
+        self
+    }
+
+    /// 设置生效时间（必填，格式：YYYY-MM-DD 00:00:00）
+    pub fn effective_time(mut self, effective_time: String) -> Self {
+        self.effective_time = effective_time;
         self
     }
 
@@ -109,9 +127,11 @@ impl PatchRequest {
 
         // 1. 验证必填字段
         validate_required!(self.department_id.trim(), "部门ID不能为空");
+        validate_required!(self.effective_time.trim(), "生效时间不能为空");
 
         // 验证至少有一个更新字段
         if self.name.is_none()
+            && self.hiberarchy_common.is_none()
             && self.parent_department_id.is_none()
             && self.leader_user_ids.is_none()
             && self.code.is_none()
@@ -132,6 +152,8 @@ impl PatchRequest {
         let request_body = PatchRequestBody {
             department_id: self.department_id,
             name: self.name,
+            hiberarchy_common: self.hiberarchy_common,
+            effective_time: self.effective_time,
             parent_department_id: self.parent_department_id,
             leader_user_ids: self.leader_user_ids,
             code: self.code,
@@ -161,7 +183,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：PATCH /open-apis/corehr/v1/departments/test001
@@ -170,6 +192,10 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("PATCH"))
             .and(path("/open-apis/corehr/v1/departments/test001"))
+            .and(body_partial_json(json!({
+                "name": "test001",
+                "effective_time": "2020-05-01 00:00:00"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "result": false }
             })))
@@ -186,6 +212,7 @@ mod tests {
         PatchRequest::new(config)
             .department_id("test001".to_string())
             .name("test001".to_string())
+            .effective_time("2020-05-01 00:00:00".to_string())
             .execute()
             .await
             .expect("请求应成功");

@@ -1,6 +1,9 @@
 //! 创建或修改考勤组
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/group/create>
+//!
+//! 官方请求体为嵌套结构 `{"group": {...}, "operator_id": "..."}`，
+//! 必填 query 参数 `employee_type` 与 `dept_type`。
 
 use openlark_core::{
     SDKResult,
@@ -10,190 +13,47 @@ use openlark_core::{
     validate_required,
 };
 
-use super::models::{
-    CreateGroupRequestBody, CreateGroupResponse, OvertimeInfo, ShiftInfo, WorkDayConfig,
-};
+use super::models::{AttendanceGroup, CreateGroupRequestBody, CreateGroupResponse};
 
 /// 创建考勤组请求
 #[derive(Debug, Clone)]
 pub struct CreateGroupRequest {
-    /// 考勤组 ID（修改考勤组时必填）
-    group_id: Option<String>,
-    /// 考勤组名称（必填）
-    group_name: String,
-    /// 考勤组类型（必填）
-    /// - 0: 固定班制
-    /// - 1: 排班制
-    /// - 2: 自由班制
-    group_type: i32,
-    /// 参与考勤人员列表
-    user_list: Option<Vec<String>>,
-    /// 无需考勤人员列表
-    excluded_user_list: Option<Vec<String>>,
-    /// 考勤负责人列表
-    manager_list: Option<Vec<String>>,
-    /// 考勤组绑定的部门列表
-    dept_list: Option<Vec<String>>,
-    /// 考勤组绑定的班次列表（固定班制必填）
-    shift_list: Option<Vec<ShiftInfo>>,
-    /// 是否允许外勤打卡
-    allow_out_punch: Option<bool>,
-    /// 外勤打卡是否需要审批
-    out_punch_need_approval: Option<bool>,
-    /// 是否允许 PC 端打卡
-    allow_pc_punch: Option<bool>,
-    /// 是否需要拍照打卡
-    need_photo: Option<bool>,
-    /// 拍照打卡类型
-    photo_punch_type: Option<i32>,
-    /// 是否允许补卡
-    allow_remedy: Option<bool>,
-    /// 补卡限制次数
-    remedy_limit: Option<i32>,
-    /// 补卡限制周期（单位：天）
-    remedy_period: Option<i32>,
-    /// 工作日设置
-    work_day_config: Option<Vec<WorkDayConfig>>,
-    /// 加班规则配置
-    overtime_info: Option<OvertimeInfo>,
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
+    /// 部门 ID 的类型（必填，query 参数）：open_id
+    dept_type: String,
+    /// 考勤组信息（必填）
+    group: AttendanceGroup,
+    /// 操作人 uid，对应 employee_type（未操作考勤管理后台「API 接入」流程时必填）
+    operator_id: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl CreateGroupRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
+    /// - `dept_type`: 部门 ID 的类型（query 参数，必填，暂只支持 open_id）
+    /// - `group`: 考勤组信息（含官方必填字段）
+    pub fn new(
+        config: Config,
+        employee_type: String,
+        dept_type: String,
+        group: AttendanceGroup,
+    ) -> Self {
         Self {
-            group_id: None,
-            group_name: String::new(),
-            group_type: 0,
-            user_list: None,
-            excluded_user_list: None,
-            manager_list: None,
-            dept_list: None,
-            shift_list: None,
-            allow_out_punch: None,
-            out_punch_need_approval: None,
-            allow_pc_punch: None,
-            need_photo: None,
-            photo_punch_type: None,
-            allow_remedy: None,
-            remedy_limit: None,
-            remedy_period: None,
-            work_day_config: None,
-            overtime_info: None,
+            employee_type,
+            dept_type,
+            group,
+            operator_id: None,
             config,
         }
     }
 
-    /// 设置考勤组 ID（修改考勤组时必填）
-    pub fn group_id(mut self, group_id: String) -> Self {
-        self.group_id = Some(group_id);
-        self
-    }
-
-    /// 设置考勤组名称（必填）
-    pub fn group_name(mut self, group_name: String) -> Self {
-        self.group_name = group_name;
-        self
-    }
-
-    /// 设置考勤组类型（必填）
-    /// - 0: 固定班制
-    /// - 1: 排班制
-    /// - 2: 自由班制
-    pub fn group_type(mut self, group_type: i32) -> Self {
-        self.group_type = group_type;
-        self
-    }
-
-    /// 设置参与考勤人员列表
-    pub fn user_list(mut self, user_list: Vec<String>) -> Self {
-        self.user_list = Some(user_list);
-        self
-    }
-
-    /// 设置无需考勤人员列表
-    pub fn excluded_user_list(mut self, excluded_user_list: Vec<String>) -> Self {
-        self.excluded_user_list = Some(excluded_user_list);
-        self
-    }
-
-    /// 设置考勤负责人列表
-    pub fn manager_list(mut self, manager_list: Vec<String>) -> Self {
-        self.manager_list = Some(manager_list);
-        self
-    }
-
-    /// 设置考勤组绑定的部门列表
-    pub fn dept_list(mut self, dept_list: Vec<String>) -> Self {
-        self.dept_list = Some(dept_list);
-        self
-    }
-
-    /// 设置考勤组绑定的班次列表（固定班制必填）
-    pub fn shift_list(mut self, shift_list: Vec<ShiftInfo>) -> Self {
-        self.shift_list = Some(shift_list);
-        self
-    }
-
-    /// 设置是否允许外勤打卡
-    pub fn allow_out_punch(mut self, allow_out_punch: bool) -> Self {
-        self.allow_out_punch = Some(allow_out_punch);
-        self
-    }
-
-    /// 设置外勤打卡是否需要审批
-    pub fn out_punch_need_approval(mut self, out_punch_need_approval: bool) -> Self {
-        self.out_punch_need_approval = Some(out_punch_need_approval);
-        self
-    }
-
-    /// 设置是否允许 PC 端打卡
-    pub fn allow_pc_punch(mut self, allow_pc_punch: bool) -> Self {
-        self.allow_pc_punch = Some(allow_pc_punch);
-        self
-    }
-
-    /// 设置是否需要拍照打卡
-    pub fn need_photo(mut self, need_photo: bool) -> Self {
-        self.need_photo = Some(need_photo);
-        self
-    }
-
-    /// 设置拍照打卡类型
-    pub fn photo_punch_type(mut self, photo_punch_type: i32) -> Self {
-        self.photo_punch_type = Some(photo_punch_type);
-        self
-    }
-
-    /// 设置是否允许补卡
-    pub fn allow_remedy(mut self, allow_remedy: bool) -> Self {
-        self.allow_remedy = Some(allow_remedy);
-        self
-    }
-
-    /// 设置补卡限制次数
-    pub fn remedy_limit(mut self, remedy_limit: i32) -> Self {
-        self.remedy_limit = Some(remedy_limit);
-        self
-    }
-
-    /// 设置补卡限制周期（单位：天）
-    pub fn remedy_period(mut self, remedy_period: i32) -> Self {
-        self.remedy_period = Some(remedy_period);
-        self
-    }
-
-    /// 设置工作日设置
-    pub fn work_day_config(mut self, work_day_config: Vec<WorkDayConfig>) -> Self {
-        self.work_day_config = Some(work_day_config);
-        self
-    }
-
-    /// 设置加班规则配置
-    pub fn overtime_info(mut self, overtime_info: OvertimeInfo) -> Self {
-        self.overtime_info = Some(overtime_info);
+    /// 设置操作人 uid，对应 employee_type（未操作考勤管理后台「API 接入」流程时必填）
+    pub fn operator_id(mut self, operator_id: String) -> Self {
+        self.operator_id = Some(operator_id);
         self
     }
 
@@ -211,32 +71,22 @@ impl CreateGroupRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required!(self.group_name.trim(), "考勤组名称不能为空");
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.dept_type, "dept_type 不能为空");
+        validate_required!(self.group.group_name, "考勤组名称不能为空");
+        validate_required!(self.group.time_zone, "time_zone 不能为空");
+        validate_required!(self.group.group_leader_ids, "group_leader_ids 不能为空");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type / dept_type
         let api_endpoint = AttendanceApiV1::GroupCreate;
-        let request = ApiRequest::<CreateGroupResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<CreateGroupResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type)
+            .query("dept_type", &self.dept_type);
 
-        // 3. 序列化请求体
+        // 3. 序列化请求体（官方结构 {"group": {...}, "operator_id": "..."}）
         let request_body = CreateGroupRequestBody {
-            group_id: self.group_id,
-            group_name: self.group_name,
-            group_type: self.group_type,
-            user_list: self.user_list,
-            excluded_user_list: self.excluded_user_list,
-            manager_list: self.manager_list,
-            dept_list: self.dept_list,
-            shift_list: self.shift_list,
-            allow_out_punch: self.allow_out_punch,
-            out_punch_need_approval: self.out_punch_need_approval,
-            allow_pc_punch: self.allow_pc_punch,
-            need_photo: self.need_photo,
-            photo_punch_type: self.photo_punch_type,
-            allow_remedy: self.allow_remedy,
-            remedy_limit: self.remedy_limit,
-            remedy_period: self.remedy_period,
-            work_day_config: self.work_day_config,
-            overtime_info: self.overtime_info,
+            group: self.group,
+            operator_id: self.operator_id,
         };
         let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
@@ -276,52 +126,58 @@ mod tests {
             .build()
     }
 
+    fn sample_group() -> AttendanceGroup {
+        let mut group = AttendanceGroup::new(
+            "开心考勤".to_string(),
+            "Asia/Shanghai".to_string(),
+            vec!["2bg4a9be".to_string()],
+            1,
+            vec!["xxx".to_string(), "0".to_string()],
+            1,
+        );
+        group.bind_dept_ids = Some(vec!["od-fcb45c28a45311afd440b7869541fce8".to_string()]);
+        group.allow_out_punch = Some(true);
+        group
+    }
+
     #[test]
     fn test_create_group_request_builder() {
-        let request = CreateGroupRequest::new(create_test_config())
-            .group_name("测试考勤组".to_string())
-            .group_type(1)
-            .allow_pc_punch(true);
+        let request = CreateGroupRequest::new(
+            create_test_config(),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            sample_group(),
+        )
+        .operator_id("dd31248a".to_string());
 
-        assert_eq!(request.group_name, "测试考勤组");
-        assert_eq!(request.group_type, 1);
-        assert_eq!(request.allow_pc_punch, Some(true));
+        assert_eq!(request.employee_type, "employee_id");
+        assert_eq!(request.dept_type, "open_id");
+        assert_eq!(request.operator_id.as_deref(), Some("dd31248a"));
+        assert_eq!(request.group.group_name, "开心考勤");
     }
 
     #[test]
     fn test_create_group_request_body_serialize() {
-        let request = CreateGroupRequest::new(create_test_config())
-            .group_name("研发组".to_string())
-            .group_type(0)
-            .allow_remedy(true)
-            .remedy_limit(3);
-
+        let group = sample_group();
         let body = CreateGroupRequestBody {
-            group_id: request.group_id,
-            group_name: request.group_name,
-            group_type: request.group_type,
-            user_list: request.user_list,
-            excluded_user_list: request.excluded_user_list,
-            manager_list: request.manager_list,
-            dept_list: request.dept_list,
-            shift_list: request.shift_list,
-            allow_out_punch: request.allow_out_punch,
-            out_punch_need_approval: request.out_punch_need_approval,
-            allow_pc_punch: request.allow_pc_punch,
-            need_photo: request.need_photo,
-            photo_punch_type: request.photo_punch_type,
-            allow_remedy: request.allow_remedy,
-            remedy_limit: request.remedy_limit,
-            remedy_period: request.remedy_period,
-            work_day_config: request.work_day_config,
-            overtime_info: request.overtime_info,
+            group,
+            operator_id: Some("dd31248a".to_string()),
         };
 
-        let value = serde_json::to_value(body).expect("序列化请求体失败");
-        assert_eq!(value["group_name"], json!("研发组"));
-        assert_eq!(value["group_type"], json!(0));
-        assert_eq!(value["allow_remedy"], json!(true));
-        assert_eq!(value["remedy_limit"], json!(3));
+        let value = serde_json::to_value(&body).expect("序列化请求体失败");
+        // 官方结构：顶层 group + operator_id，考勤组字段在 group 内
+        assert!(value["group"].is_object(), "请求体缺 group 对象: {value}");
+        assert_eq!(value["group"]["group_name"], json!("开心考勤"));
+        assert_eq!(value["group"]["time_zone"], json!("Asia/Shanghai"));
+        assert_eq!(value["group"]["group_leader_ids"], json!(["2bg4a9be"]));
+        assert_eq!(value["group"]["group_type"], json!(1));
+        assert_eq!(value["group"]["calendar_id"], json!(1));
+        assert_eq!(value["operator_id"], json!("dd31248a"));
+        // 可选字段不序列化
+        assert!(
+            value["group"].get("except_user_ids").is_none(),
+            "未设置的 optional 字段不应序列化: {value}"
+        );
     }
 
     #[test]
@@ -332,32 +188,23 @@ mod tests {
         assert_eq!(response.group_id, "grp_123");
     }
 
-    #[test]
-    fn test_create_group_validation() {
-        let request = CreateGroupRequest::new(create_test_config()).group_name("   ".to_string());
-        let result: SDKResult<()> = (|| {
-            validate_required!(request.group_name.trim(), "考勤组名称不能为空");
-            Ok(())
-        })();
-
-        assert!(result.is_err());
-    }
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
     #[tokio::test]
     async fn test_attendance_v1_group_create_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value = serde_json::from_str(r#"{"group_id": "test"}"#).unwrap();
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/groups"))
+            .and(query_param("employee_type", "employee_id"))
+            .and(query_param("dept_type", "open_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": {"group_id": "test"}
             })))
             .mount(&server)
             .await;
@@ -369,16 +216,39 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = CreateGroupRequest::new(config)
-            .group_name("group_name_val".to_string())
-            .execute()
-            .await
-            .expect("attendance_v1_group_create 应成功");
+        let data = CreateGroupRequest::new(
+            config,
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            sample_group(),
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_group_create 应成功");
 
-        let _ = &data;
+        assert_eq!(data.group_id, "test");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/attendance/v1/groups");
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
+        );
+        assert!(
+            query.contains("dept_type=open_id"),
+            "缺必填 query 参数 dept_type: {query}"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"group\""), "请求体缺 group 对象: {body}");
+        assert!(
+            body.contains("\"group_leader_ids\""),
+            "请求体缺 group.group_leader_ids: {body}"
+        );
+        assert!(
+            !body.contains("\"manager_list\""),
+            "请求体不应含旧字段 manager_list: {body}"
+        );
     }
 }

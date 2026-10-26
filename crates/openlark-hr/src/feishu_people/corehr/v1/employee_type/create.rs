@@ -19,6 +19,10 @@ pub struct CreateRequest {
     config: Config,
     /// 人员类型名称（必填）
     name: String,
+    /// 是否为默认人员类型，每个租户只能定义一个默认人员类型（必填）
+    default_employee_type: bool,
+    /// 是否启用（必填，默认启用）
+    active: bool,
     /// 人员类型描述
     description: Option<String>,
 }
@@ -29,6 +33,8 @@ impl CreateRequest {
         Self {
             config,
             name: String::new(),
+            default_employee_type: false,
+            active: true,
             description: None,
         }
     }
@@ -36,6 +42,18 @@ impl CreateRequest {
     /// 设置人员类型名称（必填）
     pub fn name(mut self, name: String) -> Self {
         self.name = name;
+        self
+    }
+
+    /// 设置是否为默认人员类型（必填，每个租户只能定义一个默认人员类型）
+    pub fn default_employee_type(mut self, default_employee_type: bool) -> Self {
+        self.default_employee_type = default_employee_type;
+        self
+    }
+
+    /// 设置是否启用（必填）
+    pub fn active(mut self, active: bool) -> Self {
+        self.active = active;
         self
     }
 
@@ -68,6 +86,8 @@ impl CreateRequest {
         // 3. 序列化请求体
         let request_body = CreateRequestBody {
             name: self.name,
+            default_employee_type: self.default_employee_type,
+            active: self.active,
             description: self.description,
         };
         let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
@@ -99,7 +119,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/employee_types
@@ -108,6 +128,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/employee_types"))
+            .and(body_partial_json(json!({
+                "name": "test001",
+                "default_employee_type": true,
+                "active": true
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "employee_type_id": "" }
             })))
@@ -123,6 +148,8 @@ mod tests {
 
         CreateRequest::new(config)
             .name("test001".to_string())
+            .default_employee_type(true)
+            .active(true)
             .execute()
             .await
             .expect("请求应成功");

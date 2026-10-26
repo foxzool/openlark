@@ -1,13 +1,15 @@
 //! 查询统计字段定义
 //!
 //! docPath: <https://open.feishu.cn/document/attendance-v1/user_stats_field/query>
+//!
+//! 必填 query 参数 `employee_type`；请求体为 locale/stats_type/start_date/end_date。
 
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required_list,
+    validate_required,
 };
 
 use super::models::{QueryRequestBody, QueryResponse};
@@ -15,85 +17,43 @@ use super::models::{QueryRequestBody, QueryResponse};
 /// 查询统计字段定义请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 考勤组 ID
-    unit_id: Option<String>,
-    /// 统计类型，可选值：daily（日度统计）、monthly（月度统计）
-    stat_type: Option<String>,
-    /// 用户 ID 列表
-    user_ids: Vec<String>,
-    /// 查询的起始日期，格式为 yyyy-MM-dd
-    start_date: Option<String>,
-    /// 查询的结束日期，格式为 yyyy-MM-dd
-    end_date: Option<String>,
-    /// 是否包含下属，默认值为 false
-    is_include_subordinate: Option<bool>,
-    /// 分页标记，用于获取下一页数据
-    page_token: Option<String>,
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
+    /// 语言类型（必填）：en / ja / zh
+    locale: String,
+    /// 统计类型（必填）：daily-日度统计，month-月度统计
+    stats_type: String,
+    /// 开始时间，格式 yyyyMMdd（官方标注「无效字段」，仍必填）
+    start_date: i32,
+    /// 结束时间，格式 yyyyMMdd（官方标注「无效字段」，仍必填）
+    end_date: i32,
     /// 配置信息
     config: Config,
 }
 
 impl QueryRequest {
     /// 创建查询统计字段定义请求
-    pub fn new(config: Config) -> Self {
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
+    /// - `locale`: 语言类型（必填）
+    /// - `stats_type`: 统计类型（必填）
+    /// - `start_date` / `end_date`: 起止时间，格式 yyyyMMdd
+    pub fn new(
+        config: Config,
+        employee_type: String,
+        locale: String,
+        stats_type: String,
+        start_date: i32,
+        end_date: i32,
+    ) -> Self {
         Self {
-            unit_id: None,
-            stat_type: None,
-            user_ids: Vec::new(),
-            start_date: None,
-            end_date: None,
-            is_include_subordinate: None,
-            page_token: None,
+            employee_type,
+            locale,
+            stats_type,
+            start_date,
+            end_date,
             config,
         }
-    }
-
-    /// 设置考勤组 ID（可选）
-    pub fn unit_id(mut self, unit_id: String) -> Self {
-        self.unit_id = Some(unit_id);
-        self
-    }
-
-    /// 设置统计类型（可选）
-    pub fn stat_type(mut self, stat_type: String) -> Self {
-        self.stat_type = Some(stat_type);
-        self
-    }
-
-    /// 设置用户 ID 列表（可选）
-    pub fn user_ids(mut self, user_ids: Vec<String>) -> Self {
-        self.user_ids = user_ids;
-        self
-    }
-
-    /// 添加单个用户 ID
-    pub fn add_user_id(mut self, user_id: String) -> Self {
-        self.user_ids.push(user_id);
-        self
-    }
-
-    /// 设置查询起始日期（可选）
-    pub fn start_date(mut self, start_date: String) -> Self {
-        self.start_date = Some(start_date);
-        self
-    }
-
-    /// 设置查询结束日期（可选）
-    pub fn end_date(mut self, end_date: String) -> Self {
-        self.end_date = Some(end_date);
-        self
-    }
-
-    /// 设置是否包含下属（可选）
-    pub fn is_include_subordinate(mut self, is_include_subordinate: bool) -> Self {
-        self.is_include_subordinate = Some(is_include_subordinate);
-        self
-    }
-
-    /// 设置分页标记（可选）
-    pub fn page_token(mut self, page_token: String) -> Self {
-        self.page_token = Some(page_token);
-        self
     }
 
     /// 执行请求
@@ -110,46 +70,30 @@ impl QueryRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        // 至少需要指定考勤组 ID 或用户 ID
-        validate_required_list!(self.user_ids, 50, "查询条件不能为空");
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.locale, "locale 不能为空");
+        validate_required!(self.stats_type, "stats_type 不能为空");
 
-        // 验证用户 ID 数量
-        if self.user_ids.len() > 50 {
-            return Err(openlark_core::error::validation_error(
-                "用户 ID 列表超出限制",
-                "最多支持 50 个用户",
-            ));
-        }
-
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserStatsFieldQuery;
-        let mut request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
-        // 3. 添加查询参数（如果有）
-        // 暂无需要添加的查询参数
-
-        // 4. 序列化请求体
+        // 3. 序列化请求体
         let request_body = QueryRequestBody {
-            unit_id: self.unit_id,
-            stat_type: self.stat_type,
-            user_ids: if self.user_ids.is_empty() {
-                None
-            } else {
-                Some(self.user_ids)
-            },
+            locale: self.locale,
+            stats_type: self.stats_type,
             start_date: self.start_date,
             end_date: self.end_date,
-            is_include_subordinate: self.is_include_subordinate,
-            page_token: self.page_token,
         };
-        request = request.body(serde_json::to_value(&request_body).map_err(|e| {
+        let request = request.body(serde_json::to_value(&request_body).map_err(|e| {
             openlark_core::error::validation_error(
                 "请求体序列化失败",
                 format!("无法序列化请求参数: {e}"),
             )
         })?);
 
-        // 5. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -175,27 +119,45 @@ mod tests {
 
     #[test]
     fn test_query_request_builder_new() {
-        let request =
-            QueryRequest::new(TestConfigBuilder::new().build()).unit_id("test".to_string());
+        let request = QueryRequest::new(
+            TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
+            "zh".to_string(),
+            "daily".to_string(),
+            20_210_316,
+            20_210_323,
+        );
         let _ = request;
     }
+
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
     #[tokio::test]
     async fn test_attendance_v1_user_stats_field_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
-        let data_body: serde_json::Value =
-            serde_json::from_str(r#"{"stat_fields": [], "has_more": false}"#).unwrap();
+        // 官方响应示例形状：data.user_stats_field.fields[].child_fields[]
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_stats_fields/query"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": data_body
+                "data": { "user_stats_field": {
+                    "stats_type": "month",
+                    "user_id": "",
+                    "fields": [
+                        {"code": "501", "title": "Basic info", "child_fields": [
+                            {"code": "50103", "title": "Employee ID"}
+                        ]},
+                        {"code": "521", "title": "Attendance statistics", "child_fields": [
+                            {"code": "52104", "title": "Required attendance duration", "time_unit": "Minute"}
+                        ]}
+                    ]
+                } }
             })))
             .mount(&server)
             .await;
@@ -207,21 +169,47 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config)
-            .add_user_id("id_001".to_string())
-            .start_date("20240101".to_string())
-            .end_date("20240131".to_string())
-            .execute()
-            .await
-            .expect("attendance_v1_user_stats_field_query 应成功");
+        let data = QueryRequest::new(
+            config,
+            "employee_id".to_string(),
+            "zh".to_string(),
+            "daily".to_string(),
+            20_210_316,
+            20_210_323,
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_user_stats_field_query 应成功");
 
-        let _ = &data;
+        let stats_field = data.user_stats_field.expect("user_stats_field 应存在");
+        assert_eq!(stats_field.stats_type.as_deref(), Some("month"));
+        assert_eq!(stats_field.fields.len(), 2);
+        assert_eq!(stats_field.fields[1].child_fields[0].code, "52104");
+        assert_eq!(
+            stats_field.fields[1].child_fields[0].time_unit.as_deref(),
+            Some("Minute")
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_stats_fields/query"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"locale\""), "请求体缺 locale: {body}");
+        assert!(
+            body.contains("\"stats_type\""),
+            "请求体缺 stats_type: {body}"
+        );
+        assert!(
+            !body.contains("\"unit_id\""),
+            "请求体不应含旧字段 unit_id: {body}"
         );
     }
 }

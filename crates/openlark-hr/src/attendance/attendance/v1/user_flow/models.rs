@@ -97,21 +97,12 @@ pub struct UserFlowResult {
 /// 查询打卡流水请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryUserFlowRequestBody {
-    /// 查询的起始日期，格式为 yyyy-MM-dd
-    pub start_date: String,
-    /// 查询的结束日期，格式为 yyyy-MM-dd
-    pub end_date: String,
     /// 查询的用户 ID 列表，最多支持 50 个用户
     pub user_ids: Vec<String>,
-    /// 用户 ID 类型，可选值：open_id、union_id、user_id
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id_type: Option<String>,
-    /// 查询的打卡类型，可选值：
-    /// - 1: 上班打卡
-    /// - 2: 下班打卡
-    /// - 3: 外出打卡
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub punch_type: Option<i32>,
+    /// 查询的起始时间（包含），秒级时间戳
+    pub check_time_from: String,
+    /// 查询的结束时间（不包含），秒级时间戳
+    pub check_time_to: String,
 }
 
 /// 打卡流水信息
@@ -209,30 +200,22 @@ pub struct GetUserFlowResponse {
 /// 删除打卡流水请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchDelUserFlowRequestBody {
-    /// 要删除的打卡流水 ID 列表
-    pub user_flow_ids: Vec<String>,
-}
-
-/// 删除打卡流水结果
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BatchDelUserFlowResult {
-    /// 打卡流水 ID
-    pub user_flow_id: String,
-    /// 是否删除成功
-    pub success: bool,
-    /// 错误码（失败时返回）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<i32>,
-    /// 错误信息（失败时返回）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_msg: Option<String>,
+    /// 打卡流水记录 ID 列表（1-10 个），可通过批量查询打卡流水记录/获取打卡结果/导入打卡流水记录获得
+    pub record_ids: Vec<String>,
 }
 
 /// 删除打卡流水响应
+///
+/// 官方 response `data` 为 `{success_record_ids, fail_record_ids}`；
+/// fail_record_ids 不为空时，msg 返回对应失败原因（格式为 {"xx id": "xx reason"}）。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BatchDelUserFlowResponse {
-    /// 删除结果列表
-    pub results: Vec<BatchDelUserFlowResult>,
+    /// 删除成功的流水记录 ID 列表
+    #[serde(default)]
+    pub success_record_ids: Vec<String>,
+    /// 删除失败的流水记录 ID 列表
+    #[serde(default)]
+    pub fail_record_ids: Vec<String>,
 }
 
 #[cfg(test)]
@@ -271,11 +254,13 @@ mod tests {
 
     #[test]
     fn test_batch_del_response_deserialization() {
-        let response: BatchDelUserFlowResponse =
-            serde_json::from_str(r#"{"results":[{"user_flow_id":"flow_2","success":true}]}"#)
-                .expect("反序列化失败");
+        // 官方响应示例形状：data.{success_record_ids, fail_record_ids}
+        let response: BatchDelUserFlowResponse = serde_json::from_str(
+            r#"{"success_record_ids": ["6709359313699356941"], "fail_record_ids": []}"#,
+        )
+        .expect("反序列化失败");
 
-        assert_eq!(response.results.len(), 1);
-        assert!(response.results[0].success);
+        assert_eq!(response.success_record_ids, vec!["6709359313699356941"]);
+        assert!(response.fail_record_ids.is_empty());
     }
 }

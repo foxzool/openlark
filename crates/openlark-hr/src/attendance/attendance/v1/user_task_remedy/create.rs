@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 /// 通知补卡审批发起请求
 #[derive(Debug, Clone)]
 pub struct CreateRequest {
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
     /// 用户 ID（必填）
     user_id: String,
     /// 补卡日期，格式 `yyyyMMdd`（必填）
@@ -33,8 +35,12 @@ pub struct CreateRequest {
 
 impl CreateRequest {
     /// 创建请求
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填），user_id 需与其取值一致
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         config: Config,
+        employee_type: String,
         user_id: String,
         remedy_date: i32,
         punch_no: i32,
@@ -43,6 +49,7 @@ impl CreateRequest {
         reason: String,
     ) -> Self {
         Self {
+            employee_type,
             user_id,
             remedy_date,
             punch_no,
@@ -67,13 +74,15 @@ impl CreateRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required!(self.user_id.trim(), "user_id");
         validate_required!(self.remedy_time.trim(), "remedy_time");
         validate_required!(self.reason.trim(), "reason");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserTaskRemedyCreate;
-        let request = ApiRequest::<CreateResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<CreateResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = CreateRequestBody {
@@ -152,6 +161,7 @@ mod tests {
     fn test_create_request_builder_new() {
         let request = CreateRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             "abd754f7".to_string(),
             20_210_701,
             0,
@@ -167,12 +177,13 @@ mod tests {
     async fn test_attendance_v1_user_task_remedy_create_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/user_task_remedys"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -203,6 +214,7 @@ mod tests {
 
         let data = CreateRequest::new(
             config,
+            "employee_id".to_string(),
             "abd754f7".to_string(),
             20_210_701,
             0,
@@ -226,6 +238,11 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_task_remedys"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
         );
         let body = String::from_utf8(received[0].body.clone()).unwrap();
         assert!(

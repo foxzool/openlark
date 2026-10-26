@@ -100,6 +100,12 @@ pub struct CustomField {
 pub struct CreateRequestBody {
     /// 员工 ID（必填）
     pub employee_id: String,
+    /// 雇佣 ID（必填）
+    pub employment_id: String,
+    /// 合同签约公司 ID（必填）
+    pub first_party_company_id: String,
+    /// 合同开始日期（格式：YYYY-MM-DD HH:mm:ss，必填）
+    pub effective_time: String,
     /// 合同编号
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_number: Option<String>,

@@ -53,11 +53,31 @@ pub struct CustomField {
 
 // 创建任职信息相关模型
 
+/// 官方 enum 结构：`{enum_name}`（如 assignment_start_reason 业务类型）
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct EnumValue {
+    /// 枚举值（assignment_start_reason 仅支持 "onboarding"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enum_name: Option<String>,
+}
+
 /// 创建任职信息请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateRequestBody {
     /// 员工 ID（必填）
     pub employee_id: String,
+    /// 人员类型 ID（必填，可通过批量查询人员类型接口获得）
+    pub employee_type_id: String,
+    /// 部门 ID（必填，可通过批量查询部门接口获得）
+    pub department_id: String,
+    /// 是否为主任职（必填，该字段已废弃，固定为 true）
+    pub primary_job_data: bool,
+    /// 雇佣 ID（必填，可通过搜索员工信息接口获得）
+    pub employment_id: String,
+    /// 生效时间（必填，格式：YYYY-MM-DD HH:mm:ss）
+    pub effective_time: String,
+    /// 业务类型/任职原因（必填，仅支持 onboarding）
+    pub assignment_start_reason: EnumValue,
     /// 职务 ID（必填）
     pub job_id: String,
     /// 职位 ID

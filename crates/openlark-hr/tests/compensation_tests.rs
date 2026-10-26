@@ -46,9 +46,13 @@ mod builder_tests {
     );
     smoke_builder!(
         test_archive_query_request_builder,
-        archive::query::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .page_size(20)
-            .page_token("next_archive".to_string())
+        archive::query::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["ou_1".to_string()],
+        )
+        .page_size(20)
+        .page_token("next_archive".to_string())
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_change_reason_list_request_builder,
@@ -72,9 +76,36 @@ mod builder_tests {
     );
     smoke_builder!(
         test_lump_sum_batch_create_request_builder,
-        lump_sum_payment::batch_create::BatchCreateRequest::new(test_config(
-            "https://open.feishu.cn"
-        ))
+        lump_sum_payment::batch_create::BatchCreateRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec![lump_sum_payment::batch_create::LumpSumPaymentForCreate {
+                unique_id: "u_1".to_string(),
+                user_id: "ou_1".to_string(),
+                total_amount: "2000.00".to_string(),
+                binding_period: 2,
+                currency_id: "cur_1".to_string(),
+                issuance_frequency: 1,
+                item_id: "item_1".to_string(),
+                reference_period_start_date: None,
+                reference_period_end_date: None,
+                details: vec![
+                    lump_sum_payment::batch_create::LumpSumPaymentDetailForCreate {
+                        issuance_amount: "2000.00".to_string(),
+                        issuance_status: "to_be_issued".to_string(),
+                        issuance_way: "with_salary".to_string(),
+                        issuance_time: "2024-08-01".to_string(),
+                        belong_time: "2025-01-20".to_string(),
+                        issuance_country_region_id: None,
+                        issuance_pay_group_id: None,
+                        detail_reference_period_start_date: None,
+                        detail_reference_period_end_date: None,
+                    }
+                ],
+                remark: None,
+                binding_period_decimal: None,
+            }],
+        )
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_lump_sum_batch_remove_request_builder,
@@ -110,15 +141,31 @@ mod builder_tests {
     );
     smoke_builder!(
         test_recurring_batch_create_request_builder,
-        recurring_payment::batch_create::BatchCreateRequest::new(test_config(
-            "https://open.feishu.cn"
-        ))
+        recurring_payment::batch_create::BatchCreateRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec![recurring_payment::batch_create::RecurringPaymentForCreate {
+                unique_id: "u_1".to_string(),
+                user_id: "ou_1".to_string(),
+                item_id: "item_1".to_string(),
+                each_amount: "20.00".to_string(),
+                start_date: "2024-08-01".to_string(),
+                end_date: "2025-08-01".to_string(),
+                currency_id: "cur_1".to_string(),
+                issuance_type: "with_salary".to_string(),
+                issuance_period: "year".to_string(),
+                remark: None,
+                issuance_country_region_id: None,
+            }],
+        )
+        .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_recurring_batch_remove_request_builder,
-        recurring_payment::batch_remove::BatchRemoveRequest::new(test_config(
-            "https://open.feishu.cn"
-        ))
+        recurring_payment::batch_remove::BatchRemoveRequest::new(
+            test_config("https://open.feishu.cn"),
+            vec!["rec_1".to_string()],
+        )
+        .reason("删除错误创建的数据".to_string())
     );
     smoke_builder!(
         test_recurring_batch_update_request_builder,
@@ -188,6 +235,18 @@ mod validation_tests {
 
         // CreateResponse 字段均为 Option：缺 data 时 Transport 以 `{}` 兼容解码（#422）
         let data = archive::create::CreateRequest::new(test_config(&mock_server.uri()))
+            .unique_id("123e4567-e89b-42d3-a456-426614174000".to_string())
+            .user_id("ou_1".to_string())
+            .effective_time("2024-11-12".to_string())
+            .currency_id("cur_1".to_string())
+            .plan_id("plan_1".to_string())
+            .plan_tid("plan_tid_1".to_string())
+            .change_reason_id("reason_1".to_string())
+            .item_value_lists(vec![archive::create::ArchiveItemValue {
+                item_id: "item_1".to_string(),
+                item_value: "200.00".to_string(),
+                item_value_regular: None,
+            }])
             .execute_with_options(auth_option())
             .await
             .expect("empty success should decode to empty CreateResponse");
@@ -204,12 +263,15 @@ mod validation_tests {
             .mount(&mock_server)
             .await;
 
-        let err = archive::query::QueryRequest::new(test_config(&mock_server.uri()))
-            .execute_with_options(auth_option())
-            .await
-            .err()
-            .unwrap()
-            .to_string();
+        let err = archive::query::QueryRequest::new(
+            test_config(&mock_server.uri()),
+            vec!["ou_1".to_string()],
+        )
+        .execute_with_options(auth_option())
+        .await
+        .err()
+        .unwrap()
+        .to_string();
         assert!(
             err.contains("批量查询员工薪资档案响应数据为空")
                 || err.contains("成功响应缺少必需的 data")
@@ -292,6 +354,18 @@ mod http_tests {
             .await;
 
         let resp = archive::create::CreateRequest::new(test_config(&mock_server.uri()))
+            .unique_id("123e4567-e89b-42d3-a456-426614174000".to_string())
+            .user_id("ou_1".to_string())
+            .effective_time("2024-11-12".to_string())
+            .currency_id("cur_1".to_string())
+            .plan_id("plan_1".to_string())
+            .plan_tid("plan_tid_1".to_string())
+            .change_reason_id("reason_1".to_string())
+            .item_value_lists(vec![archive::create::ArchiveItemValue {
+                item_id: "item_1".to_string(),
+                item_value: "200.00".to_string(),
+                item_value_regular: None,
+            }])
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -317,12 +391,15 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = archive::query::QueryRequest::new(test_config(&mock_server.uri()))
-            .page_size(20)
-            .page_token("next_archive".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
+        let resp = archive::query::QueryRequest::new(
+            test_config(&mock_server.uri()),
+            vec!["ou_1".to_string()],
+        )
+        .page_size(20)
+        .page_token("next_archive".to_string())
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
         assert_eq!(resp.items[0].id, "arc_1");
     }
 
@@ -437,9 +514,35 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = lump_sum_payment::batch_create::BatchCreateRequest::new(test_config(
-            &mock_server.uri(),
-        ))
+        let resp = lump_sum_payment::batch_create::BatchCreateRequest::new(
+            test_config(&mock_server.uri()),
+            vec![lump_sum_payment::batch_create::LumpSumPaymentForCreate {
+                unique_id: "lump_unique_1".to_string(),
+                user_id: "ou_1".to_string(),
+                total_amount: "1000.00".to_string(),
+                binding_period: 2,
+                currency_id: "cur_1".to_string(),
+                issuance_frequency: 1,
+                item_id: "item_1".to_string(),
+                reference_period_start_date: None,
+                reference_period_end_date: None,
+                details: vec![
+                    lump_sum_payment::batch_create::LumpSumPaymentDetailForCreate {
+                        issuance_amount: "1000.00".to_string(),
+                        issuance_status: "to_be_issued".to_string(),
+                        issuance_way: "with_salary".to_string(),
+                        issuance_time: "2024-08-01".to_string(),
+                        belong_time: "2025-01-20".to_string(),
+                        issuance_country_region_id: None,
+                        issuance_pay_group_id: None,
+                        detail_reference_period_start_date: None,
+                        detail_reference_period_end_date: None,
+                    },
+                ],
+                remark: None,
+                binding_period_decimal: None,
+            }],
+        )
         .execute_with_options(auth_option())
         .await
         .unwrap();
@@ -507,6 +610,7 @@ mod http_tests {
             .and(path("/open-apis/compensation/v1/lump_sum_payment/query"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_lump"))
+            .and(query_param("user_id_type", "open_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
@@ -518,6 +622,7 @@ mod http_tests {
         let resp = lump_sum_payment::query::QueryRequest::new(test_config(&mock_server.uri()))
             .page_size(20)
             .page_token("next_lump".to_string())
+            .user_id_type("open_id".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -537,6 +642,7 @@ mod http_tests {
             .and(path("/open-apis/compensation/v1/lump_sum_payment/query_detail"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_lump_detail"))
+            .and(query_param("user_id_type", "open_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
@@ -550,6 +656,7 @@ mod http_tests {
         ))
         .page_size(20)
         .page_token("next_lump_detail".to_string())
+        .user_id_type("open_id".to_string())
         .execute_with_options(auth_option())
         .await
         .unwrap();
@@ -600,9 +707,22 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = recurring_payment::batch_create::BatchCreateRequest::new(test_config(
-            &mock_server.uri(),
-        ))
+        let resp = recurring_payment::batch_create::BatchCreateRequest::new(
+            test_config(&mock_server.uri()),
+            vec![recurring_payment::batch_create::RecurringPaymentForCreate {
+                unique_id: "u_1".to_string(),
+                user_id: "ou_1".to_string(),
+                item_id: "item_1".to_string(),
+                each_amount: "3000.00".to_string(),
+                start_date: "2024-01-10".to_string(),
+                end_date: "2025-01-20".to_string(),
+                currency_id: "cur_1".to_string(),
+                issuance_type: "with_salary".to_string(),
+                issuance_period: "year".to_string(),
+                remark: None,
+                issuance_country_region_id: None,
+            }],
+        )
         .execute_with_options(auth_option())
         .await
         .unwrap();
@@ -626,9 +746,10 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = recurring_payment::batch_remove::BatchRemoveRequest::new(test_config(
-            &mock_server.uri(),
-        ))
+        let resp = recurring_payment::batch_remove::BatchRemoveRequest::new(
+            test_config(&mock_server.uri()),
+            vec!["rec_1".to_string()],
+        )
         .execute_with_options(auth_option())
         .await
         .unwrap();
@@ -671,6 +792,7 @@ mod http_tests {
             .and(path("/open-apis/compensation/v1/recurring_payment/query"))
             .and(query_param("page_size", "20"))
             .and(query_param("page_token", "next_recurring"))
+            .and(query_param("user_id_type", "open_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code":0,
                 "msg":"ok",
@@ -682,6 +804,7 @@ mod http_tests {
         let resp = recurring_payment::query::QueryRequest::new(test_config(&mock_server.uri()))
             .page_size(20)
             .page_token("next_recurring".to_string())
+            .user_id_type("open_id".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();

@@ -45,11 +45,46 @@ pub struct Location {
 
 // 创建地点相关模型
 
+/// 官方 i18n 多语结构：`{lang, value}`
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct I18n {
+    /// 语言编码，如 `zh-CN`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// 文本内容
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// 官方 `hiberarchy_common` 结构（地点基本信息：名称、编码、启用状态、上级地点等）
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct HiberarchyCommon {
+    /// 上级地点 ID（地点用途为“办公地点”时必填）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    /// 地点名称（i18n 多语，必填）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<Vec<I18n>>,
+    /// 启用状态（必填，true 为启用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 地点编码（不能与其他记录的编码重复）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 描述（i18n 多语）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<Vec<I18n>>,
+}
+
 /// 创建地点请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateRequestBody {
     /// 地点名称（必填）
     pub name: String,
+    /// 地点基本信息（必填：名称、启停用状态等）
+    pub hiberarchy_common: HiberarchyCommon,
+    /// 版本生效日期（格式：YYYY-MM-DD 00:00:00，必填）
+    pub effective_time: String,
     /// 地点类型
     /// - 1: 总部
     /// - 2: 分公司

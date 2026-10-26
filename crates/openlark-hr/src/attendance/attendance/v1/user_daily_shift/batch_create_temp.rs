@@ -7,13 +7,15 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required_list,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 创建或修改临时排班请求
 #[derive(Debug, Clone)]
 pub struct BatchCreateTempRequest {
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
     /// 临时班表信息列表（必填，不超过 50 个）
     user_tmp_daily_shifts: Vec<UserTmpDailyShift>,
     /// 操作人 UID（可选）
@@ -24,8 +26,16 @@ pub struct BatchCreateTempRequest {
 
 impl BatchCreateTempRequest {
     /// 创建请求
-    pub fn new(config: Config, user_tmp_daily_shifts: Vec<UserTmpDailyShift>) -> Self {
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填），user_id 需与其取值一致
+    /// - `user_tmp_daily_shifts`: 临时班表信息列表（不超过 50 个）
+    pub fn new(
+        config: Config,
+        employee_type: String,
+        user_tmp_daily_shifts: Vec<UserTmpDailyShift>,
+    ) -> Self {
         Self {
+            employee_type,
             user_tmp_daily_shifts,
             operator_id: None,
             config,
@@ -52,15 +62,17 @@ impl BatchCreateTempRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required_list!(
             self.user_tmp_daily_shifts,
             50,
             "user_tmp_daily_shifts 不能为空且不能超过 50 个"
         );
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserDailyShiftBatchCreateTemp;
-        let request = ApiRequest::<BatchCreateTempResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<BatchCreateTempResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = BatchCreateTempRequestBody {
@@ -146,6 +158,7 @@ mod tests {
     fn test_batch_create_temp_request_builder_new() {
         let request = BatchCreateTempRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             vec![UserTmpDailyShift {
                 group_id: "6737202939523236110".to_string(),
                 user_id: "abd754f7".to_string(),
@@ -165,7 +178,7 @@ mod tests {
     async fn test_attendance_v1_user_daily_shift_batch_create_temp_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -173,6 +186,7 @@ mod tests {
             .and(path(
                 "/open-apis/attendance/v1/user_daily_shifts/batch_create_temp",
             ))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -190,6 +204,7 @@ mod tests {
 
         let data = BatchCreateTempRequest::new(
             config,
+            "employee_id".to_string(),
             vec![UserTmpDailyShift {
                 group_id: "6737202939523236110".to_string(),
                 user_id: "abd754f7".to_string(),
@@ -212,6 +227,11 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/user_daily_shifts/batch_create_temp"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
         );
         let body = String::from_utf8(received[0].body.clone()).unwrap();
         assert!(

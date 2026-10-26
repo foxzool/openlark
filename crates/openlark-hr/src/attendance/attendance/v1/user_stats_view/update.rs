@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 /// 更新统计设置请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
     /// 统计设置 ID（path 参数 `user_stats_view_id`，必填）
     user_stats_view_id: String,
     /// 统计设置（必填）
@@ -25,10 +27,17 @@ pub struct UpdateRequest {
 impl UpdateRequest {
     /// 创建请求
     ///
+    /// - `employee_type`: 员工 ID 类型（query 参数）
     /// - `user_stats_view_id`: path 参数（统计设置 ID）
     /// - `view`: 统计设置内容
-    pub fn new(config: Config, user_stats_view_id: String, view: UserStatsView) -> Self {
+    pub fn new(
+        config: Config,
+        employee_type: String,
+        user_stats_view_id: String,
+        view: UserStatsView,
+    ) -> Self {
         Self {
+            employee_type,
             user_stats_view_id,
             view,
             config,
@@ -49,12 +58,14 @@ impl UpdateRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
         validate_required!(self.user_stats_view_id.trim(), "user_stats_view_id");
 
-        // 2. 构建端点（user_stats_view_id 为 path 参数）
+        // 2. 构建端点（user_stats_view_id 为 path 参数）并附加必填 query 参数 employee_type
         let api_endpoint =
             AttendanceApiV1::UserStatsViewUpdate(self.user_stats_view_id.clone()).to_url();
-        let request = ApiRequest::<UpdateResponse>::put(&api_endpoint);
+        let request = ApiRequest::<UpdateResponse>::put(&api_endpoint)
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = UpdateRequestBody { view: self.view };
@@ -141,6 +152,7 @@ mod tests {
     fn test_update_request_builder_new() {
         let request = UpdateRequest::new(
             TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
             "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09".to_string(),
             UserStatsView {
                 view_id: "TmpZNU5qTTJORFF6T1RnNU5UTTNOakV6TWl0dGIyNTBhQT09".to_string(),
@@ -163,12 +175,13 @@ mod tests {
     async fn test_attendance_v1_user_stats_view_update_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("PUT"))
             .and(path("/open-apis/attendance/v1/user_stats_views/view_001"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -186,6 +199,7 @@ mod tests {
 
         let data = UpdateRequest::new(
             config,
+            "employee_id".to_string(),
             "view_001".to_string(),
             UserStatsView {
                 view_id: "view_001".to_string(),

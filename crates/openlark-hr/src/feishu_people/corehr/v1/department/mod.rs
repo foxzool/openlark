@@ -25,8 +25,8 @@ pub use list::ListRequest;
 pub use models::{
     BatchGetRequestBody, BatchGetResponse, CreateRequestBody, CreateResponse, DeleteRequestBody,
     DeleteResponse, Department, DepartmentChange, DepartmentOperationLog, DepartmentTimeline,
-    DepartmentTreeNode, GetRequestBody, GetResponse, ListRequestBody, ListResponse,
-    MultiTimelineRequestBody, MultiTimelineResponse, OperationLogsRequestBody,
+    DepartmentTreeNode, GetRequestBody, GetResponse, HiberarchyCommon, I18n, ListRequestBody,
+    ListResponse, MultiTimelineRequestBody, MultiTimelineResponse, OperationLogsRequestBody,
     OperationLogsResponse, ParentsResponse, PatchRequestBody, PatchResponse, SearchRequestBody,
     SearchResponse, TimelineRequestBody, TimelineResponse, TreeRequestBody, TreeResponse,
 };

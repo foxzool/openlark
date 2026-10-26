@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
@@ -16,18 +17,49 @@ use serde_json::Value;
 pub struct ListRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 分页大小（必填，取值范围 1～500）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
+    /// 部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl ListRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            page_size: None,
+            page_token: None,
+            user_id_type: None,
+            department_id_type: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置分页大小（必填，取值范围 1～500）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -42,11 +74,18 @@ impl ListRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResponse> {
-        let mut request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/bps");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=500).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～500"));
         }
+
+        let request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/bps")
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type)
+            .query_opt("department_id_type", self.department_id_type);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -92,7 +131,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/bps
@@ -101,6 +140,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/bps"))
+            .and(query_param("page_size", "500"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": {
@@ -125,6 +165,7 @@ mod tests {
             .build();
 
         let resp = ListRequest::new(config)
+            .page_size(500)
             .execute()
             .await
             .expect("请求应成功");

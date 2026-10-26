@@ -7,14 +7,16 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required_list,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 批量查询用户人脸识别信息请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
-    /// 用户 ID 列表（必填）
+    /// 员工 ID 类型（必填，query 参数，可选值：employee_id、employee_no）
+    employee_type: String,
+    /// 用户 ID 列表（必填，不超过 100 个）
     user_ids: Vec<String>,
     /// 配置信息
     config: Config,
@@ -22,8 +24,15 @@ pub struct QueryRequest {
 
 impl QueryRequest {
     /// 创建请求
-    pub fn new(config: Config, user_ids: Vec<String>) -> Self {
-        Self { user_ids, config }
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数）
+    /// - `user_ids`: 用户 ID 列表（不超过 100 个）
+    pub fn new(config: Config, employee_type: String, user_ids: Vec<String>) -> Self {
+        Self {
+            employee_type,
+            user_ids,
+            config,
+        }
     }
 
     /// 执行请求
@@ -40,11 +49,13 @@ impl QueryRequest {
         use crate::common::api_endpoints::AttendanceApiV1;
 
         // 1. 验证必填字段
-        validate_required_list!(self.user_ids, 50, "user_ids 不能为空且不能超过 50 个");
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required_list!(self.user_ids, 100, "user_ids 不能为空且不能超过 100 个");
 
-        // 2. 构建端点
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::UserSettingQuery;
-        let request = ApiRequest::<QueryResponse>::get(api_endpoint.to_url());
+        let request = ApiRequest::<QueryResponse>::get(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
         // 3. 构建请求体
         let request_body = QueryRequestBody {
@@ -112,7 +123,11 @@ mod tests {
 
     #[test]
     fn test_query_request_builder_new() {
-        let request = QueryRequest::new(TestConfigBuilder::new().build(), vec!["test".to_string()]);
+        let request = QueryRequest::new(
+            TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
+            vec!["test".to_string()],
+        );
         let _ = request;
     }
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
@@ -120,7 +135,7 @@ mod tests {
     async fn test_attendance_v1_user_setting_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -131,6 +146,7 @@ mod tests {
         .unwrap();
         Mock::given(method("GET"))
             .and(path("/open-apis/attendance/v1/user_settings/query"))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -146,10 +162,14 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = QueryRequest::new(config, vec!["id_001".to_string()])
-            .execute()
-            .await
-            .expect("attendance_v1_user_setting_query 应成功");
+        let data = QueryRequest::new(
+            config,
+            "employee_id".to_string(),
+            vec!["id_001".to_string()],
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_user_setting_query 应成功");
 
         assert_eq!(data.user_settings.len(), 1);
         assert_eq!(data.user_settings[0].user_id, "abd754f7");

@@ -1,36 +1,62 @@
 //! 查询归档报表表头
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/attendance-v1/archive_rule/user_stats_fields_query>
+//!
+//! 必填 query 参数 `employee_type`；请求体为 month/archive_rule_id/operator_id（locale 可选）。
 
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 查询归档报表表头请求
 #[derive(Debug, Clone)]
 pub struct UserStatsFieldsQueryRequest {
-    /// 归档规则 ID（可选）
-    archive_rule_id: Option<String>,
+    /// 员工 ID 类型（必填，query 参数）：employee_id / employee_no
+    employee_type: String,
+    /// 月份，格式 `yyyyMM`（必填）
+    month: String,
+    /// 归档规则 ID（必填），可通过「查询所有归档规则」获得
+    archive_rule_id: String,
+    /// 操作者 ID，对应 employee_type（必填）
+    operator_id: String,
+    /// 语言类型（可选，默认 zh）：en / ja / zh
+    locale: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl UserStatsFieldsQueryRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
+    ///
+    /// - `employee_type`: 员工 ID 类型（query 参数，必填）
+    /// - `month`: 月份，格式 `yyyyMM`
+    /// - `archive_rule_id`: 归档规则 ID
+    /// - `operator_id`: 操作者 ID，对应 employee_type
+    pub fn new(
+        config: Config,
+        employee_type: String,
+        month: String,
+        archive_rule_id: String,
+        operator_id: String,
+    ) -> Self {
         Self {
-            archive_rule_id: None,
+            employee_type,
+            month,
+            archive_rule_id,
+            operator_id,
+            locale: None,
             config,
         }
     }
 
-    /// 设置归档规则 ID（可选）
-    pub fn archive_rule_id(mut self, archive_rule_id: String) -> Self {
-        self.archive_rule_id = Some(archive_rule_id);
+    /// 设置语言类型（可选，默认 zh）：en / ja / zh
+    pub fn locale(mut self, locale: String) -> Self {
+        self.locale = Some(locale);
         self
     }
 
@@ -47,16 +73,33 @@ impl UserStatsFieldsQueryRequest {
     ) -> SDKResult<UserStatsFieldsQueryResponse> {
         use crate::common::api_endpoints::AttendanceApiV1;
 
-        // 1. 构建端点
+        // 1. 验证必填字段
+        validate_required!(self.employee_type, "employee_type 不能为空");
+        validate_required!(self.month, "month 不能为空");
+        validate_required!(self.archive_rule_id, "archive_rule_id 不能为空");
+        validate_required!(self.operator_id, "operator_id 不能为空");
+
+        // 2. 构建端点并附加必填 query 参数 employee_type
         let api_endpoint = AttendanceApiV1::ArchiveRuleUserStatsFieldsQuery;
-        let mut request = ApiRequest::<UserStatsFieldsQueryResponse>::post(api_endpoint.to_url());
+        let request = ApiRequest::<UserStatsFieldsQueryResponse>::post(api_endpoint.to_url())
+            .query("employee_type", &self.employee_type);
 
-        // 2. 添加查询参数（可选）
-        if let Some(ref archive_rule_id) = self.archive_rule_id {
-            request = request.query("archive_rule_id", archive_rule_id);
-        }
+        // 3. 构建请求体
+        let request_body = UserStatsFieldsQueryRequestBody {
+            month: self.month,
+            archive_rule_id: self.archive_rule_id,
+            operator_id: self.operator_id,
+            locale: self.locale,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "构建请求体失败",
+                format!("序列化请求体失败: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
 
-        // 3. 发送请求
+        // 4. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -65,6 +108,20 @@ impl UserStatsFieldsQueryRequest {
         )
         .await
     }
+}
+
+/// 查询归档报表表头请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserStatsFieldsQueryRequestBody {
+    /// 月份，格式 `yyyyMM`
+    pub month: String,
+    /// 归档规则 ID
+    pub archive_rule_id: String,
+    /// 操作者 ID，对应 employee_type
+    pub operator_id: String,
+    /// 语言类型（默认 zh）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub locale: Option<String>,
 }
 
 /// 查询归档报表表头响应
@@ -103,8 +160,14 @@ mod tests {
 
     #[test]
     fn test_user_stats_fields_query_request_builder_new() {
-        let request = UserStatsFieldsQueryRequest::new(TestConfigBuilder::new().build())
-            .archive_rule_id("test".to_string());
+        let request = UserStatsFieldsQueryRequest::new(
+            TestConfigBuilder::new().build(),
+            "employee_id".to_string(),
+            "202409".to_string(),
+            "1".to_string(),
+            "ax8ud".to_string(),
+        )
+        .locale("zh".to_string());
         let _ = request;
     }
     /// 端到端：Builder→execute→Transport→mock→assert 响应解析 + 实际请求形状。
@@ -112,7 +175,7 @@ mod tests {
     async fn test_attendance_v1_archive_rule_user_stats_fields_query_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -125,6 +188,7 @@ mod tests {
             .and(path(
                 "/open-apis/attendance/v1/archive_rule/user_stats_fields_query",
             ))
+            .and(query_param("employee_type", "employee_id"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -140,10 +204,16 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = UserStatsFieldsQueryRequest::new(config)
-            .execute()
-            .await
-            .expect("attendance_v1_archive_rule_user_stats_fields_query 应成功");
+        let data = UserStatsFieldsQueryRequest::new(
+            config,
+            "employee_id".to_string(),
+            "202409".to_string(),
+            "1".to_string(),
+            "ax8ud".to_string(),
+        )
+        .execute()
+        .await
+        .expect("attendance_v1_archive_rule_user_stats_fields_query 应成功");
 
         assert_eq!(data.archive_report_fields.len(), 1);
         assert_eq!(data.archive_report_fields[0].code, "1");
@@ -155,6 +225,21 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/attendance/v1/archive_rule/user_stats_fields_query"
+        );
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("employee_type=employee_id"),
+            "缺必填 query 参数 employee_type: {query}"
+        );
+        let body = String::from_utf8(received[0].body.clone()).unwrap();
+        assert!(body.contains("\"month\""), "请求体缺 month: {body}");
+        assert!(
+            body.contains("\"archive_rule_id\""),
+            "请求体缺 archive_rule_id: {body}"
+        );
+        assert!(
+            body.contains("\"operator_id\""),
+            "请求体缺 operator_id: {body}"
         );
     }
 }

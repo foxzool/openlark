@@ -19,6 +19,12 @@ pub struct CreateRequest {
     config: Config,
     /// 员工 ID（必填）
     employee_id: String,
+    /// 雇佣 ID（必填）
+    employment_id: String,
+    /// 合同签约公司 ID（必填）
+    first_party_company_id: String,
+    /// 合同开始日期（格式：YYYY-MM-DD HH:mm:ss，必填）
+    effective_time: String,
     /// 合同编号
     contract_number: Option<String>,
     /// 合同开始日期
@@ -47,6 +53,9 @@ impl CreateRequest {
         Self {
             config,
             employee_id: String::new(),
+            employment_id: String::new(),
+            first_party_company_id: String::new(),
+            effective_time: String::new(),
             contract_number: None,
             start_date: None,
             end_date: None,
@@ -63,6 +72,24 @@ impl CreateRequest {
     /// 设置员工 ID（必填）
     pub fn employee_id(mut self, employee_id: String) -> Self {
         self.employee_id = employee_id;
+        self
+    }
+
+    /// 设置雇佣 ID（必填，可通过搜索员工信息接口获得）
+    pub fn employment_id(mut self, employment_id: String) -> Self {
+        self.employment_id = employment_id;
+        self
+    }
+
+    /// 设置合同签约公司 ID（必填，可通过查询单个公司接口获得）
+    pub fn first_party_company_id(mut self, first_party_company_id: String) -> Self {
+        self.first_party_company_id = first_party_company_id;
+        self
+    }
+
+    /// 设置合同开始日期（必填，格式：YYYY-MM-DD HH:mm:ss）
+    pub fn effective_time(mut self, effective_time: String) -> Self {
+        self.effective_time = effective_time;
         self
     }
 
@@ -141,6 +168,12 @@ impl CreateRequest {
 
         // 1. 验证必填字段
         validate_required!(self.employee_id.trim(), "员工 ID 不能为空");
+        validate_required!(self.employment_id.trim(), "雇佣 ID 不能为空");
+        validate_required!(
+            self.first_party_company_id.trim(),
+            "合同签约公司 ID 不能为空"
+        );
+        validate_required!(self.effective_time.trim(), "合同开始日期不能为空");
 
         // 2. 构建端点
         let api_endpoint = FeishuPeopleApiV1::ContractCreate;
@@ -149,6 +182,9 @@ impl CreateRequest {
         // 3. 序列化请求体
         let request_body = CreateRequestBody {
             employee_id: self.employee_id,
+            employment_id: self.employment_id,
+            first_party_company_id: self.first_party_company_id,
+            effective_time: self.effective_time,
             contract_number: self.contract_number,
             start_date: self.start_date,
             end_date: self.end_date,
@@ -183,7 +219,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/contracts
@@ -192,6 +228,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v1/contracts"))
+            .and(body_partial_json(json!({
+                "employment_id": "6893013238632416776",
+                "first_party_company_id": "6892686614112241165",
+                "effective_time": "2050-01-01 00:00:00"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "contract_id": "" }
             })))
@@ -207,6 +248,9 @@ mod tests {
 
         CreateRequest::new(config)
             .employee_id("test001".to_string())
+            .employment_id("6893013238632416776".to_string())
+            .first_party_company_id("6892686614112241165".to_string())
+            .effective_time("2050-01-01 00:00:00".to_string())
             .execute()
             .await
             .expect("请求应成功");

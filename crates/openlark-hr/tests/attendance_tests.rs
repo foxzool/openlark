@@ -43,21 +43,43 @@ mod builder_tests {
 
     smoke_builder!(
         test_create_group_request_builder,
-        group::CreateGroupRequest::new(test_config("https://open.feishu.cn"))
-            .group_name("技术部考勤组".to_string())
-            .group_type(0)
+        group::CreateGroupRequest::new(
+            test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            group::AttendanceGroup::new(
+                "技术部考勤组".to_string(),
+                "Asia/Shanghai".to_string(),
+                vec!["2bg4a9be".to_string()],
+                0,
+                vec!["xxx".to_string()],
+                1,
+            ),
+        )
     );
-    smoke_builder!(
-        test_update_group_request_builder,
-        group::CreateGroupRequest::new(test_config("https://open.feishu.cn"))
-            .group_id("g_update_1".to_string())
-            .group_name("技术部考勤组-更新".to_string())
-            .group_type(1)
-    );
+    smoke_builder!(test_update_group_request_builder, {
+        let mut group_info = group::AttendanceGroup::new(
+            "技术部考勤组-更新".to_string(),
+            "Asia/Shanghai".to_string(),
+            vec!["2bg4a9be".to_string()],
+            1,
+            vec![],
+            1,
+        );
+        group_info.group_id = Some("g_update_1".to_string());
+        group::CreateGroupRequest::new(
+            test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            group_info,
+        )
+    });
     smoke_builder!(
         test_get_group_request_builder,
         group::GetGroupRequest::new(test_config("https://open.feishu.cn"))
             .group_id("g_1".to_string())
+            .employee_type("employee_id".to_string())
+            .dept_type("open_id".to_string())
     );
     smoke_builder!(
         test_delete_group_request_builder,
@@ -81,7 +103,10 @@ mod builder_tests {
         test_list_user_group_request_builder,
         group::list_user::ListUserRequest::new(
             test_config("https://open.feishu.cn"),
-            "g_1".to_string()
+            "g_1".to_string(),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            1,
         )
         .page_size(20)
         .page_token("next_3".to_string())
@@ -140,15 +165,17 @@ mod builder_tests {
     smoke_builder!(
         test_get_user_task_request_builder,
         user_task::QueryUserTaskRequest::new(test_config("https://open.feishu.cn"))
-            .start_date("2026-01-01".to_string())
-            .end_date("2026-01-31".to_string())
+            .employee_type("employee_id".to_string())
             .user_ids(vec!["ou_1".to_string()])
-            .check_in_type(1)
+            .check_date_from(20_260_101)
+            .check_date_to(20_260_131)
+            .need_overtime_result(true)
     );
     smoke_builder!(
         test_remedy_user_task_request_builder,
         user_task_remedy::create::CreateRequest::new(
             test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
             "ou_1".to_string(),
             20_210_701,
             0,
@@ -161,6 +188,7 @@ mod builder_tests {
         test_query_user_task_remedy_request_builder,
         user_task_remedy::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
             vec!["ou_1".to_string()],
             "1566641088".to_string(),
             "1592561088".to_string(),
@@ -170,18 +198,21 @@ mod builder_tests {
         test_query_user_allowed_remedys_request_builder,
         user_task_remedy::query_user_allowed_remedys::QueryUserAllowedRemedysRequest::new(
             test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
             "ou_1".to_string(),
+            20_210_701,
         )
     );
 
     smoke_builder!(
         test_get_user_stats_data_request_builder,
         user_stats_data::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .start_date("2026-01-01".to_string())
-            .end_date("2026-01-31".to_string())
+            .employee_type("employee_id".to_string())
+            .locale("zh".to_string())
+            .stats_type("daily".to_string())
+            .start_date(20_260_101)
+            .end_date(20_260_131)
             .user_ids(vec!["ou_1".to_string()])
-            .stats_type("day".to_string())
-            .page_size(100)
     );
     smoke_builder!(
         test_create_user_approval_request_builder,
@@ -199,6 +230,7 @@ mod builder_tests {
         test_get_approval_info_request_builder,
         user_approval::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
             vec!["ou_1".to_string()],
             20_190_817,
             20_190_820,
@@ -233,6 +265,7 @@ mod builder_tests {
         test_get_user_setting_request_builder,
         user_setting::query::QueryRequest::new(
             test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
             vec!["ou_1".to_string()],
         )
     );
@@ -250,10 +283,14 @@ mod builder_tests {
     );
     smoke_builder!(
         test_get_user_stats_field_request_builder,
-        user_stats_field::QueryRequest::new(test_config("https://open.feishu.cn"))
-            .unit_id("g_1".to_string())
-            .stat_type("daily".to_string())
-            .add_user_id("ou_1".to_string())
+        user_stats_field::QueryRequest::new(
+            test_config("https://open.feishu.cn"),
+            "employee_id".to_string(),
+            "zh".to_string(),
+            "daily".to_string(),
+            20_260_101,
+            20_260_131,
+        )
     );
 }
 
@@ -266,11 +303,21 @@ mod validation_tests {
     #[case("   ")]
     #[tokio::test]
     async fn test_group_name_validation(#[case] group_name: &str) {
-        let result = group::CreateGroupRequest::new(test_config("https://127.0.0.1:9"))
-            .group_name(group_name.to_string())
-            .group_type(0)
-            .execute_with_options(auth_option())
-            .await;
+        let result = group::CreateGroupRequest::new(
+            test_config("https://127.0.0.1:9"),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            group::AttendanceGroup::new(
+                group_name.to_string(),
+                "Asia/Shanghai".to_string(),
+                vec!["2bg4a9be".to_string()],
+                0,
+                vec!["xxx".to_string()],
+                1,
+            ),
+        )
+        .execute_with_options(auth_option())
+        .await;
 
         assert!(result.is_err());
         let err = result.err().unwrap().to_string();
@@ -291,34 +338,38 @@ mod validation_tests {
     }
 
     #[tokio::test]
-    async fn test_user_stats_data_validation_requires_user_or_group() {
+    async fn test_user_stats_data_validation_requires_locale() {
         let result = user_stats_data::QueryRequest::new(test_config("https://127.0.0.1:9"))
-            .start_date("2026-01-01".to_string())
-            .end_date("2026-01-31".to_string())
+            .employee_type("employee_id".to_string())
+            .stats_type("month".to_string())
+            .start_date(20_260_101)
+            .end_date(20_260_131)
             .execute_with_options(auth_option())
             .await;
 
         assert!(result.is_err());
         let err = result.err().unwrap().to_string();
-        assert!(err.contains("至少需要指定用户 ID 或考勤组 ID"));
+        assert!(err.contains("locale 不能为空"));
     }
 
     #[rstest]
-    #[case(0)]
     #[case(201)]
     #[tokio::test]
-    async fn test_user_stats_data_page_size_boundary(#[case] page_size: i32) {
+    async fn test_user_stats_data_user_ids_boundary(#[case] count: usize) {
+        let user_ids: Vec<String> = (0..count).map(|i| format!("ou_{i}")).collect();
         let result = user_stats_data::QueryRequest::new(test_config("https://127.0.0.1:9"))
-            .start_date("2026-01-01".to_string())
-            .end_date("2026-01-31".to_string())
-            .user_ids(vec!["ou_1".to_string()])
-            .page_size(page_size)
+            .employee_type("employee_id".to_string())
+            .locale("zh".to_string())
+            .stats_type("month".to_string())
+            .start_date(20_260_101)
+            .end_date(20_260_131)
+            .user_ids(user_ids)
             .execute_with_options(auth_option())
             .await;
 
         assert!(result.is_err());
         let err = result.err().unwrap().to_string();
-        assert!(err.contains("分页大小必须在 1-200 之间"));
+        assert!(err.contains("最多支持 200 个用户"));
     }
 }
 
@@ -331,10 +382,19 @@ mod http_tests {
         let mock_server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/attendance/v1/groups"))
+            .and(query_param("employee_type", "employee_id"))
+            .and(query_param("dept_type", "open_id"))
             .and(header("Authorization", "Bearer test_token"))
-            .and(body_json(
-                json!({"group_name":"技术部考勤组","group_type":0}),
-            ))
+            .and(body_json(json!({
+                "group": {
+                    "group_name": "技术部考勤组",
+                    "time_zone": "Asia/Shanghai",
+                    "group_leader_ids": ["2bg4a9be"],
+                    "group_type": 0,
+                    "punch_day_shift_ids": ["xxx"],
+                    "calendar_id": 1
+                }
+            })))
             .respond_with(
                 ResponseTemplate::new(200)
                     .set_body_json(json!({"code":0,"msg":"success","data":{"group_id":"g_123"}})),
@@ -342,12 +402,22 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = group::CreateGroupRequest::new(test_config(&mock_server.uri()))
-            .group_name("技术部考勤组".to_string())
-            .group_type(0)
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
+        let resp = group::CreateGroupRequest::new(
+            test_config(&mock_server.uri()),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            group::AttendanceGroup::new(
+                "技术部考勤组".to_string(),
+                "Asia/Shanghai".to_string(),
+                vec!["2bg4a9be".to_string()],
+                0,
+                vec!["xxx".to_string()],
+                1,
+            ),
+        )
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
         assert_eq!(resp.group_id, "g_123");
     }
 
@@ -365,6 +435,8 @@ mod http_tests {
 
         let resp = group::GetGroupRequest::new(test_config(&mock_server.uri()))
             .group_id("g_123".to_string())
+            .employee_type("employee_id".to_string())
+            .dept_type("open_id".to_string())
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -445,6 +517,9 @@ mod http_tests {
         let resp = group::list_user::ListUserRequest::new(
             test_config(&mock_server.uri()),
             "g_1".to_string(),
+            "employee_id".to_string(),
+            "open_id".to_string(),
+            1,
         )
         .execute_with_options(auth_option())
         .await
@@ -481,6 +556,19 @@ mod http_tests {
                 on_duty_wifis: None,
                 off_duty_wifis: None,
             }])
+            .add_punch_time_rule(shift::PunchTimeRule {
+                on_time: "9:00".to_string(),
+                off_time: "18:00".to_string(),
+                late_minutes_as_late: 30,
+                late_minutes_as_lack: 60,
+                on_advance_minutes: 60,
+                early_minutes_as_early: 30,
+                early_minutes_as_lack: 60,
+                off_delay_minutes: 60,
+                late_minutes_as_serious_late: None,
+                no_need_on: None,
+                no_need_off: None,
+            })
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -576,9 +664,10 @@ mod http_tests {
             .await;
 
         let resp = user_task::QueryUserTaskRequest::new(test_config(&mock_server.uri()))
-            .start_date("2026-01-01".to_string())
-            .end_date("2026-01-01".to_string())
+            .employee_type("employee_id".to_string())
             .user_ids(vec!["ou_1".to_string()])
+            .check_date_from(20_260_101)
+            .check_date_to(20_260_101)
             .execute_with_options(auth_option())
             .await
             .unwrap();
@@ -950,14 +1039,19 @@ mod serialization_tests {
         test_query_user_stats_field_response_serialization,
         user_stats_field::QueryResponse,
         user_stats_field::QueryResponse {
-            stat_fields: vec![user_stats_field::StatField {
-                field_id: "f_1".to_string(),
-                field_name: Some("出勤天数".to_string()),
-                field_type: Some("number".to_string()),
-                field_desc: None,
-            }],
-            has_more: false,
-            page_token: None,
+            user_stats_field: Some(user_stats_field::UserStatsField {
+                stats_type: Some("month".to_string()),
+                user_id: Some("".to_string()),
+                fields: vec![user_stats_field::StatsFieldGroup {
+                    code: "501".to_string(),
+                    title: Some("Basic info".to_string()),
+                    child_fields: vec![user_stats_field::StatsChildField {
+                        code: "50103".to_string(),
+                        title: Some("Employee ID".to_string()),
+                        time_unit: None,
+                    }],
+                }],
+            }),
         }
     );
 }

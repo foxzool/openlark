@@ -6,6 +6,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
@@ -13,24 +14,131 @@ use serde_json::Value;
 
 use crate::common::shared_models::I18nText;
 
+/// 搜索员工异动信息请求体（官方字段全部可选，不填写则不参与筛选）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SearchBody {
+    /// 雇员 ID 列表（最多 30 个），可通过【搜索员工信息】接口获取
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub employment_ids: Option<Vec<String>>,
+    /// 异动记录 ID 列表（最多 10 个）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_change_ids: Option<Vec<String>>,
+    /// 异动状态（Approving/Approved/Transformed/Rejected/Cancelled/NoNeedApproval），多个状态之间为「或」的关系（最多 10 个）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statuses: Option<Vec<String>>,
+    /// 异动生效日期 - 搜索范围开始，格式："YYYY-MM-DD"，需与 effective_date_end 一同使用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_date_start: Option<String>,
+    /// 异动生效日期 - 搜索范围结束，格式："YYYY-MM-DD"，需与 effective_date_start 一同使用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_date_end: Option<String>,
+    /// 异动更新时间 - 搜索范围开始，毫秒时间戳，需与 updated_time_end 一同使用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_time_start: Option<String>,
+    /// 异动更新时间 - 搜索范围结束，毫秒时间戳，需与 updated_time_start 一同使用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_time_end: Option<String>,
+    /// 新部门 ID 列表（最多 30 个）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_department_ids: Option<Vec<String>>,
+    /// 异动类型唯一标识列表（最多 30 个），可通过【获取异动类型列表】接口获取
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transfer_type_unique_identifier: Option<Vec<String>>,
+    /// 异动原因唯一标识列表（最多 30 个），可通过【获取异动原因列表】接口获取
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transfer_reason_unique_identifier: Option<Vec<String>>,
+    /// 异常处理状态（pending/processed），多个状态之间为「或」的关系（最多 10 个）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exception_statuses: Option<Vec<String>>,
+}
+
 /// SearchRequest
 #[derive(Debug, Clone)]
 pub struct SearchRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 请求体
+    body: SearchBody,
+    /// 分页大小（必填，取值范围 1～100）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
+    /// 部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl SearchRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: SearchBody::default(),
+            page_size: None,
+            page_token: None,
+            user_id_type: None,
+            department_id_type: None,
+        }
     }
 
     /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: SearchBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置雇员 ID 列表。
+    pub fn employment_ids(mut self, employment_ids: Vec<String>) -> Self {
+        self.body.employment_ids = Some(employment_ids);
+        self
+    }
+
+    /// 设置异动记录 ID 列表。
+    pub fn job_change_ids(mut self, job_change_ids: Vec<String>) -> Self {
+        self.body.job_change_ids = Some(job_change_ids);
+        self
+    }
+
+    /// 设置异动状态列表（Approving/Approved/Transformed/Rejected/Cancelled/NoNeedApproval）。
+    pub fn statuses(mut self, statuses: Vec<String>) -> Self {
+        self.body.statuses = Some(statuses);
+        self
+    }
+
+    /// 设置异动生效日期搜索范围开始，格式："YYYY-MM-DD"。
+    pub fn effective_date_start(mut self, effective_date_start: impl Into<String>) -> Self {
+        self.body.effective_date_start = Some(effective_date_start.into());
+        self
+    }
+
+    /// 设置异动生效日期搜索范围结束，格式："YYYY-MM-DD"。
+    pub fn effective_date_end(mut self, effective_date_end: impl Into<String>) -> Self {
+        self.body.effective_date_end = Some(effective_date_end.into());
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1～100）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -45,12 +153,19 @@ impl SearchRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<SearchResponse> {
-        let mut request =
-            ApiRequest::<SearchResponse>::post("/open-apis/corehr/v2/job_changes/search");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=100).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～100"));
         }
+
+        let request = ApiRequest::<SearchResponse>::post("/open-apis/corehr/v2/job_changes/search")
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type)
+            .query_opt("department_id_type", self.department_id_type)
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -369,7 +484,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/job_changes/search
@@ -378,6 +493,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/job_changes/search"))
+            .and(query_param("page_size", "100"))
+            .and(body_json(json!({
+                "employment_ids": ["ou_a294793e8fa21529f2a60e3e9de45520"],
+                "statuses": ["Approving"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -444,6 +564,9 @@ mod tests {
             .build();
 
         let resp = SearchRequest::new(config)
+            .page_size(100)
+            .employment_ids(vec!["ou_a294793e8fa21529f2a60e3e9de45520".to_string()])
+            .statuses(vec!["Approving".to_string()])
             .execute()
             .await
             .expect("请求应成功");

@@ -7,9 +7,9 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use super::models::CorehrV2Job;
 
@@ -18,19 +18,49 @@ use super::models::CorehrV2Job;
 pub struct ListRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 每页获取记录数量（必填，string 类型，最大 100）
+    page_size: String,
+    /// 分页标记，第一次请求不填
+    page_token: Option<String>,
+    /// 职务名称
+    name: Option<String>,
+    /// 语言信息，中文用 zh-CN，英文用 en-US
+    query_language: Option<String>,
 }
 
 impl ListRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            page_size: String::new(),
+            page_token: None,
+            name: None,
+            query_language: None,
+        }
     }
 
-    /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置每页获取记录数量（必填，最大 100）
+    pub fn page_size(mut self, page_size: impl Into<String>) -> Self {
+        self.page_size = page_size.into();
+        self
+    }
+
+    /// 设置分页标记
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置职务名称
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// 设置语言信息（zh-CN / en-US）
+    pub fn query_language(mut self, query_language: impl Into<String>) -> Self {
+        self.query_language = Some(query_language.into());
         self
     }
 
@@ -45,11 +75,13 @@ impl ListRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListResponse> {
-        let mut request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/jobs");
+        validate_required!(self.page_size, "page_size 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<ListResponse>::get("/open-apis/corehr/v2/jobs")
+            .query("page_size", self.page_size)
+            .query_opt("page_token", self.page_token)
+            .query_opt("name", self.name)
+            .query_opt("query_language", self.query_language);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -82,15 +114,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：GET /open-apis/corehr/v2/jobs
+    /// 端到端：GET /open-apis/corehr/v2/jobs（必填查询参数 page_size 按官方文档发送）
     #[tokio::test]
     async fn test_list_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/jobs"))
+            .and(query_param("page_size", "100"))
+            .and(query_param("query_language", "zh-CN"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": {
@@ -128,6 +162,8 @@ mod tests {
             .build();
 
         let resp = ListRequest::new(config)
+            .page_size("100")
+            .query_language("zh-CN")
             .execute()
             .await
             .expect("请求应成功");

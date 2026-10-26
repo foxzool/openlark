@@ -12,11 +12,57 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// 批量查询员工请假记录请求
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LeaveRequestHistoryRequest {
     config: Config,
-    body: Option<Value>,
-    query_params: Vec<(String, String)>,
+    /// 分页大小（必填，最小 10，最大 1000）
+    page_size: Option<i32>,
+    /// 分页标记（可选，第一次请求不填表示从头开始遍历）
+    page_token: Option<String>,
+    /// 员工 ID 列表（可选，最大 100 个，不传则查询全部员工）
+    employment_id_list: Vec<String>,
+    /// 休假发起人 ID 列表（可选，最大 100 个）
+    initiator_id_list: Vec<String>,
+    /// 请假记录状态列表（可选，1～9，不填为不过滤状态）
+    leave_request_status: Vec<i32>,
+    /// 假期类型 ID 列表（可选）
+    leave_type_id_list: Vec<String>,
+    /// 休假开始时间晚于等于的日期（可选，`yyyy-MM-dd`）
+    leave_start_date_min: Option<String>,
+    /// 休假开始时间早于等于的日期（可选，`yyyy-MM-dd`）
+    leave_start_date_max: Option<String>,
+    /// 休假结束时间晚于等于的日期（可选，`yyyy-MM-dd`）
+    leave_end_date_min: Option<String>,
+    /// 休假结束时间早于等于的日期（可选，`yyyy-MM-dd`）
+    leave_end_date_max: Option<String>,
+    /// 休假发起时间晚于等于的日期（可选，`yyyy-MM-dd`）
+    leave_submit_date_min: Option<String>,
+    /// 休假发起时间早于等于的日期（可选，`yyyy-MM-dd`）
+    leave_submit_date_max: Option<String>,
+    /// 用户 ID 类型（可选：open_id / union_id / user_id / people_corehr_id，默认 people_corehr_id）
+    user_id_type: Option<String>,
+    /// 请假记录更新时间晚于等于的时间（可选，`yyyy-MM-dd HH:mm:ss`）
+    leave_update_time_min: Option<String>,
+    /// 请假记录更新时间早于等于的时间（可选，`yyyy-MM-dd HH:mm:ss`）
+    leave_update_time_max: Option<String>,
+    /// 是否返回请假详情（可选，暂未开放，默认 false）
+    return_detail: Option<bool>,
+    /// 长/短假类型（可选：0 不过滤 / 1 短假 / 2 长假，默认 0）
+    leave_term_type: Option<i32>,
+    /// 请假记录所在时区（可选，如 Asia/Shanghai）
+    time_zone: Option<String>,
+    /// 请假记录数据源（可选，暂未开放：1 中国大陆 / 2 海外）
+    data_source: Option<i32>,
+    /// 请假记录 DB 更新时间晚于等于的时间（可选，暂未开放）
+    db_update_time_min: Option<String>,
+    /// 请假记录 DB 更新时间早于等于的时间（可选，暂未开放）
+    db_update_time_max: Option<String>,
+    /// WorkDay 专用：是否返回 0 值请假记录（可选，默认 false）
+    wd_need_amount_zero_records: Option<bool>,
+    /// WorkDay 专用：是否返回拒绝和取消的请假记录（可选，默认 false）
+    wd_need_denied_and_canceled_record: Option<bool>,
+    /// WorkDay 专用扣薪类型（可选：1 不参与算薪 / 2 影响算薪 / 3 不影响算薪）
+    wd_paid_type: Option<i32>,
 }
 
 impl LeaveRequestHistoryRequest {
@@ -24,20 +70,151 @@ impl LeaveRequestHistoryRequest {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            body: None,
-            query_params: Vec::new(),
+            ..Default::default()
         }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置分页大小（必填，最小 10，最大 1000）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
         self
     }
 
-    /// 追加查询参数。
-    pub fn query_param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.query_params.push((key.into(), value.into()));
+    /// 设置分页标记（可选）。
+    pub fn page_token(mut self, page_token: String) -> Self {
+        self.page_token = Some(page_token);
+        self
+    }
+
+    /// 设置员工 ID 列表（可选，最大 100 个）。
+    pub fn employment_id_list(mut self, employment_id_list: Vec<String>) -> Self {
+        self.employment_id_list = employment_id_list;
+        self
+    }
+
+    /// 设置休假发起人 ID 列表（可选，最大 100 个）。
+    pub fn initiator_id_list(mut self, initiator_id_list: Vec<String>) -> Self {
+        self.initiator_id_list = initiator_id_list;
+        self
+    }
+
+    /// 设置请假记录状态列表（可选，1～9）。
+    pub fn leave_request_status(mut self, leave_request_status: Vec<i32>) -> Self {
+        self.leave_request_status = leave_request_status;
+        self
+    }
+
+    /// 设置假期类型 ID 列表（可选）。
+    pub fn leave_type_id_list(mut self, leave_type_id_list: Vec<String>) -> Self {
+        self.leave_type_id_list = leave_type_id_list;
+        self
+    }
+
+    /// 设置休假开始时间下界（可选，`yyyy-MM-dd`）。
+    pub fn leave_start_date_min(mut self, v: String) -> Self {
+        self.leave_start_date_min = Some(v);
+        self
+    }
+
+    /// 设置休假开始时间上界（可选，`yyyy-MM-dd`）。
+    pub fn leave_start_date_max(mut self, v: String) -> Self {
+        self.leave_start_date_max = Some(v);
+        self
+    }
+
+    /// 设置休假结束时间下界（可选，`yyyy-MM-dd`）。
+    pub fn leave_end_date_min(mut self, v: String) -> Self {
+        self.leave_end_date_min = Some(v);
+        self
+    }
+
+    /// 设置休假结束时间上界（可选，`yyyy-MM-dd`）。
+    pub fn leave_end_date_max(mut self, v: String) -> Self {
+        self.leave_end_date_max = Some(v);
+        self
+    }
+
+    /// 设置休假发起时间下界（可选，`yyyy-MM-dd`）。
+    pub fn leave_submit_date_min(mut self, v: String) -> Self {
+        self.leave_submit_date_min = Some(v);
+        self
+    }
+
+    /// 设置休假发起时间上界（可选，`yyyy-MM-dd`）。
+    pub fn leave_submit_date_max(mut self, v: String) -> Self {
+        self.leave_submit_date_max = Some(v);
+        self
+    }
+
+    /// 设置用户 ID 类型（可选，默认 people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: String) -> Self {
+        self.user_id_type = Some(user_id_type);
+        self
+    }
+
+    /// 设置请假记录更新时间下界（可选，`yyyy-MM-dd HH:mm:ss`）。
+    pub fn leave_update_time_min(mut self, v: String) -> Self {
+        self.leave_update_time_min = Some(v);
+        self
+    }
+
+    /// 设置请假记录更新时间上界（可选，`yyyy-MM-dd HH:mm:ss`）。
+    pub fn leave_update_time_max(mut self, v: String) -> Self {
+        self.leave_update_time_max = Some(v);
+        self
+    }
+
+    /// 设置是否返回请假详情（可选，暂未开放）。
+    pub fn return_detail(mut self, return_detail: bool) -> Self {
+        self.return_detail = Some(return_detail);
+        self
+    }
+
+    /// 设置长/短假类型（可选：0 不过滤 / 1 短假 / 2 长假）。
+    pub fn leave_term_type(mut self, leave_term_type: i32) -> Self {
+        self.leave_term_type = Some(leave_term_type);
+        self
+    }
+
+    /// 设置请假记录所在时区（可选）。
+    pub fn time_zone(mut self, time_zone: String) -> Self {
+        self.time_zone = Some(time_zone);
+        self
+    }
+
+    /// 设置请假记录数据源（可选，暂未开放：1 中国大陆 / 2 海外）。
+    pub fn data_source(mut self, data_source: i32) -> Self {
+        self.data_source = Some(data_source);
+        self
+    }
+
+    /// 设置请假记录 DB 更新时间下界（可选，暂未开放）。
+    pub fn db_update_time_min(mut self, v: String) -> Self {
+        self.db_update_time_min = Some(v);
+        self
+    }
+
+    /// 设置请假记录 DB 更新时间上界（可选，暂未开放）。
+    pub fn db_update_time_max(mut self, v: String) -> Self {
+        self.db_update_time_max = Some(v);
+        self
+    }
+
+    /// WorkDay 专用：设置是否返回 0 值请假记录（可选）。
+    pub fn wd_need_amount_zero_records(mut self, v: bool) -> Self {
+        self.wd_need_amount_zero_records = Some(v);
+        self
+    }
+
+    /// WorkDay 专用：设置是否返回拒绝和取消的请假记录（可选）。
+    pub fn wd_need_denied_and_canceled_record(mut self, v: bool) -> Self {
+        self.wd_need_denied_and_canceled_record = Some(v);
+        self
+    }
+
+    /// WorkDay 专用：设置扣薪类型（可选：1 / 2 / 3）。
+    pub fn wd_paid_type(mut self, wd_paid_type: i32) -> Self {
+        self.wd_paid_type = Some(wd_paid_type);
         self
     }
 
@@ -54,14 +231,56 @@ impl LeaveRequestHistoryRequest {
     ) -> SDKResult<LeaveRequestHistoryResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV1;
 
+        let page_size = self.page_size.unwrap_or(0);
+        if !(10..=1000).contains(&page_size) {
+            return Err(openlark_core::error::validation_error(
+                "page_size",
+                "page_size 不能为空且取值范围为 10～1000",
+            ));
+        }
+
         let api_endpoint = FeishuPeopleApiV1::LeaveLeaveRequestHistory;
-        let mut request = ApiRequest::<LeaveRequestHistoryResponse>::get(api_endpoint.to_url());
-        for (key, value) in self.query_params {
-            request = request.query(&key, value);
-        }
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<LeaveRequestHistoryResponse>::get(api_endpoint.to_url())
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            // GET 数组参数按官方规范同名多次传递
+            .query_multi("employment_id_list", self.employment_id_list)
+            .query_multi("initiator_id_list", self.initiator_id_list)
+            .query_multi(
+                "leave_request_status",
+                self.leave_request_status
+                    .iter()
+                    .map(|status| status.to_string()),
+            )
+            .query_multi("leave_type_id_list", self.leave_type_id_list)
+            .query_opt("leave_start_date_min", self.leave_start_date_min)
+            .query_opt("leave_start_date_max", self.leave_start_date_max)
+            .query_opt("leave_end_date_min", self.leave_end_date_min)
+            .query_opt("leave_end_date_max", self.leave_end_date_max)
+            .query_opt("leave_submit_date_min", self.leave_submit_date_min)
+            .query_opt("leave_submit_date_max", self.leave_submit_date_max)
+            .query_opt("user_id_type", self.user_id_type)
+            .query_opt("leave_update_time_min", self.leave_update_time_min)
+            .query_opt("leave_update_time_max", self.leave_update_time_max)
+            .query_opt("return_detail", self.return_detail.map(|v| v.to_string()))
+            .query_opt(
+                "leave_term_type",
+                self.leave_term_type.map(|v| v.to_string()),
+            )
+            .query_opt("time_zone", self.time_zone)
+            .query_opt("data_source", self.data_source.map(|v| v.to_string()))
+            .query_opt("db_update_time_min", self.db_update_time_min)
+            .query_opt("db_update_time_max", self.db_update_time_max)
+            .query_opt(
+                "wd_need_amount_zero_records",
+                self.wd_need_amount_zero_records.map(|v| v.to_string()),
+            )
+            .query_opt(
+                "wd_need_denied_and_canceled_record",
+                self.wd_need_denied_and_canceled_record
+                    .map(|v| v.to_string()),
+            )
+            .query_opt("wd_paid_type", self.wd_paid_type.map(|v| v.to_string()));
 
         Transport::request_typed(
             request,
@@ -324,6 +543,8 @@ mod tests {
             .build();
 
         let resp = LeaveRequestHistoryRequest::new(config)
+            .page_size(100)
+            .employment_id_list(vec!["6919733291281024522".to_string()])
             .execute()
             .await
             .expect("请求应成功");
@@ -354,5 +575,12 @@ mod tests {
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        // page_size 为官方必填查询参数；employment_id_list 按同名多次传递
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("page_size=100")
+                && query.contains("employment_id_list=6919733291281024522"),
+            "查询串应含 page_size=100 与 employment_id_list，实际 {query}"
+        );
     }
 }

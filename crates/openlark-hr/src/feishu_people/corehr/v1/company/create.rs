@@ -10,7 +10,7 @@ use openlark_core::{
     validate_required,
 };
 
-use super::models::{CreateRequestBody, CreateResponse};
+use super::models::{CreateRequestBody, CreateResponse, HiberarchyCommon};
 
 /// 创建公司请求
 #[derive(Debug, Clone)]
@@ -19,6 +19,8 @@ pub struct CreateRequest {
     config: Config,
     /// 公司名称（必填）
     name: String,
+    /// 公司基本信息（必填：名称、启停用状态等）
+    hiberarchy_common: Option<HiberarchyCommon>,
     /// 公司编码
     code: Option<String>,
     /// 公司描述
@@ -31,6 +33,7 @@ impl CreateRequest {
         Self {
             config,
             name: String::new(),
+            hiberarchy_common: None,
             code: None,
             description: None,
         }
@@ -39,6 +42,12 @@ impl CreateRequest {
     /// 设置公司名称（必填）
     pub fn name(mut self, name: String) -> Self {
         self.name = name;
+        self
+    }
+
+    /// 设置公司基本信息（必填，含多语名称、启停用状态、生效日期、编码、描述等）
+    pub fn hiberarchy_common(mut self, hiberarchy_common: HiberarchyCommon) -> Self {
+        self.hiberarchy_common = Some(hiberarchy_common);
         self
     }
 
@@ -69,6 +78,12 @@ impl CreateRequest {
 
         // 1. 验证必填字段
         validate_required!(self.name.trim(), "公司名称不能为空");
+        let hiberarchy_common = self.hiberarchy_common.ok_or_else(|| {
+            openlark_core::error::validation_error(
+                "hiberarchy_common 不能为空",
+                "创建公司必须提供公司基本信息（名称、启停用状态等）",
+            )
+        })?;
 
         // 2. 构建端点
         let api_endpoint = FeishuPeopleApiV1::CompanyCreate;
@@ -77,6 +92,7 @@ impl CreateRequest {
         // 3. 序列化请求体
         let request_body = CreateRequestBody {
             name: self.name,
+            hiberarchy_common,
             code: self.code,
             description: self.description,
         };
@@ -127,10 +143,20 @@ mod tests {
     fn test_company_create_request_body_serialize() {
         let request = CreateRequest::new(create_test_config())
             .name("测试公司".to_string())
-            .code("COMP-002".to_string());
+            .code("COMP-002".to_string())
+            .hiberarchy_common(HiberarchyCommon {
+                name: Some(vec![super::super::models::I18n {
+                    lang: Some("zh-CN".to_string()),
+                    value: Some("xx有限科技公司".to_string()),
+                }]),
+                active: Some(true),
+                effective_time: Some("2020-05-01 00:00:00".to_string()),
+                ..Default::default()
+            });
 
         let body = CreateRequestBody {
             name: request.name,
+            hiberarchy_common: request.hiberarchy_common.expect("hiberarchy_common 应存在"),
             code: request.code,
             description: request.description,
         };
@@ -138,6 +164,16 @@ mod tests {
 
         assert_eq!(value["name"], json!("测试公司"));
         assert_eq!(value["code"], json!("COMP-002"));
+        // 官方形状：hiberarchy_common 嵌套对象（含生效日期）
+        assert_eq!(
+            value["hiberarchy_common"]["name"][0]["value"],
+            json!("xx有限科技公司")
+        );
+        assert_eq!(value["hiberarchy_common"]["active"], json!(true));
+        assert_eq!(
+            value["hiberarchy_common"]["effective_time"],
+            json!("2020-05-01 00:00:00")
+        );
     }
 
     #[test]

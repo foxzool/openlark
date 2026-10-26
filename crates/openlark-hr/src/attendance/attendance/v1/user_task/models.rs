@@ -7,21 +7,15 @@ use serde::{Deserialize, Serialize};
 /// 查询打卡结果请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryUserTaskRequestBody {
-    /// 查询的起始日期，格式为 yyyy-MM-dd
-    pub start_date: String,
-    /// 查询的结束日期，格式为 yyyy-MM-dd
-    pub end_date: String,
     /// 查询的用户 ID 列表，最多支持 50 个用户
     pub user_ids: Vec<String>,
-    /// 用户 ID 类型，可选值：open_id、union_id、user_id
+    /// 查询的起始工作日，格式为 yyyyMMdd
+    pub check_date_from: i32,
+    /// 查询的结束工作日，格式为 yyyyMMdd
+    pub check_date_to: i32,
+    /// 是否需要加班班段打卡结果
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id_type: Option<String>,
-    /// 查询的打卡类型，可选值：
-    /// - 1: 上班打卡
-    /// - 2: 下班打卡
-    /// - 3: 外出打卡
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub check_in_type: Option<i32>,
+    pub need_overtime_result: Option<bool>,
 }
 
 /// 打卡记录

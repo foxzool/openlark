@@ -7,20 +7,35 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
 /// 批量删除经常性支付记录请求
 #[derive(Debug, Clone)]
 pub struct BatchRemoveRequest {
+    /// 需要删除的记录 ID 列表（必填，最多 500 个）
+    record_ids: Vec<String>,
+    /// 删除原因（可选）
+    reason: Option<String>,
     /// 配置信息
     config: Config,
 }
 
 impl BatchRemoveRequest {
     /// 创建请求
-    pub fn new(config: Config) -> Self {
-        Self { config }
+    pub fn new(config: Config, record_ids: Vec<String>) -> Self {
+        Self {
+            record_ids,
+            reason: None,
+            config,
+        }
+    }
+
+    /// 设置删除原因（可选）
+    pub fn reason(mut self, reason: String) -> Self {
+        self.reason = Some(reason);
+        self
     }
 
     /// 执行请求
@@ -36,8 +51,25 @@ impl BatchRemoveRequest {
     ) -> SDKResult<BatchRemoveResponse> {
         use crate::common::api_endpoints::CompensationApiV1;
 
+        // 1. 验证必填字段
+        validate_required_list!(self.record_ids, 500, "record_ids 不能为空且不能超过 500 个");
+
+        // 2. 构建端点与请求体
         let api_endpoint = CompensationApiV1::RecurringPaymentBatchRemove;
         let request = ApiRequest::<BatchRemoveResponse>::post(api_endpoint.to_url());
+        let request_body = BatchRemoveRequestBody {
+            record_ids: self.record_ids,
+            reason: self.reason,
+        };
+        let request_body_json = serde_json::to_value(&request_body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "构建请求体失败",
+                format!("序列化请求体失败: {e}"),
+            )
+        })?;
+        let request = request.body(request_body_json);
+
+        // 3. 发送请求
         Transport::request_typed(
             request,
             &self.config,
@@ -46,6 +78,16 @@ impl BatchRemoveRequest {
         )
         .await
     }
+}
+
+/// 批量删除经常性支付记录请求体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchRemoveRequestBody {
+    /// 需要删除的记录 ID 列表（最多 500 个）
+    pub record_ids: Vec<String>,
+    /// 原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 /// 批量删除经常性支付记录响应
@@ -89,7 +131,7 @@ mod tests {
     async fn test_batch_remove_recurring_payment_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{body_json, method, path};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -102,6 +144,10 @@ mod tests {
             .and(path(
                 "/open-apis/compensation/v1/recurring_payment/batch_remove",
             ))
+            .and(body_json(json!({
+                "record_ids": ["7397033607132351532"],
+                "reason": "删除错误创建的数据"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -117,7 +163,8 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = BatchRemoveRequest::new(config)
+        let data = BatchRemoveRequest::new(config, vec!["7397033607132351532".to_string()])
+            .reason("删除错误创建的数据".to_string())
             .execute()
             .await
             .expect("批量删除经常性支付应成功");
@@ -135,5 +182,19 @@ mod tests {
             received[0].url.path(),
             "/open-apis/compensation/v1/recurring_payment/batch_remove"
         );
+    }
+
+    /// record_ids 为必填（最多 500 个）
+    #[tokio::test]
+    async fn test_batch_remove_recurring_payment_validates_required_fields() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url("https://127.0.0.1:9")
+            .enable_token_cache(false)
+            .build();
+
+        let result = BatchRemoveRequest::new(config, vec![]).execute().await;
+        assert!(result.is_err());
     }
 }
