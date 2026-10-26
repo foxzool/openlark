@@ -1,134 +1,103 @@
 //! 动态订阅数据模型
 
+use crate::v2::tasklist::models::TasklistMemberDetail;
 use serde::{Deserialize, Serialize};
-
-/// 动态订阅类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum ActivitySubscriptionType {
-    /// 任务创建
-    #[default]
-    TaskCreated,
-    /// 任务更新
-    TaskUpdated,
-    /// 任务完成
-    TaskCompleted,
-    /// 任务删除
-    TaskDeleted,
-    /// 评论创建
-    CommentCreated,
-    /// 成员添加
-    MemberAdded,
-    /// 成员移除
-    MemberRemoved,
-}
-
-/// 动态订阅目标类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum ActivitySubscriptionTargetType {
-    /// Webhook
-    #[default]
-    Webhook,
-    /// 飞书群
-    Chat,
-}
 
 /// 创建动态订阅请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct CreateActivitySubscriptionBody {
-    /// 订阅类型
-    pub subscription_type: ActivitySubscriptionType,
+    /// 订阅名称（必填，不能为空，最大 50 个字符）
+    pub name: String,
 
-    /// 目标类型
-    pub target_type: ActivitySubscriptionTargetType,
+    /// 订阅者列表（必填，最大 50 个；member 目前仅支持 chat 类型）
+    pub subscribers: Vec<TasklistMemberDetail>,
 
-    /// 目标 URL（当 target_type 为 webhook 时）
+    /// 订阅的清单动态 event key 列表（必填，可为空数组表示不通知任何动态；元素不可重复）
+    pub include_keys: Vec<i32>,
+
+    /// 该订阅是否停用
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_url: Option<String>,
+    pub disabled: Option<bool>,
+}
 
-    /// 飞书群 ID（当 target_type 为 chat 时）
+/// 要更新的订阅数据（tasklist_activity_subscription）
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct ActivitySubscriptionInput {
+    /// 订阅名称（如更新，不能为空，最大 50 个字符）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat_id: Option<String>,
+    pub name: Option<String>,
+
+    /// 订阅者列表（如更新，最大 50 个）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subscribers: Option<Vec<TasklistMemberDetail>>,
+
+    /// 要订阅的清单动态 event key 列表（可为空数组；元素不可重复）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_keys: Option<Vec<i32>>,
+
+    /// 该订阅是否停用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
 }
 
 /// 更新动态订阅请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct UpdateActivitySubscriptionBody {
-    /// 订阅类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subscription_type: Option<ActivitySubscriptionType>,
+    /// 要更新的订阅数据
+    pub activity_subscription: ActivitySubscriptionInput,
 
-    /// 目标类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_type: Option<ActivitySubscriptionTargetType>,
-
-    /// 目标 URL
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_url: Option<String>,
-
-    /// 飞书群 ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat_id: Option<String>,
+    /// 要更新的字段列表（1-20 个），可选值：name / include_keys / subscribers / disabled
+    pub update_fields: Vec<String>,
 }
 
-/// 动态订阅信息
-#[derive(Debug, Clone, Deserialize)]
+/// 动态订阅信息（tasklist_activity_subscription）
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ActivitySubscription {
     /// 订阅 GUID
-    pub subscription_guid: String,
-
-    /// 订阅类型
-    pub subscription_type: ActivitySubscriptionType,
-
-    /// 目标类型
-    pub target_type: ActivitySubscriptionTargetType,
-
-    /// 目标 URL
     #[serde(default)]
-    pub target_url: Option<String>,
+    pub guid: Option<String>,
 
-    /// 飞书群 ID
+    /// 订阅名称
     #[serde(default)]
-    pub chat_id: Option<String>,
+    pub name: Option<String>,
 
-    /// 创建时间
-    pub created_at: String,
+    /// 订阅者列表
+    #[serde(default)]
+    pub subscribers: Vec<TasklistMemberDetail>,
 
-    /// 更新时间
-    pub updated_at: String,
+    /// 订阅的清单动态 event key 列表
+    #[serde(default)]
+    pub include_keys: Vec<i32>,
+
+    /// 该订阅是否停用
+    #[serde(default)]
+    pub disabled: Option<bool>,
 }
 
 /// 创建动态订阅响应
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateActivitySubscriptionResponse {
-    /// 订阅信息
-    pub subscription: ActivitySubscription,
+    /// 清单动态订阅
+    pub activity_subscription: ActivitySubscription,
 }
 
 /// 获取动态订阅响应
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetActivitySubscriptionResponse {
-    /// 订阅信息
-    pub subscription: ActivitySubscription,
+    /// 清单动态订阅
+    pub activity_subscription: ActivitySubscription,
 }
 
 /// 更新动态订阅响应
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateActivitySubscriptionResponse {
-    /// 订阅信息
-    pub subscription: ActivitySubscription,
+    /// 更新后的清单动态订阅
+    pub activity_subscription: ActivitySubscription,
 }
 
 /// 删除动态订阅响应
-#[derive(Debug, Clone, Deserialize)]
-pub struct DeleteActivitySubscriptionResponse {
-    /// 是否删除成功
-    pub success: bool,
-
-    /// 订阅 GUID
-    pub subscription_guid: String,
-}
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct DeleteActivitySubscriptionResponse {}
 
 /// 列取动态订阅响应
 #[derive(Debug, Clone, Deserialize)]
@@ -140,10 +109,6 @@ pub struct ListActivitySubscriptionsResponse {
     /// 分页标记
     #[serde(default)]
     pub page_token: Option<String>,
-
-    /// 总数
-    #[serde(default)]
-    pub total: Option<i32>,
 
     /// 订阅列表
     #[serde(default)]

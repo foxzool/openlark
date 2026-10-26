@@ -21,6 +21,10 @@ pub struct DeleteInstanceCommentRequestV4 {
     config: Arc<Config>,
     instance_id: String,
     comment_id: String,
+    /// 用户 ID（必填，ID 类型与 user_id_type 取值一致）
+    user_id: String,
+    /// 用户 ID 类型（open_id / union_id / user_id，默认 open_id）
+    user_id_type: Option<String>,
 }
 
 impl DeleteInstanceCommentRequestV4 {
@@ -29,12 +33,21 @@ impl DeleteInstanceCommentRequestV4 {
         config: Arc<Config>,
         instance_id: impl Into<String>,
         comment_id: impl Into<String>,
+        user_id: impl Into<String>,
     ) -> Self {
         Self {
             config,
             instance_id: instance_id.into(),
             comment_id: comment_id.into(),
+            user_id: user_id.into(),
+            user_id_type: None,
         }
+    }
+
+    /// 设置用户 ID 类型（open_id / union_id / user_id，默认 open_id）
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行请求
@@ -50,12 +63,18 @@ impl DeleteInstanceCommentRequestV4 {
     ) -> SDKResult<DeleteInstanceCommentResponseV4> {
         validate_required!(self.instance_id.trim(), "审批实例 ID 不能为空");
         validate_required!(self.comment_id.trim(), "评论 ID 不能为空");
+        validate_required!(self.user_id.trim(), "用户 ID 不能为空");
 
         let api_endpoint = crate::common::api_endpoints::ApprovalApiV4::InstanceCommentDelete(
             self.instance_id,
             self.comment_id,
         );
-        let request = ApiRequest::<DeleteInstanceCommentResponseV4>::delete(api_endpoint.to_url());
+        let mut request =
+            ApiRequest::<DeleteInstanceCommentResponseV4>::delete(api_endpoint.to_url())
+                .query("user_id", self.user_id);
+        if let Some(user_id_type) = self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
+        }
 
         openlark_core::http::Transport::request_typed(
             request,

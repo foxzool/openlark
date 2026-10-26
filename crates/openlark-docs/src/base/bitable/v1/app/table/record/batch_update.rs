@@ -156,9 +156,11 @@ pub struct UpdateRecordItem {
     pub fields: Value,
 }
 
+/// 批量更新记录请求体。
 #[derive(Serialize)]
-struct BatchUpdateRecordRequestBody {
-    records: Vec<UpdateRecordItem>,
+pub struct BatchUpdateRecordRequestBody {
+    /// 要更新的记录列表
+    pub records: Vec<UpdateRecordItem>,
 }
 
 /// 批量更新记录响应

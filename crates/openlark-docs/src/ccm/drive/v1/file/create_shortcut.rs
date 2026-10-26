@@ -15,6 +15,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 
+/// 创建文件快捷方式请求体
+///
+/// 字段与官方文档对齐：`parent_token`、`refer_entity` 必填。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateFileShortcutRequestBody {
+    /// 目标父文件夹的 token
+    pub parent_token: String,
+    /// 源文件的信息
+    pub refer_entity: ReferEntity,
+}
+
 /// 创建文件快捷方式响应（data）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateFileShortcutResponse {
@@ -161,7 +172,13 @@ impl CreateFileShortcutRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        request = request.body(serialize_params(&self, "创建文件快捷方式")?);
+        request = request.body(serialize_params(
+            &CreateFileShortcutRequestBody {
+                parent_token: self.parent_token,
+                refer_entity: self.refer_entity,
+            },
+            "创建文件快捷方式",
+        )?);
 
         Transport::request_typed(request, &self.config, Some(option), "创建文件快捷方式").await
     }

@@ -100,11 +100,12 @@ impl BatchDeleteRecordRequest {
             BitableApiV1::RecordBatchDelete(self.app_token.clone(), self.table_id.clone());
 
         // #424 catalog POST for batch delete
+        // 官方请求体的键为 `records`（string[]），构建器字段名保持 `record_ids`
         let api_request: ApiRequest<BatchDeleteRecordResponse> =
             api_endpoint
                 .to_request()
                 .body(serde_json::to_vec(&BatchDeleteRecordRequestBody {
-                    record_ids: self.record_ids,
+                    records: self.record_ids,
                 })?);
 
         Transport::request_typed(
@@ -117,10 +118,13 @@ impl BatchDeleteRecordRequest {
     }
 }
 
-/// 批量删除记录请求体（内部使用）。
+/// 批量删除记录请求体。
+///
+/// 官方请求体的键为 `records`（记录 ID 字符串数组）。
 #[derive(Serialize)]
-struct BatchDeleteRecordRequestBody {
-    record_ids: Vec<String>,
+pub struct BatchDeleteRecordRequestBody {
+    /// 要删除的记录 ID 列表
+    pub records: Vec<String>,
 }
 
 /// 删除结果
@@ -237,5 +241,40 @@ mod tests {
             BatchDeleteRecordResponse::data_format(),
             ResponseFormat::Data
         );
+    }
+
+    /// 端到端：POST batch_delete 的请求体键必须为官方的 `records`（string[]）。
+    #[tokio::test]
+    async fn test_batch_delete_wire_body_uses_records_key() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{body_json, method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/bitable/v1/apps/app001/tables/tbl001/records/batch_delete",
+            ))
+            .and(body_json(json!({ "records": ["rec001", "rec002"] })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success",
+                "data": { "records": [ { "deleted": true, "record_id": "rec001" } ] }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        BatchDeleteRecordRequest::new(config)
+            .app_token("app001".to_string())
+            .table_id("tbl001".to_string())
+            .record_ids(vec!["rec001".to_string(), "rec002".to_string()])
+            .execute()
+            .await
+            .expect("批量删除记录应成功");
     }
 }

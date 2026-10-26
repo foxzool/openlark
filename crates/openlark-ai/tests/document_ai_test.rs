@@ -75,8 +75,11 @@ fn test_vat_invoice_recognize_builder() {
         .app_secret("test_app_secret")
         .build();
 
-    let request = VatInvoiceRecognizeRequestBuilder::new(config).file_token("test_file_token");
+    let request = VatInvoiceRecognizeRequestBuilder::new(config)
+        .file(vec![1, 2, 3])
+        .file_name("invoice.pdf");
 
     let body = request.body();
-    assert_eq!(body.file_token, "test_file_token");
+    assert_eq!(body.file, vec![1, 2, 3]);
+    assert_eq!(body.file_name, Some("invoice.pdf".to_string()));
 }

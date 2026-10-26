@@ -8,6 +8,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    validate_required,
 };
 use std::sync::Arc;
 
@@ -16,6 +17,12 @@ use std::sync::Arc;
 pub struct ListSectionsRequest {
     /// 配置信息
     config: Arc<Config>,
+    /// 自定义分组所属的资源类型（必填，"my_tasks" 我负责的 / "tasklist" 清单）
+    resource_type: String,
+    /// 清单 GUID（resource_type 为 "tasklist" 时填写）
+    resource_id: Option<String>,
+    /// 用户 ID 类型（open_id / union_id / user_id，默认 open_id）
+    user_id_type: Option<String>,
     /// 分页大小
     page_size: Option<i32>,
     /// 分页标记
@@ -27,9 +34,31 @@ impl ListSectionsRequest {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
+            // 官方默认资源类型为 tasklist（清单）
+            resource_type: "tasklist".to_string(),
+            resource_id: None,
+            user_id_type: None,
             page_size: None,
             page_token: None,
         }
+    }
+
+    /// 设置资源类型（必填，"my_tasks" 我负责的 / "tasklist" 清单）
+    pub fn resource_type(mut self, resource_type: impl Into<String>) -> Self {
+        self.resource_type = resource_type.into();
+        self
+    }
+
+    /// 设置清单 GUID（resource_type 为 "tasklist" 时填写）
+    pub fn resource_id(mut self, resource_id: impl Into<String>) -> Self {
+        self.resource_id = Some(resource_id.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id / union_id / user_id，默认 open_id）
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 设置分页大小
@@ -55,10 +84,19 @@ impl ListSectionsRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListSectionsResponse> {
+        validate_required!(self.resource_type.trim(), "资源类型不能为空");
+
         let api_endpoint = TaskApiV2::SectionList;
-        let mut request = ApiRequest::<ListSectionsResponse>::get(api_endpoint.to_url());
+        let mut request = ApiRequest::<ListSectionsResponse>::get(api_endpoint.to_url())
+            .query("resource_type", self.resource_type);
 
         // 构建查询参数
+        if let Some(resource_id) = &self.resource_id {
+            request = request.query("resource_id", resource_id);
+        }
+        if let Some(user_id_type) = &self.user_id_type {
+            request = request.query("user_id_type", user_id_type);
+        }
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string());
         }
@@ -96,8 +134,12 @@ mod tests {
             .app_secret("test")
             .build();
 
-        let request = ListSectionsRequest::new(Arc::new(config)).page_size(20);
+        let request = ListSectionsRequest::new(Arc::new(config))
+            .resource_id("tasklist_123")
+            .page_size(20);
 
+        assert_eq!(request.resource_type, "tasklist");
+        assert_eq!(request.resource_id.as_deref(), Some("tasklist_123"));
         assert_eq!(request.page_size, Some(20));
     }
 }

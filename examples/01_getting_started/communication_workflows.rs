@@ -126,9 +126,7 @@ async fn workflow_execution_flow(
             .workflow
             .mutate_task(
                 &task_guid,
-                WorkflowTaskMutation::new()
-                    .summary("通过 helper 更新任务")
-                    .priority(3),
+                WorkflowTaskMutation::new().summary("通过 helper 更新任务"),
             )
             .await?;
         println!("任务更新完成: {}", updated.task_guid);

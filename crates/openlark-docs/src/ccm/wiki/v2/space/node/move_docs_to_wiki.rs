@@ -26,8 +26,8 @@ pub struct MoveDocsToWikiRequest {
     obj_token: String,
     /// 源文档类型（例如 doc、docx 等）
     obj_type: String,
-    /// 目标父节点 wiki token
-    parent_wiki_token: String,
+    /// 目标父节点 wiki token（可选，不传时移动为知识空间一级节点）
+    parent_wiki_token: Option<String>,
     /// 是否直接执行移动（可选，官方字段 `apply`）
     ///
     /// - `true`（默认）：同步执行移动
@@ -35,14 +35,21 @@ pub struct MoveDocsToWikiRequest {
     apply: Option<bool>,
 }
 
-/// 移动云空间文档至知识空间请求体（内部使用）
+/// 移动云空间文档至知识空间请求体
+///
+/// 字段与官方文档对齐：`obj_type`、`obj_token` 必填；`parent_wiki_token`、`apply` 可选。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct MoveDocsToWikiRequestBody {
-    obj_token: String,
-    obj_type: String,
-    parent_wiki_token: String,
+pub struct MoveDocsToWikiRequestBody {
+    /// 文档token
+    pub obj_token: String,
+    /// 文档类型（doc/sheet/bitable/mindnote/docx/file/slides）
+    pub obj_type: String,
+    /// 节点的父亲token（不传时移动为知识空间一级节点）
     #[serde(skip_serializing_if = "Option::is_none")]
-    apply: Option<bool>,
+    pub parent_wiki_token: Option<String>,
+    /// 没有权限时，是否申请移动文档
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apply: Option<bool>,
 }
 
 /// 移动云空间文档至知识空间响应
@@ -71,7 +78,7 @@ impl MoveDocsToWikiRequest {
             space_id: String::new(),
             obj_token: String::new(),
             obj_type: String::new(),
-            parent_wiki_token: String::new(),
+            parent_wiki_token: None,
             apply: None,
         }
     }
@@ -94,9 +101,9 @@ impl MoveDocsToWikiRequest {
         self
     }
 
-    /// 设置目标父节点 wiki token
+    /// 设置目标父节点 wiki token（可选，不传时移动为知识空间一级节点）
     pub fn parent_wiki_token(mut self, parent_wiki_token: impl Into<String>) -> Self {
-        self.parent_wiki_token = parent_wiki_token.into();
+        self.parent_wiki_token = Some(parent_wiki_token.into());
         self
     }
 
@@ -123,7 +130,6 @@ impl MoveDocsToWikiRequest {
         validate_required!(self.space_id, "知识空间ID不能为空");
         validate_required!(self.obj_token, "源文档token不能为空");
         validate_required!(self.obj_type, "源文档类型不能为空");
-        validate_required!(self.parent_wiki_token, "目标父节点wiki token不能为空");
 
         let api_endpoint = WikiApiV2::SpaceNodeMoveDocsToWiki(self.space_id);
 
@@ -184,5 +190,45 @@ mod tests {
             received[0].url.path(),
             "/open-apis/wiki/v2/spaces/sp001/nodes/move_docs_to_wiki"
         );
+        // 官方请求体：obj_token/obj_type/parent_wiki_token（apply 可选不传）
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["obj_token"], "obj001");
+        assert_eq!(body["obj_type"], "docx");
+        assert_eq!(body["parent_wiki_token"], "pwt001");
+        assert!(body.get("apply").is_none());
+    }
+
+    /// 端到端：不设置 parent_wiki_token 时省略该字段（移动为知识空间一级节点）。
+    #[tokio::test]
+    async fn test_move_docs_to_wiki_without_parent_omits_field() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path(
+                "/open-apis/wiki/v2/spaces/sp001/nodes/move_docs_to_wiki",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0, "msg": "success", "data": { "wiki_token": "wt001" }
+            })))
+            .mount(&server)
+            .await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        MoveDocsToWikiRequest::new(config)
+            .space_id("sp001")
+            .obj_token("obj001")
+            .obj_type("docx")
+            .execute()
+            .await
+            .expect("移动云文档至知识空间应成功");
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert!(body.get("parent_wiki_token").is_none());
     }
 }

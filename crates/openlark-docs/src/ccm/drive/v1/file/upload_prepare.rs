@@ -41,7 +41,7 @@ use crate::common::{api_endpoints::DriveApi, api_utils::*};
 /// );
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadPrepareRequest {
+pub struct UploadPrepareBody {
     #[serde(skip)]
     config: Config,
     /// 文件名
@@ -54,7 +54,10 @@ pub struct UploadPrepareRequest {
     pub size: i64,
 }
 
-impl UploadPrepareRequest {
+/// 兼容别名：历史导出名保留为请求体类型。
+pub type UploadPrepareRequest = UploadPrepareBody;
+
+impl UploadPrepareBody {
     /// 创建新的实例。
     pub fn new(
         config: Config,

@@ -5,6 +5,6 @@ pub mod create;
 pub mod get;
 
 // 显式导出 - 避免使用 glob reexport
-pub use create::{CreateImportTaskRequest, CreateImportTaskResponse};
+pub use create::{CreateImportTaskBody, CreateImportTaskRequest, CreateImportTaskResponse};
 
 pub use get::{GetImportTaskRequest, GetImportTaskResponse, ImportTaskResult};

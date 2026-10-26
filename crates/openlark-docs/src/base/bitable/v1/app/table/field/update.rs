@@ -162,7 +162,7 @@ impl UpdateFieldRequest {
         // 设置请求体
         let body = UpdateFieldRequestBody {
             field_name: self.field_name,
-            r#type: self.r#type,
+            field_type: self.r#type,
             property: self.property,
             description: self.description,
             ui_type: self.ui_type,
@@ -177,14 +177,23 @@ impl UpdateFieldRequest {
     }
 }
 
-/// 更新字段请求体（内部使用）。
+/// 更新字段请求体。
 #[derive(Serialize)]
-struct UpdateFieldRequestBody {
-    field_name: String,
-    r#type: FieldType,
-    property: Option<FieldProperty>,
-    description: Option<Value>,
-    ui_type: Option<String>,
+pub struct UpdateFieldRequestBody {
+    /// 字段名称
+    pub field_name: String,
+    /// 字段类型（官方键为 `type`）
+    #[serde(rename = "type")]
+    pub field_type: FieldType,
+    /// 字段属性
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub property: Option<FieldProperty>,
+    /// 字段的描述
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<Value>,
+    /// 字段在界面上的展示类型
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ui_type: Option<String>,
 }
 
 /// 更新字段响应。

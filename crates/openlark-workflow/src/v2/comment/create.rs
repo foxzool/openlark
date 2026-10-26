@@ -37,9 +37,9 @@ impl CreateCommentRequest {
         }
     }
 
-    /// 设置评论内容
+    /// 设置评论内容（必填，最长 3000 个 UTF-8 字符）
     pub fn content(mut self, content: impl Into<String>) -> Self {
-        self.body.content = Some(content.into());
+        self.body.content = content.into();
         self
     }
 
@@ -79,10 +79,7 @@ impl CreateCommentRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateCommentResponse> {
         // 验证必填字段
-        validate_required!(
-            self.body.content.as_deref().unwrap_or_default().trim(),
-            "评论内容不能为空"
-        );
+        validate_required!(self.body.content.trim(), "评论内容不能为空");
 
         let api_endpoint = TaskApiV2::CommentCreate;
         let mut request = ApiRequest::<CreateCommentResponse>::post(api_endpoint.to_url());
@@ -129,6 +126,13 @@ mod tests {
             CreateCommentRequest::new(config, "task_123".to_string()).content("这是一条评论");
 
         assert_eq!(request.body.resource_id.as_deref(), Some("task_123"));
-        assert_eq!(request.body.content.as_deref(), Some("这是一条评论"));
+        assert_eq!(request.body.resource_type.as_deref(), Some("task"));
+        assert_eq!(request.body.content, "这是一条评论");
+
+        // content 必填，非 Option，序列化恒包含该字段
+        let json = serde_json::to_value(&request.body).unwrap();
+        assert_eq!(json["content"], "这是一条评论");
+        assert_eq!(json["resource_id"], "task_123");
+        assert_eq!(json["resource_type"], "task");
     }
 }

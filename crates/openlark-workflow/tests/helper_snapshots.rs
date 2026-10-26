@@ -29,10 +29,7 @@ fn workflow_helper_outputs_snapshot() {
     let mutation = WorkflowTaskMutation::new()
         .summary("完成项目文档")
         .description("补齐 helper 快照测试")
-        .due("2026-12-31T23:59:59Z")
-        .priority(3)
-        .assignee("ou_assignee")
-        .status("InProgress");
+        .due("1767139200000");
     let approval_query = ApprovalTaskQuery::new("ou_xxx", "1")
         .user_id_type("open_id")
         .status("Todo")
@@ -71,9 +68,6 @@ fn workflow_helper_outputs_snapshot() {
                 "summary": mutation.summary,
                 "description": mutation.description,
                 "due": mutation.due,
-                "priority": mutation.priority,
-                "assignee": mutation.assignee,
-                "status": mutation.status,
             },
             "approval_task_query": {
                 "user_id": approval_query.user_id,

@@ -10,7 +10,7 @@ use openlark_core::{
     req_option::RequestOption,
 };
 
-use super::super::models::*;
+use super::super::models::{FindReplaceParams, FindReplaceResponse};
 use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
 
 impl ApiResponseTrait for FindReplaceResponse {

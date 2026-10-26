@@ -121,16 +121,20 @@ impl BatchGetRecordRequest {
     }
 }
 
-/// 批量获取记录请求体（内部使用）。
-#[derive(Serialize)]
-struct BatchGetRecordRequestBody {
-    record_ids: Vec<String>,
+/// 批量获取记录请求体。
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchGetRecordRequestBody {
+    /// 记录 ID 列表（单次最多 100 条）
+    pub record_ids: Vec<String>,
+    /// 此次调用中使用的用户 id 的类型
     #[serde(skip_serializing_if = "Option::is_none")]
-    user_id_type: Option<String>,
+    pub user_id_type: Option<String>,
+    /// 是否返回记录的分享链接
     #[serde(skip_serializing_if = "Option::is_none")]
-    with_shared_url: Option<bool>,
+    pub with_shared_url: Option<bool>,
+    /// 是否返回自动计算的字段
     #[serde(skip_serializing_if = "Option::is_none")]
-    automatic_fields: Option<bool>,
+    pub automatic_fields: Option<bool>,
 }
 
 /// 批量获取记录响应。

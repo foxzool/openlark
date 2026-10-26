@@ -147,10 +147,11 @@ impl UpdateRecordRequest {
     }
 }
 
-/// 更新记录请求体（内部使用）。
+/// 更新记录请求体。
 #[derive(Serialize)]
-struct UpdateRecordRequestBody {
-    fields: Value,
+pub struct UpdateRecordRequestBody {
+    /// 要更新的字段键值对
+    pub fields: Value,
 }
 
 /// 更新记录响应。

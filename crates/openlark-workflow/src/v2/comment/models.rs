@@ -20,7 +20,20 @@ pub struct InputComment {
 }
 
 /// 创建评论请求体。
-pub type CreateCommentBody = InputComment;
+#[derive(Debug, Clone, Serialize, Default, PartialEq)]
+pub struct CreateCommentBody {
+    /// 评论内容（必填，最长 3000 个 UTF-8 字符）。
+    pub content: String,
+    /// 回复给评论的评论 ID。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply_to_comment_id: Option<String>,
+    /// 评论归属资源类型（目前只支持任务 "task"，默认 "task"）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_type: Option<String>,
+    /// 评论归属资源 ID（归属资源为任务时填写任务 GUID）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_id: Option<String>,
+}
 
 /// 更新评论请求体。
 #[derive(Debug, Clone, Serialize, Default, PartialEq)]

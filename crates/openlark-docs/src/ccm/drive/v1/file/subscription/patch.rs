@@ -67,12 +67,15 @@ impl PatchSubscriptionRequest {
     }
 }
 
-#[derive(Debug, Serialize)]
-
-struct PatchSubscriptionRequestBody {
-    is_subscribe: bool,
-
-    file_type: String,
+/// 更新订阅状态请求体
+///
+/// 字段与官方文档对齐：`is_subscribe`、`file_type` 必填。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatchSubscriptionRequestBody {
+    /// 是否订阅（true 表示订阅，false 表示取消订阅）
+    pub is_subscribe: bool,
+    /// 文档类型（doc/docx/wiki）
+    pub file_type: String,
 }
 
 /// 更新订阅状态响应 data。

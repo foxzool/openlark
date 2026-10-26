@@ -129,10 +129,11 @@ impl CreateRecordRequest {
     }
 }
 
-/// 创建记录请求体（内部使用）。
+/// 创建记录请求体。
 #[derive(Serialize)]
-struct CreateRecordRequestBody {
-    fields: Value,
+pub struct CreateRecordRequestBody {
+    /// 记录数据（字段名到字段值的映射）
+    pub fields: Value,
 }
 
 /// 创建记录响应。

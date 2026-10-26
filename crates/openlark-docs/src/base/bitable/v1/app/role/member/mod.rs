@@ -21,9 +21,11 @@ pub mod models;
 /// 重新导出相关类型。
 pub use batch_create::{BatchCreateRoleMemberRequest, BatchCreateRoleMemberResponse};
 /// 重新导出相关类型。
-pub use batch_delete::{BatchDeleteRoleMemberRequest, BatchDeleteRoleMemberResponse};
+pub use batch_delete::{
+    BatchDeleteRoleMemberRequest, BatchDeleteRoleMemberRequestBody, BatchDeleteRoleMemberResponse,
+};
 /// 重新导出相关类型。
-pub use create::{CreateRoleMemberRequest, CreateRoleMemberResponse};
+pub use create::{CreateRoleMemberRequest, CreateRoleMemberRequestBody, CreateRoleMemberResponse};
 /// 重新导出相关类型。
 pub use delete::{DeleteRoleMemberRequest, DeleteRoleMemberResponse};
 /// 重新导出相关类型。

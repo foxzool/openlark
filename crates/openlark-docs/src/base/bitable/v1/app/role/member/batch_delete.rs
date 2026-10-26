@@ -107,10 +107,11 @@ impl BatchDeleteRoleMemberRequest {
     }
 }
 
-/// 批量删除协作者请求体（内部使用）。
+/// 批量删除协作者请求体。
 #[derive(Serialize)]
-struct BatchDeleteRoleMemberRequestBody {
-    member_list: Vec<RoleMemberId>,
+pub struct BatchDeleteRoleMemberRequestBody {
+    /// 协作者列表
+    pub member_list: Vec<RoleMemberId>,
 }
 
 /// 批量删除协作者响应（data 为 {}）。

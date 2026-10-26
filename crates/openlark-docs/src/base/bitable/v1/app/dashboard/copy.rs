@@ -78,9 +78,11 @@ impl CopyDashboardRequest {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct CopyDashboardRequestBody {
-    name: String,
+/// 复制仪表盘请求体。
+#[derive(Debug, Clone, Serialize)]
+pub struct CopyDashboardRequestBody {
+    /// 新的仪表盘名称
+    pub name: String,
 }
 
 /// 复制仪表盘响应（data）

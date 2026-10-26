@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::baike::lingo::v1::models::{Entity, EntityInput, UserIdType};
+use crate::baike::lingo::v1::models::{Entity, EntityBody, UserIdType};
 use crate::common::api_endpoints::LingoApiV1;
 
 /// 更新免审词条响应（data）
@@ -33,13 +33,13 @@ impl ApiResponseTrait for UpdateEntityResp {
 pub struct UpdateEntityRequest {
     config: Config,
     entity_id: String,
-    body: EntityInput,
+    body: EntityBody,
     user_id_type: Option<UserIdType>,
 }
 
 impl UpdateEntityRequest {
     /// 创建新的实例。
-    pub fn new(config: Config, entity_id: impl Into<String>, body: EntityInput) -> Self {
+    pub fn new(config: Config, entity_id: impl Into<String>, body: EntityBody) -> Self {
         Self {
             config,
             entity_id: entity_id.into(),
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn test_update_lingo_entity_request_builder() {
         let config = Config::default();
-        let body = EntityInput {
+        let body = EntityBody {
             main_keys: vec![Term {
                 key: "update_key".to_string(),
                 display_status: DisplayStatus {
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_update_lingo_entity_request_with_rich_text() {
         let config = Config::default();
-        let body = EntityInput {
+        let body = EntityBody {
             main_keys: vec![Term {
                 key: "rich_key".to_string(),
                 display_status: DisplayStatus {
@@ -153,7 +153,7 @@ mod tests {
         let config = Config::default();
 
         // 测试 entity_id 为空
-        let body = EntityInput {
+        let body = EntityBody {
             main_keys: vec![Term {
                 key: "test_key".to_string(),
                 display_status: DisplayStatus {
@@ -173,7 +173,7 @@ mod tests {
         );
 
         // 测试 main_keys 为空
-        let body2 = EntityInput {
+        let body2 = EntityBody {
             ..Default::default()
         };
         let request2 = UpdateEntityRequest::new(config.clone(), "entity_123", body2);
@@ -185,7 +185,7 @@ mod tests {
         );
 
         // 测试 description 和 rich_text 都为空
-        let body3 = EntityInput {
+        let body3 = EntityBody {
             main_keys: vec![Term {
                 key: "test_key".to_string(),
                 display_status: DisplayStatus {

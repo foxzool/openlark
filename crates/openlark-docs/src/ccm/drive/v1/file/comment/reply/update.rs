@@ -94,10 +94,11 @@ impl UpdateReplyRequest {
     }
 }
 
+/// 更新回复请求体
 #[derive(Debug, Serialize)]
-
-struct UpdateReplyRequestBody {
-    content: ReplyContent,
+pub struct UpdateReplyRequestBody {
+    /// 回复内容
+    pub content: ReplyContent,
 }
 
 /// 更新回复响应 data。

@@ -28,9 +28,10 @@ pub use file::{DownloadFileRequest, UploadFileRequest, UploadFileResp};
 /// 重新导出通用模型。
 pub use models::{
     Abbreviation, BaikeImage, Classification, ClassificationRef, DisplayStatus, Draft,
-    DraftEntityInput, DraftUpdateEntityInput, Entity, EntityInput, I18nClsName, I18nEntryDesc,
-    Language, LingoDraft, LingoEntity, OuterInfo, RelatedChat, RelatedDoc, RelatedLink,
-    RelatedMeta, RelatedOncall, RelatedUser, Repo, Statistics, Term, UserIdType,
+    DraftEntityBody, DraftEntityInput, DraftUpdateEntityBody, DraftUpdateEntityInput, Entity,
+    EntityBody, EntityInput, I18nClsName, I18nEntryDesc, Language, LingoDraft, LingoEntity,
+    OuterInfo, RelatedChat, RelatedDoc, RelatedLink, RelatedMeta, RelatedOncall, RelatedUser, Repo,
+    Statistics, Term, UserIdType,
 };
 /// 重新导出词库相关类型。
 pub use repo::{ListRepoRequest, ListRepoResp};

@@ -8,7 +8,7 @@ pub mod list;
 pub mod patch;
 
 // 显式导出 - 避免使用 glob reexport
-pub use create::{CreateViewData, CreateViewRequest, CreateViewResponse};
+pub use create::{CreateViewData, CreateViewRequest, CreateViewRequestBody, CreateViewResponse};
 
 pub use delete::{DeleteViewRequest, DeleteViewResponse};
 

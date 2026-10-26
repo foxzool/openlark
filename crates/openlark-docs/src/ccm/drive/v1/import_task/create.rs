@@ -34,6 +34,25 @@ pub struct CreateImportTaskRequest {
     pub point: Point,
 }
 
+/// 创建导入任务请求体
+///
+/// 官方请求体：`file_extension`/`file_token`/`type`/`point` 必填，`file_name` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateImportTaskBody {
+    /// 文件扩展名
+    pub file_extension: String,
+    /// 文件token
+    pub file_token: String,
+    /// 目标类型（docx/sheet/bitable）
+    #[serde(rename = "type")]
+    pub target_type: String,
+    /// 文件名（可选，为空时使用上传时的文件名）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
+    /// 目标目录
+    pub point: Point,
+}
+
 /// 目标目录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Point {
@@ -119,9 +138,17 @@ impl CreateImportTaskRequest {
 
         let api_endpoint = DriveApi::CreateImportTask;
 
+        let body = CreateImportTaskBody {
+            file_extension: self.file_extension,
+            file_token: self.file_token,
+            target_type: self.r#type,
+            file_name: self.file_name,
+            point: self.point,
+        };
+
         let api_request: ApiRequest<CreateImportTaskResponse> = api_endpoint
             .to_request()
-            .body(serialize_params(&self, "创建导入任务")?);
+            .body(serialize_params(&body, "创建导入任务")?);
 
         Transport::request_typed(api_request, &self.config, Some(option), "创建").await
     }
@@ -262,5 +289,13 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/drive/v1/import_tasks");
+        // 请求体按官方形状：type 为官方键名，point 为嵌套对象，file_name 未设置时不发送
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["file_extension"], "pdf");
+        assert_eq!(sent["file_token"], "fileTokenAbc");
+        assert_eq!(sent["type"], "docx");
+        assert_eq!(sent["point"]["mount_type"], 1);
+        assert_eq!(sent["point"]["mount_key"], "AbqrfuRTjlJEIJduwDwcnIabcef");
+        assert!(sent.get("file_name").is_none());
     }
 }

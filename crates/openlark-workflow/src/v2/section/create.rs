@@ -26,19 +26,41 @@ impl CreateSectionRequest {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
-            body: CreateSectionBody::default(),
+            body: CreateSectionBody {
+                // 官方默认资源类型为 tasklist（清单）
+                resource_type: "tasklist".to_string(),
+                ..CreateSectionBody::default()
+            },
         }
     }
 
-    /// 设置分组标题
-    pub fn summary(mut self, summary: impl Into<String>) -> Self {
-        self.body.summary = summary.into();
+    /// 设置自定义分组名（必填，最大 100 个 UTF-8 字符）
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.body.name = name.into();
         self
     }
 
-    /// 设置分组描述
-    pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.body.description = Some(description.into());
+    /// 设置资源类型（必填，"tasklist" 清单 / "my_tasks" 我负责的）
+    pub fn resource_type(mut self, resource_type: impl Into<String>) -> Self {
+        self.body.resource_type = resource_type.into();
+        self
+    }
+
+    /// 设置归属资源 ID（resource_type 为 "tasklist" 时填写清单 GUID）
+    pub fn resource_id(mut self, resource_id: impl Into<String>) -> Self {
+        self.body.resource_id = Some(resource_id.into());
+        self
+    }
+
+    /// 插入到该分组之前的分组 GUID（与 insert_after 互斥）
+    pub fn insert_before(mut self, insert_before: impl Into<String>) -> Self {
+        self.body.insert_before = Some(insert_before.into());
+        self
+    }
+
+    /// 插入到该分组之后的分组 GUID（与 insert_before 互斥）
+    pub fn insert_after(mut self, insert_after: impl Into<String>) -> Self {
+        self.body.insert_after = Some(insert_after.into());
         self
     }
 
@@ -54,7 +76,8 @@ impl CreateSectionRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateSectionResponse> {
         // 验证必填字段
-        validate_required!(self.body.summary.trim(), "分组标题不能为空");
+        validate_required!(self.body.name.trim(), "自定义分组名不能为空");
+        validate_required!(self.body.resource_type.trim(), "资源类型不能为空");
 
         let api_endpoint = TaskApiV2::SectionCreate;
         let mut request = ApiRequest::<CreateSectionResponse>::post(api_endpoint.to_url());
@@ -94,8 +117,18 @@ mod tests {
                 .build(),
         );
 
-        let request = CreateSectionRequest::new(config).summary("测试分组");
+        let request = CreateSectionRequest::new(config)
+            .name("测试分组")
+            .resource_id("tasklist_123");
 
-        assert_eq!(request.body.summary, "测试分组");
+        assert_eq!(request.body.name, "测试分组");
+        assert_eq!(request.body.resource_type, "tasklist");
+        assert_eq!(request.body.resource_id.as_deref(), Some("tasklist_123"));
+
+        // 必填字段序列化包含 name / resource_type
+        let json = serde_json::to_value(&request.body).unwrap();
+        assert_eq!(json["name"], "测试分组");
+        assert_eq!(json["resource_type"], "tasklist");
+        assert_eq!(json["resource_id"], "tasklist_123");
     }
 }

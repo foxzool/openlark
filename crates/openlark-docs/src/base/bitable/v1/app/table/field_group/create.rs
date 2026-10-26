@@ -40,9 +40,11 @@ pub struct CreateFieldGroupItem {
     pub description: Option<String>,
 }
 
+/// 创建字段编组请求体。
 #[derive(Debug, Clone, Serialize)]
-struct CreateFieldGroupRequestBody {
-    field_groups: Vec<CreateFieldGroupItem>,
+pub struct CreateFieldGroupRequestBody {
+    /// 要新增的字段编组列表（单次最多 300 个）
+    pub field_groups: Vec<CreateFieldGroupItem>,
 }
 
 /// 创建字段编组响应（data）

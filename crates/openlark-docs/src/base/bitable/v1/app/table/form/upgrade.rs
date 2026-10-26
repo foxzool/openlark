@@ -24,11 +24,13 @@ pub enum FormDisplayMode {
     OneQuestionPerPage,
 }
 
-/// 升级表单请求体（内部使用）。
+/// 升级表单请求体。
 #[derive(Debug, Clone, Serialize)]
-struct UpgradeFormRequestBody {
-    form_name: String,
-    display_mode: FormDisplayMode,
+pub struct UpgradeFormRequestBody {
+    /// 升级后的表单名称
+    pub form_name: String,
+    /// 表单布局模式
+    pub display_mode: FormDisplayMode,
 }
 
 /// 升级后的表单

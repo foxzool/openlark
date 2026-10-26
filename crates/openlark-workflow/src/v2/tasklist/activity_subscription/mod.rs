@@ -87,11 +87,10 @@ pub use patch::UpdateActivitySubscriptionRequest;
 
 // 重新导出响应类型
 pub use models::{
-    ActivitySubscription, ActivitySubscriptionTargetType, ActivitySubscriptionType,
-    CreateActivitySubscriptionBody, CreateActivitySubscriptionResponse,
-    DeleteActivitySubscriptionResponse, GetActivitySubscriptionResponse,
-    ListActivitySubscriptionsResponse, UpdateActivitySubscriptionBody,
-    UpdateActivitySubscriptionResponse,
+    ActivitySubscription, ActivitySubscriptionInput, CreateActivitySubscriptionBody,
+    CreateActivitySubscriptionResponse, DeleteActivitySubscriptionResponse,
+    GetActivitySubscriptionResponse, ListActivitySubscriptionsResponse,
+    UpdateActivitySubscriptionBody, UpdateActivitySubscriptionResponse,
 };
 
 #[cfg(test)]

@@ -160,10 +160,11 @@ pub struct CreateRecordItem {
     pub fields: Value,
 }
 
-/// 批量新增记录请求体（内部使用）。
+/// 批量新增记录请求体。
 #[derive(Serialize)]
-struct BatchCreateRecordRequestBody {
-    records: Vec<CreateRecordItem>,
+pub struct BatchCreateRecordRequestBody {
+    /// 要新增的记录列表
+    pub records: Vec<CreateRecordItem>,
 }
 
 /// 批量新增记录响应。

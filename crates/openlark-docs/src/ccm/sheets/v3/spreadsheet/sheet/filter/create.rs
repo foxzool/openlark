@@ -16,7 +16,7 @@ use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
 
 /// 创建筛选请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateFilterRequest {
+pub struct CreateFilterBody {
     /// 筛选范围。
     pub range: String,
     /// 列标识。
@@ -24,6 +24,9 @@ pub struct CreateFilterRequest {
     /// 筛选条件。
     pub condition: Condition,
 }
+
+/// 兼容别名：历史导出名保留为请求体类型。
+pub type CreateFilterRequest = CreateFilterBody;
 
 /// 创建筛选响应体 data（data 为 `{}`）
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -42,7 +45,7 @@ pub async fn create_filter(
     config: &Config,
     spreadsheet_token: &str,
     sheet_id: &str,
-    params: CreateFilterRequest,
+    params: CreateFilterBody,
 ) -> SDKResult<CreateFilterResponse> {
     create_filter_with_options(
         config,
@@ -61,7 +64,7 @@ pub async fn create_filter_with_options(
     config: &Config,
     spreadsheet_token: &str,
     sheet_id: &str,
-    params: CreateFilterRequest,
+    params: CreateFilterBody,
     option: RequestOption,
 ) -> SDKResult<CreateFilterResponse> {
     let api_endpoint =
@@ -82,6 +85,7 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST .../sheets/{sheet_id}/filter → CreateFilterResponse（空 data）。
+    /// 请求体按官方示例：range/col/condition{filter_type,compare_type,expected}。
     #[tokio::test]
     async fn test_create_filter_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -109,14 +113,13 @@ mod tests {
             &config,
             "tokenAbc",
             "sheetId001",
-            CreateFilterRequest {
-                range: "A1:A10".into(),
-                col: "0".into(),
+            CreateFilterBody {
+                range: "8fe9d6!A1:H14".into(),
+                col: "E".into(),
                 condition: Condition {
-                    column_id: "A".into(),
-                    operator: "equals".into(),
-                    value: None,
-                    ignore_case: None,
+                    filter_type: "number".into(),
+                    compare_type: Some("less".into()),
+                    expected: vec!["50%".into()],
                 },
             },
             RequestOption::builder()
@@ -132,10 +135,12 @@ mod tests {
             received[0].url.path(),
             "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter"
         );
-        // 校验请求体透传
+        // 校验请求体与官方示例一致
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["range"], "A1:A10");
-        assert_eq!(sent["col"], "0");
-        assert_eq!(sent["condition"]["operator"], "equals");
+        assert_eq!(sent["range"], "8fe9d6!A1:H14");
+        assert_eq!(sent["col"], "E");
+        assert_eq!(sent["condition"]["filter_type"], "number");
+        assert_eq!(sent["condition"]["compare_type"], "less");
+        assert_eq!(sent["condition"]["expected"], json!(["50%"]));
     }
 }

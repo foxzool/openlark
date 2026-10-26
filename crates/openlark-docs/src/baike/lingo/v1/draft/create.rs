@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::baike::lingo::v1::models::{Draft, DraftEntityInput, UserIdType};
+use crate::baike::lingo::v1::models::{Draft, DraftEntityBody, UserIdType};
 use crate::common::api_endpoints::LingoApiV1;
 
 /// 创建草稿响应（data）
@@ -32,14 +32,14 @@ impl ApiResponseTrait for CreateDraftResp {
 /// 创建草稿请求
 pub struct CreateDraftRequest {
     config: Config,
-    body: DraftEntityInput,
+    body: DraftEntityBody,
     repo_id: Option<String>,
     user_id_type: Option<UserIdType>,
 }
 
 impl CreateDraftRequest {
     /// 创建新的 lingo 草稿请求。
-    pub fn new(config: Config, body: DraftEntityInput) -> Self {
+    pub fn new(config: Config, body: DraftEntityBody) -> Self {
         Self {
             config,
             body,
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_create_lingo_draft_request_builder() {
         let config = Config::default();
-        let body = DraftEntityInput {
+        let body = DraftEntityBody {
             main_keys: vec![Term {
                 key: "test_key".to_string(),
                 display_status: DisplayStatus {
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test_create_lingo_draft_request_without_repo() {
         let config = Config::default();
-        let body = DraftEntityInput {
+        let body = DraftEntityBody {
             main_keys: vec![Term {
                 key: "public_key".to_string(),
                 display_status: DisplayStatus {
@@ -159,7 +159,7 @@ mod tests {
         let config = Config::default();
 
         // 测试 main_keys 为空
-        let body = DraftEntityInput {
+        let body = DraftEntityBody {
             main_keys: vec![],
             ..Default::default()
         };
@@ -172,7 +172,7 @@ mod tests {
         );
 
         // 测试 description 和 rich_text 都为空
-        let body2 = DraftEntityInput {
+        let body2 = DraftEntityBody {
             main_keys: vec![Term {
                 key: "test_key".to_string(),
                 display_status: DisplayStatus {
