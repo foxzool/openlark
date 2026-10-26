@@ -32,6 +32,21 @@ jobs:
         run: |
           python3 -m unittest tools.tests.test_verify_api_fields tools.tests.test_verify_api_fields_ci_gates
 
+      - name: Evidence health tripwire (防上游 schema 变更致盲)
+        run: |
+          set -euo pipefail
+          mkdir -p reports/evidence_health
+          # 哨兵 crate：ai（文档结构稳定）+ platform（量大、schema 健康率中位）
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-ai --fields --live-fields \
+            --max-field-apis 40 --report-dir reports/evidence_health
+          python3 tools/validate_api_contracts.py \
+            --crate openlark-platform --fields --live-fields \
+            --max-field-apis 40 --report-dir reports/evidence_health
+          # trusted 率 < 40% 或样本 < 30 即失败（正常基线池化 ~73%；
+          # 致盲模式（如 2026-10 properties dict→list，PR #750）下 → ~0%）
+          python3 tools/check_evidence_health.py --report-dir reports/evidence_health
+
       - name: Run quick-mode full-repo scan
         id: scan
         run: |
