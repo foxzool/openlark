@@ -6,15 +6,33 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+/// 转移应用所有者的请求体。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateAppOwnerBody {
+    /// 新的拥有者用户 ID（类型由查询参数 user_id_type 确定）。
+    pub owner_id: String,
+}
+
+impl UpdateAppOwnerBody {
+    fn validate(&self) -> SDKResult<()> {
+        validate_required!(self.owner_id, "owner_id 不能为空");
+        Ok(())
+    }
+}
 
 /// 转移应用所有者的请求。
 #[derive(Debug, Clone)]
 pub struct UpdateAppOwnerRequest {
     config: Arc<Config>,
     app_id: String,
+    /// 查询参数 `user_id_type`（可选，用户 ID 类型，默认 open_id）。
+    user_id_type: Option<String>,
+    body: UpdateAppOwnerBody,
 }
 
 /// 转移应用所有者的响应。
@@ -36,7 +54,21 @@ impl UpdateAppOwnerRequest {
         Self {
             config,
             app_id: app_id.into(),
+            user_id_type: None,
+            body: UpdateAppOwnerBody::default(),
         }
+    }
+
+    /// 设置用户 ID 类型（可选，默认 open_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置新的拥有者用户 ID（必填，类型由 user_id_type 确定）。
+    pub fn owner_id(mut self, owner_id: impl Into<String>) -> Self {
+        self.body.owner_id = owner_id.into();
+        self
     }
 
     /// 执行转移应用所有者请求。
@@ -49,11 +81,15 @@ impl UpdateAppOwnerRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<UpdateAppOwnerResponse> {
+        self.body.validate()?;
+        let body = serde_json::to_value(&self.body)?;
         let path = format!(
             "/open-apis/application/v6/applications/{}/owner",
             self.app_id
         );
-        let req: ApiRequest<UpdateAppOwnerResponse> = ApiRequest::put(&path);
+        let req: ApiRequest<UpdateAppOwnerResponse> = ApiRequest::put(&path)
+            .query_opt("user_id_type", self.user_id_type)
+            .body(body);
 
         Transport::request_typed(req, &self.config, Some(option), "转移应用所有者").await
     }
@@ -96,6 +132,7 @@ mod tests {
         );
 
         let resp = UpdateAppOwnerRequest::new(config, "cli_test_app")
+            .owner_id("ou_test_owner")
             .execute()
             .await
             .expect("转移应用所有者应成功");
@@ -107,5 +144,7 @@ mod tests {
             received[0].url.path(),
             "/open-apis/application/v6/applications/cli_test_app/owner"
         );
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent["owner_id"], "ou_test_owner");
     }
 }

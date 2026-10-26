@@ -5,8 +5,10 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -16,6 +18,16 @@ use std::sync::Arc;
 pub struct ListApplicationVersionsRequest {
     config: Arc<Config>,
     app_id: String,
+    /// 查询参数 `lang`（必填，应用信息语言，可选 zh_cn/en_us/ja_jp）。
+    lang: Option<String>,
+    /// 查询参数 `page_size`（可选，分页大小，默认 20，取值范围 1～50）。
+    page_size: Option<i32>,
+    /// 查询参数 `page_token`（可选，分页标记，首次请求不填）。
+    page_token: Option<String>,
+    /// 查询参数 `order`（可选，0-按时间倒序 / 1-按时间正序，默认 0）。
+    order: Option<i32>,
+    /// 查询参数 `user_id_type`（可选，用户 ID 类型，默认 open_id）。
+    user_id_type: Option<String>,
 }
 
 /// 获取应用版本列表的响应。
@@ -37,7 +49,42 @@ impl ListApplicationVersionsRequest {
         Self {
             config,
             app_id: app_id.into(),
+            lang: None,
+            page_size: None,
+            page_token: None,
+            order: None,
+            user_id_type: None,
         }
+    }
+
+    /// 设置应用信息语言（必填，可选 zh_cn/en_us/ja_jp）。
+    pub fn lang(mut self, lang: impl Into<String>) -> Self {
+        self.lang = Some(lang.into());
+        self
+    }
+
+    /// 设置分页大小（可选，默认 20，取值范围 1～50）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记（可选，首次请求不填）。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置排序方式（可选，0-按时间倒序 / 1-按时间正序，默认 0）。
+    pub fn order(mut self, order: i32) -> Self {
+        self.order = Some(order);
+        self
+    }
+
+    /// 设置用户 ID 类型（可选，默认 open_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行获取应用版本列表请求。
@@ -50,11 +97,22 @@ impl ListApplicationVersionsRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<ListApplicationVersionsResponse> {
+        // lang 官方必填（zh_cn/en_us/ja_jp），空白字符串视为未填写。
+        let lang = self
+            .lang
+            .ok_or_else(|| CoreError::validation_msg("lang 不能为空"))?;
+        validate_required!(lang, "lang 不能为空");
+
         let path = format!(
             "/open-apis/application/v6/applications/{}/app_versions",
             self.app_id
         );
-        let req: ApiRequest<ListApplicationVersionsResponse> = ApiRequest::get(&path);
+        let req: ApiRequest<ListApplicationVersionsResponse> = ApiRequest::get(&path)
+            .query("lang", lang)
+            .query_opt("page_size", self.page_size.map(|v| v.to_string()))
+            .query_opt("page_token", self.page_token)
+            .query_opt("order", self.order.map(|v| v.to_string()))
+            .query_opt("user_id_type", self.user_id_type);
 
         Transport::request_typed(req, &self.config, Some(option), "获取应用版本列表").await
     }
@@ -65,12 +123,12 @@ impl ListApplicationVersionsRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../applications/{app_id}/app_versions → 强类型 ListApplicationVersionsResponse 解析（双层 data 信封）。
+    /// 端到端：GET .../applications/{app_id}/app_versions?lang=zh_cn → 强类型 ListApplicationVersionsResponse 解析（双层 data 信封）。
     #[tokio::test]
     async fn test_list_application_versions_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -78,6 +136,7 @@ mod tests {
             .and(path(
                 "/open-apis/application/v6/applications/cli_test_app/app_versions",
             ))
+            .and(query_param("lang", "zh_cn"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -96,6 +155,8 @@ mod tests {
         );
 
         let resp = ListApplicationVersionsRequest::new(config, "cli_test_app")
+            .lang("zh_cn")
+            .page_size(10)
             .execute()
             .await
             .expect("获取应用版本列表应成功");

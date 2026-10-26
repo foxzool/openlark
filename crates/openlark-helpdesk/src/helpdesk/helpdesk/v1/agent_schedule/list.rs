@@ -18,6 +18,9 @@ use crate::common::api_endpoints::HelpdeskApiV1;
 /// 获取客服工作日程列表查询参数
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListAgentScheduleQuery {
+    /// 筛选条件（必填）：1-online 客服；2-offline(手动)客服；3-off duty(下班)客服；4-移除客服。
+    /// GET 请求中以 `status=1&status=2` 同名多次传递。
+    pub status: Vec<i32>,
     /// 分页大小
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i32>,
@@ -29,6 +32,7 @@ pub struct ListAgentScheduleQuery {
 impl ListAgentScheduleQuery {
     /// 验证查询参数
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
+        openlark_core::validate_required!(self.status, "status 不能为空");
         if let Some(page_size) = self.page_size
             && page_size <= 0
         {
@@ -84,6 +88,7 @@ pub struct AgentScheduleItem {
 #[derive(Debug, Clone)]
 pub struct ListAgentScheduleRequest {
     config: Arc<Config>,
+    status: Vec<i32>,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
@@ -93,9 +98,16 @@ impl ListAgentScheduleRequest {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
+            status: Vec::new(),
             page_size: None,
             page_token: None,
         }
+    }
+
+    /// 设置筛选条件（1-online；2-offline 手动；3-off duty；4-移除），同名多次传递
+    pub fn status(mut self, status: Vec<i32>) -> Self {
+        self.status = status;
+        self
     }
 
     /// 设置分页大小
@@ -121,8 +133,12 @@ impl ListAgentScheduleRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListAgentScheduleResponse> {
+        openlark_core::validate_required!(self.status, "status 不能为空");
+
         let api_endpoint = HelpdeskApiV1::AgentScheduleList;
         let mut request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url());
+
+        request = request.query_multi("status", self.status.iter().map(|s| s.to_string()));
 
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string().as_str());
@@ -140,6 +156,7 @@ impl ListAgentScheduleRequest {
 #[derive(Debug, Clone)]
 pub struct ListAgentScheduleRequestBuilder {
     config: Arc<Config>,
+    status: Vec<i32>,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
@@ -149,9 +166,16 @@ impl ListAgentScheduleRequestBuilder {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
+            status: Vec::new(),
             page_size: None,
             page_token: None,
         }
+    }
+
+    /// 设置筛选条件（1-online；2-offline 手动；3-off duty；4-移除），同名多次传递
+    pub fn status(mut self, status: Vec<i32>) -> Self {
+        self.status = status;
+        self
     }
 
     /// 设置分页大小
@@ -168,8 +192,12 @@ impl ListAgentScheduleRequestBuilder {
 
     /// 执行请求
     pub async fn execute(&self) -> SDKResult<ListAgentScheduleResponse> {
+        openlark_core::validate_required!(self.status, "status 不能为空");
+
         let api_endpoint = HelpdeskApiV1::AgentScheduleList;
         let mut request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url());
+
+        request = request.query_multi("status", self.status.iter().map(|s| s.to_string()));
 
         if let Some(page_size) = self.page_size {
             request = request.query("page_size", page_size.to_string().as_str());
@@ -184,9 +212,15 @@ impl ListAgentScheduleRequestBuilder {
 }
 
 /// 执行获取客服工作日程列表
-pub async fn list_agent_schedules(config: &Config) -> SDKResult<ListAgentScheduleResponse> {
+pub async fn list_agent_schedules(
+    config: &Config,
+    status: Vec<i32>,
+) -> SDKResult<ListAgentScheduleResponse> {
+    openlark_core::validate_required!(status, "status 不能为空");
+
     let api_endpoint = HelpdeskApiV1::AgentScheduleList;
-    let request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url());
+    let request = ApiRequest::<ListAgentScheduleResponse>::get(api_endpoint.to_url())
+        .query_multi("status", status.iter().map(|s| s.to_string()));
 
     Transport::request_typed(request, config, None, "获取客服工作日程列表").await
 }
@@ -197,15 +231,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_query_default() {
+    fn test_query_default_missing_status() {
+        // status 为官方必填查询参数，缺省时校验应失败
         let query = ListAgentScheduleQuery::default();
         let result = query.validate();
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[test]
-    fn test_query_with_page_size() {
+    fn test_query_with_status() {
         let query = ListAgentScheduleQuery {
+            status: vec![1, 2],
             page_size: Some(10),
             page_token: None,
         };
@@ -216,6 +252,7 @@ mod tests {
     #[test]
     fn test_query_with_invalid_page_size() {
         let query = ListAgentScheduleQuery {
+            status: vec![1],
             page_size: Some(-1),
             page_token: None,
         };
@@ -223,7 +260,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// 端到端：GET .../agent_schedules → 强类型 ListAgentScheduleResponse 解析（单层 data 信封，items 直挂）。
+    /// 端到端：GET .../agent_schedules（status 同名多次传递）→ 强类型 ListAgentScheduleResponse 解析（单层 data 信封，items 直挂）。
     #[tokio::test]
     async fn test_list_agent_schedule_returns_data_on_success() {
         use serde_json::json;
@@ -257,6 +294,7 @@ mod tests {
         );
 
         let resp = ListAgentScheduleRequest::new(config)
+            .status(vec![1, 2])
             .execute()
             .await
             .expect("获取客服工作日程列表应成功");
@@ -268,5 +306,9 @@ mod tests {
             received[0].url.path(),
             "/open-apis/helpdesk/v1/agent_schedules"
         );
+        // 官方要求同名多次传递：status=1&status=2
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(query.contains("status=1"), "query 应包含 status=1: {query}");
+        assert!(query.contains("status=2"), "query 应包含 status=2: {query}");
     }
 }

@@ -5,8 +5,10 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -16,6 +18,10 @@ use std::sync::Arc;
 pub struct GetApplicationRequest {
     config: Arc<Config>,
     app_id: String,
+    /// 查询参数 `lang`（必填，应用信息语言，可选 zh_cn/en_us/ja_jp）。
+    lang: Option<String>,
+    /// 查询参数 `user_id_type`（可选，用户 ID 类型，默认 open_id）。
+    user_id_type: Option<String>,
 }
 
 /// 获取应用信息的响应。
@@ -37,7 +43,21 @@ impl GetApplicationRequest {
         Self {
             config,
             app_id: app_id.into(),
+            lang: None,
+            user_id_type: None,
         }
+    }
+
+    /// 设置应用信息语言（必填，可选 zh_cn/en_us/ja_jp）。
+    pub fn lang(mut self, lang: impl Into<String>) -> Self {
+        self.lang = Some(lang.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（可选，默认 open_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
     }
 
     /// 执行获取应用信息请求。
@@ -50,8 +70,16 @@ impl GetApplicationRequest {
         self,
         option: RequestOption,
     ) -> SDKResult<GetApplicationResponse> {
+        // lang 官方必填（zh_cn/en_us/ja_jp），空白字符串视为未填写。
+        let lang = self
+            .lang
+            .ok_or_else(|| CoreError::validation_msg("lang 不能为空"))?;
+        validate_required!(lang, "lang 不能为空");
+
         let path = format!("/open-apis/application/v6/applications/{}", self.app_id);
-        let req: ApiRequest<GetApplicationResponse> = ApiRequest::get(&path);
+        let req: ApiRequest<GetApplicationResponse> = ApiRequest::get(&path)
+            .query("lang", lang)
+            .query_opt("user_id_type", self.user_id_type);
 
         Transport::request_typed(req, &self.config, Some(option), "获取应用信息").await
     }
@@ -62,17 +90,18 @@ impl GetApplicationRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../applications/{app_id} → 强类型 GetApplicationResponse 解析（双层 data 信封）。
+    /// 端到端：GET .../applications/{app_id}?lang=zh_cn → 强类型 GetApplicationResponse 解析（双层 data 信封）。
     #[tokio::test]
     async fn test_get_application_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/application/v6/applications/cli_test_app"))
+            .and(query_param("lang", "zh_cn"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -91,6 +120,7 @@ mod tests {
         );
 
         let resp = GetApplicationRequest::new(config, "cli_test_app")
+            .lang("zh_cn")
             .execute()
             .await
             .expect("获取应用信息应成功");

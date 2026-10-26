@@ -64,7 +64,7 @@
 //! - `client_device(device_id)` - 客户端设备认证（便捷方法）
 //!
 //! #### 权限规则 (rule_external)
-//! - `rule_external.create(rule_id)` - 创建或更新权限组（body `{"rule":...}`）
+//! - `rule_external.create()` - 创建或更新权限组（查询参数 `rule_id` 可选；body `{"rule":...}`）
 //! - `rule_external.get(device_id)` - 获取权限组
 //! - `rule_external.delete(rule_id)` - 删除权限组（无 body）
 //! - `rule_external.device_bind()` - 设备绑定（`{device_id, rule_ids[]}`）
@@ -81,7 +81,7 @@
 //! - `device_records.create()` - 新增设备
 //! - `device_records.list()` - 查询设备信息
 //! - `device_records.get()` - 获取设备信息
-//! - `device_records.update()` - 更新设备
+//! - `device_records.update(device_record_id, version)` - 更新设备（查询参数 `version` 必填）
 //! - `device_records.delete()` - 删除设备
 //!
 //! #### 设备申报审批 (device_apply_record - v2)

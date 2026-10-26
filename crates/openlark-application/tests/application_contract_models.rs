@@ -52,6 +52,9 @@ mod v1_tests {
 #[cfg(feature = "workplace")]
 mod workplace_tests {
     use super::{assert_json_contract, parse_contract};
+    use openlark_application::workplace::workplace::v1::custom_workplace_access_data::search::{
+        AccessDataSearchCustomResponse, CustomWorkplaceAccessData,
+    };
     use openlark_application::workplace::workplace::v1::workplace_access_data::search::{
         AccessDataSearchWorkplaceResponse, WorkplaceAccessData,
     };
@@ -64,19 +67,21 @@ mod workplace_tests {
     fn workplace_access_data_contract() {
         let data: WorkplaceAccessData = parse_contract(json!({
             "date": "2026-04-20",
-            "visit_count": 1024,
-            "visitor_count": 256
+            "all_workplace": { "pv": 1024, "uv": 256 },
+            "default_workplace": { "pv": 512, "uv": 128 }
         }));
         assert_eq!(data.date, "2026-04-20");
-        assert_eq!(data.visit_count, 1024);
-        assert_eq!(data.visitor_count, 256);
+        assert_eq!(data.all_workplace.pv, 1024);
+        assert_eq!(data.all_workplace.uv, 256);
+        assert_eq!(data.default_workplace.pv, 512);
+        assert_eq!(data.default_workplace.uv, 128);
 
         assert_json_contract(
             &data,
             json!({
                 "date": "2026-04-20",
-                "visit_count": 1024,
-                "visitor_count": 256
+                "all_workplace": { "pv": 1024, "uv": 256 },
+                "default_workplace": { "pv": 512, "uv": 128 }
             }),
         );
     }
@@ -85,39 +90,99 @@ mod workplace_tests {
     fn workplace_access_data_search_response_contract() {
         let response: AccessDataSearchWorkplaceResponse = parse_contract(json!({
             "items": [
-                { "date": "2026-04-18", "visit_count": 512, "visitor_count": 128 },
-                { "date": "2026-04-19", "visit_count": 768, "visitor_count": 192 },
-                { "date": "2026-04-20", "visit_count": 1024, "visitor_count": 256 }
-            ]
+                {
+                    "date": "2026-04-18",
+                    "all_workplace": { "pv": 512, "uv": 128 },
+                    "default_workplace": { "pv": 400, "uv": 100 }
+                },
+                {
+                    "date": "2026-04-19",
+                    "all_workplace": { "pv": 768, "uv": 192 },
+                    "default_workplace": { "pv": 600, "uv": 150 }
+                },
+                {
+                    "date": "2026-04-20",
+                    "all_workplace": { "pv": 1024, "uv": 256 },
+                    "default_workplace": { "pv": 800, "uv": 200 }
+                }
+            ],
+            "has_more": true,
+            "page_token": "ddowkdkl9w2d"
         }));
         assert_eq!(response.items.len(), 3);
         assert_eq!(response.items[0].date, "2026-04-18");
-        assert_eq!(response.items[2].visit_count, 1024);
+        assert_eq!(response.items[2].all_workplace.pv, 1024);
+        assert!(response.has_more);
+        assert_eq!(response.page_token.as_deref(), Some("ddowkdkl9w2d"));
+    }
+
+    #[test]
+    fn custom_workplace_access_data_contract() {
+        let data: CustomWorkplaceAccessData = parse_contract(json!({
+            "custom_workplace_id": "tpl_645b003aaa40001435b2ddw",
+            "access_data": { "pv": 100, "uv": 30 },
+            "date": "2026-04-20",
+            "custom_workplace_name": [ { "language": "zh", "name": "名字" } ]
+        }));
+        assert_eq!(data.custom_workplace_id, "tpl_645b003aaa40001435b2ddw");
+        assert_eq!(data.access_data.pv, 100);
+        assert_eq!(data.access_data.uv, 30);
+        assert_eq!(data.date, "2026-04-20");
+        let names = data.custom_workplace_name.as_ref().unwrap();
+        assert_eq!(names[0].language, "zh");
+        assert_eq!(names[0].name, "名字");
+
+        assert_json_contract(
+            &data,
+            json!({
+                "custom_workplace_id": "tpl_645b003aaa40001435b2ddw",
+                "access_data": { "pv": 100, "uv": 30 },
+                "date": "2026-04-20",
+                "custom_workplace_name": [ { "language": "zh", "name": "名字" } ]
+            }),
+        );
+    }
+
+    #[test]
+    fn custom_workplace_access_data_search_response_contract() {
+        let response: AccessDataSearchCustomResponse = parse_contract(json!({
+            "items": [
+                {
+                    "custom_workplace_id": "tpl_645b003aaa40001435b2ddw",
+                    "access_data": { "pv": 100, "uv": 30 },
+                    "date": "2026-04-20"
+                }
+            ],
+            "has_more": false
+        }));
+        assert_eq!(response.items.len(), 1);
+        assert_eq!(
+            response.items[0].custom_workplace_id,
+            "tpl_645b003aaa40001435b2ddw"
+        );
+        assert_eq!(response.items[0].access_data.uv, 30);
+        assert!(!response.has_more);
+        assert_eq!(response.page_token, None);
     }
 
     #[test]
     fn block_access_data_contract() {
         let data: BlockAccessData = parse_contract(json!({
             "date": "2026-04-20",
-            "block_id": "blk_abc123",
-            "block_name": "待办事项",
-            "visit_count": 300,
-            "visitor_count": 80
+            "block_id": "283438293839422334",
+            "access_data": { "pv": 300, "uv": 80 }
         }));
         assert_eq!(data.date, "2026-04-20");
-        assert_eq!(data.block_id, "blk_abc123");
-        assert_eq!(data.block_name, "待办事项");
-        assert_eq!(data.visit_count, 300);
-        assert_eq!(data.visitor_count, 80);
+        assert_eq!(data.block_id, "283438293839422334");
+        assert_eq!(data.access_data.pv, 300);
+        assert_eq!(data.access_data.uv, 80);
 
         assert_json_contract(
             &data,
             json!({
                 "date": "2026-04-20",
-                "block_id": "blk_abc123",
-                "block_name": "待办事项",
-                "visit_count": 300,
-                "visitor_count": 80
+                "block_id": "283438293839422334",
+                "access_data": { "pv": 300, "uv": 80 }
             }),
         );
     }
@@ -128,22 +193,22 @@ mod workplace_tests {
             "items": [
                 {
                     "date": "2026-04-20",
-                    "block_id": "blk_abc123",
-                    "block_name": "待办事项",
-                    "visit_count": 300,
-                    "visitor_count": 80
+                    "block_id": "283438293839422334",
+                    "access_data": { "pv": 300, "uv": 80 }
                 },
                 {
                     "date": "2026-04-20",
-                    "block_id": "blk_def456",
-                    "block_name": "审批中心",
-                    "visit_count": 150,
-                    "visitor_count": 45
+                    "block_id": "283438293839422335",
+                    "access_data": { "pv": 150, "uv": 45 }
                 }
-            ]
+            ],
+            "has_more": true,
+            "page_token": "ddowkdkl9w2d"
         }));
         assert_eq!(response.items.len(), 2);
-        assert_eq!(response.items[0].block_name, "待办事项");
-        assert_eq!(response.items[1].block_id, "blk_def456");
+        assert_eq!(response.items[0].access_data.pv, 300);
+        assert_eq!(response.items[1].block_id, "283438293839422335");
+        assert!(response.has_more);
+        assert_eq!(response.page_token.as_deref(), Some("ddowkdkl9w2d"));
     }
 }
