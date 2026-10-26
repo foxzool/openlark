@@ -156,11 +156,10 @@ mod builder_tests {
     );
     smoke_builder!(
         test_reviewee_query_builder,
-        v2::reviewee::query::QueryRequest::new(
-            test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
-        )
-        .page_size(20)
+        v2::reviewee::query::QueryRequest::new(test_config("https://open.feishu.cn"))
+            .semester_id("6992035450862224940".to_string())
+            .user_ids(vec!["ou_3245842393d09e9428ad4655da6e30b3".to_string()])
+            .page_size(20)
     );
     smoke_builder!(
         test_semester_list_builder,
@@ -201,11 +200,10 @@ mod builder_tests {
     );
     smoke_builder!(
         test_user_info_query_builder,
-        v2::user_info::query::QueryRequest::new(
-            test_config("https://open.feishu.cn"),
-            "cycle_1".to_string(),
-        )
-        .page_size(20)
+        v2::user_info::query::QueryRequest::new(test_config("https://open.feishu.cn"))
+            .semester_id("6992035450862224940".to_string())
+            .user_ids(vec!["ou_3245842393d09e9428ad4655da6e30b3".to_string()])
+            .user_id_type("open_id".to_string())
     );
     smoke_builder!(
         test_review_data_v1_query_builder,

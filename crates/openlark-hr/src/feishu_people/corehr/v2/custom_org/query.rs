@@ -6,28 +6,137 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 查询自定义组织信息请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QueryBody {
+    /// 组织类型编码（必填，可在「飞书人事-设置-组织设置」中相应的自定义组织目录下查看）
+    pub object_api_name: String,
+    /// 需要返回的字段列表（names/code/parent_id/manager_ids/description/effective_time/
+    /// org_roles/active/org_id/custom_fields 等，自定义字段需传入具体的 custom_api_name）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub org_fields: Option<Vec<String>>,
+    /// 需要返回的组织角色授权信息的列表（角色 key 或角色 ID）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub org_role_fields: Option<Vec<String>>,
+    /// 需要查询的组织 ID 列表（不传不做 ID 相关限制）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub org_ids: Option<Vec<String>>,
+    /// 只返回和传入编码相同的自定义组织数据
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 只返回 parent_id = 传入值的自定义组织数据
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    /// 只返回启用/停用的自定义组织数据
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 是否返回匹配规则（为 true 返回 match_rule_groups 字段）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need_match_rule: Option<bool>,
+}
 
 /// 查询自定义组织信息请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: QueryBody,
+    /// 分页大小（必填，取值范围 1～100）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
 }
 
 impl QueryRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: QueryBody::default(),
+            page_size: None,
+            page_token: None,
+            user_id_type: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置请求体
+    pub fn body(mut self, body: QueryBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置组织类型编码（必填）。
+    pub fn object_api_name(mut self, object_api_name: impl Into<String>) -> Self {
+        self.body.object_api_name = object_api_name.into();
+        self
+    }
+
+    /// 设置需要返回的字段列表。
+    pub fn org_fields(mut self, org_fields: Vec<String>) -> Self {
+        self.body.org_fields = Some(org_fields);
+        self
+    }
+
+    /// 设置需要返回的组织角色授权信息的列表。
+    pub fn org_role_fields(mut self, org_role_fields: Vec<String>) -> Self {
+        self.body.org_role_fields = Some(org_role_fields);
+        self
+    }
+
+    /// 设置需要查询的组织 ID 列表。
+    pub fn org_ids(mut self, org_ids: Vec<String>) -> Self {
+        self.body.org_ids = Some(org_ids);
+        self
+    }
+
+    /// 按编码筛选。
+    pub fn code(mut self, code: impl Into<String>) -> Self {
+        self.body.code = Some(code.into());
+        self
+    }
+
+    /// 按上级自定义组织 ID 筛选。
+    pub fn parent_id(mut self, parent_id: impl Into<String>) -> Self {
+        self.body.parent_id = Some(parent_id.into());
+        self
+    }
+
+    /// 按启用/停用状态筛选。
+    pub fn active(mut self, active: bool) -> Self {
+        self.body.active = Some(active);
+        self
+    }
+
+    /// 设置是否返回匹配规则。
+    pub fn need_match_rule(mut self, need_match_rule: bool) -> Self {
+        self.body.need_match_rule = Some(need_match_rule);
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1～100）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -42,12 +151,19 @@ impl QueryRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryResponse> {
-        let mut request =
-            ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/custom_orgs/query");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        validate_required!(self.body.object_api_name, "object_api_name 不能为空");
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=100).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～100"));
         }
+
+        let request = ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/custom_orgs/query")
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type)
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -197,7 +313,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/custom_orgs/query
@@ -206,6 +322,17 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/custom_orgs/query"))
+            .and(query_param("page_size", "100"))
+            .and(body_json(json!({
+                "object_api_name": "custom_org_01",
+                "org_fields": ["names"],
+                "org_role_fields": ["hcm_corehr_xxxx"],
+                "org_ids": ["7140964208476371111"],
+                "code": "MDPD00000023",
+                "parent_id": "7140964208476371111",
+                "active": true,
+                "need_match_rule": false
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -255,6 +382,15 @@ mod tests {
             .build();
 
         let resp = QueryRequest::new(config)
+            .object_api_name("custom_org_01")
+            .org_fields(vec!["names".to_string()])
+            .org_role_fields(vec!["hcm_corehr_xxxx".to_string()])
+            .org_ids(vec!["7140964208476371111".to_string()])
+            .code("MDPD00000023")
+            .parent_id("7140964208476371111")
+            .active(true)
+            .need_match_rule(false)
+            .page_size(100)
             .execute()
             .await
             .expect("请求应成功");

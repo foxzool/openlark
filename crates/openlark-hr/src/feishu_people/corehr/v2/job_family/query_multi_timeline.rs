@@ -7,28 +7,71 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 查询指定时间范围序列版本请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QueryMultiTimelineBody {
+    /// 序列 ID 列表（必填，1～10 个）
+    pub job_family_ids: Vec<String>,
+    /// 查询开始时间（包含，格式："2024-01-01"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    /// 查询结束时间（不包含，格式："2024-12-31"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+    /// 返回数据的字段列表（job_family_name/code/active/parent_job_family/selectable/pathway/description/effective_date/expiration_date）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<Vec<String>>,
+}
 
 /// QueryMultiTimelineRequest
 #[derive(Debug, Clone)]
 pub struct QueryMultiTimelineRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 请求体
+    body: QueryMultiTimelineBody,
 }
 
 impl QueryMultiTimelineRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: QueryMultiTimelineBody::default(),
+        }
     }
 
     /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: QueryMultiTimelineBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置序列 ID 列表（必填，1～10 个）。
+    pub fn job_family_ids(mut self, job_family_ids: Vec<String>) -> Self {
+        self.body.job_family_ids = job_family_ids;
+        self
+    }
+
+    /// 设置查询开始时间（包含，格式："2024-01-01"）。
+    pub fn start_date(mut self, start_date: impl Into<String>) -> Self {
+        self.body.start_date = Some(start_date.into());
+        self
+    }
+
+    /// 设置查询结束时间（不包含，格式："2024-12-31"）。
+    pub fn end_date(mut self, end_date: impl Into<String>) -> Self {
+        self.body.end_date = Some(end_date.into());
+        self
+    }
+
+    /// 设置返回数据的字段列表。
+    pub fn fields(mut self, fields: Vec<String>) -> Self {
+        self.body.fields = Some(fields);
         self
     }
 
@@ -43,13 +86,16 @@ impl QueryMultiTimelineRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryMultiTimelineResponse> {
-        let mut request = ApiRequest::<QueryMultiTimelineResponse>::post(
-            "/open-apis/corehr/v2/job_families/query_multi_timeline",
+        validate_required_list!(
+            self.body.job_family_ids,
+            10,
+            "job_family_ids 不能为空且单次最多 10 个"
         );
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<QueryMultiTimelineResponse>::post(
+            "/open-apis/corehr/v2/job_families/query_multi_timeline",
+        )
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -131,7 +177,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/job_families/query_multi_timeline
@@ -142,6 +188,12 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/job_families/query_multi_timeline",
             ))
+            .and(body_json(json!({
+                "job_family_ids": ["7094136522860922111"],
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "fields": ["job_family_name"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -182,6 +234,10 @@ mod tests {
             .build();
 
         let resp = QueryMultiTimelineRequest::new(config)
+            .job_family_ids(vec!["7094136522860922111".to_string()])
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .fields(vec!["job_family_name".to_string()])
             .execute()
             .await
             .expect("请求应成功");

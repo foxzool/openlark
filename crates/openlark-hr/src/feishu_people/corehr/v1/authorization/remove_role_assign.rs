@@ -7,16 +7,31 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 移除用户被授权的角色请求
 #[derive(Debug, Clone)]
 pub struct RemoveRoleAssignRequest {
     /// 配置信息
     config: Config,
-    body: Value,
+    /// 查询参数（官方无请求体，employment_id/user_id_type/role_id 均为查询参数）
+    query: RemoveRoleAssignQuery,
+}
+
+/// 移除用户被授权的角色查询参数
+///
+/// employment_id/role_id 必填；user_id_type 可选（默认 people_corehr_id）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoveRoleAssignQuery {
+    /// 用户的 ID，ID 类型与 user_id_type 的取值意义一致，默认为飞书人事中的 employment_id
+    pub employment_id: String,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id，默认 people_corehr_id）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id_type: Option<String>,
+    /// 移除的角色 ID，一次仅可移除一个角色
+    pub role_id: String,
 }
 
 impl RemoveRoleAssignRequest {
@@ -24,24 +39,29 @@ impl RemoveRoleAssignRequest {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            body: Value::Object(serde_json::Map::new()),
+            query: RemoveRoleAssignQuery {
+                employment_id: String::new(),
+                user_id_type: None,
+                role_id: String::new(),
+            },
         }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = body;
+    /// 设置用户的 ID
+    pub fn employment_id(mut self, employment_id: impl Into<String>) -> Self {
+        self.query.employment_id = employment_id.into();
         self
     }
 
-    /// 向请求体添加字段。
-    pub fn field(mut self, key: impl Into<String>, value: Value) -> Self {
-        if !self.body.is_object() {
-            self.body = Value::Object(serde_json::Map::new());
-        }
-        if let Some(body) = self.body.as_object_mut() {
-            body.insert(key.into(), value);
-        }
+    /// 设置用户 ID 类型
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.query.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置移除的角色 ID
+    pub fn role_id(mut self, role_id: impl Into<String>) -> Self {
+        self.query.role_id = role_id.into();
         self
     }
 
@@ -58,9 +78,19 @@ impl RemoveRoleAssignRequest {
     ) -> SDKResult<RemoveRoleAssignResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV1;
 
+        validate_required!(self.query.employment_id, "employment_id 不能为空");
+        validate_required!(self.query.role_id, "role_id 不能为空");
+
         let api_endpoint = FeishuPeopleApiV1::AuthorizationRemoveRoleAssign;
-        let request =
-            ApiRequest::<RemoveRoleAssignResponse>::post(api_endpoint.to_url()).body(self.body);
+        let RemoveRoleAssignQuery {
+            employment_id,
+            user_id_type,
+            role_id,
+        } = self.query;
+        let request = ApiRequest::<RemoveRoleAssignResponse>::post(api_endpoint.to_url())
+            .query("employment_id", employment_id)
+            .query_opt("user_id_type", user_id_type)
+            .query("role_id", role_id);
         Transport::request_typed(
             request,
             &self.config,
@@ -90,10 +120,11 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v1/authorizations/remove_role_assign
+    /// （官方无请求体，employment_id/role_id 为必填查询参数）
     #[tokio::test]
     async fn test_remove_role_assign_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -101,6 +132,9 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v1/authorizations/remove_role_assign",
             ))
+            .and(query_param("employment_id", "7303877149017292801"))
+            .and(query_param("user_id_type", "people_corehr_id"))
+            .and(query_param("role_id", "7358732070333613619"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "assign_id": "67489937334909845" }
             })))
@@ -115,6 +149,9 @@ mod tests {
             .build();
 
         let resp = RemoveRoleAssignRequest::new(config)
+            .employment_id("7303877149017292801")
+            .user_id_type("people_corehr_id")
+            .role_id("7358732070333613619")
             .execute()
             .await
             .expect("请求应成功");
@@ -123,5 +160,8 @@ mod tests {
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(query.contains("employment_id=7303877149017292801"));
+        assert!(query.contains("role_id=7358732070333613619"));
     }
 }

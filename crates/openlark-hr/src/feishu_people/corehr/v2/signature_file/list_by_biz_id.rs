@@ -8,27 +8,58 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 根据流程获取电子签文件信息请求
 #[derive(Debug, Clone)]
 pub struct ListByBizIdRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 业务自定义流程 ID（必填，唯一不重复，不超过 100 字符）
+    biz_process_id: String,
+    /// 业务类型（必填）：开放平台发起的流程传 OpenAPI，BPM 发起的流程传 Bpm
+    biz_type: String,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
+    /// 是否需要返回签署链接
+    select_sign_url: Option<bool>,
 }
 
 impl ListByBizIdRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            biz_process_id: String::new(),
+            biz_type: String::new(),
+            user_id_type: None,
+            select_sign_url: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置业务自定义流程 ID（必填）。
+    pub fn biz_process_id(mut self, biz_process_id: impl Into<String>) -> Self {
+        self.biz_process_id = biz_process_id.into();
+        self
+    }
+
+    /// 设置业务类型（必填，OpenAPI / Bpm）。
+    pub fn biz_type(mut self, biz_type: impl Into<String>) -> Self {
+        self.biz_type = biz_type.into();
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置是否需要返回签署链接。
+    pub fn select_sign_url(mut self, select_sign_url: bool) -> Self {
+        self.select_sign_url = Some(select_sign_url);
         self
     }
 
@@ -43,13 +74,19 @@ impl ListByBizIdRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListByBizIdResponse> {
-        let mut request = ApiRequest::<ListByBizIdResponse>::get(
-            "/open-apis/corehr/v2/signature_files/list_by_biz_id",
-        );
+        validate_required!(self.biz_process_id, "biz_process_id 不能为空");
+        validate_required!(self.biz_type, "biz_type 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<ListByBizIdResponse>::get(
+            "/open-apis/corehr/v2/signature_files/list_by_biz_id",
+        )
+        .query("biz_process_id", self.biz_process_id)
+        .query("biz_type", self.biz_type)
+        .query_opt("user_id_type", self.user_id_type)
+        .query_opt(
+            "select_sign_url",
+            self.select_sign_url.map(|v| v.to_string()),
+        );
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -77,16 +114,19 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/signature_files/list_by_biz_id
-    /// （官方 data 内层键为 signature_files / batch_sign_url）
+    /// （官方查询参数 biz_process_id/biz_type 必填；data 内层键为 signature_files / batch_sign_url）
     #[tokio::test]
     async fn test_list_by_biz_id_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/signature_files/list_by_biz_id"))
+            .and(query_param("biz_process_id", "129b83f5-c023-4e85-b2c7-80ce777e57fd"))
+            .and(query_param("biz_type", "OpenAPI"))
+            .and(query_param("select_sign_url", "true"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -125,6 +165,9 @@ mod tests {
             .build();
 
         let resp = ListByBizIdRequest::new(config)
+            .biz_process_id("129b83f5-c023-4e85-b2c7-80ce777e57fd")
+            .biz_type("OpenAPI")
+            .select_sign_url(true)
             .execute()
             .await
             .expect("请求应成功");

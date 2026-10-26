@@ -7,27 +7,40 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// 获取文件签署节点信息请求
 #[derive(Debug, Clone)]
 pub struct ListByFileIdRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 电子签文件 ID（必填），可通过批量获取电子签文件接口获取
+    file_id: String,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
 }
 
 impl ListByFileIdRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            file_id: String::new(),
+            user_id_type: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置电子签文件 ID（必填）。
+    pub fn file_id(mut self, file_id: impl Into<String>) -> Self {
+        self.file_id = file_id.into();
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -42,13 +55,13 @@ impl ListByFileIdRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<ListByFileIdResponse> {
-        let mut request = ApiRequest::<ListByFileIdResponse>::get(
-            "/open-apis/corehr/v2/signature_nodes/list_by_file_id",
-        );
+        validate_required!(self.file_id, "file_id 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<ListByFileIdResponse>::get(
+            "/open-apis/corehr/v2/signature_nodes/list_by_file_id",
+        )
+        .query("file_id", self.file_id)
+        .query_opt("user_id_type", self.user_id_type);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -118,16 +131,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/signature_nodes/list_by_file_id
-    /// （官方 data 内层键为 signature_nodes）
+    /// （官方查询参数 file_id 必填；data 内层键为 signature_nodes）
     #[tokio::test]
     async fn test_list_by_file_id_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/signature_nodes/list_by_file_id"))
+            .and(query_param("file_id", "7149088311624091180"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -161,6 +175,7 @@ mod tests {
             .build();
 
         let resp = ListByFileIdRequest::new(config)
+            .file_id("7149088311624091180")
             .execute()
             .await
             .expect("请求应成功");

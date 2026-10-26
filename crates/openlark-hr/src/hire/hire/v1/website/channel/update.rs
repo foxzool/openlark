@@ -13,6 +13,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// 更新招聘官网推广渠道请求体（官方必填 `channel_name`，仅支持修改渠道名称）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UpdateBody {
+    /// 推广渠道名称（必填）
+    pub channel_name: String,
+}
+
 /// 更新招聘官网推广渠道请求
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
@@ -20,6 +27,7 @@ pub struct UpdateRequest {
     config: Config,
     website_id: String,
     channel_id: String,
+    body: UpdateBody,
 }
 
 impl UpdateRequest {
@@ -29,6 +37,9 @@ impl UpdateRequest {
             config,
             website_id: String::new(),
             channel_id: String::new(),
+            body: UpdateBody {
+                channel_name: String::new(),
+            },
         }
     }
 
@@ -41,6 +52,12 @@ impl UpdateRequest {
     /// 设置 `channel_id`。
     pub fn channel_id(mut self, channel_id: String) -> Self {
         self.channel_id = channel_id;
+        self
+    }
+
+    /// 设置推广渠道名称（必填，官方 `channel_name`）。
+    pub fn channel_name(mut self, channel_name: impl Into<String>) -> Self {
+        self.body.channel_name = channel_name.into();
         self
     }
 
@@ -57,11 +74,18 @@ impl UpdateRequest {
     ) -> SDKResult<UpdateResponse> {
         validate_required!(self.website_id.trim(), "官网 ID 不能为空");
         validate_required!(self.channel_id.trim(), "渠道 ID 不能为空");
+        validate_required!(self.body.channel_name.trim(), "channel_name 不能为空");
 
         let request = ApiRequest::<UpdateResponse>::put(format!(
             "/open-apis/hire/v1/websites/{}/channels/{}",
             self.website_id, self.channel_id
-        ));
+        ))
+        .body(serde_json::to_value(&self.body).map_err(|e| {
+            openlark_core::error::validation_error(
+                "请求体序列化失败",
+                format!("无法序列化请求参数: {e}"),
+            )
+        })?);
         Transport::request_typed(
             request,
             &self.config,
@@ -135,6 +159,7 @@ mod tests {
         let resp = UpdateRequest::new(config)
             .website_id("test001".to_string())
             .channel_id("test001".to_string())
+            .channel_name("微信推广渠道".to_string())
             .execute()
             .await
             .expect("请求应成功");
@@ -148,5 +173,25 @@ mod tests {
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
+        // 请求体须与官方文档一致：channel_name 必填
+        let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(sent, json!({ "channel_name": "微信推广渠道" }));
+    }
+
+    /// 缺 channel_name 时快速失败，不发起请求。
+    #[tokio::test]
+    async fn test_update_rejects_blank_channel_name() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let err = UpdateRequest::new(config)
+            .website_id("test001".to_string())
+            .channel_id("test001".to_string())
+            .execute()
+            .await
+            .expect_err("缺 channel_name 应被拒绝");
+        assert!(err.to_string().contains("channel_name"), "实际: {err}");
     }
 }

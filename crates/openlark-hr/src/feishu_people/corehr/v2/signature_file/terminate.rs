@@ -7,27 +7,69 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 终止电子签文件请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TerminateBody {
+    /// 欲终止的电子签文件 id 列表（必填，最多 100 个）
+    pub ids: Vec<String>,
+    /// 操作人 ID（必填），ID 格式取决于查询参数 user_id_type
+    pub operator: String,
+    /// 终止原因（必填，不超过 300 字符）
+    pub terminate_reason: String,
+}
 
 /// 终止电子签文件请求
 #[derive(Debug, Clone)]
 pub struct TerminateRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: TerminateBody,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
 }
 
 impl TerminateRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: TerminateBody::default(),
+            user_id_type: None,
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: TerminateBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置欲终止的电子签文件 id 列表（必填）。
+    pub fn ids(mut self, ids: Vec<String>) -> Self {
+        self.body.ids = ids;
+        self
+    }
+
+    /// 设置操作人 ID（必填）。
+    pub fn operator(mut self, operator: impl Into<String>) -> Self {
+        self.body.operator = operator.into();
+        self
+    }
+
+    /// 设置终止原因（必填，不超过 300 字符）。
+    pub fn terminate_reason(mut self, terminate_reason: impl Into<String>) -> Self {
+        self.body.terminate_reason = terminate_reason.into();
+        self
+    }
+
+    /// 设置用户 ID 类型。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -42,12 +84,14 @@ impl TerminateRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<TerminateResponse> {
-        let mut request =
-            ApiRequest::<TerminateResponse>::post("/open-apis/corehr/v2/signature_files/terminate");
+        validate_required!(self.body.ids, "ids 不能为空");
+        validate_required!(self.body.operator, "operator 不能为空");
+        validate_required!(self.body.terminate_reason, "terminate_reason 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request =
+            ApiRequest::<TerminateResponse>::post("/open-apis/corehr/v2/signature_files/terminate")
+                .query_opt("user_id_type", self.user_id_type)
+                .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -95,15 +139,22 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/signature_files/terminate
+    /// （官方请求体必填 ids/operator/terminate_reason）
     #[tokio::test]
     async fn test_terminate_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/signature_files/terminate"))
+            .and(query_param("user_id_type", "people_corehr_id"))
+            .and(body_json(json!({
+                "ids": ["7410063506638112300"],
+                "operator": "7386593105085988xxx",
+                "terminate_reason": "请求流程发生变化，需要重新签署，因此终止签署流程中的文件"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -131,6 +182,10 @@ mod tests {
             .build();
 
         let resp = TerminateRequest::new(config)
+            .ids(vec!["7410063506638112300".to_string()])
+            .operator("7386593105085988xxx")
+            .terminate_reason("请求流程发生变化，需要重新签署，因此终止签署流程中的文件")
+            .user_id_type("people_corehr_id")
             .execute()
             .await
             .expect("请求应成功");

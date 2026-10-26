@@ -7,27 +7,53 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 查询默认成本中心请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BatchQueryBody {
+    /// 员工雇佣 ID 列表（必填，1～100 个）
+    pub employment_ids: Vec<String>,
+}
 
 /// 查询默认成本中心请求
 #[derive(Debug, Clone)]
 pub struct BatchQueryRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: BatchQueryBody,
+    /// 用户 ID 类型（open_id/union_id/user_id/people_corehr_id）
+    user_id_type: Option<String>,
 }
 
 impl BatchQueryRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: BatchQueryBody::default(),
+            user_id_type: None,
+        }
     }
 
     /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: BatchQueryBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置员工雇佣 ID 列表（必填，1～100 个）。
+    pub fn employment_ids(mut self, employment_ids: Vec<String>) -> Self {
+        self.body.employment_ids = employment_ids;
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
         self
     }
 
@@ -42,13 +68,17 @@ impl BatchQueryRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<BatchQueryResponse> {
-        let mut request = ApiRequest::<BatchQueryResponse>::post(
-            "/open-apis/corehr/v2/default_cost_centers/batch_query",
+        validate_required_list!(
+            self.body.employment_ids,
+            100,
+            "employment_ids 不能为空且单次最多 100 个"
         );
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<BatchQueryResponse>::post(
+            "/open-apis/corehr/v2/default_cost_centers/batch_query",
+        )
+        .query_opt("user_id_type", self.user_id_type)
+        .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -135,7 +165,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/default_cost_centers/batch_query
@@ -146,6 +176,9 @@ mod tests {
             .and(path(
                 "/open-apis/corehr/v2/default_cost_centers/batch_query",
             ))
+            .and(body_json(json!({
+                "employment_ids": ["7475686493613920050"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success",
                 "data": {
@@ -182,6 +215,7 @@ mod tests {
             .build();
 
         let resp = BatchQueryRequest::new(config)
+            .employment_ids(vec!["7475686493613920050".to_string()])
             .execute()
             .await
             .expect("请求应成功");

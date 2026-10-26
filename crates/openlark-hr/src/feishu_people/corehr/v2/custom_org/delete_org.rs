@@ -7,27 +7,53 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// 删除自定义组织请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DeleteOrgBody {
+    /// 自定义组织 ID（必填，可从批量查询自定义组织的 org_id 字段中获取）
+    pub org_id: String,
+    /// 组织类型编码（必填，可在「飞书人事-设置-组织设置」中相应的自定义组织目录下查看）
+    pub object_api_name: String,
+}
 
 /// 删除自定义组织请求
 #[derive(Debug, Clone)]
 pub struct DeleteOrgRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: DeleteOrgBody,
 }
 
 impl DeleteOrgRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: DeleteOrgBody::default(),
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置请求体
+    pub fn body(mut self, body: DeleteOrgBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置自定义组织 ID（必填）。
+    pub fn org_id(mut self, org_id: impl Into<String>) -> Self {
+        self.body.org_id = org_id.into();
+        self
+    }
+
+    /// 设置组织类型编码（必填）。
+    pub fn object_api_name(mut self, object_api_name: impl Into<String>) -> Self {
+        self.body.object_api_name = object_api_name.into();
         self
     }
 
@@ -42,12 +68,12 @@ impl DeleteOrgRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<DeleteOrgResponse> {
-        let mut request =
-            ApiRequest::<DeleteOrgResponse>::post("/open-apis/corehr/v2/custom_orgs/delete_org");
+        validate_required!(self.body.org_id, "org_id 不能为空");
+        validate_required!(self.body.object_api_name, "object_api_name 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request =
+            ApiRequest::<DeleteOrgResponse>::post("/open-apis/corehr/v2/custom_orgs/delete_org")
+                .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -71,7 +97,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/custom_orgs/delete_org
@@ -80,6 +106,10 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/custom_orgs/delete_org"))
+            .and(body_json(json!({
+                "org_id": "6862995757234914824",
+                "object_api_name": "custom_org_01"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0, "msg": "success", "data": { "data": {} }
             })))
@@ -94,6 +124,8 @@ mod tests {
             .build();
 
         DeleteOrgRequest::new(config)
+            .org_id("6862995757234914824")
+            .object_api_name("custom_org_01")
             .execute()
             .await
             .expect("请求应成功");

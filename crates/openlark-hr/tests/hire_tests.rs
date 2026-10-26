@@ -40,9 +40,14 @@ mod builder_tests {
 
     smoke_builder!(
         test_talent_combined_create_builder,
-        talent::CombinedCreateRequest::new(test_config("https://open.feishu.cn"))
-            .name("张三".to_string())
-            .email("zhangsan@example.com".to_string())
+        talent::CombinedCreateRequest::new(
+            test_config("https://open.feishu.cn"),
+            talent::CombinedCreateRequestBody::new(talent::TalentCombinedBasicInfo {
+                name: Some("张三".to_string()),
+                email: Some("zhangsan@example.com".to_string()),
+                ..Default::default()
+            })
+        )
     );
     smoke_builder!(
         test_talent_get_builder,
@@ -52,9 +57,16 @@ mod builder_tests {
     );
     smoke_builder!(
         test_talent_combined_update_builder,
-        talent::CombinedUpdateRequest::new(test_config("https://open.feishu.cn"))
-            .talent_id("talent_001".to_string())
-            .name("李四".to_string())
+        talent::CombinedUpdateRequest::new(
+            test_config("https://open.feishu.cn"),
+            talent::CombinedUpdateRequestBody::new(
+                "talent_001",
+                talent::TalentCombinedBasicInfo {
+                    name: Some("李四".to_string()),
+                    ..Default::default()
+                },
+            )
+        )
     );
     smoke_builder!(
         test_talent_list_builder,
@@ -212,11 +224,16 @@ mod validation_tests {
     #[case("   ")]
     #[tokio::test]
     async fn test_talent_combined_create_name_validation(#[case] name: &str) {
-        let result = talent::CombinedCreateRequest::new(test_config("https://127.0.0.1:9"))
-            .name(name.to_string())
-            .email("test@example.com".to_string())
-            .execute_with_options(auth_option())
-            .await;
+        let result = talent::CombinedCreateRequest::new(
+            test_config("https://127.0.0.1:9"),
+            talent::CombinedCreateRequestBody::new(talent::TalentCombinedBasicInfo {
+                name: Some(name.to_string()),
+                email: Some("test@example.com".to_string()),
+                ..Default::default()
+            }),
+        )
+        .execute_with_options(auth_option())
+        .await;
 
         assert!(result.is_err());
         assert!(
@@ -224,16 +241,21 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("候选人姓名不能为空")
+                .contains("basic_info.name 不能为空")
         );
     }
 
     #[tokio::test]
-    async fn test_talent_combined_create_contact_validation() {
-        let result = talent::CombinedCreateRequest::new(test_config("https://127.0.0.1:9"))
-            .name("张三".to_string())
-            .execute_with_options(auth_option())
-            .await;
+    async fn test_talent_combined_update_requires_fields() {
+        let result = talent::CombinedUpdateRequest::new(
+            test_config("https://127.0.0.1:9"),
+            talent::CombinedUpdateRequestBody::new(
+                "  ",
+                talent::TalentCombinedBasicInfo::default(),
+            ),
+        )
+        .execute_with_options(auth_option())
+        .await;
 
         assert!(result.is_err());
         assert!(
@@ -241,7 +263,7 @@ mod validation_tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("至少需要提供邮箱或手机号")
+                .contains("人才 ID 不能为空")
         );
     }
 
@@ -274,23 +296,6 @@ mod validation_tests {
         assert!(result.is_err());
         assert!(result.err().unwrap().to_string().contains("不能为空"));
     }
-
-    #[tokio::test]
-    async fn test_talent_combined_update_requires_fields() {
-        let result = talent::CombinedUpdateRequest::new(test_config("https://127.0.0.1:9"))
-            .talent_id("talent_001".to_string())
-            .execute_with_options(auth_option())
-            .await;
-
-        assert!(result.is_err());
-        assert!(
-            result
-                .err()
-                .unwrap()
-                .to_string()
-                .contains("至少需要提供一个更新字段")
-        );
-    }
 }
 
 #[cfg(test)]
@@ -303,9 +308,9 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/talents/combined_create"))
             .and(header("Authorization", "Bearer test_token"))
-            .and(body_json(
-                json!({"name":"张三","email":"zhangsan@example.com"}),
-            ))
+            .and(body_json(json!({
+                "basic_info": {"name":"张三","email":"zhangsan@example.com"}
+            })))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(
                     json!({"code":0,"msg":"success","data":{"talent_id":"talent_001"}}),
@@ -314,12 +319,17 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = talent::CombinedCreateRequest::new(test_config(&mock_server.uri()))
-            .name("张三".to_string())
-            .email("zhangsan@example.com".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
+        let resp = talent::CombinedCreateRequest::new(
+            test_config(&mock_server.uri()),
+            talent::CombinedCreateRequestBody::new(talent::TalentCombinedBasicInfo {
+                name: Some("张三".to_string()),
+                email: Some("zhangsan@example.com".to_string()),
+                ..Default::default()
+            }),
+        )
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
         assert_eq!(resp.talent_id, "talent_001");
     }
 
@@ -354,7 +364,9 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/open-apis/hire/v1/talents/combined_update"))
             .and(header("Authorization", "Bearer test_token"))
-            .and(body_json(json!({"talent_id":"talent_001","name":"李四"})))
+            .and(body_json(
+                json!({"talent_id":"talent_001","basic_info":{"name":"李四"}}),
+            ))
             .respond_with(
                 ResponseTemplate::new(200)
                     .set_body_json(json!({"code":0,"msg":"success","data":{"result":true}})),
@@ -362,12 +374,19 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let resp = talent::CombinedUpdateRequest::new(test_config(&mock_server.uri()))
-            .talent_id("talent_001".to_string())
-            .name("李四".to_string())
-            .execute_with_options(auth_option())
-            .await
-            .unwrap();
+        let resp = talent::CombinedUpdateRequest::new(
+            test_config(&mock_server.uri()),
+            talent::CombinedUpdateRequestBody::new(
+                "talent_001",
+                talent::TalentCombinedBasicInfo {
+                    name: Some("李四".to_string()),
+                    ..Default::default()
+                },
+            ),
+        )
+        .execute_with_options(auth_option())
+        .await
+        .unwrap();
         assert!(resp.result);
     }
 

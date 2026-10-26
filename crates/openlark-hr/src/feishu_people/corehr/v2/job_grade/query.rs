@@ -6,29 +6,82 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 查询职等请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QueryBody {
+    /// 职等 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ids: Option<Vec<String>>,
+    /// 职等编码列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub codes: Option<Vec<String>>,
+    /// 启停用状态：true 为启用，false 为停用，不传则默认都返回
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+}
 
 /// QueryRequest
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 请求体
+    body: QueryBody,
+    /// 分页大小（必填，取值范围 1～100）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
 }
 
 impl QueryRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: QueryBody::default(),
+            page_size: None,
+            page_token: None,
+        }
     }
 
     /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, body: QueryBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置职等 ID 列表。
+    pub fn ids(mut self, ids: Vec<String>) -> Self {
+        self.body.ids = Some(ids);
+        self
+    }
+
+    /// 设置职等编码列表。
+    pub fn codes(mut self, codes: Vec<String>) -> Self {
+        self.body.codes = Some(codes);
+        self
+    }
+
+    /// 设置启停用状态筛选。
+    pub fn active(mut self, active: bool) -> Self {
+        self.body.active = Some(active);
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1～100）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
         self
     }
 
@@ -43,12 +96,17 @@ impl QueryRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryResponse> {
-        let mut request =
-            ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/job_grades/query");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=100).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～100"));
         }
+
+        let request = ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/job_grades/query")
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -113,7 +171,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/job_grades/query
@@ -122,6 +180,12 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/job_grades/query"))
+            .and(query_param("page_size", "100"))
+            .and(body_json(json!({
+                "ids": ["4692446793125560154"],
+                "codes": ["A01234"],
+                "active": true
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -155,6 +219,10 @@ mod tests {
             .build();
 
         let resp = QueryRequest::new(config)
+            .ids(vec!["4692446793125560154".to_string()])
+            .codes(vec!["A01234".to_string()])
+            .active(true)
+            .page_size(100)
             .execute()
             .await
             .expect("请求应成功");

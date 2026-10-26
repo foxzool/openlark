@@ -7,34 +7,23 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 
 use serde::{Deserialize, Serialize};
 
-/// 查询指定生效日期的部门基本信息请求
+/// 查询指定生效日期的部门基本信息请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct QueryTimelineRequest {
-    /// 部门 ID
-    pub department_id: String,
-    /// 生效日期
+pub struct QueryTimelineBody {
+    /// 部门 ID 列表（必填，最多 100 条）
+    pub department_ids: Vec<String>,
+    /// 版本生效日期（必填，填写格式：YYYY-MM-DD）
+    pub effective_date: String,
+    /// 需要返回的字段列表（department_name/sub_type/tree_order/list_order/is_root/
+    /// is_confidential/staffing_model/cost_center_id/code/active/parent_department_id/
+    /// manager/description/effective_date/expiration_date/custom_fields 等）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub effective_time: Option<String>,
-}
-
-impl QueryTimelineRequest {
-    /// 创建请求
-    pub fn new(department_id: String) -> Self {
-        Self {
-            department_id,
-            effective_time: None,
-        }
-    }
-
-    /// 设置生效日期
-    pub fn effective_time(mut self, effective_time: String) -> Self {
-        self.effective_time = Some(effective_time);
-        self
-    }
+    pub fields: Option<Vec<String>>,
 }
 
 /// 查询指定生效日期的部门基本信息响应
@@ -164,21 +153,25 @@ impl ApiResponseTrait for QueryTimelineResponse {
 #[derive(Debug, Clone)]
 pub struct QueryTimelineRequestBuilder {
     config: Config,
-    request: QueryTimelineRequest,
+    body: QueryTimelineBody,
 }
 
 impl QueryTimelineRequestBuilder {
     /// 创建请求构建器
-    pub fn new(config: Config, department_id: String) -> Self {
+    pub fn new(config: Config, department_ids: Vec<String>, effective_date: String) -> Self {
         Self {
             config,
-            request: QueryTimelineRequest::new(department_id),
+            body: QueryTimelineBody {
+                department_ids,
+                effective_date,
+                fields: None,
+            },
         }
     }
 
-    /// 设置生效日期
-    pub fn effective_time(mut self, effective_time: String) -> Self {
-        self.request = self.request.effective_time(effective_time);
+    /// 设置需要返回的字段列表
+    pub fn fields(mut self, fields: Vec<String>) -> Self {
+        self.body.fields = Some(fields);
         self
     }
 
@@ -195,17 +188,19 @@ impl QueryTimelineRequestBuilder {
     ) -> SDKResult<QueryTimelineResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV2;
 
+        validate_required!(self.body.department_ids, "department_ids 不能为空");
+        validate_required!(self.body.effective_date, "effective_date 不能为空");
+
         // 构建端点
         let api_endpoint = FeishuPeopleApiV2::DepartmentQueryTimeline;
-        let request = ApiRequest::<QueryTimelineResponse>::post(api_endpoint.to_url());
-
-        // 序列化请求体
-        let request = request.body(serde_json::to_value(&self.request).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
+        let request = ApiRequest::<QueryTimelineResponse>::post(api_endpoint.to_url()).body(
+            serde_json::to_value(&self.body).map_err(|e| {
+                openlark_core::error::validation_error(
+                    "请求体序列化失败",
+                    format!("无法序列化请求参数: {e}"),
+                )
+            })?,
+        );
 
         // 发送请求
         Transport::request_typed(
@@ -223,7 +218,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/departments/query_timeline
@@ -232,6 +227,11 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/query_timeline"))
+            .and(body_json(json!({
+                "department_ids": ["7094136522860922111"],
+                "effective_date": "2020-01-01",
+                "fields": ["department_name"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -272,10 +272,15 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = QueryTimelineRequestBuilder::new(config, "test001".to_string())
-            .execute()
-            .await
-            .expect("请求应成功");
+        let resp = QueryTimelineRequestBuilder::new(
+            config,
+            vec!["7094136522860922111".to_string()],
+            "2020-01-01".to_string(),
+        )
+        .fields(vec!["department_name".to_string()])
+        .execute()
+        .await
+        .expect("请求应成功");
 
         let items = resp.items.as_ref().expect("items 应被解码");
         assert_eq!(items.len(), 1);

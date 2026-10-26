@@ -6,28 +6,127 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
+    error::CoreError,
     http::Transport,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+/// 查询岗位信息请求体
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QueryBody {
+    /// 部门 ID 列表（ID 类型需与 department_id_type 参数取值一致）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub department_ids: Option<Vec<String>>,
+    /// 版本生效日期，格式是 YYYY-MM-DD
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<String>,
+    /// 启停用状态：true 为启用，false 为停用，不传则默认都返回
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// 需要查询的字段列表，为空时仅返回 wk_id
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fields: Option<Vec<String>>,
+    /// 岗位 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_ids: Option<Vec<String>>,
+    /// 岗位 Code 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_codes: Option<Vec<String>>,
+}
 
 /// 查询岗位信息请求
 #[derive(Debug, Clone)]
 pub struct QueryRequest {
     /// 配置信息
     config: Config,
-    body: Option<Value>,
+    /// 请求体
+    body: QueryBody,
+    /// 此次调用中使用的部门 ID 类型
+    department_id_type: Option<String>,
+    /// 用户 ID 类型
+    user_id_type: Option<String>,
+    /// 分页大小（必填，取值范围 1～100）
+    page_size: Option<i32>,
+    /// 分页标记
+    page_token: Option<String>,
 }
 
 impl QueryRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            body: QueryBody::default(),
+            department_id_type: None,
+            user_id_type: None,
+            page_size: None,
+            page_token: None,
+        }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置请求体
+    pub fn body(mut self, body: QueryBody) -> Self {
+        self.body = body;
+        self
+    }
+
+    /// 设置部门 ID 列表。
+    pub fn department_ids(mut self, department_ids: Vec<String>) -> Self {
+        self.body.department_ids = Some(department_ids);
+        self
+    }
+
+    /// 设置版本生效日期（格式：YYYY-MM-DD）。
+    pub fn effective_time(mut self, effective_time: impl Into<String>) -> Self {
+        self.body.effective_time = Some(effective_time.into());
+        self
+    }
+
+    /// 设置启停用状态筛选。
+    pub fn active(mut self, active: bool) -> Self {
+        self.body.active = Some(active);
+        self
+    }
+
+    /// 设置需要查询的字段列表。
+    pub fn fields(mut self, fields: Vec<String>) -> Self {
+        self.body.fields = Some(fields);
+        self
+    }
+
+    /// 设置岗位 ID 列表。
+    pub fn position_ids(mut self, position_ids: Vec<String>) -> Self {
+        self.body.position_ids = Some(position_ids);
+        self
+    }
+
+    /// 设置岗位 Code 列表。
+    pub fn position_codes(mut self, position_codes: Vec<String>) -> Self {
+        self.body.position_codes = Some(position_codes);
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（open_id/union_id/user_id/people_corehr_id）。
+    pub fn user_id_type(mut self, user_id_type: impl Into<String>) -> Self {
+        self.user_id_type = Some(user_id_type.into());
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1～100）。
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
         self
     }
 
@@ -42,11 +141,19 @@ impl QueryRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryResponse> {
-        let mut request = ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/positions/query");
-
-        if let Some(body) = self.body {
-            request = request.body(body);
+        let page_size = self
+            .page_size
+            .ok_or_else(|| CoreError::validation_msg("page_size 不能为空"))?;
+        if !(1..=100).contains(&page_size) {
+            return Err(CoreError::validation_msg("page_size 取值范围为 1～100"));
         }
+
+        let request = ApiRequest::<QueryResponse>::post("/open-apis/corehr/v2/positions/query")
+            .query("page_size", page_size.to_string())
+            .query_opt("page_token", self.page_token)
+            .query_opt("user_id_type", self.user_id_type)
+            .query_opt("department_id_type", self.department_id_type)
+            .body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -184,7 +291,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/positions/query
@@ -193,6 +300,15 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/positions/query"))
+            .and(query_param("page_size", "100"))
+            .and(body_json(json!({
+                "department_ids": ["7094136522860922111"],
+                "effective_time": "2020-01-01",
+                "active": true,
+                "fields": ["name"],
+                "position_ids": ["7094136582860923111"],
+                "position_codes": ["42232132221241561"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -230,6 +346,13 @@ mod tests {
             .build();
 
         let resp = QueryRequest::new(config)
+            .department_ids(vec!["7094136522860922111".to_string()])
+            .effective_time("2020-01-01")
+            .active(true)
+            .fields(vec!["name".to_string()])
+            .position_ids(vec!["7094136582860923111".to_string()])
+            .position_codes(vec!["42232132221241561".to_string()])
+            .page_size(100)
             .execute()
             .await
             .expect("请求应成功");

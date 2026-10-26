@@ -7,38 +7,23 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 
 use serde::{Deserialize, Serialize};
 
-/// 查询指定生效日期的部门架构树请求
+/// 查询指定生效日期的部门架构树请求体
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TreeRequest {
-    /// 生效日期
+pub struct TreeBody {
+    /// 部门 ID，默认根部门
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub effective_time: Option<String>,
-    /// 根部门 ID（可选，不传则返回全公司架构树）
+    pub department_id: Option<String>,
+    /// 是否包含失效部门，默认 false
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_department_id: Option<String>,
-}
-
-impl TreeRequest {
-    /// 创建请求
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// 设置生效日期
-    pub fn effective_time(mut self, effective_time: String) -> Self {
-        self.effective_time = Some(effective_time);
-        self
-    }
-
-    /// 设置根部门 ID
-    pub fn root_department_id(mut self, root_department_id: String) -> Self {
-        self.root_department_id = Some(root_department_id);
-        self
-    }
+    pub need_inactive: Option<bool>,
+    /// 日期，格式 yyyy-mm-dd，默认当前日期
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_date: Option<String>,
 }
 
 /// 查询指定生效日期的部门架构树响应
@@ -78,8 +63,16 @@ impl ApiResponseTrait for TreeResponse {
 /// 查询指定生效日期的部门架构树请求构建器
 #[derive(Debug, Clone)]
 pub struct TreeRequestBuilder {
+    /// 配置信息
     config: Config,
-    request: TreeRequest,
+    /// 请求体
+    body: TreeBody,
+    /// 分页大小（必填，官方类型 int，取值范围 1 ～ 2000，经 query string 以字符串发送）
+    page_size: String,
+    /// 分页标记，第一次请求不填
+    page_token: Option<String>,
+    /// 此次调用中使用的部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl TreeRequestBuilder {
@@ -87,19 +80,52 @@ impl TreeRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            request: TreeRequest::new(),
+            body: TreeBody::default(),
+            page_size: String::new(),
+            page_token: None,
+            department_id_type: None,
         }
     }
 
-    /// 设置生效日期
-    pub fn effective_time(mut self, effective_time: String) -> Self {
-        self.request = self.request.effective_time(effective_time);
+    /// 设置请求体。
+    pub fn body(mut self, body: TreeBody) -> Self {
+        self.body = body;
         self
     }
 
-    /// 设置根部门 ID
-    pub fn root_department_id(mut self, root_department_id: String) -> Self {
-        self.request = self.request.root_department_id(root_department_id);
+    /// 设置部门 ID（默认根部门）。
+    pub fn department_id(mut self, department_id: impl Into<String>) -> Self {
+        self.body.department_id = Some(department_id.into());
+        self
+    }
+
+    /// 设置是否包含失效部门（默认 false）。
+    pub fn need_inactive(mut self, need_inactive: bool) -> Self {
+        self.body.need_inactive = Some(need_inactive);
+        self
+    }
+
+    /// 设置日期（格式 yyyy-mm-dd，默认当前日期）。
+    pub fn effective_date(mut self, effective_date: impl Into<String>) -> Self {
+        self.body.effective_date = Some(effective_date.into());
+        self
+    }
+
+    /// 设置分页大小（必填，取值范围 1 ～ 2000）。
+    pub fn page_size(mut self, page_size: impl Into<String>) -> Self {
+        self.page_size = page_size.into();
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -116,17 +142,20 @@ impl TreeRequestBuilder {
     ) -> SDKResult<TreeResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV2;
 
+        validate_required!(self.page_size, "page_size 不能为空");
+
         // 构建端点
         let api_endpoint = FeishuPeopleApiV2::DepartmentTree;
-        let request = ApiRequest::<TreeResponse>::post(api_endpoint.to_url());
-
-        // 序列化请求体
-        let request = request.body(serde_json::to_value(&self.request).map_err(|e| {
-            openlark_core::error::validation_error(
-                "请求体序列化失败",
-                format!("无法序列化请求参数: {e}"),
-            )
-        })?);
+        let request = ApiRequest::<TreeResponse>::post(api_endpoint.to_url())
+            .query("page_size", self.page_size)
+            .query_opt("page_token", self.page_token)
+            .query_opt("department_id_type", self.department_id_type)
+            .body(serde_json::to_value(&self.body).map_err(|e| {
+                openlark_core::error::validation_error(
+                    "请求体序列化失败",
+                    format!("无法序列化请求参数: {e}"),
+                )
+            })?);
 
         // 发送请求
         Transport::request_typed(
@@ -144,16 +173,27 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：POST /open-apis/corehr/v2/departments/tree
-    /// （官方 data 内层键为 items / page_token / has_more，children 为部门 ID 字符串列表）
+    /// （官方查询参数 page_size 必填；请求体 department_id/need_inactive/effective_date 可选；
+    ///   data 内层键为 items / page_token / has_more，children 为部门 ID 字符串列表）
     #[tokio::test]
     async fn test_tree_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/corehr/v2/departments/tree"))
+            .and(query_param("page_size", "100"))
+            .and(query_param(
+                "department_id_type",
+                "people_corehr_department_id",
+            ))
+            .and(body_json(json!({
+                "department_id": "6893014062142064111",
+                "need_inactive": false,
+                "effective_date": "2024-01-01"
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -182,6 +222,11 @@ mod tests {
             .build();
 
         let resp = TreeRequestBuilder::new(config)
+            .department_id("6893014062142064111")
+            .need_inactive(false)
+            .effective_date("2024-01-01")
+            .page_size("100")
+            .department_id_type("people_corehr_department_id")
             .execute()
             .await
             .expect("请求应成功");

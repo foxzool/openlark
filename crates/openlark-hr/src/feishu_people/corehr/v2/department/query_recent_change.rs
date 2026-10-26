@@ -7,28 +7,67 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// QueryRecentChangeRequest
 #[derive(Debug, Clone)]
 pub struct QueryRecentChangeRequest {
     /// 配置信息
     config: Config,
-    /// 请求体（可选）
-    body: Option<Value>,
+    /// 分页大小（必填，官方类型 int，最大支持单次 2000 条变更，经 query string 以字符串发送）
+    page_size: String,
+    /// 查询的开始时间（必填，格式：YYYY-MM-DD HH:MM:SS，UTC+8 时区）
+    start_date: String,
+    /// 查询的结束时间（必填，格式：YYYY-MM-DD HH:MM:SS，须大于开始时间）
+    end_date: String,
+    /// 分页标记，第一次请求不填
+    page_token: Option<String>,
+    /// 此次调用中使用的部门 ID 类型
+    department_id_type: Option<String>,
 }
 
 impl QueryRecentChangeRequest {
     /// 创建请求
     pub fn new(config: Config) -> Self {
-        Self { config, body: None }
+        Self {
+            config,
+            page_size: String::new(),
+            start_date: String::new(),
+            end_date: String::new(),
+            page_token: None,
+            department_id_type: None,
+        }
     }
 
-    /// 设置请求体
-    pub fn body(mut self, body: Value) -> Self {
-        self.body = Some(body);
+    /// 设置分页大小（必填，取值范围 1 ～ 2000）。
+    pub fn page_size(mut self, page_size: impl Into<String>) -> Self {
+        self.page_size = page_size.into();
+        self
+    }
+
+    /// 设置查询的开始时间（必填，格式：YYYY-MM-DD HH:MM:SS）。
+    pub fn start_date(mut self, start_date: impl Into<String>) -> Self {
+        self.start_date = start_date.into();
+        self
+    }
+
+    /// 设置查询的结束时间（必填，格式：YYYY-MM-DD HH:MM:SS）。
+    pub fn end_date(mut self, end_date: impl Into<String>) -> Self {
+        self.end_date = end_date.into();
+        self
+    }
+
+    /// 设置分页标记。
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（open_department_id/department_id/people_corehr_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
@@ -43,13 +82,18 @@ impl QueryRecentChangeRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<QueryRecentChangeResponse> {
-        let mut request = ApiRequest::<QueryRecentChangeResponse>::get(
-            "/open-apis/corehr/v2/departments/query_recent_change",
-        );
+        validate_required!(self.page_size, "page_size 不能为空");
+        validate_required!(self.start_date, "start_date 不能为空");
+        validate_required!(self.end_date, "end_date 不能为空");
 
-        if let Some(body) = self.body {
-            request = request.body(body);
-        }
+        let request = ApiRequest::<QueryRecentChangeResponse>::get(
+            "/open-apis/corehr/v2/departments/query_recent_change",
+        )
+        .query("page_size", self.page_size)
+        .query("start_date", self.start_date)
+        .query("end_date", self.end_date)
+        .query_opt("page_token", self.page_token)
+        .query_opt("department_id_type", self.department_id_type);
 
         Transport::request_typed(request, &self.config, Some(option), "接口响应数据为空").await
     }
@@ -83,16 +127,24 @@ mod tests {
     use super::*;
     use serde_json::json;
     use wiremock::MockServer;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：GET /open-apis/corehr/v2/departments/query_recent_change
-    /// （官方 data 内层键为 department_ids / deleted_department_ids / page_token / has_more）
+    /// （官方查询参数 page_size/start_date/end_date 必填；
+    ///   data 内层键为 department_ids / deleted_department_ids / page_token / has_more）
     #[tokio::test]
     async fn test_query_recent_change_returns_data_on_success() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/open-apis/corehr/v2/departments/query_recent_change"))
+            .and(query_param("page_size", "100"))
+            .and(query_param("start_date", "2024-06-01 00:00:00"))
+            .and(query_param("end_date", "2024-08-01 02:10:10"))
+            .and(query_param(
+                "department_id_type",
+                "people_corehr_department_id",
+            ))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -118,6 +170,10 @@ mod tests {
             .build();
 
         let resp = QueryRecentChangeRequest::new(config)
+            .page_size("100")
+            .start_date("2024-06-01 00:00:00")
+            .end_date("2024-08-01 02:10:10")
+            .department_id_type("people_corehr_department_id")
             .execute()
             .await
             .expect("请求应成功");
