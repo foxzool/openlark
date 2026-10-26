@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from ..models import ApiIdentity
+from .markdown_document import parse_markdown_contract
 
 
 __all__ = [
@@ -54,12 +55,13 @@ __all__ = [
     "compose_full",
 ]
 
-_INTERPRETER_REVISION = "official-evidence/1"
+_INTERPRETER_REVISION = "official-evidence/2"
 
 _STRUCTURED_DETAIL_URL = (
     "https://open.feishu.cn/document_portal/v1/document/get_detail"
 )
 _STRUCTURED_DETAIL_MAX_BYTES = 16 * 1024 * 1024
+_MARKDOWN_DOCUMENT_ORIGIN = "https://open.feishu.cn"
 _HTTP_READ_CHUNK_BYTES = 64 * 1024
 _RENDERED_WORKER_COMMAND = (
     "node",
@@ -89,6 +91,7 @@ class EvidenceDimension(str, Enum):
 
 class EvidenceSource(str, Enum):
     STRUCTURED_DETAIL = "structured_detail"
+    MARKDOWN_DOCUMENT = "markdown_document"
     RENDERED_DOCUMENT = "rendered_document"
 
 
@@ -242,6 +245,25 @@ class RecordedSnapshot:
         )
 
     @classmethod
+    def markdown(
+        cls,
+        *,
+        version: int,
+        catalog_entry: ApiIdentity,
+        acquired_at: str,
+        source_uri: str,
+        content: str,
+    ) -> RecordedSnapshot:
+        return cls._create(
+            version=version,
+            source_kind=EvidenceSource.MARKDOWN_DOCUMENT,
+            catalog_entry=catalog_entry,
+            acquired_at=acquired_at,
+            source_uri=source_uri,
+            raw_representation=content,
+        )
+
+    @classmethod
     def rendered(
         cls,
         *,
@@ -338,7 +360,7 @@ def _read_bounded_response(response: Any) -> bytes:
         try:
             expected_length = int(declared_length)
             if expected_length > _STRUCTURED_DETAIL_MAX_BYTES:
-                raise _ResponseTooLarge("Structured Detail 响应超过大小限制")
+                raise _ResponseTooLarge("Official Document 响应超过大小限制")
         except ValueError:
             pass
 
@@ -351,25 +373,22 @@ def _read_bounded_response(response: Any) -> bytes:
                 raise http.client.IncompleteRead(bytes(body), expected_length)
             return bytes(body)
         body.extend(chunk)
-    raise _ResponseTooLarge("Structured Detail 响应超过大小限制")
+    raise _ResponseTooLarge("Official Document 响应超过大小限制")
 
 
-class _StructuredDetailAdapter:
+class _HttpDocumentAdapter:
+    source: EvidenceSource
+
     def __init__(self, base_url: str, timeout_seconds: float, retries: int) -> None:
         self._base_url = base_url
         self._timeout_seconds = timeout_seconds
         self._retries = retries
 
+    def _url(self, catalog_entry: ApiIdentity) -> str:
+        raise NotImplementedError
+
     def acquire(self, catalog_entry: ApiIdentity) -> _AcquisitionResult:
-        full_path = _detail_full_path(catalog_entry)
-        if not full_path:
-            raise InvalidEvidenceRequest("Catalog Entry 缺少 Structured Detail fullPath")
-        separator = "&" if "?" in self._base_url else "?"
-        url = (
-            self._base_url
-            + separator
-            + urllib.parse.urlencode({"fullPath": full_path})
-        )
+        url = self._url(catalog_entry)
         last_error: Exception | None = None
         for attempt in range(self._retries + 1):
             try:
@@ -385,10 +404,13 @@ class _StructuredDetailAdapter:
                     source_uri = response.geturl()
                 raw = raw_bytes.decode("utf-8", "replace")
                 return _AcquisitionResult(
-                    snapshot=_raw_structured_snapshot(
-                        catalog_entry,
-                        source_uri,
-                        raw,
+                    snapshot=RecordedSnapshot._create(
+                        version=1,
+                        source_kind=self.source,
+                        catalog_entry=catalog_entry,
+                        acquired_at=_now_iso8601(),
+                        source_uri=source_uri,
+                        raw_representation=raw,
                     ),
                     failure=None,
                 )
@@ -399,7 +421,7 @@ class _StructuredDetailAdapter:
                     return _AcquisitionResult(
                         snapshot=None,
                         failure=_unavailable(
-                            EvidenceSource.STRUCTURED_DETAIL,
+                            self.source,
                             "document_not_found",
                         ),
                     )
@@ -419,8 +441,30 @@ class _StructuredDetailAdapter:
         )
         return _AcquisitionResult(
             snapshot=None,
-            failure=_unavailable(EvidenceSource.STRUCTURED_DETAIL, code),
+            failure=_unavailable(self.source, code),
         )
+
+
+class _StructuredDetailAdapter(_HttpDocumentAdapter):
+    source = EvidenceSource.STRUCTURED_DETAIL
+
+    def _url(self, catalog_entry: ApiIdentity) -> str:
+        full_path = _detail_full_path(catalog_entry)
+        if not full_path:
+            raise InvalidEvidenceRequest("Catalog Entry 缺少 Structured Detail fullPath")
+        separator = "&" if "?" in self._base_url else "?"
+        return self._base_url + separator + urllib.parse.urlencode({"fullPath": full_path})
+
+
+class _MarkdownDocumentAdapter(_HttpDocumentAdapter):
+    source = EvidenceSource.MARKDOWN_DOCUMENT
+
+    def _url(self, catalog_entry: ApiIdentity) -> str:
+        # docPath 可能是重定向入口；只有目录 fullPath 能定位 canonical Markdown。
+        full_path = catalog_entry.full_path.strip()
+        if not re.fullmatch(r"/document/[^\s?#]+", full_path):
+            raise InvalidEvidenceRequest("Catalog Entry 缺少 Markdown Document fullPath")
+        return self._base_url.rstrip("/") + full_path + ".md"
 
 
 class _UnavailableRenderedDocumentAdapter:
@@ -771,11 +815,13 @@ class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollec
     def __init__(
         self,
         structured_detail: _StructuredDetailAdapter,
+        markdown_document: _MarkdownDocumentAdapter,
         rendered_document: _RenderedDocumentAdapter
         | _UnavailableRenderedDocumentAdapter,
         snapshot_store: _SnapshotStore,
     ) -> None:
         self._structured_detail = structured_detail
+        self._markdown_document = markdown_document
         self._rendered_document = rendered_document
         self._snapshot_store = snapshot_store
 
@@ -817,6 +863,20 @@ class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollec
             for dimension in requested
             if structured[dimension].status is not EvidenceStatus.TRUSTED
         )
+        markdown: dict[EvidenceDimension, _Candidate] = {}
+        if fallback_dimensions and _needs_markdown_fallback(structured[requested[0]].snapshot):
+            markdown = self._obtain_candidates(
+                catalog_entry,
+                fallback_dimensions,
+                EvidenceSource.MARKDOWN_DOCUMENT,
+                self._markdown_document,
+                policy,
+            )
+            fallback_dimensions = tuple(
+                dimension
+                for dimension in fallback_dimensions
+                if markdown[dimension].status is not EvidenceStatus.TRUSTED
+            )
         rendered: dict[EvidenceDimension, _Candidate] = {}
         if fallback_dimensions:
             rendered = self._obtain_candidates(
@@ -830,6 +890,8 @@ class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollec
         results = []
         for dimension in requested:
             candidates = [structured[dimension]]
+            if dimension in markdown:
+                candidates.append(markdown[dimension])
             if dimension in rendered:
                 candidates.append(rendered[dimension])
             selected = max(candidates, key=_selection_key)
@@ -845,7 +907,7 @@ class _OfficialEvidenceCollector(AbstractContextManager["_OfficialEvidenceCollec
         catalog_entry: ApiIdentity,
         dimensions: tuple[EvidenceDimension, ...],
         source: EvidenceSource,
-        adapter: _StructuredDetailAdapter
+        adapter: _HttpDocumentAdapter
         | _RenderedDocumentAdapter
         | _UnavailableRenderedDocumentAdapter,
         policy: FreshOfficialPolicy | PreferSnapshotPolicy,
@@ -943,6 +1005,11 @@ def _compose(
     return _OfficialEvidenceCollector(
         _StructuredDetailAdapter(
             structured_detail_url,
+            float(timeout_seconds),
+            retries,
+        ),
+        _MarkdownDocumentAdapter(
+            _MARKDOWN_DOCUMENT_ORIGIN,
             float(timeout_seconds),
             retries,
         ),
@@ -1061,11 +1128,7 @@ def _validate_acquisition(
     catalog_entry: ApiIdentity,
     source: EvidenceSource,
 ) -> tuple[RecordedSnapshot | None, _Candidate | None]:
-    source_name = (
-        "Structured Detail"
-        if source is EvidenceSource.STRUCTURED_DETAIL
-        else "Rendered Document"
-    )
+    source_name = source.value
     if not isinstance(acquisition, _AcquisitionResult):
         raise AdapterContractError(
             f"{source_name} adapter 返回了无效 acquisition result"
@@ -1123,7 +1186,10 @@ def _collect_dimension(
         else _unavailable(EvidenceSource.STRUCTURED_DETAIL)
     )
     candidates = [structured]
-    if structured.status is not EvidenceStatus.TRUSTED:
+    markdown_snapshot = snapshots.get(EvidenceSource.MARKDOWN_DOCUMENT)
+    if structured.status is not EvidenceStatus.TRUSTED and markdown_snapshot is not None:
+        candidates.append(_interpret_snapshot(markdown_snapshot, dimension))
+    if not any(candidate.status is EvidenceStatus.TRUSTED for candidate in candidates):
         rendered_snapshot = snapshots.get(EvidenceSource.RENDERED_DOCUMENT)
         rendered = (
             _interpret_snapshot(rendered_snapshot, dimension)
@@ -1143,6 +1209,8 @@ def _interpret_snapshot(
     try:
         if snapshot.source_kind is EvidenceSource.STRUCTURED_DETAIL:
             return _interpret_structured(snapshot, dimension)
+        if snapshot.source_kind is EvidenceSource.MARKDOWN_DOCUMENT:
+            return _interpret_markdown(snapshot, dimension)
         if snapshot.source_kind is EvidenceSource.RENDERED_DOCUMENT:
             return _interpret_rendered(snapshot, dimension)
         raise SnapshotInvariantError("Recorded Snapshot source kind 无效")
@@ -1161,8 +1229,78 @@ def _selection_key(candidate: _Candidate) -> tuple[int, int]:
         EvidenceStatus.INCOMPLETE: 2,
         EvidenceStatus.TRUSTED: 3,
     }
-    source_rank = int(candidate.source is EvidenceSource.STRUCTURED_DETAIL)
+    source_rank = {
+        EvidenceSource.STRUCTURED_DETAIL: 2,
+        EvidenceSource.MARKDOWN_DOCUMENT: 1,
+        EvidenceSource.RENDERED_DOCUMENT: 0,
+    }[candidate.source]
     return status_rank[candidate.status], source_rank
+
+
+def _needs_markdown_fallback(snapshot: RecordedSnapshot | None) -> bool:
+    if snapshot is None:
+        return False
+    try:
+        payload = json.loads(snapshot.raw_representation)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if type(payload.get("code")) is not int:
+        return False
+    if payload.get("code") == 41404:
+        return True
+    if payload.get("code") != 0:
+        return False
+    data = payload.get("data")
+    if (not isinstance(data, dict) or not isinstance(data.get("content"), str)
+            or not data["content"].strip()):
+        return False
+    schema = data.get("schema")
+    return not (isinstance(schema, dict) and isinstance(schema.get("apiSchema"), dict))
+
+
+def _interpret_markdown(
+    snapshot: RecordedSnapshot,
+    dimension: EvidenceDimension,
+) -> _Candidate:
+    contract = parse_markdown_contract(snapshot.raw_representation)
+    if not contract.healthy:
+        return _rejected(snapshot, "document_unhealthy")
+    if dimension is EvidenceDimension.ENDPOINT:
+        if contract.endpoint is None:
+            return _incomplete(snapshot, "structure_incomplete")
+        method, path = contract.endpoint
+        return _trusted(snapshot, (EndpointObservation(
+            method=method,
+            path=_normalize_endpoint(path),
+            source=snapshot.source_kind,
+        ),))
+    if dimension is EvidenceDimension.TOKENS:
+        if contract.tokens is None:
+            return _incomplete(snapshot, "structure_incomplete")
+        return _trusted(snapshot, tuple(
+            TokenObservation(token=token, source=snapshot.source_kind)
+            for token in contract.tokens
+        ))
+    fields = (
+        contract.request_fields
+        if dimension is EvidenceDimension.REQUEST_FIELDS
+        else contract.response_fields
+    )
+    observations = tuple(
+        FieldObservation(
+            path=(field.name,),
+            location=field.location,
+            required=field.required,
+            field_type=field.field_type,
+            source=snapshot.source_kind,
+        )
+        for field in fields.values
+    )
+    if fields.complete:
+        return _trusted(snapshot, observations)
+    return _incomplete(snapshot, "structure_incomplete", observations)
 
 
 def _interpret_structured(
@@ -1878,21 +2016,6 @@ def _rendered_url(catalog_entry: ApiIdentity) -> str:
 
 def _now_iso8601() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _raw_structured_snapshot(
-    catalog_entry: ApiIdentity,
-    source_uri: str,
-    raw: str,
-) -> RecordedSnapshot:
-    return RecordedSnapshot._create(
-        version=1,
-        source_kind=EvidenceSource.STRUCTURED_DETAIL,
-        catalog_entry=catalog_entry,
-        acquired_at=_now_iso8601(),
-        source_uri=source_uri,
-        raw_representation=raw,
-    )
 
 
 def _is_timeout(error: Exception | None) -> bool:
