@@ -18,9 +18,11 @@ use crate::common::api_endpoints::HelpdeskApiV1;
 /// 搜索知识库查询参数
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SearchFaqQuery {
-    /// 搜索关键词
+    /// 搜索 query（必填）；非英文内容可用 url 编码，或 base64 编码并设置 base64=true
+    pub query: String,
+    /// 是否转换为 base64，"true" 表示是，不填写表示否
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub keyword: Option<String>,
+    pub base64: Option<String>,
     /// 分页大小
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i32>,
@@ -70,7 +72,8 @@ pub struct FaqItem {
 #[derive(Debug, Clone)]
 pub struct SearchFaqRequest {
     config: Arc<Config>,
-    keyword: Option<String>,
+    query: String,
+    base64: Option<String>,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
@@ -80,15 +83,22 @@ impl SearchFaqRequest {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
-            keyword: None,
+            query: String::new(),
+            base64: None,
             page_size: None,
             page_token: None,
         }
     }
 
-    /// 设置搜索关键词
-    pub fn keyword(mut self, keyword: impl Into<String>) -> Self {
-        self.keyword = Some(keyword.into());
+    /// 设置搜索 query（必填）
+    pub fn query(mut self, query: impl Into<String>) -> Self {
+        self.query = query.into();
+        self
+    }
+
+    /// 设置是否转换为 base64（"true" 表示是）
+    pub fn base64(mut self, base64: impl Into<String>) -> Self {
+        self.base64 = Some(base64.into());
         self
     }
 
@@ -115,11 +125,15 @@ impl SearchFaqRequest {
         self,
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<SearchFaqResponse> {
+        openlark_core::validate_required!(self.query, "query 不能为空");
+
         let api_endpoint = HelpdeskApiV1::FaqSearch;
         let mut request = ApiRequest::<SearchFaqResponse>::get(api_endpoint.to_url());
 
-        if let Some(ref keyword) = self.keyword {
-            request = request.query("keyword", keyword);
+        request = request.query("query", self.query.as_str());
+
+        if let Some(ref base64) = self.base64 {
+            request = request.query("base64", base64);
         }
 
         if let Some(page_size) = self.page_size {
@@ -138,7 +152,8 @@ impl SearchFaqRequest {
 #[derive(Debug, Clone)]
 pub struct SearchFaqRequestBuilder {
     config: Arc<Config>,
-    keyword: Option<String>,
+    query: String,
+    base64: Option<String>,
     page_size: Option<i32>,
     page_token: Option<String>,
 }
@@ -148,15 +163,22 @@ impl SearchFaqRequestBuilder {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             config,
-            keyword: None,
+            query: String::new(),
+            base64: None,
             page_size: None,
             page_token: None,
         }
     }
 
-    /// 设置搜索关键词
-    pub fn keyword(mut self, keyword: impl Into<String>) -> Self {
-        self.keyword = Some(keyword.into());
+    /// 设置搜索 query（必填）
+    pub fn query(mut self, query: impl Into<String>) -> Self {
+        self.query = query.into();
+        self
+    }
+
+    /// 设置是否转换为 base64（"true" 表示是）
+    pub fn base64(mut self, base64: impl Into<String>) -> Self {
+        self.base64 = Some(base64.into());
         self
     }
 
@@ -174,11 +196,15 @@ impl SearchFaqRequestBuilder {
 
     /// 执行请求
     pub async fn execute(&self) -> SDKResult<SearchFaqResponse> {
+        openlark_core::validate_required!(self.query, "query 不能为空");
+
         let api_endpoint = HelpdeskApiV1::FaqSearch;
         let mut request = ApiRequest::<SearchFaqResponse>::get(api_endpoint.to_url());
 
-        if let Some(ref keyword) = self.keyword {
-            request = request.query("keyword", keyword);
+        request = request.query("query", self.query.as_str());
+
+        if let Some(ref base64) = self.base64 {
+            request = request.query("base64", base64);
         }
 
         if let Some(page_size) = self.page_size {
@@ -194,9 +220,13 @@ impl SearchFaqRequestBuilder {
 }
 
 /// 执行搜索知识库
-pub async fn search_faqs(config: &Config) -> SDKResult<SearchFaqResponse> {
+pub async fn search_faqs(
+    config: &Config,
+    query: impl Into<String>,
+) -> SDKResult<SearchFaqResponse> {
     let api_endpoint = HelpdeskApiV1::FaqSearch;
-    let request = ApiRequest::<SearchFaqResponse>::get(api_endpoint.to_url());
+    let request =
+        ApiRequest::<SearchFaqResponse>::get(api_endpoint.to_url()).query("query", query.into());
 
     Transport::request_typed(request, config, None, "搜索知识库").await
 }
@@ -214,10 +244,11 @@ mod tests {
             .build();
         let builder = SearchFaqRequestBuilder::new(Arc::new(config));
 
-        assert!(builder.keyword.is_none());
+        assert!(builder.query.is_empty());
+        assert!(builder.base64.is_none());
     }
 
-    /// 端到端：GET .../faqs/search → 强类型 SearchFaqResponse 解析（扁平 data 信封）。
+    /// 端到端：GET .../faqs/search（query 必填）→ 强类型 SearchFaqResponse 解析（扁平 data 信封）。
     #[tokio::test]
     async fn test_search_faqs_returns_data_on_success() {
         use serde_json::json;
@@ -249,7 +280,8 @@ mod tests {
         );
 
         let resp = SearchFaqRequest::new(config)
-            .keyword("密码")
+            .query("wifi")
+            .base64("true")
             .execute()
             .await
             .expect("搜索知识库应成功");
@@ -258,5 +290,19 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/helpdesk/v1/faqs/search");
+        // 官方查询参数名为 query（非 keyword），base64 为可选参数
+        let query = received[0].url.query().unwrap_or_default();
+        assert!(
+            query.contains("query=wifi"),
+            "query 应包含 query=wifi: {query}"
+        );
+        assert!(
+            query.contains("base64=true"),
+            "query 应包含 base64=true: {query}"
+        );
+        assert!(
+            !query.contains("keyword="),
+            "不应再有 keyword 参数: {query}"
+        );
     }
 }

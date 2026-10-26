@@ -2,13 +2,28 @@
 //!
 //! docPath: <https://open.feishu.cn/document/server-docs/security_and_compliance-v2/device_record-update>
 //!
-//! 文档核对：`PUT /open-apis/security_and_compliance/v2/device_records/{device_record_id}`。
-//! body 用 `serde_json::Value` 透传（字段细化不在本次范围）。
+//! 文档核对：`PUT /open-apis/security_and_compliance/v2/device_records/{device_record_id}?version={...}`，
+//! 查询参数 `version` 必填（版本号）；body 字段（设备归属/可信状态/公共设备）均为可选。
 
 use openlark_core::{
-    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType, http::Transport,
-    req_option::RequestOption, validate_required,
+    SDKResult, api::ApiRequest, config::Config, constants::AccessTokenType,
+    error::validation_error, http::Transport, req_option::RequestOption, validate_required,
 };
+use serde::{Deserialize, Serialize};
+
+/// 更新设备信息请求 body（字段均可选）。
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+pub struct UpdateDeviceRecordBody {
+    /// 设备归属（`0` 未知设备/`1` 个人设备/`2` 企业设备）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_ownership: Option<i32>,
+    /// 可信状态（`0` 未知状态/`1` 信任设备/`2` 非信任设备）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_status: Option<i32>,
+    /// 是否为公共设备。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_public: Option<bool>,
+}
 
 /// 更新设备信息请求
 #[derive(Debug)]
@@ -17,23 +32,42 @@ pub struct UpdateDeviceRecordRequest {
     config: Config,
     /// 设备记录 ID（路径参数，必填）。
     device_record_id: String,
-    /// 请求体（可选，调用方自行构造 JSON）。
-    body: Option<serde_json::Value>,
+    /// 版本号（查询参数，必填）。
+    version: String,
+    /// 请求 body。
+    body: UpdateDeviceRecordBody,
 }
 
 impl UpdateDeviceRecordRequest {
     /// 创建新的请求构建器。
-    pub fn new(config: Config, device_record_id: impl Into<String>) -> Self {
+    pub fn new(
+        config: Config,
+        device_record_id: impl Into<String>,
+        version: impl Into<String>,
+    ) -> Self {
         Self {
             config,
             device_record_id: device_record_id.into(),
-            body: None,
+            version: version.into(),
+            body: UpdateDeviceRecordBody::default(),
         }
     }
 
-    /// 设置请求体。
-    pub fn body(mut self, body: serde_json::Value) -> Self {
-        self.body = Some(body);
+    /// 设置设备归属（`0` 未知/`1` 个人/`2` 企业）。
+    pub fn device_ownership(mut self, device_ownership: i32) -> Self {
+        self.body.device_ownership = Some(device_ownership);
+        self
+    }
+
+    /// 设置可信状态（`0` 未知/`1` 信任/`2` 非信任）。
+    pub fn device_status(mut self, device_status: i32) -> Self {
+        self.body.device_status = Some(device_status);
+        self
+    }
+
+    /// 设置是否为公共设备。
+    pub fn is_public(mut self, is_public: bool) -> Self {
+        self.body.is_public = Some(is_public);
         self
     }
 
@@ -45,16 +79,19 @@ impl UpdateDeviceRecordRequest {
     /// 使用指定请求选项执行请求。
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         validate_required!(self.device_record_id, "device_record_id 不能为空");
+        validate_required!(self.version, "version 不能为空");
 
         let path = format!(
             "/open-apis/security_and_compliance/v2/device_records/{}",
             self.device_record_id
         );
-        let mut req: ApiRequest<serde_json::Value> =
-            ApiRequest::put(&path).with_supported_access_token_types(vec![AccessTokenType::Tenant]);
-        if let Some(body) = self.body {
-            req = req.body(body);
-        }
+        let req: ApiRequest<serde_json::Value> = ApiRequest::put(&path)
+            .query("version", &self.version)
+            .body(
+                serde_json::to_value(self.body)
+                    .map_err(|e| validation_error("更新设备信息", format!("序列化失败: {e}")))?,
+            )
+            .with_supported_access_token_types(vec![AccessTokenType::Tenant]);
 
         Transport::request_typed(req, &self.config, Some(option), "更新设备信息").await
     }
@@ -63,6 +100,10 @@ impl UpdateDeviceRecordRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path, query_param};
+    use wiremock::{Mock, ResponseTemplate};
 
     fn test_config() -> Config {
         Config::builder()
@@ -73,29 +114,38 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_device_record_rejects_empty_id() {
-        let req = UpdateDeviceRecordRequest::new(test_config(), "");
+        let req = UpdateDeviceRecordRequest::new(test_config(), "", "0");
         let result = req.execute().await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("device_record_id"));
     }
 
-    /// 端到端：PUT .../device_records/{id} + body 透传 + 响应解析。
+    #[tokio::test]
+    async fn test_update_device_record_rejects_empty_version() {
+        let req = UpdateDeviceRecordRequest::new(test_config(), "dr_001", "");
+        let result = req.execute().await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("version"));
+    }
+
+    /// 端到端：PUT .../device_records/{id}?version= + body 可选字段 + 响应解析。
     #[tokio::test]
     async fn test_update_device_record_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("PUT"))
             .and(path(
                 "/open-apis/security_and_compliance/v2/device_records/dr_001",
             ))
+            .and(query_param("version", "0"))
+            .and(body_json(json!({
+                "device_ownership": 1,
+                "device_status": 1,
+                "is_public": false
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "device_record_id": "dr_001", "status": "approved" }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -107,12 +157,13 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let data = UpdateDeviceRecordRequest::new(config, "dr_001")
-            .body(json!({ "status": "approved" }))
+        UpdateDeviceRecordRequest::new(config, "dr_001", "0")
+            .device_ownership(1)
+            .device_status(1)
+            .is_public(false)
             .execute()
             .await
             .expect("更新设备记录应成功");
-        assert_eq!(data["status"], "approved");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -120,7 +171,10 @@ mod tests {
             received[0].url.path(),
             "/open-apis/security_and_compliance/v2/device_records/dr_001"
         );
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("version=0"));
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["status"], "approved");
+        assert_eq!(sent["device_ownership"], 1);
+        assert_eq!(sent["is_public"], false);
     }
 }

@@ -27,9 +27,9 @@ impl RuleExternalService {
         Self { config }
     }
 
-    /// 创建或更新权限组（`rule_id` 为查询参数，body 为 `{"rule": ...}` 包装）。
-    pub fn create(&self, rule_id: impl Into<String>) -> create::CreateRuleExternalRequest {
-        create::CreateRuleExternalRequest::new(self.config.clone(), rule_id)
+    /// 创建或更新权限组（查询参数 `rule_id` 可选：不传创建、传则更新；body 为 `{"rule": ...}` 包装）。
+    pub fn create(&self) -> create::CreateRuleExternalRequest {
+        create::CreateRuleExternalRequest::new(self.config.clone())
     }
 
     /// 获取权限组信息（查询参数 `device_id`）。

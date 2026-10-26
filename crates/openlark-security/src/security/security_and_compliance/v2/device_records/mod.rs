@@ -46,9 +46,13 @@ impl DeviceRecordsService {
         get::GetDeviceRecordRequest::new(self.config.clone(), device_record_id)
     }
 
-    /// 更新设备信息（PUT `/device_records/{device_record_id}`）。
-    pub fn update(&self, device_record_id: impl Into<String>) -> update::UpdateDeviceRecordRequest {
-        update::UpdateDeviceRecordRequest::new(self.config.clone(), device_record_id)
+    /// 更新设备信息（PUT `/device_records/{device_record_id}`，查询参数 `version` 必填）。
+    pub fn update(
+        &self,
+        device_record_id: impl Into<String>,
+        version: impl Into<String>,
+    ) -> update::UpdateDeviceRecordRequest {
+        update::UpdateDeviceRecordRequest::new(self.config.clone(), device_record_id, version)
     }
 
     /// 删除设备（DELETE `/device_records/{device_record_id}`）。
