@@ -104,13 +104,19 @@ mod tests {
         let _ = api.employee().resurrect("eid".to_string());
         let _ = api.employee().search("kw".to_string());
         let _ = api.employee().to_be_resigned("eid".to_string());
-        // collaboration_rule（create 带 name，update/delete 带 rule_id）
-        let _ = api.collaboration_rule().create("rule".to_string());
-        let _ = api.collaboration_rule().list();
-        let _ = api.collaboration_rule().update("rid".to_string());
-        let _ = api.collaboration_rule().delete("rid".to_string());
-        // 单 list 模块
-        let _ = api.collaboration_share_entity().list();
+        // collaboration_rule（create/list 带 target_tenant_key，update/delete 带 rule_id + target_tenant_key）
+        let _ = api.collaboration_rule().create("test_key".to_string());
+        let _ = api.collaboration_rule().list("test_key".to_string());
+        let _ = api
+            .collaboration_rule()
+            .update("rid".to_string(), "test_key".to_string());
+        let _ = api
+            .collaboration_rule()
+            .delete("rid".to_string(), "test_key".to_string());
+        // 单 list 模块（list 带 target_tenant_key）
+        let _ = api
+            .collaboration_share_entity()
+            .list("test_key".to_string());
         let _ = api.collaboration_tenant().list();
     }
 }

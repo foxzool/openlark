@@ -9,8 +9,9 @@ use openlark_core::{
 use crate::{
     common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V1_CHATS,
-    im::v1::chat::announcement::models::PatchChatAnnouncementBody,
 };
+// 单独平铺 import：Body 定义在同目录 models.rs，供字段契约核对工具识别
+use crate::im::v1::chat::announcement::models::PatchChatAnnouncementBody;
 
 /// 更新群公告信息请求
 ///

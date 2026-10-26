@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,26 +19,39 @@ pub struct RollbackTaskRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
-    /// 退回节点 ID
-    node_id: String,
-    /// 退回原因
-    reason: Option<String>,
+    /// 请求体
+    body: RollbackTaskBody,
 }
 
 impl RollbackTaskRequestBuilder {
     /// 创建新的 Builder
-    pub fn new(config: Config, task_id: impl Into<String>, node_id: impl Into<String>) -> Self {
+    pub fn new(config: Config, task_id: impl Into<String>) -> Self {
         Self {
             config,
             task_id: task_id.into(),
-            node_id: node_id.into(),
-            reason: None,
+            body: RollbackTaskBody {
+                operator_user_id: String::new(),
+                to_task_id: String::new(),
+                opinion: String::new(),
+            },
         }
     }
 
+    /// 设置操作人 kunlunUserID
+    pub fn operator_user_id(mut self, operator_user_id: impl Into<String>) -> Self {
+        self.body.operator_user_id = operator_user_id.into();
+        self
+    }
+
+    /// 设置退回到的任务 ID（可通过「查询人工任务可退回的位置」获取）
+    pub fn to_task_id(mut self, to_task_id: impl Into<String>) -> Self {
+        self.body.to_task_id = to_task_id.into();
+        self
+    }
+
     /// 设置退回原因
-    pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
+    pub fn opinion(mut self, opinion: impl Into<String>) -> Self {
+        self.body.opinion = opinion.into();
         self
     }
 
@@ -51,28 +65,30 @@ impl RollbackTaskRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<RollbackTaskResponse> {
+        validate_required!(self.body.operator_user_id, "操作人ID不能为空");
+        validate_required!(self.body.to_task_id, "退回到的任务ID不能为空");
+        validate_required!(self.body.opinion, "退回原因不能为空");
+
         let url = format!("/open-apis/apaas/v1/user_tasks/{}/rollback", self.task_id);
 
-        let request = RollbackTaskRequest {
-            node_id: self.node_id,
-            reason: self.reason,
-        };
-
         let req: ApiRequest<RollbackTaskResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+            ApiRequest::post(&url).body(serde_json::to_value(&self.body)?);
         Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
-/// 退回请求
+/// 退回请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct RollbackTaskRequest {
-    /// 退回节点 ID
-    #[serde(rename = "node_id")]
-    node_id: String,
+pub struct RollbackTaskBody {
+    /// 操作人 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "operator_user_id")]
+    pub operator_user_id: String,
+    /// 退回到的任务 ID，可通过「查询人工任务可退回的位置」获取
+    #[serde(rename = "to_task_id")]
+    pub to_task_id: String,
     /// 退回原因
-    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
+    #[serde(rename = "opinion")]
+    pub opinion: String,
 }
 
 /// 退回响应
@@ -133,8 +149,10 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = RollbackTaskRequestBuilder::new(config, "task_001", "node_1")
-            .reason("信息需补充")
+        let resp = RollbackTaskRequestBuilder::new(config, "task_001")
+            .operator_user_id("u_001")
+            .to_task_id("task_000")
+            .opinion("信息需补充")
             .execute()
             .await
             .expect("退回人工任务应成功");
@@ -147,6 +165,16 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_tasks/task_001/rollback"
+        );
+        // 请求体须与官方文档一致：operator_user_id + to_task_id + opinion
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "operator_user_id": "u_001",
+                "to_task_id": "task_000",
+                "opinion": "信息需补充"
+            })
         );
     }
 }

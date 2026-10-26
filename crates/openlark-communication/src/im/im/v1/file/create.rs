@@ -27,10 +27,13 @@ use crate::{
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateFileBody {
-    file_type: String,
-    file_name: String,
+    /// 文件类型（opus/mp4/pdf/doc/xls/ppt/stream）。
+    pub file_type: String,
+    /// 带后缀的文件名。
+    pub file_name: String,
+    /// 文件时长（视频、音频），单位毫秒。
     #[serde(skip_serializing_if = "Option::is_none")]
-    duration: Option<i32>,
+    pub duration: Option<i32>,
 }
 
 impl CreateFileBody {

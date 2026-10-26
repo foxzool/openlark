@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,18 +17,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct UserTaskQueryRequestBuilder {
     config: Config,
-    /// 任务状态列表
-    statuses: Vec<String>,
-    /// 开始时间
-    start_time: Option<i64>,
-    /// 结束时间
-    end_time: Option<i64>,
-    /// 页码
-    page: Option<u32>,
-    /// 每页数量
-    page_size: Option<u32>,
-    /// 用户 ID
-    user_ids: Vec<String>,
+    /// 请求体
+    body: UserTaskQueryBody,
 }
 
 impl UserTaskQueryRequestBuilder {
@@ -35,60 +26,64 @@ impl UserTaskQueryRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            statuses: Vec::new(),
-            start_time: None,
-            end_time: None,
-            page: None,
-            page_size: None,
-            user_ids: Vec::new(),
+            body: UserTaskQueryBody {
+                kunlun_user_id: String::new(),
+                task_type: None,
+                source: None,
+                limit: None,
+                offset: None,
+                start_time: None,
+                end_time: None,
+                api_ids: None,
+            },
         }
     }
 
-    /// 添加任务状态
-    pub fn status(mut self, status: impl Into<String>) -> Self {
-        self.statuses.push(status.into());
+    /// 设置 kunlunUserID（必填，可通过 aPaaS 用户管理页面获取）
+    pub fn kunlun_user_id(mut self, kunlun_user_id: impl Into<String>) -> Self {
+        self.body.kunlun_user_id = kunlun_user_id.into();
         self
     }
 
-    /// 添加多个任务状态
-    pub fn statuses(mut self, statuses: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.statuses.extend(statuses.into_iter().map(Into::into));
+    /// 设置类型（archived 已完成 / pending 待处理）
+    pub fn task_type(mut self, task_type: impl Into<String>) -> Self {
+        self.body.task_type = Some(task_type.into());
         self
     }
 
-    /// 设置开始时间
-    pub fn start_time(mut self, start_time: i64) -> Self {
-        self.start_time = Some(start_time);
+    /// 设置来源（fromMe 我发起的 / assignMe 分配给我的 / CCMe 抄送我的）
+    pub fn source(mut self, source: impl Into<String>) -> Self {
+        self.body.source = Some(source.into());
         self
     }
 
-    /// 设置结束时间
-    pub fn end_time(mut self, end_time: i64) -> Self {
-        self.end_time = Some(end_time);
+    /// 设置获取条数（1～50）
+    pub fn limit(mut self, limit: impl Into<String>) -> Self {
+        self.body.limit = Some(limit.into());
         self
     }
 
-    /// 设置页码
-    pub fn page(mut self, page: u32) -> Self {
-        self.page = Some(page);
+    /// 设置起始位置
+    pub fn offset(mut self, offset: impl Into<String>) -> Self {
+        self.body.offset = Some(offset.into());
         self
     }
 
-    /// 设置每页数量
-    pub fn page_size(mut self, page_size: u32) -> Self {
-        self.page_size = Some(page_size);
+    /// 设置开始时间（毫秒）
+    pub fn start_time(mut self, start_time: impl Into<String>) -> Self {
+        self.body.start_time = Some(start_time.into());
         self
     }
 
-    /// 添加用户 ID
-    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
-        self.user_ids.push(user_id.into());
+    /// 设置结束时间（毫秒）
+    pub fn end_time(mut self, end_time: impl Into<String>) -> Self {
+        self.body.end_time = Some(end_time.into());
         self
     }
 
-    /// 添加多个用户 ID
-    pub fn user_ids(mut self, user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.user_ids.extend(user_ids.into_iter().map(Into::into));
+    /// 设置流程 apiid 列表（长度范围 1～100）
+    pub fn api_ids(mut self, api_ids: Vec<String>) -> Self {
+        self.body.api_ids = Some(api_ids);
         self
     }
 
@@ -102,87 +97,120 @@ impl UserTaskQueryRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<UserTaskQueryResponse> {
-        let url = "/open-apis/apaas/v1/user_task/query".to_string();
+        validate_required!(self.body.kunlun_user_id, "kunlunUserID 不能为空");
 
-        let request = UserTaskQueryRequest {
-            statuses: self.statuses,
-            start_time: self.start_time,
-            end_time: self.end_time,
-            page: self.page,
-            page_size: self.page_size,
-            user_ids: self.user_ids,
-        };
+        let url = "/open-apis/apaas/v1/user_task/query";
 
         let req: ApiRequest<UserTaskQueryResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+            ApiRequest::post(url).body(serde_json::to_value(&self.body)?);
+        Transport::request_typed(req, &self.config, Some(option), "查询人工任务").await
     }
 }
 
-/// 查询请求
+/// 查询请求体（官方字段：kunlun_user_id 必填，其余可选且均为 string）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserTaskQueryBody {
+    /// kunlunUserID，可通过 aPaaS 用户管理页面获取
+    pub kunlun_user_id: String,
+    /// 类型：archived 已完成 / pending 待处理
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub task_type: Option<String>,
+    /// 来源：fromMe 我发起的 / assignMe 分配给我的 / CCMe 抄送我的
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// 获取条数（1～50）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<String>,
+    /// 起始位置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<String>,
+    /// 开始时间（毫秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// 结束时间（毫秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// 流程 apiid 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_ids: Option<Vec<String>>,
+}
+
+/// 多语内容
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct UserTaskQueryRequest {
-    /// 任务状态列表
-    #[serde(rename = "statuses", skip_serializing_if = "Vec::is_empty")]
-    statuses: Vec<String>,
-    /// 开始时间
-    #[serde(rename = "start_time", skip_serializing_if = "Option::is_none")]
-    start_time: Option<i64>,
-    /// 结束时间
-    #[serde(rename = "end_time", skip_serializing_if = "Option::is_none")]
-    end_time: Option<i64>,
-    /// 页码
-    #[serde(rename = "page", skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
-    /// 每页数量
-    #[serde(rename = "page_size", skip_serializing_if = "Option::is_none")]
-    page_size: Option<u32>,
-    /// 用户 ID 列表
-    #[serde(rename = "user_ids", skip_serializing_if = "Vec::is_empty")]
-    user_ids: Vec<String>,
+pub struct UserTaskI18n {
+    /// 多语 Code
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language_code: Option<String>,
+    /// 多语对应的文本内容
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
+/// 流程实例
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct UserTaskWorkflowInstance {
+    /// 流程实例 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// 流程对应的任务名称
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<Vec<UserTaskI18n>>,
+    /// 流程状态
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+}
+
+/// 发起人
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct UserTaskInitiator {
+    /// 用户 KunlunID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 用户名称
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+/// 摘要信息
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct UserTaskSummary {
+    /// 摘要名称（多语）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_key: Option<UserTaskI18n>,
+    /// 摘要值（多语）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_value: Option<Vec<UserTaskI18n>>,
 }
 
 /// 任务信息
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct TaskInfo {
+pub struct UserTask {
     /// 任务 ID
-    #[serde(rename = "task_id")]
-    task_id: String,
-    /// 任务标题
-    #[serde(rename = "title")]
-    title: String,
-    /// 任务状态
-    #[serde(rename = "status")]
-    status: String,
-    /// 发起人 ID
-    #[serde(rename = "initiator_id")]
-    initiator_id: String,
-    /// 创建时间
-    #[serde(rename = "created_at")]
-    created_at: i64,
-    /// 更新时间
-    #[serde(rename = "updated_at")]
-    updated_at: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
+    /// 任务开始时间
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_start_time: Option<String>,
+    /// 流程实例
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_instance: Option<UserTaskWorkflowInstance>,
+    /// 发起人
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initiator: Option<UserTaskInitiator>,
+    /// 摘要信息
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summarys: Option<Vec<UserTaskSummary>>,
 }
 
 /// 查询响应
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UserTaskQueryResponse {
-    /// 任务列表
-    #[serde(rename = "tasks")]
-    pub tasks: Vec<TaskInfo>,
-    /// 是否有更多
-    #[serde(rename = "has_more")]
-    pub has_more: bool,
-    /// 页码
-    #[serde(rename = "page")]
-    pub page: u32,
-    /// 每页数量
-    #[serde(rename = "page_size")]
-    pub page_size: u32,
-    /// 总数
-    #[serde(rename = "total_count")]
-    pub total_count: u32,
+    /// 总任务条数
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<String>,
+    /// 任务信息
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tasks: Vec<UserTask>,
 }
 
 impl ApiResponseTrait for UserTaskQueryResponse {
@@ -199,7 +227,7 @@ pub type UserTaskQueryBuilder = UserTaskQueryRequestBuilder;
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../user_task/query → 强类型 UserTaskQueryResponse。
+    /// 端到端：POST .../user_task/query → 官方请求体与响应形状（count + tasks）。
     #[tokio::test]
     async fn test_query_user_task_returns_data_on_success() {
         use serde_json::json;
@@ -214,20 +242,32 @@ mod tests {
                 "code": 0,
                 "msg": "success",
                 "data": {
+                    "count": "10",
                     "tasks": [
                         {
-                            "task_id": "task_001",
-                            "title": "待审批",
-                            "status": "PENDING",
-                            "initiator_id": "u_001",
-                            "created_at": 1717000000_i64,
-                            "updated_at": 1717000100_i64
+                            "task_id": "1234",
+                            "task_start_time": "1234",
+                            "workflow_instance": {
+                                "id": "1234",
+                                "label": [
+                                    { "language_code": "2052", "text": "任务名称" }
+                                ],
+                                "status": "in_process"
+                            },
+                            "initiator": {
+                                "user_id": "1234",
+                                "name": "发起人名称"
+                            },
+                            "summarys": [
+                                {
+                                    "file_key": { "language_code": "2052", "text": "摘要名称" },
+                                    "file_value": [
+                                        { "language_code": "2052", "text": "摘要值" }
+                                    ]
+                                }
+                            ]
                         }
-                    ],
-                    "has_more": false,
-                    "page": 1,
-                    "page_size": 10,
-                    "total_count": 1
+                    ]
                 }
             })))
             .mount(&server)
@@ -241,23 +281,44 @@ mod tests {
             .build();
 
         let resp = UserTaskQueryRequestBuilder::new(config)
-            .status("PENDING")
-            .user_id("u_001")
-            .page(1)
-            .page_size(10)
+            .kunlun_user_id("1234")
+            .task_type("pending")
+            .source("assignMe")
+            .limit("10")
+            .offset("0")
+            .api_ids(vec!["package_b40c28__c__action_aadfv6lfu6kai".to_string()])
             .execute()
             .await
             .expect("查询人工任务应成功");
+        assert_eq!(resp.count.as_deref(), Some("10"));
         assert_eq!(resp.tasks.len(), 1);
-        assert!(!resp.has_more);
-        assert_eq!(resp.page, 1);
-        assert_eq!(resp.total_count, 1);
+        assert_eq!(resp.tasks[0].task_id.as_deref(), Some("1234"));
+        assert_eq!(
+            resp.tasks[0]
+                .workflow_instance
+                .as_ref()
+                .and_then(|w| w.id.clone()),
+            Some("1234".to_string())
+        );
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_task/query"
+        );
+        // 请求体须与官方文档一致：kunlun_user_id + 可选筛选字段（type 为官方键名）
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "kunlun_user_id": "1234",
+                "type": "pending",
+                "source": "assignMe",
+                "limit": "10",
+                "offset": "0",
+                "api_ids": ["package_b40c28__c__action_aadfv6lfu6kai"]
+            })
         );
     }
 }

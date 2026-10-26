@@ -49,12 +49,8 @@ impl UserTaskService {
         rollback_points::RollbackPointsRequestBuilder::new(self.config.clone(), task_id)
     }
 
-    /// 退回用户任务（接收 task_id 与 node_id 两个路径参数）
-    pub fn rollback(
-        &self,
-        task_id: impl Into<String>,
-        node_id: impl Into<String>,
-    ) -> rollback::RollbackTaskRequestBuilder {
-        rollback::RollbackTaskRequestBuilder::new(self.config.clone(), task_id, node_id)
+    /// 退回用户任务（接收 task_id 路径参数；请求体字段经 Builder 设置）
+    pub fn rollback(&self, task_id: impl Into<String>) -> rollback::RollbackTaskRequestBuilder {
+        rollback::RollbackTaskRequestBuilder::new(self.config.clone(), task_id)
     }
 }

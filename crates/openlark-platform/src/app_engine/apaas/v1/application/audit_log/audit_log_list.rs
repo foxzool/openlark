@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,14 +19,8 @@ pub struct AuditLogListRequestBuilder {
     config: Config,
     /// 应用命名空间
     namespace: String,
-    /// 开始时间
-    start_time: Option<i64>,
-    /// 结束时间
-    end_time: Option<i64>,
-    /// 页码
-    page: Option<u32>,
-    /// 每页数量
-    page_size: Option<u32>,
+    /// 查询参数（官方均为 string 类型）
+    query: AuditLogListQuery,
 }
 
 impl AuditLogListRequestBuilder {
@@ -34,34 +29,85 @@ impl AuditLogListRequestBuilder {
         Self {
             config,
             namespace: namespace.into(),
-            start_time: None,
-            end_time: None,
-            page: None,
-            page_size: None,
+            query: AuditLogListQuery {
+                page_size: String::new(),
+                offset: String::new(),
+                from: String::new(),
+                to: String::new(),
+                log_type: String::new(),
+                quick_query: None,
+                filter: None,
+                columns: None,
+                sort_by: None,
+                sort_order: None,
+                app_type: None,
+            },
         }
     }
 
-    /// 设置开始时间
-    pub fn start_time(mut self, start_time: i64) -> Self {
-        self.start_time = Some(start_time);
+    /// 设置分页大小（必填，如 "10"）
+    pub fn page_size(mut self, page_size: impl Into<String>) -> Self {
+        self.query.page_size = page_size.into();
         self
     }
 
-    /// 设置结束时间
-    pub fn end_time(mut self, end_time: i64) -> Self {
-        self.end_time = Some(end_time);
+    /// 设置翻页数量（必填，如 "0"）
+    pub fn offset(mut self, offset: impl Into<String>) -> Self {
+        self.query.offset = offset.into();
         self
     }
 
-    /// 设置页码
-    pub fn page(mut self, page: u32) -> Self {
-        self.page = Some(page);
+    /// 设置查询时间范围开始时间（必填，毫秒级时间戳字符串）
+    pub fn from(mut self, from: impl Into<String>) -> Self {
+        self.query.from = from.into();
         self
     }
 
-    /// 设置每页数量
-    pub fn page_size(mut self, page_size: u32) -> Self {
-        self.page_size = Some(page_size);
+    /// 设置查询时间范围结束时间（必填，毫秒级时间戳字符串）
+    pub fn to(mut self, to: impl Into<String>) -> Self {
+        self.query.to = to.into();
+        self
+    }
+
+    /// 设置日志类型（必填：10000 全部 / 10001 企业管理 / 10002 登录 / 10003 应用管理）
+    pub fn log_type(mut self, log_type: impl Into<String>) -> Self {
+        self.query.log_type = log_type.into();
+        self
+    }
+
+    /// 设置模糊查询
+    pub fn quick_query(mut self, quick_query: impl Into<String>) -> Self {
+        self.query.quick_query = Some(quick_query.into());
+        self
+    }
+
+    /// 设置日志筛选条件（JSON 字符串）
+    pub fn filter(mut self, filter: impl Into<String>) -> Self {
+        self.query.filter = Some(filter.into());
+        self
+    }
+
+    /// 设置选择展示的行信息
+    pub fn columns(mut self, columns: Vec<String>) -> Self {
+        self.query.columns = Some(columns);
+        self
+    }
+
+    /// 设置查询排序字段（可选项为 opTime）
+    pub fn sort_by(mut self, sort_by: impl Into<String>) -> Self {
+        self.query.sort_by = Some(sort_by.into());
+        self
+    }
+
+    /// 设置查询排序（默认从大到小；从小到大使用 asc）
+    pub fn sort_order(mut self, sort_order: impl Into<String>) -> Self {
+        self.query.sort_order = Some(sort_order.into());
+        self
+    }
+
+    /// 设置应用类型（0 为 apaas 类型，1 为 aily 类型）
+    pub fn app_type(mut self, app_type: impl Into<String>) -> Self {
+        self.query.app_type = Some(app_type.into());
         self
     }
 
@@ -75,60 +121,74 @@ impl AuditLogListRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<AuditLogListResponse> {
+        validate_required!(self.query.page_size, "分页大小不能为空");
+        validate_required!(self.query.offset, "翻页数量不能为空");
+        validate_required!(self.query.from, "开始时间不能为空");
+        validate_required!(self.query.to, "结束时间不能为空");
+        validate_required!(self.query.log_type, "日志类型不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/applications/{}/audit_log/audit_log_list",
             self.namespace
         );
 
-        let mut req: ApiRequest<AuditLogListResponse> = ApiRequest::get(&url);
-        if let Some(start_time) = self.start_time {
-            req = req.query("start_time", start_time.to_string());
-        }
-        if let Some(end_time) = self.end_time {
-            req = req.query("end_time", end_time.to_string());
-        }
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
+        let q = self.query;
+        let req: ApiRequest<AuditLogListResponse> = ApiRequest::get(&url)
+            .query("page_size", q.page_size)
+            .query("offset", q.offset)
+            .query("from", q.from)
+            .query("to", q.to)
+            .query("log_type", q.log_type)
+            .query_opt("quick_query", q.quick_query)
+            .query_opt("filter", q.filter)
+            .query_opt("columns", q.columns.map(|columns| columns.join(",")))
+            .query_opt("sort_by", q.sort_by)
+            .query_opt("sort_order", q.sort_order)
+            .query_opt("app_type", q.app_type);
         Transport::request_typed(req, &self.config, Some(option), "查询审计日志列表").await
     }
 }
 
-/// 审计日志信息
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct AuditLogInfo {
-    /// 日志 ID
-    #[serde(rename = "log_id")]
-    log_id: String,
-    /// 操作类型
-    #[serde(rename = "operation_type")]
-    operation_type: String,
-    /// 操作人
-    #[serde(rename = "operator")]
-    operator: String,
-    /// 操作时间
-    #[serde(rename = "operation_time")]
-    operation_time: i64,
+/// 查询审计日志列表查询参数（官方均为 string；page_size/offset/from/to/log_type 必填）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditLogListQuery {
+    /// 分页大小
+    pub page_size: String,
+    /// 翻页数量
+    pub offset: String,
+    /// 查询时间范围：开始时间（毫秒级时间戳）
+    pub from: String,
+    /// 查询时间范围：结束时间（毫秒级时间戳）
+    pub to: String,
+    /// 日志类型：10000 全部 / 10001 企业管理 / 10002 登录 / 10003 应用管理
+    pub log_type: String,
+    /// 模糊查询
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quick_query: Option<String>,
+    /// 日志查询：筛选能力（JSON 字符串）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
+    /// 日志列表：选择展示行信息
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub columns: Option<Vec<String>>,
+    /// 查询排序字段（可选项为 opTime）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_by: Option<String>,
+    /// 查询排序（默认按时间从大到小；从小到大使用 asc）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_order: Option<String>,
+    /// 应用类型（0 为 apaas 类型，1 为 aily 类型）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_type: Option<String>,
 }
 
-/// 查询审计日志列表响应
+/// 查询审计日志列表响应（items 字段随日志类型差异较大，保留原始 JSON）
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AuditLogListResponse {
-    /// 审计日志列表
-    #[serde(rename = "items")]
-    pub items: Vec<AuditLogInfo>,
-    /// 是否有更多
-    #[serde(rename = "has_more")]
-    pub has_more: bool,
-    /// 页码
-    #[serde(rename = "page")]
-    pub page: u32,
-    /// 每页数量
-    #[serde(rename = "page_size")]
-    pub page_size: u32,
+    /// 审计日志查询结果列表详情信息
+    pub items: Vec<serde_json::Value>,
+    /// 审计日志查询总条数
+    pub total: String,
 }
 
 impl ApiResponseTrait for AuditLogListResponse {
@@ -145,12 +205,12 @@ pub type AuditLogListBuilder = AuditLogListRequestBuilder;
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../applications/{ns}/audit_log/audit_log_list → 强类型 AuditLogListResponse。
+    /// 端到端：GET .../audit_log/audit_log_list → 官方查询参数 + 响应形状（items + total）。
     #[tokio::test]
     async fn test_list_audit_log_returns_data_on_success() {
         use serde_json::json;
         use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, ResponseTemplate};
 
         let server = MockServer::start().await;
@@ -158,21 +218,31 @@ mod tests {
             .and(path(
                 "/open-apis/apaas/v1/applications/ns_test/audit_log/audit_log_list",
             ))
+            .and(query_param("page_size", "10"))
+            .and(query_param("offset", "0"))
+            .and(query_param("from", "1723691857002"))
+            .and(query_param("to", "1724296657002"))
+            .and(query_param("log_type", "10000"))
+            .and(query_param("sort_order", "asc"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
                 "data": {
                     "items": [
                         {
-                            "log_id": "log_001",
-                            "operation_type": "CREATE",
-                            "operator": "u_001",
-                            "operation_time": 1717000000
+                            "log_id": "7376574450886557740",
+                            "op_time": "1723634726874",
+                            "log_type": "10000",
+                            "operator": {
+                                "id": "1768491480010814",
+                                "name": "郭xx",
+                                "tenant_id": "79888",
+                                "email": "gxxx@bytedance.com"
+                            },
+                            "status": "18001"
                         }
                     ],
-                    "has_more": false,
-                    "page": 1,
-                    "page_size": 20
+                    "total": "10"
                 }
             })))
             .mount(&server)
@@ -186,18 +256,18 @@ mod tests {
             .build();
 
         let resp = AuditLogListRequestBuilder::new(config, "ns_test")
-            .start_time(1716000000)
-            .end_time(1717000000)
-            .page(1)
-            .page_size(20)
+            .page_size("10")
+            .offset("0")
+            .from("1723691857002")
+            .to("1724296657002")
+            .log_type("10000")
+            .sort_order("asc")
             .execute()
             .await
             .expect("查询审计日志列表应成功");
         assert_eq!(resp.items.len(), 1);
-        assert_eq!(resp.items[0].log_id, "log_001");
-        assert!(!resp.has_more);
-        assert_eq!(resp.page, 1);
-        assert_eq!(resp.page_size, 20);
+        assert_eq!(resp.items[0]["log_id"], "7376574450886557740");
+        assert_eq!(resp.total, "10");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -206,9 +276,11 @@ mod tests {
             "/open-apis/apaas/v1/applications/ns_test/audit_log/audit_log_list"
         );
         let query = received[0].url.query().unwrap_or("");
-        assert!(query.contains("start_time=1716000000"));
-        assert!(query.contains("end_time=1717000000"));
-        assert!(query.contains("page=1"));
-        assert!(query.contains("page_size=20"));
+        assert!(query.contains("page_size=10"));
+        assert!(query.contains("offset=0"));
+        assert!(query.contains("from=1723691857002"));
+        assert!(query.contains("to=1724296657002"));
+        assert!(query.contains("log_type=10000"));
+        assert!(query.contains("sort_order=asc"));
     }
 }

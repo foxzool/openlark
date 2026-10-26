@@ -7,8 +7,9 @@ use openlark_core::{SDKResult, api::ApiRequest, config::Config, http::Transport}
 use crate::{
     common::{api_utils::serialize_params, models::EmptyData},
     endpoints::IM_V2_URL_PREVIEWS_BATCH_UPDATE,
-    im::v2::url_preview::models::BatchUpdateUrlPreviewBody,
 };
+// 单独平铺 import：Body 定义在同目录 models.rs，供字段契约核对工具识别
+use crate::im::v2::url_preview::models::BatchUpdateUrlPreviewBody;
 
 /// 更新 URL 预览请求
 pub struct BatchUpdateUrlPreviewRequest {

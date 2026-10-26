@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,8 +19,12 @@ pub struct EmployeeToBeResignedRequestBuilder {
     config: Config,
     /// 员工 ID
     employee_id: String,
-    /// 离职原因
-    reason: Option<String>,
+    /// 在职员工流转到待离职
+    employee: SetEmployeePreResigned,
+    /// 用户 ID 类型（查询参数，可选：open_id/union_id/employee_id）
+    employee_id_type: Option<String>,
+    /// 部门 ID 类型（查询参数，可选：department_id/open_department_id）
+    department_id_type: Option<String>,
 }
 
 impl EmployeeToBeResignedRequestBuilder {
@@ -28,36 +33,56 @@ impl EmployeeToBeResignedRequestBuilder {
         Self {
             config,
             employee_id: employee_id.into(),
-            reason: None,
+            employee: SetEmployeePreResigned {
+                resign_date: String::new(),
+                resign_reason: String::new(),
+                resign_type: String::new(),
+                resign_remark: None,
+            },
+            employee_id_type: None,
+            department_id_type: None,
         }
     }
 
-    /// 设置离职原因
-    pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
+    /// 设置离职日期（固定格式 yyyy-mm-dd）
+    pub fn resign_date(mut self, resign_date: impl Into<String>) -> Self {
+        self.employee.resign_date = resign_date.into();
+        self
+    }
+
+    /// 设置离职原因（官方枚举 "1"~"25"）
+    pub fn resign_reason(mut self, resign_reason: impl Into<String>) -> Self {
+        self.employee.resign_reason = resign_reason.into();
+        self
+    }
+
+    /// 设置离职类型：1 主动 / 2 被动 / 3 其他
+    pub fn resign_type(mut self, resign_type: impl Into<String>) -> Self {
+        self.employee.resign_type = resign_type.into();
+        self
+    }
+
+    /// 设置离职备注（0~255 字符）
+    pub fn resign_remark(mut self, resign_remark: impl Into<String>) -> Self {
+        self.employee.resign_remark = Some(resign_remark.into());
+        self
+    }
+
+    /// 设置用户 ID 类型（查询参数）
+    pub fn employee_id_type(mut self, employee_id_type: impl Into<String>) -> Self {
+        self.employee_id_type = Some(employee_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（查询参数）
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
         self
     }
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<EmployeeToBeResignedResponse> {
-        let url = format!(
-            "/open-apis/directory/v1/employees/{}/to_be_resigned",
-            self.employee_id
-        );
-
-        let request = EmployeeToBeResignedRequest {
-            reason: self.reason,
-        };
-
-        let req: ApiRequest<EmployeeToBeResignedResponse> =
-            ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(
-            req,
-            &self.config,
-            Some(RequestOption::default()),
-            "Operation",
-        )
-        .await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -65,27 +90,47 @@ impl EmployeeToBeResignedRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<EmployeeToBeResignedResponse> {
+        validate_required!(self.employee_id, "employee_id 不能为空");
+        validate_required!(self.employee.resign_date, "resign_date 不能为空");
+        validate_required!(self.employee.resign_reason, "resign_reason 不能为空");
+        validate_required!(self.employee.resign_type, "resign_type 不能为空");
+
         let url = format!(
             "/open-apis/directory/v1/employees/{}/to_be_resigned",
             self.employee_id
         );
 
-        let request = EmployeeToBeResignedRequest {
-            reason: self.reason,
+        let body = EmployeeToBeResignedBody {
+            employee: self.employee,
         };
 
-        let req: ApiRequest<EmployeeToBeResignedResponse> =
-            ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<EmployeeToBeResignedResponse> = ApiRequest::patch(&url)
+            .body(serde_json::to_value(&body)?)
+            .query_opt("employee_id_type", self.employee_id_type)
+            .query_opt("department_id_type", self.department_id_type);
+        Transport::request_typed(req, &self.config, Some(option), "更新在职员工为待离职").await
     }
 }
 
-/// 更新在职员工为待离职请求
+/// 更新在职员工为待离职请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct EmployeeToBeResignedRequest {
-    /// 离职原因
-    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
+pub struct EmployeeToBeResignedBody {
+    /// 在职员工流转到待离职
+    pub employee: SetEmployeePreResigned,
+}
+
+/// 待离职信息（官方 set_employee_pre_resigned）
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SetEmployeePreResigned {
+    /// 离职日期（固定格式 yyyy-mm-dd）
+    pub resign_date: String,
+    /// 离职原因（官方枚举 "1"~"25"）
+    pub resign_reason: String,
+    /// 离职类型：1 主动 / 2 被动 / 3 其他
+    pub resign_type: String,
+    /// 离职备注（0~255 字符）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resign_remark: Option<String>,
 }
 
 /// 更新在职员工为待离职响应
@@ -117,20 +162,27 @@ pub type EmployeeToBeResignedBuilder = EmployeeToBeResignedRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：PATCH .../employees/{id}/to_be_resigned → 强类型 EmployeeToBeResignedResponse。
+    /// 端到端：PATCH 官方 `{"employee": {...}}` 请求体 → 强类型 EmployeeToBeResignedResponse。
     #[tokio::test]
     async fn test_to_be_resigned_employee_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("PATCH"))
             .and(path(
                 "/open-apis/directory/v1/employees/emp_001/to_be_resigned",
             ))
+            .and(body_json(json!({
+                "employee": {
+                    "resign_date": "2024-06-21",
+                    "resign_reason": "9",
+                    "resign_type": "1",
+                    "resign_remark": "contract ended"
+                }
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -151,7 +203,10 @@ mod tests {
             .build();
 
         let resp = EmployeeToBeResignedRequestBuilder::new(config, "emp_001")
-            .reason("contract ended")
+            .resign_date("2024-06-21")
+            .resign_reason("9")
+            .resign_type("1")
+            .resign_remark("contract ended")
             .execute()
             .await
             .expect("更新在职员工为待离职应成功");
@@ -166,5 +221,31 @@ mod tests {
             "/open-apis/directory/v1/employees/emp_001/to_be_resigned"
         );
         assert_eq!(received[0].method, "PATCH");
+    }
+
+    /// 必填校验：resign_date 为空时不发请求。
+    #[tokio::test]
+    async fn test_to_be_resigned_validates_required_fields() {
+        let server = MockServer::start().await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let result = EmployeeToBeResignedRequestBuilder::new(config, "emp_001")
+            .resign_reason("9")
+            .resign_type("1")
+            .execute()
+            .await;
+        assert!(result.is_err());
+        assert!(
+            server
+                .received_requests()
+                .await
+                .unwrap_or_default()
+                .is_empty()
+        );
     }
 }

@@ -7,15 +7,30 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
 /// 获取部门维度用户活跃和功能使用数据的请求构建器。
 pub struct ListAdminDeptStatRequestBuilder {
+    /// 部门 ID 类型：department_id / open_department_id
+    department_id_type: String,
+    /// 起始日期（包含），格式 YYYY-mm-dd
     start_date: String,
+    /// 终止日期（包含），与 start_date 相差不超过 91 天
     end_date: String,
+    /// 部门的 ID，取决于 department_id_type
+    department_id: String,
+    /// 是否包含子部门
+    contains_child_dept: bool,
+    /// 每页返回数据量，取值范围 1～20，默认 10
     page_size: Option<u32>,
+    /// 分页标记
     page_token: Option<String>,
+    /// 跨域访问的 Geo 数据（cn、sg、jp、us）
+    target_geo: Option<String>,
+    /// 是否返回分产品版本数据，默认 false
+    with_product_version: Option<bool>,
     config: Config,
 }
 
@@ -23,12 +38,23 @@ impl ListAdminDeptStatRequestBuilder {
     /// 创建新的请求构建器。
     pub fn new(config: Config) -> Self {
         Self {
+            department_id_type: String::new(),
             start_date: String::new(),
             end_date: String::new(),
+            department_id: String::new(),
+            contains_child_dept: false,
             page_size: None,
             page_token: None,
+            target_geo: None,
+            with_product_version: None,
             config,
         }
+    }
+
+    /// 设置部门 ID 类型（department_id / open_department_id）。
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = department_id_type.into();
+        self
     }
 
     /// 设置统计开始日期。
@@ -43,7 +69,19 @@ impl ListAdminDeptStatRequestBuilder {
         self
     }
 
-    /// 设置分页大小。
+    /// 设置部门的 ID（取决于 department_id_type）。
+    pub fn department_id(mut self, department_id: impl Into<String>) -> Self {
+        self.department_id = department_id.into();
+        self
+    }
+
+    /// 设置是否包含子部门。
+    pub fn contains_child_dept(mut self, contains_child_dept: bool) -> Self {
+        self.contains_child_dept = contains_child_dept;
+        self
+    }
+
+    /// 设置分页大小（1～20，默认 10）。
     pub fn page_size(mut self, page_size: u32) -> Self {
         self.page_size = Some(page_size);
         self
@@ -52,6 +90,18 @@ impl ListAdminDeptStatRequestBuilder {
     /// 设置分页游标。
     pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
         self.page_token = Some(page_token.into());
+        self
+    }
+
+    /// 设置跨域访问的 Geo 数据（cn、sg、jp、us）。
+    pub fn target_geo(mut self, target_geo: impl Into<String>) -> Self {
+        self.target_geo = Some(target_geo.into());
+        self
+    }
+
+    /// 设置是否返回分产品版本数据。
+    pub fn with_product_version(mut self, with_product_version: bool) -> Self {
+        self.with_product_version = Some(with_product_version);
         self
     }
 
@@ -65,21 +115,28 @@ impl ListAdminDeptStatRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<ListAdminDeptStatResponse> {
-        let mut url = format!(
-            "/open-apis/admin/v1/admin_dept_stats?start_date={}&end_date={}",
-            self.start_date, self.end_date
-        );
+        validate_required!(self.department_id_type, "department_id_type 不能为空");
+        validate_required!(self.start_date, "start_date 不能为空");
+        validate_required!(self.end_date, "end_date 不能为空");
+        validate_required!(self.department_id, "department_id 不能为空");
 
-        if let Some(size) = self.page_size {
-            url.push_str(&format!("&page_size={size}"));
-        }
-        if let Some(token) = self.page_token {
-            url.push_str(&format!("&page_token={token}"));
-        }
+        let req: ApiRequest<ListAdminDeptStatResponse> =
+            ApiRequest::get("/open-apis/admin/v1/admin_dept_stats")
+                .query("department_id_type", self.department_id_type)
+                .query("start_date", self.start_date)
+                .query("end_date", self.end_date)
+                .query("department_id", self.department_id)
+                .query("contains_child_dept", self.contains_child_dept.to_string())
+                .query_opt("page_size", self.page_size.map(|size| size.to_string()))
+                .query_opt("page_token", self.page_token)
+                .query_opt("target_geo", self.target_geo)
+                .query_opt(
+                    "with_product_version",
+                    self.with_product_version
+                        .map(|with_product_version| with_product_version.to_string()),
+                );
 
-        let api_request: ApiRequest<ListAdminDeptStatResponse> = ApiRequest::get(url);
-
-        Transport::request_typed(api_request, &self.config, Some(option), "获取部门统计数据").await
+        Transport::request_typed(req, &self.config, Some(option), "获取部门统计数据").await
     }
 }
 
@@ -132,8 +189,69 @@ mod tests {
             .app_secret("test_secret")
             .build();
         let request = ListAdminDeptStatRequestBuilder::new(config.clone())
-            .start_date("test".to_string())
-            .end_date("test".to_string());
+            .department_id_type("open_department_id")
+            .start_date("2020-02-15")
+            .end_date("2020-02-15")
+            .department_id("od-382e2793cfc9471f892e8a672987654c")
+            .contains_child_dept(false)
+            .page_size(10)
+            .page_token("2");
         let _ = request;
+    }
+
+    /// 端到端：GET .../admin/v1/admin_dept_stats → 必填查询参数按官方文档发送。
+    #[tokio::test]
+    async fn test_list_admin_dept_stats_sends_required_query_params() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/admin/v1/admin_dept_stats"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "has_more": false,
+                    "items": []
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = ListAdminDeptStatRequestBuilder::new(config)
+            .department_id_type("open_department_id")
+            .start_date("2020-02-15")
+            .end_date("2020-02-15")
+            .department_id("od-382e2793cfc9471f892e8a672987654c")
+            .contains_child_dept(true)
+            .page_size(20)
+            .with_product_version(true)
+            .execute()
+            .await
+            .expect("获取部门统计数据应成功");
+        assert!(resp.items.is_empty());
+        assert!(!resp.has_more);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        // 官方必填查询参数：department_id_type/start_date/end_date/department_id/contains_child_dept
+        assert!(query.contains("department_id_type=open_department_id"));
+        assert!(query.contains("start_date=2020-02-15"));
+        assert!(query.contains("end_date=2020-02-15"));
+        assert!(query.contains("department_id=od-382e2793cfc9471f892e8a672987654c"));
+        assert!(query.contains("contains_child_dept=true"));
+        assert!(query.contains("page_size=20"));
+        assert!(query.contains("with_product_version=true"));
     }
 }

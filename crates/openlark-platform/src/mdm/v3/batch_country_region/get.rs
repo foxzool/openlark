@@ -17,7 +17,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct CountryRegionBatchGetRequestBuilder {
     config: Config,
-    mdm_codes: Vec<String>,
+    /// 需要的查询字段集
+    fields: Vec<String>,
+    /// 主数据编码集
+    ids: Vec<String>,
+    /// 希望返回的语言种类（zh-CN / en-US / ja-JP）
+    languages: Vec<String>,
 }
 
 impl CountryRegionBatchGetRequestBuilder {
@@ -25,19 +30,45 @@ impl CountryRegionBatchGetRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            mdm_codes: Vec::new(),
+            fields: Vec::new(),
+            ids: Vec::new(),
+            languages: Vec::new(),
         }
     }
 
+    /// 添加查询字段
+    pub fn field(mut self, field: impl Into<String>) -> Self {
+        self.fields.push(field.into());
+        self
+    }
+
+    /// 添加多个查询字段
+    pub fn fields(mut self, fields: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.fields.extend(fields.into_iter().map(Into::into));
+        self
+    }
+
     /// 添加主数据编码
-    pub fn mdm_code(mut self, mdm_code: impl Into<String>) -> Self {
-        self.mdm_codes.push(mdm_code.into());
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.ids.push(id.into());
         self
     }
 
     /// 添加多个主数据编码
-    pub fn mdm_codes(mut self, mdm_codes: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.mdm_codes.extend(mdm_codes.into_iter().map(Into::into));
+    pub fn ids(mut self, ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.ids.extend(ids.into_iter().map(Into::into));
+        self
+    }
+
+    /// 添加返回语言种类
+    pub fn language(mut self, language: impl Into<String>) -> Self {
+        self.languages.push(language.into());
+        self
+    }
+
+    /// 添加多个返回语言种类
+    pub fn languages(mut self, languages: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.languages.extend(languages.into_iter().map(Into::into));
         self
     }
 
@@ -51,13 +82,17 @@ impl CountryRegionBatchGetRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<CountryRegionBatchGetResponse> {
-        let url = "/open-apis/mdm/v3/batch_country_region".to_string();
+        // 官方必填查询参数：fields / ids / languages
+        validate_required_list!(self.fields, 100, "fields 不能为空且不能超过 100 个");
+        validate_required_list!(self.ids, 100, "ids 不能为空且不能超过 100 个");
+        validate_required_list!(self.languages, 100, "languages 不能为空且不能超过 100 个");
 
-        // 添加查询参数
-        validate_required_list!(self.mdm_codes, 50, "mdm_codes 不能为空");
-
-        let req: ApiRequest<CountryRegionBatchGetResponse> = ApiRequest::get(&url);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<CountryRegionBatchGetResponse> =
+            ApiRequest::get("/open-apis/mdm/v3/batch_country_region")
+                .query("fields", self.fields.join(","))
+                .query("ids", self.ids.join(","))
+                .query("languages", self.languages.join(","));
+        Transport::request_typed(req, &self.config, Some(option), "批量查询国家/地区").await
     }
 }
 
@@ -146,7 +181,9 @@ mod tests {
             .build();
 
         let resp = CountryRegionBatchGetRequestBuilder::new(config)
-            .mdm_code("CN")
+            .fields(vec!["name".to_string(), "mdm_code".to_string()])
+            .ids(vec!["MDCT00000001".to_string()])
+            .languages(vec!["zh-CN".to_string()])
             .execute()
             .await
             .expect("批量查询国家/地区应成功");
@@ -161,5 +198,11 @@ mod tests {
             received[0].url.path(),
             "/open-apis/mdm/v3/batch_country_region"
         );
+        // 官方必填查询参数：fields / ids / languages（数组按仓库惯例以逗号拼接，
+        // form-urlencoded 编码后 ',' 为 %2C）
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("fields=name%2Cmdm_code"));
+        assert!(query.contains("ids=MDCT00000001"));
+        assert!(query.contains("languages=zh-CN"));
     }
 }

@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,30 +19,59 @@ pub struct TransferApprovalTaskRequestBuilder {
     config: Config,
     /// 审批任务 ID
     approval_task_id: String,
-    /// 转交人用户 ID
-    transfer_to_user_id: String,
-    /// 转交原因
-    reason: Option<String>,
+    /// 请求体
+    body: TransferApprovalTaskBody,
 }
 
 impl TransferApprovalTaskRequestBuilder {
     /// 创建新的 Builder
-    pub fn new(
-        config: Config,
-        approval_task_id: impl Into<String>,
-        transfer_to_user_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(config: Config, approval_task_id: impl Into<String>) -> Self {
         Self {
             config,
             approval_task_id: approval_task_id.into(),
-            transfer_to_user_id: transfer_to_user_id.into(),
-            reason: None,
+            body: TransferApprovalTaskBody {
+                user_id: String::new(),
+                from_user_ids: None,
+                to_user_ids: None,
+                opinion: None,
+            },
         }
     }
 
+    /// 设置操作人 ID（必填）
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.body.user_id = user_id.into();
+        self
+    }
+
+    /// 设置原审批人 ID 列表（可选，最多 20 个）
+    pub fn from_user_ids(
+        mut self,
+        from_user_ids: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.body.from_user_ids = Some(
+            from_user_ids
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<String>>(),
+        );
+        self
+    }
+
+    /// 设置新审批人 ID 列表（可选，最多 20 个）
+    pub fn to_user_ids(mut self, to_user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.body.to_user_ids = Some(
+            to_user_ids
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<String>>(),
+        );
+        self
+    }
+
     /// 设置转交原因
-    pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
+    pub fn opinion(mut self, opinion: impl Into<String>) -> Self {
+        self.body.opinion = Some(opinion.into());
         self
     }
 
@@ -55,46 +85,39 @@ impl TransferApprovalTaskRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<TransferApprovalTaskResponse> {
+        validate_required!(self.approval_task_id, "任务ID不能为空");
+        validate_required!(self.body.user_id, "操作人ID不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/approval_tasks/{}/transfer",
             self.approval_task_id
         );
 
-        let request = TransferApprovalTaskRequest {
-            transfer_to_user_id: self.transfer_to_user_id,
-            reason: self.reason,
-        };
-
         let req = ApiRequest::<TransferApprovalTaskResponse>::post(&url)
-            .body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+            .body(serde_json::to_value(&self.body)?);
+        Transport::request_typed(req, &self.config, Some(option), "转交人工任务").await
     }
 }
 
-/// 转交人工任务请求
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct TransferApprovalTaskRequest {
-    /// 转交人用户 ID
-    #[serde(rename = "transfer_to_user_id")]
-    transfer_to_user_id: String,
+/// 转交人工任务请求体（官方字段：user_id 必填，其余可选）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferApprovalTaskBody {
+    /// 操作人 ID
+    pub user_id: String,
+    /// 原审批人 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_user_ids: Option<Vec<String>>,
+    /// 新审批人 ID 列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_user_ids: Option<Vec<String>>,
     /// 转交原因
-    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opinion: Option<String>,
 }
 
-/// 转交人工任务响应
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct TransferApprovalTaskResponse {
-    /// 任务 ID
-    #[serde(rename = "task_id")]
-    pub task_id: String,
-    /// 转交结果
-    #[serde(rename = "result")]
-    pub result: bool,
-    /// 结果消息
-    #[serde(rename = "message")]
-    pub message: String,
-}
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+/// 转交人工任务的响应（官方成功响应 data 为空对象，无业务字段）。
+pub struct TransferApprovalTaskResponse {}
 
 impl ApiResponseTrait for TransferApprovalTaskResponse {
     fn data_format() -> ResponseFormat {
@@ -112,7 +135,7 @@ pub type TransferApprovalTaskBuilder = TransferApprovalTaskRequestBuilder;
 mod tests {
     use super::*;
 
-    /// 端到端：POST .../approval_tasks/{id}/transfer → 强类型 TransferApprovalTaskResponse。
+    /// 端到端：POST .../approval_tasks/{id}/transfer → 官方形状（data 为空对象）。
     #[tokio::test]
     async fn test_transfer_approval_task_returns_data_on_success() {
         use serde_json::json;
@@ -126,11 +149,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": {
-                    "task_id": "task_001",
-                    "result": true,
-                    "message": "转交成功"
-                }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -142,20 +161,31 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = TransferApprovalTaskRequestBuilder::new(config, "task_001", "u_002")
-            .reason("出差转交")
+        let _resp = TransferApprovalTaskRequestBuilder::new(config, "task_001")
+            .user_id("1783981209205788")
+            .from_user_ids(vec!["1783981209205788"])
+            .to_user_ids(vec!["1783981209205789"])
+            .opinion("转交")
             .execute()
             .await
             .expect("转交人工任务应成功");
-        assert_eq!(resp.task_id, "task_001");
-        assert!(resp.result);
-        assert_eq!(resp.message, "转交成功");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/approval_tasks/task_001/transfer"
+        );
+        // 请求体须与官方文档一致：user_id + from_user_ids + to_user_ids + opinion
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "user_id": "1783981209205788",
+                "from_user_ids": ["1783981209205788"],
+                "to_user_ids": ["1783981209205789"],
+                "opinion": "转交"
+            })
         );
     }
 }

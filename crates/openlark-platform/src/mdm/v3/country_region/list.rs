@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +17,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct CountryRegionListRequestBuilder {
     config: Config,
-    page_size: Option<i32>,
+    /// 希望返回的语言种类（zh-CN / en-US / ja-JP）
+    languages: Vec<String>,
+    /// 需要的查询字段集
+    fields: Vec<String>,
+    /// 查询页大小（1～1000）
+    limit: Option<i32>,
+    /// 查询起始位置（0～100000）
+    offset: Option<i32>,
+    /// 是否返回总数
+    return_count: Option<bool>,
+    /// 分页标记
     page_token: Option<String>,
 }
 
@@ -25,14 +36,54 @@ impl CountryRegionListRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            page_size: None,
+            languages: Vec::new(),
+            fields: Vec::new(),
+            limit: None,
+            offset: None,
+            return_count: None,
             page_token: None,
         }
     }
 
-    /// 设置分页大小
-    pub fn page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(page_size);
+    /// 添加返回语言种类
+    pub fn language(mut self, language: impl Into<String>) -> Self {
+        self.languages.push(language.into());
+        self
+    }
+
+    /// 添加多个返回语言种类
+    pub fn languages(mut self, languages: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.languages.extend(languages.into_iter().map(Into::into));
+        self
+    }
+
+    /// 添加查询字段
+    pub fn field(mut self, field: impl Into<String>) -> Self {
+        self.fields.push(field.into());
+        self
+    }
+
+    /// 添加多个查询字段
+    pub fn fields(mut self, fields: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.fields.extend(fields.into_iter().map(Into::into));
+        self
+    }
+
+    /// 设置查询页大小（1～1000）
+    pub fn limit(mut self, limit: i32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// 设置查询起始位置（0～100000）
+    pub fn offset(mut self, offset: i32) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    /// 设置是否返回总数
+    pub fn return_count(mut self, return_count: bool) -> Self {
+        self.return_count = Some(return_count);
         self
     }
 
@@ -52,23 +103,19 @@ impl CountryRegionListRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<CountryRegionListResponse> {
-        let mut url = "/open-apis/mdm/v3/country_regions".to_string();
+        // 官方必填查询参数：languages / fields
+        validate_required_list!(self.languages, 100, "languages 不能为空且不能超过 100 个");
+        validate_required_list!(self.fields, 100, "fields 不能为空且不能超过 100 个");
 
-        // 添加查询参数
-        let mut params = Vec::new();
-        if let Some(page_size) = self.page_size {
-            params.push(format!("page_size={page_size}"));
-        }
-        if let Some(ref page_token) = self.page_token {
-            params.push(format!("page_token={page_token}"));
-        }
-        if !params.is_empty() {
-            url.push('?');
-            url.push_str(&params.join("&"));
-        }
-
-        let req: ApiRequest<CountryRegionListResponse> = ApiRequest::get(&url);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<CountryRegionListResponse> =
+            ApiRequest::get("/open-apis/mdm/v3/country_regions")
+                .query("languages", self.languages.join(","))
+                .query("fields", self.fields.join(","))
+                .query_opt("limit", self.limit.map(|limit| limit.to_string()))
+                .query_opt("offset", self.offset.map(|offset| offset.to_string()))
+                .query_opt("return_count", self.return_count.map(|rc| rc.to_string()))
+                .query_opt("page_token", self.page_token);
+        Transport::request_typed(req, &self.config, Some(option), "分页查询国家/地区").await
     }
 }
 
@@ -132,8 +179,61 @@ mod tests {
             .app_secret("test_secret")
             .build();
         let request = CountryRegionListRequestBuilder::new(config.clone())
-            .page_size(1)
+            .languages(vec!["zh-CN".to_string()])
+            .fields(vec!["name".to_string()])
+            .limit(10)
+            .offset(0)
+            .return_count(true)
             .page_token("test".to_string());
         let _ = request;
+    }
+
+    /// 端到端：GET .../mdm/v3/country_regions → 必填查询参数 languages/fields 按官方文档发送。
+    #[tokio::test]
+    async fn test_list_country_regions_sends_required_query_params() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/mdm/v3/country_regions"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [],
+                    "has_more": false
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = CountryRegionListRequestBuilder::new(config)
+            .languages(vec!["zh-CN".to_string(), "en-US".to_string()])
+            .fields(vec!["name".to_string(), "mdm_code".to_string()])
+            .limit(10)
+            .return_count(true)
+            .execute()
+            .await
+            .expect("分页查询国家/地区应成功");
+        assert!(resp.items.is_empty());
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let query = received[0].url.query().unwrap_or("");
+        // 官方必填查询参数（数组按仓库惯例以逗号拼接，',' 编码为 %2C）
+        assert!(query.contains("languages=zh-CN%2Cen-US"));
+        assert!(query.contains("fields=name%2Cmdm_code"));
+        assert!(query.contains("limit=10"));
+        assert!(query.contains("return_count=true"));
     }
 }

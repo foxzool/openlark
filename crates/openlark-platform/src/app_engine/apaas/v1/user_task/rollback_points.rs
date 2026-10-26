@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,8 @@ pub struct RollbackPointsRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
+    /// 请求体
+    body: RollbackPointsBody,
 }
 
 impl RollbackPointsRequestBuilder {
@@ -26,7 +29,16 @@ impl RollbackPointsRequestBuilder {
         Self {
             config,
             task_id: task_id.into(),
+            body: RollbackPointsBody {
+                operator_user_id: String::new(),
+            },
         }
+    }
+
+    /// 设置操作人 kunlunUserID
+    pub fn operator_user_id(mut self, operator_user_id: impl Into<String>) -> Self {
+        self.body.operator_user_id = operator_user_id.into();
+        self
     }
 
     /// 执行请求
@@ -39,14 +51,25 @@ impl RollbackPointsRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<RollbackPointsResponse> {
+        validate_required!(self.body.operator_user_id, "操作人ID不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/user_tasks/{}/rollback_points",
             self.task_id
         );
 
-        let req: ApiRequest<RollbackPointsResponse> = ApiRequest::post(&url);
+        let req: ApiRequest<RollbackPointsResponse> =
+            ApiRequest::post(&url).body(serde_json::to_value(&self.body)?);
         Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
+}
+
+/// 查询可退回位置请求体
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RollbackPointsBody {
+    /// 操作人 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "operator_user_id")]
+    pub operator_user_id: String,
 }
 
 /// 可退回节点信息
@@ -136,6 +159,7 @@ mod tests {
             .build();
 
         let resp = RollbackPointsRequestBuilder::new(config, "task_001")
+            .operator_user_id("u_001")
             .execute()
             .await
             .expect("查询可退回位置应成功");
@@ -147,6 +171,14 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_tasks/task_001/rollback_points"
+        );
+        // 请求体须与官方文档一致：operator_user_id
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "operator_user_id": "u_001"
+            })
         );
     }
 }

@@ -1,14 +1,17 @@
 //! 删除可搜可见规则
 //!
-//! 文档: <https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/delete>
+//! 文档: <https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/directory-v1/collaboration_rule/delete>
 //! docPath: <https://open.feishu.cn/document/trust_party-v1/searchable-and-visible-rules/delete>
+//!
+//! 无请求体；必填查询参数 target_tenant_key；成功响应 data 为空对象。
 
 use openlark_core::{
     SDKResult,
-    api::{ApiRequest, ApiResponseTrait, ResponseFormat},
+    api::{ApiRequest, ApiResponseTrait},
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,14 +21,24 @@ pub struct CollaborationRuleDeleteRequestBuilder {
     config: Config,
     /// 规则 ID
     collaboration_rule_id: String,
+    /// 对方组织的 tenant key（必填查询参数）
+    target_tenant_key: String,
 }
 
 impl CollaborationRuleDeleteRequestBuilder {
     /// 创建新的 Builder
-    pub fn new(config: Config, collaboration_rule_id: impl Into<String>) -> Self {
+    ///
+    /// `target_tenant_key` 为对方组织的 tenant key，可通过
+    /// 「管理员获取所有关联组织列表」接口获取。
+    pub fn new(
+        config: Config,
+        collaboration_rule_id: impl Into<String>,
+        target_tenant_key: impl Into<String>,
+    ) -> Self {
         Self {
             config,
             collaboration_rule_id: collaboration_rule_id.into(),
+            target_tenant_key: target_tenant_key.into(),
         }
     }
 
@@ -39,32 +52,25 @@ impl CollaborationRuleDeleteRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<CollaborationRuleDeleteResponse> {
+        validate_required!(self.collaboration_rule_id, "collaboration_rule_id 不能为空");
+        validate_required!(self.target_tenant_key, "target_tenant_key 不能为空");
+
         let url = format!(
             "/open-apis/directory/v1/collaboration_rules/{}",
             self.collaboration_rule_id
         );
 
-        let req: ApiRequest<CollaborationRuleDeleteResponse> = ApiRequest::delete(&url);
+        let req: ApiRequest<CollaborationRuleDeleteResponse> =
+            ApiRequest::delete(&url).query("target_tenant_key", self.target_tenant_key);
         Transport::request_typed(req, &self.config, Some(option), "删除可搜可见规则").await
     }
 }
 
-/// 删除可搜可见规则响应
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct CollaborationRuleDeleteResponse {
-    /// 规则 ID
-    #[serde(rename = "collaboration_rule_id")]
-    pub collaboration_rule_id: String,
-    /// 结果消息
-    #[serde(rename = "message")]
-    pub message: String,
-}
+/// 删除可搜可见规则响应（官方 data 为空对象）。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CollaborationRuleDeleteResponse {}
 
-impl ApiResponseTrait for CollaborationRuleDeleteResponse {
-    fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
-    }
-}
+impl ApiResponseTrait for CollaborationRuleDeleteResponse {}
 
 /// 旧名兼容别名（将在 v1.0 移除）
 #[deprecated(
@@ -75,25 +81,22 @@ pub type CollaborationRuleDeleteBuilder = CollaborationRuleDeleteRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：DELETE .../directory/v1/collaboration_rules/{id} → 强类型 CollaborationRuleDeleteResponse。
+    /// 端到端：DELETE 携带必填 target_tenant_key 查询参数 → 成功响应 data 为空对象。
     #[tokio::test]
-    async fn test_delete_collaboration_rule_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
+    async fn test_delete_collaboration_rule_sends_required_query() {
         let server = MockServer::start().await;
         Mock::given(method("DELETE"))
             .and(path("/open-apis/directory/v1/collaboration_rules/rule_001"))
+            .and(query_param("target_tenant_key", "test_key"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": {
-                    "collaboration_rule_id": "rule_001",
-                    "message": "deleted"
-                }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -105,12 +108,10 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = CollaborationRuleDeleteRequestBuilder::new(config, "rule_001")
+        let _resp = CollaborationRuleDeleteRequestBuilder::new(config, "rule_001", "test_key")
             .execute()
             .await
             .expect("删除可搜可见规则应成功");
-        assert_eq!(resp.collaboration_rule_id, "rule_001");
-        assert_eq!(resp.message, "deleted");
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
@@ -119,5 +120,19 @@ mod tests {
             "/open-apis/directory/v1/collaboration_rules/rule_001"
         );
         assert_eq!(received[0].method, "DELETE");
+    }
+
+    /// 必填校验：target_tenant_key 为空时不发请求。
+    #[tokio::test]
+    async fn test_delete_collaboration_rule_validates_required_query() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .build();
+
+        let result = CollaborationRuleDeleteRequestBuilder::new(config, "rule_001", " ")
+            .execute()
+            .await;
+        assert!(result.is_err());
     }
 }

@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,10 @@ pub struct DepartmentMgetRequestBuilder {
     config: Config,
     /// 部门 ID 列表
     department_ids: Vec<String>,
+    /// 需要查询的字段列表
+    required_fields: Vec<String>,
+    /// 部门 ID 类型（查询参数，可选：department_id/open_department_id）
+    department_id_type: Option<String>,
 }
 
 impl DepartmentMgetRequestBuilder {
@@ -26,6 +31,8 @@ impl DepartmentMgetRequestBuilder {
         Self {
             config,
             department_ids: Vec::new(),
+            required_fields: Vec::new(),
+            department_id_type: None,
         }
     }
 
@@ -45,6 +52,24 @@ impl DepartmentMgetRequestBuilder {
         self
     }
 
+    /// 添加需要查询的字段（如 "name"）
+    pub fn required_field(mut self, field: impl Into<String>) -> Self {
+        self.required_fields.push(field.into());
+        self
+    }
+
+    /// 设置需要查询的字段列表
+    pub fn required_fields(mut self, fields: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.required_fields = fields.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// 设置部门 ID 类型（查询参数）
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<DepartmentMgetResponse> {
         self.execute_with_options(RequestOption::default()).await
@@ -55,24 +80,34 @@ impl DepartmentMgetRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<DepartmentMgetResponse> {
-        let url = "/open-apis/directory/v1/departments/mget".to_string();
+        validate_required_list!(
+            self.department_ids,
+            100,
+            "department_ids 不能为空且不能超过 100 个"
+        );
+        validate_required!(self.required_fields, "required_fields 不能为空");
 
-        let request = DepartmentMgetRequest {
+        let url = "/open-apis/directory/v1/departments/mget";
+
+        let body = DepartmentMgetBody {
             department_ids: self.department_ids,
+            required_fields: self.required_fields,
         };
 
-        let req: ApiRequest<DepartmentMgetResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<DepartmentMgetResponse> = ApiRequest::post(url)
+            .body(serde_json::to_value(&body)?)
+            .query_opt("department_id_type", self.department_id_type);
+        Transport::request_typed(req, &self.config, Some(option), "批量获取部门信息").await
     }
 }
 
-/// 批量获取部门信息请求
+/// 批量获取部门信息请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct DepartmentMgetRequest {
-    /// 部门 ID 列表
-    #[serde(rename = "department_ids")]
-    department_ids: Vec<String>,
+pub struct DepartmentMgetBody {
+    /// 部门 ID 列表，与 department_id_type 类型保持一致（1~100 个）
+    pub department_ids: Vec<String>,
+    /// 需要查询的字段列表，如 ["name"]（不传则不会返回任何字段）
+    pub required_fields: Vec<String>,
 }
 
 /// 部门信息
@@ -116,18 +151,21 @@ pub type DepartmentMgetBuilder = DepartmentMgetRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST .../directory/v1/departments/mget → 强类型 DepartmentMgetResponse。
+    /// 端到端：POST 官方 department_ids + required_fields 请求体 → 强类型 DepartmentMgetResponse。
     #[tokio::test]
     async fn test_mget_department_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/directory/v1/departments/mget"))
+            .and(body_json(json!({
+                "department_ids": ["dept_001"],
+                "required_fields": ["name"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -155,6 +193,7 @@ mod tests {
 
         let resp = DepartmentMgetRequestBuilder::new(config)
             .department_id("dept_001")
+            .required_field("name")
             .execute()
             .await
             .expect("批量获取部门信息应成功");

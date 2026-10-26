@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,14 +17,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct SeatActivityListRequestBuilder {
     config: Config,
-    /// 页码
-    page: Option<u32>,
-    /// 每页数量
-    page_size: Option<u32>,
-    /// 开始时间
-    start_time: Option<i64>,
-    /// 结束时间
-    end_time: Option<i64>,
+    /// 查询参数
+    query: SeatActivityListQuery,
 }
 
 impl SeatActivityListRequestBuilder {
@@ -31,34 +26,29 @@ impl SeatActivityListRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            page: None,
-            page_size: None,
-            start_time: None,
-            end_time: None,
+            query: SeatActivityListQuery {
+                seat_type: String::new(),
+                page_size: 0,
+                page_token: None,
+            },
         }
     }
 
-    /// 设置页码
-    pub fn page(mut self, page: u32) -> Self {
-        self.page = Some(page);
+    /// 设置席位类型：`per_user`（平台席位）/ `per_user_per_app`（应用访问席位）
+    pub fn seat_type(mut self, seat_type: impl Into<String>) -> Self {
+        self.query.seat_type = seat_type.into();
         self
     }
 
-    /// 设置每页数量
-    pub fn page_size(mut self, page_size: u32) -> Self {
-        self.page_size = Some(page_size);
+    /// 设置分页大小，范围 [0, 500]
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.query.page_size = page_size;
         self
     }
 
-    /// 设置开始时间
-    pub fn start_time(mut self, start_time: i64) -> Self {
-        self.start_time = Some(start_time);
-        self
-    }
-
-    /// 设置结束时间
-    pub fn end_time(mut self, end_time: i64) -> Self {
-        self.end_time = Some(end_time);
+    /// 设置分页标记（第一次请求不填；使用返回的新 page_token 继续遍历）
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.query.page_token = Some(page_token.into());
         self
     }
 
@@ -72,23 +62,32 @@ impl SeatActivityListRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<SeatActivityListResponse> {
+        validate_required!(self.query.seat_type, "席位类型不能为空");
+
         let url = "/open-apis/apaas/v1/seat_activities";
 
         let mut req: ApiRequest<SeatActivityListResponse> = ApiRequest::get(url);
-        if let Some(page) = self.page {
-            req = req.query("page", page.to_string());
-        }
-        if let Some(page_size) = self.page_size {
-            req = req.query("page_size", page_size.to_string());
-        }
-        if let Some(start_time) = self.start_time {
-            req = req.query("start_time", start_time.to_string());
-        }
-        if let Some(end_time) = self.end_time {
-            req = req.query("end_time", end_time.to_string());
+        req = req.query("seat_type", self.query.seat_type.clone());
+        req = req.query("page_size", self.query.page_size.to_string());
+        if let Some(page_token) = self.query.page_token {
+            req = req.query("page_token", page_token);
         }
         Transport::request_typed(req, &self.config, Some(option), "查询席位活跃详情").await
     }
+}
+
+/// 查询席位活跃详情查询参数
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SeatActivityListQuery {
+    /// 席位类型，枚举值：per_user（平台席位）、per_user_per_app（应用访问席位）
+    #[serde(rename = "seat_type")]
+    pub seat_type: String,
+    /// 分页大小，范围 [0, 500]
+    #[serde(rename = "page_size")]
+    pub page_size: i32,
+    /// 分页标记，第一次请求不填，表示从头开始遍历
+    #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 /// 席位活跃信息
@@ -139,15 +138,63 @@ pub type SeatActivityListBuilder = SeatActivityListRequestBuilder;
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_builder_basic() {
-        let config = openlark_core::config::Config::builder()
-            .app_id("test_app")
-            .app_secret("test_secret")
+    /// 端到端：GET .../seat_activities?seat_type=...&page_size=... → 强类型 SeatActivityListResponse。
+    #[tokio::test]
+    async fn test_list_seat_activities_returns_data_on_success() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{method, path, query_param};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/open-apis/apaas/v1/seat_activities"))
+            .and(query_param("seat_type", "per_user"))
+            .and(query_param("page_size", "10"))
+            .and(query_param("page_token", "token_001"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "seat_id": "seat_001",
+                            "user_id": "1001",
+                            "active_time": 1727199298656i64,
+                            "activity_type": "app_visit"
+                        }
+                    ],
+                    "has_more": false,
+                    "page": 1,
+                    "page_size": 10
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
             .build();
-        let request = SeatActivityListRequestBuilder::new(config.clone())
-            .page(1)
-            .page_size(1);
-        let _ = request;
+
+        let resp = SeatActivityListRequestBuilder::new(config)
+            .seat_type("per_user")
+            .page_size(10)
+            .page_token("token_001")
+            .execute()
+            .await
+            .expect("查询席位活跃详情应成功");
+        assert_eq!(resp.items.len(), 1);
+        assert!(!resp.has_more);
+
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        // 查询参数须与官方文档一致：seat_type/page_size 必填 + page_token 可选
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("seat_type=per_user"));
+        assert!(query.contains("page_size=10"));
+        assert!(query.contains("page_token=token_001"));
     }
 }

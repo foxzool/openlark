@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,12 @@ pub struct EmployeeMgetRequestBuilder {
     config: Config,
     /// 员工 ID 列表
     employee_ids: Vec<String>,
+    /// 需要查询的字段列表
+    required_fields: Vec<String>,
+    /// 用户 ID 类型（查询参数，可选：open_id/union_id/employee_id）
+    employee_id_type: Option<String>,
+    /// 部门 ID 类型（查询参数，可选：department_id/open_department_id）
+    department_id_type: Option<String>,
 }
 
 impl EmployeeMgetRequestBuilder {
@@ -26,6 +33,9 @@ impl EmployeeMgetRequestBuilder {
         Self {
             config,
             employee_ids: Vec::new(),
+            required_fields: Vec::new(),
+            employee_id_type: None,
+            department_id_type: None,
         }
     }
 
@@ -45,6 +55,30 @@ impl EmployeeMgetRequestBuilder {
         self
     }
 
+    /// 添加需要查询的字段（如 "base_info.mobile"）
+    pub fn required_field(mut self, field: impl Into<String>) -> Self {
+        self.required_fields.push(field.into());
+        self
+    }
+
+    /// 设置需要查询的字段列表
+    pub fn required_fields(mut self, fields: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.required_fields = fields.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// 设置用户 ID 类型（查询参数）
+    pub fn employee_id_type(mut self, employee_id_type: impl Into<String>) -> Self {
+        self.employee_id_type = Some(employee_id_type.into());
+        self
+    }
+
+    /// 设置部门 ID 类型（查询参数）
+    pub fn department_id_type(mut self, department_id_type: impl Into<String>) -> Self {
+        self.department_id_type = Some(department_id_type.into());
+        self
+    }
+
     /// 执行请求
     pub async fn execute(self) -> SDKResult<EmployeeMgetResponse> {
         self.execute_with_options(RequestOption::default()).await
@@ -55,24 +89,35 @@ impl EmployeeMgetRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<EmployeeMgetResponse> {
-        let url = "/open-apis/directory/v1/employees/mget".to_string();
+        validate_required_list!(
+            self.employee_ids,
+            100,
+            "employee_ids 不能为空且不能超过 100 个"
+        );
+        validate_required!(self.required_fields, "required_fields 不能为空");
 
-        let request = EmployeeMgetRequest {
+        let url = "/open-apis/directory/v1/employees/mget";
+
+        let body = EmployeeMgetBody {
             employee_ids: self.employee_ids,
+            required_fields: self.required_fields,
         };
 
-        let req: ApiRequest<EmployeeMgetResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+        let req: ApiRequest<EmployeeMgetResponse> = ApiRequest::post(url)
+            .body(serde_json::to_value(&body)?)
+            .query_opt("employee_id_type", self.employee_id_type)
+            .query_opt("department_id_type", self.department_id_type);
+        Transport::request_typed(req, &self.config, Some(option), "批量获取员工信息").await
     }
 }
 
-/// 批量获取员工信息请求
+/// 批量获取员工信息请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct EmployeeMgetRequest {
-    /// 员工 ID 列表
-    #[serde(rename = "employee_ids")]
-    employee_ids: Vec<String>,
+pub struct EmployeeMgetBody {
+    /// 员工 ID 列表，与 employee_id_type 类型保持一致（1~100 个）
+    pub employee_ids: Vec<String>,
+    /// 需要查询的字段列表，如 ["base_info.mobile"]（不传则不会返回任何字段）
+    pub required_fields: Vec<String>,
 }
 
 /// 员工信息
@@ -80,22 +125,22 @@ struct EmployeeMgetRequest {
 pub struct EmployeeInfo {
     /// 员工 ID
     #[serde(rename = "employee_id")]
-    employee_id: String,
+    pub employee_id: String,
     /// 员工名称
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     /// 手机号
     #[serde(rename = "mobile")]
-    mobile: String,
+    pub mobile: String,
     /// 邮箱
     #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
+    pub email: Option<String>,
     /// 部门 ID 列表
     #[serde(rename = "department_ids")]
-    department_ids: Vec<String>,
+    pub department_ids: Vec<String>,
     /// 状态
     #[serde(rename = "status")]
-    status: String,
+    pub status: String,
 }
 
 /// 批量获取员工信息响应
@@ -119,18 +164,22 @@ pub type EmployeeMgetBuilder = EmployeeMgetRequestBuilder;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use wiremock::MockServer;
+    use wiremock::matchers::{body_json, method, path, query_param};
+    use wiremock::{Mock, ResponseTemplate};
 
-    /// 端到端：POST .../employees/mget → 强类型 EmployeeMgetResponse。
+    /// 端到端：POST 官方 employee_ids + required_fields 请求体 → 强类型 EmployeeMgetResponse。
     #[tokio::test]
     async fn test_mget_employees_returns_data_on_success() {
-        use serde_json::json;
-        use wiremock::MockServer;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/open-apis/directory/v1/employees/mget"))
+            .and(query_param("employee_id_type", "open_id"))
+            .and(body_json(json!({
+                "employee_ids": ["emp_001", "emp_002"],
+                "required_fields": ["base_info.mobile"]
+            })))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
@@ -166,6 +215,8 @@ mod tests {
 
         let resp = EmployeeMgetRequestBuilder::new(config)
             .employee_ids(["emp_001", "emp_002"])
+            .required_fields(["base_info.mobile"])
+            .employee_id_type("open_id")
             .execute()
             .await
             .expect("批量获取员工信息应成功");
@@ -182,5 +233,30 @@ mod tests {
             "/open-apis/directory/v1/employees/mget"
         );
         assert_eq!(received[0].method, "POST");
+    }
+
+    /// 必填校验：employee_ids 为空时不发请求。
+    #[tokio::test]
+    async fn test_mget_employees_validates_required_fields() {
+        let server = MockServer::start().await;
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let result = EmployeeMgetRequestBuilder::new(config)
+            .required_fields(["base_info.mobile"])
+            .execute()
+            .await;
+        assert!(result.is_err());
+        assert!(
+            server
+                .received_requests()
+                .await
+                .unwrap_or_default()
+                .is_empty()
+        );
     }
 }

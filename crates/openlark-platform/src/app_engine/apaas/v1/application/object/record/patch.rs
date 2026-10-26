@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,8 +23,8 @@ pub struct RecordPatchRequestBuilder {
     object_api_name: String,
     /// 记录 ID
     record_id: String,
-    /// 更新的数据
-    data: serde_json::Value,
+    /// 请求体
+    body: RecordPatchBody,
 }
 
 impl RecordPatchRequestBuilder {
@@ -39,34 +40,21 @@ impl RecordPatchRequestBuilder {
             namespace: namespace.into(),
             object_api_name: object_api_name.into(),
             record_id: record_id.into(),
-            data: serde_json::json!({}),
+            body: RecordPatchBody {
+                record: String::new(),
+            },
         }
     }
 
-    /// 设置更新的数据
-    pub fn data(mut self, data: impl Into<serde_json::Value>) -> Self {
-        self.data = data.into();
+    /// 设置记录数据（JSON 字符串，键为字段 API 名称，值为字段值）
+    pub fn record(mut self, record: impl Into<String>) -> Self {
+        self.body.record = record.into();
         self
     }
 
     /// 执行请求
     pub async fn execute(self) -> SDKResult<RecordPatchResponse> {
-        let url = format!(
-            "/open-apis/apaas/v1/applications/{}/objects/{}/records/{}",
-            self.namespace, self.object_api_name, self.record_id
-        );
-
-        let request = RecordPatchRequest { data: self.data };
-
-        let req: ApiRequest<RecordPatchResponse> =
-            ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(
-            req,
-            &self.config,
-            Some(RequestOption::default()),
-            "Operation",
-        )
-        .await
+        self.execute_with_options(RequestOption::default()).await
     }
 
     /// 使用选项执行请求
@@ -74,37 +62,32 @@ impl RecordPatchRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<RecordPatchResponse> {
+        validate_required!(self.namespace, "应用命名空间不能为空");
+        validate_required!(self.object_api_name, "对象唯一标识不能为空");
+        validate_required!(self.record_id, "记录ID不能为空");
+        validate_required!(self.body.record, "记录数据不能为空");
+
         let url = format!(
             "/open-apis/apaas/v1/applications/{}/objects/{}/records/{}",
             self.namespace, self.object_api_name, self.record_id
         );
 
-        let request = RecordPatchRequest { data: self.data };
-
         let req: ApiRequest<RecordPatchResponse> =
-            ApiRequest::patch(&url).body(serde_json::to_value(&request)?);
-        Transport::request_typed(req, &self.config, Some(option), "Operation").await
+            ApiRequest::patch(&url).body(serde_json::to_value(&self.body)?);
+        Transport::request_typed(req, &self.config, Some(option), "编辑记录").await
     }
 }
 
-/// 编辑记录请求
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct RecordPatchRequest {
-    /// 更新的数据
-    #[serde(rename = "data")]
-    data: serde_json::Value,
+/// 编辑记录请求体（官方字段：record 必填，为 JSON 字符串）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecordPatchBody {
+    /// 编辑对象使用的数据（JSON 字符串，键为字段 API 名称）
+    pub record: String,
 }
 
-/// 编辑记录响应
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct RecordPatchResponse {
-    /// 记录 ID
-    #[serde(rename = "id")]
-    pub id: String,
-    /// 更新时间
-    #[serde(rename = "updated_time")]
-    pub updated_time: i64,
-}
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+/// 编辑记录的响应（官方成功响应 data 为空对象，无业务字段）。
+pub struct RecordPatchResponse {}
 
 impl ApiResponseTrait for RecordPatchResponse {
     fn data_format() -> ResponseFormat {
@@ -120,7 +103,7 @@ pub type RecordPatchBuilder = RecordPatchRequestBuilder;
 mod tests {
     use super::*;
 
-    /// 端到端：PATCH .../records/{record_id} → 强类型 RecordPatchResponse。
+    /// 端到端：PATCH .../records/{record_id} → 官方形状（data 为空对象）。
     #[tokio::test]
     async fn test_patch_record_returns_data_on_success() {
         use serde_json::json;
@@ -136,7 +119,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "code": 0,
                 "msg": "success",
-                "data": { "id": "rec_001", "updated_time": 1700000002 }
+                "data": {}
             })))
             .mount(&server)
             .await;
@@ -148,19 +131,23 @@ mod tests {
             .enable_token_cache(false)
             .build();
 
-        let resp = RecordPatchRequestBuilder::new(config, "ns_test", "obj_test", "rec_001")
-            .data(json!({ "name": "更新后的记录" }))
+        let _resp = RecordPatchRequestBuilder::new(config, "ns_test", "obj_test", "rec_001")
+            .record("{\"book_count\":\"3\",\"book_name\":\"showcase2\"}")
             .execute()
             .await
             .expect("编辑记录应成功");
-        assert_eq!(resp.id, "rec_001");
-        assert_eq!(resp.updated_time, 1700000002);
 
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/applications/ns_test/objects/obj_test/records/rec_001"
+        );
+        // 请求体须与官方文档一致：record 为 JSON 字符串
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({ "record": "{\"book_count\":\"3\",\"book_name\":\"showcase2\"}" })
         );
     }
 }

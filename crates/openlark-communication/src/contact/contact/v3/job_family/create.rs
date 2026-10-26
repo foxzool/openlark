@@ -31,22 +31,22 @@ use crate::{
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateJobFamilyBody {
-    /// 序列名称。
-    name: String,
-    /// 序列描述。
+    /// 序列名称，租户内唯一，长度范围 1~100 字符。
+    pub name: String,
+    /// 序列描述，字符长度上限 5,000。
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
-    /// 父序列 ID。
+    pub description: Option<String>,
+    /// 上级序列 ID。
     #[serde(skip_serializing_if = "Option::is_none")]
-    parent_job_family_id: Option<String>,
-    /// 状态。
-    status: bool,
-    /// 国际化名称。
+    pub parent_job_family_id: Option<String>,
+    /// 是否启用序列：true 启用、false 禁用。
+    pub status: bool,
+    /// 多语言序列名称。
     #[serde(skip_serializing_if = "Option::is_none")]
-    i18n_name: Option<Vec<I18nContent>>,
-    /// 国际化描述。
+    pub i18n_name: Option<Vec<I18nContent>>,
+    /// 多语言序列描述。
     #[serde(skip_serializing_if = "Option::is_none")]
-    i18n_description: Option<Vec<I18nContent>>,
+    pub i18n_description: Option<Vec<I18nContent>>,
 }
 
 impl CreateJobFamilyBody {

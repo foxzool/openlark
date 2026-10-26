@@ -76,7 +76,7 @@ impl DirectoryUserIdConvertRequestBuilder {
         self,
         option: RequestOption,
     ) -> SDKResult<DirectoryUserIdConvertResponse> {
-        let request = DirectoryUserIdConvertRequest {
+        let request = DirectoryUserIdConvertBody {
             id_convert_type: self.id_convert_type,
             ids: self.ids,
         };
@@ -88,15 +88,15 @@ impl DirectoryUserIdConvertRequestBuilder {
     }
 }
 
-/// 用户 ID 转换请求
+/// 用户 ID 转换请求体
 #[derive(Debug, Clone, Serialize)]
-struct DirectoryUserIdConvertRequest {
+pub struct DirectoryUserIdConvertBody {
     /// ID 转换类型
     #[serde(rename = "id_convert_type")]
-    id_convert_type: UserIdConvertType,
+    pub id_convert_type: UserIdConvertType,
     /// 待转换 ID 列表
     #[serde(rename = "ids", skip_serializing_if = "Vec::is_empty")]
-    ids: Vec<String>,
+    pub ids: Vec<String>,
 }
 
 /// 单条 ID 映射
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_request_serialization() {
-        let request = DirectoryUserIdConvertRequest {
+        let request = DirectoryUserIdConvertBody {
             id_convert_type: UserIdConvertType::FeishuUnionIdToForceUserId,
             ids: vec!["ou_xxx".to_string()],
         };

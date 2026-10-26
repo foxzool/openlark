@@ -109,7 +109,7 @@ mod tests {
         let _ = api.app().list();
         let _ = api.approval_instance().list();
         let _ = api.approval_task().agree();
-        let _ = api.approval_task().transfer("task_1", "user_2");
+        let _ = api.approval_task().transfer("task_1");
         let _ = api.user_task().query();
         let _ = api.user_task().cc("task_1");
         let _ = api.seat_activity().list();

@@ -17,7 +17,15 @@ impl CollaborationShareEntityService {
     }
 
     /// 共享实体列表
-    pub fn list(&self) -> list::CollaborationShareEntityListRequestBuilder {
-        list::CollaborationShareEntityListRequestBuilder::new(self.config.clone())
+    ///
+    /// `target_tenant_key` 为对方组织的 tenant key（必填查询参数）。
+    pub fn list(
+        &self,
+        target_tenant_key: impl Into<String>,
+    ) -> list::CollaborationShareEntityListRequestBuilder {
+        list::CollaborationShareEntityListRequestBuilder::new(
+            self.config.clone(),
+            target_tenant_key,
+        )
     }
 }

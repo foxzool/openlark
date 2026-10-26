@@ -41,16 +41,11 @@ impl ApprovalTaskService {
         add_assignee::AddAssigneeRequestBuilder::new(self.config.clone())
     }
 
-    /// 转交审批任务（接收 approval_task_id 与 transfer_to_user_id 两个路径参数）
+    /// 转交审批任务（接收 approval_task_id 路径参数，请求体经 Builder 设置）
     pub fn transfer(
         &self,
         approval_task_id: impl Into<String>,
-        transfer_to_user_id: impl Into<String>,
     ) -> transfer::TransferApprovalTaskRequestBuilder {
-        transfer::TransferApprovalTaskRequestBuilder::new(
-            self.config.clone(),
-            approval_task_id,
-            transfer_to_user_id,
-        )
+        transfer::TransferApprovalTaskRequestBuilder::new(self.config.clone(), approval_task_id)
     }
 }

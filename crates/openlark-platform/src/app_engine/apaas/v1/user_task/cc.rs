@@ -9,6 +9,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
+    validate_required, validate_required_list,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,10 +19,8 @@ pub struct CcTaskRequestBuilder {
     config: Config,
     /// 任务 ID
     task_id: String,
-    /// 抄送用户 ID 列表
-    user_ids: Vec<String>,
-    /// 抄送原因
-    reason: Option<String>,
+    /// 请求体
+    body: CcTaskBody,
 }
 
 impl CcTaskRequestBuilder {
@@ -30,26 +29,30 @@ impl CcTaskRequestBuilder {
         Self {
             config,
             task_id: task_id.into(),
-            user_ids: Vec::new(),
-            reason: None,
+            body: CcTaskBody {
+                cc_user_ids: Vec::new(),
+                operator_user_id: String::new(),
+            },
         }
     }
 
     /// 添加抄送用户 ID
-    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
-        self.user_ids.push(user_id.into());
+    pub fn cc_user_id(mut self, cc_user_id: impl Into<String>) -> Self {
+        self.body.cc_user_ids.push(cc_user_id.into());
         self
     }
 
-    /// 添加多个抄送用户 ID
-    pub fn user_ids(mut self, user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.user_ids.extend(user_ids.into_iter().map(Into::into));
+    /// 添加多个抄送用户 ID（长度范围 1～10）
+    pub fn cc_user_ids(mut self, cc_user_ids: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.body
+            .cc_user_ids
+            .extend(cc_user_ids.into_iter().map(Into::into));
         self
     }
 
-    /// 设置抄送原因
-    pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
+    /// 设置操作人 kunlunUserID
+    pub fn operator_user_id(mut self, operator_user_id: impl Into<String>) -> Self {
+        self.body.operator_user_id = operator_user_id.into();
         self
     }
 
@@ -60,28 +63,30 @@ impl CcTaskRequestBuilder {
 
     /// 使用选项执行请求
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<CcTaskResponse> {
+        validate_required!(self.body.operator_user_id, "操作人ID不能为空");
+        validate_required_list!(
+            self.body.cc_user_ids,
+            10,
+            "抄送用户ID列表不能为空且不能超过 10 个"
+        );
+
         let url = format!("/open-apis/apaas/v1/user_tasks/{}/cc", self.task_id);
 
-        let request = CcTaskRequest {
-            user_ids: self.user_ids,
-            reason: self.reason,
-        };
-
         let req: ApiRequest<CcTaskResponse> =
-            ApiRequest::post(&url).body(serde_json::to_value(&request)?);
+            ApiRequest::post(&url).body(serde_json::to_value(&self.body)?);
         Transport::request_typed(req, &self.config, Some(option), "Operation").await
     }
 }
 
-/// 抄送请求
+/// 抄送请求体
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct CcTaskRequest {
-    /// 抄送用户 ID 列表
-    #[serde(rename = "user_ids")]
-    user_ids: Vec<String>,
-    /// 抄送原因
-    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
+pub struct CcTaskBody {
+    /// 抄送人的 kunlunID 列表，可通过 aPaaS 用户管理页面获取（长度范围 1～10）
+    #[serde(rename = "cc_user_ids")]
+    pub cc_user_ids: Vec<String>,
+    /// 操作人 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "operator_user_id")]
+    pub operator_user_id: String,
 }
 
 /// 抄送响应
@@ -143,8 +148,8 @@ mod tests {
             .build();
 
         let resp = CcTaskRequestBuilder::new(config, "task_001")
-            .user_ids(vec!["u_001".to_string(), "u_002".to_string()])
-            .reason("请知会")
+            .cc_user_ids(vec!["u_001".to_string(), "u_002".to_string()])
+            .operator_user_id("u_000")
             .execute()
             .await
             .expect("抄送人工任务应成功");
@@ -157,6 +162,15 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/user_tasks/task_001/cc"
+        );
+        // 请求体须与官方文档一致：cc_user_ids + operator_user_id
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "cc_user_ids": ["u_001", "u_002"],
+                "operator_user_id": "u_000"
+            })
         );
     }
 }

@@ -26,7 +26,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ForwardThreadBody {
     /// 接收者 ID。
-    receive_id: String,
+    pub receive_id: String,
 }
 
 impl ForwardThreadBody {

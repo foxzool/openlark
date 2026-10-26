@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 pub struct CancelInstanceRequestBuilder {
     approval_instance_id: String,
     config: Config,
+    /// 请求体
+    body: CancelInstanceBody,
 }
 
 impl CancelInstanceRequestBuilder {
@@ -23,12 +25,28 @@ impl CancelInstanceRequestBuilder {
         Self {
             approval_instance_id: String::new(),
             config,
+            body: CancelInstanceBody {
+                user_id: String::new(),
+                opinion: String::new(),
+            },
         }
     }
 
     /// 设置审批实例 ID。
     pub fn approval_instance_id(mut self, approval_instance_id: impl Into<String>) -> Self {
         self.approval_instance_id = approval_instance_id.into();
+        self
+    }
+
+    /// 设置操作用户的 kunlunUserID。
+    pub fn user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.body.user_id = user_id.into();
+        self
+    }
+
+    /// 设置撤销原因。
+    pub fn opinion(mut self, opinion: impl Into<String>) -> Self {
+        self.body.opinion = opinion.into();
         self
     }
 
@@ -43,15 +61,29 @@ impl CancelInstanceRequestBuilder {
         option: RequestOption,
     ) -> SDKResult<CancelInstanceResponse> {
         validate_required!(self.approval_instance_id, "实例ID不能为空");
+        validate_required!(self.body.user_id, "操作用户ID不能为空");
+        validate_required!(self.body.opinion, "撤销原因不能为空");
 
         let url = format!(
             "/open-apis/apaas/v1/approval_instances/{}/cancel",
             self.approval_instance_id
         );
-        let api_request: ApiRequest<CancelInstanceResponse> = ApiRequest::post(url);
+        let api_request: ApiRequest<CancelInstanceResponse> =
+            ApiRequest::post(url).body(serde_json::to_value(&self.body)?);
 
         Transport::request_typed(api_request, &self.config, Some(option), "撤销人工任务").await
     }
+}
+
+/// 撤销审批实例的请求体。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CancelInstanceBody {
+    /// 操作用户的 kunlunUserID，可通过 aPaaS 用户管理页面获取
+    #[serde(rename = "user_id")]
+    pub user_id: String,
+    /// 撤销原因
+    #[serde(rename = "opinion")]
+    pub opinion: String,
 }
 
 /// 撤销审批实例的响应。
@@ -105,6 +137,8 @@ mod tests {
 
         let resp = CancelInstanceRequestBuilder::new(config)
             .approval_instance_id("inst_001")
+            .user_id("u_001")
+            .opinion("撤销了")
             .execute()
             .await
             .expect("撤销审批实例应成功");
@@ -115,6 +149,15 @@ mod tests {
         assert_eq!(
             received[0].url.path(),
             "/open-apis/apaas/v1/approval_instances/inst_001/cancel"
+        );
+        // 请求体须与官方文档一致：user_id + opinion
+        let sent: serde_json::Value = received[0].body_json().expect("请求体应为 JSON");
+        assert_eq!(
+            sent,
+            json!({
+                "user_id": "u_001",
+                "opinion": "撤销了"
+            })
         );
     }
 }
