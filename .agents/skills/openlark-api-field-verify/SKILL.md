@@ -35,7 +35,7 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 
 ## 🎯 技能用途
 
-飞书开放平台文档是 **SPA（单页应用）**，内容靠 JS 动态渲染。常见的两种抓取方式各有局限：
+飞书开放平台文档是 **SPA（单页应用）**，内容靠 JS 动态渲染。常见的抓取方式各有局限：
 
 | 方式 | 问题 |
 |------|------|
@@ -43,7 +43,10 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 | 直接 HTTP 请求文档 URL | 只拿到 SPA 外壳，正文为空 |
 | web reader / 搜索引擎 | 新接口搜不到，SPA 抓不到 |
 
-**本技能用 playwright 真实渲染页面**，等待 JS 执行后提取 `innerText`，拿到完整的字段表。这是目前唯一可靠的方式。
+**两条可靠通道（按成本选）**：
+
+1. **`.md` 源（首选，零渲染成本）**：`https://open.feishu.cn<fullPath>.md`（CSV 的 `fullPath` 原样拼接）。SPA 页面 head 里 link alternate 指向的 markdown 源，含完整字段表与请求/响应示例。**get_detail 返回 41404 / structure_incomplete 的 API（约 47 个）文档网页仍活着，`.md` 全部可取**——这正是 evidence 管线的自动回退通道（`_needs_markdown_fallback`）。
+2. **playwright 渲染（备用）**：`.md` 拿不到或需要 innerText 形态时用本技能的 `fetch_doc.js` 真实渲染页面提取字段表。
 
 ## 📋 核心工作流
 
