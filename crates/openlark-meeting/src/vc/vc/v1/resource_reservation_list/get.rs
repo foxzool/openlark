@@ -81,7 +81,7 @@ impl GetResourceReservationListRequest {
         self
     }
 
-    /// 设置待筛选的会议室 ID 列表（官方以 room_ids=a&room_ids=b 重复参数传递，此处以逗号拼接）
+    /// 设置待筛选的会议室 ID 列表（官方以 room_ids=a&room_ids=b 同名多次传递）
     pub fn room_ids(mut self, room_ids: Vec<String>) -> Self {
         self.query.room_ids = room_ids;
         self
@@ -131,7 +131,8 @@ impl GetResourceReservationListRequest {
             .query("room_level_id", q.room_level_id)
             .query("start_time", q.start_time)
             .query("end_time", q.end_time)
-            .query("room_ids", q.room_ids.join(","))
+            // 官方要求 room_ids 以同名多次传递：room_ids=a&room_ids=b
+            .query_multi("room_ids", q.room_ids)
             .query_opt("need_topic", q.need_topic.map(|v| v.to_string()))
             .query_opt("is_exclude", q.is_exclude.map(|v| v.to_string()))
             .query_opt("page_size", q.page_size.map(|v| v.to_string()))
@@ -186,7 +187,10 @@ mod tests {
             .room_level_id("omb_57c9cc7d9a81e27e54c8fabfd02759e7")
             .start_time("1655276858")
             .end_time("1655277458")
-            .room_ids(vec!["omm_eada1d61a550955240c28757e7dec3af".to_string()])
+            .room_ids(vec![
+                "omm_eada1d61a550955240c28757e7dec3af".to_string(),
+                "omm_4de32cf10a4358788ff4e09e37ebbf9b".to_string(),
+            ])
             .need_topic(true)
             .execute()
             .await
@@ -203,12 +207,13 @@ mod tests {
             received[0].url.path(),
             "/open-apis/vc/v1/resource_reservation_list"
         );
-        // 官方必填查询参数：room_level_id/start_time/end_time/room_ids
+        // 官方必填查询参数：room_level_id/start_time/end_time/room_ids（同名多次传递）
         let query = received[0].url.query().unwrap_or("");
         assert!(query.contains("room_level_id=omb_57c9cc7d9a81e27e54c8fabfd02759e7"));
         assert!(query.contains("start_time=1655276858"));
         assert!(query.contains("end_time=1655277458"));
         assert!(query.contains("room_ids=omm_eada1d61a550955240c28757e7dec3af"));
+        assert!(query.contains("room_ids=omm_4de32cf10a4358788ff4e09e37ebbf9b"));
         assert!(query.contains("need_topic=true"));
     }
 }
