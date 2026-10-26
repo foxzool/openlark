@@ -6,13 +6,32 @@ use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
     validate_required,
 };
+use serde::{Deserialize, Serialize};
 
 /// 获取重复日程实例请求
 pub struct InstancesCalendarEventRequest {
     config: Config,
     calendar_id: String,
     event_id: String,
-    query_params: Vec<(String, String)>,
+    /// 查询参数
+    query: InstancesCalendarEventQuery,
+}
+
+/// 获取重复日程实例查询参数
+///
+/// start_time/end_time 必填（区间不能超过 2 年）；page_size/page_token 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstancesCalendarEventQuery {
+    /// 开始时间（Unix 时间戳，单位秒），与 end_time 构成查询区间
+    pub start_time: String,
+    /// 结束时间（Unix 时间戳，单位秒），与 start_time 构成查询区间
+    pub end_time: String,
+    /// 一次调用返回的日程数量上限（默认 50，取值 10 ～ 500）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_size: Option<i32>,
+    /// 分页标记，第一次请求不填
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_token: Option<String>,
 }
 
 impl InstancesCalendarEventRequest {
@@ -22,7 +41,12 @@ impl InstancesCalendarEventRequest {
             config,
             calendar_id: String::new(),
             event_id: String::new(),
-            query_params: Vec::new(),
+            query: InstancesCalendarEventQuery {
+                start_time: String::new(),
+                end_time: String::new(),
+                page_size: None,
+                page_token: None,
+            },
         }
     }
 
@@ -38,9 +62,27 @@ impl InstancesCalendarEventRequest {
         self
     }
 
-    /// 追加查询参数
-    pub fn query_param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.query_params.push((key.into(), value.into()));
+    /// 设置开始时间（Unix 时间戳，单位秒）
+    pub fn start_time(mut self, start_time: impl Into<String>) -> Self {
+        self.query.start_time = start_time.into();
+        self
+    }
+
+    /// 设置结束时间（Unix 时间戳，单位秒）
+    pub fn end_time(mut self, end_time: impl Into<String>) -> Self {
+        self.query.end_time = end_time.into();
+        self
+    }
+
+    /// 设置一次调用返回的日程数量上限（默认 50，取值 10 ～ 500）
+    pub fn page_size(mut self, page_size: i32) -> Self {
+        self.query.page_size = Some(page_size);
+        self
+    }
+
+    /// 设置分页标记，第一次请求不填
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.query.page_token = Some(page_token.into());
         self
     }
 
@@ -55,15 +97,19 @@ impl InstancesCalendarEventRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         validate_required!(self.calendar_id, "calendar_id 不能为空");
         validate_required!(self.event_id, "event_id 不能为空");
+        validate_required!(self.query.start_time, "start_time 不能为空");
+        validate_required!(self.query.end_time, "end_time 不能为空");
 
         // url: GET:/open-apis/calendar/v4/calendars/:calendar_id/events/:event_id/instances
-        let mut req: ApiRequest<serde_json::Value> = ApiRequest::get(format!(
+        let q = self.query;
+        let req: ApiRequest<serde_json::Value> = ApiRequest::get(format!(
             "/open-apis/calendar/v4/calendars/{}/events/{}/instances",
             self.calendar_id, self.event_id
-        ));
-        for (k, v) in self.query_params {
-            req = req.query(k, v);
-        }
+        ))
+        .query("start_time", q.start_time)
+        .query("end_time", q.end_time)
+        .query_opt("page_size", q.page_size.map(|size| size.to_string()))
+        .query_opt("page_token", q.page_token);
 
         Transport::request_typed(req, &self.config, Some(option), "获取重复日程实例").await
     }
@@ -73,7 +119,7 @@ impl InstancesCalendarEventRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：GET .../events/{event_id}/instances → 裸 Value 解析（单层 data 信封，带 page_size 查询参数）。
+    /// 端到端：GET .../events/{event_id}/instances → 裸 Value 解析（单层 data 信封）+ 官方必填查询参数。
     #[tokio::test]
     async fn test_instances_calendar_event_returns_data_on_success() {
         use serde_json::json;
@@ -104,7 +150,9 @@ mod tests {
         let resp = InstancesCalendarEventRequest::new(config)
             .calendar_id("cal_001")
             .event_id("evt_001")
-            .query_param("page_size", "20")
+            .start_time("1631777271")
+            .end_time("1634455671")
+            .page_size(20)
             .execute()
             .await
             .expect("获取重复日程实例应成功");
@@ -116,6 +164,10 @@ mod tests {
             received[0].url.path(),
             "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/instances"
         );
-        assert_eq!(received[0].url.query(), Some("page_size=20"));
+        // 官方必填查询参数：start_time/end_time；可选：page_size
+        let query = received[0].url.query().unwrap_or("");
+        assert!(query.contains("start_time=1631777271"));
+        assert!(query.contains("end_time=1634455671"));
+        assert!(query.contains("page_size=20"));
     }
 }

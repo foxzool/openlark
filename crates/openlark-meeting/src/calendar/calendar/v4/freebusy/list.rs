@@ -1,9 +1,10 @@
 //! 查询主日历日程忙闲信息
 //!
-//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list>
+//! docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/freebusy/list>
 
 use openlark_core::{
     SDKResult, api::ApiRequest, config::Config, http::Transport, req_option::RequestOption,
+    validate_required,
 };
 
 use super::models::{ListFreebusyRequestBody, ListFreebusyResponse};
@@ -21,7 +22,7 @@ impl ListFreebusyRequest {
 
     /// 执行请求
     ///
-    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/calendar/list>
+    /// docPath: <https://open.feishu.cn/document/server-docs/calendar-v4/freebusy/list>
     pub async fn execute(self, body: ListFreebusyRequestBody) -> SDKResult<ListFreebusyResponse> {
         self.execute_with_options(RequestOption::default(), body)
             .await
@@ -33,6 +34,8 @@ impl ListFreebusyRequest {
         option: RequestOption,
         body: ListFreebusyRequestBody,
     ) -> SDKResult<ListFreebusyResponse> {
+        validate_required!(body.time_min, "time_min 不能为空");
+        validate_required!(body.time_max, "time_max 不能为空");
         let url = "/open-apis/calendar/v4/freebusy/list";
         let req: ApiRequest<ListFreebusyResponse> =
             ApiRequest::post(url).body(serialize_params(&body, "查询主日历日程忙闲信息")?);

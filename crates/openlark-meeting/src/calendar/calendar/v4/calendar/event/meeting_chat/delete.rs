@@ -7,6 +7,8 @@ use openlark_core::{
     validate_required,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::endpoints::CALENDAR_V4_CALENDARS;
 
 /// 解绑会议群请求
@@ -14,6 +16,17 @@ pub struct DeleteMeetingChatRequest {
     config: Config,
     calendar_id: String,
     event_id: String,
+    /// 查询参数
+    query: DeleteMeetingChatQuery,
+}
+
+/// 解绑会议群查询参数
+///
+/// meeting_chat_id 必填。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteMeetingChatQuery {
+    /// 会议群 ID，在创建会议群时会返回
+    pub meeting_chat_id: String,
 }
 
 impl DeleteMeetingChatRequest {
@@ -23,6 +36,9 @@ impl DeleteMeetingChatRequest {
             config,
             calendar_id: String::new(),
             event_id: String::new(),
+            query: DeleteMeetingChatQuery {
+                meeting_chat_id: String::new(),
+            },
         }
     }
 
@@ -38,6 +54,12 @@ impl DeleteMeetingChatRequest {
         self
     }
 
+    /// 设置会议群 ID（创建会议群时返回）
+    pub fn meeting_chat_id(mut self, meeting_chat_id: impl Into<String>) -> Self {
+        self.query.meeting_chat_id = meeting_chat_id.into();
+        self
+    }
+
     /// 执行请求
     ///
     /// docPath: <https://open.feishu.cn/document/calendar-v4/calendar-event-meeting_chat/delete>
@@ -49,12 +71,14 @@ impl DeleteMeetingChatRequest {
     pub async fn execute_with_options(self, option: RequestOption) -> SDKResult<serde_json::Value> {
         validate_required!(self.calendar_id, "calendar_id 不能为空");
         validate_required!(self.event_id, "event_id 不能为空");
+        validate_required!(self.query.meeting_chat_id, "meeting_chat_id 不能为空");
 
         // url: DELETE:/open-apis/calendar/v4/calendars/:calendar_id/events/:event_id/meeting_chat
         let req: ApiRequest<serde_json::Value> = ApiRequest::delete(format!(
             "{}/{}/events/{}/meeting_chat",
             CALENDAR_V4_CALENDARS, self.calendar_id, self.event_id
-        ));
+        ))
+        .query("meeting_chat_id", self.query.meeting_chat_id);
 
         Transport::request_typed(req, &self.config, Some(option), "解绑会议群").await
     }
@@ -64,7 +88,7 @@ impl DeleteMeetingChatRequest {
 mod tests {
     use super::*;
 
-    /// 端到端：DELETE .../events/{event_id}/meeting_chat → 裸 Value 解析（单层 data 信封）。
+    /// 端到端：DELETE .../events/{event_id}/meeting_chat → 裸 Value 解析（单层 data 信封）+ 官方必填查询参数。
     #[tokio::test]
     async fn test_delete_meeting_chat_returns_data_on_success() {
         use serde_json::json;
@@ -95,6 +119,7 @@ mod tests {
         let resp = DeleteMeetingChatRequest::new(config)
             .calendar_id("cal_001")
             .event_id("evt_001")
+            .meeting_chat_id("oc_001")
             .execute()
             .await
             .expect("解绑会议群应成功");
@@ -106,5 +131,7 @@ mod tests {
             received[0].url.path(),
             "/open-apis/calendar/v4/calendars/cal_001/events/evt_001/meeting_chat"
         );
+        // 官方必填查询参数：meeting_chat_id
+        assert_eq!(received[0].url.query(), Some("meeting_chat_id=oc_001"));
     }
 }
