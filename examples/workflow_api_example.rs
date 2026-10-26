@@ -43,8 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &created.task_guid,
             WorkflowTaskMutation::new()
                 .summary("完成项目文档")
-                .description("编写并完成 OpenLark SDK 的工作流模块文档")
-                .priority(3),
+                .description("编写并完成 OpenLark SDK 的工作流模块文档"),
         )
         .await?;
 

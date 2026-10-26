@@ -19,6 +19,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 
+/// 批量查询元数据请求体
+///
+/// 字段与官方文档对齐：`request_docs` 必填（1~200 个）；`with_url` 可选。
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchQueryMetaRequestBody {
+    /// 文件 token 列表（一次请求中不可超过 200 个）
+    pub request_docs: Vec<RequestDoc>,
+    /// 是否获取文件的访问链接（默认 false）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub with_url: Option<bool>,
+}
+
 /// 批量查询元数据请求
 
 #[derive(Debug, Clone, Serialize)]
@@ -193,9 +205,14 @@ pub async fn batch_query(
 
     let api_endpoint = DriveApi::BatchQueryMetas;
 
-    let mut api_request: ApiRequest<BatchQueryMetaResponse> = api_endpoint
-        .to_request()
-        .body(serialize_params(&request, "获取文件元数据")?);
+    let mut api_request: ApiRequest<BatchQueryMetaResponse> =
+        api_endpoint.to_request().body(serialize_params(
+            &BatchQueryMetaRequestBody {
+                request_docs: request.request_docs,
+                with_url: request.with_url,
+            },
+            "获取文件元数据",
+        )?);
 
     if let Some(user_id_type) = &request.user_id_type {
         match user_id_type.as_str() {
@@ -257,5 +274,11 @@ mod tests {
             received[0].url.path(),
             "/open-apis/drive/v1/metas/batch_query"
         );
+        // 官方请求体：request_docs 必填（元素为 doc_token/doc_type）
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["request_docs"][0]["doc_token"], "ftk001");
+        assert_eq!(body["request_docs"][0]["doc_type"], "doc");
+        assert!(body.get("with_url").is_none());
     }
 }

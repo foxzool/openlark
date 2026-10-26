@@ -17,6 +17,23 @@ use crate::common::{api_endpoints::DriveApi, api_utils::*};
 
 use super::models::PermissionMember;
 
+/// 更新协作者权限请求体
+///
+/// 字段与官方文档对齐：`member_type`、`perm` 必填；`perm_type`、`type` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePermissionMemberRequestBody {
+    /// 协作者 ID 类型，与协作者 ID 需要对应
+    pub member_type: String,
+    /// 协作者对应的权限角色（view/edit/full_access）
+    pub perm: String,
+    /// 协作者的权限角色类型（container/single_page，默认 container）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub perm_type: Option<String>,
+    /// 协作者类型（官方字段 `type`，当 member_type 为 wikispaceid 时必填）
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub member_kind: Option<String>,
+}
+
 /// 更新协作者权限请求
 ///
 /// 用于更新文件或文件夹中指定协作者的权限。
@@ -220,16 +237,6 @@ impl UpdatePermissionMemberRequest {
         let api_endpoint =
             DriveApi::UpdatePermissionMember(self.token.clone(), self.member_id.clone());
 
-        #[derive(Serialize)]
-        struct UpdatePermissionMemberRequestBody {
-            member_type: String,
-            perm: String,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            perm_type: Option<String>,
-            #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-            r#type: Option<String>,
-        }
-
         let mut api_request: ApiRequest<UpdatePermissionMemberResponse> =
             api_endpoint.to_request().query("type", &self.file_type);
 
@@ -241,7 +248,7 @@ impl UpdatePermissionMemberRequest {
             member_type: self.member_type,
             perm: self.perm,
             perm_type: self.perm_type,
-            r#type: self.member_kind,
+            member_kind: self.member_kind,
         };
 
         api_request = api_request.body(serialize_params(&body, "更新协作者权限")?);

@@ -97,56 +97,96 @@ pub struct CreateTaskBody {
     pub repeat_rule: Option<Value>,
 }
 
-/// 更新任务请求体
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct UpdateTaskBody {
-    /// 任务标题
+/// 自定义字段值（input_custom_field_value，更新任务时传入）
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct InputCustomFieldValue {
+    /// 自定义字段 GUID（必填）
+    #[serde(default)]
+    pub guid: String,
+
+    /// 数字类型字段值（合法数字的字符串表示，空字符串表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub number_value: Option<String>,
+
+    /// 人员类型字段值（1-50 个 member，仅支持 user 类型；空数组表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member_value: Option<Vec<TaskMember>>,
+
+    /// 日期类型字段值（毫秒时间戳字符串，空字符串表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub datetime_value: Option<String>,
+
+    /// 单选类型字段值（字段选项的 option_guid，空字符串表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub single_select_value: Option<String>,
+
+    /// 多选类型字段值（option_guid 列表，空数组表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multi_select_value: Option<Vec<String>>,
+
+    /// 文本类型字段值（最长 3000 字符，空字符串表示设为空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_value: Option<String>,
+}
+
+/// 要更新的任务数据（input_task，只设置出现在 update_fields 中的字段）
+#[derive(Debug, Clone, Serialize, Default, PartialEq)]
+pub struct InputTask {
+    /// 任务标题（如更新标题，不可设为空，最长 3000 个 UTF-8 字符）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
 
-    /// 任务描述
+    /// 任务描述（最长 3000 个 UTF-8 字符）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
     /// 任务开始时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start: Option<String>,
+    pub start: Option<TaskTimePoint>,
 
     /// 任务截止时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub due: Option<String>,
+    pub due: Option<TaskTimePoint>,
 
-    /// 任务优先级（1-5）
+    /// 调用者附带的任意数据（获取任务详情时原样返回）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub priority: Option<i32>,
+    pub extra: Option<String>,
 
-    /// 自定义字段
+    /// 任务的完成时刻时间戳（毫秒字符串）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub custom_fields: Option<Value>,
+    pub completed_at: Option<String>,
 
-    /// 任务关注者
+    /// 重复任务规则（RRule 语法）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub followers: Option<Vec<String>>,
+    pub repeat_rule: Option<String>,
 
-    /// 子任务
+    /// 任务自定义完成配置（pc/ios/android 各端 {href, tip{i18n}} 嵌套结构，按官方文档透传）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtasks: Option<Vec<Value>>,
+    pub custom_complete: Option<Value>,
 
-    /// 任务执行者
+    /// 任务的完成模式（1-会签任务；2-或签任务）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub assignee: Option<String>,
+    pub mode: Option<i32>,
 
-    /// 任务提醒时间
+    /// 是否是里程碑任务
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub remind_time: Option<String>,
+    pub is_milestone: Option<bool>,
 
-    /// 重复规则
+    /// 自定义字段值列表（按字段类型填写对应的 *_value 字段）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub repeat_rule: Option<Value>,
+    pub custom_fields: Option<Vec<InputCustomFieldValue>>,
+}
 
-    /// 任务状态
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+/// 更新任务请求体
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct UpdateTaskBody {
+    /// 要更新的任务数据（只设置出现在 update_fields 中的字段；
+    /// update_fields 声明了某字段而 task 未设置新值表示将该字段清空）
+    pub task: InputTask,
+
+    /// 要更新的字段名列表，支持：summary / description / start / due / completed_at /
+    /// extra / custom_complete / repeat_rule / mode / is_milestone / custom_fields
+    pub update_fields: Vec<String>,
 }
 
 /// 创建任务响应

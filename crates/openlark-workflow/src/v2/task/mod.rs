@@ -208,8 +208,8 @@ pub use add_reminders::{AddRemindersResponse, TaskReminder};
 pub use add_tasklist::{AddTasklistBody, AddTasklistResponse};
 pub use models::{
     CompleteTaskResponse, CreateTaskBody, CreateTaskResponse, DeleteTaskResponse, GetTaskResponse,
-    ListTasksResponse, TaskInTasklistInfo, TaskItem, TaskMember, TaskTimePoint,
-    UncompleteTaskResponse, UpdateTaskBody, UpdateTaskResponse,
+    InputCustomFieldValue, InputTask, ListTasksResponse, TaskInTasklistInfo, TaskItem, TaskMember,
+    TaskTimePoint, UncompleteTaskResponse, UpdateTaskBody, UpdateTaskResponse,
 };
 pub use remove_dependencies::{
     RemoveDependenciesBody, RemoveDependenciesResponse, TaskDependencyInput,

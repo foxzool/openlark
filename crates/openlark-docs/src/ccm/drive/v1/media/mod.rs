@@ -17,8 +17,12 @@ pub use download::DownloadMediaRequest;
 
 pub use upload_all::{UploadAllMediaRequest, UploadAllMediaResponse};
 
-pub use upload_finish::{UploadFinishMediaRequest, UploadFinishMediaResponse};
+pub use upload_finish::{
+    UploadFinishMediaBody, UploadFinishMediaRequest, UploadFinishMediaResponse,
+};
 
 pub use upload_part::{UploadPartMediaRequest, UploadPartMediaResponse};
 
-pub use upload_prepare::{UploadPrepareMediaRequest, UploadPrepareMediaResponse};
+pub use upload_prepare::{
+    UploadPrepareMediaBody, UploadPrepareMediaRequest, UploadPrepareMediaResponse,
+};

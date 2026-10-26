@@ -202,7 +202,7 @@ impl CreateFieldRequest {
         // 构建请求体
         let body = CreateFieldRequestBody {
             field_name: self.field_name,
-            r#type: self.r#type,
+            field_type: self.r#type,
             property: self.property,
             description: self.description,
             ui_type: self.ui_type,
@@ -245,14 +245,23 @@ pub struct Field {
     pub is_hidden: bool,
 }
 
-/// 请求体结构
+/// 创建字段请求体。
 #[derive(Serialize)]
-struct CreateFieldRequestBody {
-    field_name: String,
-    r#type: FieldType,
-    property: Option<FieldProperty>,
-    description: Option<Value>,
-    ui_type: Option<String>,
+pub struct CreateFieldRequestBody {
+    /// 字段名称
+    pub field_name: String,
+    /// 字段类型（官方键为 `type`）
+    #[serde(rename = "type")]
+    pub field_type: FieldType,
+    /// 字段属性
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub property: Option<FieldProperty>,
+    /// 字段的描述
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<Value>,
+    /// 字段在界面上的展示类型
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ui_type: Option<String>,
 }
 
 /// 创建字段响应

@@ -67,6 +67,23 @@ pub struct CopyFileRequest {
     pub extra: Option<Vec<Property>>,
 }
 
+/// 复制文件请求体
+///
+/// 字段与官方文档对齐：`name`、`folder_token` 必填；`type`、`extra` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CopyFileRequestBody {
+    /// 复制的新文件的名称（最大 256 字节）
+    pub name: String,
+    /// 被复制的源文件的类型（官方字段 `type`）
+    #[serde(rename = "type")]
+    pub file_type: String,
+    /// 目标文件夹的 token
+    pub folder_token: String,
+    /// 自定义请求附加参数，用于实现特殊的复制语义
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra: Option<Vec<Property>>,
+}
+
 impl CopyFileRequest {
     /// 创建复制文件请求
     ///
@@ -200,20 +217,10 @@ impl CopyFileRequest {
             request = request.query("user_id_type", user_id_type);
         }
 
-        #[derive(Serialize)]
-        struct CopyFileBody {
-            name: String,
-            #[serde(rename = "type")]
-            r#type: String,
-            folder_token: String,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            extra: Option<Vec<Property>>,
-        }
-
         request = request.body(serialize_params(
-            &CopyFileBody {
+            &CopyFileRequestBody {
                 name: self.name,
-                r#type: self.r#type,
+                file_type: self.r#type,
                 folder_token: self.folder_token,
                 extra: self.extra,
             },

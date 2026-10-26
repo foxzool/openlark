@@ -3,10 +3,12 @@
 
 use openlark_workflow::v2::comment::{CreateCommentBody, ListCommentsResponse};
 use openlark_workflow::v2::custom_field::{
-    CreateCustomFieldBody, CustomFieldConfig, CustomFieldType, ListCustomFieldsResponse,
+    CreateCustomFieldBody, CustomFieldType, ListCustomFieldsResponse, SelectOption, SelectSetting,
 };
 use openlark_workflow::v2::task::{CreateTaskBody, ListTasksResponse};
-use openlark_workflow::v2::tasklist::{CreateTasklistBody, ListTasklistsResponse, TasklistIcon};
+use openlark_workflow::v2::tasklist::{
+    CreateTasklistBody, ListTasklistsResponse, TasklistMemberDetail,
+};
 use openlark_workflow::{
     ApprovalTaskAction, ApprovalTaskQuery, WorkflowTaskCreate, WorkflowTaskListQuery,
     WorkflowTaskMutation,
@@ -78,12 +80,9 @@ fn workflow_helper_models_preserve_builder_contracts() {
     let mutation = WorkflowTaskMutation::new()
         .summary("完成项目文档")
         .description("补齐 contract tests")
-        .due("2026-12-31T23:59:59Z")
-        .priority(3)
-        .assignee("ou_xxx")
-        .status("InProgress");
+        .due("1767139200000");
     assert_eq!(mutation.summary.as_deref(), Some("完成项目文档"));
-    assert_eq!(mutation.status.as_deref(), Some("InProgress"));
+    assert_eq!(mutation.due.as_deref(), Some("1767139200000"));
 
     let approval_query = ApprovalTaskQuery::new("ou_xxx", "1")
         .user_id_type("open_id")
@@ -199,21 +198,26 @@ fn task_request_and_list_response_contract() {
 #[test]
 fn tasklist_request_and_response_contract() {
     let request = CreateTasklistBody {
-        summary: "Q4 发布".to_string(),
-        description: Some("聚合本季度关键交付".to_string()),
-        icon: Some(TasklistIcon::Emoji {
-            emoji: "🚀".to_string(),
-        }),
+        name: "Q4 发布".to_string(),
+        members: Some(vec![TasklistMemberDetail {
+            id: Some("ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f".to_string()),
+            r#type: Some("user".to_string()),
+            role: Some("editor".to_string()),
+            name: Some("张明德（明德）".to_string()),
+        }]),
     };
     assert_json_contract(
         &request,
         json!({
-            "summary": "Q4 发布",
-            "description": "聚合本季度关键交付",
-            "icon": {
-                "type": "emoji",
-                "emoji": "🚀"
-            }
+            "name": "Q4 发布",
+            "members": [
+                {
+                    "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                    "type": "user",
+                    "role": "editor",
+                    "name": "张明德（明德）"
+                }
+            ]
         }),
     );
 
@@ -261,7 +265,7 @@ fn tasklist_request_and_response_contract() {
 #[test]
 fn comment_and_custom_field_contract() {
     let comment_request = CreateCommentBody {
-        content: Some("请补充发布回滚说明".to_string()),
+        content: "请补充发布回滚说明".to_string(),
         ..CreateCommentBody::default()
     };
     assert_json_contract(
@@ -295,20 +299,39 @@ fn comment_and_custom_field_contract() {
 
     let custom_field_request = CreateCustomFieldBody {
         name: "风险等级".to_string(),
-        config: CustomFieldConfig {
-            field_type: CustomFieldType::Select,
-            options: Some(vec!["高".to_string(), "中".to_string(), "低".to_string()]),
-        },
+        field_type: CustomFieldType::SingleSelect,
+        single_select_setting: Some(SelectSetting {
+            options: Some(vec![
+                SelectOption {
+                    name: "高".to_string(),
+                    color_index: Some(1),
+                    is_hidden: Some(false),
+                },
+                SelectOption {
+                    name: "中".to_string(),
+                    ..Default::default()
+                },
+                SelectOption {
+                    name: "低".to_string(),
+                    ..Default::default()
+                },
+            ]),
+        }),
         resource_type: "tasklist".to_string(),
         resource_id: "tasklist_123".to_string(),
+        ..Default::default()
     };
     assert_json_contract(
         &custom_field_request,
         json!({
             "name": "风险等级",
-            "config": {
-                "type": "select",
-                "options": ["高", "中", "低"]
+            "type": "single_select",
+            "single_select_setting": {
+                "options": [
+                    {"name": "高", "color_index": 1, "is_hidden": false},
+                    {"name": "中"},
+                    {"name": "低"}
+                ]
             },
             "resource_type": "tasklist",
             "resource_id": "tasklist_123"
@@ -324,7 +347,7 @@ fn comment_and_custom_field_contract() {
                 "field_guid": "field_1",
                 "name": "风险等级",
                 "config": {
-                    "type": "select",
+                    "type": "single_select",
                     "options": ["高", "中", "低"]
                 },
                 "created_at": "2026-12-01T09:00:00Z",

@@ -5,16 +5,12 @@ use serde::{Deserialize, Serialize};
 /// 创建任务清单请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct CreateTasklistBody {
-    /// 任务清单标题
-    pub summary: String,
+    /// 清单名称（必填，最多 100 个字符）
+    pub name: String,
 
-    /// 任务清单描述
+    /// 清单的成员列表（可选，最多 500 个）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-
-    /// 任务清单图标
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub icon: Option<TasklistIcon>,
+    pub members: Option<Vec<TasklistMemberDetail>>,
 }
 
 /// 任务清单图标
@@ -90,25 +86,8 @@ pub struct UpdateTasklistBody {
 /// 创建任务清单响应
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateTasklistResponse {
-    /// 任务清单 GUID
-    pub tasklist_guid: String,
-
-    /// 任务清单标题
-    pub summary: String,
-
-    /// 任务清单描述
-    #[serde(default)]
-    pub description: Option<String>,
-
-    /// 任务清单图标
-    #[serde(default)]
-    pub icon: Option<TasklistIcon>,
-
-    /// 创建时间
-    pub created_at: String,
-
-    /// 更新时间
-    pub updated_at: String,
+    /// 创建的清单数据
+    pub tasklist: TasklistDetail,
 }
 
 /// 获取任务清单响应

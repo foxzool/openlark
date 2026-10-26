@@ -204,21 +204,16 @@ impl WorkflowTaskCreate {
 
 /// 任务变更 helper。
 ///
-/// 只覆盖高频可变字段，不试图替代完整 typed request。
+/// 只覆盖 v2 更新任务接口支持的变更字段（summary / description / due），
+/// 不试图替代完整 typed request（start / custom_fields / mode 等走 typed API）。
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct WorkflowTaskMutation {
     /// 任务标题。
     pub summary: Option<String>,
     /// 任务描述。
     pub description: Option<String>,
-    /// 截止时间。
+    /// 任务截止时间（毫秒时间戳字符串，如 "1675454764000"）。
     pub due: Option<String>,
-    /// 优先级。
-    pub priority: Option<i32>,
-    /// 执行者。
-    pub assignee: Option<String>,
-    /// 状态。
-    pub status: Option<String>,
 }
 
 impl WorkflowTaskMutation {
@@ -239,28 +234,9 @@ impl WorkflowTaskMutation {
         self
     }
 
-    /// 设置截止时间。
+    /// 设置任务截止时间（毫秒时间戳字符串，按非全天事件发送 is_all_day=false）。
     pub fn due(mut self, due: impl Into<String>) -> Self {
         self.due = Some(due.into());
-        self
-    }
-
-    /// 设置优先级。
-    pub fn priority(mut self, priority: i32) -> Self {
-        self.priority = Some(priority);
-        self
-    }
-
-    /// 设置执行者。
-    pub fn assignee(mut self, assignee: impl Into<String>) -> Self {
-        self.assignee = Some(assignee.into());
-        self
-    }
-
-    /// 设置审批状态。
-    /// 设置任务状态。
-    pub fn status(mut self, status: impl Into<String>) -> Self {
-        self.status = Some(status.into());
         self
     }
 }
@@ -499,7 +475,7 @@ impl WorkflowService {
         request.execute().await
     }
 
-    /// 使用 helper 风格更新任务高频字段。
+    /// 使用 helper 风格更新任务高频字段（v2 更新接口支持 summary / description / due）。
     #[cfg(feature = "v2")]
     pub async fn mutate_task(
         &self,
@@ -516,16 +492,11 @@ impl WorkflowService {
             request = request.description(description);
         }
         if let Some(due) = mutation.due {
-            request = request.due(due);
-        }
-        if let Some(priority) = mutation.priority {
-            request = request.priority(priority);
-        }
-        if let Some(assignee) = mutation.assignee {
-            request = request.assignee(assignee);
-        }
-        if let Some(status) = mutation.status {
-            request = request.status(status);
+            // helper 只表达毫秒时间戳；全天事件等高级设置走 typed API
+            request = request.due(crate::v2::task::models::TaskTimePoint {
+                timestamp: Some(due),
+                is_all_day: Some(false),
+            });
         }
 
         request.execute().await
@@ -701,20 +672,14 @@ mod tests {
         let mutation = WorkflowTaskMutation::new()
             .summary("完成项目文档")
             .description("补齐 workflow helper")
-            .due("2026-09-30T23:59:59Z")
-            .priority(3)
-            .assignee("ou_xxx")
-            .status("in_progress");
+            .due("1767139200000");
 
         assert_eq!(mutation.summary.as_deref(), Some("完成项目文档"));
         assert_eq!(
             mutation.description.as_deref(),
             Some("补齐 workflow helper")
         );
-        assert_eq!(mutation.due.as_deref(), Some("2026-09-30T23:59:59Z"));
-        assert_eq!(mutation.priority, Some(3));
-        assert_eq!(mutation.assignee.as_deref(), Some("ou_xxx"));
-        assert_eq!(mutation.status.as_deref(), Some("in_progress"));
+        assert_eq!(mutation.due.as_deref(), Some("1767139200000"));
     }
 
     #[test]

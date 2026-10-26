@@ -25,19 +25,28 @@ pub mod update;
 
 // 显式导出 - 避免使用 glob reexport
 /// 重新导出相关类型。
-pub use batch_create::{BatchCreateRecordRequest, BatchCreateRecordResponse, CreateRecordItem};
+pub use batch_create::{
+    BatchCreateRecordRequest, BatchCreateRecordRequestBody, BatchCreateRecordResponse,
+    CreateRecordItem,
+};
 
 /// 重新导出相关类型。
-pub use batch_delete::{BatchDeleteRecordRequest, BatchDeleteRecordResponse, DeletedRecord};
+pub use batch_delete::{
+    BatchDeleteRecordRequest, BatchDeleteRecordRequestBody, BatchDeleteRecordResponse,
+    DeletedRecord,
+};
 
 /// 重新导出相关类型。
 pub use batch_get::{BatchGetRecordRequest, BatchGetRecordResponse};
 
 /// 重新导出相关类型。
-pub use batch_update::{BatchUpdateRecordRequest, BatchUpdateRecordResponse, UpdateRecordItem};
+pub use batch_update::{
+    BatchUpdateRecordRequest, BatchUpdateRecordRequestBody, BatchUpdateRecordResponse,
+    UpdateRecordItem,
+};
 
 /// 重新导出相关类型。
-pub use create::{CreateRecordRequest, CreateRecordResponse};
+pub use create::{CreateRecordRequest, CreateRecordRequestBody, CreateRecordResponse};
 
 /// 重新导出相关类型。
 pub use delete::{DeleteRecordRequest, DeleteRecordResponse};
@@ -58,4 +67,4 @@ pub use search::{
 };
 
 /// 重新导出相关类型。
-pub use update::{UpdateRecordRequest, UpdateRecordResponse};
+pub use update::{UpdateRecordRequest, UpdateRecordRequestBody, UpdateRecordResponse};

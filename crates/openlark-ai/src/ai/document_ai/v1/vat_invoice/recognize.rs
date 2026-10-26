@@ -16,75 +16,63 @@ use crate::endpoints::DOCUMENT_AI_VAT_INVOICE_RECOGNIZE;
 /// 增值税发票识别请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VatInvoiceRecognizeBody {
-    /// file_token 字段。
-    pub file_token: String,
-    /// is_async 字段。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_async: Option<bool>,
+    /// 识别的增值税发票源文件（支持 JPG/JPEG/PNG/PDF/BMP/OFD，文件大小需小于 10M）。
+    #[serde(skip_serializing)]
+    pub file: Vec<u8>,
+    /// multipart 文件名，仅用于设置文件 part 的 filename。
+    #[serde(rename = "__file_name", skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl VatInvoiceRecognizeBody {
     /// 校验请求体。
     pub fn validate(&self) -> openlark_core::SDKResult<()> {
-        validate_required!(self.file_token, "file_token 不能为空");
+        validate_required!(self.file, "file 不能为空");
         Ok(())
     }
 }
 
-/// Vat_Invoice_Recognize_Response 响应。
+/// 增值税发票识别响应 `data`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VatInvoiceRecognizeResponse {
-    /// data 字段。
+    /// 增值税发票信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<VatInvoiceRecognizeResult>,
+    pub vat_invoices: Option<Vec<VatInvoice>>,
 }
 
 impl openlark_core::api::ApiResponseTrait for VatInvoiceRecognizeResponse {}
 
-/// Vat_Invoice_Recognize_Result 结果。
+/// 增值税发票信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VatInvoiceRecognizeResult {
-    /// parsing_result 字段。
+pub struct VatInvoice {
+    /// 识别出的实体列表。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parsing_result: Option<ParsingResult>,
+    pub entities: Option<Vec<VatInvoiceEntity>>,
 }
 
-/// Parsing_Result 结果。
+/// 增值税发票识别实体。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsingResult {
-    /// 发票代码
+pub struct VatInvoiceEntity {
+    /// 实体类型，可选值有 invoice_name、invoice_code、invoice_no、invoice_date、total_price、total_tax、big_total_price_and_tax、check_code、total_price_and_tax、buyer_name、buyer_taxpayer_no、buyer_address_phone、buyer_account、seller_name、seller_taxpayer_no、seller_address_phone、seller_account、payee、password_area、remarks、reviewer、drawer、is_sealed、seller_name_in_seal、seller_taxpayer_no_in_seal、invoice_special_seal、machine_num。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 识别出字段的文本信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub invoice_code: Option<String>,
-    /// 发票号码
+    pub value: Option<String>,
+    /// 识别出的票据详细信息。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub invoice_number: Option<String>,
-    /// 开票日期
+    pub items: Option<Vec<Vec<VatInvoiceKvEntity>>>,
+}
+
+/// 增值税发票票据详细键值实体。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VatInvoiceKvEntity {
+    /// 键类型，例如 entry_name。
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+    /// 键值。
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub invoice_date: Option<String>,
-    /// 校验码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub check_code: Option<String>,
-    /// 购买方名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub buyer_name: Option<String>,
-    /// 购买方纳税人识别号
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub buyer_id: Option<String>,
-    /// 销售方名称
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seller_name: Option<String>,
-    /// 销售方纳税人识别号
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seller_id: Option<String>,
-    /// 金额
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<String>,
-    /// 税额
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_amount: Option<String>,
-    /// 价税合计
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_amount: Option<String>,
+    pub value: Option<String>,
 }
 
 /// Vat_Invoice_Recognize_Request 请求。
@@ -118,7 +106,8 @@ impl VatInvoiceRecognizeRequest {
 
         let req: ApiRequest<VatInvoiceRecognizeResponse> =
             ApiRequest::post(DOCUMENT_AI_VAT_INVOICE_RECOGNIZE)
-                .body(serialize_params(&body, "增值税发票识别")?);
+                .body(serialize_params(&body, "增值税发票识别")?)
+                .file_content(body.file.clone());
 
         Transport::request_typed(req, &self.config, Some(option), "增值税发票识别").await
     }
@@ -128,8 +117,8 @@ impl VatInvoiceRecognizeRequest {
 #[derive(Debug, Clone)]
 pub struct VatInvoiceRecognizeRequestBuilder {
     request: VatInvoiceRecognizeRequest,
-    file_token: Option<String>,
-    is_async: Option<bool>,
+    file: Option<Vec<u8>>,
+    file_name: Option<String>,
 }
 
 impl VatInvoiceRecognizeRequestBuilder {
@@ -137,28 +126,28 @@ impl VatInvoiceRecognizeRequestBuilder {
     pub fn new(config: Config) -> Self {
         Self {
             request: VatInvoiceRecognizeRequest::new(config),
-            file_token: None,
-            is_async: None,
+            file: None,
+            file_name: None,
         }
     }
 
-    /// file_token。
-    pub fn file_token(mut self, file_token: impl Into<String>) -> Self {
-        self.file_token = Some(file_token.into());
+    /// 设置识别的增值税发票源文件。
+    pub fn file(mut self, file: impl Into<Vec<u8>>) -> Self {
+        self.file = Some(file.into());
         self
     }
 
-    /// 设置 is_async。
-    pub fn is_async(mut self, is_async: impl Into<bool>) -> Self {
-        self.is_async = Some(is_async.into());
+    /// 设置 multipart 文件名。
+    pub fn file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
     /// 构建请求体。
     pub fn body(self) -> VatInvoiceRecognizeBody {
         VatInvoiceRecognizeBody {
-            file_token: self.file_token.unwrap_or_default(),
-            is_async: self.is_async,
+            file: self.file.unwrap_or_default(),
+            file_name: self.file_name,
         }
     }
 
@@ -196,7 +185,8 @@ pub async fn vat_invoice_recognize_with_options(
 
     let req: ApiRequest<VatInvoiceRecognizeResponse> =
         ApiRequest::post(DOCUMENT_AI_VAT_INVOICE_RECOGNIZE)
-            .body(serialize_params(&body, "增值税发票识别")?);
+            .body(serialize_params(&body, "增值税发票识别")?)
+            .file_content(body.file.clone());
 
     Transport::request_typed(req, config, Some(option), "增值税发票识别").await
 }
@@ -205,11 +195,18 @@ pub async fn vat_invoice_recognize_with_options(
 mod tests {
     use super::*;
 
+    fn test_config() -> Config {
+        Config::builder()
+            .app_id("test_app_id")
+            .app_secret("test_app_secret")
+            .build()
+    }
+
     #[test]
     fn test_body_validation_empty() {
         let body = VatInvoiceRecognizeBody {
-            file_token: "".to_string(),
-            is_async: None,
+            file: Vec::new(),
+            file_name: None,
         };
         assert!(body.validate().is_err());
     }
@@ -217,9 +214,79 @@ mod tests {
     #[test]
     fn test_body_validation_valid() {
         let body = VatInvoiceRecognizeBody {
-            file_token: "valid_token".to_string(),
-            is_async: None,
+            file: b"vat invoice file".to_vec(),
+            file_name: None,
         };
         assert!(body.validate().is_ok());
+    }
+
+    #[test]
+    fn test_builder_default_state() {
+        let builder = VatInvoiceRecognizeRequestBuilder::new(test_config());
+        assert!(builder.file.is_none());
+        assert!(builder.file_name.is_none());
+    }
+
+    #[test]
+    fn test_builder_body_creation() {
+        let body = VatInvoiceRecognizeRequestBuilder::new(test_config())
+            .file(b"invoice file".to_vec())
+            .file_name("invoice.pdf")
+            .body();
+        assert_eq!(body.file, b"invoice file".to_vec());
+        assert_eq!(body.file_name, Some("invoice.pdf".to_string()));
+    }
+
+    #[test]
+    fn test_body_serialization() {
+        let body = VatInvoiceRecognizeBody {
+            file: b"invoice file".to_vec(),
+            file_name: Some("invoice.pdf".to_string()),
+        };
+        let json_str = serde_json::to_string(&body).expect("序列化失败");
+        // file 为二进制内容，走 multipart file part，不进 JSON
+        assert!(!json_str.contains("\"file\""));
+        assert!(json_str.contains("__file_name"));
+        assert!(json_str.contains("invoice.pdf"));
+    }
+
+    #[test]
+    fn test_response_deserialize_official_example() {
+        // 官方文档响应体示例（data 内容）
+        let json = serde_json::json!({
+            "vat_invoices": [
+                {
+                    "entities": [
+                        {
+                            "type": "buyer_name",
+                            "value": "发呆公司",
+                            "items": [
+                                [
+                                    {"type": "entry_name", "value": "餐饮服务"}
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+        let resp: VatInvoiceRecognizeResponse = serde_json::from_value(json).expect("反序列化失败");
+        let entity = resp
+            .vat_invoices
+            .as_ref()
+            .and_then(|invoices| invoices.first())
+            .and_then(|invoice| invoice.entities.as_ref())
+            .and_then(|entities| entities.first())
+            .expect("实体不存在");
+        assert_eq!(entity.entity_type.as_deref(), Some("buyer_name"));
+        assert_eq!(entity.value.as_deref(), Some("发呆公司"));
+        let kv = entity
+            .items
+            .as_ref()
+            .and_then(|items| items.first())
+            .and_then(|group| group.first())
+            .expect("items 不存在");
+        assert_eq!(kv.entity_type.as_deref(), Some("entry_name"));
+        assert_eq!(kv.value.as_deref(), Some("餐饮服务"));
     }
 }

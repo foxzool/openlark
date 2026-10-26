@@ -15,6 +15,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 
+/// 转移云文档所有者请求体
+///
+/// 字段与官方文档对齐：`member_type`、`member_id` 必填。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferOwnerRequestBody {
+    /// 文件所有者的 ID 类型（email/openid/userid）
+    pub member_type: String,
+    /// 文件所有者的 ID，与文件所有者的 ID 类型需要对应
+    pub member_id: String,
+}
+
 /// 转移所有者请求
 #[derive(Debug, Clone)]
 pub struct TransferOwnerRequest {
@@ -142,13 +153,7 @@ impl TransferOwnerRequest {
 
         let api_endpoint = DriveApi::TransferOwner(self.token.clone());
 
-        #[derive(Serialize)]
-        struct TransferOwnerBody {
-            member_type: String,
-            member_id: String,
-        }
-
-        let body = TransferOwnerBody {
+        let body = TransferOwnerRequestBody {
             member_type: self.member_type,
             member_id: self.member_id,
         };
@@ -305,5 +310,10 @@ mod tests {
             query.contains("type=docx"),
             "query 应携带 type=docx，实际：{query}"
         );
+        // 官方请求体：member_type/member_id 必填
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["member_type"], "openid");
+        assert_eq!(body["member_id"], "ou_new_owner");
     }
 }

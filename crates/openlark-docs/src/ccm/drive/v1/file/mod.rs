@@ -48,12 +48,13 @@ pub use comment::{
     PatchCommentResponse,
 };
 /// 重新导出复制文件类型。
-pub use copy::{CopyFileRequest, CopyFileResponse};
+pub use copy::{CopyFileRequest, CopyFileRequestBody, CopyFileResponse};
 /// 重新导出创建文件夹类型。
 pub use create_folder::{CreateFolderRequest, CreateFolderResponse};
 /// 重新导出创建快捷方式类型。
 pub use create_shortcut::{
-    CreateFileShortcutRequest, CreateFileShortcutResponse, CreateShortcutInfo, ShortcutNode,
+    CreateFileShortcutRequest, CreateFileShortcutRequestBody, CreateFileShortcutResponse,
+    CreateShortcutInfo, ShortcutNode,
 };
 /// 重新导出删除文件类型。
 pub use delete::{DeleteFileRequest, DeleteFileResponse};
@@ -76,10 +77,10 @@ pub use task_check::{CheckTaskStatusRequest, CheckTaskStatusResponse};
 /// 重新导出单次上传类型。
 pub use upload_all::{UploadAllRequest, UploadAllResponse};
 /// 重新导出完成上传类型。
-pub use upload_finish::{UploadFinishRequest, UploadFinishResponse};
+pub use upload_finish::{UploadFinishBody, UploadFinishRequest, UploadFinishResponse};
 /// 重新导出上传分片类型。
 pub use upload_part::{UploadPartRequest, UploadPartResponse};
 /// 重新导出准备上传类型。
-pub use upload_prepare::{UploadPrepareRequest, UploadPrepareResponse};
+pub use upload_prepare::{UploadPrepareBody, UploadPrepareRequest, UploadPrepareResponse};
 /// 重新导出文件浏览记录请求。
 pub use view_record::GetFileViewRecordsRequest;

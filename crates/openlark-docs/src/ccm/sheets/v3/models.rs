@@ -164,16 +164,17 @@ pub struct UpdateSpreadsheetRequest {
 // ============================================================================
 
 /// 筛选条件
+///
+/// 官方 `condition` 对象：`filter_type` 必填、`compare_type` 可选、`expected` 必填。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FilterCondition {
-    /// 列标识符 (A, B, C...)
-    pub column_id: String,
-    /// 筛选操作符
-    pub operator: String,
-    /// 筛选值
-    pub value: Option<serde_json::Value>,
-    /// 是否忽略大小写
-    pub ignore_case: Option<bool>,
+    /// 筛选类型：multiValue（多值）/ number（数字）/ text（文本）/ color（颜色）/ clear（清除筛选）
+    pub filter_type: String,
+    /// 比较类型（不同 filter_type 的枚举不同，详见筛选指南）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compare_type: Option<String>,
+    /// 筛选参数（如 ["50%"]）
+    pub expected: Vec<String>,
 }
 
 /// 创建筛选请求

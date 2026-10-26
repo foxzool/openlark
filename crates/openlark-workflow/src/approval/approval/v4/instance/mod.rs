@@ -49,14 +49,14 @@ pub use initiated::{
     InstanceSummaryV4,
 };
 // list 模块显式导出
-pub use list::{InstanceItemV4, ListInstanceRequestV4, ListInstanceResponseV4};
+pub use list::{ListInstanceRequestV4, ListInstanceResponseV4};
 // preview 模块显式导出
 pub use preview::{
     PreviewInstanceBodyV4, PreviewInstanceNodeV4, PreviewInstanceRequestV4,
     PreviewInstanceResponseV4,
 };
 // query 模块显式导出
-pub use query::{QueryInstanceRequestV4, QueryInstanceResponseV4};
+pub use query::{InstanceItemV4, QueryInstanceRequestV4, QueryInstanceResponseV4};
 // search_cc 模块显式导出
 pub use search_cc::{CcItemV4, SearchCcRequestV4, SearchCcResponseV4};
 // recall 模块显式导出

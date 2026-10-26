@@ -31,9 +31,13 @@ pub struct BatchCreatePermissionMemberRequest {
     pub members: Vec<PermissionMember>,
 }
 
-#[derive(Debug, Serialize)]
-struct BatchCreatePermissionMemberBody {
-    members: Vec<PermissionMember>,
+/// 批量增加协作者权限请求体
+///
+/// 字段与官方文档对齐：`members` 必填（最多 10 个）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCreatePermissionMemberBody {
+    /// 本次要增加权限的协作者列表
+    pub members: Vec<PermissionMember>,
 }
 
 impl BatchCreatePermissionMemberRequest {
@@ -80,7 +84,7 @@ impl BatchCreatePermissionMemberRequest {
         // === 必填字段验证 ===
         validate_required!(self.token, "token 不能为空");
         validate_required!(self.file_type, "file_type 不能为空");
-        validate_required_list!(self.members, 50, "members 不能为空");
+        validate_required_list!(self.members, 10, "members 不能为空且单次最多 10 个");
 
         // === 枚举值验证 ===
         match self.file_type.as_str() {

@@ -5,24 +5,49 @@ use serde::{Deserialize, Serialize};
 /// 创建分组请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct CreateSectionBody {
-    /// 分组标题
-    pub summary: String,
+    /// 自定义分组名（必填，不允许为空，最大 100 个 UTF-8 字符）
+    pub name: String,
 
-    /// 分组描述
+    /// 自定义分组的资源类型（必填，支持 "tasklist"（清单）或 "my_tasks"（我负责的））
+    pub resource_type: String,
+
+    /// 归属资源 ID（resource_type 为 "tasklist" 时必填清单 GUID；"my_tasks" 无需填写）
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub resource_id: Option<String>,
+
+    /// 插入到该分组之前的分组 GUID（与 insert_after 互斥）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_before: Option<String>,
+
+    /// 插入到该分组之后的分组 GUID（与 insert_before 互斥）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_after: Option<String>,
+}
+
+/// 待更新的自定义分组数据（input_section）
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct InputSection {
+    /// 自定义分组名（如更新，不允许设为空，最大 100 个 UTF-8 字符）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
+    /// 插入到该分组之前的分组 GUID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_before: Option<String>,
+
+    /// 插入到该分组之后的分组 GUID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_after: Option<String>,
 }
 
 /// 更新分组请求体
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct UpdateSectionBody {
-    /// 分组标题
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub summary: Option<String>,
+    /// 要更新的自定义分组数据
+    pub section: InputSection,
 
-    /// 分组描述
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    /// 要更新的字段名，支持 name / insert_before / insert_after（1-10 个）
+    pub update_fields: Vec<String>,
 }
 
 /// 创建分组响应

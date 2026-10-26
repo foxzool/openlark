@@ -13,10 +13,10 @@ pub use crate::ccm::sheets::v3::models::{
 };
 
 /// 重新导出创建筛选类型。
-pub use create::{CreateFilterRequest, CreateFilterResponse};
+pub use create::{CreateFilterBody, CreateFilterRequest, CreateFilterResponse};
 /// 重新导出删除筛选响应。
 pub use delete::DeleteFilterResponse;
 /// 重新导出获取筛选响应。
 pub use get::GetFilterResponse;
 /// 重新导出更新筛选类型。
-pub use update::{UpdateFilterRequest, UpdateFilterResponse};
+pub use update::{UpdateFilterBody, UpdateFilterRequest, UpdateFilterResponse};

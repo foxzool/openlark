@@ -3,7 +3,10 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/custom_field/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
-use crate::v2::custom_field::models::{CreateCustomFieldBody, CreateCustomFieldResponse};
+use crate::v2::custom_field::models::{
+    CreateCustomFieldBody, CreateCustomFieldResponse, CustomFieldType, DatetimeSetting,
+    MemberSetting, NumberSetting, SelectSetting, TextSetting,
+};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -34,15 +37,51 @@ impl CreateCustomFieldRequest {
         }
     }
 
-    /// 设置字段名称
+    /// 设置字段名称（必填，最大 50 个字符）
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.body.name = name.into();
         self
     }
 
-    /// 设置字段配置
-    pub fn config(mut self, config: crate::v2::custom_field::models::CustomFieldConfig) -> Self {
-        self.body.config = config;
+    /// 设置字段类型（必填：number / datetime / member / single_select / multi_select / text）
+    pub fn field_type(mut self, field_type: CustomFieldType) -> Self {
+        self.body.field_type = field_type;
+        self
+    }
+
+    /// 设置数字类型字段设置
+    pub fn number_setting(mut self, setting: NumberSetting) -> Self {
+        self.body.number_setting = Some(setting);
+        self
+    }
+
+    /// 设置人员类型字段设置
+    pub fn member_setting(mut self, setting: MemberSetting) -> Self {
+        self.body.member_setting = Some(setting);
+        self
+    }
+
+    /// 设置日期时间类型字段设置
+    pub fn datetime_setting(mut self, setting: DatetimeSetting) -> Self {
+        self.body.datetime_setting = Some(setting);
+        self
+    }
+
+    /// 设置单选类型字段设置
+    pub fn single_select_setting(mut self, setting: SelectSetting) -> Self {
+        self.body.single_select_setting = Some(setting);
+        self
+    }
+
+    /// 设置多选类型字段设置
+    pub fn multi_select_setting(mut self, setting: SelectSetting) -> Self {
+        self.body.multi_select_setting = Some(setting);
+        self
+    }
+
+    /// 设置文本类型字段设置
+    pub fn text_setting(mut self, setting: TextSetting) -> Self {
+        self.body.text_setting = Some(setting);
         self
     }
 
@@ -90,7 +129,7 @@ mod tests {
 
     use super::*;
 
-    use crate::v2::custom_field::models::{CustomFieldConfig, CustomFieldType};
+    use crate::v2::custom_field::models::{CustomFieldType, SelectOption};
 
     #[test]
     fn test_create_custom_field_builder() {
@@ -101,15 +140,36 @@ mod tests {
                 .build(),
         );
 
-        let config_value = CustomFieldConfig {
-            field_type: CustomFieldType::Text,
-            options: None,
-        };
-
         let request = CreateCustomFieldRequest::new(config, "tasklist_123".to_string())
             .name("优先级")
-            .config(config_value);
+            .field_type(CustomFieldType::SingleSelect)
+            .single_select_setting(SelectSetting {
+                options: Some(vec![
+                    SelectOption {
+                        name: "高优".to_string(),
+                        color_index: Some(1),
+                        is_hidden: Some(false),
+                    },
+                    SelectOption {
+                        name: "低优".to_string(),
+                        ..Default::default()
+                    },
+                ]),
+            });
 
         assert_eq!(request.body.name, "优先级");
+        assert_eq!(request.body.field_type, CustomFieldType::SingleSelect);
+
+        // 必填字段以官方形状序列化：type 位于顶层，无 config 包装
+        let json = serde_json::to_value(&request.body).unwrap();
+        assert_eq!(json["name"], "优先级");
+        assert_eq!(json["type"], "single_select");
+        assert_eq!(json["resource_type"], "tasklist");
+        assert_eq!(json["resource_id"], "tasklist_123");
+        assert!(json.get("config").is_none());
+        assert_eq!(
+            json["single_select_setting"]["options"][0]["name"],
+            "高优".to_string()
+        );
     }
 }

@@ -110,13 +110,16 @@ impl CreateAppRoleRequest {
     }
 }
 
-/// 新增自定义角色请求体（内部使用）。
+/// 新增自定义角色请求体。
 #[derive(Serialize)]
 pub struct CreateAppRoleRequestBody {
-    role_name: String,
-    table_roles: Vec<TableRole>,
+    /// 自定义角色名称
+    pub role_name: String,
+    /// 针对数据表的权限设置
+    pub table_roles: Vec<TableRole>,
+    /// 针对仪表盘的权限设置
     #[serde(skip_serializing_if = "Option::is_none")]
-    block_roles: Option<Vec<BlockRole>>,
+    pub block_roles: Option<Vec<BlockRole>>,
 }
 
 /// 新增自定义角色响应。

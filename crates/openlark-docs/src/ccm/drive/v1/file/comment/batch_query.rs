@@ -47,6 +47,10 @@ pub struct BatchQueryCommentRequest {
     /// 评论 ID 列表
     pub comment_ids: Vec<String>,
 
+    /// 是否需要获取评论卡片上挂载的 Reaction 数据（默认 false）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need_reaction: Option<bool>,
+
     /// 用户 ID 类型（默认 open_id）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id_type: Option<String>,
@@ -68,8 +72,16 @@ impl BatchQueryCommentRequest {
 
             comment_ids,
 
+            need_reaction: None,
+
             user_id_type: None,
         }
+    }
+
+    /// 设置是否需要获取评论卡片上挂载的 Reaction 数据。
+    pub fn need_reaction(mut self, need_reaction: bool) -> Self {
+        self.need_reaction = Some(need_reaction);
+        self
     }
 
     /// 设置用户 ID 类型。
@@ -80,10 +92,16 @@ impl BatchQueryCommentRequest {
     }
 }
 
-#[derive(Debug, Serialize)]
-
-struct BatchQueryCommentRequestBody {
-    comment_ids: Vec<String>,
+/// 批量获取评论请求体
+///
+/// 字段与官方文档对齐：`comment_ids` 必填（最多 100 个）；`need_reaction` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchQueryCommentRequestBody {
+    /// 需要获取数据的评论 ID 列表
+    pub comment_ids: Vec<String>,
+    /// 是否需要获取评论卡片上挂载的 Reaction 数据（默认 false）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need_reaction: Option<bool>,
 }
 
 /// 批量获取评论响应（data）
@@ -153,6 +171,12 @@ pub async fn batch_query_comment(
             "comment_ids 不能为空",
         ));
     }
+    if request.comment_ids.len() > 100 {
+        return Err(openlark_core::error::validation_error(
+            "comment_ids",
+            "comment_ids 不能为空且允许的最大元素个数为 100",
+        ));
+    }
 
     // ===== 构建请求 =====
     let api_endpoint = DriveApi::BatchQueryComments(request.file_token.clone());
@@ -161,6 +185,7 @@ pub async fn batch_query_comment(
         api_endpoint.to_request().body(serialize_params(
             &BatchQueryCommentRequestBody {
                 comment_ids: request.comment_ids,
+                need_reaction: request.need_reaction,
             },
             "批量获取评论",
         )?);

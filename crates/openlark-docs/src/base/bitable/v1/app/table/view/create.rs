@@ -144,15 +144,19 @@ impl CreateViewRequest {
 }
 
 #[derive(Serialize, Default, Debug, Clone)]
-/// 视图数据
-pub struct CreateViewData {
+/// 新增视图请求体。
+pub struct CreateViewRequestBody {
     /// 视图名称
     pub view_name: String,
-    /// 视图类型，可选值：grid (表格视图)、kanban (看板视图)、gallery (画册视图)、gantt (甘特视图)
+    /// 视图类型，可选值：grid (表格视图)、kanban (看板视图)、gallery (画册视图)、gantt (甘特视图)、form (表单视图)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub view_type: Option<String>,
 }
 
-impl CreateViewData {
+/// 兼容旧名：视图数据即新增视图请求体。
+pub type CreateViewData = CreateViewRequestBody;
+
+impl CreateViewRequestBody {
     /// 创建仅包含名称的视图配置。
     pub fn new(view_name: impl ToString) -> Self {
         Self {

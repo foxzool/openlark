@@ -176,7 +176,7 @@ pub struct Statistics {
 
 /// 创建/更新免审词条请求体（entity）
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct EntityInput {
+pub struct EntityBody {
     /// 词条名（最大 1 个）
     #[serde(default)]
     pub main_keys: Vec<Term>,
@@ -200,9 +200,12 @@ pub struct EntityInput {
     pub i18n_descs: Option<Vec<I18nEntryDesc>>,
 }
 
+/// 兼容旧名：免审词条请求体 struct 原名 `EntityInput`。
+pub type EntityInput = EntityBody;
+
 /// 创建/更新草稿请求体（entity）
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct DraftEntityInput {
+pub struct DraftEntityBody {
     /// 词条 ID（可选）
     #[serde(default)]
     pub id: Option<String>,
@@ -229,9 +232,12 @@ pub struct DraftEntityInput {
     pub i18n_descs: Option<Vec<I18nEntryDesc>>,
 }
 
+/// 兼容旧名：创建草稿请求体 struct 原名 `DraftEntityInput`。
+pub type DraftEntityInput = DraftEntityBody;
+
 /// 更新草稿请求体（entity）
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct DraftUpdateEntityInput {
+pub struct DraftUpdateEntityBody {
     /// 词条 ID（可选）
     #[serde(default)]
     pub id: Option<String>,
@@ -254,6 +260,9 @@ pub struct DraftUpdateEntityInput {
     #[serde(default)]
     pub i18n_descs: Option<Vec<I18nEntryDesc>>,
 }
+
+/// 兼容旧名：更新草稿请求体 struct 原名 `DraftUpdateEntityInput`。
+pub type DraftUpdateEntityInput = DraftUpdateEntityBody;
 
 /// 免审词条实体（entity）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

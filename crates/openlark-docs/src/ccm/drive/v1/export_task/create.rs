@@ -14,6 +14,23 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{api_endpoints::DriveApi, api_utils::*};
 
+/// 创建导出任务请求体
+///
+/// 字段与官方文档对齐：`file_extension`、`token`、`type` 必填；`sub_id` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateExportTaskRequestBody {
+    /// 将云文档导出为本地文件后，本地文件的扩展名（docx/pdf/xlsx/csv）
+    pub file_extension: String,
+    /// 要导出的云文档的 token（最大 27 字符）
+    pub token: String,
+    /// 要导出的云文档的类型（官方字段 `type`，doc/sheet/bitable/docx）
+    #[serde(rename = "type")]
+    pub file_type: String,
+    /// 导出电子表格/多维表格为 CSV 时，需要传入工作表 ID 或数据表 ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_id: Option<String>,
+}
+
 /// 创建导出任务请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateExportTaskRequest {
@@ -117,9 +134,16 @@ impl CreateExportTaskRequest {
 
         let api_endpoint = DriveApi::CreateExportTask;
 
-        let api_request: ApiRequest<CreateExportTaskResponse> = api_endpoint
-            .to_request()
-            .body(serialize_params(&self, "创建导出任务")?);
+        let api_request: ApiRequest<CreateExportTaskResponse> =
+            api_endpoint.to_request().body(serialize_params(
+                &CreateExportTaskRequestBody {
+                    file_extension: self.file_extension,
+                    token: self.token,
+                    file_type: self.r#type,
+                    sub_id: self.sub_id,
+                },
+                "创建导出任务",
+            )?);
 
         Transport::request_typed(api_request, &self.config, Some(option), "创建").await
     }
@@ -261,5 +285,12 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
         assert_eq!(received[0].url.path(), "/open-apis/drive/v1/export_tasks");
+        // 官方请求体：file_extension/token/type 必填
+        let body: serde_json::Value =
+            serde_json::from_slice(&received[0].body).expect("请求体应为合法 JSON");
+        assert_eq!(body["file_extension"], "pdf");
+        assert_eq!(body["token"], "boxcnBj8N4yKVRhiMtDBTsXfQqb");
+        assert_eq!(body["type"], "docx");
+        assert!(body.get("sub_id").is_none());
     }
 }

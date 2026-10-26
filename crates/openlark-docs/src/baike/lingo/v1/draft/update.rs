@@ -12,7 +12,7 @@ use openlark_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::baike::lingo::v1::models::{Draft, DraftUpdateEntityInput, UserIdType};
+use crate::baike::lingo::v1::models::{Draft, DraftUpdateEntityBody, UserIdType};
 use crate::common::api_endpoints::LingoApiV1;
 
 /// 更新草稿响应（data）
@@ -33,13 +33,13 @@ impl ApiResponseTrait for UpdateDraftResp {
 pub struct UpdateDraftRequest {
     config: Config,
     draft_id: String,
-    body: DraftUpdateEntityInput,
+    body: DraftUpdateEntityBody,
     user_id_type: Option<UserIdType>,
 }
 
 impl UpdateDraftRequest {
     /// 创建新的 lingo 草稿更新请求。
-    pub fn new(config: Config, draft_id: impl Into<String>, body: DraftUpdateEntityInput) -> Self {
+    pub fn new(config: Config, draft_id: impl Into<String>, body: DraftUpdateEntityBody) -> Self {
         Self {
             config,
             draft_id: draft_id.into(),
@@ -102,15 +102,13 @@ impl UpdateDraftRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::baike::lingo::v1::models::{
-        DisplayStatus, DraftUpdateEntityInput, Term, UserIdType,
-    };
+    use crate::baike::lingo::v1::models::{DisplayStatus, DraftUpdateEntityBody, Term, UserIdType};
 
     /// 测试构建器模式
     #[test]
     fn test_update_draft_request_builder() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![],
             description: Some("测试描述".to_string()),
             rich_text: None,
@@ -125,7 +123,7 @@ mod tests {
     #[test]
     fn test_update_draft_with_user_id_type() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![],
             description: Some("描述".to_string()),
             rich_text: None,
@@ -155,7 +153,7 @@ mod tests {
     #[test]
     fn test_update_with_rich_text() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![],
             description: None,
             rich_text: Some("<p>富文本内容</p>".to_string()),
@@ -174,7 +172,7 @@ mod tests {
     #[test]
     fn test_update_with_both_fields() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![],
             description: Some("描述".to_string()),
             rich_text: Some("<p>富文本</p>".to_string()),
@@ -190,7 +188,7 @@ mod tests {
     #[test]
     fn test_empty_main_keys() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![],
             description: Some("描述".to_string()),
             rich_text: None,
@@ -205,7 +203,7 @@ mod tests {
     #[test]
     fn test_non_empty_main_keys() {
         let config = Config::default();
-        let body = DraftUpdateEntityInput {
+        let body = DraftUpdateEntityBody {
             main_keys: vec![
                 Term {
                     key: "key1".to_string(),

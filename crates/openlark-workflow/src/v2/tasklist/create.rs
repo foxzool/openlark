@@ -3,7 +3,9 @@
 //! docPath: <https://open.feishu.cn/document/server-docs/docs/task-v2/tasklist/create>
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
-use crate::v2::tasklist::models::{CreateTasklistBody, CreateTasklistResponse, TasklistIcon};
+use crate::v2::tasklist::models::{
+    CreateTasklistBody, CreateTasklistResponse, TasklistMemberDetail,
+};
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
@@ -30,21 +32,15 @@ impl CreateTasklistRequest {
         }
     }
 
-    /// 设置任务清单标题
-    pub fn summary(mut self, summary: impl Into<String>) -> Self {
-        self.body.summary = summary.into();
+    /// 设置清单名称（必填，最多 100 个字符）
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.body.name = name.into();
         self
     }
 
-    /// 设置任务清单描述
-    pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.body.description = Some(description.into());
-        self
-    }
-
-    /// 设置任务清单图标
-    pub fn icon(mut self, icon: TasklistIcon) -> Self {
-        self.body.icon = Some(icon);
+    /// 设置清单成员列表（可选，最多 500 个）
+    pub fn members(mut self, members: Vec<TasklistMemberDetail>) -> Self {
+        self.body.members = Some(members);
         self
     }
 
@@ -60,7 +56,7 @@ impl CreateTasklistRequest {
         option: openlark_core::req_option::RequestOption,
     ) -> SDKResult<CreateTasklistResponse> {
         // 验证必填字段
-        validate_required!(self.body.summary.trim(), "任务清单标题不能为空");
+        validate_required!(self.body.name.trim(), "清单名称不能为空");
 
         let api_endpoint = TaskApiV2::TasklistCreate;
         let mut request = ApiRequest::<CreateTasklistResponse>::post(api_endpoint.to_url());
@@ -101,10 +97,21 @@ mod tests {
         );
 
         let request = CreateTasklistRequest::new(config)
-            .summary("测试任务清单")
-            .description("任务清单描述");
+            .name("测试任务清单")
+            .members(vec![TasklistMemberDetail {
+                id: Some("ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f".to_string()),
+                r#type: Some("user".to_string()),
+                role: Some("editor".to_string()),
+                name: Some("张明德".to_string()),
+            }]);
 
-        assert_eq!(request.body.summary, "测试任务清单");
-        assert_eq!(request.body.description, Some("任务清单描述".to_string()));
+        assert_eq!(request.body.name, "测试任务清单");
+        let members = request.body.members.expect("members 应已设置");
+        assert_eq!(members.len(), 1);
+        assert_eq!(
+            members[0].id.as_deref(),
+            Some("ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f")
+        );
+        assert_eq!(members[0].role.as_deref(), Some("editor"));
     }
 }

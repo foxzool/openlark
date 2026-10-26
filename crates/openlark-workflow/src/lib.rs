@@ -48,7 +48,7 @@
 //!         &created.task_guid,
 //!         WorkflowTaskMutation::new()
 //!             .summary("完成项目文档")
-//!             .priority(3),
+//!             .due("1767139200000"),
 //!     )
 //!     .await?;
 //!

@@ -38,7 +38,7 @@ use crate::common::{api_endpoints::DriveApi, api_utils::*};
 /// );
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadFinishMediaRequest {
+pub struct UploadFinishMediaBody {
     #[serde(skip)]
     config: Config,
     /// 分片上传事务 ID
@@ -47,7 +47,10 @@ pub struct UploadFinishMediaRequest {
     pub block_num: i32,
 }
 
-impl UploadFinishMediaRequest {
+/// 兼容别名：历史导出名保留为请求体类型。
+pub type UploadFinishMediaRequest = UploadFinishMediaBody;
+
+impl UploadFinishMediaBody {
     /// 创建新的完成上传请求。
     pub fn new(config: Config, upload_id: impl Into<String>, block_num: i32) -> Self {
         Self {

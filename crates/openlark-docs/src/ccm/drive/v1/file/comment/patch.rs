@@ -85,10 +85,11 @@ impl PatchCommentRequest {
     }
 }
 
+/// 解决/恢复评论请求体
 #[derive(Debug, Serialize)]
-
-struct PatchCommentRequestBody {
-    is_solved: bool,
+pub struct PatchCommentRequestBody {
+    /// 评论解决标志：true=解决，false=恢复
+    pub is_solved: bool,
 }
 
 /// 解决/恢复评论响应（data 为空对象）

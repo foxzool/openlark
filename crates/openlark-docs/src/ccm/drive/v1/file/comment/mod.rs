@@ -34,7 +34,9 @@ pub fn validate_comment_file_type_for_get(file_type: &str) -> SDKResult<()> {
 }
 
 /// 重新导出批量查询评论类型。
-pub use batch_query::{BatchQueryCommentRequest, BatchQueryCommentResponse};
+pub use batch_query::{
+    BatchQueryCommentRequest, BatchQueryCommentRequestBody, BatchQueryCommentResponse,
+};
 /// 重新导出创建评论请求。
 pub use create::CreateCommentRequest;
 /// 重新导出获取评论类型。

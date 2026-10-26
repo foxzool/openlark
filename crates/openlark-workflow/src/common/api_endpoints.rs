@@ -486,7 +486,7 @@ pub enum ApprovalApiV4 {
     /// 查询用户的已发起审批列表（用户级）
     InstanceInitiated,
     /// 批量获取审批实例 ID
-    InstanceList(String),
+    InstanceList,
     /// 预览审批流程
     InstancePreview,
     /// 查询实例列表
@@ -589,9 +589,7 @@ impl ApprovalApiV4 {
             ApprovalApiV4::InstanceInitiated => {
                 "/open-apis/approval/v4/instances/initiated".to_string()
             }
-            ApprovalApiV4::InstanceList(approval_code) => {
-                format!("/open-apis/approval/v4/instances?approval_code={approval_code}")
-            }
+            ApprovalApiV4::InstanceList => "/open-apis/approval/v4/instances".to_string(),
             ApprovalApiV4::InstancePreview => {
                 "/open-apis/approval/v4/instances/preview".to_string()
             }
@@ -1109,8 +1107,8 @@ mod tests {
                 "/open-apis/approval/v4/instances/ins1".to_string(),
             ),
             (
-                ApprovalApiV4::InstanceList("code1".to_string()),
-                "/open-apis/approval/v4/instances?approval_code=code1".to_string(),
+                ApprovalApiV4::InstanceList,
+                "/open-apis/approval/v4/instances".to_string(),
             ),
             (
                 ApprovalApiV4::InstancePreview,

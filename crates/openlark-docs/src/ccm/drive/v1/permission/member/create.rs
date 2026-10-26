@@ -40,15 +40,24 @@ pub struct CreatePermissionMemberRequest {
     pub member_kind: Option<String>,
 }
 
+/// 添加协作者请求体
+///
+/// 官方请求体：`member_type`/`member_id`/`perm` 必填，
+/// `perm_type`/`type`（协作者类型）可选。
 #[derive(Debug, Clone, Serialize)]
-struct CreatePermissionMemberRequestBody {
-    member_type: String,
-    member_id: String,
-    perm: String,
+pub struct CreatePermissionMemberRequestBody {
+    /// 协作者 ID 类型
+    pub member_type: String,
+    /// 协作者 ID
+    pub member_id: String,
+    /// 权限角色
+    pub perm: String,
+    /// 权限角色类型（默认 container）
     #[serde(skip_serializing_if = "Option::is_none")]
-    perm_type: Option<String>,
+    pub perm_type: Option<String>,
+    /// 协作者类型（member_type 为 wikispaceid 时必填）
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    r#type: Option<String>,
+    pub member_kind: Option<String>,
 }
 
 impl CreatePermissionMemberRequest {
@@ -210,7 +219,7 @@ impl CreatePermissionMemberRequest {
             member_id: self.member_id,
             perm: self.perm,
             perm_type: self.perm_type,
-            r#type: self.member_kind,
+            member_kind: self.member_kind,
         };
 
         api_request = api_request.body(serialize_params(&body, "增加协作者权限")?);

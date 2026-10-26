@@ -49,7 +49,7 @@ use crate::common::{api_endpoints::DriveApi, api_utils::*};
 /// .extra("{\"drive_route_token\":\"doxcnXgNGAtaAraIRVeCfmabcef\"}");
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadPrepareMediaRequest {
+pub struct UploadPrepareMediaBody {
     #[serde(skip)]
     config: Config,
     /// 素材的文件名称
@@ -65,7 +65,10 @@ pub struct UploadPrepareMediaRequest {
     pub extra: Option<String>,
 }
 
-impl UploadPrepareMediaRequest {
+/// 兼容别名：历史导出名保留为请求体类型。
+pub type UploadPrepareMediaRequest = UploadPrepareMediaBody;
+
+impl UploadPrepareMediaBody {
     /// 创建新的预上传请求。
     pub fn new(
         config: Config,

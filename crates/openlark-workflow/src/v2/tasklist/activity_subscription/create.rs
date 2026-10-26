@@ -4,14 +4,14 @@
 
 use crate::common::{api_endpoints::TaskApiV2, api_utils::*};
 use crate::v2::tasklist::activity_subscription::models::{
-    ActivitySubscriptionTargetType, ActivitySubscriptionType, CreateActivitySubscriptionBody,
-    CreateActivitySubscriptionResponse,
+    CreateActivitySubscriptionBody, CreateActivitySubscriptionResponse,
 };
+use crate::v2::tasklist::models::TasklistMemberDetail;
 use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required,
+    validate_required, validate_required_list,
 };
 use std::sync::Arc;
 
@@ -32,31 +32,31 @@ impl CreateActivitySubscriptionRequest {
         Self {
             config,
             tasklist_guid: tasklist_guid.into(),
-            body: CreateActivitySubscriptionBody::default(),
+            body: Default::default(),
         }
     }
 
-    /// 设置订阅类型
-    pub fn subscription_type(mut self, subscription_type: ActivitySubscriptionType) -> Self {
-        self.body.subscription_type = subscription_type;
+    /// 设置订阅名称（必填，最大 50 个字符）
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.body.name = name.into();
         self
     }
 
-    /// 设置目标类型
-    pub fn target_type(mut self, target_type: ActivitySubscriptionTargetType) -> Self {
-        self.body.target_type = target_type;
+    /// 设置订阅者列表（必填，最大 50 个；member 目前仅支持 chat 类型）
+    pub fn subscribers(mut self, subscribers: Vec<TasklistMemberDetail>) -> Self {
+        self.body.subscribers = subscribers;
         self
     }
 
-    /// 设置目标 URL（当 target_type 为 webhook 时）
-    pub fn target_url(mut self, target_url: impl Into<String>) -> Self {
-        self.body.target_url = Some(target_url.into());
+    /// 设置订阅的清单动态 event key 列表（必填，可为空数组；元素不可重复）
+    pub fn include_keys(mut self, include_keys: Vec<i32>) -> Self {
+        self.body.include_keys = include_keys;
         self
     }
 
-    /// 设置飞书群 ID（当 target_type 为 chat 时）
-    pub fn chat_id(mut self, chat_id: impl Into<String>) -> Self {
-        self.body.chat_id = Some(chat_id.into());
+    /// 设置该订阅是否停用
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.body.disabled = Some(disabled);
         self
     }
 
@@ -73,6 +73,13 @@ impl CreateActivitySubscriptionRequest {
     ) -> SDKResult<CreateActivitySubscriptionResponse> {
         // 验证必填字段
         validate_required!(self.tasklist_guid.trim(), "任务清单GUID不能为空");
+        validate_required!(self.body.name.trim(), "订阅名称不能为空");
+        validate_required_list!(
+            self.body.subscribers,
+            50,
+            "subscribers 不能为空且不能超过 50 个"
+        );
+        // include_keys 必填但允许为空数组（表示不通知任何动态），不做非空校验
 
         let api_endpoint = TaskApiV2::ActivitySubscriptionCreate(self.tasklist_guid.clone());
         let mut request =
@@ -114,22 +121,26 @@ mod tests {
         );
 
         let request = CreateActivitySubscriptionRequest::new(config, "tasklist_123")
-            .subscription_type(ActivitySubscriptionType::TaskCreated)
-            .target_type(ActivitySubscriptionTargetType::Webhook)
-            .target_url("https://example.com/webhook");
+            .name("我的订阅")
+            .subscribers(vec![TasklistMemberDetail {
+                id: Some("oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f".to_string()),
+                r#type: Some("chat".to_string()),
+                ..Default::default()
+            }])
+            .include_keys(vec![100, 103]);
 
         assert_eq!(request.tasklist_guid, "tasklist_123");
+        assert_eq!(request.body.name, "我的订阅");
+        assert_eq!(request.body.subscribers.len(), 1);
+        assert_eq!(request.body.include_keys, vec![100, 103]);
+
+        // 必填字段以官方形状序列化：name / subscribers / include_keys 位于顶层
+        let json = serde_json::to_value(&request.body).unwrap();
+        assert_eq!(json["name"], "我的订阅");
+        assert_eq!(json["include_keys"], serde_json::json!([100, 103]));
         assert_eq!(
-            request.body.subscription_type,
-            ActivitySubscriptionType::TaskCreated
-        );
-        assert_eq!(
-            request.body.target_type,
-            ActivitySubscriptionTargetType::Webhook
-        );
-        assert_eq!(
-            request.body.target_url,
-            Some("https://example.com/webhook".to_string())
+            json["subscribers"][0]["id"],
+            "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f"
         );
     }
 

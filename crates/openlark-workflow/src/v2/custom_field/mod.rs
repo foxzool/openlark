@@ -78,8 +78,9 @@ pub use update::UpdateCustomFieldRequest;
 // 重新导出响应类型
 pub use models::{
     CreateCustomFieldBody, CreateCustomFieldResponse, CustomFieldConfig, CustomFieldItem,
-    CustomFieldType, DeleteCustomFieldResponse, GetCustomFieldResponse, ListCustomFieldsResponse,
-    UpdateCustomFieldBody, UpdateCustomFieldResponse,
+    CustomFieldType, DatetimeSetting, DeleteCustomFieldResponse, GetCustomFieldResponse,
+    ListCustomFieldsResponse, MemberSetting, NumberSetting, SelectOption, SelectSetting,
+    TextSetting, UpdateCustomFieldBody, UpdateCustomFieldResponse,
 };
 
 #[cfg(test)]

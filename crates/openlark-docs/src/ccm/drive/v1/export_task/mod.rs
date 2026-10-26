@@ -6,7 +6,7 @@ pub mod download;
 pub mod get;
 
 // 显式导出 - 避免使用 glob reexport
-pub use create::{CreateExportTaskRequest, CreateExportTaskResponse};
+pub use create::{CreateExportTaskRequest, CreateExportTaskRequestBody, CreateExportTaskResponse};
 
 pub use download::DownloadExportRequest;
 

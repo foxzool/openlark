@@ -16,12 +16,15 @@ use crate::common::{api_endpoints::SheetsApiV3, api_utils::*};
 
 /// 更新筛选请求体
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateFilterRequest {
+pub struct UpdateFilterBody {
     /// 列标识。
     pub col: String,
     /// 新的筛选条件。
     pub condition: Condition,
 }
+
+/// 兼容别名：历史导出名保留为请求体类型。
+pub type UpdateFilterRequest = UpdateFilterBody;
 
 /// 更新筛选响应体 data（data 为 `{}`）
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -40,7 +43,7 @@ pub async fn update_filter(
     config: &Config,
     spreadsheet_token: &str,
     sheet_id: &str,
-    params: UpdateFilterRequest,
+    params: UpdateFilterBody,
 ) -> SDKResult<UpdateFilterResponse> {
     update_filter_with_options(
         config,
@@ -59,7 +62,7 @@ pub async fn update_filter_with_options(
     config: &Config,
     spreadsheet_token: &str,
     sheet_id: &str,
-    params: UpdateFilterRequest,
+    params: UpdateFilterBody,
     option: RequestOption,
 ) -> SDKResult<UpdateFilterResponse> {
     let api_endpoint =
@@ -80,6 +83,7 @@ mod tests {
     use wiremock::{Mock, ResponseTemplate};
 
     /// 端到端：PUT .../sheets/{sheet_id}/filter → UpdateFilterResponse（空 data）。
+    /// 请求体按官方示例：col/condition{filter_type,compare_type,expected}。
     #[tokio::test]
     async fn test_update_filter_returns_data_on_success() {
         let server = MockServer::start().await;
@@ -106,13 +110,12 @@ mod tests {
             &config,
             "tokenAbc",
             "sheetId001",
-            UpdateFilterRequest {
-                col: "0".into(),
+            UpdateFilterBody {
+                col: "G".into(),
                 condition: Condition {
-                    column_id: "A".into(),
-                    operator: "contains".into(),
-                    value: None,
-                    ignore_case: None,
+                    filter_type: "text".into(),
+                    compare_type: Some("beginsWith".into()),
+                    expected: vec!["a".into()],
                 },
             },
         )
@@ -125,9 +128,11 @@ mod tests {
             received[0].url.path(),
             "/open-apis/sheets/v3/spreadsheets/tokenAbc/sheets/sheetId001/filter"
         );
-        // 校验请求体透传
+        // 校验请求体与官方示例一致
         let sent: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
-        assert_eq!(sent["col"], "0");
-        assert_eq!(sent["condition"]["operator"], "contains");
+        assert_eq!(sent["col"], "G");
+        assert_eq!(sent["condition"]["filter_type"], "text");
+        assert_eq!(sent["condition"]["compare_type"], "beginsWith");
+        assert_eq!(sent["condition"]["expected"], json!(["a"]));
     }
 }

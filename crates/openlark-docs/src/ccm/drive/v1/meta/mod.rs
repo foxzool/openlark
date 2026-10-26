@@ -4,4 +4,4 @@
 pub mod batch_query;
 
 // 显式导出 - 避免使用 glob reexport
-pub use batch_query::{BatchQueryMetaRequest, BatchQueryMetaResponse};
+pub use batch_query::{BatchQueryMetaRequest, BatchQueryMetaRequestBody, BatchQueryMetaResponse};

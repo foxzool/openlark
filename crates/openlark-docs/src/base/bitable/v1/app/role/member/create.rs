@@ -111,10 +111,11 @@ impl CreateRoleMemberRequest {
     }
 }
 
-/// 新增协作者请求体（内部使用）。
+/// 新增协作者请求体。
 #[derive(Serialize)]
-struct CreateRoleMemberRequestBody {
-    member_id: String,
+pub struct CreateRoleMemberRequestBody {
+    /// 协作者的 ID
+    pub member_id: String,
 }
 
 /// 新增协作者响应（data 为 {}）。

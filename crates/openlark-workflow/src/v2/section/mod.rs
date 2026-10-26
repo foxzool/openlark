@@ -72,7 +72,7 @@ pub use tasks::GetSectionTasksRequest;
 // 重新导出响应类型
 pub use models::{
     CreateSectionBody, CreateSectionResponse, DeleteSectionResponse, GetSectionResponse,
-    ListSectionsResponse, SectionItem, UpdateSectionBody, UpdateSectionResponse,
+    InputSection, ListSectionsResponse, SectionItem, UpdateSectionBody, UpdateSectionResponse,
 };
 pub use tasks::ListSectionTasksResponse;
 

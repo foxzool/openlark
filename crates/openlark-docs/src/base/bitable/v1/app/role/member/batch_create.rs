@@ -107,10 +107,11 @@ impl BatchCreateRoleMemberRequest {
     }
 }
 
-/// 批量新增协作者请求体（内部使用）。
-#[derive(Serialize)]
-struct BatchCreateRoleMemberRequestBody {
-    member_list: Vec<RoleMemberId>,
+/// 批量新增协作者请求体。
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchCreateRoleMemberRequestBody {
+    /// 协作者列表（单次最多 100 项）
+    pub member_list: Vec<RoleMemberId>,
 }
 
 /// 批量新增协作者响应（data 为 {}）。

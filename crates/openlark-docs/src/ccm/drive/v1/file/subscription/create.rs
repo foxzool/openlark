@@ -86,18 +86,22 @@ impl CreateFileSubscriptionRequest {
     }
 }
 
-#[derive(Debug, Serialize)]
-
-struct CreateFileSubscriptionRequestBody {
+/// 创建订阅请求体
+///
+/// 字段与官方文档对齐：`subscription_type`、`file_type` 必填；
+/// `subscription_id`、`is_subcribe` 可选。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateFileSubscriptionRequestBody {
+    /// 订阅关系 ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    subscription_id: Option<String>,
-
-    subscription_type: String,
-
+    pub subscription_id: Option<String>,
+    /// 订阅类型（comment_update）
+    pub subscription_type: String,
+    /// 是否订阅
     #[serde(skip_serializing_if = "Option::is_none")]
-    is_subcribe: Option<bool>,
-
-    file_type: String,
+    pub is_subcribe: Option<bool>,
+    /// 文档类型（doc/docx/wiki）
+    pub file_type: String,
 }
 
 /// 创建订阅响应 data。
