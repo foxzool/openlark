@@ -241,7 +241,8 @@ pub struct Field {
     /// 字段在界面上的展示类型
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ui_type: Option<String>,
-    /// 是否是隐藏字段
+    /// 是否是隐藏字段。线上列出字段可能不返回该键，缺省为 false。
+    #[serde(default)]
     pub is_hidden: bool,
 }
 

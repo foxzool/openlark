@@ -83,6 +83,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   响应为单台授权设备的 `device_record_id` / `device_ownership` / `device_status`。
   旧名 `GetMyDeviceRecordsRequest` 保留为 deprecated 别名。
 
+### Fixed
+
+- **docs：bitable 列出字段 `Field.is_hidden` 缺键按 false（#770）**：
+  生产 `GET .../fields` 不返回 `is_hidden`，共享 `Field` 把它当成必填，
+  `ListFieldResponse` 无法反序列化。`#[serde(default)]` 让缺键为 `false`，
+  显式值不变。创建字段与更新字段响应复用同一 `Field`。
+
 ## [0.21.0] - 2026-10-09
 
 > Content freeze for the 0.21 release window. Package identity and this dated

@@ -198,4 +198,67 @@ mod tests {
             "/open-apis/bitable/v1/apps/app001/tables/tbl001/fields"
         );
     }
+
+    /// 线上列出字段不返回 is_hidden；文本字段无 property，单选带 property.options。
+    #[test]
+    fn test_list_field_response_deserializes_when_is_hidden_absent() {
+        let raw = r#"{
+          "has_more": false,
+          "total": 2,
+          "items": [
+            {
+              "field_id": "fldKcFZ8wG",
+              "field_name": "科目",
+              "type": 1,
+              "ui_type": "Text",
+              "is_primary": true
+            },
+            {
+              "field_id": "fldXVOxCJo",
+              "field_name": "组合",
+              "type": 3,
+              "ui_type": "SingleSelect",
+              "is_primary": false,
+              "property": {
+                "options": [
+                  {"id": "optYG9V02n", "name": "100208_浦发行金桥支行", "color": 0}
+                ]
+              }
+            }
+          ]
+        }"#;
+
+        let parsed: ListFieldResponse =
+            serde_json::from_str(raw).expect("列出字段应能解析缺 is_hidden 的线上响应");
+        assert_eq!(parsed.items.len(), 2);
+        assert_eq!(parsed.items[0].field_id, "fldKcFZ8wG");
+        assert!(parsed.items[0].property.is_none());
+        assert!(!parsed.items[0].is_hidden);
+        assert_eq!(parsed.items[1].field_id, "fldXVOxCJo");
+        assert!(parsed.items[1].property.is_some());
+        assert!(!parsed.items[1].is_hidden);
+    }
+
+    /// 显式 is_hidden 不被缺省值盖掉。
+    #[test]
+    fn test_list_field_response_keeps_explicit_is_hidden_true() {
+        let raw = r#"{
+          "has_more": false,
+          "total": 1,
+          "items": [
+            {
+              "field_id": "fldKcFZ8wG",
+              "field_name": "科目",
+              "type": 1,
+              "ui_type": "Text",
+              "is_primary": true,
+              "is_hidden": true
+            }
+          ]
+        }"#;
+
+        let parsed: ListFieldResponse =
+            serde_json::from_str(raw).expect("列出字段应能解析显式 is_hidden");
+        assert!(parsed.items[0].is_hidden);
+    }
 }
