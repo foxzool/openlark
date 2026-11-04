@@ -98,6 +98,12 @@ impl QueryRequest {
         use crate::common::api_endpoints::PerformanceApiV1;
 
         validate_required!(self.body.semester_id, "semester_id 不能为空");
+        if self.body.user_ids.len() > 10 {
+            return Err(openlark_core::error::validation_error(
+                "获取绩效周期的人员信息",
+                "user_ids 不能超过 10 个",
+            ));
+        }
 
         let api_endpoint = PerformanceApiV1::UserInfoQuery;
         let UserInfoQueryParams {
@@ -208,6 +214,17 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn eleven_user_ids_is_rejected_before_http() {
+        let err = QueryRequest::new(Config::default())
+            .semester_id("6992035450862224940")
+            .user_ids((0..11).map(|index| format!("ou_{index}")).collect())
+            .execute()
+            .await
+            .expect_err("超过 10 个应失败");
+        assert!(err.to_string().contains("10"), "{err}");
+    }
+
     /// 官方 user_ids 长度是 0～10。空列表必须发出，不能在客户端被当成缺校验。
     #[tokio::test]
     async fn test_user_info_query_accepts_empty_user_ids() {
@@ -269,5 +286,43 @@ mod tests {
             .expect_err("空白 semester_id 应在客户端失败");
 
         assert!(err.to_string().contains("semester_id 不能为空"));
+    }
+
+    #[tokio::test]
+    async fn ten_user_ids_is_sent() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{body_json, method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let ids: Vec<String> = (0..10).map(|index| format!("ou_{index}")).collect();
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/performance/v2/user_info/query"))
+            .and(body_json(json!({
+                "semester_id": "6992035450862224940",
+                "user_ids": ids
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {"items": [], "has_more": false}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+        QueryRequest::new(config)
+            .semester_id("6992035450862224940")
+            .user_ids(ids)
+            .execute()
+            .await
+            .expect("10 个 user_ids 应发出");
     }
 }
