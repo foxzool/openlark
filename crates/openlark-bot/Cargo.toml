@@ -7,7 +7,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 documentation.workspace = true
-description = "OpenLark 机器人模块 - 提供飞书机器人信息与搜索 API"
+description = "OpenLark 机器人模块 - 提供飞书机器人信息、千人千面菜单与搜索 API"
 
 [lints]
 workspace = true
@@ -21,6 +21,7 @@ tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
+wiremock = { workspace = true }
 
 [features]
 default = ["v3", "v4", "async"]

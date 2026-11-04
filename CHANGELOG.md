@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **bot：千人千面菜单（#771）**：
+  `BotService` 增加 `get_bot_menu` / `set_bot_menu` / `delete_bot_menu`，
+  对应 `GET|POST|DELETE /open-apis/bot/v3/bot_menu`，只接受 tenant access token。
+  第三层菜单的 `behaviors` 在官方示例里是单个对象，读取时收成一项，写出时仍是数组。
+  目录增加这 3 条，行数 1750 → 1753。
+  「搜索 Wiki」的 HTTP 路径保持 `POST /open-apis/wiki/v2/nodes/search`：
+  目录 `apiPath` 的 v1 与中文文档正文的 v2 不一致，见 `.out-of-scope/wiki-search-v1-path.md`。
+
+
 - **auth：RFC 8628 设备码注册应用（#695，最小核心）**：
   `openlark_auth::device_registration::DeviceRegistration` 拆分式 `begin` / `poll`：
   `begin` 返回扫码 URL（追加 from/tp/source 标识）与轮询句柄；`poll` 返回

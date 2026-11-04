@@ -156,7 +156,7 @@ macro_rules! for_each_compiled_capability {
                 feature: "bot",
                 field: bot,
                 ty: openlark_bot::BotClient,
-                doc: "Bot meta 调用链入口：client.bot.search_bot() ...",
+                doc: "Bot meta 调用链入口：client.bot.search_bot() / get_bot_menu() / set_bot_menu() / delete_bot_menu()",
                 init: |_core_config, _base_core_config| {
                     openlark_bot::BotClient::new(_core_config.clone())
                 },
