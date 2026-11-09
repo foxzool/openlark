@@ -95,47 +95,65 @@ jobs:
           fi
 
   # Advanced feature matrix testing using cargo-hack
-  cargo-hack-testing:
+  feature-matrix-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify feature matrix failure propagation
+        run: python3 -m unittest tools.tests.test_feature_matrix -v
+
+  cargo-hack-testing:
+    needs: feature-matrix-regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [individual, core]
+    env:
+      FEATURE_MATRIX_REPORT: reports/feature-matrix/${{ matrix.phase }}.json
+      # 每个 phase 最多执行 20 分钟；job 的其余 10 分钟留给 setup 与报告。
+      FEATURE_MATRIX_TIMEOUT_SECONDS: "1200"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.CARGO_TOOLCHAIN }}
 
       - name: Install cargo-hack
+        if: matrix.phase == 'individual'
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-hack
+          tool: cargo-hack@0.6.45
 
       - name: Cache Cargo build files
         uses: Swatinem/rust-cache@v2
 
       # Test each feature individually
       - name: Test each feature individually
+        if: matrix.phase == 'individual'
         run: |
-          echo "## Feature Testing Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Test each feature individually (excluding websocket due to heavy dependencies)
-          timeout 30m cargo hack test --each-feature --exclude-features websocket --lib \
-            || echo "❌ Some individual feature tests failed" >> $GITHUB_STEP_SUMMARY
+          python3 tools/run_feature_matrix.py individual --report "$FEATURE_MATRIX_REPORT" --timeout-seconds "$FEATURE_MATRIX_TIMEOUT_SECONDS"
 
       # Test feature combinations that are likely to be used together
       - name: Test core feature combinations
+        if: matrix.phase == 'core'
         run: |
-          echo "### Core Feature Combinations" >> $GITHUB_STEP_SUMMARY
+          python3 tools/run_feature_matrix.py core --report "$FEATURE_MATRIX_REPORT" --timeout-seconds "$FEATURE_MATRIX_TIMEOUT_SECONDS"
 
-          # Test combinations of core features
-          CORE_FEATURES="auth,docs,communication,hr,ai,websocket"
-          echo "Testing core features: $CORE_FEATURES" >> $GITHUB_STEP_SUMMARY
-
-          if timeout 20m cargo hack test --feature-powerset --depth 2 \
-            --features "$CORE_FEATURES" --lib; then
-            echo "✅ Core feature combinations passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Some core feature combinations failed" >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Upload feature matrix execution report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-matrix-${{ matrix.phase }}
+          path: ${{ env.FEATURE_MATRIX_REPORT }}
+          if-no-files-found: error
