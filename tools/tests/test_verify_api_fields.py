@@ -234,6 +234,157 @@ class SuspiciousPatternTests(unittest.TestCase):
         issues = verify_api_fields.detect_suspicious_patterns(api, structs, source)
         self.assertNotIn("missing_list_validation", [item.category for item in issues])
 
+    def _missing_list_details(
+        self,
+        source: str,
+        struct_name: str = "PassBody",
+        fields: tuple[str, ...] = ("user_ids",),
+    ) -> list[str]:
+        structs = [
+            verify_api_fields.StructFields(
+                struct_name,
+                [verify_api_fields.FieldInfo(name, "Vec<String>", True) for name in fields],
+            )
+        ]
+        issues = verify_api_fields.detect_suspicious_patterns(api_identity(), structs, source)
+        return [item.detail for item in issues if item.category == "missing_list_validation"]
+
+    def test_allow_empty_comment_suppresses_warning(self):
+        source = """
+        pub struct PassBody {
+            /// 人员 ID 列表（必填，允许空数组，最多 10 个）
+            pub user_ids: Vec<String>,
+        }
+        """
+        self.assertEqual(self._missing_list_details(source), [])
+
+    def test_can_pass_empty_array_wording_suppresses_warning(self):
+        source = """
+        pub struct PassBody {
+            /// 工作日历 ID 列表（必填，第一次传入时可以传入空数组）
+            pub wk_calendar_ids: Vec<String>,
+        }
+        """
+        self.assertEqual(
+            self._missing_list_details(source, fields=("wk_calendar_ids",)),
+            [],
+        )
+
+    def test_negative_empty_array_comment_still_warns(self):
+        for comment in (
+            "不允许空数组",
+            "不可以传入空数组",
+            "不是允许空数组",
+            "不要允许空数组",
+            "别允许空数组",
+            "没有允许空数组",
+            "未允许空数组",
+            "允许空数组。不允许空数组",
+        ):
+            with self.subTest(comment=comment):
+                source = f"""
+                pub struct PassBody {{
+                    /// {comment}
+                    pub user_ids: Vec<String>,
+                }}
+                """
+                details = self._missing_list_details(source)
+                self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_struct_field_without_comment_still_warns(self):
+        source = """
+        pub struct PassBody {
+            pub user_ids: Vec<String>,
+        }
+        """
+        details = self._missing_list_details(source)
+        self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_same_line_allow_and_deny(self):
+        allowed = """
+        pub struct PassBody {
+            pub user_ids: Vec<String>, // 允许空数组
+        }
+        """
+        denied = """
+        pub struct PassBody {
+            pub user_ids: Vec<String>, // 不允许空数组
+        }
+        """
+        self.assertEqual(self._missing_list_details(allowed), [])
+        self.assertTrue(self._missing_list_details(denied))
+
+    def test_execute_or_other_field_comment_does_not_exempt(self):
+        source = """
+        pub struct PassBody {
+            /// 允许空数组
+            pub other_ids: Vec<String>,
+            pub user_ids: Vec<String>,
+        }
+        impl PassBody {
+            pub fn execute(&self) {
+                // user_ids 允许空数组，故不做非空校验
+            }
+        }
+        """
+        details = self._missing_list_details(source, fields=("other_ids", "user_ids"))
+        self.assertFalse(any("other_ids" in detail for detail in details))
+        self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_other_struct_allow_comment_does_not_exempt(self):
+        source = """
+        /// 允许空数组
+        pub struct OtherBody {
+            /// 允许空数组
+            pub user_ids: Vec<String>,
+        }
+        pub struct PassBody {
+            pub user_ids: Vec<String>,
+        }
+        """
+        details = self._missing_list_details(source)
+        self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_attribute_between_doc_and_field_still_allows_empty(self):
+        source = """
+        pub struct PassBody {
+            /// 允许空数组
+            #[serde(
+                rename = "user_ids"
+            )]
+            pub user_ids: Vec<String>,
+        }
+        """
+        self.assertEqual(self._missing_list_details(source), [])
+
+    def test_question_and_todo_do_not_exempt(self):
+        for comment in ("允许空数组吗", "TODO: 允许空数组", "FIXME 允许空数组"):
+            with self.subTest(comment=comment):
+                source = f"""
+                pub struct PassBody {{
+                    /// {comment}
+                    pub user_ids: Vec<String>,
+                }}
+                """
+                self.assertTrue(self._missing_list_details(source))
+
+    def test_real_issue_776_sources_do_not_warn(self):
+        root = Path(__file__).resolve().parents[2]
+        paths = (
+            root / "crates/openlark-hr/src/feishu_people/corehr/v1/leave/work_calendar.rs",
+            root / "crates/openlark-hr/src/performance/performance/v2/user_info/query.rs",
+        )
+        for path in paths:
+            source = path.read_text(encoding="utf-8")
+            structs = verify_api_fields.extract_structs(source)
+            issues = verify_api_fields.detect_suspicious_patterns(
+                api_identity(), structs, source
+            )
+            self.assertNotIn(
+                "missing_list_validation",
+                [item.category for item in issues],
+                path,
+            )
 
     def test_empty_get_response_is_informational(self):
         api = api_identity(method="GET")

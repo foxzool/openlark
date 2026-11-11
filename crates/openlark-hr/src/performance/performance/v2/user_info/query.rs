@@ -40,7 +40,7 @@ pub struct UserInfoQueryParams {
 pub struct QueryRequestBody {
     /// 评估周期 ID（必填），可通过【获取周期】接口获得
     pub semester_id: String,
-    /// 人员 ID 列表（必填，最多 10 个），ID 类型与 user_id_type 的取值一致
+    /// 人员 ID 列表（必填，允许空数组，最多 10 个），ID 类型与 user_id_type 的取值一致
     pub user_ids: Vec<String>,
 }
 
@@ -66,7 +66,7 @@ impl QueryRequest {
         self
     }
 
-    /// 设置人员 ID 列表（必填，最多 10 个）
+    /// 设置人员 ID 列表（必填，允许空数组，最多 10 个）
     pub fn user_ids(mut self, user_ids: Vec<String>) -> Self {
         self.body.user_ids = user_ids;
         self
@@ -206,5 +206,68 @@ mod tests {
             received[0].url.path(),
             "/open-apis/performance/v2/user_info/query"
         );
+    }
+
+    /// 官方 user_ids 长度是 0～10。空列表必须发出，不能在客户端被当成缺校验。
+    #[tokio::test]
+    async fn test_user_info_query_accepts_empty_user_ids() {
+        use serde_json::json;
+        use wiremock::MockServer;
+        use wiremock::matchers::{body_json, method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/performance/v2/user_info/query"))
+            .and(body_json(json!({
+                "semester_id": "6992035450862224940",
+                "user_ids": []
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {"items": [], "has_more": false}
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let data = QueryRequest::new(config)
+            .semester_id("6992035450862224940")
+            .user_ids(Vec::new())
+            .execute()
+            .await
+            .expect("空 user_ids 不应在客户端校验失败");
+
+        assert!(data.items.is_empty());
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(body["user_ids"], json!([]));
+    }
+
+    #[tokio::test]
+    async fn test_user_info_query_rejects_blank_semester_id() {
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url("https://127.0.0.1:9")
+            .enable_token_cache(false)
+            .build();
+
+        let err = QueryRequest::new(config)
+            .semester_id("   ")
+            .user_ids(Vec::new())
+            .execute()
+            .await
+            .expect_err("空白 semester_id 应在客户端失败");
+
+        assert!(err.to_string().contains("semester_id 不能为空"));
     }
 }

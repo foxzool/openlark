@@ -255,4 +255,39 @@ mod tests {
         let received = server.received_requests().await.unwrap_or_default();
         assert_eq!(received.len(), 1);
     }
+
+    /// 官方第一次查询允许 wk_calendar_ids 为空数组，客户端不得因此拒绝。
+    #[tokio::test]
+    async fn test_work_calendar_accepts_empty_wk_calendar_ids() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/open-apis/corehr/v1/leaves/work_calendar"))
+            .and(body_json(json!({ "wk_calendar_ids": [] })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code": 0,
+                "msg": "success",
+                "data": {"work_calendars": [], "count": 0}
+            })))
+            .mount(&server)
+            .await;
+
+        let config = Config::builder()
+            .app_id("ci_app_id")
+            .app_secret("ci_app_secret")
+            .base_url(server.uri())
+            .enable_token_cache(false)
+            .build();
+
+        let resp = WorkCalendarRequest::new(config)
+            .wk_calendar_ids(Vec::new())
+            .execute()
+            .await
+            .expect("空 wk_calendar_ids 不应在客户端校验失败");
+
+        assert_eq!(resp.work_calendars.as_ref().map(Vec::len), Some(0));
+        let received = server.received_requests().await.unwrap_or_default();
+        assert_eq!(received.len(), 1);
+        let body: serde_json::Value = serde_json::from_slice(&received[0].body).unwrap();
+        assert_eq!(body["wk_calendar_ids"], json!([]));
+    }
 }
