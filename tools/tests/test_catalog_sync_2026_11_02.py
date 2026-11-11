@@ -1,5 +1,8 @@
 """#771 飞书 API 目录同步（2026-11-02）验收测试。
 
+#775（2026-11-09）是同一份报告的重复开单：本修复当时只落在本地 main、未推远端。
+只验收目录内容本身，不区分是通过 #771 还是 #775 落地。
+
 Seams（公开边界）:
 1. 3 个千人千面菜单 Catalog Entry 的 id → name / bizTag / meta.* / fullPath / url
 2. checked-in catalog 行数增至 CURRENT_CATALOG_ROW_COUNT
