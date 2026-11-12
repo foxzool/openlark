@@ -1,12 +1,64 @@
 # OpenLark 迁移指南
 
-本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.21.0**。下方按版本分节；
-**从 0.20 升级请先读 0.21 专节**；跨多个大版本请按顺序阅读各节。
+本文档覆盖跨版本公开入口迁移。**当前 workspace 版本为 0.22.0**。下方按版本分节；
+**从 0.21 升级请先读 0.22 专节**；跨多个大版本请按顺序阅读各节。
 
 完整 breaking 表与逐 API 迁移代码见根目录 [`CHANGELOG.md`](../CHANGELOG.md) 的
-`## [0.21.0]` / `## [0.20.0]` / `## [0.19.0]` 节（GitHub Release 正文亦从此提取）。
+`## [0.22.0]` / `## [0.21.0]` / `## [0.20.0]` 节（GitHub Release 正文亦从此提取）。
 
 ---
+
+# OpenLark 0.22 迁移指南
+
+适用范围：从 `0.21.x` 迁移到 `0.22.x`
+
+## 一句话结论
+
+`0.22` 把一批请求体、必填字段、查询参数和响应模型改成官方文档的形状，并改了
+`device_records.mine` 的请求和响应。使用受影响 builder 的调用要核对新增必填参数，不能只看有没有手写 JSON。
+WebSocket 的 flat 再导出仍可用，但已 `deprecated`。
+
+## 1. 请求与响应形状（breaking）
+
+完整列表见 CHANGELOG `## [0.22.0]` → `Changed (Breaking)`。
+
+| 表面 | 要点 |
+|------|------|
+| 多 crate 字段对齐 | 缺失 body、`Value` 透传、以及与官方键不一致的响应，已按官方文档重写。手写旧 JSON、匹配旧响应键、以及调用了新增必填参数的 builder 的代码都要核对 |
+| `openlark-hr` hire | 7 个 `#[serde(flatten)] fields: Value` 请求体改为 typed struct，并校验官方必填字段（#734） |
+| `openlark-security` `device_records.mine` | 不再是分页 `items` 列表。响应是单台设备的 `device_record_id` / `device_ownership` / `device_status`。旧请求名仍是 deprecated 别名 |
+| wiki 搜索 | `POST /open-apis/wiki/v2/nodes/search`（#740） |
+| `ws_client::typed::ImMessageReceiveV1` | 深路径已删除。改用 `ws_client::typed::im` |
+
+## 2. 废弃但仍可用
+
+`ws_client::ImMessageReceiveV1` 等 flat 再导出标记 `deprecated(since = "0.22.0")`。
+正典路径是 `ws_client::im::*`，类型相同。按支持政策，flat 再导出至少留到 0.22.x 结束。
+
+## 3. 行为修正
+
+- vc 预约列表的多个 `room_ids` 改为同名重复 query（#763）。
+- bitable `Field.is_hidden` 缺键为 `false`（#770）。
+- 用 `validate_allow_empty_list!` 声明的必填列表可以是空数组（#778，#772）。
+
+## 4. 新增能力（非破坏）
+
+- 设备码注册 `begin` / `poll`（#695）。
+- user access token 自动缓存与刷新（#693）。
+- client assertion 换 tenant access token（#692）。
+- `MessageCard`（#690）。`send_card(Value)` 签名不变。
+- 千人千面菜单 `get_bot_menu` / `set_bot_menu` / `delete_bot_menu`（#771）。
+- `LarkChannel`（#700）。
+- 159 个类型化 WebSocket 事件（#707，#708）。
+
+## 5. 升级自检
+
+- [ ] 使用本窗口重写过的 builder 的调用已核对新增必填 query / body；手写请求体和旧响应键匹配已按 CHANGELOG 更新
+- [ ] `device_records.mine` 不再按分页 `items` 解析
+- [ ] 使用 `ws_client::typed::ImMessageReceiveV1` 的路径已改为 `ws_client::typed::im`
+- [ ] flat `ws_client::ImMessageReceiveV1` 的 deprecation 警告可接受，或已改到 `ws_client::im::*`
+- [ ] 阅读 CHANGELOG `## [0.22.0]` 全文（本专节为摘要）
+
 
 # OpenLark 0.21 迁移指南
 

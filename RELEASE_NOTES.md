@@ -7,38 +7,46 @@
 > Historical narrative below the demotion notice (0.16-era) is **archived for archaeology
 > only** and is not current product guidance.
 
-## 当前发布窗口：0.21.0
+## 当前发布窗口：0.22.0
 
-**状态：** 打包中 — workspace identity `0.21.0`；annotated tag / stable GitHub Release /
-crates.io 为 **post-merge cut**。本变更不打 tag、不发布、不合并。  
-**触发：** 合并到 `main` 之后，对发布提交打 annotated tag `v0.21.0` 并推送。
+**状态：** 打包中 — workspace identity `0.22.0`；annotated tag / stable GitHub Release /
+crates.io 为 **post-merge cut**。本变更不打 tag、不发布。  
+**触发：** 合并到 `main` 之后，对发布提交打 annotated tag `v0.22.0` 并推送。
 `.github/workflows/release.yml` 仅在匹配 `v*` 的 tag push 上运行。  
-**完整条目：** [`CHANGELOG.md` → `## [0.21.0]`](CHANGELOG.md)  
-**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.21](docs/migration-guide.md)
+**完整条目：** [`CHANGELOG.md` → `## [0.22.0]`](CHANGELOG.md)  
+**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.22](docs/migration-guide.md)
 
 ### 主题摘要（非完整列表）
 
 | 主题 | 要点 |
 |------|------|
-| Security | 传递依赖 rustls 0.23.45，清除 RUSTSEC-2026-0285（#665） |
-| Webhook | 出站签名改为飞书空消息 HMAC（#686） |
-| Pay | 新 crate `openlark-pay` 与根 feature `pay`（#660） |
-| HTTP inbound | `event-http` / `HttpEventInbound`（#672） |
-| Typed WS | `im.message.receive_v1` 与 `card.action.trigger` typed handler（#668/#673） |
-| Breaking | AI / Helpdesk / app_badge / system_status / CardKit 请求体按官方文档重写 |
+| Security | 传递依赖 rustls 0.23.46，清除 RUSTSEC-2026-0346 / 0347 / 0348（#698） |
+| 字段对齐 | 请求体、必填字段、查询参数和响应键按官方文档重写 |
+| device mine | 单台设备响应，不再是分页 `items` 列表 |
+| Auth | 设备码注册、user token 自动刷新、client assertion |
+| WebSocket | 159 个 typed event；im flat 再导出 deprecated；深路径 `typed::ImMessageReceiveV1` 删除 |
+| Channel / Card / Bot | `LarkChannel`、`MessageCard`、千人千面菜单 |
 
-升级请优先读迁移指南 0.21 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
+升级请优先读迁移指南 0.22 专节与 CHANGELOG Breaking 表，而不是本文件的历史 0.16 段落。
 
 ### 如何生成正式 Release 正文
 
-1. 确认 `CHANGELOG.md` 含 `## [0.21.0]`（本窗口已 dated）。
-2. 合并本打包变更到 `main` 后，打 annotated tag `v0.21.0`。
+1. 确认 `CHANGELOG.md` 含 `## [0.22.0]`（本窗口已 dated）。
+2. 合并本打包变更到 `main` 后，打 annotated tag `v0.22.0`。
 3. `release.yml` 提取该节、创建 GitHub Release，并按 `scripts/publish-workspace.sh` 发布到 crates.io。
 4. 可选：将 `tools/release_quality_status.py` 产出附在 Release 末尾（工作流已支持）。
 
 ---
 
-## 上一窗口：0.20.0（已发布）
+## 上一窗口：0.21.0（已发布）
+
+**状态：** 已发布 — annotated tag `v0.21.0`、stable GitHub Release（2026-10-09）。  
+**完整条目：** [`CHANGELOG.md` → `## [0.21.0]`](CHANGELOG.md)  
+**消费者升级：** [`docs/migration-guide.md` → OpenLark 0.21](docs/migration-guide.md)
+
+---
+
+## 更早窗口：0.20.0（已发布）
 
 **状态：** 已发布 — annotated tag `v0.20.0`、stable GitHub Release、crates.io `0.20.0`（#591）。  
 **Cut 记录：** [`docs/0.20.0_RELEASE_CUT.md`](docs/0.20.0_RELEASE_CUT.md)  
@@ -47,7 +55,7 @@ crates.io 为 **post-merge cut**。本变更不打 tag、不发布、不合并�
 
 ---
 
-## 更早窗口：0.19.0（已发布）
+## 0.19.0（已发布）
 
 **状态：** 已发布 — annotated tag `v0.19.0`、stable GitHub Release、crates.io `0.19.0`（#560）。  
 **Cut 记录：** [`docs/0.19.0_RELEASE_CUT.md`](docs/0.19.0_RELEASE_CUT.md)  

@@ -7,22 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- Post-0.21 work goes here. -->
+<!-- Post-0.22 work goes here. -->
 
-### Changed
+## [0.22.0] - 2026-11-12
 
-- **catalog：同步 2026-10-24 官方 API 清单（#726）**：
-  官方下架 4 条（minutes 订阅/取消订阅 ×2、vc 纪要订阅/取消订阅 ×2），
-  目录行数 1754 → 1750；5 个 API 仅 `detail` 文案变更（含
-  `auth/v3/tenant_access_token/internal` 被官方标记为历史版本）。
-  下架 API 的 Rust 实现按 #679 先例保留，仅移除目录行。
+> Content freeze for the 0.22 release window. Package identity and this dated
+> section are filled by the packaging change. GitHub Release body is extracted
+> from this section by `.github/workflows/release.yml` — this is the source of
+> truth for 0.22 notes. Consumer upgrade path: `docs/migration-guide.md` →
+> **OpenLark 0.22**.
+
+### Security
+
+- **deps：传递依赖 rustls 升至 0.23.46（RUSTSEC-2026-0346 / 0347 / 0348，#698）**：
+  lockfile-only 更新。无 `Cargo.toml` 直依赖变更，无公开 API 变化。
+
+### Changed (Breaking)
+
+- **多 crate：请求体、必填字段、查询参数与响应模型按官方文档重写**：
+  原先缺失、`Value` 透传、或与官方键不一致的 Body / Response 改为官方字段。
+  手写了旧 JSON、或按旧响应键匹配的调用要改。使用受影响 builder 的调用也要核对：本窗口给一批旧 builder 增加了必填 query 和 body 字段（例如 `lang`、`operator_id`、`version`，#765），并把 `Value` 透传换成 typed body。缺这些参数的旧调用会在校验或类型上失败。
+  - hire 的 7 个 `#[serde(flatten)] fields: Value` 请求体改为 typed struct，并校验官方必填字段（#734）。
+  - 响应去掉 Transport 已经拆过的双层 `data`，字段改为官方键（例如 `data_source_id` → `id`，`items` → `categories`）（#740 / #745）。
+  - wiki 搜索改为 `POST /open-apis/wiki/v2/nodes/search`（#740）。
+  - 其余对齐：docs / workflow / analytics / ai（#758）、platform / communication / auth（#759）、
+    hr（#760、#764、#748、#749、#741 / #746、#742 / #747、#719 / #731、#721 / #736）、
+    meeting / mail（#761）、application / helpdesk / security（#765）、
+    mail / meeting / helpdesk / analytics / security / docs / application（#725 / #738）、
+    communication im / aily / contact（#735）、ai document_ai OCR（#737）、
+    workflow approval / board（#733）、platform mdm / spark / admin（#723 / #732）、
+    workflow task（#717 / #730）。
+
+- **security：`device_records.mine` 对齐重新上架的官方合同**：
+  2026-09-21 下架时冻结保留的分页查询（`page_size` / `page_token` / `status`，
+  响应 `items`）已不在现行文档中。请求类型改为 `MineDeviceRecordRequest`，
+  响应为单台授权设备的 `device_record_id` / `device_ownership` / `device_status`。
+  旧名 `GetMyDeviceRecordsRequest` 保留为 deprecated 别名。
+
+- **ws：删除深路径 `ws_client::typed::ImMessageReceiveV1`（#709）**：
+  家族迁入 `ws_client::typed::im`。flat 再导出仍在，见下方 Deprecated。
+
+### Deprecated
+
+- **ws：im 域 typed 事件 flat 再导出（#709）**：
+  `ws_client::{ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler,
+  ImMessageSender, ImReceivedMessage, ImSenderId, ImMention}` 标记 `#[deprecated(since = "0.22.0")]`。
+  正典入口为模块式路径 `ws_client::im::*`（类型与原 flat 再导出同型，直接换 use 即可）。
+  `im.message.receive_v1` 的 handler trait / adapter / `register_im_message_receive_v1`
+  改由 `typed_events!` 宏生成，行为与原手写链等价（错误信息、重复注册语义不变）。
+  依据 `docs/DEPRECATED_API_SUPPORT_POLICY.md`：flat 再导出至少保留到 0.22.x 结束，
+  最早于 0.23.0 起评估移除。
 
 ### Added
 
-- **core：Empty-ok List 校验宏**：
+- **core：Empty-ok List 校验宏（#778）**：
   `validate_allow_empty_list!` 声明必填列表可以是空数组。无上限时不拒绝任何长度；
   带上限时只拒绝超长。`validate_required!` 与 `validate_required_list!` 仍把空列表当成非法。
-  快速字段检测不再用中文注释「允许空数组」豁免缺校验。
   见 `docs/adr/0008-empty-ok-list.md`。
 
 - **bot：千人千面菜单（#771）**：
@@ -51,20 +91,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   app token 缓存，独立构造 `AuthTokenProvider` 也可用。TLA+ 模型扩展了 user
   流程（新增 `UserEntryPairsRefresh` 成对写回不变量，TLC 全过）。
 
-### Deprecated
-
-- **ws：im 域 typed 事件 flat 再导出（#709）**：
-  `ws_client::{ImMessageReceiveV1, ImMessageReceiveV1Event, ImMessageReceiveV1Handler,
-  ImMessageSender, ImReceivedMessage, ImSenderId, ImMention}` 标记 `#[deprecated(since = "0.22.0")]`。
-  正典入口为模块式路径 `ws_client::im::*`（类型与原 flat 再导出同型，直接换 use 即可）。
-  `im.message.receive_v1` 的 handler trait / adapter / `register_im_message_receive_v1`
-  改由 `typed_events!` 宏生成，行为与原手写链等价（错误信息、重复注册语义不变）。
-  依据 `docs/DEPRECATED_API_SUPPORT_POLICY.md`：flat 再导出至少保留到 0.22.x 结束，
-  最早于 0.23.0 起评估移除。深路径 `ws_client::typed::ImMessageReceiveV1` 随家族
-  迁入 `ws_client::typed::im` 而移除（全仓无使用者）。
-
-### Added
-
 - **communication：类型化消息卡片 `MessageCard`（#690）**：
   调用方用标题、内容块、按钮以及 `column_set` / `form` / `chart` / `table`
   拼出 schema 2.0 的 interactive JSON，再交给现有 `ImClient::send_card`。
@@ -81,6 +107,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   该模式下可以不填 `app_secret`；marketplace 与 app access token 会被拒绝。
   换票请求遵守 `Config::req_timeout` 与 `Config::max_response_size`。
 
+- **client：`LarkChannel` 会话层（#700）**：
+  在长连接和 IM helper 之上归一化入站消息，区分群与单聊，提供回复，以及按消息排队的卡片补丁。
+  `build` 时若 token provider 仍是 `NoOp`，按 `Client` 的顺序装上 `AuthTokenProvider`；已有 provider 保持不变。
+
+- **ws：按业务域补齐 159 个类型化事件（#707，#708）**：
+  im / contact / approval / calendar / task / drive / mail / hire / vc / corehr v1 / corehr v2
+  各有 envelope、handler trait 和 `register_*`。与 `register_raw` 同一 key 时，重复注册返回 `Err`。
+  时间戳同时接受字符串和数字。159 含原有 `im.message.receive_v1`，其中 158 个是新增。
+
 - **catalog：同步 2026-10-12 飞书 API 目录（#688）**：
   live 目录 1751 → 1754（新增 3 / 删除 0 / 字段变化 0）。
   - `GET /open-apis/security_and_compliance/v2/device_records/mine`
@@ -89,15 +124,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `PUT /open-apis/spark/v1/apps/:app_id/releases/:release_id`
     （回写发布节点状态，仅 `tenant_access_token`）。
 
-### Changed (Breaking)
+### Changed
 
-- **security：`device_records.mine` 对齐重新上架的官方合同**：
-  2026-09-21 下架时冻结保留的分页查询（`page_size` / `page_token` / `status`，
-  响应 `items`）已不在现行文档中。请求类型改为 `MineDeviceRecordRequest`，
-  响应为单台授权设备的 `device_record_id` / `device_ownership` / `device_status`。
-  旧名 `GetMyDeviceRecordsRequest` 保留为 deprecated 别名。
+- **catalog：同步 2026-10-24 官方 API 清单（#726）**：
+  官方下架 4 条（minutes 订阅/取消订阅 ×2、vc 纪要订阅/取消订阅 ×2），
+  目录行数 1754 → 1750；5 个 API 仅 `detail` 文案变更（含
+  `auth/v3/tenant_access_token/internal` 被官方标记为历史版本）。
+  下架 API 的 Rust 实现按 #679 先例保留，仅移除目录行。
 
 ### Fixed
+
+- **hr：允许空数组的必填列表不再误报（#772，#777）**：
+  已用 `validate_allow_empty_list!` 声明的列表，空数组不再被当成缺校验。
+  快速检测不再用中文注释「允许空数组」豁免缺校验。
+
+- **meeting：vc `room_ids` 改为同名重复 query（#763）**：
+  `GET /open-apis/vc/v1/resource_reservation_list` 的多个会议室 ID 按官方文档发送
+  `room_ids=a&room_ids=b`。此前逗号拼进一个参数，服务端会拒绝或解析错。
 
 - **docs：bitable 列出字段 `Field.is_hidden` 缺键按 false（#770）**：
   生产 `GET .../fields` 不返回 `is_hidden`，共享 `Field` 把它当成必填，
