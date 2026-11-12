@@ -7,7 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_allow_empty_list, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,12 +98,7 @@ impl QueryRequest {
         use crate::common::api_endpoints::PerformanceApiV1;
 
         validate_required!(self.body.semester_id, "semester_id 不能为空");
-        if self.body.user_ids.len() > 10 {
-            return Err(openlark_core::error::validation_error(
-                "获取绩效周期的人员信息",
-                "user_ids 不能超过 10 个",
-            ));
-        }
+        validate_allow_empty_list!(self.body.user_ids, 10, "user_ids 不能超过 10 个");
 
         let api_endpoint = PerformanceApiV1::UserInfoQuery;
         let UserInfoQueryParams {

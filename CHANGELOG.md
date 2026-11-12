@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **core：Empty-ok List 校验宏**：
+  `validate_allow_empty_list!` 声明必填列表可以是空数组。无上限时不拒绝任何长度；
+  带上限时只拒绝超长。`validate_required!` 与 `validate_required_list!` 仍把空列表当成非法。
+  快速字段检测不再用中文注释「允许空数组」豁免缺校验。
+  见 `docs/adr/0008-empty-ok-list.md`。
+
 - **bot：千人千面菜单（#771）**：
   `BotService` 增加 `get_bot_menu` / `set_bot_menu` / `delete_bot_menu`，
   对应 `GET|POST|DELETE /open-apis/bot/v3/bot_menu`，只接受 tenant access token。

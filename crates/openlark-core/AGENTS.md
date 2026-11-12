@@ -80,6 +80,8 @@ pub type SDKResult<T> = Result<T, CoreError>;
 // 验证宏（validate_required 函数已删除，仅保留宏）
 validate_required!(self.field, "字段不能为空");
 validate_required_list!(self.items, 50, "列表不能为空且不能超过 50 项");
+validate_allow_empty_list!(self.wk_calendar_ids);
+validate_allow_empty_list!(self.user_ids, 10, "user_ids 不能超过 10 个");
 ```
 
 ### RequestOption 字段语义

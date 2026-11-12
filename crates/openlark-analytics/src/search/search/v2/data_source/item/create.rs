@@ -7,7 +7,7 @@ use openlark_core::{
     config::Config,
     http::Transport,
     req_option::RequestOption,
-    validate_required,
+    validate_allow_empty_list, validate_required,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -156,7 +156,7 @@ impl CreateDataSourceItemRequest {
     ) -> SDKResult<CreateDataSourceItemResponse> {
         validate_required!(self.data_source_id, "data_source_id 不能为空");
         validate_required!(self.body.id, "id 不能为空");
-        // acl 允许空数组（官方语义：空数组=数据不可见），不做非空校验
+        validate_allow_empty_list!(self.body.acl);
         validate_required!(self.body.metadata.title, "metadata.title 不能为空");
         validate_required!(
             self.body.metadata.source_url,

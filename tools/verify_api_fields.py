@@ -49,7 +49,6 @@ from tools.api_contracts.rust_source import (
     MULTIPART_FORM_STRUCT_NAME,
     RESPONSE_STRUCT_SUFFIXES,
     extract_structs,
-    find_matching_brace,
     matches_struct_suffix,
 )
 
@@ -81,17 +80,126 @@ class FieldIssue:
     detail: str  # 人可读的描述
 
 
+def _mask_rust_non_code(source: str) -> str:
+    """把注释和字符串换成空格，宏名出现在那里不算调用。"""
+    chars = list(source)
+    i = 0
+    n = len(source)
+
+    def blank(start: int, end: int) -> None:
+        for index in range(start, end):
+            if chars[index] != "\n":
+                chars[index] = " "
+
+    def ordinary_string_end(start: int) -> int:
+        index = start + 1
+        while index < n:
+            if source[index] == "\\":
+                index += 2
+                continue
+            if source[index] == '"':
+                return index + 1
+            index += 1
+        return n
+
+    def ident_char(ch: str) -> bool:
+        return ch.isalnum() or ch == "_"
+
+    def char_literal_end(start: int) -> int | None:
+        """`'` 开头的字符字面量结束下标。`'a`、`'static` 这类 lifetime 返回 None。"""
+        if start + 1 >= n:
+            return None
+        nxt = start + 1
+        if source[nxt] == "\\":
+            esc = nxt + 1
+            if esc >= n:
+                return None
+            if source[esc] == "x":
+                end = esc + 3
+                if end < n and source[end] == "'":
+                    return end + 1
+                return None
+            if source[esc] == "u" and esc + 1 < n and source[esc + 1] == "{":
+                close = source.find("}", esc + 2)
+                if close < 0 or close + 1 >= n or source[close + 1] != "'":
+                    return None
+                return close + 2
+            if esc + 1 < n and source[esc + 1] == "'":
+                return esc + 2
+            return None
+        if nxt + 1 < n and source[nxt + 1] == "'":
+            return nxt + 2
+        return None
+    while i < n:
+        if source.startswith("//", i):
+            end = source.find("\n", i)
+            blank(i, n if end < 0 else end)
+            i = n if end < 0 else end
+            continue
+        if source.startswith("/*", i):
+            depth = 1
+            index = i + 2
+            while index < n and depth:
+                if source.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif source.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            blank(i, index)
+            i = index
+            continue
+        if source[i] == "'":
+            end = char_literal_end(i)
+            if end is not None:
+                blank(i, end)
+                i = end
+                continue
+        prev_ok = i == 0 or not ident_char(source[i - 1])
+        literal_at = i
+        cursor = i
+        if prev_ok and source[i] in "bc" and i + 1 < n and source[i + 1] in {'"', "r"}:
+            cursor = i + 1
+        raw_start = (cursor == i and prev_ok) or cursor != i
+        if raw_start and cursor < n and source[cursor] == "r":
+            hashes = 0
+            index = cursor + 1
+            while index < n and source[index] == "#":
+                hashes += 1
+                index += 1
+            if index < n and source[index] == '"':
+                closer = '"' + ("#" * hashes)
+                end = source.find(closer, index + 1)
+                end = n if end < 0 else end + len(closer)
+                blank(literal_at, end)
+                i = end
+                continue
+        quote_at = cursor if cursor != i and cursor < n and source[cursor] == '"' else -1
+        if source[i] == '"':
+            quote_at = i
+        if quote_at >= 0:
+            end = ordinary_string_end(quote_at)
+            blank(literal_at, end)
+            i = end
+            continue
+        i += 1
+    return "".join(chars)
+
+
+_LIST_CHECK_MACRO_RE = re.compile(
+    r"(?:validate_required(?:_list)?|validate_allow_empty_list)!\s*\(\s*([^,)]*)"
+)
+
+
 def _has_field_list_nonempty_check(source: str, field_name: str) -> bool:
-    """字段级非空校验：validate_required! / validate_required_list! / {field}.is_empty()。"""
-    if f"{field_name}.is_empty()" in source:
+    """字段级列表校验：三条宏的首参数，或 {field}.is_empty()。注释和字符串不算。"""
+    code = _mask_rust_non_code(source)
+    if f"{field_name}.is_empty()" in code:
         return True
-    return (
-        re.search(
-            rf"validate_required(?:_list)?!\([^;]*\b{re.escape(field_name)}\b",
-            source,
-        )
-        is not None
-    )
+    field_re = re.compile(rf"\b{re.escape(field_name)}\b")
+    return any(field_re.search(match.group(1)) for match in _LIST_CHECK_MACRO_RE.finditer(code))
 
 
 def _vec_skips_empty_on_wire(source: str, field_name: str) -> bool:
@@ -105,213 +213,6 @@ def _vec_skips_empty_on_wire(source: str, field_name: str) -> bool:
     )
 
 
-# 字段声明上写明「空数组合法」。只认这些肯定说法；裸提「空数组」不算。
-_ALLOW_EMPTY_LIST_PHRASES: Tuple[str, ...] = (
-    "允许为空数组",
-    "允许传入空数组",
-    "允许传空数组",
-    "允许空数组",
-    "可以传入空数组",
-    "可以传空数组",
-    "可传入空数组",
-    "可传空数组",
-    "可为空数组",
-    "接受空数组",
-    "空数组合法",
-)
-# 紧贴在肯定短语前面就否决。长的放前面，避免「不可以」被拆成单独的「不」。
-_EMPTY_LIST_NEGATIONS: Tuple[str, ...] = (
-    "不允许",
-    "不可以",
-    "不能",
-    "不可",
-    "不得",
-    "不要",
-    "不是",
-    "并非",
-    "并不",
-    "没有",
-    "禁止",
-    "勿",
-    "别",
-    "非",
-    "未",
-    "不",
-)
-_COMMENT_PREFIX_PUNCT_RE = re.compile(
-    r"[\s，,。．.；;：:、（）()【】\[\]「」\"'“”‘’—\-…！!]+"
-)
-
-
-def _is_negated_allow_phrase(text: str, start: int) -> bool:
-    raw = text[max(0, start - 16) : start]
-    compact = _COMMENT_PREFIX_PUNCT_RE.sub("", raw)
-    return any(compact.endswith(token) for token in _EMPTY_LIST_NEGATIONS)
-
-
-def _is_question_allow_phrase(text: str, end: int) -> bool:
-    rest = text[end:].lstrip(" \t")
-    return rest.startswith(("吗", "？", "?"))
-
-
-def _allow_phrase_line_is_todo(text: str, start: int) -> bool:
-    line_start = text.rfind("\n", 0, start) + 1
-    line_end = text.find("\n", start)
-    if line_end < 0:
-        line_end = len(text)
-    return re.search(r"(?i)\b(TODO|FIXME)\b", text[line_start:line_end]) is not None
-
-
-def _comment_allows_empty_list(comment: str) -> bool:
-    """声明注释里有肯定的空数组许可，且同一段没有否定。"""
-    if not comment.strip():
-        return False
-    affirmative = False
-    for phrase in _ALLOW_EMPTY_LIST_PHRASES:
-        for match in re.finditer(re.escape(phrase), comment):
-            if _is_negated_allow_phrase(comment, match.start()):
-                return False
-            if _is_question_allow_phrase(comment, match.end()):
-                continue
-            if _allow_phrase_line_is_todo(comment, match.start()):
-                continue
-            affirmative = True
-    return affirmative
-
-
-def _struct_body(source: str, struct_name: str) -> Optional[str]:
-    match = re.search(rf"\bstruct\s+{re.escape(struct_name)}\b", source)
-    if match is None:
-        return None
-    brace = source.find("{", match.end())
-    semi = source.find(";", match.end())
-    if brace < 0 or (0 <= semi < brace):
-        return None
-    close = find_matching_brace(source, brace)
-    if close < 0:
-        return None
-    return source[brace + 1 : close]
-
-
-def _trailing_comment(line: str) -> str:
-    """行尾 // 注释。跳过 URL 里的 ://。"""
-    start = 0
-    while True:
-        pos = line.find("//", start)
-        if pos < 0:
-            return ""
-        if pos > 0 and line[pos - 1] == ":":
-            start = pos + 2
-            continue
-        return line[pos:].strip()
-
-
-def _find_attr_start(text: str) -> Optional[int]:
-    """text 去掉右侧空白后以 ] 结束时，返回这一截属性的 # 下标。"""
-    stripped = text.rstrip()
-    if not stripped.endswith("]"):
-        return None
-    depth = 0
-    in_string = False
-    escaped = False
-    index = len(stripped) - 1
-    while index >= 0:
-        char = stripped[index]
-        if in_string:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == '"':
-                in_string = False
-            index -= 1
-            continue
-        if char == '"':
-            in_string = True
-            index -= 1
-            continue
-        if char == "]":
-            depth += 1
-        elif char == "[":
-            depth -= 1
-            if depth == 0:
-                hash_pos = index - 1
-                while hash_pos >= 0 and stripped[hash_pos] in " \t":
-                    hash_pos -= 1
-                if hash_pos < 0 or stripped[hash_pos] != "#":
-                    return None
-                line_start = stripped.rfind("\n", 0, hash_pos) + 1
-                if stripped[line_start:hash_pos].strip():
-                    return None
-                return hash_pos
-        index -= 1
-    return None
-
-
-def _leading_field_comments(before: str) -> List[str]:
-    """字段声明正上方的注释。空行和属性不隔断；上一个字段的行尾注释不算。"""
-    comments: List[str] = []
-    text = before
-    while True:
-        stripped = text.rstrip()
-        if not stripped:
-            break
-        newline = stripped.rfind("\n")
-        last = stripped[newline + 1 :]
-        last_stripped = last.strip()
-        if last_stripped.startswith("//"):
-            comments.append(last_stripped)
-            text = stripped[: newline + 1] if newline >= 0 else ""
-            continue
-        trailing = _trailing_comment(last)
-        if trailing:
-            code = last[: last.rfind(trailing)].rstrip()
-            code_stripped = code.strip()
-            attribute_line = code_stripped.startswith("#[") or code_stripped.endswith("]")
-            if code_stripped and not attribute_line:
-                break
-            comments.append(trailing)
-            prefix = stripped[: newline + 1] if newline >= 0 else ""
-            text = prefix + code
-            continue
-        if last_stripped.endswith("]") or last_stripped.startswith("#["):
-            attr_at = _find_attr_start(stripped)
-            if attr_at is None:
-                break
-            text = stripped[:attr_at]
-            continue
-        break
-    comments.reverse()
-    return comments
-
-
-def _field_declaration_comment(struct_body: str, field_name: str) -> str:
-    pattern = re.compile(
-        rf"(?m)^[ \t]*(?:pub(?:\([^)]*\))?\s+)?{re.escape(field_name)}\s*:"
-    )
-    for match in pattern.finditer(struct_body):
-        line_start = struct_body.rfind("\n", 0, match.start()) + 1
-        line_end = struct_body.find("\n", match.end())
-        if line_end < 0:
-            line_end = len(struct_body)
-        field_line = struct_body[line_start:line_end]
-        if field_line.strip().startswith(("//", "#")):
-            continue
-        parts = _leading_field_comments(struct_body[:line_start])
-        trailing = _trailing_comment(field_line)
-        if trailing:
-            parts.append(trailing)
-        return "\n".join(parts)
-    return ""
-
-
-def _field_allows_empty_list(source: str, struct_name: str, field_name: str) -> bool:
-    """豁免必须写在该字段自己的声明上，不能靠文件里别处的一句话。"""
-    body = _struct_body(source, struct_name)
-    if body is None:
-        return False
-    return _comment_allows_empty_list(_field_declaration_comment(body, field_name))
-
 
 def detect_suspicious_patterns(
     api: ApiIdentity, structs: List[StructFields], source: str
@@ -321,10 +222,9 @@ def detect_suspicious_patterns(
     红旗依据：
       1. 用户级接口 Body 含 user_id/approval_code（弱启发式，info 级——
          /reference/ 路径也含管理员级接口，需人工判断）
-      2. 必填 Vec 字段缺非空校验（认字段级 validate_required! /
-         validate_required_list! 或 is_empty()；skip_serializing_if =
-         Vec::is_empty 视为可选；字段声明上写明允许空数组的不算缺校验，
-         否定说法不豁免）
+      2. 必填 Vec 字段缺列表校验（认字段级 validate_required! /
+         validate_required_list! / validate_allow_empty_list! 或 is_empty()；
+         skip_serializing_if = Vec::is_empty 视为可选。注释里的「允许空数组」不豁免）
       3. GET 查询接口 Response 为空（可能漏建响应字段）
     """
     issues: List[FieldIssue] = []
@@ -354,8 +254,8 @@ def detect_suspicious_patterns(
                     )
 
     # 红旗 2：必填 Vec 字段缺非空校验
-    # 认字段级校验：validate_required! / validate_required_list! / {field}.is_empty()
-    # 字段自己的声明写明允许空数组时豁免；「不允许空数组」这类否定说法不豁免。
+    # 认字段级校验：validate_required! / validate_required_list! /
+    # validate_allow_empty_list! / {field}.is_empty()。注释不豁免。
     for s in body_structs:
         # 只检查必填的数组字段（Option<Vec> 是选填，不报）
         vec_fields = [
@@ -370,8 +270,6 @@ def detect_suspicious_patterns(
         for f in vec_fields:
             if _vec_skips_empty_on_wire(source, f.name):
                 continue
-            if _field_allows_empty_list(source, s.name, f.name):
-                continue
             if not _has_field_list_nonempty_check(source, f.name):
                 issues.append(
                     FieldIssue(
@@ -379,7 +277,8 @@ def detect_suspicious_patterns(
                         category="missing_list_validation",
                         detail=(
                             f"Body {s.name} 的必填数组字段 {f.name} "
-                            "缺少非空校验（validate_required! / validate_required_list! 或 is_empty()）"
+                            "缺少列表校验（validate_required! / validate_required_list! / "
+                            "validate_allow_empty_list! 或 is_empty()）"
                         ),
                     )
                 )

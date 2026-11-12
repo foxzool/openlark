@@ -19,6 +19,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.verify_api_fields import _mask_rust_non_code
+
 DEFAULT_TARGET_CRATES = [
     "openlark-docs",
     "openlark-meeting",
@@ -332,12 +338,14 @@ def has_known_required_validation(impl_text: str) -> bool:
     known_patterns = [
         r"validate_required!",
         r"validate_required_list!",
+        r"validate_allow_empty_list!",
         r"validate_required_field",
         r"\bvalidate_required\s*\(",
         r"\bself\.validate\s*\(\)\s*\?",
         r"\b[A-Za-z_][A-Za-z0-9_]*\.validate\s*\(\)\s*\?",
     ]
-    if any(re.search(pattern, impl_text) for pattern in known_patterns):
+    code = _mask_rust_non_code(impl_text)
+    if any(re.search(pattern, code) for pattern in known_patterns):
         return True
     return has_manual_required_validation(impl_text)
 
@@ -416,7 +424,7 @@ def scan_file(path: Path, repo_root: Path) -> list[Finding]:
                 code="W001",
                 path=rel,
                 line=w001_line,
-                message="启发式判断存在必填场景，但未发现已识别的必填校验模式（如 validate_required!/list!、self.validate()?、is_empty/len==0 手工校验；请人工确认）",
+                message="启发式判断存在必填场景，但未发现已识别的必填校验模式（如 validate_required!/list!、validate_allow_empty_list!、self.validate()?、is_empty/len==0 手工校验；请人工确认）",
             )
         )
 

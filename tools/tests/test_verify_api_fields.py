@@ -249,124 +249,77 @@ class SuspiciousPatternTests(unittest.TestCase):
         issues = verify_api_fields.detect_suspicious_patterns(api_identity(), structs, source)
         return [item.detail for item in issues if item.category == "missing_list_validation"]
 
-    def test_allow_empty_comment_suppresses_warning(self):
+    def test_allow_empty_comment_does_not_suppress_warning(self):
         source = """
         pub struct PassBody {
             /// 人员 ID 列表（必填，允许空数组，最多 10 个）
             pub user_ids: Vec<String>,
         }
         """
-        self.assertEqual(self._missing_list_details(source), [])
-
-    def test_can_pass_empty_array_wording_suppresses_warning(self):
-        source = """
-        pub struct PassBody {
-            /// 工作日历 ID 列表（必填，第一次传入时可以传入空数组）
-            pub wk_calendar_ids: Vec<String>,
-        }
-        """
-        self.assertEqual(
-            self._missing_list_details(source, fields=("wk_calendar_ids",)),
-            [],
-        )
-
-    def test_negative_empty_array_comment_still_warns(self):
-        for comment in (
-            "不允许空数组",
-            "不可以传入空数组",
-            "不是允许空数组",
-            "不要允许空数组",
-            "别允许空数组",
-            "没有允许空数组",
-            "未允许空数组",
-            "允许空数组。不允许空数组",
-        ):
-            with self.subTest(comment=comment):
-                source = f"""
-                pub struct PassBody {{
-                    /// {comment}
-                    pub user_ids: Vec<String>,
-                }}
-                """
-                details = self._missing_list_details(source)
-                self.assertTrue(any("user_ids" in detail for detail in details))
-
-    def test_struct_field_without_comment_still_warns(self):
-        source = """
-        pub struct PassBody {
-            pub user_ids: Vec<String>,
-        }
-        """
         details = self._missing_list_details(source)
         self.assertTrue(any("user_ids" in detail for detail in details))
 
-    def test_same_line_allow_and_deny(self):
-        allowed = """
-        pub struct PassBody {
-            pub user_ids: Vec<String>, // 允许空数组
-        }
-        """
-        denied = """
-        pub struct PassBody {
-            pub user_ids: Vec<String>, // 不允许空数组
-        }
-        """
-        self.assertEqual(self._missing_list_details(allowed), [])
-        self.assertTrue(self._missing_list_details(denied))
-
-    def test_execute_or_other_field_comment_does_not_exempt(self):
+    def test_allow_empty_macro_suppresses_warning(self):
         source = """
         pub struct PassBody {
-            /// 允许空数组
-            pub other_ids: Vec<String>,
+            /// 人员 ID 列表（必填，允许空数组，最多 10 个）
             pub user_ids: Vec<String>,
         }
-        impl PassBody {
-            pub fn execute(&self) {
-                // user_ids 允许空数组，故不做非空校验
+        impl PassRequest {
+            fn execute(&self) {
+                validate_allow_empty_list!(self.body.user_ids);
             }
         }
         """
-        details = self._missing_list_details(source, fields=("other_ids", "user_ids"))
-        self.assertFalse(any("other_ids" in detail for detail in details))
-        self.assertTrue(any("user_ids" in detail for detail in details))
+        self.assertEqual(self._missing_list_details(source), [])
 
-    def test_other_struct_allow_comment_does_not_exempt(self):
-        source = """
-        /// 允许空数组
-        pub struct OtherBody {
-            /// 允许空数组
-            pub user_ids: Vec<String>,
-        }
-        pub struct PassBody {
-            pub user_ids: Vec<String>,
-        }
-        """
+    def test_allow_empty_macro_with_max_suppresses_warning(self):
+        source = 'validate_allow_empty_list!(self.body.user_ids, 10, "user_ids 不能超过 10 个");'
+        self.assertEqual(self._missing_list_details(source), [])
+
+    def test_allow_empty_macro_on_other_field_does_not_suppress(self):
+        source = "validate_allow_empty_list!(self.body.other_ids);"
         details = self._missing_list_details(source)
         self.assertTrue(any("user_ids" in detail for detail in details))
 
-    def test_attribute_between_doc_and_field_still_allows_empty(self):
+    def test_commented_allow_empty_macro_does_not_suppress(self):
+        for source in (
+            "// validate_allow_empty_list!(self.user_ids);",
+            "/* validate_allow_empty_list!(self.user_ids); */",
+            'let _noted = "validate_allow_empty_list!(self.user_ids)";',
+        ):
+            with self.subTest(source=source):
+                details = self._missing_list_details(source)
+                self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_allow_empty_message_mention_does_not_match_other_field(self):
+        source = 'validate_allow_empty_list!(self.other_ids, 10, "user_ids");'
+        details = self._missing_list_details(source)
+        self.assertTrue(any("user_ids" in detail for detail in details))
+
+    def test_real_call_after_block_comment_still_suppresses(self):
         source = """
-        pub struct PassBody {
-            /// 允许空数组
-            #[serde(
-                rename = "user_ids"
-            )]
-            pub user_ids: Vec<String>,
-        }
+        /* validate_allow_empty_list!(self.other_ids) */
+        validate_allow_empty_list!(
+            self.body.user_ids
+        );
         """
         self.assertEqual(self._missing_list_details(source), [])
 
-    def test_question_and_todo_do_not_exempt(self):
-        for comment in ("允许空数组吗", "TODO: 允许空数组", "FIXME 允许空数组"):
-            with self.subTest(comment=comment):
-                source = f"""
-                pub struct PassBody {{
-                    /// {comment}
-                    pub user_ids: Vec<String>,
-                }}
-                """
-                self.assertTrue(self._missing_list_details(source))
+    def test_char_quote_literal_does_not_hide_later_call(self):
+        source = """
+        let rest = rest.trim_matches('"');
+        validate_allow_empty_list!(self.user_ids);
+        """
+        self.assertEqual(self._missing_list_details(source), [])
+
+    def test_lifetime_does_not_hide_later_call(self):
+        source = """
+        fn parse<'a>(rest: &str) {
+            validate_allow_empty_list!(self.user_ids);
+        }
+        """
+        self.assertEqual(self._missing_list_details(source), [])
 
     def test_real_issue_776_sources_do_not_warn(self):
         root = Path(__file__).resolve().parents[2]

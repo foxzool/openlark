@@ -7,7 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
-    validate_required,
+    validate_allow_empty_list, validate_required,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,6 +103,7 @@ impl UpdateRoleAssignRequest {
 
         validate_required!(self.query.employment_id, "employment_id 不能为空");
         validate_required!(self.query.role_id, "role_id 不能为空");
+        validate_allow_empty_list!(self.body.assigned_organization_items);
 
         let api_endpoint = FeishuPeopleApiV1::AuthorizationUpdateRoleAssign;
         let UpdateRoleAssignQuery {
