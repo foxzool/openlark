@@ -170,6 +170,43 @@ class Issue41ScanFileFixturesTests(unittest.TestCase):
         errors = [f for f in findings if f.severity == "ERROR"]
         self.assertEqual(errors, [], msg=f"unexpected ERROR on clean golden: {findings}")
 
+    def test_allow_empty_list_macro_satisfies_w001(self) -> None:
+        present = """\
+pub struct EmptyOkRequest {
+    /// user_ids 必填，允许空数组
+    pub user_ids: Vec<String>,
+}
+
+impl EmptyOkRequest {
+    pub async fn execute(self) -> openlark_core::SDKResult<()> {
+        validate_allow_empty_list!(self.user_ids);
+        Ok(())
+    }
+}
+"""
+        missing = present.replace(
+            "        validate_allow_empty_list!(self.user_ids);\n", ""
+        )
+        self.assertIsNone(guardrail.find_w001_candidate_line(present))
+        self.assertIsNotNone(guardrail.find_w001_candidate_line(missing))
+
+    def test_commented_allow_empty_list_macro_does_not_satisfy_w001(self) -> None:
+        commented = """\
+pub struct EmptyOkRequest {
+    /// user_ids 必填
+    pub user_ids: Vec<String>,
+}
+
+impl EmptyOkRequest {
+    pub async fn execute(self) -> openlark_core::SDKResult<()> {
+        // validate_allow_empty_list!(self.user_ids);
+        let _noted = "validate_allow_empty_list!(self.user_ids)";
+        Ok(())
+    }
+}
+"""
+        self.assertIsNotNone(guardrail.find_w001_candidate_line(commented))
+
 
 class Issue41CiHardGateInventoryTests(unittest.TestCase):
     """Pin the CI hard gate so deleting the step or critical flags fails tests (#585)."""

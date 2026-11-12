@@ -77,6 +77,28 @@ macro_rules! validate_required_list {
     };
 }
 
+/// 验证 Empty-ok List：空列表合法。
+///
+/// 无上限的形式不拒绝任何长度，调用本身表示该列表允许为空。
+/// 带上限的形式只在长度超过 `$max_len` 时失败。
+///
+/// # 使用示例
+/// ```rust,ignore
+/// validate_allow_empty_list!(self.wk_calendar_ids);
+/// validate_allow_empty_list!(self.user_ids, 10, "user_ids 不能超过 10 个");
+/// ```
+#[macro_export]
+macro_rules! validate_allow_empty_list {
+    ($field:expr) => {{
+        let _len = $field.len();
+    }};
+    ($field:expr, $max_len:expr, $error_msg:expr) => {
+        if $field.len() > $max_len {
+            return Err($crate::error::CoreError::validation_msg($error_msg));
+        }
+    };
+}
+
 /// Prelude module for convenient imports.
 pub mod prelude {
     // Re-export new API module（请求/响应基础类型）
@@ -88,6 +110,40 @@ pub mod prelude {
     pub use crate::error::{CoreError, SDKResult, validation_error};
     pub use crate::http::Transport;
     pub use crate::req_option::*;
+    pub use crate::validate_allow_empty_list;
     pub use crate::validate_required;
     pub use crate::validate_required_list;
+}
+
+#[cfg(test)]
+mod allow_empty_list_tests {
+    use super::CoreError;
+
+    fn allow_empty_with_max(values: &[String]) -> Result<(), CoreError> {
+        crate::validate_allow_empty_list!(values, 10, "user_ids 不能超过 10 个");
+        Ok(())
+    }
+
+    fn allow_empty_without_max(values: &[String]) -> Result<(), CoreError> {
+        crate::validate_allow_empty_list!(values);
+        Ok(())
+    }
+
+    #[test]
+    fn empty_list_within_max_is_allowed() {
+        assert!(allow_empty_with_max(&[]).is_ok());
+    }
+
+    #[test]
+    fn eleven_items_over_max_is_rejected() {
+        let values: Vec<String> = (0..11).map(|index| index.to_string()).collect();
+        let err = allow_empty_with_max(&values).expect_err("超过 10 个应失败");
+        assert!(err.to_string().contains("不能超过 10 个"), "{err}");
+    }
+
+    #[test]
+    fn no_max_allows_a_long_list() {
+        let values: Vec<String> = (0..50).map(|index| index.to_string()).collect();
+        assert!(allow_empty_without_max(&values).is_ok());
+    }
 }

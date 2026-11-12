@@ -11,7 +11,7 @@ use openlark_core::{
     SDKResult,
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
-    validate_required, validate_required_list,
+    validate_allow_empty_list, validate_required, validate_required_list,
 };
 use std::sync::Arc;
 
@@ -79,7 +79,7 @@ impl CreateActivitySubscriptionRequest {
             50,
             "subscribers 不能为空且不能超过 50 个"
         );
-        // include_keys 必填但允许为空数组（表示不通知任何动态），不做非空校验
+        validate_allow_empty_list!(self.body.include_keys);
 
         let api_endpoint = TaskApiV2::ActivitySubscriptionCreate(self.tasklist_guid.clone());
         let mut request =

@@ -64,6 +64,10 @@ _Avoid_: document-wide status, validation category
 A normalized request or response field identified by its canonical hierarchical path, location, requiredness, type, and Official Evidence Source. Attributes not established by the source remain unknown rather than inferred.
 _Avoid_: flat field name, guessed field
 
+**Empty-ok List**:
+A required list that may contain zero elements. The empty value is still part of the contract and is sent. It is not an optional list, which may be absent. It may have an upper bound on length.
+_Avoid_: optional list, comment exemption, missing validation
+
 **Evidence Provenance**:
 The reproducibility record for Official Document Evidence. Snapshot provenance identifies the Catalog entry, actual source, acquisition time, and content digest; interpretation provenance identifies the snapshot digest, interpreter revision, and Evidence Dimension.
 _Avoid_: source URL only, report timestamp

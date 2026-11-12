@@ -7,6 +7,7 @@ use openlark_core::{
     api::{ApiRequest, ApiResponseTrait, ResponseFormat},
     config::Config,
     http::Transport,
+    validate_allow_empty_list,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -126,7 +127,7 @@ impl WorkCalendarRequest {
     ) -> SDKResult<WorkCalendarResponse> {
         use crate::common::api_endpoints::FeishuPeopleApiV1;
 
-        // 官方：wk_calendar_ids 必填，但第一次查询允许传空数组，故不做非空校验
+        validate_allow_empty_list!(self.body.wk_calendar_ids);
         let api_endpoint = FeishuPeopleApiV1::LeaveWorkCalendar;
         let request = ApiRequest::<WorkCalendarResponse>::post(api_endpoint.to_url())
             .body(serde_json::to_value(&self.body)?);

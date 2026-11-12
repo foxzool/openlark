@@ -96,6 +96,30 @@ fn validate(&self) -> openlark_core::SDKResult<()> {
 > `crates/openlark-docs/src/base/bitable/v1/app/table/record/batch_update.rs:114`
 > `validate_required_list!(self.records, 1000, "records 不能为空且单次最多 1000 条");`。
 
+### 2b) Empty-ok List 用 `validate_allow_empty_list!`
+
+必填但允许空数组的列表不要用 `validate_required!` / `validate_required_list!`，这两条都把空列表当成非法。也不要靠文档注释里的「允许空数组」告诉检测器。
+
+无上限时，宏不拒绝任何长度，调用本身声明空合法：
+
+```rust
+fn validate(&self) -> openlark_core::SDKResult<()> {
+    openlark_core::validate_allow_empty_list!(self.wk_calendar_ids);
+    Ok(())
+}
+```
+
+已有上限时，只在超过上限时失败。不要在宏外面再手写 `len()`：
+
+```rust
+fn validate(&self) -> openlark_core::SDKResult<()> {
+    openlark_core::validate_allow_empty_list!(self.user_ids, 10, "user_ids 不能超过 10 个");
+    Ok(())
+}
+```
+
+注释里写了上限、但运行时还没检查的，不要顺手加进宏。`skip_serializing_if = Vec::is_empty` 仍表示线上可省略，不是 Empty-ok List。
+
 ### 3) 多条校验：连续写多个宏（遇首个失败即 return），或用 `DefaultValidateBuilder` 聚合
 
 项目**没有统一的“聚合多错误”宏**。两种推荐写法：
@@ -134,9 +158,9 @@ fn validate(&self) -> openlark_core::SDKResult<()> {
 
 > 注意：`DefaultValidateBuilder` 当前仅在 core 内定义与使用，feature crate 的现码一律采用方式 (a) 的连续宏写法。优先沿用 (a)；确有聚合需求时再评估 (b)。
 
-### 4) 禁止在 feature crate 内重复定义 `validate_required!` / `validate_required_list!`（或同语义宏）
+### 4) 禁止在 feature crate 内重复定义 `validate_required!` / `validate_required_list!` / `validate_allow_empty_list!`（或同语义宏）
 
-统一复用 `openlark_core::validate_required!` 与 `openlark_core::validate_required_list!`，避免各 crate 的判空规则/错误类型不一致。
+统一复用 `openlark_core` 的这三条宏，避免各 crate 的判空规则/错误类型不一致。
 
 > 同步约束：`openlark_core::validation::validate_required`（函数）**已删除**，不要引用或照抄旧文档里的函数写法，否则编译失败（见 `crates/openlark-core/AGENTS.md:91,125` 反模式）。
 
@@ -145,5 +169,6 @@ fn validate(&self) -> openlark_core::SDKResult<()> {
 - 字符串必填 → `validate_required!(self.field, "...")`；**自动 trim，空白算空，不要手动 `.trim()`**
 - 列表必填（不限长）→ `validate_required!(self.items, "...")`
 - 列表必填 + 限长 → `validate_required_list!(self.items, max_len, "不能为空且不能超过 N 个")`
+- Empty-ok List → `validate_allow_empty_list!(self.items)`；已有上限 → `validate_allow_empty_list!(self.items, max_len, "不能超过 N 个")`
 - 多条校验按顺序快速失败 → 连续写多个宏（首个失败即 return）
 - 必须一次性返回全部错误 → `DefaultValidateBuilder`（`openlark_core::validation::DefaultValidateBuilder`），项目无统一聚合宏
