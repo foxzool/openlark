@@ -275,7 +275,7 @@ let token_info = TokenInfo {
     access_token: "your_access_token".to_string(),
     token_type: "Bearer".to_string(),
     expires_in: 7200,
-    expires_at: chrono::Utc::now() + chrono::Duration::hours(2),
+    expires_at: jiff::Timestamp::now().checked_add(jiff::SignedDuration::from_hours(2)).unwrap(),
     scope: Some("user:info docs:read".to_string()),
 };
 

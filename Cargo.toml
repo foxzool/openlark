@@ -87,7 +87,7 @@ futures-util = { version = "0.3.30", default-features = false, features = ["sink
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_repr = "0.1.19"
-chrono = { version = "0.4.38", features = ["serde"] }
+jiff = { version = "1.0.1", default-features = false, features = ["std", "serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 url = { version = "2.5", features = ["serde"] }
 prost = { version = "0.13" }
@@ -163,7 +163,7 @@ insta = { version = "=1.39.0", features = ["json"] }
 
 # Examples需要的依赖
 dotenvy = "0.15"
-env_logger = "0.10"
+env_logger = "0.11"
 criterion = "0.5"
 
 ## Convenience package configuration for unified publishing
@@ -214,7 +214,7 @@ openlark-analytics = { workspace = true, optional = true }
 openlark-user = { workspace = true, optional = true }
 
 # 重新导出工作空间依赖，为用户提供便利访问
-chrono = { workspace = true }
+jiff = { workspace = true }
 serde_repr = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

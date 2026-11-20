@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use openlark_core::api::{ApiResponseTrait, ResponseFormat};
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +50,7 @@ pub struct CreateExchangeBindingResponse {
     pub status: Option<i32>,
     /// 创建时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub create_time: Option<DateTime<Utc>>,
+    pub create_time: Option<Timestamp>,
 }
 
 /// 查询 Exchange 账户绑定响应
@@ -69,10 +69,10 @@ pub struct GetExchangeBindingResponse {
     pub status: Option<i32>,
     /// 创建时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub create_time: Option<DateTime<Utc>>,
+    pub create_time: Option<Timestamp>,
     /// 更新时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub update_time: Option<DateTime<Utc>>,
+    pub update_time: Option<Timestamp>,
     /// 同步状态
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sync_status: Option<i32>,

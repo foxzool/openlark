@@ -270,7 +270,7 @@ pub trait ErrorContextTrait {
     fn component(&self) -> Option<&str>;
 
     /// 获取时间戳
-    fn timestamp(&self) -> Option<chrono::DateTime<chrono::Utc>>;
+    fn timestamp(&self) -> Option<jiff::Timestamp>;
 
     /// 获取上下文信息
     fn get_context(&self, key: &str) -> Option<&str>;
@@ -313,11 +313,11 @@ impl ErrorContextTrait for ErrorContext {
         ErrorContext::component(self)
     }
 
-    fn timestamp(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+    fn timestamp(&self) -> Option<jiff::Timestamp> {
         ErrorContext::timestamp(self).map(|st| {
             let duration = st.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
-            chrono::DateTime::from_timestamp(duration.as_secs() as i64, 0)
-                .unwrap_or_else(chrono::Utc::now)
+            jiff::Timestamp::from_second(duration.as_secs() as i64)
+                .unwrap_or_else(|_| jiff::Timestamp::now())
         })
     }
 

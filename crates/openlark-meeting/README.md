@@ -344,7 +344,7 @@ let error_context = create_error_context(
 - `tokio`: 异步运行时
 - `serde` / `serde_json`: 序列化/反序列化
 - `uuid`: UUID生成（可选）
-- `chrono`: 时间处理（可选）
+- `jiff`: 时间处理（可选）
 
 ## 版本要求
 

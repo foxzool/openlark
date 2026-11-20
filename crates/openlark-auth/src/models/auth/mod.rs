@@ -2,7 +2,7 @@
 //!
 //! 本模块包含企业认证相关的数据结构定义。
 
-use chrono::{DateTime, Utc};
+use jiff::{SignedDuration, Timestamp};
 use openlark_core::api::responses::ApiResponseTrait;
 use serde::{Deserialize, Serialize};
 
@@ -107,18 +107,20 @@ pub struct TokenInfo {
     /// 访问令牌
     pub access_token: String,
     /// 过期时间
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: Timestamp,
     /// 令牌类型
     pub token_type: String,
     /// 获取时间
-    pub created_at: DateTime<Utc>,
+    pub created_at: Timestamp,
 }
 
 impl TokenInfo {
     /// 创建新的令牌信息
     pub fn new(access_token: String, expires_in: u64, token_type: String) -> Self {
-        let now = Utc::now();
-        let expires_at = now + chrono::Duration::seconds(expires_in as i64);
+        let now = Timestamp::now();
+        let expires_at = now
+            .checked_add(SignedDuration::from_secs(expires_in as i64))
+            .unwrap_or(now);
 
         Self {
             access_token,
@@ -130,18 +132,23 @@ impl TokenInfo {
 
     /// 检查令牌是否已过期
     pub fn is_expired(&self) -> bool {
-        Utc::now() >= self.expires_at
+        Timestamp::now() >= self.expires_at
     }
 
     /// 检查令牌是否即将过期（提前5分钟）
     pub fn is_expiring_soon(&self) -> bool {
-        let soon = Utc::now() + chrono::Duration::minutes(5);
+        let soon = Timestamp::now()
+            .checked_add(SignedDuration::from_secs(5 * 60))
+            .unwrap_or_else(|_| Timestamp::now());
         soon >= self.expires_at
     }
 
     /// 获取剩余有效时间（秒）
     pub fn remaining_seconds(&self) -> i64 {
-        (self.expires_at - Utc::now()).num_seconds().max(0)
+        self.expires_at
+            .duration_since(Timestamp::now())
+            .as_secs()
+            .max(0)
     }
 }
 
@@ -180,7 +187,9 @@ mod tests {
     fn test_expiring_token() {
         // 创建一个已过期的令牌
         let mut token = TokenInfo::new("test_token".to_string(), 1, "Bearer".to_string());
-        token.expires_at = Utc::now() - chrono::Duration::seconds(1);
+        token.expires_at = Timestamp::now()
+            .checked_add(SignedDuration::from_secs(-1))
+            .unwrap_or_else(|_| Timestamp::now());
 
         assert!(token.is_expired());
         assert!(token.is_expiring_soon());

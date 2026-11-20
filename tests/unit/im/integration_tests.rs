@@ -519,7 +519,7 @@ mod chat_message_interaction_tests {
                         .receive_id(chat_id)
                         .msg_type(broadcast_message.msg_type())
                         .content(broadcast_message.content())
-                        .uuid(&format!("broadcast-{}-{}", chat_id, chrono::Utc::now().timestamp()))
+                        .uuid(&format!("broadcast-{}-{}", chat_id, jiff::Timestamp::now().as_second()))
                         .build()
                 )
                 .build();
@@ -1213,7 +1213,7 @@ mod real_scenario_tests {
                     .receive_id("ou_customer_inquiry_user")
                     .msg_type(auto_reply.msg_type())
                     .content(auto_reply.content())
-                    .uuid(&format!("customer-service-reply-{}", chrono::Utc::now().timestamp()))
+                    .uuid(&format!("customer-service-reply-{}", jiff::Timestamp::now().as_second()))
                     .build()
             )
             .build();

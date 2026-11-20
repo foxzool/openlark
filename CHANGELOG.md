@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.22 work goes here. -->
 
+### Changed (Breaking)
+
+- **时间类型从 `chrono` 换成 `jiff`**：
+  `chrono` 已无人维护（RUSTSEC-2026-0543）。公开字段和
+  `ErrorContextTrait::timestamp` 的类型从 `chrono::DateTime<Utc>` 改为 `jiff::Timestamp`。
+  根 crate 重新导出 `jiff`，不再导出 `chrono`。
+  开发依赖 `env_logger` 从 0.10 升到 0.11，去掉传递依赖 `humantime`
+  （RUSTSEC-2026-0542）。
+
 ### Added
 
 - **hr：被动解除补偿金（#780）**：

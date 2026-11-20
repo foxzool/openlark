@@ -1,5 +1,5 @@
 /// 文档服务通用数据模型
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -15,9 +15,9 @@ pub struct DocumentBase {
     /// 文档类型
     pub doc_type: DocumentType,
     /// 创建时间
-    pub create_time: DateTime<Utc>,
+    pub create_time: Timestamp,
     /// 修改时间
-    pub modify_time: DateTime<Utc>,
+    pub modify_time: Timestamp,
     /// 创建者信息
     pub creator: UserInfo,
     /// 修改者信息
@@ -123,7 +123,7 @@ pub struct Permission {
     /// 是否可分享
     pub can_share: bool,
     /// 权限到期时间
-    pub expire_time: Option<DateTime<Utc>>,
+    pub expire_time: Option<Timestamp>,
 }
 
 /// 权限类型
@@ -154,7 +154,7 @@ pub struct ShareInfo {
     /// 是否需要密码
     pub need_password: bool,
     /// 过期时间
-    pub expire_time: Option<DateTime<Utc>>,
+    pub expire_time: Option<Timestamp>,
     /// 访问次数限制
     pub visit_limit: Option<u32>,
     /// 当前访问次数
@@ -169,7 +169,7 @@ pub struct VersionInfo {
     /// 版本名称
     pub version_name: String,
     /// 创建时间
-    pub create_time: DateTime<Utc>,
+    pub create_time: Timestamp,
     /// 创建者
     pub creator: UserInfo,
     /// 版本描述
@@ -205,7 +205,7 @@ pub struct DocumentStats {
     /// 下载次数
     pub download_count: u64,
     /// 最后统计时间
-    pub last_stats_time: DateTime<Utc>,
+    pub last_stats_time: Timestamp,
 }
 
 /// 文档操作记录
@@ -216,7 +216,7 @@ pub struct OperationRecord {
     /// 操作类型
     pub operation_type: OperationType,
     /// 操作时间
-    pub operation_time: DateTime<Utc>,
+    pub operation_time: Timestamp,
     /// 操作者
     pub operator: UserInfo,
     /// 操作描述
@@ -267,9 +267,9 @@ pub struct ImportExportTask {
     /// 进度百分比 (0-100)
     pub progress: u8,
     /// 开始时间
-    pub start_time: DateTime<Utc>,
+    pub start_time: Timestamp,
     /// 结束时间
-    pub end_time: Option<DateTime<Utc>>,
+    pub end_time: Option<Timestamp>,
     /// 错误信息
     pub error_message: Option<String>,
     /// 结果URL
@@ -507,7 +507,7 @@ mod tests {
         let version = VersionInfo {
             version: 1,
             version_name: "v1.0".to_string(),
-            create_time: Utc::now(),
+            create_time: Timestamp::now(),
             creator: UserInfo {
                 user_id: "user001".to_string(),
                 name: "张三".to_string(),
@@ -530,7 +530,7 @@ mod tests {
             comment_count: 5,
             share_count: 10,
             download_count: 3,
-            last_stats_time: Utc::now(),
+            last_stats_time: Timestamp::now(),
         };
         test_roundtrip(&stats);
     }
@@ -542,7 +542,7 @@ mod tests {
             task_type: TaskType::Convert,
             status: TaskStatus::Processing,
             progress: 50,
-            start_time: Utc::now(),
+            start_time: Timestamp::now(),
             end_time: None,
             error_message: None,
             result_url: Some("https://result.example.com".to_string()),

@@ -50,14 +50,21 @@ impl ListOpenApiLogsRequest {
 
     /// 设置最近 N 天的日志。
     pub fn last_days(self, days: i64) -> Self {
-        let now = chrono::Utc::now().timestamp();
+        let now = Self::unix_now();
         self.time_range(now - days * 24 * 3600, now)
     }
 
     /// 设置最近 N 小时的日志。
     pub fn last_hours(self, hours: i64) -> Self {
-        let now = chrono::Utc::now().timestamp();
+        let now = Self::unix_now();
         self.time_range(now - hours * 3600, now)
+    }
+
+    fn unix_now() -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_secs() as i64)
+            .unwrap_or(0)
     }
 
     /// 执行请求，返回响应 `data` 字段内容。

@@ -24,7 +24,7 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 
 # 时间处理
-chrono = { workspace = true, features = ["serde"] }
+jiff = { workspace = true }
 
 # 错误处理
 thiserror = { workspace = true }

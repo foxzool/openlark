@@ -2,7 +2,7 @@
 //!
 //! 本模块包含OAuth授权相关的数据结构定义。
 
-use chrono::{DateTime, Utc};
+use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, Serialize};
 
 /// 授权码请求
@@ -179,9 +179,9 @@ pub struct AuthorizationState {
     /// 状态值
     pub state: String,
     /// 创建时间
-    pub created_at: DateTime<Utc>,
+    pub created_at: Timestamp,
     /// 过期时间（通常30分钟）
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: Timestamp,
     /// 关联的应用ID
     pub app_id: String,
     /// 重定向URI
@@ -191,8 +191,10 @@ pub struct AuthorizationState {
 impl AuthorizationState {
     /// 创建新的授权状态
     pub fn new(app_id: String, redirect_uri: String) -> Self {
-        let now = Utc::now();
-        let expires_at = now + chrono::Duration::minutes(30);
+        let now = Timestamp::now();
+        let expires_at = now
+            .checked_add(SignedDuration::from_mins(30))
+            .unwrap_or(now);
         let state = uuid::Uuid::new_v4().to_string();
 
         Self {
@@ -206,7 +208,7 @@ impl AuthorizationState {
 
     /// 检查状态是否已过期
     pub fn is_expired(&self) -> bool {
-        Utc::now() >= self.expires_at
+        Timestamp::now() >= self.expires_at
     }
 
     /// 检查状态是否有效
@@ -216,7 +218,10 @@ impl AuthorizationState {
 
     /// 获取剩余有效时间（秒）
     pub fn remaining_seconds(&self) -> i64 {
-        (self.expires_at - Utc::now()).num_seconds().max(0)
+        self.expires_at
+            .duration_since(Timestamp::now())
+            .as_secs()
+            .max(0)
     }
 }
 

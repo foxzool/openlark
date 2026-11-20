@@ -171,11 +171,11 @@ impl ErrorContext {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default();
             let secs = duration.as_secs();
-            let datetime =
-                chrono::DateTime::from_timestamp(secs as i64, 0).unwrap_or_else(chrono::Utc::now);
+            let datetime = jiff::Timestamp::from_second(secs as i64)
+                .unwrap_or_else(|_| jiff::Timestamp::now());
             parts.push(format!(
                 "时间: {}",
-                datetime.format("%Y-%m-%d %H:%M:%S UTC")
+                datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
             ));
         }
 

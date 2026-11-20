@@ -63,7 +63,6 @@ all-platform = ["full"]
 openlark-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
@@ -89,4 +88,4 @@ tempfile = { workspace = true }
 mockall = { workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["anyhow", "async-trait", "chrono", "futures", "log", "once_cell", "rand", "regex", "serde_repr", "thiserror", "tokio", "url", "urlencoding", "uuid"]
+ignored = ["anyhow", "async-trait", "futures", "log", "once_cell", "rand", "regex", "serde_repr", "thiserror", "tokio", "url", "urlencoding", "uuid"]

@@ -382,7 +382,7 @@ async fn test_complete_messaging_workflow() {
                 .receive_id("oc_test_chat_456")
                 .msg_type(text_message.msg_type())
                 .content(text_message.content())
-                .uuid(&format!("e2e-test-{}", chrono::Utc::now().timestamp()))
+                .uuid(&format!("e2e-test-{}", jiff::Timestamp::now().as_second()))
                 .build()
         )
         .build();
@@ -453,7 +453,7 @@ async fn test_complete_file_workflow() {
                         .receive_id("oc_test_chat_456")
                         .msg_type("image")
                         .content(image_content.to_string())
-                        .uuid(&format!("image-test-{}", chrono::Utc::now().timestamp()))
+                        .uuid(&format!("image-test-{}", jiff::Timestamp::now().as_second()))
                         .build()
                 )
                 .build();
@@ -492,7 +492,7 @@ async fn test_complete_file_workflow() {
                         .receive_id("oc_test_chat_456")
                         .msg_type("file")
                         .content(file_content.to_string())
-                        .uuid(&format!("file-test-{}", chrono::Utc::now().timestamp()))
+                        .uuid(&format!("file-test-{}", jiff::Timestamp::now().as_second()))
                         .build()
                 )
                 .build();
@@ -647,7 +647,7 @@ async fn test_customer_service_complete_workflow() {
                 .receive_id("ou_test_user_123")
                 .msg_type(auto_reply.msg_type())
                 .content(auto_reply.content())
-                .uuid(&format!("cs-auto-{}", chrono::Utc::now().timestamp()))
+                .uuid(&format!("cs-auto-{}", jiff::Timestamp::now().as_second()))
                 .build()
         )
         .build();
@@ -665,12 +665,12 @@ async fn test_customer_service_complete_workflow() {
     let ticket_card = MessageCardTemplate::new(
         "customer_service_ticket_template",
         json!({
-            "ticket_id": format!("TKT-{}", chrono::Utc::now().timestamp()),
+            "ticket_id": format!("TKT-{}", jiff::Timestamp::now().as_second()),
             "customer_name": "测试用户",
             "customer_id": "ou_test_user_123",
             "question_type": "产品咨询",
             "priority": "普通",
-            "created_time": chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            "created_time": jiff::Timestamp::now().strftime("%Y-%m-%d %H:%M:%S").to_string(),
             "assigned_to": "ou_customer_service_rep",
             "status": "待处理",
             "description": "用户咨询产品功能相关问题"
@@ -684,7 +684,7 @@ async fn test_customer_service_complete_workflow() {
                 .receive_id("oc_customer_service_team")
                 .msg_type(ticket_card.msg_type())
                 .content(ticket_card.content())
-                .uuid(&format!("ticket-{}", chrono::Utc::now().timestamp()))
+                .uuid(&format!("ticket-{}", jiff::Timestamp::now().as_second()))
                 .build()
         )
         .build();
