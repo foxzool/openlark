@@ -1,6 +1,8 @@
 error[E0428]: the name `auth` is defined multiple times
   --> tests/ui/../../../openlark-client/src/capability/unique.rs
    |
+   |   macro_rules! assert_capability_catalog_unique {
+...
    |                   pub mod $field {}
    |                   ^^^^^^^^^^^^^^
    |                   |
@@ -16,4 +18,3 @@ error[E0428]: the name `auth` is defined multiple times
    | |_____- in this macro invocation
    |
    = note: `auth` must be defined only once in the type namespace of this module
-   = note: this error originates in the macro `assert_capability_catalog_unique` (in Nightly builds, run with -Z macro-backtrace for more info)
