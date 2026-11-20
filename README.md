@@ -5,7 +5,7 @@
 
 # 飞书开放平台非官方SDK - 企业级高覆盖率Rust实现
 
-> 🏗️ 18 个业务模块，**1,642** 个目录 API（排除 `meta.Version=old`），企业级质量保证。
+> 🏗️ 18 个业务模块，**1,644** 个目录 API（排除 `meta.Version=old`），企业级质量保证。
 >
 > 🎯 测试覆盖率 ~47%，已通过工作区 check/test，全模块 Builder 模式统一。
 
@@ -178,7 +178,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | openlark-client | ✅ 完成 | — | 单入口 + capability catalog（meta 链式字段访问） |
 | lark-websocket-protobuf | ✅ 完成 | — | WebSocket protobuf 协议（预生成源码） |
 | openlark-auth | ✅ 完成 | 15 | Token 管理，认证服务 |
-| openlark-hr | ✅ 完成 | 583 | 招聘、CoreHR、考勤、薪酬等 |
+| openlark-hr | ✅ 完成 | 586 | 招聘、CoreHR、考勤、薪酬等 |
 | openlark-docs | ✅ 完成 | 216 | 云文档、多维表格、知识库、会议纪要 |
 | openlark-communication | ✅ 完成 | 179 | IM 消息、联系人、群组 |
 | openlark-workflow | ✅ 完成 | 134 | 任务、审批、看板 |
@@ -196,7 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | openlark-pay | ✅ 完成 | 0 | 目录仅 3 条 old，当前口径为 0 |
 | openlark-webhook | ✅ 完成 | — | 自定义机器人 HTTP 入口，**不在** `api_list_export.csv` |
 
-API 数量口径：`python3 tools/validate_apis.py --all-crates`（默认 `--skip-old`），对比 `api_list_export.csv` 与 `tools/api_coverage.toml` 映射的 17 个业务 crate。2026-10-12 目录同步后为 **1,642 / 1,642（100%）**；bizTag 拆分见 [`crates.md`](crates.md)，方法见 [`docs/typed-api-coverage.md`](docs/typed-api-coverage.md)。
+API 数量口径：`python3 tools/validate_apis.py --all-crates`（默认 `--skip-old`），对比 `api_list_export.csv` 与 `tools/api_coverage.toml` 映射的 17 个业务 crate。补上被动解除补偿金（#780）后为 **1,644 / 1,644（100%）**；bizTag 拆分见 [`crates.md`](crates.md)，方法见 [`docs/typed-api-coverage.md`](docs/typed-api-coverage.md)。
 
 ### 新架构特点
 
@@ -243,8 +243,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 **已完成**：
 - ✅ 核心基础设施（core、client、lark-websocket-protobuf、auth）
-- ✅ 18 个业务模块全部实现，目录 API **1,642**（排除 old，见上表口径）
-- ✅ openlark-hr 583 个 API（招聘、CoreHR、考勤、薪酬）
+- ✅ 18 个业务模块全部实现，目录 API **1,644**（排除 old，见上表口径）
+- ✅ openlark-hr 586 个 API（招聘、CoreHR、考勤、薪酬）
 - ✅ openlark-communication 179 个 API
 - ✅ openlark-docs 216 个 API（云文档、多维表格、知识库）
 - ✅ openlark-workflow 134 个 API（任务、审批、看板）

@@ -62,6 +62,8 @@ pub mod process_start;
 pub mod process_withdraw;
 /// report_detail_row 子模块。
 pub mod report_detail_row;
+/// severance_pay 子模块。
+pub mod severance_pay;
 /// signature_file 子模块。
 pub mod signature_file;
 /// signature_node 子模块。

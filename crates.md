@@ -34,11 +34,11 @@
 
 > 数据来源：`api_list_export.csv`。统计口径：按 `bizTag` 分组计数，仅统计 `meta.Version != old` 的行（old 版本不计入“有效 API 数”）。
 >
-> 实现覆盖率用同一口径跑 `python3 tools/validate_apis.py --all-crates`：合计 non-old **1,641** 行（与下表合计一致）。
+> 实现覆盖率用同一口径跑 `python3 tools/validate_apis.py --all-crates`：合计 non-old **1,644** 行（与下表合计一致）。
 
 | bizTag | API 数量（排除 old） | API 总数 | old 数量 |
 |---|---:|---:|---:|
-| `feishu_people` | 269 | 269 | 0 |
+| `feishu_people` | 272 | 272 | 0 |
 | `hire` | 182 | 182 | 0 |
 | `ccm` | 127 | 176 | 49 |
 | `mail` | 107 | 107 | 0 |
@@ -85,7 +85,7 @@
 | `verification_information` | 1 | 1 | 0 |
 | `meeting_room` | 0 | 17 | 17 |
 | `pay` | 0 | 3 | 3 |
-| **合计** | 1641 | 1753 | 112 |
+| **合计** | 1644 | 1756 | 112 |
 
 ## 工具用法
 

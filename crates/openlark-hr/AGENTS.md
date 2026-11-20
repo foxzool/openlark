@@ -1,12 +1,12 @@
 # openlark-hr Knowledge Base
 
 **Crate**: HR Services  
-**APIs**: 583 个（排除 old；`validate_apis.py --crate openlark-hr`） | **Status**: 生产就绪  
+**APIs**: 586 个（排除 old；`validate_apis.py --crate openlark-hr`） | **Status**: 生产就绪
 **Coverage**: 招聘 + CoreHR + 考勤 + 薪酬
 
 ## OVERVIEW
 
-飞书人力资源模块，涵盖招聘管理、CoreHR、考勤、薪酬等完整 HR 能力。目录 API 数量最多的业务模块（583 个）。
+飞书人力资源模块，涵盖招聘管理、CoreHR、考勤、薪酬等完整 HR 能力。目录 API 数量最多的业务模块（586 个）。
 
 ## STRUCTURE
 

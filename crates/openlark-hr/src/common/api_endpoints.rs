@@ -3173,6 +3173,13 @@ pub enum FeishuPeopleApiV2 {
     /// `OffboardingSubmitV2` 变体。
     OffboardingSubmitV2,
 
+    /// 编辑被动解除补偿金信息。
+    SeverancePayEdit,
+    /// 搜索被动解除补偿金信息。
+    SeverancePayQuery,
+    /// 发起被动解除补偿金流程。
+    SeverancePaySubmit,
+
     /// `ProbationEnableDisableAssessment` 变体。
     ProbationEnableDisableAssessment,
     /// `ProbationSearch` 变体。
@@ -3380,6 +3387,16 @@ impl FeishuPeopleApiV2 {
             }
             FeishuPeopleApiV2::OffboardingSubmitV2 => {
                 "/open-apis/corehr/v2/offboardings/submit_v2".to_string()
+            }
+
+            FeishuPeopleApiV2::SeverancePayEdit => {
+                "/open-apis/corehr/v2/severance_pays/edit".to_string()
+            }
+            FeishuPeopleApiV2::SeverancePayQuery => {
+                "/open-apis/corehr/v2/severance_pays/query".to_string()
+            }
+            FeishuPeopleApiV2::SeverancePaySubmit => {
+                "/open-apis/corehr/v2/severance_pays/submit".to_string()
             }
 
             FeishuPeopleApiV2::ProbationEnableDisableAssessment => {

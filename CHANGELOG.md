@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Post-0.22 work goes here. -->
 
+### Added
+
+- **hr：被动解除补偿金（#780）**：
+  `EditRequest` / `QueryRequest` / `SubmitRequest` 对应
+  `POST /open-apis/corehr/v2/severance_pays/{edit,query,submit}`，只接受 tenant access token。
+  编辑接口的 `update_data` 允许空数组。目录增加这 3 条，行数 1753 → 1756。
+  「搜索 Wiki」的 HTTP 路径保持 `POST /open-apis/wiki/v2/nodes/search`。
+
+
 ## [0.22.0] - 2026-11-12
 
 > Content freeze for the 0.22 release window. Package identity and this dated
