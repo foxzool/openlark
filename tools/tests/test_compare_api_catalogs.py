@@ -70,24 +70,45 @@ def write_csv(path, header, rows):
 
 
 class SuppressedFieldChangesTests(unittest.TestCase):
-    """SUPPRESSED_FIELD_CHANGES：仅忽略搜索 Wiki（6927492937392324635）的 url 字段。"""
+    """搜索 Wiki 的已知 v1/v2 误报及其他变更的回归测试。"""
 
-    def test_wiki_search_url_v2_to_v1_is_suppressed(self):
-        current = dict(WIKI_SEARCH_ROW, url="POST:/open-apis/wiki/v1/nodes/search")
+    def test_wiki_search_url_v1_v2_is_suppressed_in_both_directions(self):
+        v1_url = "POST:/open-apis/wiki/v1/nodes/search"
+        v2_url = WIKI_SEARCH_ROW["url"]
+        for old_url, new_url in ((v2_url, v1_url), (v1_url, v2_url)):
+            with self.subTest(old_url=old_url, new_url=new_url):
+                baseline = dict(WIKI_SEARCH_ROW, url=old_url)
+                current = dict(WIKI_SEARCH_ROW, url=new_url)
+                diff = compare_api_catalogs.compare_catalogs([baseline], [current])
 
-        diff = compare_api_catalogs.compare_catalogs([WIKI_SEARCH_ROW], [current])
+                self.assertEqual(diff.changed, ())
+                self.assertFalse(diff.has_changes)
+                self.assertEqual(len(diff.suppressed), 1)
+                self.assertEqual(diff.suppressed[0].key, "id:6927492937392324635")
+                self.assertEqual(
+                    diff.suppressed[0].field_change,
+                    compare_api_catalogs.FieldChange("url", old_url, new_url),
+                )
 
-        self.assertEqual(diff.changed, ())
-        self.assertFalse(diff.has_changes)
-        self.assertEqual(len(diff.suppressed), 1)
-        self.assertEqual(diff.suppressed[0].key, "id:6927492937392324635")
-        self.assertEqual(diff.suppressed[0].field_change.field, "url")
-        self.assertEqual(
-            diff.suppressed[0].field_change.old, "POST:/open-apis/wiki/v2/nodes/search"
-        )
-        self.assertEqual(
-            diff.suppressed[0].field_change.new, "POST:/open-apis/wiki/v1/nodes/search"
-        )
+    def test_other_wiki_search_url_changes_are_reported(self):
+        for url in (
+            "POST:/open-apis/wiki/v3/nodes/search",
+            "POST:/open-apis/wiki/v2/nodes/list",
+            "GET:/open-apis/wiki/v2/nodes/search",
+            "",
+        ):
+            other = dict(WIKI_SEARCH_ROW, url=url)
+            for baseline, current in ((WIKI_SEARCH_ROW, other), (other, WIKI_SEARCH_ROW)):
+                with self.subTest(old_url=baseline["url"], new_url=current["url"]):
+                    diff = compare_api_catalogs.compare_catalogs([baseline], [current])
+
+                    self.assertTrue(diff.has_changes)
+                    self.assertEqual(len(diff.changed), 1)
+                    expected = compare_api_catalogs.FieldChange(
+                        "url", baseline["url"], current["url"]
+                    )
+                    self.assertEqual(diff.changed[0].field_changes, (expected,))
+                    self.assertEqual(diff.suppressed, ())
 
     def test_other_api_url_change_is_still_reported(self):
         other = dict(BASE_ROW, id="42", name="其他 API")

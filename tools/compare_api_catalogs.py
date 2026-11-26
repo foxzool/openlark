@@ -32,7 +32,7 @@ DEFAULT_COMPARE_FIELDS = [
 # 噪声字段：不默认参与“接口是否变动”的判定。
 NOISE_FIELDS = {"detail", "orderMark", "updateTime"}
 
-# 已知误报抑制清单：{api id: 需忽略其字段变化的字段集合}。
+# 已知误报抑制清单：{(api id, 字段): 允许双向切换的两个完整值}。
 #
 # id 6927492937392324635（搜索 Wiki）：官方文档目录树里的 `apiSummary.apiPath` 是过时的
 # v1 路径，而文档正文（中文与国际版）均为 v2。导出器在 get_detail 无 schema 时回退采用
@@ -40,10 +40,14 @@ NOISE_FIELDS = {"detail", "orderMark", "updateTime"}
 # 字段变化（#762/#771/#775/#780/#781 连续重燃）。SDK 与基线 CSV 采用 v2 是 #740 的
 # 有意决定，不应跟随目录 apiPath 改动。
 #
-# 因此仅忽略该 id 的 `url` 字段变化：该 id 的其他字段照常比较，其余所有 API 不受影响。
 # 根因分析与解除条件见 .out-of-scope/wiki-search-v1-path.md。
-SUPPRESSED_FIELD_CHANGES: Dict[str, FrozenSet[str]] = {
-    "6927492937392324635": frozenset({"url"}),
+SUPPRESSED_FIELD_CHANGES: Dict[Tuple[str, str], FrozenSet[str]] = {
+    ("6927492937392324635", "url"): frozenset(
+        {
+            "POST:/open-apis/wiki/v1/nodes/search",
+            "POST:/open-apis/wiki/v2/nodes/search",
+        }
+    ),
 }
 
 
@@ -116,19 +120,13 @@ def index_rows(rows: Iterable[Dict[str, str]]) -> Dict[str, Dict[str, str]]:
     return indexed
 
 
-def suppressed_fields_for(old_row: Dict[str, str], new_row: Dict[str, str]) -> FrozenSet[str]:
-    """返回该行需要忽略字段变化比较的字段集合；无 id 或未登记时为空集合。"""
-    api_id = (new_row.get("id", "") or old_row.get("id", "")).strip()
-    return SUPPRESSED_FIELD_CHANGES.get(api_id, frozenset())
-
-
 def diff_fields(
     old_row: Dict[str, str],
     new_row: Dict[str, str],
     compare_fields: Sequence[str],
 ) -> Tuple[Tuple[FieldChange, ...], Tuple[FieldChange, ...]]:
     """比较两行的指定字段，返回 (有效字段变化, 被抑制的已知误报变化)。"""
-    ignored = suppressed_fields_for(old_row, new_row)
+    api_id = (new_row.get("id", "") or old_row.get("id", "")).strip()
     effective: List[FieldChange] = []
     suppressed: List[FieldChange] = []
     for field in compare_fields:
@@ -137,7 +135,8 @@ def diff_fields(
         if old_value == new_value:
             continue
         change = FieldChange(field, old_value, new_value)
-        if field in ignored:
+        allowed_values = SUPPRESSED_FIELD_CHANGES.get((api_id, field))
+        if allowed_values == frozenset((old_value, new_value)):
             suppressed.append(change)
         else:
             effective.append(change)
@@ -269,12 +268,12 @@ def render_changed_table(changes: Sequence[ApiChange], max_items: int, max_field
 def suppressed_fields_note() -> str:
     """由 SUPPRESSED_FIELD_CHANGES 生成报告“判定口径”中的抑制说明。"""
     items = "; ".join(
-        f"id `{api_id}` 的字段 `{', '.join(sorted(fields))}`"
-        for api_id, fields in sorted(SUPPRESSED_FIELD_CHANGES.items())
+        f"id `{api_id}` 的字段 `{field}`"
+        for api_id, field in sorted(SUPPRESSED_FIELD_CHANGES)
     )
     return (
-        "- 已知误报抑制（仅限列出的 id 与字段，其余字段照常比较）: "
-        f"{items}（原因见 `.out-of-scope/wiki-search-v1-path.md`）。"
+        "- 已知误报抑制仅适用于指定 id 和字段在已登记的两个完整值之间切换。"
+        f"当前规则涉及 {items}（原因见 `.out-of-scope/wiki-search-v1-path.md`）。"
     )
 
 
