@@ -9,7 +9,7 @@ import datetime as dt
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, FrozenSet, Iterable, List, Sequence, Tuple
 
 DEFAULT_COMPARE_FIELDS = [
     "name",
@@ -32,6 +32,24 @@ DEFAULT_COMPARE_FIELDS = [
 # 噪声字段：不默认参与“接口是否变动”的判定。
 NOISE_FIELDS = {"detail", "orderMark", "updateTime"}
 
+# 已知误报抑制清单：{(api id, 字段): 允许双向切换的两个完整值}。
+#
+# id 6927492937392324635（搜索 Wiki）：官方文档目录树里的 `apiSummary.apiPath` 是过时的
+# v1 路径，而文档正文（中文与国际版）均为 v2。导出器在 get_detail 无 schema 时回退采用
+# 目录 apiPath，导致每周刷新出的 `url` 在 v2（仓库基线）与 v1 之间来回翻转，被误报为
+# 字段变化（#762/#771/#775/#780/#781 连续重燃）。SDK 与基线 CSV 采用 v2 是 #740 的
+# 有意决定，不应跟随目录 apiPath 改动。
+#
+# 根因分析与解除条件见 .out-of-scope/wiki-search-v1-path.md。
+SUPPRESSED_FIELD_CHANGES: Dict[Tuple[str, str], FrozenSet[str]] = {
+    ("6927492937392324635", "url"): frozenset(
+        {
+            "POST:/open-apis/wiki/v1/nodes/search",
+            "POST:/open-apis/wiki/v2/nodes/search",
+        }
+    ),
+}
+
 
 @dataclass(frozen=True)
 class FieldChange:
@@ -49,10 +67,19 @@ class ApiChange:
 
 
 @dataclass(frozen=True)
+class SuppressedChange:
+    """被 SUPPRESSED_FIELD_CHANGES 抑制的字段变化（不触发 Issue，仅用于日志对账）。"""
+
+    key: str
+    field_change: FieldChange
+
+
+@dataclass(frozen=True)
 class CatalogDiff:
     added: Tuple[Dict[str, str], ...]
     removed: Tuple[Dict[str, str], ...]
     changed: Tuple[ApiChange, ...]
+    suppressed: Tuple[SuppressedChange, ...] = ()
 
     @property
     def has_changes(self) -> bool:
@@ -93,6 +120,29 @@ def index_rows(rows: Iterable[Dict[str, str]]) -> Dict[str, Dict[str, str]]:
     return indexed
 
 
+def diff_fields(
+    old_row: Dict[str, str],
+    new_row: Dict[str, str],
+    compare_fields: Sequence[str],
+) -> Tuple[Tuple[FieldChange, ...], Tuple[FieldChange, ...]]:
+    """比较两行的指定字段，返回 (有效字段变化, 被抑制的已知误报变化)。"""
+    api_id = (new_row.get("id", "") or old_row.get("id", "")).strip()
+    effective: List[FieldChange] = []
+    suppressed: List[FieldChange] = []
+    for field in compare_fields:
+        old_value = old_row.get(field, "")
+        new_value = new_row.get(field, "")
+        if old_value == new_value:
+            continue
+        change = FieldChange(field, old_value, new_value)
+        allowed_values = SUPPRESSED_FIELD_CHANGES.get((api_id, field))
+        if allowed_values == frozenset((old_value, new_value)):
+            suppressed.append(change)
+        else:
+            effective.append(change)
+    return tuple(effective), tuple(suppressed)
+
+
 def compare_catalogs(
     baseline_rows: Sequence[Dict[str, str]],
     current_rows: Sequence[Dict[str, str]],
@@ -108,18 +158,23 @@ def compare_catalogs(
     removed = tuple(baseline[key] for key in sorted(baseline_keys - current_keys, key=lambda k: sort_key(baseline[k])))
 
     changed: List[ApiChange] = []
+    suppressed_changes: List[SuppressedChange] = []
     for key in sorted(baseline_keys & current_keys, key=lambda k: sort_key(current[k])):
         old_row = baseline[key]
         new_row = current[key]
-        field_changes = tuple(
-            FieldChange(field, old_row.get(field, ""), new_row.get(field, ""))
-            for field in compare_fields
-            if old_row.get(field, "") != new_row.get(field, "")
+        field_changes, suppressed = diff_fields(old_row, new_row, compare_fields)
+        suppressed_changes.extend(
+            SuppressedChange(key, change) for change in suppressed
         )
         if field_changes:
             changed.append(ApiChange(key, old_row, new_row, field_changes))
 
-    return CatalogDiff(added=added, removed=removed, changed=tuple(changed))
+    return CatalogDiff(
+        added=added,
+        removed=removed,
+        changed=tuple(changed),
+        suppressed=tuple(suppressed_changes),
+    )
 
 
 def sort_key(row: Dict[str, str]) -> Tuple[str, str, str, str, str, str]:
@@ -210,6 +265,18 @@ def render_changed_table(changes: Sequence[ApiChange], max_items: int, max_field
     return lines
 
 
+def suppressed_fields_note() -> str:
+    """由 SUPPRESSED_FIELD_CHANGES 生成报告“判定口径”中的抑制说明。"""
+    items = "; ".join(
+        f"id `{api_id}` 的字段 `{field}`"
+        for api_id, field in sorted(SUPPRESSED_FIELD_CHANGES)
+    )
+    return (
+        "- 已知误报抑制仅适用于指定 id 和字段在已登记的两个完整值之间切换。"
+        f"当前规则涉及 {items}（原因见 `.out-of-scope/wiki-search-v1-path.md`）。"
+    )
+
+
 def render_report(
     diff: CatalogDiff,
     baseline_count: int,
@@ -244,6 +311,7 @@ def render_report(
             "",
             "- 以 `id` 作为 API 身份；缺少 `id` 时退回到 `url + meta.*`。",
             "- 默认忽略 `detail`、`orderMark`、`updateTime`，避免文档描述、排序和更新时间噪声触发 Issue。",
+            suppressed_fields_note(),
             "- 比较字段: " + ", ".join(f"`{field}`" for field in compare_fields),
             "",
             "## 新增 API",
@@ -319,6 +387,17 @@ def main() -> int:
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report, encoding="utf-8")
     write_github_output(args.github_output, diff)
+
+    if diff.suppressed:
+        details = "; ".join(
+            f"{item.key} 的 `{item.field_change.field}`"
+            f"（{item.field_change.old} → {item.field_change.new}）"
+            for item in diff.suppressed
+        )
+        print(
+            f"已按 SUPPRESSED_FIELD_CHANGES 抑制 {len(diff.suppressed)} 处已知误报字段变化"
+            f"（不触发 Issue）：{details}"
+        )
 
     print(
         "API 变动检测完成："
